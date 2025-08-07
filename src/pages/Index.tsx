@@ -2,6 +2,11 @@ import { Bell, Mail, User, Gift } from "lucide-react";
 import { NotificationCard } from "@/components/NotificationCard";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
+import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
+import { OccasionSection } from "@/components/OccasionSection";
+import { PopularCategoriesSection } from "@/components/PopularCategoriesSection";
+import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
+import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
@@ -66,7 +71,7 @@ const Index = () => {
         <WelcomeSection userName="Aminata" />
 
         {/* Action Cards */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <ActionCard
             title="Mon Tableau de Bord"
             subtitle="Gérez vos amis et événements"
@@ -83,7 +88,28 @@ const Index = () => {
             onClick={handleOfferGift}
           />
         </div>
+
+        {/* Favorite Articles Section */}
+        <FavoriteArticlesSection />
+
+        {/* Occasions Section */}
+        <OccasionSection />
+
+        {/* Popular Categories */}
+        <PopularCategoriesSection />
+
+        {/* Collaborative Offer */}
+        <CollaborativeOfferSection />
+
+        {/* Recent Activity */}
+        <RecentActivitySection />
+
+        {/* Bottom padding for navigation */}
+        <div className="pb-20"></div>
       </main>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   );
 };
