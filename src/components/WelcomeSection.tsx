@@ -1,19 +1,14 @@
 import { Sparkles } from "lucide-react";
 import celebrationHero from "@/assets/celebration-hero.jpg";
-
 interface WelcomeSectionProps {
   userName: string;
 }
-
-export function WelcomeSection({ userName }: WelcomeSectionProps) {
-  return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-2xl p-6 mb-6 shadow-card">
+export function WelcomeSection({
+  userName
+}: WelcomeSectionProps) {
+  return <div className="relative overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-2xl p-6 mb-6 shadow-card">
       <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
-        <img 
-          src={celebrationHero} 
-          alt="Celebration" 
-          className="w-full h-full object-cover rounded-full"
-        />
+        <img src={celebrationHero} alt="Celebration" className="w-full h-full object-cover rounded-full" />
       </div>
       
       <div className="relative z-10">
@@ -28,13 +23,12 @@ export function WelcomeSection({ userName }: WelcomeSectionProps) {
           Célébrez et offrez des moments de bonheur à vos proches
         </p>
         
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-3 border border-primary/20">
-          <p className="text-sm text-foreground flex items-center gap-2">
+        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-3 border border-primary/20 rounded-lg">
+          <p className="text-foreground flex items-center gap-2 text-sm text-left font-normal">
             <Sparkles className="h-4 w-4 text-primary" />
             Cadeaux partagés • Liste de souhaits • Livraison rapide
           </p>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
