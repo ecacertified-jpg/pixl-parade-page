@@ -2095,21 +2095,14 @@ export type Database = {
         Returns: string
       }
       create_transaction_verification_with_rate_limit: {
-        Args:
-          | {
-              p_user_id: string
-              p_fund_id: string
-              p_beneficiary_contact_id: string
-              p_verification_type?: string
-            }
-          | {
-              p_user_id: string
-              p_fund_id: string
-              p_beneficiary_contact_id: string
-              p_verification_type?: string
-              p_ip_address?: unknown
-              p_device_fingerprint?: string
-            }
+        Args: {
+          p_user_id: string
+          p_fund_id: string
+          p_beneficiary_contact_id: string
+          p_verification_type?: string
+          p_ip_address?: unknown
+          p_device_fingerprint?: string
+        }
         Returns: string
       }
       decrypt_instagram_token: {
