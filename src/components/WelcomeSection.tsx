@@ -24,7 +24,7 @@ export function WelcomeSection({
         </p>
         
         <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-3 border border-primary/20 rounded-lg">
-          <p className="text-foreground flex items-center gap-2 text-sm text-left font-normal">
+          <p className="text-foreground flex items-center gap-2 font-normal mx-[7px] text-center text-xs">
             <Sparkles className="h-4 w-4 text-primary" />
             Cadeaux partagés • Liste de souhaits • Livraison rapide
           </p>

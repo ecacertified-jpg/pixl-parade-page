@@ -22,7 +22,7 @@ export function ActionCard({
         <Icon className={`h-8 w-8 ${iconColor}`} />
       </div>
       
-      <h3 className="font-semibold text-foreground mb-2 text-sm">
+      <h3 className="font-semibold text-foreground mb-2 text-sm mx-0 my-0 py-0 px-[9px]">
         {title}
       </h3>
       
