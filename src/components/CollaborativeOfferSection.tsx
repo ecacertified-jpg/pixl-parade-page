@@ -9,7 +9,7 @@ export function CollaborativeOfferSection() {
             <Users className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h3 className="font-bold mb-1 py-0 mx-px px-0 text-lg">Offrecollaborative !</h3>
+            <h3 className="font-bold mb-1 py-0 mx-px px-0 text-lg">Offre collaborative !</h3>
             <p className="text-white/90 text-sm">
               Cotisez à plusieurs pour offrir ensemble
             </p>
