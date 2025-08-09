@@ -48,7 +48,7 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" className="font-medium my-0 mx-0 bg-green-600 hover:bg-green-500 px-[11px] py-[9px]">Compte Business</Button>
+            <Button variant="secondary" className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]">Compte Business</Button>
           </div>
         </Card>
 
