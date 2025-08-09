@@ -8,9 +8,10 @@ import { PopularCategoriesSection } from "@/components/PopularCategoriesSection"
 import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { useToast } from "@/hooks/use-toast";
-
+import { useNavigate } from "react-router-dom";
 const Index = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleGiftAction = () => {
     toast({
@@ -20,10 +21,7 @@ const Index = () => {
   };
 
   const handleDashboard = () => {
-    toast({
-      title: "Tableau de bord",
-      description: "Accès à votre espace personnel...",
-    });
+    navigate("/dashboard");
   };
 
   const handleOfferGift = () => {
