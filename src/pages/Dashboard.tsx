@@ -4,14 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, CalendarDays, Gift, PiggyBank, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
 export default function Dashboard() {
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <h1 className="text-xl font-semibold">Mon Tableau de Bord</h1>
@@ -45,20 +42,20 @@ export default function Dashboard() {
         </Card>
 
         {/* CTA Business */}
-        <Card className="p-4 mb-4">
+        <Card className="p-4 mb-4 bg-green-100">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-semibold">Vous êtes commerçant ?</div>
+              <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" className="font-medium">Compte Business</Button>
+            <Button variant="secondary" className="font-medium my-0 mx-0 bg-green-600 hover:bg-green-500 px-[11px] py-[9px]">Compte Business</Button>
           </div>
         </Card>
 
         {/* Onglets */}
         <Tabs defaultValue="amis" className="w-full">
           <TabsList className="grid grid-cols-4">
-            <TabsTrigger value="amis" className="flex gap-2"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
+            <TabsTrigger value="amis" className="flex gap-2 bg-zinc-50"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-2"><CalendarDays className="h-4 w-4" aria-hidden />Événements</TabsTrigger>
             <TabsTrigger value="cadeaux" className="flex gap-2"><Gift className="h-4 w-4" aria-hidden />Cadeaux</TabsTrigger>
             <TabsTrigger value="cotisations" className="flex gap-2"><PiggyBank className="h-4 w-4" aria-hidden />Cotisations</TabsTrigger>
@@ -96,6 +93,5 @@ export default function Dashboard() {
 
         <div className="pb-20" />
       </main>
-    </div>
-  );
+    </div>;
 }
