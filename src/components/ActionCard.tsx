@@ -26,7 +26,7 @@ export function ActionCard({
         {title}
       </h3>
       
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm">
         {subtitle}
       </p>
     </Card>;
