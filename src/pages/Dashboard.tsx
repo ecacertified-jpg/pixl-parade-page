@@ -146,25 +146,117 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            {/* Cadeau exemple */}
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <Gift className="h-6 w-6 text-gray-600" />
+            {/* Section Cadeaux Reçus */}
+            <Card className="p-4 mb-4 border-green-200 bg-green-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Gift className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-600">Reçu de :</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
+                    <span className="text-sm">Fatou Bamba</span>
+                  </div>
+                  <span className="text-sm font-medium">8000 F</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
+                    <span className="text-sm">Kofi Asante</span>
+                  </div>
+                  <span className="text-sm font-medium">7000 F</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Cadeau principal */}
+            <Card className="p-4 mb-4 border-blue-200 bg-blue-50">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Gift className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium">Bracelet Doré Élégance</div>
-                  <div className="text-xs text-muted-foreground">Promotion professionnelle</div>
+                  <div className="font-medium">Parfum Roses de Yamoussoukro</div>
+                  <div className="text-xs text-muted-foreground">Anniversaire</div>
+                  <div className="text-xs text-muted-foreground">18/07/2025</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold text-green-600">18,00 €</div>
+                  <div className="font-semibold text-blue-600">28 000 F</div>
+                </div>
+              </div>
+              
+              <div className="border-t pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm font-medium text-orange-600">Offert à :</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
+                  <span className="text-sm">Fatou Bamba</span>
                 </div>
               </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="cotisations" className="mt-4">
-            <Card className="p-6 text-sm text-muted-foreground">Vos cagnottes et contributions s'afficheront ici.</Card>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-base">Cotisations Groupées</h2>
+              <Button size="sm" className="gap-2 bg-green-500 text-white hover:bg-green-600">
+                <Plus className="h-4 w-4" aria-hidden />
+                Cotiser
+              </Button>
+            </div>
+            
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium">Cadeau pour la promotion d'Aisha</h3>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-xs">Initiateur</Badge>
+                  <Badge className="text-xs bg-green-500">Actif</Badge>
+                </div>
+              </div>
+              
+              <div className="text-sm text-muted-foreground mb-3">Pour: Aisha Traoré</div>
+              
+              <div className="mb-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Progression</span>
+                  <span className="font-medium">35 000 / 50 000 F</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '70%' }}></div>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">70% atteint</div>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium mb-2">Contributeurs (3):</div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">M</div>
+                      <span className="text-sm">Moi</span>
+                    </div>
+                    <span className="text-sm font-medium">15 000 F</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
+                      <span className="text-sm">Fatou Bamba</span>
+                    </div>
+                    <span className="text-sm font-medium">12 000 F</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
+                      <span className="text-sm">Kofi Asante</span>
+                    </div>
+                    <span className="text-sm font-medium">8 000 F</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
 
