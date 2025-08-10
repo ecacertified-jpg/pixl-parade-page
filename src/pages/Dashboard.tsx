@@ -65,7 +65,13 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]">Compte Business</Button>
+            <Button 
+              variant="secondary" 
+              className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]"
+              onClick={() => navigate('/business-account')}
+            >
+              Compte Business
+            </Button>
           </div>
         </Card>
 
@@ -146,26 +152,42 @@ export default function Dashboard() {
               </Button>
             </div>
 
-            {/* Section Cadeaux Reçus */}
+            {/* Cadeau principal reçu */}
             <Card className="p-4 mb-4 border-green-200 bg-green-50">
-              <div className="flex items-center gap-2 mb-3">
-                <Gift className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-600">Reçu de :</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
-                    <span className="text-sm">Fatou Bamba</span>
-                  </div>
-                  <span className="text-sm font-medium">8000 F</span>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Gift className="h-6 w-6 text-green-600" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
-                    <span className="text-sm">Kofi Asante</span>
+                <div className="flex-1">
+                  <div className="font-medium">Bracelet Doré Élégance</div>
+                  <div className="text-xs text-muted-foreground">Promotion professionnelle</div>
+                  <div className="text-xs text-muted-foreground">31/07/2025</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-green-600">15 000 F</div>
+                </div>
+              </div>
+              
+              <div className="border-t pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-600">Reçu de :</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
+                      <span className="text-sm">Fatou Bamba</span>
+                    </div>
+                    <span className="text-sm font-medium">8000 F</span>
                   </div>
-                  <span className="text-sm font-medium">7000 F</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
+                      <span className="text-sm">Kofi Asante</span>
+                    </div>
+                    <span className="text-sm font-medium">7000 F</span>
+                  </div>
                 </div>
               </div>
             </Card>
