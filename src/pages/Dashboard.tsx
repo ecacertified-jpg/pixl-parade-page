@@ -125,7 +125,42 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
-            <Card className="p-6 text-sm text-muted-foreground">Votre liste de cadeaux s'affichera ici.</Card>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
+              <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600">
+                <Gift className="h-4 w-4" aria-hidden />
+                Offrir
+              </Button>
+            </div>
+            
+            {/* Filtres */}
+            <div className="flex gap-2 mb-4">
+              <Button variant="default" size="sm" className="bg-primary text-primary-foreground">
+                Tous (2)
+              </Button>
+              <Button variant="outline" size="sm">
+                Reçus (1)
+              </Button>
+              <Button variant="outline" size="sm">
+                Offerts (1)
+              </Button>
+            </div>
+
+            {/* Cadeau exemple */}
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <Gift className="h-6 w-6 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Bracelet Doré Élégance</div>
+                  <div className="text-xs text-muted-foreground">Promotion professionnelle</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-green-600">18,00 €</div>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="cotisations" className="mt-4">
