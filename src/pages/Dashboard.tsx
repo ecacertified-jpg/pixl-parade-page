@@ -2,17 +2,34 @@ import { useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, PiggyBank, Plus } from "lucide-react";
+import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+
 export default function Dashboard() {
+  const navigate = useNavigate();
+  
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
+
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
-          <h1 className="text-xl font-semibold">Mon Tableau de Bord</h1>
-          <p className="text-sm text-muted-foreground">Gérez vos relations et événements</p>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/')}
+              className="p-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-semibold">Mon Tableau de Bord</h1>
+              <p className="text-sm text-muted-foreground">Gérez vos relations et événements</p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -79,15 +96,40 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
-            <Card className="p-6 text-sm text-muted-foreground">Vos événements à venir s’afficheront ici.</Card>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-base">Événements à Venir</h2>
+              <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                <Plus className="h-4 w-4" aria-hidden />
+                Ajouter
+              </Button>
+            </div>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Anniversaire de Fatou</div>
+                    <div className="text-xs text-muted-foreground">samedi 9 août 2025</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                    2j
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">Dans 2 jour(s)</div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
-            <Card className="p-6 text-sm text-muted-foreground">Votre liste de cadeaux s’affichera ici.</Card>
+            <Card className="p-6 text-sm text-muted-foreground">Votre liste de cadeaux s'affichera ici.</Card>
           </TabsContent>
 
           <TabsContent value="cotisations" className="mt-4">
-            <Card className="p-6 text-sm text-muted-foreground">Vos cagnottes et contributions s’afficheront ici.</Card>
+            <Card className="p-6 text-sm text-muted-foreground">Vos cagnottes et contributions s'afficheront ici.</Card>
           </TabsContent>
         </Tabs>
 
