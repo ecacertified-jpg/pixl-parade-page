@@ -1,0 +1,147 @@
+import { useState } from "react";
+import { Search, Filter, ShoppingCart, Heart, Star, MapPin } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+
+export default function Shop() {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const products = [
+    {
+      id: 1,
+      name: "Bracelet Doré Élégance",
+      description: "Bracelet en or 18 carats avec finitions délicates",
+      price: 15000,
+      currency: "F",
+      image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+      category: "Bijoux",
+      vendor: "Bijouterie Précieuse",
+      distance: "2.3 km",
+      rating: 4.8,
+      reviews: 45,
+      inStock: true
+    }
+  ];
+
+  const categories = [
+    { name: "Bijoux", count: 12, active: true },
+    { name: "Parfums", count: 8, active: false },
+    { name: "Tech", count: 15, active: false },
+    { name: "Mode", count: 22, active: false },
+    { name: "Artisanat", count: 6, active: false }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-background">
+      {/* Header */}
+      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
+        <div className="max-w-md mx-auto px-4 py-4">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-xl font-bold">Boutique</h1>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="sm">
+                <Filter className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="relative">
+                <ShoppingCart className="h-4 w-4" />
+                <Badge className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center p-0">
+                  2
+                </Badge>
+              </Button>
+            </div>
+          </div>
+          
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher des produits..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-md mx-auto px-4 py-6">
+        {/* Categories */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
+          {categories.map((category, index) => (
+            <Button
+              key={index}
+              variant={category.active ? "default" : "outline"}
+              size="sm"
+              className="whitespace-nowrap"
+            >
+              {category.name} ({category.count})
+            </Button>
+          ))}
+        </div>
+
+        {/* Products Grid */}
+        <div className="space-y-4">
+          {products.map((product) => (
+            <Card key={product.id} className="overflow-hidden">
+              <div className="relative">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-48 object-cover"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                >
+                  <Heart className="h-4 w-4" />
+                </Button>
+                <Badge className="absolute top-2 left-2 bg-primary">
+                  {product.category}
+                </Badge>
+              </div>
+              
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {product.description}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-primary">
+                      {product.price.toLocaleString()} {product.currency}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 mb-3">
+                  <MapPin className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{product.vendor}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">{product.distance}</span>
+                </div>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{product.rating}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">({product.reviews} avis)</span>
+                </div>
+
+                <Button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600">
+                  Commander
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="pb-20" />
+      </main>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 import { User, Heart, ShoppingBag, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 export function RecentActivitySection() {
   return (
@@ -21,11 +22,13 @@ export function RecentActivitySection() {
 }
 
 export function BottomNavigation() {
+  const navigate = useNavigate();
+  
   const navItems = [
-    { icon: <ShoppingBag className="h-5 w-5" />, label: "Accueil", active: true },
-    { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false },
-    { icon: <Users className="h-5 w-5" />, label: "Communauté", active: false },
-    { icon: <Heart className="h-5 w-5" />, label: "Favoris", active: false, badge: "3" }
+    { icon: <User className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
+    { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
+    { icon: <Users className="h-5 w-5" />, label: "Cadeaux", active: false, path: "/gifts" },
+    { icon: <Heart className="h-5 w-5" />, label: "Favoris", active: false, badge: "3", path: "/favorites" }
   ];
 
   return (
@@ -33,7 +36,11 @@ export function BottomNavigation() {
       <div className="max-w-md mx-auto px-4 py-2">
         <div className="flex items-center justify-around">
           {navItems.map((item, index) => (
-            <div key={index} className="flex flex-col items-center gap-1 py-2 relative">
+            <button
+              key={index}
+              onClick={() => navigate(item.path)}
+              className="flex flex-col items-center gap-1 py-2 relative"
+            >
               <div className="relative">
                 <div className={`p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`}>
                   {item.icon}
@@ -47,7 +54,7 @@ export function BottomNavigation() {
               <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
                 {item.label}
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </div>

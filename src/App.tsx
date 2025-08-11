@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import BusinessAccount from "./pages/BusinessAccount";
+import BusinessDashboard from "./pages/BusinessDashboard";
+import Shop from "./pages/Shop";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,16 @@ const App = () => (
             <Route path="/business-account" element={
               <ProtectedRoute>
                 <BusinessAccount />
+              </ProtectedRoute>
+            } />
+            <Route path="/business-dashboard" element={
+              <ProtectedRoute>
+                <BusinessDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/shop" element={
+              <ProtectedRoute>
+                <Shop />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
