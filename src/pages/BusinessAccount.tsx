@@ -7,39 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Upload, 
-  Settings, 
-  Receipt, 
-  Gift, 
-  TrendingUp, 
-  Package, 
-  ShoppingCart, 
-  MapPin,
-  Truck,
-  Phone,
-  Bell,
-  Check,
-  X,
-  Edit,
-  Trash2,
-  Download,
-  Plus,
-  AlertCircle,
-  DollarSign,
-  Star,
-  BarChart3,
-  Users,
-  Calendar,
-  FileText,
-  CreditCard,
-  Clock,
-  UserPlus,
-  Target,
-  PieChart
-} from "lucide-react";
-
+import { ArrowLeft, Upload, Settings, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -50,20 +18,22 @@ export default function BusinessAccount() {
     category: "",
     stock: ""
   });
-  
   useEffect(() => {
     document.title = "Compte Business | JOIE DE VIVRE";
   }, []);
-
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
-
   const handleProductSubmit = () => {
     console.log("Adding product:", newProduct);
-    setNewProduct({ name: "", description: "", price: "", category: "", stock: "" });
+    setNewProduct({
+      name: "",
+      description: "",
+      price: "",
+      category: "",
+      stock: ""
+    });
   };
-
   const stats = {
     totalProducts: 12,
     totalOrders: 8,
@@ -72,84 +42,79 @@ export default function BusinessAccount() {
     commission: 27200,
     netRevenue: 312800
   };
-
-  const recentOrders = [
-    {
-      id: "CMD-001",
-      product: "Bracelet Doré Élégance",
-      customer: "Fatou Bamba",
-      donor: "Kofi Asante",
-      amount: 15000,
-      status: "new",
-      type: "pickup",
-      date: "2025-01-11 14:30"
-    },
-    {
-      id: "CMD-002",
-      product: "Parfum Roses de Yamoussoukro",
-      customer: "Aisha Traoré",
-      donor: "Mamadou Diallo",
-      amount: 35000,
-      status: "confirmed",
-      type: "delivery",
-      date: "2025-01-11 10:15"
-    }
-  ];
-
-  const products = [
-    {
-      id: 1,
-      name: "Bracelet Doré Élégance",
-      category: "Bijoux",
-      price: 15000,
-      stock: 8,
-      sales: 24,
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Parfum Roses de Yamoussoukro",
-      category: "Parfums",
-      price: 35000,
-      stock: 5,
-      sales: 12,
-      status: "active"
-    }
-  ];
-
+  const recentOrders = [{
+    id: "CMD-001",
+    product: "Bracelet Doré Élégance",
+    customer: "Fatou Bamba",
+    donor: "Kofi Asante",
+    amount: 15000,
+    status: "new",
+    type: "pickup",
+    date: "2025-01-11 14:30"
+  }, {
+    id: "CMD-002",
+    product: "Parfum Roses de Yamoussoukro",
+    customer: "Aisha Traoré",
+    donor: "Mamadou Diallo",
+    amount: 35000,
+    status: "confirmed",
+    type: "delivery",
+    date: "2025-01-11 10:15"
+  }];
+  const products = [{
+    id: 1,
+    name: "Bracelet Doré Élégance",
+    category: "Bijoux",
+    price: 15000,
+    stock: 8,
+    sales: 24,
+    status: "active"
+  }, {
+    id: 2,
+    name: "Parfum Roses de Yamoussoukro",
+    category: "Parfums",
+    price: 35000,
+    stock: 5,
+    sales: 12,
+    status: "active"
+  }];
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new": return "bg-orange-500";
-      case "confirmed": return "bg-blue-500";
-      case "preparing": return "bg-yellow-500";
-      case "ready": return "bg-green-500";
-      case "delivered": return "bg-gray-500";
-      default: return "bg-gray-500";
+      case "new":
+        return "bg-orange-500";
+      case "confirmed":
+        return "bg-blue-500";
+      case "preparing":
+        return "bg-yellow-500";
+      case "ready":
+        return "bg-green-500";
+      case "delivered":
+        return "bg-gray-500";
+      default:
+        return "bg-gray-500";
     }
   };
-
   const getStatusText = (status: string) => {
     switch (status) {
-      case "new": return "Nouvelle";
-      case "confirmed": return "Confirmée";
-      case "preparing": return "En préparation";
-      case "ready": return "Prêt";
-      case "delivered": return "Livré";
-      default: return status;
+      case "new":
+        return "Nouvelle";
+      case "confirmed":
+        return "Confirmée";
+      case "preparing":
+        return "En préparation";
+      case "ready":
+        return "Prêt";
+      case "delivered":
+        return "Livré";
+      default:
+        return status;
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/dashboard')}
-              className="p-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -189,23 +154,23 @@ export default function BusinessAccount() {
           <TabsList className="grid grid-cols-5 text-xs">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
-              <span>Vue d'ensemble</span>
+              <span className="text-xs">Vue d'ens.</span>
             </TabsTrigger>
             <TabsTrigger value="produits" className="flex flex-col gap-1">
               <Package className="h-4 w-4" />
-              <span>Produits</span>
+              <span className="text-xs">Produits</span>
             </TabsTrigger>
             <TabsTrigger value="commandes" className="flex flex-col gap-1">
               <ShoppingCart className="h-4 w-4" />
-              <span>Commandes</span>
+              <span className="text-xs">Commandes</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <TrendingUp className="h-4 w-4" />
-              <span>Analytics</span>
+              <span className="text-xs">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="parametres" className="flex flex-col gap-1">
               <Settings className="h-4 w-4" />
-              <span>Paramètres</span>
+              <span className="text-xs">Paramètres</span>
             </TabsTrigger>
           </TabsList>
 
@@ -272,8 +237,7 @@ export default function BusinessAccount() {
                 </Button>
               </div>
               <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="border rounded-lg p-3">
+                {recentOrders.map(order => <div key={order.id} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-medium">{order.id}</div>
@@ -289,27 +253,20 @@ export default function BusinessAccount() {
                       <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
                       <div className="flex items-center gap-2">
                         <strong>Type:</strong> 
-                        {order.type === "pickup" ? (
-                          <span className="flex items-center gap-1">
+                        {order.type === "pickup" ? <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             Retrait sur place
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
+                          </span> : <span className="flex items-center gap-1">
                             <Truck className="h-3 w-3" />
                             Livraison {order.amount > 25000 && "(Gratuite)"}
-                          </span>
-                        )}
+                          </span>}
                       </div>
                     </div>
-                    {order.status === "new" && (
-                      <Button size="sm" className="w-full mt-2">
+                    {order.status === "new" && <Button size="sm" className="w-full mt-2">
                         <Phone className="h-4 w-4 mr-2" />
                         Appeler le client
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                      </Button>}
+                  </div>)}
               </div>
             </Card>
           </TabsContent>
@@ -330,15 +287,17 @@ export default function BusinessAccount() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Nom du produit</label>
-                  <Input
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                    placeholder="Ex: Bracelet Doré Élégance"
-                  />
+                  <Input value={newProduct.name} onChange={e => setNewProduct({
+                  ...newProduct,
+                  name: e.target.value
+                })} placeholder="Ex: Bracelet Doré Élégance" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Catégorie</label>
-                  <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
+                  <Select value={newProduct.category} onValueChange={value => setNewProduct({
+                  ...newProduct,
+                  category: value
+                })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une catégorie" />
                     </SelectTrigger>
@@ -353,45 +312,32 @@ export default function BusinessAccount() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Prix (FCFA)</label>
-                  <Input
-                    type="number"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                    placeholder="15000"
-                  />
+                  <Input type="number" value={newProduct.price} onChange={e => setNewProduct({
+                  ...newProduct,
+                  price: e.target.value
+                })} placeholder="15000" />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Stock</label>
-                  <Input
-                    type="number"
-                    value={newProduct.stock}
-                    onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                    placeholder="10"
-                  />
+                  <Input type="number" value={newProduct.stock} onChange={e => setNewProduct({
+                  ...newProduct,
+                  stock: e.target.value
+                })} placeholder="10" />
                 </div>
               </div>
               <div className="mb-4">
                 <label className="text-sm font-medium mb-1 block">Description</label>
-                <Textarea
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                  placeholder="Description détaillée du produit..."
-                  rows={3}
-                />
+                <Textarea value={newProduct.description} onChange={e => setNewProduct({
+                ...newProduct,
+                description: e.target.value
+              })} placeholder="Description détaillée du produit..." rows={3} />
               </div>
               <div className="mb-4">
                 <label className="text-sm font-medium mb-1 block">Images du produit</label>
-                <Input 
-                  type="file" 
-                  multiple 
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                />
-                {selectedFiles && (
-                  <p className="text-sm text-green-600 mt-1">
+                <Input type="file" multiple accept="image/*" onChange={handleFileUpload} />
+                {selectedFiles && <p className="text-sm text-green-600 mt-1">
                     {selectedFiles.length} fichier(s) sélectionné(s)
-                  </p>
-                )}
+                  </p>}
               </div>
               <Button onClick={handleProductSubmit} className="w-full">
                 <Upload className="h-4 w-4 mr-2" />
@@ -403,8 +349,7 @@ export default function BusinessAccount() {
             <Card className="p-4">
               <h3 className="font-medium mb-4">Mes produits ({products.length})</h3>
               <div className="space-y-3">
-                {products.map((product) => (
-                  <div key={product.id} className="border rounded-lg p-4">
+                {products.map(product => <div key={product.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="font-medium">{product.name}</div>
@@ -427,8 +372,7 @@ export default function BusinessAccount() {
                         </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </Card>
           </TabsContent>
@@ -470,8 +414,7 @@ export default function BusinessAccount() {
             </Card>
 
             <div className="space-y-4">
-              {recentOrders.map((order) => (
-                <Card key={order.id} className="p-4">
+              {recentOrders.map(order => <Card key={order.id} className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <div className="font-semibold text-lg">{order.id}</div>
@@ -496,31 +439,24 @@ export default function BusinessAccount() {
                     <div>
                       <h4 className="font-medium mb-2">Mode de récupération</h4>
                       <div className="flex items-center gap-2 mb-2">
-                        {order.type === "pickup" ? (
-                          <>
+                        {order.type === "pickup" ? <>
                             <MapPin className="h-4 w-4 text-blue-500" />
                             <span className="text-sm">Retrait sur place</span>
-                          </>
-                        ) : (
-                          <>
+                          </> : <>
                             <Truck className="h-4 w-4 text-green-500" />
                             <span className="text-sm">
                               Livraison {order.amount > 25000 && "(Gratuite)"}
                             </span>
-                          </>
-                        )}
+                          </>}
                       </div>
-                      {order.type === "delivery" && order.amount <= 25000 && (
-                        <div className="text-xs text-orange-600">
+                      {order.type === "delivery" && order.amount <= 25000 && <div className="text-xs text-orange-600">
                           Frais de livraison à la charge du donateur
-                        </div>
-                      )}
+                        </div>}
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    {order.status === "new" && (
-                      <>
+                    {order.status === "new" && <>
                         <Button size="sm" className="flex-1">
                           <Phone className="h-4 w-4 mr-2" />
                           Appeler le client
@@ -529,26 +465,18 @@ export default function BusinessAccount() {
                           <Check className="h-4 w-4 mr-2" />
                           Confirmer
                         </Button>
-                      </>
-                    )}
-                    {order.status === "confirmed" && (
-                      <Button size="sm" className="flex-1">
+                      </>}
+                    {order.status === "confirmed" && <Button size="sm" className="flex-1">
                         Marquer en préparation
-                      </Button>
-                    )}
-                    {order.status === "preparing" && (
-                      <Button size="sm" className="flex-1">
+                      </Button>}
+                    {order.status === "preparing" && <Button size="sm" className="flex-1">
                         Marquer comme prêt
-                      </Button>
-                    )}
-                    {order.status === "ready" && (
-                      <Button size="sm" className="flex-1">
+                      </Button>}
+                    {order.status === "ready" && <Button size="sm" className="flex-1">
                         Marquer comme livré/retiré
-                      </Button>
-                    )}
+                      </Button>}
                   </div>
-                </Card>
-              ))}
+                </Card>)}
             </div>
           </TabsContent>
 
@@ -569,7 +497,9 @@ export default function BusinessAccount() {
                       <span>24 ventes (67%)</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{width: '67%'}}></div>
+                      <div className="bg-primary h-2 rounded-full" style={{
+                      width: '67%'
+                    }}></div>
                     </div>
                   </div>
                   <div>
@@ -578,7 +508,9 @@ export default function BusinessAccount() {
                       <span>12 ventes (33%)</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-secondary h-2 rounded-full" style={{width: '33%'}}></div>
+                      <div className="bg-secondary h-2 rounded-full" style={{
+                      width: '33%'
+                    }}></div>
                     </div>
                   </div>
                 </div>
@@ -763,6 +695,5 @@ export default function BusinessAccount() {
 
         <div className="pb-20" />
       </main>
-    </div>
-  );
+    </div>;
 }
