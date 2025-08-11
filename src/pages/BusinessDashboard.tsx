@@ -28,7 +28,15 @@ import {
   Plus,
   Check,
   X,
-  AlertCircle
+  AlertCircle,
+  Star,
+  Calendar,
+  FileText,
+  CreditCard,
+  Clock,
+  UserPlus,
+  Target,
+  PieChart
 } from "lucide-react";
 
 export default function BusinessDashboard() {

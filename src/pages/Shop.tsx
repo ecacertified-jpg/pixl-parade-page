@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Filter, ShoppingCart, Heart, Star, MapPin } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,16 +39,27 @@ export default function Shop() {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => window.location.href = '/'}
+              className="p-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
             <h1 className="text-xl font-bold">Boutique</h1>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Filter className="h-4 w-4" />
-              </Button>
               <Button variant="ghost" size="sm" className="relative">
                 <ShoppingCart className="h-4 w-4" />
                 <Badge className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center p-0">
                   2
                 </Badge>
+              </Button>
+              <Button variant="ghost" size="sm">
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4" />
               </Button>
             </div>
           </div>
