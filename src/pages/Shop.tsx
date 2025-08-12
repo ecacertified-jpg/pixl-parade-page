@@ -4,59 +4,51 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
 export default function Shop() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
-
-  const products = [
-    {
-      id: 1,
-      name: "Bracelet Doré Élégance",
-      description: "Bracelet en or 18 carats avec finitions délicates",
-      price: 15000,
-      currency: "F",
-      image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-      category: "Bijoux",
-      vendor: "Bijouterie Précieuse",
-      distance: "2.3 km",
-      rating: 4.8,
-      reviews: 45,
-      inStock: true
-    }
-  ];
-
-  const categories = [
-    { name: "Bijoux", count: 12, active: true },
-    { name: "Parfums", count: 8, active: false },
-    { name: "Tech", count: 15, active: false },
-    { name: "Mode", count: 22, active: false },
-    { name: "Artisanat", count: 6, active: false }
-  ];
-
-  const locations = [
-    "Tous les lieux",
-    "Abidjan - Cocody",
-    "Abidjan - Marcory", 
-    "Abidjan - Yopougon",
-    "Abidjan - Adjamé",
-    "Bouaké",
-    "Yamoussoukro",
-    "San-Pédro"
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  const products = [{
+    id: 1,
+    name: "Bracelet Doré Élégance",
+    description: "Bracelet en or 18 carats avec finitions délicates",
+    price: 15000,
+    currency: "F",
+    image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+    category: "Bijoux",
+    vendor: "Bijouterie Précieuse",
+    distance: "2.3 km",
+    rating: 4.8,
+    reviews: 45,
+    inStock: true
+  }];
+  const categories = [{
+    name: "Bijoux",
+    count: 12,
+    active: true
+  }, {
+    name: "Parfums",
+    count: 8,
+    active: false
+  }, {
+    name: "Tech",
+    count: 15,
+    active: false
+  }, {
+    name: "Mode",
+    count: 22,
+    active: false
+  }, {
+    name: "Artisanat",
+    count: 6,
+    active: false
+  }];
+  const locations = ["Tous les lieux", "Abidjan - Cocody", "Abidjan - Marcory", "Abidjan - Yopougon", "Abidjan - Adjamé", "Bouaké", "Yamoussoukro", "San-Pédro"];
+  return <div className="min-h-screen bg-gradient-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => window.location.href = '/'}
-              className="p-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/'} className="p-2">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2">
@@ -74,9 +66,7 @@ export default function Shop() {
           </div>
           
           {/* Search Bar */}
-          <div className="text-sm text-muted-foreground mb-2">
-            14 produits • Mode hors-ligne
-          </div>
+          <div className="text-sm text-muted-foreground mb-2">1 produit </div>
           
           {/* Conseil */}
           <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -91,16 +81,10 @@ export default function Shop() {
           {/* Location Selector */}
           <div className="relative mb-4">
             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {locations.map((location) => (
-                <option key={location} value={location}>
+            <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+              {locations.map(location => <option key={location} value={location}>
                   {location}
-                </option>
-              ))}
+                </option>)}
             </select>
             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           </div>
@@ -108,12 +92,7 @@ export default function Shop() {
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher des produits..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+            <Input placeholder="Rechercher des produits..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
           </div>
         </div>
       </header>
@@ -121,33 +100,17 @@ export default function Shop() {
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Categories */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-          {categories.map((category, index) => (
-            <Button
-              key={index}
-              variant={category.active ? "default" : "outline"}
-              size="sm"
-              className="whitespace-nowrap"
-            >
+          {categories.map((category, index) => <Button key={index} variant={category.active ? "default" : "outline"} size="sm" className="whitespace-nowrap">
               {category.name} ({category.count})
-            </Button>
-          ))}
+            </Button>)}
         </div>
 
         {/* Products Grid */}
         <div className="space-y-4">
-          {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
+          {products.map(product => <Card key={product.id} className="overflow-hidden">
               <div className="relative">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-48 object-cover"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                >
+                <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+                <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
                   <Heart className="h-4 w-4" />
                 </Button>
                 <Badge className="absolute top-2 left-2 bg-primary">
@@ -188,12 +151,10 @@ export default function Shop() {
                   Commander
                 </Button>
               </div>
-            </Card>
-          ))}
+            </Card>)}
         </div>
 
         <div className="pb-20" />
       </main>
-    </div>
-  );
+    </div>;
 }
