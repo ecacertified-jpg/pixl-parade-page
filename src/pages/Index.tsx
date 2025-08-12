@@ -1,4 +1,4 @@
-import { Bell, Mail, User, Gift } from "lucide-react";
+import { Bell, User, Gift, ShoppingCart } from "lucide-react";
 import { NotificationCard } from "@/components/NotificationCard";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
@@ -45,12 +45,18 @@ const Index = () => {
           
           <div className="flex items-center gap-3">
             <div className="relative">
+              <ShoppingCart className="h-6 w-6 text-muted-foreground" />
+              <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                2
+              </div>
+            </div>
+            <div className="relative">
               <Bell className="h-6 w-6 text-muted-foreground" />
               <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 1
               </div>
             </div>
-            <Mail className="h-6 w-6 text-muted-foreground" />
+            <User className="h-6 w-6 text-muted-foreground" />
           </div>
         </div>
       </header>

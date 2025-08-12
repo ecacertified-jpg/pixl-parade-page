@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Shop() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
 
   const products = [
     {
@@ -33,6 +34,17 @@ export default function Shop() {
     { name: "Artisanat", count: 6, active: false }
   ];
 
+  const locations = [
+    "Tous les lieux",
+    "Abidjan - Cocody",
+    "Abidjan - Marcory", 
+    "Abidjan - Yopougon",
+    "Abidjan - Adjamé",
+    "Bouaké",
+    "Yamoussoukro",
+    "San-Pédro"
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-background">
       {/* Header */}
@@ -47,7 +59,10 @@ export default function Shop() {
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <h1 className="text-xl font-bold">Boutique</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">Boutique</h1>
+              <span className="text-sm text-muted-foreground">🏷️</span>
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <Button variant="ghost" size="sm" className="relative">
                 <ShoppingCart className="h-4 w-4" />
@@ -55,15 +70,41 @@ export default function Shop() {
                   2
                 </Badge>
               </Button>
-              <Button variant="ghost" size="sm">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4" />
-              </Button>
             </div>
           </div>
           
+          {/* Search Bar */}
+          <div className="text-sm text-muted-foreground mb-2">
+            14 produits • Mode hors-ligne
+          </div>
+          
+          {/* Conseil */}
+          <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm text-blue-800 font-medium">
+                💡 Conseil : Choisissez le lieu le plus proche pour une livraison rapide
+              </p>
+            </div>
+          </div>
+
+          {/* Location Selector */}
+          <div className="relative mb-4">
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {locations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
+
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
