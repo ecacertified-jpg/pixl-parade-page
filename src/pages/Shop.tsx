@@ -113,31 +113,13 @@ export default function Shop() {
                 <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
                   <Heart className="h-4 w-4" />
                 </Button>
-                <Badge className="absolute top-2 left-2 bg-primary">
-                  {product.category}
-                </Badge>
+                
               </div>
               
               <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-base">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-primary">
-                      {product.price.toLocaleString()} {product.currency}
-                    </div>
-                  </div>
-                </div>
+                
 
-                <div className="flex items-center gap-1 mb-3">
-                  <MapPin className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{product.vendor}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">{product.distance}</span>
-                </div>
+                
 
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex items-center gap-1">
