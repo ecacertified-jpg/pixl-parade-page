@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import BusinessAccount from "./pages/BusinessAccount";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import Shop from "./pages/Shop";
+import Favorites from "./pages/Favorites";
+import Gifts from "./pages/Gifts";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,16 @@ const App = () => (
             <Route path="/shop" element={
               <ProtectedRoute>
                 <Shop />
+              </ProtectedRoute>
+            } />
+            <Route path="/favorites" element={
+              <ProtectedRoute>
+                <Favorites />
+              </ProtectedRoute>
+            } />
+            <Route path="/gifts" element={
+              <ProtectedRoute>
+                <Gifts />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

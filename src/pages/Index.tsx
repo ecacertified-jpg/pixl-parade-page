@@ -3,6 +3,7 @@ import { NotificationCard } from "@/components/NotificationCard";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
+import { FavoritesSuggestions } from "@/components/FavoritesSuggestions";
 import { OccasionSection } from "@/components/OccasionSection";
 import { PopularCategoriesSection } from "@/components/PopularCategoriesSection";
 import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
@@ -95,6 +96,9 @@ const Index = () => {
 
         {/* Favorite Articles Section */}
         <FavoriteArticlesSection />
+
+        {/* Favorites Suggestions */}
+        <FavoritesSuggestions />
 
         {/* Occasions Section */}
         <OccasionSection />

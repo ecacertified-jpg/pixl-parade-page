@@ -1,4 +1,4 @@
-import { User, Heart, ShoppingBag, Users } from "lucide-react";
+import { User, Heart, ShoppingBag, Gift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -27,7 +27,7 @@ export function BottomNavigation() {
   const navItems = [
     { icon: <User className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
     { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
-    { icon: <Users className="h-5 w-5" />, label: "Cadeaux", active: false, path: "/gifts" },
+    { icon: <Gift className="h-5 w-5" />, label: "Cadeaux", active: false, path: "/gifts" },
     { icon: <Heart className="h-5 w-5" />, label: "Favoris", active: false, badge: "3", path: "/favorites" }
   ];
 
