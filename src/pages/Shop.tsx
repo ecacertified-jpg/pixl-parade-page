@@ -4,9 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { OrderModal } from "@/components/OrderModal";
 export default function Shop() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
+  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const products = [{
     id: 1,
     name: "Bracelet Doré Élégance",
@@ -129,7 +132,13 @@ export default function Shop() {
                   
                 </div>
 
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600">
+                <Button 
+                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+                  onClick={() => {
+                    setSelectedProduct(product);
+                    setIsOrderModalOpen(true);
+                  }}
+                >
                   Commander
                 </Button>
               </div>
@@ -138,5 +147,11 @@ export default function Shop() {
 
         <div className="pb-20" />
       </main>
+
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        product={selectedProduct}
+      />
     </div>;
 }
