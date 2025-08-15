@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -2072,11 +2072,11 @@ export type Database = {
     Functions: {
       add_loyalty_points: {
         Args: {
-          p_user_id: string
-          p_points: number
-          p_source_type: string
-          p_source_id?: string
           p_description?: string
+          p_points: number
+          p_source_id?: string
+          p_source_type: string
+          p_user_id: string
         }
         Returns: undefined
       }
@@ -2094,8 +2094,8 @@ export type Database = {
       }
       check_rate_limit: {
         Args: {
-          p_identifier: string
           p_bucket_type: string
+          p_identifier: string
           p_max_tokens?: number
           p_refill_rate?: number
         }
@@ -2103,10 +2103,10 @@ export type Database = {
       }
       create_fund_activity: {
         Args: {
-          p_fund_id: string
-          p_contributor_id: string
           p_activity_type: string
           p_amount?: number
+          p_contributor_id: string
+          p_fund_id: string
           p_message?: string
           p_metadata?: Json
         }
@@ -2114,21 +2114,21 @@ export type Database = {
       }
       create_transaction_verification: {
         Args: {
-          p_user_id: string
-          p_fund_id: string
           p_beneficiary_contact_id: string
+          p_fund_id: string
+          p_user_id: string
           p_verification_type?: string
         }
         Returns: string
       }
       create_transaction_verification_with_rate_limit: {
         Args: {
-          p_user_id: string
-          p_fund_id: string
           p_beneficiary_contact_id: string
-          p_verification_type?: string
-          p_ip_address?: unknown
           p_device_fingerprint?: string
+          p_fund_id: string
+          p_ip_address?: unknown
+          p_user_id: string
+          p_verification_type?: string
         }
         Returns: string
       }
@@ -2159,29 +2159,29 @@ export type Database = {
       get_favorites_suggestions: {
         Args: { p_user_id: string }
         Returns: {
-          product_id: string
-          product_name: string
-          product_description: string
-          product_price: number
-          product_currency: string
-          product_image_url: string
           friend_count: number
           friends_names: string
+          product_currency: string
+          product_description: string
+          product_id: string
+          product_image_url: string
+          product_name: string
+          product_price: number
         }[]
       }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
-          favorite_id: string
-          product_id: string
-          product_name: string
-          product_description: string
-          product_price: number
-          product_currency: string
-          product_image_url: string
-          product_category_id: string
           added_at: string
+          favorite_id: string
           notes: string
+          product_category_id: string
+          product_currency: string
+          product_description: string
+          product_id: string
+          product_image_url: string
+          product_name: string
+          product_price: number
         }[]
       }
       handle_failed_verification: {
@@ -2189,23 +2189,23 @@ export type Database = {
         Returns: undefined
       }
       is_first_payment_to_beneficiary: {
-        Args: { p_user_id: string; p_beneficiary_id: string }
+        Args: { p_beneficiary_id: string; p_user_id: string }
         Returns: boolean
       }
       log_security_event: {
         Args: {
-          p_event_type: string
-          p_user_id?: string
           p_admin_user_id?: string
-          p_ip_address?: unknown
-          p_user_agent?: string
           p_event_data?: Json
+          p_event_type: string
+          p_ip_address?: unknown
           p_severity?: string
+          p_user_agent?: string
+          p_user_id?: string
         }
         Returns: string
       }
       mask_contributor_info: {
-        Args: { name: string; is_anonymous?: boolean }
+        Args: { is_anonymous?: boolean; name: string }
         Returns: string
       }
       process_expired_funds: {
@@ -2213,20 +2213,20 @@ export type Database = {
         Returns: undefined
       }
       request_contact_relationship: {
-        Args: { p_target_user_id: string; p_message?: string }
+        Args: { p_message?: string; p_target_user_id: string }
         Returns: string
       }
       respond_to_contact_request: {
-        Args: { p_request_id: string; p_accept: boolean }
+        Args: { p_accept: boolean; p_request_id: string }
         Returns: boolean
       }
       spend_loyalty_points: {
         Args: {
-          p_user_id: string
-          p_points: number
-          p_source_type: string
-          p_source_id?: string
           p_description?: string
+          p_points: number
+          p_source_id?: string
+          p_source_type: string
+          p_user_id: string
         }
         Returns: boolean
       }

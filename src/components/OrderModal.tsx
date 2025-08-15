@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { X, User, Gift, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { CollaborativeGiftModal } from "./CollaborativeGiftModal";
 interface Product {
   id: number;
   name: string;
@@ -23,6 +24,7 @@ export function OrderModal({
   product
 }: OrderModalProps) {
   const [showGiftOptions, setShowGiftOptions] = useState(false);
+  const [showCollaborativeModal, setShowCollaborativeModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   if (!product) return null;
@@ -34,7 +36,16 @@ export function OrderModal({
   };
   const handleClose = () => {
     setShowGiftOptions(false);
+    setShowCollaborativeModal(false);
     onClose();
+  };
+
+  const handleCollaborativeGift = () => {
+    setShowCollaborativeModal(true);
+  };
+
+  const handleBackFromCollaborative = () => {
+    setShowCollaborativeModal(false);
   };
   return <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md mx-auto">
@@ -131,7 +142,7 @@ export function OrderModal({
                 </div>
               </Button>
 
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => console.log("Cotisation groupée")}>
+              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleCollaborativeGift}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                     <Users className="h-5 w-5 text-green-600" />
@@ -154,5 +165,12 @@ export function OrderModal({
             </>}
         </div>
       </DialogContent>
+
+      <CollaborativeGiftModal
+        isOpen={showCollaborativeModal}
+        onClose={() => setShowCollaborativeModal(false)}
+        onBack={handleBackFromCollaborative}
+        product={product}
+      />
     </Dialog>;
 }

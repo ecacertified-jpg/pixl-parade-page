@@ -228,9 +228,13 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Cotisations Groupées</h2>
-              <Button size="sm" className="gap-2 bg-green-500 text-white hover:bg-green-600">
+              <Button 
+                size="sm" 
+                className="gap-2 bg-green-500 text-white hover:bg-green-600"
+                onClick={() => navigate('/collective-funds')}
+              >
                 <Plus className="h-4 w-4" aria-hidden />
-                Cotiser
+                Voir tout
               </Button>
             </div>
             
