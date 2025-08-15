@@ -14,6 +14,9 @@ import BusinessDashboard from "./pages/BusinessDashboard";
 import Shop from "./pages/Shop";
 import Favorites from "./pages/Favorites";
 import Gifts from "./pages/Gifts";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderConfirmation from "./pages/OrderConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +62,21 @@ const App = () => (
             <Route path="/gifts" element={
               <ProtectedRoute>
                 <Gifts />
+              </ProtectedRoute>
+            } />
+            <Route path="/cart" element={
+              <ProtectedRoute>
+                <Cart />
+              </ProtectedRoute>
+            } />
+            <Route path="/checkout" element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            } />
+            <Route path="/order-confirmation" element={
+              <ProtectedRoute>
+                <OrderConfirmation />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

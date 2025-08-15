@@ -26,10 +26,7 @@ const Index = () => {
   };
 
   const handleOfferGift = () => {
-    toast({
-      title: "Offrir un cadeau",
-      description: "Parcourez notre sélection de cadeaux...",
-    });
+    navigate("/shop");
   };
 
   return (
@@ -45,7 +42,7 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground" />
               <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 2

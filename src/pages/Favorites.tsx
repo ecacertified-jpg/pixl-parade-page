@@ -152,20 +152,40 @@ export default function Favorites() {
             </Button>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
+                <div className="relative">
+                  <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
+                  {/* Ribbon bow */}
+                  <div className="absolute -top-1 -right-1 w-3 h-3">
+                    <div className="w-full h-full bg-yellow-400 rounded-sm rotate-45 relative">
+                      <div className="absolute inset-0 bg-yellow-500 rounded-sm transform -rotate-90"></div>
+                    </div>
+                  </div>
+                </div>
                 <h1 className="text-xl font-semibold">Mes Favoris</h1>
               </div>
               <p className="text-sm text-muted-foreground">{favorites.length} article{favorites.length > 1 ? 's' : ''}</p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/shop')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Ajouter
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="p-2"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                </svg>
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/cart')}
+                className="p-2"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6.5-5a2 2 0 104 0m-4 0a2 2 0 004 0" />
+                </svg>
+              </Button>
+            </div>
           </div>
         </div>
       </header>

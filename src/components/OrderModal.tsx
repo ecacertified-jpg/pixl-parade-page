@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, User, Gift, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 interface Product {
   id: number;
   name: string;
@@ -21,6 +23,8 @@ export function OrderModal({
   product
 }: OrderModalProps) {
   const [showGiftOptions, setShowGiftOptions] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   if (!product) return null;
   const handleGiftClick = () => {
     setShowGiftOptions(true);
@@ -60,7 +64,14 @@ export function OrderModal({
           {!showGiftOptions ?
         // Main Options
         <>
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => console.log("Pour moi-même")}>
+              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => {
+                toast({
+                  title: "Ajouté au panier",
+                  description: `${product.name} a été ajouté à votre panier`
+                });
+                navigate("/cart");
+                onClose();
+              }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <User className="h-5 w-5 text-blue-600" />
