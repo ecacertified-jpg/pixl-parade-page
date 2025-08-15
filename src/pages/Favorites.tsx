@@ -172,15 +172,27 @@ export default function Favorites() {
 
       <main className="max-w-md mx-auto px-4 py-6">
         {favorites.length === 0 ? (
-          <div className="text-center py-12">
-            <Heart className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Aucun favori pour le moment</h2>
-            <p className="text-muted-foreground mb-6">
-              Parcourez notre boutique et ajoutez vos articles préférés !
+          <div className="text-center py-12 px-6">
+            <div className="relative mx-auto mb-6 w-20 h-20">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-400 via-red-400 to-orange-400 rounded-full flex items-center justify-center">
+                <Heart className="h-10 w-10 text-white fill-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                <Gift className="h-4 w-4 text-yellow-800" />
+              </div>
+            </div>
+            <h2 className="text-lg font-semibold mb-3 text-foreground">
+              Aucun favori pour l'instant
+            </h2>
+            <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+              Ajoutez des produits à vos favoris pour que vos amis<br />
+              sachent quoi vous offrir !
             </p>
-            <Button onClick={() => navigate('/shop')} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Explorer la boutique
+            <Button 
+              onClick={() => navigate('/shop')} 
+              className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 rounded-full font-medium"
+            >
+              Découvrir les produits
             </Button>
           </div>
         ) : (
