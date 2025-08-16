@@ -136,10 +136,10 @@ export default function Dashboard() {
               <Button 
                 size="sm" 
                 className="gap-2 bg-pink-500 text-white hover:bg-pink-600"
-                onClick={() => navigate('/gifts')}
+                onClick={() => navigate('/shop')}
               >
                 <Gift className="h-4 w-4" aria-hidden />
-                Voir tout
+                Offrir
               </Button>
             </div>
             
@@ -234,7 +234,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/collective-funds')}
               >
                 <Plus className="h-4 w-4" aria-hidden />
-                Voir tout
+                Cotiser
               </Button>
             </div>
             

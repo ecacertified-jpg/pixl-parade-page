@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ export default function Shop() {
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [contributionTarget, setContributionTarget] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user came from contribution flow
+    const target = localStorage.getItem('contributionTarget');
+    if (target) {
+      setContributionTarget(JSON.parse(target));
+      localStorage.removeItem('contributionTarget');
+    }
+  }, []);
   const products = [{
     id: 1,
     name: "Bracelet Doré Élégance",

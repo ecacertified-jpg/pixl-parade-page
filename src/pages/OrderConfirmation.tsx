@@ -11,6 +11,11 @@ export default function OrderConfirmation() {
     document.title = "Commande confirmée | JOIE DE VIVRE";
   }, []);
 
+  // Check if this is a collaborative gift confirmation
+  const checkoutData = localStorage.getItem('checkoutItems');
+  const isCollaborativeGift = checkoutData ? 
+    JSON.parse(checkoutData).some((item: any) => item.isCollaborativeGift) : false;
+
   const orderDetails = {
     total: 17500,
     phone: "0707467445",
@@ -36,7 +41,9 @@ export default function OrderConfirmation() {
           
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-2xl">🎉</span>
-            <h1 className="text-xl font-bold">Commande confirmée !</h1>
+            <h1 className="text-xl font-bold">
+              {isCollaborativeGift ? "Cagnotte créée !" : "Commande confirmée !"}
+            </h1>
           </div>
         </div>
 
@@ -59,15 +66,27 @@ export default function OrderConfirmation() {
           </div>
 
           {/* Status info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-blue-600">🔄</span>
-              <span className="font-medium text-blue-800">Commande enregistrée localement</span>
+          {isCollaborativeGift ? (
+            <div className="bg-gradient-to-r from-orange-50 to-pink-50 border border-orange-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-orange-600">🎯</span>
+                <span className="font-medium text-orange-800">Cagnotte groupée lancée</span>
+              </div>
+              <p className="text-sm text-orange-700">
+                Vos proches peuvent maintenant contribuer dans l'onglet Cotisations
+              </p>
             </div>
-            <p className="text-sm text-blue-700">
-              Sera synchronisée automatiquement
-            </p>
-          </div>
+          ) : (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-blue-600">🔄</span>
+                <span className="font-medium text-blue-800">Commande enregistrée localement</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                Sera synchronisée automatiquement
+              </p>
+            </div>
+          )}
 
           <div className="bg-gray-50 border rounded-lg p-4">
             <p className="text-sm text-muted-foreground text-center">
@@ -78,20 +97,41 @@ export default function OrderConfirmation() {
 
         {/* Action buttons */}
         <div className="space-y-3">
-          <Button 
-            onClick={continueOrder}
-            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg"
-          >
-            Continuer mes achats
-          </Button>
-          
-          <Button 
-            onClick={viewOrders}
-            variant="outline"
-            className="w-full"
-          >
-            Voir mes commandes
-          </Button>
+          {isCollaborativeGift ? (
+            <>
+              <Button 
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg"
+              >
+                Voir ma cagnotte
+              </Button>
+              
+              <Button 
+                onClick={continueOrder}
+                variant="outline"
+                className="w-full"
+              >
+                Continuer mes achats
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                onClick={continueOrder}
+                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg"
+              >
+                Continuer mes achats
+              </Button>
+              
+              <Button 
+                onClick={viewOrders}
+                variant="outline"
+                className="w-full"
+              >
+                Voir mes commandes
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

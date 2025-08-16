@@ -239,15 +239,16 @@ export default function BusinessDashboard() {
               </div>
             </Card>
 
-            {/* Commandes récentes */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Commandes récentes</h3>
-                <Button size="sm" variant="outline">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notifications
-                </Button>
-              </div>
+            {/* Commandes et Cagnottes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Commandes récentes</h3>
+                  <Button size="sm" variant="outline">
+                    <Bell className="h-4 w-4 mr-2" />
+                    Notifications
+                  </Button>
+                </div>
               <div className="space-y-3">
                 {recentOrders.map((order) => (
                   <div key={order.id} className="border rounded-lg p-3">
@@ -288,7 +289,66 @@ export default function BusinessDashboard() {
                   </div>
                 ))}
               </div>
-            </Card>
+              </Card>
+
+              {/* Cagnottes en cours */}
+              <Card className="p-4">
+                <h3 className="font-semibold mb-4">Cagnottes en cours</h3>
+                <div className="space-y-3">
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-medium text-sm">Bracelet pour Fatou</div>
+                        <div className="text-xs text-muted-foreground">Créé par Kofi Asante</div>
+                      </div>
+                      <Badge className="bg-orange-500">En cours</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Objectif:</span>
+                        <span className="font-medium">15 000 F</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Collecté:</span>
+                        <span className="font-medium text-green-600">8 500 F</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-orange-500 to-pink-500 h-2 rounded-full" style={{width: '57%'}}></div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">5 contributeurs • 3 jours restants</div>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-medium text-sm">Parfum pour Aisha</div>
+                        <div className="text-xs text-muted-foreground">Créé par Mamadou Diallo</div>
+                      </div>
+                      <Badge className="bg-green-500">Objectif atteint!</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Objectif:</span>
+                        <span className="font-medium">35 000 F</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Collecté:</span>
+                        <span className="font-medium text-green-600">35 000 F</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full w-full"></div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">8 contributeurs</div>
+                    </div>
+                    <Button size="sm" className="w-full mt-2 bg-green-500 hover:bg-green-600">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contacter la bénéficiaire
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Gestion des produits */}
