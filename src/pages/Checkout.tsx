@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
 interface CheckoutItem {
   id: number;
   name: string;
@@ -22,17 +21,19 @@ interface CheckoutItem {
   beneficiaryId?: string;
   productId?: number;
 }
-
 export default function Checkout() {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    user
+  } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [orderItems, setOrderItems] = useState<CheckoutItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-
   useEffect(() => {
     // Load checkout items from localStorage
     const checkoutData = localStorage.getItem('checkoutItems');
@@ -40,22 +41,18 @@ export default function Checkout() {
       setOrderItems(JSON.parse(checkoutData));
     } else {
       // Default item if no checkout data
-      setOrderItems([
-        {
-          id: 1,
-          name: "Bracelet Doré Élégance",
-          description: "Bracelet en or 18 carats avec finitions délicates",
-          price: 15000,
-          quantity: 1
-        }
-      ]);
+      setOrderItems([{
+        id: 1,
+        name: "Bracelet Doré Élégance",
+        description: "Bracelet en or 18 carats avec finitions délicates",
+        price: 15000,
+        quantity: 1
+      }]);
     }
   }, []);
-
-  const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shipping;
-
   const handleConfirmOrder = async () => {
     if (!user) {
       toast({
@@ -65,31 +62,27 @@ export default function Checkout() {
       });
       return;
     }
-
     setIsProcessing(true);
     try {
       // Check for collaborative gifts
       const collaborativeGifts = orderItems.filter(item => item.isCollaborativeGift);
-      
       if (collaborativeGifts.length > 0) {
         // Create collective funds for collaborative gifts
         for (const gift of collaborativeGifts) {
-          const { data, error } = await supabase
-            .from("collective_funds")
-            .insert({
-              creator_id: user.id,
-              beneficiary_contact_id: gift.beneficiaryId,
-              title: `Cadeau pour ${gift.beneficiaryName}`,
-              description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
-              target_amount: gift.price,
-              currency: "XOF",
-              occasion: "promotion",
-              is_public: true,
-              allow_anonymous_contributions: false
-            })
-            .select()
-            .single();
-
+          const {
+            data,
+            error
+          } = await supabase.from("collective_funds").insert({
+            creator_id: user.id,
+            beneficiary_contact_id: gift.beneficiaryId,
+            title: `Cadeau pour ${gift.beneficiaryName}`,
+            description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
+            target_amount: gift.price,
+            currency: "XOF",
+            occasion: "promotion",
+            is_public: true,
+            allow_anonymous_contributions: false
+          }).select().single();
           if (error) throw error;
 
           // Create initial activity
@@ -98,7 +91,10 @@ export default function Checkout() {
             p_contributor_id: user.id,
             p_activity_type: 'fund_created',
             p_message: `Cagnotte créée pour ${gift.beneficiaryName}`,
-            p_metadata: { product_id: gift.productId, product_name: gift.name }
+            p_metadata: {
+              product_id: gift.productId,
+              product_name: gift.name
+            }
           });
         }
       }
@@ -106,7 +102,6 @@ export default function Checkout() {
       // Clear cart and checkout data
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutItems');
-      
       navigate("/order-confirmation");
     } catch (error) {
       console.error('Error creating order:', error);
@@ -119,23 +114,16 @@ export default function Checkout() {
       setIsProcessing(false);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate(-1)}
-              className="p-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="p-2">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1">
               <h1 className="text-xl font-semibold">Finaliser la commande</h1>
-              <p className="text-sm text-muted-foreground">Mode hors-ligne</p>
+              
             </div>
           </div>
         </div>
@@ -143,34 +131,21 @@ export default function Checkout() {
 
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Offline mode notification */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-blue-600">📱</span>
-            <p className="text-sm text-blue-800">
-              Mode hors-ligne<br />
-              La commande sera synchronisée plus tard
-            </p>
-          </div>
-        </div>
+        
 
         {/* Order summary */}
         <Card className="p-4 mb-6">
           <h3 className="font-semibold mb-3">📋 Résumé de commande</h3>
           <div className="space-y-3">
-            {orderItems.map((item, index) => (
-              <div key={index} className="flex items-start gap-3">
+            {orderItems.map((item, index) => <div key={index} className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-muted rounded-lg"></div>
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{item.name}</h4>
-                  {item.isCollaborativeGift && (
-                    <div className="flex items-center gap-1 text-xs text-primary mb-1">
+                  {item.isCollaborativeGift && <div className="flex items-center gap-1 text-xs text-primary mb-1">
                       <span>🎁</span>
                       <span>Cadeau pour {item.beneficiaryName}</span>
-                    </div>
-                  )}
-                  {item.description && (
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  )}
+                    </div>}
+                  {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                     <span>📍</span>
                     <span>Bijouterie Précieuse • Plateau, Abidjan</span>
@@ -179,8 +154,7 @@ export default function Checkout() {
                     Qté: {item.quantity} • {item.price.toLocaleString()} F
                   </p>
                 </div>
-              </div>
-            ))}
+              </div>)}
             
             <div className="border-t pt-3 space-y-2 text-sm">
               <div className="flex justify-between">
@@ -209,24 +183,12 @@ export default function Checkout() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="phone" className="text-sm font-medium">Numéro de téléphone *</Label>
-              <Input
-                id="phone"
-                placeholder="+225 XX XX XX XX XX"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="mt-1"
-              />
+              <Input id="phone" placeholder="+225 XX XX XX XX XX" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} className="mt-1" />
             </div>
             
             <div>
               <Label htmlFor="address" className="text-sm font-medium">Adresse de livraison *</Label>
-              <Textarea
-                id="address"
-                placeholder="Quartier, rue, points de repère..."
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="mt-1 min-h-[80px]"
-              />
+              <Textarea id="address" placeholder="Quartier, rue, points de repère..." value={address} onChange={e => setAddress(e.target.value)} className="mt-1 min-h-[80px]" />
             </div>
           </div>
         </Card>
@@ -262,11 +224,7 @@ export default function Checkout() {
         </Card>
 
         {/* Confirm button */}
-        <Button 
-          onClick={handleConfirmOrder}
-          disabled={isProcessing}
-          className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4"
-        >
+        <Button onClick={handleConfirmOrder} disabled={isProcessing} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4">
           {isProcessing ? "Traitement..." : `Confirmer la commande - ${total.toLocaleString()} F`}
         </Button>
 
@@ -276,6 +234,5 @@ export default function Checkout() {
 
         <div className="pb-20" />
       </main>
-    </div>
-  );
+    </div>;
 }
