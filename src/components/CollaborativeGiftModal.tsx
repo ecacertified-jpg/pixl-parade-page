@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export function CollaborativeGiftModal({
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Mock contacts data - In real app, fetch from Supabase
   const contacts: Contact[] = [
@@ -78,44 +80,37 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
-      const { data, error } = await supabase
-        .from("collective_funds")
-        .insert({
-          creator_id: user.id,
-          beneficiary_contact_id: selectedContact.id,
-          title: `Cadeau pour ${selectedContact.name}`,
-          description: `Cotisation groupée pour offrir ${product.name} à ${selectedContact.name}`,
-          target_amount: product.price,
-          currency: product.currency,
-          occasion: "promotion",
-          is_public: true,
-          allow_anonymous_contributions: false
-        })
-        .select()
-        .single();
+      // Add to cart for collaborative gift
+      const cartItem = {
+        id: Date.now(), // Temporary ID for cart
+        name: `Cotisation pour ${selectedContact.name}`,
+        description: `Cadeau collaboratif: ${product.name}`,
+        price: product.price,
+        quantity: 1,
+        image: product.image,
+        isCollaborativeGift: true,
+        beneficiaryName: selectedContact.name,
+        beneficiaryId: selectedContact.id,
+        productId: product.id
+      };
 
-      if (error) throw error;
-
-      // Create initial activity
-      await supabase.rpc('create_fund_activity', {
-        p_fund_id: data.id,
-        p_contributor_id: user.id,
-        p_activity_type: 'fund_created',
-        p_message: `Cagnotte créée pour ${selectedContact.name}`,
-        p_metadata: { product_id: product.id, product_name: product.name }
-      });
+      // Store in localStorage for cart
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const updatedCart = [...existingCart, cartItem];
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
 
       toast({
-        title: "Cagnotte créée ! 🎉",
-        description: `La cotisation pour ${selectedContact.name} a été lancée`
+        title: "Ajouté au panier ! 🎉",
+        description: `Cotisation pour ${selectedContact.name} ajoutée au panier`
       });
 
       onClose();
+      navigate('/cart');
     } catch (error) {
-      console.error('Error creating fund:', error);
+      console.error('Error adding to cart:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer la cagnotte",
+        description: "Impossible d'ajouter au panier",
         variant: "destructive"
       });
     } finally {

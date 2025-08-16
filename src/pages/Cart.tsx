@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,24 +13,38 @@ interface CartItem {
   currency: string;
   image: string;
   quantity: number;
+  isCollaborativeGift?: boolean;
+  beneficiaryName?: string;
+  beneficiaryId?: string;
+  productId?: number;
 }
 
 export default function Cart() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Mock cart data - will be replaced with real state management
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      name: "Bracelet Doré Élégance",
-      description: "Bracelet en or 18 carats avec finitions délicates",
-      price: 15000,
-      currency: "F",
-      image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-      quantity: 1
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    // Load cart from localStorage
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    } else {
+      // Default item if no cart
+      setCartItems([
+        {
+          id: 1,
+          name: "Bracelet Doré Élégance",
+          description: "Bracelet en or 18 carats avec finitions délicates",
+          price: 15000,
+          currency: "F",
+          image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+          quantity: 1
+        }
+      ]);
     }
-  ]);
+  }, []);
 
   const FREE_SHIPPING_THRESHOLD = 25000;
   const SHIPPING_COST = 2500;
@@ -42,22 +56,26 @@ export default function Cart() {
   const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
 
   const updateQuantity = (id: number, newQuantity: number) => {
+    const updatedItems = newQuantity === 0 
+      ? cartItems.filter(item => item.id !== id)
+      : cartItems.map(item => 
+          item.id === id ? { ...item, quantity: newQuantity } : item
+        );
+    
+    setCartItems(updatedItems);
+    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    
     if (newQuantity === 0) {
-      setCartItems(prev => prev.filter(item => item.id !== id));
       toast({
         title: "Article supprimé",
         description: "L'article a été retiré de votre panier"
       });
-    } else {
-      setCartItems(prev => 
-        prev.map(item => 
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
     }
   };
 
   const proceedToCheckout = () => {
+    // Store cart items for checkout
+    localStorage.setItem('checkoutItems', JSON.stringify(cartItems));
     navigate("/checkout");
   };
 
@@ -166,6 +184,12 @@ export default function Cart() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-medium text-sm">{item.name}</h3>
+                      {item.isCollaborativeGift && (
+                        <div className="flex items-center gap-1 text-xs text-primary mb-1">
+                          <span>🎁</span>
+                          <span>Cadeau pour {item.beneficiaryName}</span>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground mb-1">
                         {item.description}
                       </p>
@@ -185,25 +209,29 @@ export default function Cart() {
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center border rounded-lg">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="px-3 py-1 text-sm">{item.quantity}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    {!item.isCollaborativeGift ? (
+                      <div className="flex items-center border rounded-lg">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="px-3 py-1 text-sm">{item.quantity}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Cotisation groupée</span>
+                    )}
                     <p className="font-bold">{(item.price * item.quantity).toLocaleString()} {item.currency}</p>
                   </div>
                 </div>
