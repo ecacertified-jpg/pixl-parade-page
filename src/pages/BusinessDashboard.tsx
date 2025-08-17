@@ -293,7 +293,13 @@ export default function BusinessDashboard() {
 
               {/* Cagnottes en cours */}
               <Card className="p-4">
-                <h3 className="font-semibold mb-4">Cagnottes en cours</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Cagnottes en cours</h3>
+                  <Button size="sm" variant="outline">
+                    <Target className="h-4 w-4 mr-2" />
+                    Voir toutes
+                  </Button>
+                </div>
                 <div className="space-y-3">
                   <div className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
@@ -316,10 +322,11 @@ export default function BusinessDashboard() {
                         <div className="bg-gradient-to-r from-orange-500 to-pink-500 h-2 rounded-full" style={{width: '57%'}}></div>
                       </div>
                       <div className="text-xs text-muted-foreground">5 contributeurs • 3 jours restants</div>
+                      <div className="text-xs text-orange-600 font-medium mt-1">Besoin de 6 500 F pour atteindre l'objectif</div>
                     </div>
                   </div>
                   
-                  <div className="border rounded-lg p-3">
+                  <div className="border rounded-lg p-3 bg-green-50 border-green-200">
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="font-medium text-sm">Parfum pour Aisha</div>
@@ -345,6 +352,31 @@ export default function BusinessDashboard() {
                       <Phone className="h-4 w-4 mr-2" />
                       Contacter la bénéficiaire
                     </Button>
+                  </div>
+
+                  <div className="border rounded-lg p-3 bg-purple-50 border-purple-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-medium text-sm">Montre connectée pour Koffi</div>
+                        <div className="text-xs text-muted-foreground">Créé par Sarah Kouadio</div>
+                      </div>
+                      <Badge className="bg-purple-500">Nouveau</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Objectif:</span>
+                        <span className="font-medium">85 000 F</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Collecté:</span>
+                        <span className="font-medium text-purple-600">25 000 F</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style={{width: '29%'}}></div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">3 contributeurs • 5 jours restants</div>
+                      <div className="text-xs text-purple-600 font-medium mt-1">Progression: 29%</div>
+                    </div>
                   </div>
                 </div>
               </Card>

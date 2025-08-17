@@ -1,13 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { GiftHistoryModal } from "@/components/GiftHistoryModal";
+import { ContributeModal } from "@/components/ContributeModal";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [showGiftHistory, setShowGiftHistory] = useState(false);
+  const [showContributeModal, setShowContributeModal] = useState(false);
   
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
@@ -133,14 +137,23 @@ export default function Dashboard() {
           <TabsContent value="cadeaux" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-pink-500 text-white hover:bg-pink-600"
-                onClick={() => navigate('/shop')}
-              >
-                <Gift className="h-4 w-4" aria-hidden />
-                Offrir
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setShowGiftHistory(true)}
+                >
+                  Voir tout
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="gap-2 bg-pink-500 text-white hover:bg-pink-600"
+                  onClick={() => navigate('/shop')}
+                >
+                  <Gift className="h-4 w-4" aria-hidden />
+                  Offrir
+                </Button>
+              </div>
             </div>
             
             {/* Filtres */}
@@ -228,14 +241,23 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Cotisations Groupées</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-green-500 text-white hover:bg-green-600"
-                onClick={() => navigate('/collective-funds')}
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-                Cotiser
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate('/collective-funds')}
+                >
+                  Voir tout
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="gap-2 bg-green-500 text-white hover:bg-green-600"
+                  onClick={() => setShowContributeModal(true)}
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Cotiser
+                </Button>
+              </div>
             </div>
             
             <Card className="p-4">
@@ -292,5 +314,15 @@ export default function Dashboard() {
 
         <div className="pb-20" />
       </main>
+
+      <GiftHistoryModal 
+        isOpen={showGiftHistory}
+        onClose={() => setShowGiftHistory(false)}
+      />
+
+      <ContributeModal 
+        isOpen={showContributeModal}
+        onClose={() => setShowContributeModal(false)}
+      />
     </div>;
 }

@@ -52,7 +52,8 @@ export default function CollectiveFunds() {
         .from("collective_funds")
         .select(`
           *,
-          fund_contributions(contributor_id, amount)
+          fund_contributions(contributor_id, amount),
+          contacts!collective_funds_beneficiary_contact_id_fkey(name)
         `)
         .or(`creator_id.eq.${user.id},fund_contributions.contributor_id.eq.${user.id}`)
         .eq("status", "active");
@@ -62,7 +63,8 @@ export default function CollectiveFunds() {
       const fundsWithStats = data?.map(fund => ({
         ...fund,
         contributors_count: fund.fund_contributions?.length || 0,
-        my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0
+        my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0,
+        beneficiary_name: fund.contacts?.name || "Bénéficiaire"
       })) || [];
 
       setFunds(fundsWithStats);
@@ -75,16 +77,31 @@ export default function CollectiveFunds() {
 
   const loadContributors = async (fundId: string) => {
     try {
-      // Mock contributors for now
+      const { data, error } = await supabase
+        .from("fund_contributions")
+        .select("amount, contributor_id")
+        .eq("fund_id", fundId);
+
+      if (error) throw error;
+
+      // For now, use mock names based on contributor_id
+      const contributors = data?.map((contribution, index) => ({
+        id: contribution.contributor_id,
+        name: index === 0 ? "Moi" : `Contributeur ${index + 1}`,
+        amount: contribution.amount,
+        avatar_url: null
+      })) || [];
+
+      setContributors(contributors);
+    } catch (error) {
+      console.error('Error loading contributors:', error);
+      // Fallback to mock data
       const mockContributors = [
         { id: "1", name: "Moi", amount: 15000, avatar_url: null },
         { id: "2", name: "Fatou Bamba", amount: 12000, avatar_url: null },
         { id: "3", name: "Kofi Asante", amount: 8000, avatar_url: null }
       ];
-
       setContributors(mockContributors);
-    } catch (error) {
-      console.error('Error loading contributors:', error);
     }
   };
 
