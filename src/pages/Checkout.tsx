@@ -53,6 +53,9 @@ export default function Checkout() {
   const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shipping;
+
+  // Check if form is valid (phone and address filled)
+  const isFormValid = phoneNumber.trim() !== "" && address.trim() !== "";
   const handleConfirmOrder = async () => {
     if (!user) {
       toast({
@@ -98,6 +101,13 @@ export default function Checkout() {
           });
         }
       }
+
+      // Store order details for confirmation page
+      localStorage.setItem('lastOrderDetails', JSON.stringify({
+        total,
+        phone: phoneNumber,
+        location: address
+      }));
 
       // Clear cart and checkout data
       localStorage.removeItem('cart');
@@ -224,7 +234,11 @@ export default function Checkout() {
         </Card>
 
         {/* Confirm button */}
-        <Button onClick={handleConfirmOrder} disabled={isProcessing} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4">
+        <Button 
+          onClick={handleConfirmOrder} 
+          disabled={isProcessing || !isFormValid} 
+          className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {isProcessing ? "Traitement..." : `Confirmer la commande - ${total.toLocaleString()} F`}
         </Button>
 

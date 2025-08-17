@@ -16,10 +16,12 @@ export default function OrderConfirmation() {
   const isCollaborativeGift = checkoutData ? 
     JSON.parse(checkoutData).some((item: any) => item.isCollaborativeGift) : false;
 
-  const orderDetails = {
+  // Get order details from localStorage
+  const orderData = localStorage.getItem('lastOrderDetails');
+  const orderDetails = orderData ? JSON.parse(orderData) : {
     total: 17500,
     phone: "0707467445",
-    location: "Anyama"
+    location: "Abobo"
   };
 
   const continueOrder = () => {
