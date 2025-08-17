@@ -77,7 +77,7 @@ export default function Checkout() {
             error
           } = await supabase.from("collective_funds").insert({
             creator_id: user.id,
-            beneficiary_contact_id: gift.beneficiaryId,
+            beneficiary_contact_id: null, // Set to null since we don't have a valid contact UUID
             title: `Cadeau pour ${gift.beneficiaryName}`,
             description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
             target_amount: gift.price,
