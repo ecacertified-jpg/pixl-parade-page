@@ -11,33 +11,28 @@ import { RecentActivitySection, BottomNavigation } from "@/components/RecentActi
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 const Index = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const navigate = useNavigate();
-
   const handleGiftAction = () => {
     toast({
       title: "Cadeau sélectionné !",
-      description: "Redirection vers les options de cadeaux...",
+      description: "Redirection vers les options de cadeaux..."
     });
   };
-
   const handleDashboard = () => {
     navigate("/dashboard");
   };
-
   const handleOfferGift = () => {
     navigate("/shop");
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  return <div className="min-h-screen bg-gradient-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              JOIE DE VIVRE
-            </h1>
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">Joie de vivre </h1>
             <p className="text-sm text-muted-foreground">Célébrez ensemble</p>
           </div>
           
@@ -62,33 +57,16 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Notification Card */}
-        <NotificationCard
-          title="Anniversaire de Fatou"
-          subtitle="Événement à venir"
-          daysLeft={5}
-          onAction={handleGiftAction}
-        />
+        <NotificationCard title="Anniversaire de Fatou" subtitle="Événement à venir" daysLeft={5} onAction={handleGiftAction} />
 
         {/* Welcome Section */}
         <WelcomeSection userName="Aminata" />
 
         {/* Action Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <ActionCard
-            title="Mon Tableau de Bord"
-            subtitle="Gérez vos amis et événements"
-            icon={User}
-            variant="primary"
-            onClick={handleDashboard}
-          />
+          <ActionCard title="Mon Tableau de Bord" subtitle="Gérez vos amis et événements" icon={User} variant="primary" onClick={handleDashboard} />
           
-          <ActionCard
-            title="Offrir un Cadeau"
-            subtitle="Parcourez et offrez"
-            icon={Gift}
-            variant="success"
-            onClick={handleOfferGift}
-          />
+          <ActionCard title="Offrir un Cadeau" subtitle="Parcourez et offrez" icon={Gift} variant="success" onClick={handleOfferGift} />
         </div>
 
         {/* Favorite Articles Section */}
@@ -115,8 +93,6 @@ const Index = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
