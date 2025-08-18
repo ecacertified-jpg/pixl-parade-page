@@ -79,7 +79,7 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mes Amis & Donateurs</h2>
-              <Button size="sm" className="gap-2"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
+              <Button size="sm" className="gap-2 bg-sky-500 hover:bg-sky-400"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
             </div>
             <Card className="p-4">
               <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export default function Dashboard() {
           <TabsContent value="evenements" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Événements à Venir</h2>
-              <Button size="sm" className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button size="sm" className="gap-2 text-primary-foreground bg-amber-400 hover:bg-amber-300">
                 <Plus className="h-4 w-4" aria-hidden />
                 Ajouter
               </Button>
