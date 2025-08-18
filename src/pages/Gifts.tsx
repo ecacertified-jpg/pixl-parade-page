@@ -34,8 +34,24 @@ export default function Gifts() {
     document.title = "Historique des Cadeaux | JOIE DE VIVRE";
     if (user) {
       loadGifts();
+      markNotificationsAsRead();
     }
   }, [user]);
+
+  const markNotificationsAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('type', 'gift_received')
+        .eq('is_read', false);
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+    }
+  };
 
   const loadGifts = async () => {
     if (!user) return;

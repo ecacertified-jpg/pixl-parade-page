@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export default function BusinessDashboard() {
     netRevenue: 722500
   };
 
-  const recentOrders = [
+  const [recentOrders, setRecentOrders] = useState([
     {
       id: "CMD-001",
       product: "Bracelet Doré Élégance",
@@ -94,7 +95,66 @@ export default function BusinessDashboard() {
       type: "delivery",
       date: "2025-01-11 10:15"
     }
-  ];
+  ]);
+
+  // Load real orders from database
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const { data: orders } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            total_amount,
+            currency,
+            status,
+            delivery_address,
+            created_at,
+            notes,
+            user_id
+          `)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (orders && orders.length > 0) {
+          const formattedOrders = orders.map(order => ({
+            id: `CMD-${order.id.substring(0, 3).toUpperCase()}`,
+            product: "Produit commandé",
+            customer: "Client",
+            donor: "Donateur",
+            amount: order.total_amount,
+            status: order.status === "pending" ? "new" : order.status,
+            type: (order.delivery_address as any)?.address ? "delivery" : "pickup",
+            date: new Date(order.created_at).toLocaleString('fr-FR')
+          }));
+
+          setRecentOrders(prev => [...formattedOrders, ...prev]);
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      }
+    };
+
+    loadOrders();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('orders-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => loadOrders()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const products = [
     {
