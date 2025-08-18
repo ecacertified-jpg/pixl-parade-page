@@ -6,7 +6,7 @@ interface WelcomeSectionProps {
 export function WelcomeSection({
   userName
 }: WelcomeSectionProps) {
-  return <div className="relative overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-2xl p-6 mb-6 shadow-card bg-sky-300">
+  return <div className="relative overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-2xl p-6 mb-6 shadow-card bg-violet-300">
       <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
         <img src={celebrationHero} alt="Celebration" className="w-full h-full object-cover rounded-full" />
       </div>
