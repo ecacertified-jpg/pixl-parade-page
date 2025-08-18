@@ -7,26 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
-
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate('/')}
-              className="p-2"
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="p-2">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -69,11 +61,7 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button 
-              variant="secondary" 
-              className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]"
-              onClick={() => navigate('/business-account')}
-            >
+            <Button variant="secondary" className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]" onClick={() => navigate('/business-account')}>
               Compte Business
             </Button>
           </div>
@@ -138,18 +126,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
               <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowGiftHistory(true)}
-                >
-                  Voir tout
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="gap-2 bg-pink-500 text-white hover:bg-pink-600"
-                  onClick={() => navigate('/shop')}
-                >
+                
+                <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600" onClick={() => navigate('/shop')}>
                   <Gift className="h-4 w-4" aria-hidden />
                   Offrir
                 </Button>
@@ -242,18 +220,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Cotisations Groupées</h2>
               <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => navigate('/collective-funds')}
-                >
+                <Button size="sm" variant="outline" onClick={() => navigate('/collective-funds')}>
                   Voir tout
                 </Button>
-                <Button 
-                  size="sm" 
-                  className="gap-2 bg-green-500 text-white hover:bg-green-600"
-                  onClick={() => setShowContributeModal(true)}
-                >
+                <Button size="sm" className="gap-2 bg-green-500 text-white hover:bg-green-600" onClick={() => setShowContributeModal(true)}>
                   <Plus className="h-4 w-4" aria-hidden />
                   Cotiser
                 </Button>
@@ -277,7 +247,9 @@ export default function Dashboard() {
                   <span className="font-medium">35 000 / 50 000 F</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '70%' }}></div>
+                  <div className="bg-green-500 h-2 rounded-full" style={{
+                  width: '70%'
+                }}></div>
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">70% atteint</div>
               </div>
@@ -315,14 +287,8 @@ export default function Dashboard() {
         <div className="pb-20" />
       </main>
 
-      <GiftHistoryModal 
-        isOpen={showGiftHistory}
-        onClose={() => setShowGiftHistory(false)}
-      />
+      <GiftHistoryModal isOpen={showGiftHistory} onClose={() => setShowGiftHistory(false)} />
 
-      <ContributeModal 
-        isOpen={showContributeModal}
-        onClose={() => setShowContributeModal(false)}
-      />
+      <ContributeModal isOpen={showContributeModal} onClose={() => setShowContributeModal(false)} />
     </div>;
 }
