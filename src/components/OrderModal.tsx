@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollaborativeGiftModal } from "./CollaborativeGiftModal";
 interface Product {
-  id: number;
+  id: string | number;
   name: string;
   description: string;
   price: number;

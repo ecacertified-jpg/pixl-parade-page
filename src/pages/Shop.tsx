@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,19 +9,20 @@ import { OrderModal } from "@/components/OrderModal";
 export default function Shop() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [contributionTarget, setContributionTarget] = useState<any>(null);
-
-  useEffect(() => {
-    // Check if user came from contribution flow
-    const target = localStorage.getItem('contributionTarget');
-    if (target) {
-      setContributionTarget(JSON.parse(target));
-      localStorage.removeItem('contributionTarget');
-    }
-  }, []);
-  const products = [{
+  const [products, setProducts] = useState<Array<{
+    id: string | number;
+    name: string;
+    description: string;
+    price: number;
+    currency: string;
+    image: string;
+    category: string;
+    vendor: string;
+    distance: string;
+    rating: number;
+    reviews: number;
+    inStock: boolean;
+  }>>([{
     id: 1,
     name: "Bracelet Doré Élégance",
     description: "Bracelet en or 18 carats avec finitions délicates",
@@ -33,7 +35,57 @@ export default function Shop() {
     rating: 4.8,
     reviews: 45,
     inStock: true
-  }];
+  }]);
+  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [contributionTarget, setContributionTarget] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user came from contribution flow
+    const target = localStorage.getItem('contributionTarget');
+    if (target) {
+      setContributionTarget(JSON.parse(target));
+      localStorage.removeItem('contributionTarget');
+    }
+    
+    // Load products from database
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading products:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const formattedProducts = data.map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || "Description non disponible",
+          price: product.price,
+          currency: product.currency || "F",
+          image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+          category: "Produit",
+          vendor: "Boutique Élégance",
+          distance: "2.3 km",
+          rating: 4.8,
+          reviews: 45,
+          inStock: (product.stock_quantity || 0) > 0
+        }));
+        setProducts(prev => [...formattedProducts, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
   const categories = [{
     name: "Bijoux",
     count: 12,
@@ -130,16 +182,22 @@ export default function Shop() {
               </div>
               
               <div className="p-4">
-                
-
-                
+                <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xl font-bold text-primary">{product.price.toLocaleString()} {product.currency}</span>
+                  <Badge variant={product.inStock ? "default" : "secondary"}>
+                    {product.inStock ? "En stock" : "Épuisé"}
+                  </Badge>
+                </div>
 
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex items-center gap-1">
-                    
-                    
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{product.rating}</span>
+                    <span className="text-sm text-muted-foreground">({product.reviews})</span>
                   </div>
-                  
+                  <span className="text-sm text-muted-foreground">• {product.vendor}</span>
                 </div>
 
                 <Button 

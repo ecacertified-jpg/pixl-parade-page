@@ -8,9 +8,42 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Settings, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
+import { AddProductModal } from "@/components/AddProductModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 export default function BusinessAccount() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [products, setProducts] = useState<Array<{
+    id: string | number;
+    name: string;
+    category: string;
+    price: number;
+    stock: number;
+    sales: number;
+    status: string;
+  }>>([
+    {
+      id: 1,
+      name: "Bracelet Doré Élégance",
+      category: "Bijoux",
+      price: 15000,
+      stock: 8,
+      sales: 24,
+      status: "active"
+    },
+    {
+      id: 2,
+      name: "Parfum Roses de Yamoussoukro",
+      category: "Parfums", 
+      price: 35000,
+      stock: 5,
+      sales: 12,
+      status: "active"
+    }
+  ]);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -20,7 +53,40 @@ export default function BusinessAccount() {
   });
   useEffect(() => {
     document.title = "Compte Business | JOIE DE VIVRE";
+    loadProducts();
   }, []);
+
+  const loadProducts = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading products:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const formattedProducts = data.map(product => ({
+          id: product.id,
+          name: product.name,
+          category: "Produit",
+          price: product.price,
+          stock: product.stock_quantity || 0,
+          sales: 0, // This would need to be calculated from orders
+          status: "active"
+        }));
+        setProducts(formattedProducts);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
@@ -60,23 +126,6 @@ export default function BusinessAccount() {
     status: "confirmed",
     type: "delivery",
     date: "2025-01-11 10:15"
-  }];
-  const products = [{
-    id: 1,
-    name: "Bracelet Doré Élégance",
-    category: "Bijoux",
-    price: 15000,
-    stock: 8,
-    sales: 24,
-    status: "active"
-  }, {
-    id: 2,
-    name: "Parfum Roses de Yamoussoukro",
-    category: "Parfums",
-    price: 35000,
-    stock: 5,
-    sales: 12,
-    status: "active"
   }];
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -275,7 +324,10 @@ export default function BusinessAccount() {
           <TabsContent value="produits" className="mt-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Gestion des produits</h2>
-              <Button className="gap-2">
+              <Button 
+                className="gap-2"
+                onClick={() => setIsAddProductModalOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 Ajouter un produit
               </Button>
@@ -695,5 +747,11 @@ export default function BusinessAccount() {
 
         <div className="pb-20" />
       </main>
+
+      <AddProductModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        onProductAdded={loadProducts}
+      />
     </div>;
 }
