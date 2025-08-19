@@ -51,7 +51,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       return;
     }
 
-    if (!formData.name || !formData.price || !formData.category_id) {
+    if (!formData.name || !formData.price) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
@@ -82,6 +82,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
           is_active: true
+          // Note: category_id is nullable, so we skip it for now
         })
         .select()
         .single();

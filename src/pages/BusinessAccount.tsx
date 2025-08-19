@@ -87,6 +87,30 @@ export default function BusinessAccount() {
       console.error('Error:', error);
     }
   };
+
+  const handleEditProduct = (productId: string | number) => {
+    // For now, just show a toast - can be expanded later
+    console.log("Edit product:", productId);
+  };
+
+  const handleDeleteProduct = async (productId: string | number) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', String(productId));
+
+      if (error) {
+        console.error('Error deleting product:', error);
+        return;
+      }
+
+      // Reload products to reflect the change
+      loadProducts();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
@@ -333,69 +357,6 @@ export default function BusinessAccount() {
               </Button>
             </div>
 
-            {/* Formulaire d'ajout de produit */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-medium mb-4">Ajouter un nouveau produit</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Nom du produit</label>
-                  <Input value={newProduct.name} onChange={e => setNewProduct({
-                  ...newProduct,
-                  name: e.target.value
-                })} placeholder="Ex: Bracelet Doré Élégance" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Catégorie</label>
-                  <Select value={newProduct.category} onValueChange={value => setNewProduct({
-                  ...newProduct,
-                  category: value
-                })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bijoux">Bijoux</SelectItem>
-                      <SelectItem value="parfums">Parfums</SelectItem>
-                      <SelectItem value="tech">Tech</SelectItem>
-                      <SelectItem value="mode">Mode</SelectItem>
-                      <SelectItem value="artisanat">Artisanat</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Prix (FCFA)</label>
-                  <Input type="number" value={newProduct.price} onChange={e => setNewProduct({
-                  ...newProduct,
-                  price: e.target.value
-                })} placeholder="15000" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Stock</label>
-                  <Input type="number" value={newProduct.stock} onChange={e => setNewProduct({
-                  ...newProduct,
-                  stock: e.target.value
-                })} placeholder="10" />
-                </div>
-              </div>
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-1 block">Description</label>
-                <Textarea value={newProduct.description} onChange={e => setNewProduct({
-                ...newProduct,
-                description: e.target.value
-              })} placeholder="Description détaillée du produit..." rows={3} />
-              </div>
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-1 block">Images du produit</label>
-                <Input type="file" multiple accept="image/*" onChange={handleFileUpload} />
-                {selectedFiles && <p className="text-sm text-green-600 mt-1">
-                    {selectedFiles.length} fichier(s) sélectionné(s)
-                  </p>}
-              </div>
-              <Button onClick={handleProductSubmit} className="w-full">
-                <Upload className="h-4 w-4 mr-2" />
-                Ajouter le produit
-              </Button>
-            </Card>
 
             {/* Liste des produits existants */}
             <Card className="p-4">
@@ -416,10 +377,18 @@ export default function BusinessAccount() {
                         <Badge variant="secondary" className="mt-1">En stock</Badge>
                       </div>
                       <div className="flex gap-2 ml-4">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditProduct(product.id)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteProduct(product.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
