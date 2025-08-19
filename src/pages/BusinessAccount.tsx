@@ -63,6 +63,7 @@ export default function BusinessAccount() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('business_owner_id', user.id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -82,6 +83,8 @@ export default function BusinessAccount() {
           status: "active"
         }));
         setProducts(formattedProducts);
+      } else {
+        setProducts([]); // Clear products if none found
       }
     } catch (error) {
       console.error('Error:', error);

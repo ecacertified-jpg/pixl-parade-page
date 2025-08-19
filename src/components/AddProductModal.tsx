@@ -81,8 +81,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           currency: 'XOF',
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
+          business_owner_id: user.id,
           is_active: true
-          // Note: category_id is nullable, so we skip it for now
         })
         .select()
         .single();

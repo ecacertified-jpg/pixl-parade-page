@@ -192,6 +192,45 @@ export type Database = {
         }
         Relationships: []
       }
+      business_accounts: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -1389,6 +1428,7 @@ export type Database = {
       }
       products: {
         Row: {
+          business_owner_id: string | null
           category_id: string | null
           created_at: string
           currency: string | null
@@ -1403,6 +1443,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
           currency?: string | null
@@ -1417,6 +1458,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
           currency?: string | null
