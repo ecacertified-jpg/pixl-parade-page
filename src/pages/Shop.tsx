@@ -39,7 +39,6 @@ export default function Shop() {
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [contributionTarget, setContributionTarget] = useState<any>(null);
-
   useEffect(() => {
     // Check if user came from contribution flow
     const target = localStorage.getItem('contributionTarget');
@@ -47,24 +46,22 @@ export default function Shop() {
       setContributionTarget(JSON.parse(target));
       localStorage.removeItem('contributionTarget');
     }
-    
+
     // Load products from database
     loadProducts();
   }, []);
-
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('products').select('*').eq('is_active', true).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error loading products:', error);
         return;
       }
-
       if (data && data.length > 0) {
         const formattedProducts = data.map(product => ({
           id: product.id,
@@ -131,7 +128,7 @@ export default function Shop() {
           </div>
           
           {/* Search Bar */}
-          <div className="text-sm text-muted-foreground mb-2">1 produit </div>
+          
           
           {/* Conseil */}
           <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -200,13 +197,10 @@ export default function Shop() {
                   <span className="text-sm text-muted-foreground">• {product.vendor}</span>
                 </div>
 
-                <Button 
-                  className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
-                  onClick={() => {
-                    setSelectedProduct(product);
-                    setIsOrderModalOpen(true);
-                  }}
-                >
+                <Button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" onClick={() => {
+              setSelectedProduct(product);
+              setIsOrderModalOpen(true);
+            }}>
                   Commander
                 </Button>
               </div>
@@ -216,10 +210,6 @@ export default function Shop() {
         <div className="pb-20" />
       </main>
 
-      <OrderModal
-        isOpen={isOrderModalOpen}
-        onClose={() => setIsOrderModalOpen(false)}
-        product={selectedProduct}
-      />
+      <OrderModal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} product={selectedProduct} />
     </div>;
 }
