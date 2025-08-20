@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, User, Gift, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { X, User, Gift, Users, Search, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollaborativeGiftModal } from "./CollaborativeGiftModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 interface Product {
   id: string | number;
   name: string;
@@ -25,8 +28,69 @@ export function OrderModal({
 }: OrderModalProps) {
   const [showGiftOptions, setShowGiftOptions] = useState(false);
   const [showCollaborativeModal, setShowCollaborativeModal] = useState(false);
+  const [showContactSelection, setShowContactSelection] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedContact, setSelectedContact] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  useEffect(() => {
+    if (showContactSelection) {
+      loadContacts();
+    }
+  }, [showContactSelection]);
+
+  const loadContacts = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (error) {
+        console.error('Error loading contacts:', error);
+        return;
+      }
+
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    }
+  };
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const addToCart = (forSelf = true, recipient = null) => {
+    const existingCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
+    const newItem = {
+      id: Date.now(),
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      currency: product.currency,
+      image: product.image,
+      quantity: 1,
+      isGift: !forSelf,
+      recipient: recipient
+    };
+    
+    const updatedCart = [...existingCart, newItem];
+    localStorage.setItem('cartItems', JSON.stringify(updatedCart));
+    
+    toast({
+      title: forSelf ? "Ajouté au panier" : "Cadeau ajouté au panier",
+      description: forSelf 
+        ? `${product.name} a été ajouté à votre panier`
+        : `Cadeau pour ${recipient?.name} ajouté au panier`
+    });
+  };
+
   if (!product) return null;
   const handleGiftClick = () => {
     setShowGiftOptions(true);
@@ -37,6 +101,9 @@ export function OrderModal({
   const handleClose = () => {
     setShowGiftOptions(false);
     setShowCollaborativeModal(false);
+    setShowContactSelection(false);
+    setSelectedContact(null);
+    setSearchQuery("");
     onClose();
   };
 
@@ -47,14 +114,41 @@ export function OrderModal({
   const handleBackFromCollaborative = () => {
     setShowCollaborativeModal(false);
   };
+
+  const handleContactSelection = () => {
+    setShowContactSelection(true);
+  };
+
+  const handleBackFromContacts = () => {
+    setShowContactSelection(false);
+    setSearchQuery("");
+  };
+
+  const handleContactSelect = (contact: any) => {
+    setSelectedContact(contact);
+  };
+
+  const handleGiftToContact = () => {
+    if (selectedContact) {
+      addToCart(false, selectedContact);
+      navigate("/cart");
+      handleClose();
+    }
+  };
   return <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader className="relative">
           
           <DialogTitle className="text-left">
-            {showGiftOptions ? "Comment commander ?" : "Comment commander ?"}
+            {showContactSelection ? "Choisir le destinataire" : showGiftOptions ? "Comment commander ?" : "Comment commander ?"}
           </DialogTitle>
-          {!showGiftOptions && <p className="text-sm text-muted-foreground text-left">
+          {showContactSelection && (
+            <Button variant="ghost" size="sm" onClick={handleBackFromContacts} className="absolute left-0 top-0">
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Button>
+          )}
+          {!showGiftOptions && !showContactSelection && <p className="text-sm text-muted-foreground text-left">
               Choisissez votre mode de commande
             </p>}
         </DialogHeader>
@@ -65,21 +159,74 @@ export function OrderModal({
             <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg" />
             <div className="flex-1">
               <h3 className="font-medium">{product.name}</h3>
-              {showGiftOptions && <p className="text-sm text-muted-foreground">{product.description}</p>}
+              {(showGiftOptions || showContactSelection) && <p className="text-sm text-muted-foreground">{product.description}</p>}
               <p className="text-primary font-bold">
                 {product.price.toLocaleString()} {product.currency}
               </p>
             </div>
           </div>
 
-          {!showGiftOptions ?
+          {showContactSelection ? (
+            // Contact Selection View
+            <>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un ami..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {filteredContacts.map((contact) => (
+                  <div
+                    key={contact.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedContact?.id === contact.id 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => handleContactSelect(contact)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{contact.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {contact.relationship || 'Ami'}
+                        </p>
+                        {contact.birthday && (
+                          <p className="text-xs text-primary">
+                            Anniversaire dans {Math.ceil((new Date(contact.birthday).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} jour(s)
+                          </p>
+                        )}
+                      </div>
+                      {selectedContact?.id === contact.id && (
+                        <div className="text-primary">✓</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {selectedContact && (
+                <Button 
+                  onClick={handleGiftToContact}
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                >
+                  🎁 Offrir à {selectedContact.name}
+                </Button>
+              )}
+            </>
+          ) : !showGiftOptions ?
         // Main Options
         <>
               <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => {
-                toast({
-                  title: "Ajouté au panier",
-                  description: `${product.name} a été ajouté à votre panier`
-                });
+                addToCart(true);
                 navigate("/cart");
                 onClose();
               }}>
@@ -125,7 +272,7 @@ export function OrderModal({
         <>
               <p className="text-sm font-medium">Choisissez une option :</p>
               
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => console.log("Offrir à quelqu'un")}>
+              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleContactSelection}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                     <Gift className="h-5 w-5 text-purple-600" />
@@ -133,7 +280,7 @@ export function OrderModal({
                   <div className="text-left">
                     <p className="font-medium">Offrir à quelqu'un</p>
                     <p className="text-sm text-muted-foreground">
-                      Voir les favoris de mes amis
+                      Choisir un destinataire
                     </p>
                   </div>
                 </div>
