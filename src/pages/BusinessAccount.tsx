@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Settings, Receipt, Gift, TrendingUp, Package, Shoppi
 import { AddProductModal } from "@/components/AddProductModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -128,6 +129,10 @@ export default function BusinessAccount() {
   };
 
   const handleDeleteProduct = async (productId: string | number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ? Il sera retiré de la boutique.')) {
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('products')
@@ -136,13 +141,16 @@ export default function BusinessAccount() {
 
       if (error) {
         console.error('Error deleting product:', error);
+        toast.error('Erreur lors de la suppression du produit');
         return;
       }
 
+      toast.success('Produit supprimé avec succès');
       // Reload products to reflect the change
       loadProducts();
     } catch (error) {
       console.error('Error:', error);
+      toast.error('Erreur lors de la suppression du produit');
     }
   };
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
