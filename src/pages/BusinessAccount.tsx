@@ -137,7 +137,8 @@ export default function BusinessAccount() {
       const { error } = await supabase
         .from('products')
         .update({ is_active: false })
-        .eq('id', String(productId));
+        .eq('id', String(productId))
+        .eq('business_owner_id', user?.id);
 
       if (error) {
         console.error('Error deleting product:', error);
