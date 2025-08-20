@@ -92,8 +92,39 @@ export default function BusinessAccount() {
   };
 
   const handleEditProduct = (productId: string | number) => {
-    // For now, just show a toast - can be expanded later
-    console.log("Edit product:", productId);
+    // Find the product to edit
+    const productToEdit = products.find(p => p.id === productId);
+    if (productToEdit) {
+      // For now, we'll use a simple prompt - can be expanded to a full modal later
+      const newName = prompt("Nouveau nom du produit:", productToEdit.name);
+      const newPrice = prompt("Nouveau prix (FCFA):", productToEdit.price.toString());
+      
+      if (newName && newPrice) {
+        updateProduct(productId, {
+          name: newName,
+          price: parseFloat(newPrice)
+        });
+      }
+    }
+  };
+
+  const updateProduct = async (productId: string | number, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', String(productId));
+
+      if (error) {
+        console.error('Error updating product:', error);
+        return;
+      }
+
+      // Reload products to reflect the change
+      loadProducts();
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   const handleDeleteProduct = async (productId: string | number) => {
