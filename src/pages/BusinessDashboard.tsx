@@ -40,6 +40,22 @@ import {
   PieChart
 } from "lucide-react";
 
+interface OrderItem {
+  id: string;
+  orderId: string;
+  product: string;
+  customer: string;
+  customerPhone: string;
+  donor: string;
+  amount: number;
+  status: string;
+  type: "pickup" | "delivery";
+  address: string;
+  date: string;
+  rawDate: string;
+  notes: string;
+}
+
 export default function BusinessDashboard() {
   const navigate = useNavigate();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
@@ -74,33 +90,44 @@ export default function BusinessDashboard() {
     netRevenue: 722500
   };
 
-  const [recentOrders, setRecentOrders] = useState([
+  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([
     {
       id: "CMD-001",
+      orderId: "sample-1",
       product: "Bracelet Doré Élégance",
       customer: "Fatou Bamba",
+      customerPhone: "+225 01 23 45 67",
       donor: "Kofi Asante",
       amount: 15000,
       status: "new",
       type: "pickup",
-      date: "2025-01-11 14:30"
+      address: "",
+      date: "2025-01-11 14:30",
+      rawDate: new Date().toISOString(),
+      notes: ""
     },
     {
-      id: "CMD-002", 
+      id: "CMD-002",
+      orderId: "sample-2", 
       product: "Parfum Roses de Yamoussoukro",
       customer: "Aisha Traoré",
+      customerPhone: "+225 07 89 01 23",
       donor: "Mamadou Diallo",
       amount: 35000,
       status: "confirmed",
       type: "delivery",
-      date: "2025-01-11 10:15"
+      address: "Cocody, Riviera",
+      date: "2025-01-11 10:15",
+      rawDate: new Date().toISOString(),
+      notes: ""
     }
   ]);
 
-  // Load real orders from database
+  // Load real orders from database with customer info
   useEffect(() => {
     const loadOrders = async () => {
       try {
+        // First get orders
         const { data: orders } = await supabase
           .from('orders')
           .select(`
@@ -111,24 +138,57 @@ export default function BusinessDashboard() {
             delivery_address,
             created_at,
             notes,
-            user_id
+            user_id,
+            order_items(
+              id,
+              product_id,
+              quantity,
+              unit_price,
+              products(name, description)
+            )
           `)
           .order('created_at', { ascending: false })
-          .limit(5);
+          .limit(10);
 
         if (orders && orders.length > 0) {
-          const formattedOrders = orders.map(order => ({
-            id: `CMD-${order.id.substring(0, 3).toUpperCase()}`,
-            product: "Produit commandé",
-            customer: "Client",
-            donor: "Donateur",
-            amount: order.total_amount,
-            status: order.status === "pending" ? "new" : order.status,
-            type: (order.delivery_address as any)?.address ? "delivery" : "pickup",
-            date: new Date(order.created_at).toLocaleString('fr-FR')
-          }));
+          // Get user profiles for all user_ids in the orders
+          const userIds = orders.map(order => order.user_id);
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, first_name, last_name, phone')
+            .in('user_id', userIds);
 
-          setRecentOrders(prev => [...formattedOrders, ...prev]);
+          const formattedOrders: OrderItem[] = orders.map(order => {
+            const deliveryInfo = order.delivery_address as any;
+            const userProfile = profiles?.find(p => p.user_id === order.user_id);
+            
+            const customerName = userProfile 
+              ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()
+              : 'Client';
+            const customerPhone = deliveryInfo?.phone || userProfile?.phone || '';
+            
+            const products = order.order_items?.map(item => 
+              item.products?.name || `Produit #${item.product_id}`
+            ).join(', ') || 'Produits commandés';
+
+            return {
+              id: `CMD-${order.id.substring(0, 8)}`,
+              orderId: order.id,
+              product: products,
+              customer: customerName,
+              customerPhone: customerPhone,
+              donor: customerName, // Same as customer for now
+              amount: order.total_amount,
+              status: order.status === "pending" ? "new" : order.status,
+              type: (deliveryInfo?.address ? "delivery" : "pickup") as "pickup" | "delivery",
+              address: deliveryInfo?.address || '',
+              date: new Date(order.created_at).toLocaleString('fr-FR'),
+              rawDate: order.created_at,
+              notes: order.notes || ''
+            };
+          });
+
+          setRecentOrders(formattedOrders);
         }
       } catch (error) {
         console.error('Error loading orders:', error);
@@ -137,7 +197,7 @@ export default function BusinessDashboard() {
 
     loadOrders();
 
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates for new orders
     const channel = supabase
       .channel('orders-updates')
       .on(
@@ -147,7 +207,22 @@ export default function BusinessDashboard() {
           schema: 'public',
           table: 'orders'
         },
-        () => loadOrders()
+        (payload) => {
+          console.log('Nouvelle commande reçue:', payload);
+          loadOrders(); // Reload to get complete data with joins
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('Commande mise à jour:', payload);
+          loadOrders(); // Reload to reflect status changes
+        }
       )
       .subscribe();
 
@@ -155,6 +230,36 @@ export default function BusinessDashboard() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Function to update order status
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setRecentOrders(prev => 
+        prev.map(order => 
+          order.orderId === orderId 
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
+  };
+
+  // Function to call customer
+  const handleCallCustomer = (order: OrderItem) => {
+    if (order.customerPhone) {
+      window.open(`tel:${order.customerPhone}`, '_self');
+    }
+  };
 
   const products = [
     {
@@ -340,12 +445,16 @@ export default function BusinessDashboard() {
                         )}
                       </div>
                     </div>
-                    {order.status === "new" && (
-                      <Button size="sm" className="w-full mt-2">
-                        <Phone className="h-4 w-4 mr-2" />
-                        Appeler le client
-                      </Button>
-                    )}
+                     {order.status === "new" && (
+                       <Button 
+                         size="sm" 
+                         className="w-full mt-2"
+                         onClick={() => handleCallCustomer(order)}
+                       >
+                         <Phone className="h-4 w-4 mr-2" />
+                         Appeler le client ({order.customerPhone || 'Non disponible'})
+                       </Button>
+                     )}
                   </div>
                 ))}
               </div>
@@ -622,60 +731,83 @@ export default function BusinessDashboard() {
                       </div>
                     </div>
                     
-                    <div>
-                      <h4 className="font-medium mb-2">Mode de récupération</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        {order.type === "pickup" ? (
-                          <>
-                            <MapPin className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm">Retrait sur place</span>
-                          </>
-                        ) : (
-                          <>
-                            <Truck className="h-4 w-4 text-green-500" />
-                            <span className="text-sm">
-                              Livraison {order.amount > 25000 && "(Gratuite)"}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      {order.type === "delivery" && order.amount <= 25000 && (
-                        <div className="text-xs text-orange-600">
-                          Frais de livraison à la charge du donateur
-                        </div>
-                      )}
-                    </div>
+                     <div>
+                       <h4 className="font-medium mb-2">Informations client</h4>
+                       <div className="space-y-1 text-sm">
+                         <div><strong>Nom:</strong> {order.customer}</div>
+                         <div className="flex items-center gap-2">
+                           <strong>Téléphone:</strong> 
+                           <span>{order.customerPhone || 'Non disponible'}</span>
+                           {order.customerPhone && (
+                             <Button 
+                               size="sm" 
+                               variant="ghost" 
+                               className="h-6 p-1"
+                               onClick={() => handleCallCustomer(order)}
+                             >
+                               <Phone className="h-3 w-3" />
+                             </Button>
+                           )}
+                         </div>
+                         {order.type === "delivery" && order.address && (
+                           <div><strong>Adresse:</strong> {order.address}</div>
+                         )}
+                         {order.notes && (
+                           <div><strong>Notes:</strong> {order.notes}</div>
+                         )}
+                       </div>
+                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    {order.status === "new" && (
-                      <>
-                        <Button size="sm" className="flex-1">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Appeler le client
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Check className="h-4 w-4 mr-2" />
-                          Confirmer
-                        </Button>
-                      </>
-                    )}
-                    {order.status === "confirmed" && (
-                      <Button size="sm" className="flex-1">
-                        Marquer en préparation
-                      </Button>
-                    )}
-                    {order.status === "preparing" && (
-                      <Button size="sm" className="flex-1">
-                        Marquer comme prêt
-                      </Button>
-                    )}
-                    {order.status === "ready" && (
-                      <Button size="sm" className="flex-1">
-                        Marquer comme livré/retiré
-                      </Button>
-                    )}
-                  </div>
+                   <div className="flex gap-2">
+                     {order.status === "new" && (
+                       <>
+                         <Button 
+                           size="sm" 
+                           className="flex-1"
+                           onClick={() => handleCallCustomer(order)}
+                         >
+                           <Phone className="h-4 w-4 mr-2" />
+                           Appeler le client
+                         </Button>
+                         <Button 
+                           size="sm" 
+                           variant="outline"
+                           onClick={() => updateOrderStatus(order.orderId, "confirmed")}
+                         >
+                           <Check className="h-4 w-4 mr-2" />
+                           Confirmer
+                         </Button>
+                       </>
+                     )}
+                     {order.status === "confirmed" && (
+                       <Button 
+                         size="sm" 
+                         className="flex-1"
+                         onClick={() => updateOrderStatus(order.orderId, "preparing")}
+                       >
+                         Marquer en préparation
+                       </Button>
+                     )}
+                     {order.status === "preparing" && (
+                       <Button 
+                         size="sm" 
+                         className="flex-1"
+                         onClick={() => updateOrderStatus(order.orderId, "ready")}
+                       >
+                         Marquer comme prêt
+                       </Button>
+                     )}
+                     {order.status === "ready" && (
+                       <Button 
+                         size="sm" 
+                         className="flex-1"
+                         onClick={() => updateOrderStatus(order.orderId, "delivered")}
+                       >
+                         Marquer comme livré/retiré
+                       </Button>
+                     )}
+                   </div>
                 </Card>
               ))}
             </div>
