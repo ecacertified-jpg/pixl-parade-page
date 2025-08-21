@@ -67,7 +67,7 @@ export function OrderModal({
   );
 
   const addToCart = (forSelf = true, recipient = null) => {
-    const existingCart = JSON.parse(localStorage.getItem('cartItems') || '[]');
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
     const newItem = {
       id: Date.now(),
       productId: product.id,
@@ -81,7 +81,7 @@ export function OrderModal({
     };
     
     const updatedCart = [...existingCart, newItem];
-    localStorage.setItem('cartItems', JSON.stringify(updatedCart));
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
     
     toast({
       title: forSelf ? "Ajouté au panier" : "Cadeau ajouté au panier",
@@ -225,10 +225,10 @@ export function OrderModal({
           ) : !showGiftOptions ?
         // Main Options
         <>
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => {
+               <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => {
                 addToCart(true);
                 navigate("/cart");
-                onClose();
+                handleClose();
               }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">

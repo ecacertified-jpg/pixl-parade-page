@@ -66,9 +66,26 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         const fileExt = file.name.split('.').pop();
         const fileName = `product_${Date.now()}.${fileExt}`;
         
-        // For now, we'll use a placeholder image URL
-        // In a real implementation, you would upload to Supabase Storage
-        imageUrl = "/placeholder-product.jpg";
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast.error("Erreur lors de l'upload de l'image");
+          return;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('products')
+          .getPublicUrl(fileName);
+        
+        imageUrl = urlData.publicUrl;
       }
 
       // Create product in database
