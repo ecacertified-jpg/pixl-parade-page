@@ -14,7 +14,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [products, setProducts] = useState<Array<{
@@ -25,26 +27,23 @@ export default function BusinessAccount() {
     stock: number;
     sales: number;
     status: string;
-  }>>([
-    {
-      id: 1,
-      name: "Bracelet Doré Élégance",
-      category: "Bijoux",
-      price: 15000,
-      stock: 8,
-      sales: 24,
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Parfum Roses de Yamoussoukro",
-      category: "Parfums", 
-      price: 35000,
-      stock: 5,
-      sales: 12,
-      status: "active"
-    }
-  ]);
+  }>>([{
+    id: 1,
+    name: "Bracelet Doré Élégance",
+    category: "Bijoux",
+    price: 15000,
+    stock: 8,
+    sales: 24,
+    status: "active"
+  }, {
+    id: 2,
+    name: "Parfum Roses de Yamoussoukro",
+    category: "Parfums",
+    price: 35000,
+    stock: 5,
+    sales: 12,
+    status: "active"
+  }]);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -56,23 +55,19 @@ export default function BusinessAccount() {
     document.title = "Compte Business | JOIE DE VIVRE";
     loadProducts();
   }, []);
-
   const loadProducts = async () => {
     if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('business_owner_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('products').select('*').eq('business_owner_id', user.id).eq('is_active', true).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error loading products:', error);
         return;
       }
-
       if (data && data.length > 0) {
         const formattedProducts = data.map(product => ({
           id: product.id,
@@ -80,7 +75,8 @@ export default function BusinessAccount() {
           category: "Produit",
           price: product.price,
           stock: product.stock_quantity || 0,
-          sales: 0, // This would need to be calculated from orders
+          sales: 0,
+          // This would need to be calculated from orders
           status: "active"
         }));
         setProducts(formattedProducts);
@@ -91,7 +87,6 @@ export default function BusinessAccount() {
       console.error('Error:', error);
     }
   };
-
   const handleEditProduct = (productId: string | number) => {
     // Find the product to edit
     const productToEdit = products.find(p => p.id === productId);
@@ -99,7 +94,6 @@ export default function BusinessAccount() {
       // For now, we'll use a simple prompt - can be expanded to a full modal later
       const newName = prompt("Nouveau nom du produit:", productToEdit.name);
       const newPrice = prompt("Nouveau prix (FCFA):", productToEdit.price.toString());
-      
       if (newName && newPrice) {
         updateProduct(productId, {
           name: newName,
@@ -108,14 +102,11 @@ export default function BusinessAccount() {
       }
     }
   };
-
   const updateProduct = async (productId: string | number, updates: any) => {
     try {
-      const { error } = await supabase
-        .from('products')
-        .update(updates)
-        .eq('id', String(productId));
-
+      const {
+        error
+      } = await supabase.from('products').update(updates).eq('id', String(productId));
       if (error) {
         console.error('Error updating product:', error);
         return;
@@ -127,25 +118,19 @@ export default function BusinessAccount() {
       console.error('Error:', error);
     }
   };
-
   const handleDeleteProduct = async (productId: string | number) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ? Il sera retiré de la boutique.')) {
       return;
     }
-    
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', String(productId))
-        .eq('business_owner_id', user?.id);
-
+      const {
+        error
+      } = await supabase.from('products').delete().eq('id', String(productId)).eq('business_owner_id', user?.id);
       if (error) {
         console.error('Error deleting product:', error);
         toast.error('Erreur lors de la suppression du produit');
         return;
       }
-
       toast.success('Produit supprimé avec succès');
       // Reload products to reflect the change
       loadProducts();
@@ -390,11 +375,8 @@ export default function BusinessAccount() {
           {/* Onglet Produits */}
           <TabsContent value="produits" className="mt-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Gestion des produits</h2>
-              <Button 
-                className="gap-2"
-                onClick={() => setIsAddProductModalOpen(true)}
-              >
+              <h2 className="font-semibold text-base text-gray-500">Gestion des produits</h2>
+              <Button onClick={() => setIsAddProductModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]">
                 <Plus className="h-4 w-4" />
                 Ajouter un produit
               </Button>
@@ -420,18 +402,10 @@ export default function BusinessAccount() {
                         <Badge variant="secondary" className="mt-1">En stock</Badge>
                       </div>
                       <div className="flex gap-2 ml-4">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditProduct(product.id)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product.id)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -760,10 +734,6 @@ export default function BusinessAccount() {
         <div className="pb-20" />
       </main>
 
-      <AddProductModal
-        isOpen={isAddProductModalOpen}
-        onClose={() => setIsAddProductModalOpen(false)}
-        onProductAdded={loadProducts}
-      />
+      <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
     </div>;
 }
