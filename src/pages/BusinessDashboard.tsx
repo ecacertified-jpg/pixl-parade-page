@@ -90,38 +90,7 @@ export default function BusinessDashboard() {
     netRevenue: 722500
   };
 
-  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([
-    {
-      id: "CMD-001",
-      orderId: "sample-1",
-      product: "Bracelet Doré Élégance",
-      customer: "Fatou Bamba",
-      customerPhone: "+225 01 23 45 67",
-      donor: "Kofi Asante",
-      amount: 15000,
-      status: "new",
-      type: "pickup",
-      address: "",
-      date: "2025-01-11 14:30",
-      rawDate: new Date().toISOString(),
-      notes: ""
-    },
-    {
-      id: "CMD-002",
-      orderId: "sample-2", 
-      product: "Parfum Roses de Yamoussoukro",
-      customer: "Aisha Traoré",
-      customerPhone: "+225 07 89 01 23",
-      donor: "Mamadou Diallo",
-      amount: 35000,
-      status: "confirmed",
-      type: "delivery",
-      address: "Cocody, Riviera",
-      date: "2025-01-11 10:15",
-      rawDate: new Date().toISOString(),
-      notes: ""
-    }
-  ]);
+  const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
 
   // Load real orders from database with customer info
   useEffect(() => {
