@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   ArrowLeft, 
   BarChart3,
@@ -58,6 +59,7 @@ interface OrderItem {
 
 export default function BusinessDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -108,14 +110,19 @@ export default function BusinessDashboard() {
             created_at,
             notes,
             user_id,
-            order_items(
+            order_items!inner(
               id,
               product_id,
               quantity,
               unit_price,
-              products(name, description)
+              products!inner(
+                name, 
+                description,
+                business_owner_id
+              )
             )
           `)
+          .eq('order_items.products.business_owner_id', user?.id)
           .order('created_at', { ascending: false })
           .limit(10);
 
