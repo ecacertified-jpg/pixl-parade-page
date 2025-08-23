@@ -198,36 +198,60 @@ export type Database = {
           business_name: string
           business_type: string | null
           created_at: string
+          delivery_settings: Json | null
+          delivery_zones: Json | null
+          description: string | null
+          email: string | null
           id: string
           is_active: boolean | null
           is_verified: boolean | null
+          logo_url: string | null
+          opening_hours: Json | null
+          payment_info: Json | null
           phone: string | null
           updated_at: string
           user_id: string
+          website_url: string | null
         }
         Insert: {
           address?: string | null
           business_name: string
           business_type?: string | null
           created_at?: string
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          payment_info?: Json | null
           phone?: string | null
           updated_at?: string
           user_id: string
+          website_url?: string | null
         }
         Update: {
           address?: string | null
           business_name?: string
           business_type?: string | null
           created_at?: string
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          email?: string | null
           id?: string
           is_active?: boolean | null
           is_verified?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          payment_info?: Json | null
           phone?: string | null
           updated_at?: string
           user_id?: string
+          website_url?: string | null
         }
         Relationships: []
       }
@@ -2198,6 +2222,29 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_business_account: {
+        Args: { p_user_id: string }
+        Returns: {
+          address: string
+          business_name: string
+          business_type: string
+          created_at: string
+          delivery_settings: Json
+          delivery_zones: Json
+          description: string
+          email: string
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          logo_url: string
+          opening_hours: Json
+          payment_info: Json
+          phone: string
+          updated_at: string
+          user_id: string
+          website_url: string
+        }[]
+      }
       get_favorites_suggestions: {
         Args: { p_user_id: string }
         Returns: {
@@ -2271,6 +2318,24 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      upsert_business_account: {
+        Args: {
+          p_address?: string
+          p_business_name: string
+          p_business_type?: string
+          p_delivery_settings?: Json
+          p_delivery_zones?: Json
+          p_description?: string
+          p_email?: string
+          p_logo_url?: string
+          p_opening_hours?: Json
+          p_payment_info?: Json
+          p_phone?: string
+          p_user_id: string
+          p_website_url?: string
+        }
+        Returns: string
       }
       user_can_see_fund: {
         Args: { fund_uuid: string; user_uuid: string }

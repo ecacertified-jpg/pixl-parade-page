@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -17,6 +19,9 @@ import {
   Settings,
   Eye,
   Upload,
+  Save,
+  Loader2,
+  Store,
   Edit,
   Trash2,
   Phone,
@@ -57,6 +62,22 @@ interface OrderItem {
   notes: string;
 }
 
+interface BusinessAccount {
+  id?: string;
+  business_name: string;
+  business_type?: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  logo_url?: string;
+  website_url?: string;
+  email?: string;
+  opening_hours: Record<string, { open: string; close: string; closed?: boolean }>;
+  delivery_zones: Array<{ name: string; radius: number; cost: number }>;
+  payment_info: { mobile_money?: string; account_holder?: string };
+  delivery_settings: { free_delivery_threshold: number; standard_cost: number };
+}
+
 export default function BusinessDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -69,9 +90,154 @@ export default function BusinessDashboard() {
     stock: ""
   });
 
+  // Business settings states
+  const [businessAccount, setBusinessAccount] = useState<BusinessAccount>({
+    business_name: "",
+    business_type: "",
+    phone: "",
+    address: "",
+    description: "",
+    logo_url: "",
+    website_url: "",
+    email: "",
+    opening_hours: {
+      lundi: { open: "09:00", close: "18:00" },
+      mardi: { open: "09:00", close: "18:00" },
+      mercredi: { open: "09:00", close: "18:00" },
+      jeudi: { open: "09:00", close: "18:00" },
+      vendredi: { open: "09:00", close: "18:00" },
+      samedi: { open: "09:00", close: "18:00" },
+      dimanche: { open: "09:00", close: "18:00", closed: true }
+    },
+    delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
+    payment_info: { mobile_money: "", account_holder: "" },
+    delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
+  });
+  
+  const [saving, setSaving] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
-  }, []);
+    loadBusinessAccount();
+  }, [user]);
+
+  // Load business account data
+  const loadBusinessAccount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.rpc('get_business_account', {
+        p_user_id: user.id
+      });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const businessData = data[0];
+        setBusinessAccount({
+          id: businessData.id,
+          business_name: businessData.business_name || "",
+          business_type: businessData.business_type || "",
+          phone: businessData.phone || "",
+          address: businessData.address || "",
+          description: businessData.description || "",
+          logo_url: businessData.logo_url || "",
+          website_url: businessData.website_url || "",
+          email: businessData.email || "",
+          opening_hours: (businessData.opening_hours && typeof businessData.opening_hours === 'object') 
+            ? businessData.opening_hours as Record<string, { open: string; close: string; closed?: boolean }>
+            : {
+                lundi: { open: "09:00", close: "18:00" },
+                mardi: { open: "09:00", close: "18:00" },
+                mercredi: { open: "09:00", close: "18:00" },
+                jeudi: { open: "09:00", close: "18:00" },
+                vendredi: { open: "09:00", close: "18:00" },
+                samedi: { open: "09:00", close: "18:00" },
+                dimanche: { open: "09:00", close: "18:00", closed: true }
+              },
+          delivery_zones: (businessData.delivery_zones && Array.isArray(businessData.delivery_zones)) 
+            ? businessData.delivery_zones as Array<{ name: string; radius: number; cost: number }>
+            : [{ name: "Zone standard", radius: 15, cost: 2000 }],
+          payment_info: (businessData.payment_info && typeof businessData.payment_info === 'object') 
+            ? businessData.payment_info as { mobile_money?: string; account_holder?: string }
+            : { mobile_money: "", account_holder: "" },
+          delivery_settings: (businessData.delivery_settings && typeof businessData.delivery_settings === 'object') 
+            ? businessData.delivery_settings as { free_delivery_threshold: number; standard_cost: number }
+            : { free_delivery_threshold: 25000, standard_cost: 2000 }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading business account:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les informations business",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save business account data
+  const saveBusinessAccount = async (section?: string) => {
+    if (!user?.id) return;
+
+    try {
+      setSaving(section || 'all');
+      const { error } = await supabase.rpc('upsert_business_account', {
+        p_user_id: user.id,
+        p_business_name: businessAccount.business_name,
+        p_business_type: businessAccount.business_type,
+        p_phone: businessAccount.phone,
+        p_address: businessAccount.address,
+        p_description: businessAccount.description,
+        p_logo_url: businessAccount.logo_url,
+        p_website_url: businessAccount.website_url,
+        p_email: businessAccount.email,
+        p_opening_hours: businessAccount.opening_hours,
+        p_delivery_zones: businessAccount.delivery_zones,
+        p_payment_info: businessAccount.payment_info,
+        p_delivery_settings: businessAccount.delivery_settings
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: `${section ? `Paramètres ${section}` : 'Paramètres business'} sauvegardés avec succès`,
+      });
+    } catch (error) {
+      console.error('Error saving business account:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les paramètres",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  // Update business account state
+  const updateBusinessAccount = (updates: Partial<BusinessAccount>) => {
+    setBusinessAccount(prev => ({ ...prev, ...updates }));
+  };
+
+  // Update opening hours
+  const updateOpeningHours = (day: string, field: 'open' | 'close' | 'closed', value: string | boolean) => {
+    setBusinessAccount(prev => ({
+      ...prev,
+      opening_hours: {
+        ...prev.opening_hours,
+        [day]: {
+          ...prev.opening_hours[day],
+          [field]: value
+        }
+      }
+    }));
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
@@ -862,89 +1028,314 @@ export default function BusinessDashboard() {
           <TabsContent value="settings" className="mt-6">
             <h2 className="text-xl font-semibold mb-6">Paramètres du compte</h2>
             
-            <div className="space-y-6">
-              {/* Informations de base */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Informations de la boutique</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Nom de la boutique</label>
-                    <Input defaultValue="Boutique Élégance" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Téléphone</label>
-                    <Input defaultValue="+225 01 23 45 67 89" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium mb-1 block">Adresse</label>
-                    <Input defaultValue="Cocody, Riviera Golf, Abidjan" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium mb-1 block">Description</label>
-                    <Textarea defaultValue="Boutique spécialisée dans les bijoux et accessoires de luxe." />
-                  </div>
-                </div>
-              </Card>
-
-              {/* Paramètres de livraison */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Paramètres de livraison</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Zone de livraison (km)</label>
-                    <Input type="number" defaultValue="15" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Frais de livraison standard (FCFA)</label>
-                    <Input type="number" defaultValue="2000" />
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Les frais de livraison sont gratuits pour les commandes supérieures à 25 000 FCFA
-                  </div>
-                </div>
-              </Card>
-
-              {/* Horaires d'ouverture */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Horaires d'ouverture</h3>
-                <div className="space-y-3">
-                  {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((day) => (
-                    <div key={day} className="flex items-center gap-4">
-                      <div className="w-20 text-sm">{day}</div>
-                      <Input type="time" defaultValue="09:00" className="w-32" />
-                      <span>-</span>
-                      <Input type="time" defaultValue="18:00" className="w-32" />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Informations bancaires */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Informations de paiement</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Numéro Mobile Money</label>
-                    <Input placeholder="+225 01 23 45 67 89" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Nom du titulaire</label>
-                    <Input placeholder="Nom complet" />
-                  </div>
-                </div>
-              </Card>
-
-              {/* Actions */}
-              <div className="flex gap-4">
-                <Button className="flex-1">
-                  Sauvegarder les modifications
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Télécharger les données
-                </Button>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Informations de base */}
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Informations de la boutique</h3>
+                    <Button 
+                      size="sm" 
+                      onClick={() => saveBusinessAccount('boutique')}
+                      disabled={saving === 'boutique'}
+                    >
+                      {saving === 'boutique' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Sauvegarder
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="business_name">Nom de la boutique</Label>
+                      <Input
+                        id="business_name"
+                        value={businessAccount.business_name}
+                        onChange={(e) => updateBusinessAccount({ business_name: e.target.value })}
+                        placeholder="Ex: Boutique Élégance"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="business_type">Type d'activité</Label>
+                      <Select 
+                        value={businessAccount.business_type || ""} 
+                        onValueChange={(value) => updateBusinessAccount({ business_type: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bijoux">Bijoux & Accessoires</SelectItem>
+                          <SelectItem value="parfums">Parfums & Cosmétiques</SelectItem>
+                          <SelectItem value="mode">Mode & Vêtements</SelectItem>
+                          <SelectItem value="tech">Tech & Électronique</SelectItem>
+                          <SelectItem value="artisanat">Artisanat</SelectItem>
+                          <SelectItem value="gastronomie">Gastronomie</SelectItem>
+                          <SelectItem value="autre">Autre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Téléphone</Label>
+                      <Input
+                        id="phone"
+                        value={businessAccount.phone || ""}
+                        onChange={(e) => updateBusinessAccount({ phone: e.target.value })}
+                        placeholder="+225 01 23 45 67 89"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={businessAccount.email || ""}
+                        onChange={(e) => updateBusinessAccount({ email: e.target.value })}
+                        placeholder="contact@boutique-elegance.ci"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="address">Adresse complète</Label>
+                      <Input
+                        id="address"
+                        value={businessAccount.address || ""}
+                        onChange={(e) => updateBusinessAccount({ address: e.target.value })}
+                        placeholder="Cocody, Riviera Golf, Abidjan"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="description">Description de votre boutique</Label>
+                      <Textarea
+                        id="description"
+                        value={businessAccount.description || ""}
+                        onChange={(e) => updateBusinessAccount({ description: e.target.value })}
+                        placeholder="Décrivez votre boutique, vos spécialités..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Horaires d'ouverture */}
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Horaires d'ouverture</h3>
+                    <Button 
+                      size="sm" 
+                      onClick={() => saveBusinessAccount('horaires')}
+                      disabled={saving === 'horaires'}
+                    >
+                      {saving === 'horaires' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Clock className="h-4 w-4 mr-2" />
+                      )}
+                      Sauvegarder
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {Object.entries({
+                      lundi: "Lundi",
+                      mardi: "Mardi", 
+                      mercredi: "Mercredi",
+                      jeudi: "Jeudi",
+                      vendredi: "Vendredi",
+                      samedi: "Samedi",
+                      dimanche: "Dimanche"
+                    }).map(([key, day]) => (
+                      <div key={key} className="flex items-center gap-4">
+                        <div className="w-20 text-sm font-medium">{day}</div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="time"
+                            value={businessAccount.opening_hours[key]?.open || "09:00"}
+                            onChange={(e) => updateOpeningHours(key, 'open', e.target.value)}
+                            className="w-32"
+                            disabled={businessAccount.opening_hours[key]?.closed}
+                          />
+                          <span>-</span>
+                          <Input
+                            type="time"
+                            value={businessAccount.opening_hours[key]?.close || "18:00"}
+                            onChange={(e) => updateOpeningHours(key, 'close', e.target.value)}
+                            className="w-32"
+                            disabled={businessAccount.opening_hours[key]?.closed}
+                          />
+                          <Label className="flex items-center gap-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={businessAccount.opening_hours[key]?.closed || false}
+                              onChange={(e) => updateOpeningHours(key, 'closed', e.target.checked)}
+                              className="w-4 h-4"
+                            />
+                            Fermé
+                          </Label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Paramètres de livraison */}
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Zones de livraison</h3>
+                    <Button 
+                      size="sm" 
+                      onClick={() => saveBusinessAccount('livraison')}
+                      disabled={saving === 'livraison'}
+                    >
+                      {saving === 'livraison' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <MapPin className="h-4 w-4 mr-2" />
+                      )}
+                      Sauvegarder
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="delivery_radius">Rayon de livraison (km)</Label>
+                        <Input
+                          id="delivery_radius"
+                          type="number"
+                          value={businessAccount.delivery_zones[0]?.radius || 15}
+                          onChange={(e) => {
+                            const zones = [...businessAccount.delivery_zones];
+                            zones[0] = { ...zones[0], radius: parseInt(e.target.value) || 15 };
+                            updateBusinessAccount({ delivery_zones: zones });
+                          }}
+                          min="1"
+                          max="50"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="delivery_cost">Frais de livraison standard (FCFA)</Label>
+                        <Input
+                          id="delivery_cost"
+                          type="number"
+                          value={businessAccount.delivery_settings.standard_cost}
+                          onChange={(e) => updateBusinessAccount({
+                            delivery_settings: {
+                              ...businessAccount.delivery_settings,
+                              standard_cost: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="free_threshold">Livraison gratuite à partir de (FCFA)</Label>
+                      <Input
+                        id="free_threshold"
+                        type="number"
+                        value={businessAccount.delivery_settings.free_delivery_threshold}
+                        onChange={(e) => updateBusinessAccount({
+                          delivery_settings: {
+                            ...businessAccount.delivery_settings,
+                            free_delivery_threshold: parseInt(e.target.value) || 0
+                          }
+                        })}
+                        min="0"
+                      />
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Les frais de livraison seront gratuits pour les commandes dépassant ce montant
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Informations de paiement */}
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Informations de paiement</h3>
+                    <Button 
+                      size="sm" 
+                      onClick={() => saveBusinessAccount('paiement')}
+                      disabled={saving === 'paiement'}
+                    >
+                      {saving === 'paiement' ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <CreditCard className="h-4 w-4 mr-2" />
+                      )}
+                      Sauvegarder
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="mobile_money">Numéro Mobile Money</Label>
+                      <Input
+                        id="mobile_money"
+                        value={businessAccount.payment_info.mobile_money || ""}
+                        onChange={(e) => updateBusinessAccount({
+                          payment_info: {
+                            ...businessAccount.payment_info,
+                            mobile_money: e.target.value
+                          }
+                        })}
+                        placeholder="+225 01 23 45 67 89"
+                      />
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Orange Money, MTN Mobile Money, Moov Money acceptés
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="account_holder">Nom du titulaire du compte</Label>
+                      <Input
+                        id="account_holder"
+                        value={businessAccount.payment_info.account_holder || ""}
+                        onChange={(e) => updateBusinessAccount({
+                          payment_info: {
+                            ...businessAccount.payment_info,
+                            account_holder: e.target.value
+                          }
+                        })}
+                        placeholder="Nom complet du titulaire"
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Actions globales */}
+                <div className="flex gap-4">
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => saveBusinessAccount()}
+                    disabled={saving !== null}
+                  >
+                    {saving === 'all' ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Sauvegarder tout
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => {
+                      // Export business data logic would go here
+                      toast({
+                        title: "Export",
+                        description: "Fonctionnalité d'export en cours de développement"
+                      });
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Exporter les données
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
