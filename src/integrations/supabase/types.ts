@@ -255,6 +255,36 @@ export type Database = {
         }
         Relationships: []
       }
+      business_locations: {
+        Row: {
+          commune: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          commune?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          commune?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null

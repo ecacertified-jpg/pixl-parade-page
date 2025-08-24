@@ -45,6 +45,8 @@ import {
   Target,
   PieChart
 } from "lucide-react";
+import LocationSelector from "@/components/LocationSelector";
+import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 
 interface OrderItem {
   id: string;
@@ -116,6 +118,7 @@ export default function BusinessDashboard() {
   
   const [saving, setSaving] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingOpeningHours, setEditingOpeningHours] = useState(false);
 
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
@@ -1101,12 +1104,11 @@ export default function BusinessDashboard() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label htmlFor="address">Adresse complète</Label>
-                      <Input
-                        id="address"
+                      <LocationSelector
                         value={businessAccount.address || ""}
-                        onChange={(e) => updateBusinessAccount({ address: e.target.value })}
-                        placeholder="Cocody, Riviera Golf, Abidjan"
+                        onChange={(value) => updateBusinessAccount({ address: value })}
+                        label="Adresse complète"
+                        placeholder="Sélectionner ou ajouter un lieu"
                       />
                     </div>
                     <div className="md:col-span-2">
@@ -1126,18 +1128,28 @@ export default function BusinessDashboard() {
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-medium">Horaires d'ouverture</h3>
-                    <Button 
-                      size="sm" 
-                      onClick={() => saveBusinessAccount('horaires')}
-                      disabled={saving === 'horaires'}
-                    >
-                      {saving === 'horaires' ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Clock className="h-4 w-4 mr-2" />
-                      )}
-                      Sauvegarder
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setEditingOpeningHours(!editingOpeningHours)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        {editingOpeningHours ? "Arrêter" : "Modifier les horaires"}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => saveBusinessAccount('horaires')}
+                        disabled={saving === 'horaires'}
+                      >
+                        {saving === 'horaires' ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Clock className="h-4 w-4 mr-2" />
+                        )}
+                        Sauvegarder
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-3">
                     {Object.entries({
@@ -1157,7 +1169,11 @@ export default function BusinessDashboard() {
                             value={businessAccount.opening_hours[key]?.open || "09:00"}
                             onChange={(e) => updateOpeningHours(key, 'open', e.target.value)}
                             className="w-32"
-                            disabled={businessAccount.opening_hours[key]?.closed}
+                            disabled={!editingOpeningHours || businessAccount.opening_hours[key]?.closed}
+                            style={{ 
+                              pointerEvents: (!editingOpeningHours || businessAccount.opening_hours[key]?.closed) ? 'none' : 'auto',
+                              opacity: (!editingOpeningHours || businessAccount.opening_hours[key]?.closed) ? 0.6 : 1
+                            }}
                           />
                           <span>-</span>
                           <Input
@@ -1165,14 +1181,23 @@ export default function BusinessDashboard() {
                             value={businessAccount.opening_hours[key]?.close || "18:00"}
                             onChange={(e) => updateOpeningHours(key, 'close', e.target.value)}
                             className="w-32"
-                            disabled={businessAccount.opening_hours[key]?.closed}
+                            disabled={!editingOpeningHours || businessAccount.opening_hours[key]?.closed}
+                            style={{ 
+                              pointerEvents: (!editingOpeningHours || businessAccount.opening_hours[key]?.closed) ? 'none' : 'auto',
+                              opacity: (!editingOpeningHours || businessAccount.opening_hours[key]?.closed) ? 0.6 : 1
+                            }}
                           />
                           <Label className="flex items-center gap-2 ml-4">
                             <input
                               type="checkbox"
                               checked={businessAccount.opening_hours[key]?.closed || false}
                               onChange={(e) => updateOpeningHours(key, 'closed', e.target.checked)}
-                              className="w-4 h-4"
+                              className="w-4 h-4 rounded border border-input bg-background"
+                              disabled={!editingOpeningHours}
+                              style={{ 
+                                pointerEvents: !editingOpeningHours ? 'none' : 'auto',
+                                opacity: !editingOpeningHours ? 0.6 : 1
+                              }}
                             />
                             Fermé
                           </Label>
@@ -1180,12 +1205,19 @@ export default function BusinessDashboard() {
                       </div>
                     ))}
                   </div>
+                  {editingOpeningHours && (
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Mode d'édition activé. Modifiez vos horaires puis cliquez sur "Sauvegarder".
+                      </p>
+                    </div>
+                  )}
                 </Card>
 
                 {/* Paramètres de livraison */}
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-medium">Zones de livraison</h3>
+                    <h3 className="font-medium">Paramètres de livraison</h3>
                     <Button 
                       size="sm" 
                       onClick={() => saveBusinessAccount('livraison')}
@@ -1199,55 +1231,51 @@ export default function BusinessDashboard() {
                       Sauvegarder
                     </Button>
                   </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="delivery_radius">Rayon de livraison (km)</Label>
-                        <Input
-                          id="delivery_radius"
-                          type="number"
-                          value={businessAccount.delivery_zones[0]?.radius || 15}
-                          onChange={(e) => {
-                            const zones = [...businessAccount.delivery_zones];
-                            zones[0] = { ...zones[0], radius: parseInt(e.target.value) || 15 };
-                            updateBusinessAccount({ delivery_zones: zones });
-                          }}
-                          min="1"
-                          max="50"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="delivery_cost">Frais de livraison standard (FCFA)</Label>
-                        <Input
-                          id="delivery_cost"
-                          type="number"
-                          value={businessAccount.delivery_settings.standard_cost}
-                          onChange={(e) => updateBusinessAccount({
-                            delivery_settings: {
-                              ...businessAccount.delivery_settings,
-                              standard_cost: parseInt(e.target.value) || 0
-                            }
-                          })}
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="free_threshold">Livraison gratuite à partir de (FCFA)</Label>
-                      <Input
-                        id="free_threshold"
-                        type="number"
-                        value={businessAccount.delivery_settings.free_delivery_threshold}
-                        onChange={(e) => updateBusinessAccount({
-                          delivery_settings: {
-                            ...businessAccount.delivery_settings,
-                            free_delivery_threshold: parseInt(e.target.value) || 0
-                          }
-                        })}
-                        min="0"
-                      />
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Les frais de livraison seront gratuits pour les commandes dépassant ce montant
+                  
+                  <div className="space-y-6">
+                    {/* Zones de livraison configurables */}
+                    <DeliveryZoneManager
+                      zones={businessAccount.delivery_zones}
+                      onChange={(zones) => updateBusinessAccount({ delivery_zones: zones })}
+                    />
+                    
+                    {/* Paramètres globaux de livraison */}
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-4">Paramètres globaux</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="delivery_cost">Frais de livraison par défaut (FCFA)</Label>
+                          <Input
+                            id="delivery_cost"
+                            type="number"
+                            value={businessAccount.delivery_settings.standard_cost}
+                            onChange={(e) => updateBusinessAccount({
+                              delivery_settings: {
+                                ...businessAccount.delivery_settings,
+                                standard_cost: parseInt(e.target.value) || 0
+                              }
+                            })}
+                            min="0"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="free_threshold">Livraison gratuite à partir de (FCFA)</Label>
+                          <Input
+                            id="free_threshold"
+                            type="number"
+                            value={businessAccount.delivery_settings.free_delivery_threshold}
+                            onChange={(e) => updateBusinessAccount({
+                              delivery_settings: {
+                                ...businessAccount.delivery_settings,
+                                free_delivery_threshold: parseInt(e.target.value) || 0
+                              }
+                            })}
+                            min="0"
+                          />
+                          <div className="text-sm text-muted-foreground mt-1">
+                            Les frais de livraison seront gratuits pour les commandes dépassant ce montant
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
