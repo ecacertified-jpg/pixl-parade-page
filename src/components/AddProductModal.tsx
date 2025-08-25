@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,11 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
     description: "",
     price: "",
     category_id: "",
-    stock_quantity: ""
+    stock_quantity: "",
+    business_id: ""
   });
+
+  const [businesses, setBusinesses] = useState<Array<{ id: string; business_name: string }>>([]);
 
   const categories = [
     { id: "bijoux", name: "Bijoux" },
@@ -36,6 +39,31 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
     { id: "artisanat", name: "Artisanat" },
     { id: "gourmet", name: "Gourmet" }
   ];
+
+  // Load businesses when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadBusinesses();
+    }
+  }, [isOpen, user]);
+
+  const loadBusinesses = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('id, business_name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('business_name');
+
+      if (error) throw error;
+      setBusinesses(data || []);
+    } catch (error) {
+      console.error('Error loading businesses:', error);
+    }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
@@ -51,8 +79,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       return;
     }
 
-    if (!formData.name || !formData.price) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
+    if (!formData.name || !formData.price || !formData.business_id) {
+      toast.error("Veuillez remplir tous les champs obligatoires (nom, prix et business)");
       return;
     }
 
@@ -99,6 +127,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
           business_owner_id: user.id,
+          business_id: formData.business_id,
           is_active: true
         })
         .select()
@@ -118,7 +147,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         description: "",
         price: "",
         category_id: "",
-        stock_quantity: ""
+        stock_quantity: "",
+        business_id: ""
       });
       setSelectedFiles(null);
       
@@ -149,6 +179,22 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
               placeholder="Ex: Bracelet Doré Élégance"
               className="mt-1"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="business">Business *</Label>
+            <Select value={formData.business_id} onValueChange={(value) => handleInputChange('business_id', value)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Sélectionner un business" />
+              </SelectTrigger>
+              <SelectContent>
+                {businesses.map(business => (
+                  <SelectItem key={business.id} value={business.id}>
+                    {business.business_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

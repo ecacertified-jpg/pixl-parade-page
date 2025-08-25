@@ -285,6 +285,66 @@ export type Database = {
         }
         Relationships: []
       }
+      businesses: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string | null
+          created_at: string | null
+          delivery_settings: Json | null
+          delivery_zones: Json | null
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          opening_hours: Json | null
+          payment_info: Json | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type?: string | null
+          created_at?: string | null
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          payment_info?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id: string
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string | null
+          created_at?: string | null
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          payment_info?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string | null
@@ -1482,6 +1542,7 @@ export type Database = {
       }
       products: {
         Row: {
+          business_id: string | null
           business_owner_id: string | null
           category_id: string | null
           created_at: string
@@ -1497,6 +1558,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id?: string | null
           business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
@@ -1512,6 +1574,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string | null
           business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
@@ -1527,6 +1590,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]

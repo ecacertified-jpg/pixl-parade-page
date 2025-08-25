@@ -47,6 +47,10 @@ import {
 } from "lucide-react";
 import LocationSelector from "@/components/LocationSelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
+import { AddBusinessModal } from "@/components/AddBusinessModal";
+import { BusinessCard } from "@/components/BusinessCard";
+import type { Business } from "@/types/business";
+
 
 interface OrderItem {
   id: string;
@@ -120,9 +124,16 @@ export default function BusinessDashboard() {
   const [loading, setLoading] = useState(true);
   const [editingOpeningHours, setEditingOpeningHours] = useState(false);
 
+  // Multi-business states
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loadingBusinesses, setLoadingBusinesses] = useState(false);
+  const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
     loadBusinessAccount();
+    loadBusinesses();
   }, [user]);
 
   // Load business account data
@@ -240,6 +251,86 @@ export default function BusinessDashboard() {
         }
       }
     }));
+  };
+
+  // Load businesses
+  const loadBusinesses = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingBusinesses(true);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Cast and format the data properly
+      const formattedBusinesses: Business[] = (data || []).map(business => ({
+        id: business.id,
+        business_name: business.business_name,
+        business_type: business.business_type || "",
+        phone: business.phone,
+        address: business.address,
+        description: business.description,
+        logo_url: business.logo_url,
+        website_url: business.website_url,
+        email: business.email,
+        opening_hours: (business.opening_hours && typeof business.opening_hours === 'object') 
+          ? business.opening_hours as Record<string, { open: string; close: string; closed?: boolean }>
+          : {
+              lundi: { open: "09:00", close: "18:00" },
+              mardi: { open: "09:00", close: "18:00" },
+              mercredi: { open: "09:00", close: "18:00" },
+              jeudi: { open: "09:00", close: "18:00" },
+              vendredi: { open: "09:00", close: "18:00" },
+              samedi: { open: "09:00", close: "18:00" },
+              dimanche: { open: "09:00", close: "18:00", closed: true }
+            },
+        delivery_zones: (business.delivery_zones && Array.isArray(business.delivery_zones)) 
+          ? business.delivery_zones as Array<{ name: string; radius: number; cost: number; active?: boolean }>
+          : [{ name: "Zone standard", radius: 15, cost: 2000, active: true }],
+        payment_info: (business.payment_info && typeof business.payment_info === 'object') 
+          ? business.payment_info as { mobile_money?: string; account_holder?: string }
+          : { mobile_money: "", account_holder: "" },
+        delivery_settings: (business.delivery_settings && typeof business.delivery_settings === 'object') 
+          ? business.delivery_settings as { free_delivery_threshold: number; standard_cost: number }
+          : { free_delivery_threshold: 25000, standard_cost: 2000 },
+        is_active: business.is_active,
+        created_at: business.created_at,
+        updated_at: business.updated_at
+      }));
+      
+      setBusinesses(formattedBusinesses);
+    } catch (error) {
+      console.error('Error loading businesses:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les business",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingBusinesses(false);
+    }
+  };
+
+  // Handle edit business
+  const handleEditBusiness = (business: Business) => {
+    setEditingBusiness(business);
+    setIsAddBusinessModalOpen(true);
+  };
+
+  // Handle business modal close
+  const handleBusinessModalClose = () => {
+    setIsAddBusinessModalOpen(false);
+    setEditingBusiness(null);
+  };
+
+  // Handle business added/updated
+  const handleBusinessChanged = () => {
+    loadBusinesses();
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1442,6 +1533,14 @@ export default function BusinessDashboard() {
 
         <div className="pb-20" />
       </main>
+
+      {/* Modals */}
+      <AddBusinessModal
+        isOpen={isAddBusinessModalOpen}
+        onClose={handleBusinessModalClose}
+        onBusinessAdded={handleBusinessChanged}
+        editingBusiness={editingBusiness}
+      />
     </div>
   );
 }
