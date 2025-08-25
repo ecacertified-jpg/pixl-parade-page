@@ -262,13 +262,24 @@ export default function BusinessDashboard() {
   };
 
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
   // Load real orders from database with customer info
   useEffect(() => {
     const loadOrders = async () => {
+      if (!user?.id) {
+        console.log('No user ID available, skipping orders load');
+        return;
+      }
+
       try {
-        // First get orders
-        const { data: orders } = await supabase
+        setLoadingOrders(true);
+        setOrdersError(null);
+        console.log('Loading orders for business owner:', user.id);
+
+        // First get orders for products owned by this business
+        const { data: orders, error: ordersError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -291,17 +302,28 @@ export default function BusinessDashboard() {
               )
             )
           `)
-          .eq('order_items.products.business_owner_id', user?.id)
+          .eq('order_items.products.business_owner_id', user.id)
           .order('created_at', { ascending: false })
           .limit(10);
+
+        if (ordersError) {
+          console.error('Error querying orders:', ordersError);
+          throw ordersError;
+        }
+
+        console.log('Found orders:', orders?.length || 0);
 
         if (orders && orders.length > 0) {
           // Get user profiles for all user_ids in the orders
           const userIds = orders.map(order => order.user_id);
-          const { data: profiles } = await supabase
+          const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('user_id, first_name, last_name, phone')
             .in('user_id', userIds);
+
+          if (profilesError) {
+            console.error('Error loading profiles:', profilesError);
+          }
 
           const formattedOrders: OrderItem[] = orders.map(order => {
             const deliveryInfo = order.delivery_address as any;
@@ -334,9 +356,21 @@ export default function BusinessDashboard() {
           });
 
           setRecentOrders(formattedOrders);
+          console.log('Loaded orders successfully:', formattedOrders.length);
+        } else {
+          setRecentOrders([]);
+          console.log('No orders found for this business owner');
         }
       } catch (error) {
         console.error('Error loading orders:', error);
+        setOrdersError('Impossible de charger les commandes. Veuillez réessayer.');
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les commandes",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingOrders(false);
       }
     };
 
@@ -374,7 +408,7 @@ export default function BusinessDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id]);
 
   // Function to update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -853,7 +887,45 @@ export default function BusinessDashboard() {
             </Card>
 
             <div className="space-y-4">
-              {recentOrders.map((order) => (
+              {loadingOrders ? (
+                <Card className="p-8">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Chargement des commandes...</span>
+                  </div>
+                </Card>
+              ) : ordersError ? (
+                <Card className="p-8">
+                  <div className="flex items-center justify-center text-red-600">
+                    <AlertCircle className="h-6 w-6 mr-2" />
+                    <span>{ordersError}</span>
+                  </div>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline" 
+                    className="mt-4 mx-auto block"
+                  >
+                    Réessayer
+                  </Button>
+                </Card>
+              ) : recentOrders.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <div className="space-y-4">
+                    <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <h3 className="font-medium text-lg">Aucune commande pour le moment</h3>
+                      <p className="text-muted-foreground">
+                        Les commandes pour vos produits apparaîtront ici. Assurez-vous d'avoir ajouté des produits actifs.
+                      </p>
+                    </div>
+                    <Button onClick={() => window.location.hash = '#products'} variant="outline">
+                      <Package className="h-4 w-4 mr-2" />
+                      Gérer mes produits
+                    </Button>
+                  </div>
+                </Card>
+              ) : (
+                recentOrders.map((order) => (
                 <Card key={order.id} className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -953,8 +1025,9 @@ export default function BusinessDashboard() {
                        </Button>
                      )}
                    </div>
-                </Card>
-              ))}
+                 </Card>
+               ))
+              )}
             </div>
           </TabsContent>
 
