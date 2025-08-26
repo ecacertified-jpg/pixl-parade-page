@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Settings, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
+import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
 import { AddProductModal } from "@/components/AddProductModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -252,7 +252,7 @@ export default function BusinessAccount() {
 
         {/* Dashboard avec onglets */}
         <Tabs defaultValue="vue-ensemble" className="w-full">
-          <TabsList className="grid grid-cols-5 text-xs">
+          <TabsList className="grid grid-cols-4 text-xs">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Vue d'ens.</span>
@@ -268,10 +268,6 @@ export default function BusinessAccount() {
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="parametres" className="flex flex-col gap-1">
-              <Settings className="h-4 w-4" />
-              <span className="text-xs">Paramètres</span>
             </TabsTrigger>
           </TabsList>
 
@@ -598,134 +594,6 @@ export default function BusinessAccount() {
                   <div className="text-2xl font-bold text-orange-600">98%</div>
                   <div className="text-sm text-muted-foreground">Satisfaction</div>
                 </div>
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Onglet Paramètres */}
-          <TabsContent value="parametres" className="mt-6">
-            <h2 className="text-xl font-semibold mb-6">Paramètres du compte</h2>
-            
-            {/* Profil du prestataire */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <UserPlus className="h-4 w-4" />
-                Informations du prestataire
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Nom de la boutique</label>
-                  <Input defaultValue="Boutique Élégance" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Adresse complète</label>
-                  <Input defaultValue="Cocody, Angré 8ème Tranche, Abidjan" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Téléphone principal</label>
-                  <Input defaultValue="+225 07 08 09 10 11" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Email professionnel</label>
-                  <Input defaultValue="contact@boutique-elegance.ci" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Description de la boutique</label>
-                  <Textarea defaultValue="Spécialiste en bijoux et accessoires de mode. Nous proposons des pièces uniques et élégantes pour toutes les occasions spéciales." rows={3} />
-                </div>
-              </div>
-            </Card>
-
-            {/* Horaires d'ouverture */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Horaires d'ouverture
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm font-medium">Lundi - Vendredi</span>
-                  <span className="text-sm">8h00 - 18h00</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm font-medium">Samedi</span>
-                  <span className="text-sm">9h00 - 17h00</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-medium">Dimanche</span>
-                  <span className="text-sm text-red-600">Fermé</span>
-                </div>
-              </div>
-              <Button size="sm" className="w-full mt-4">
-                <Clock className="h-4 w-4 mr-2" />
-                Modifier les horaires
-              </Button>
-            </Card>
-
-            {/* Zone de livraison */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Zones de livraison
-              </h3>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <Badge variant="secondary" className="justify-center">Cocody</Badge>
-                <Badge variant="secondary" className="justify-center">Marcory</Badge>
-                <Badge variant="secondary" className="justify-center">Plateau</Badge>
-                <Badge variant="secondary" className="justify-center">Yopougon</Badge>
-                <Badge variant="secondary" className="justify-center">Treichville</Badge>
-                <Badge variant="secondary" className="justify-center">Adjamé</Badge>
-              </div>
-              <div className="text-sm text-muted-foreground mb-3">
-                Frais de livraison: 2 000 F (Gratuit si commande &gt; 25 000 F)
-              </div>
-              <Button size="sm" className="w-full">
-                <MapPin className="h-4 w-4 mr-2" />
-                Ajouter des zones
-              </Button>
-            </Card>
-
-            {/* Informations financières */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Informations de paiement
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Mobile Money (Orange/MTN)</label>
-                  <Input defaultValue="+225 07 08 09 10 11" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Nom du compte Mobile Money</label>
-                  <Input defaultValue="KOUAME Jean-Baptiste" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Nom de la boutique (pour les reçus)</label>
-                  <Input defaultValue="Boutique Élégance SARL" />
-                </div>
-              </div>
-            </Card>
-
-            {/* Documents et reçus */}
-            <Card className="p-4">
-              <h3 className="font-medium mb-4 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Documents et reçus
-              </h3>
-              <div className="space-y-3">
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Download className="h-4 w-4 mr-2" />
-                  Télécharger les reçus du mois
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Historique des gains
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Rapport mensuel
-                </Button>
               </div>
             </Card>
           </TabsContent>
