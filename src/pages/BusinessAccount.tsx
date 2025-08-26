@@ -180,7 +180,38 @@ export default function BusinessAccount() {
       } = await supabase.from('products').delete().eq('id', String(productId)).eq('business_owner_id', user?.id);
       if (error) {
         console.error('Error deleting product:', error);
-        toast.error('Erreur lors de la suppression du produit');
+        
+        // Handle foreign key constraint violation (product referenced in orders)
+        if (error.code === '23503') {
+          toast.error('Impossible de supprimer ce produit car il fait partie de commandes existantes. Voulez-vous le désactiver à la place ?', {
+            duration: 6000
+          });
+          
+          // Offer to deactivate the product instead
+          if (confirm('Ce produit ne peut pas être supprimé car il fait partie de commandes. Voulez-vous le désactiver à la place ?')) {
+            try {
+              const { error: updateError } = await supabase
+                .from('products')
+                .update({ is_active: false })
+                .eq('id', String(productId))
+                .eq('business_owner_id', user?.id);
+              
+              if (updateError) {
+                console.error('Error deactivating product:', updateError);
+                toast.error('Erreur lors de la désactivation du produit');
+                return;
+              }
+              
+              toast.success('Produit désactivé avec succès');
+              loadProducts();
+            } catch (deactivateError) {
+              console.error('Error deactivating product:', deactivateError);
+              toast.error('Erreur lors de la désactivation du produit');
+            }
+          }
+        } else {
+          toast.error('Erreur lors de la suppression du produit');
+        }
         return;
       }
       toast.success('Produit supprimé avec succès');
