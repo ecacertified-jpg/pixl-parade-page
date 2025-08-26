@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, Ma
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
+import { OrderDetailsModal } from "@/components/OrderDetailsModal";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +55,8 @@ export default function BusinessAccount() {
     }>;
   }>>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<typeof orders[0] | null>(null);
+  const [isOrderDetailsModalOpen, setIsOrderDetailsModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -753,17 +756,18 @@ export default function BusinessAccount() {
                          <div className="text-xs text-muted-foreground">
                            Mode de paiement: {order.notes?.includes('Mobile Money') ? 'Mobile Money' : 'À la livraison/retrait'}
                          </div>
-                         <Button 
-                           variant="outline" 
-                           size="sm"
-                           onClick={() => {
-                             toast.success(`Détails de la commande ${order.id.slice(0, 8)} affichés`);
-                           }}
-                           className="flex items-center gap-2"
-                         >
-                           <FileText className="h-4 w-4" />
-                           Voir Détail
-                         </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setIsOrderDetailsModalOpen(true);
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Voir Détail
+                          </Button>
                        </div>
                      </Card>
                    ))}
@@ -917,6 +921,14 @@ export default function BusinessAccount() {
         onClose={handleBusinessModalClose}
         onBusinessAdded={handleBusinessChanged}
         editingBusiness={editingBusiness}
+      />
+      <OrderDetailsModal
+        isOpen={isOrderDetailsModalOpen}
+        onClose={() => {
+          setIsOrderDetailsModalOpen(false);
+          setSelectedOrder(null);
+        }}
+        order={selectedOrder}
       />
     </div>;
 }
