@@ -376,36 +376,62 @@ export default function BusinessAccount() {
     type: "delivery",
     date: "2025-01-11 10:15"
   }];
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, createdAt?: string) => {
+    // Calculer si 72 heures se sont écoulées
+    const isExpired = createdAt ? 
+      (new Date().getTime() - new Date(createdAt).getTime()) > (72 * 60 * 60 * 1000) : false;
+    
+    if (isExpired && status === "pending") {
+      return "bg-gray-500";
+    }
+    
     switch (status) {
-      case "new":
-        return "bg-orange-500";
       case "confirmed":
-        return "bg-blue-500";
-      case "preparing":
-        return "bg-yellow-500";
-      case "ready":
         return "bg-green-500";
-      case "delivered":
-        return "bg-gray-500";
+      case "pending":
+        return "bg-red-500";
       default:
         return "bg-gray-500";
     }
   };
-  const getStatusText = (status: string) => {
+  
+  const getStatusText = (status: string, createdAt?: string) => {
+    // Calculer si 72 heures se sont écoulées
+    const isExpired = createdAt ? 
+      (new Date().getTime() - new Date(createdAt).getTime()) > (72 * 60 * 60 * 1000) : false;
+    
+    if (isExpired && status === "pending") {
+      return "Non confirmée";
+    }
+    
     switch (status) {
-      case "new":
-        return "Nouvelle";
       case "confirmed":
         return "Confirmée";
-      case "preparing":
-        return "En préparation";
-      case "ready":
-        return "Prêt";
-      case "delivered":
-        return "Livré";
+      case "pending":
+        return "En cours";
       default:
         return status;
+    }
+  };
+  
+  const handleOrderConfirmed = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .eq('id', orderId);
+        
+      if (error) {
+        console.error('Error confirming order:', error);
+        toast.error('Erreur lors de la confirmation');
+        return;
+      }
+      
+      toast.success('Commande confirmée avec succès');
+      await loadOrders(); // Recharger les commandes
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors de la confirmation');
     }
   };
   return <div className="min-h-screen bg-gradient-background">
@@ -690,9 +716,9 @@ export default function BusinessAccount() {
                              </p>
                            </div>
                          </div>
-                         <Badge className={getStatusColor(order.status)}>
-                           {getStatusText(order.status)}
-                         </Badge>
+                          <Badge className={getStatusColor(order.status, order.created_at)}>
+                            {getStatusText(order.status, order.created_at)}
+                          </Badge>
                        </div>
 
                        {/* Informations avec icônes */}
@@ -929,6 +955,7 @@ export default function BusinessAccount() {
           setSelectedOrder(null);
         }}
         order={selectedOrder}
+        onOrderConfirmed={handleOrderConfirmed}
       />
     </div>;
 }

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOrderConfirmed?: (orderId: string) => void;
   order: {
     id: string;
     total_amount: number;
@@ -25,13 +26,18 @@ interface OrderDetailsModalProps {
   } | null;
 }
 
-export function OrderDetailsModal({ isOpen, onClose, order }: OrderDetailsModalProps) {
+export function OrderDetailsModal({ isOpen, onClose, order, onOrderConfirmed }: OrderDetailsModalProps) {
   if (!order) return null;
 
   const handleConfirmOrder = () => {
-    toast.success(`Commande ${order.id.slice(0, 8)} confirmée avec succès !`);
+    if (onOrderConfirmed) {
+      onOrderConfirmed(order.id);
+    }
     onClose();
   };
+  
+  const isExpired = (new Date().getTime() - new Date(order.created_at).getTime()) > (72 * 60 * 60 * 1000);
+  const isAlreadyConfirmed = order.status === 'confirmed';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -171,9 +177,13 @@ export function OrderDetailsModal({ isOpen, onClose, order }: OrderDetailsModalP
             <Button variant="outline" onClick={onClose} className="flex-1">
               Fermer
             </Button>
-            <Button onClick={handleConfirmOrder} className="flex-1 bg-green-600 hover:bg-green-700">
+            <Button 
+              onClick={handleConfirmOrder} 
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              disabled={isAlreadyConfirmed || isExpired}
+            >
               <Check className="h-4 w-4 mr-2" />
-              Confirmer la commande
+              {isAlreadyConfirmed ? 'Déjà confirmée' : isExpired ? 'Expirée' : 'Confirmer la commande'}
             </Button>
           </div>
         </div>
