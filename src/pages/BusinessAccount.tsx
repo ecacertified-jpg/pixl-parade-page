@@ -171,24 +171,29 @@ export default function BusinessAccount() {
     }
   };
   const handleDeleteProduct = async (productId: string | number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ? Il sera retiré de la boutique.')) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement ce produit ? Il sera supprimé de vos produits et retiré de la boutique.')) {
       return;
     }
+    
     try {
-      const {
-        error
-      } = await supabase.from('products').delete().eq('id', String(productId)).eq('business_owner_id', user?.id);
+      // Delete product from database - this removes it from everywhere (My Products + Shop)
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', String(productId))
+        .eq('business_owner_id', user?.id);
+      
       if (error) {
         console.error('Error deleting product:', error);
         
-        // Handle foreign key constraint violation (product referenced in orders)
+        // Handle foreign key constraint violation (product referenced in orders/favorites/etc)
         if (error.code === '23503') {
-          toast.error('Impossible de supprimer ce produit car il fait partie de commandes existantes. Voulez-vous le désactiver à la place ?', {
-            duration: 6000
+          toast.error('Impossible de supprimer ce produit car il fait partie de commandes existantes.', {
+            duration: 4000
           });
           
           // Offer to deactivate the product instead
-          if (confirm('Ce produit ne peut pas être supprimé car il fait partie de commandes. Voulez-vous le désactiver à la place ?')) {
+          if (confirm('Ce produit ne peut pas être supprimé car il est référencé dans des commandes. Voulez-vous le désactiver à la place ? Il restera dans vos produits mais sera masqué de la boutique.')) {
             try {
               const { error: updateError } = await supabase
                 .from('products')
@@ -202,8 +207,8 @@ export default function BusinessAccount() {
                 return;
               }
               
-              toast.success('Produit désactivé avec succès');
-              loadProducts();
+              toast.success('Produit désactivé avec succès - Il est maintenant masqué de la boutique');
+              loadProducts(); // Reload to show updated status
             } catch (deactivateError) {
               console.error('Error deactivating product:', deactivateError);
               toast.error('Erreur lors de la désactivation du produit');
@@ -214,9 +219,10 @@ export default function BusinessAccount() {
         }
         return;
       }
-      toast.success('Produit supprimé avec succès');
-      // Reload products to reflect the change
-      loadProducts();
+      
+      // Success - product deleted from database (removed from My Products AND Shop)
+      toast.success('Produit supprimé avec succès de vos produits et de la boutique');
+      loadProducts(); // Reload the products list
     } catch (error) {
       console.error('Error:', error);
       toast.error('Erreur lors de la suppression du produit');
