@@ -16,7 +16,6 @@ import {
   BarChart3,
   Package,
   ShoppingCart,
-  Settings,
   Eye,
   Upload,
   Save,
