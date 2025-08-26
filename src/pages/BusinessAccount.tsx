@@ -674,24 +674,17 @@ export default function BusinessAccount() {
               ) : (
                  <div className="space-y-4">
                    {orders.map(order => (
-                     <Card 
-                       key={order.id} 
-                       className="p-4 border-l-4 border-l-primary cursor-pointer hover:bg-muted/30 transition-colors"
-                       onClick={() => {
-                         toast.success(`Commande ${order.id.slice(0, 8)} sélectionnée`);
-                       }}
-                     >
-                       <div className="flex items-start justify-between mb-3">
-                         <div>
-                           <div className="font-medium">Commande #{order.id.slice(0, 8)}</div>
-                           <div className="text-sm text-muted-foreground">
-                             {new Date(order.created_at).toLocaleDateString('fr-FR', {
-                               day: '2-digit',
-                               month: '2-digit', 
-                               year: 'numeric',
-                               hour: '2-digit',
-                               minute: '2-digit'
-                             })}
+                     <Card key={order.id} className="p-4 border border-border/50 hover:shadow-md transition-all duration-200">
+                       <div className="flex items-start justify-between mb-4">
+                         <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                             <ShoppingCart className="h-5 w-5 text-primary" />
+                           </div>
+                           <div>
+                             <h3 className="font-semibold text-lg">Commande #{order.id.slice(0, 8)}</h3>
+                             <p className="text-sm text-muted-foreground">
+                               {order.order_items.map(item => item.product_name).join(', ')}
+                             </p>
                            </div>
                          </div>
                          <Badge className={getStatusColor(order.status)}>
@@ -699,123 +692,89 @@ export default function BusinessAccount() {
                          </Badge>
                        </div>
 
-                       {/* Résumé de commande */}
-                       <div className="mb-4">
-                         <h4 className="font-medium text-sm mb-2">📋 Produits commandés</h4>
-                         <div className="space-y-2">
-                           {order.order_items.map(item => (
-                             <div key={item.id} className="flex justify-between text-sm">
-                               <span>{item.product_name} x{item.quantity}</span>
-                               <span className="font-medium">{item.total_price.toLocaleString()} F</span>
-                             </div>
-                           ))}
-                         </div>
-                         <div className="border-t pt-2 mt-2 flex justify-between font-medium">
-                           <span>Total</span>
-                           <span className="text-primary">{order.total_amount.toLocaleString()} {order.currency}</span>
-                         </div>
-                       </div>
-
-                       {/* Informations de livraison */}
-                       {order.delivery_address && (
-                         <div className="mb-4">
-                           <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                             <MapPin className="h-4 w-4" />
-                             📦 Informations de livraison
-                           </h4>
-                           <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
-                             {order.delivery_address.donorPhone && (
-                               <div className="flex items-center gap-2">
-                                 <Phone className="h-4 w-4 text-green-600" />
-                                 <span className="font-medium">Donateur: {order.delivery_address.donorPhone}</span>
-                               </div>
-                             )}
-                             {order.delivery_address.beneficiaryPhone && (
-                               <div className="flex items-center gap-2">
-                                 <Phone className="h-4 w-4 text-blue-600" />
-                                 <span className="font-medium">Bénéficiaire: {order.delivery_address.beneficiaryPhone}</span>
-                               </div>
-                             )}
-                             {order.delivery_address.address && (
-                               <div className="flex items-start gap-2">
-                                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                 <span>{order.delivery_address.address}</span>
-                               </div>
-                             )}
-                             {order.delivery_address.deliveryType && (
-                               <div className="flex items-center gap-2">
-                                 <Truck className="h-4 w-4 text-orange-600" />
-                                 <span className="font-medium">
-                                   {order.delivery_address.deliveryType === 'pickup' ? 'Retrait sur place' : 'Livraison à domicile'}
-                                 </span>
-                               </div>
-                             )}
+                       {/* Informations avec icônes */}
+                       <div className="space-y-3 mb-4">
+                         {/* Téléphone donateur */}
+                         {order.delivery_address?.donorPhone && (
+                           <div className="flex items-center gap-3 text-sm">
+                             <Phone className="h-4 w-4 text-muted-foreground" />
+                             <span className="font-medium text-green-600">{order.delivery_address.donorPhone}</span>
                            </div>
-                         </div>
-                       )}
+                         )}
 
-                       {/* Mode de paiement */}
-                       <div className="mb-4">
-                         <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                           <CreditCard className="h-4 w-4" />
-                           💳 Mode de paiement
-                         </h4>
-                         <div className="bg-muted/50 p-3 rounded-lg text-sm">
-                           {order.notes?.includes('Mobile Money') ? (
-                             <div className="flex items-center gap-2">
-                               <Smartphone className="h-4 w-4 text-green-600" />
-                               <span className="font-medium">Mobile Money (Orange/MTN)</span>
-                             </div>
-                           ) : (
-                             <div className="flex items-center gap-2">
-                               <Phone className="h-4 w-4 text-orange-600" />
-                               <span className="font-medium">Paiement à la livraison</span>
-                             </div>
-                           )}
+                         {/* Téléphone bénéficiaire */}
+                         {order.delivery_address?.beneficiaryPhone && (
+                           <div className="flex items-center gap-3 text-sm">
+                             <Smartphone className="h-4 w-4 text-muted-foreground" />
+                             <span className="font-medium text-purple-600">{order.delivery_address.beneficiaryPhone}</span>
+                           </div>
+                         )}
+
+                         {/* Date */}
+                         <div className="flex items-center gap-3 text-sm">
+                           <Clock className="h-4 w-4 text-muted-foreground" />
+                           <span>{new Date(order.created_at).toLocaleDateString('fr-FR', {
+                             day: '2-digit',
+                             month: '2-digit', 
+                             year: 'numeric',
+                             hour: '2-digit',
+                             minute: '2-digit'
+                           })}</span>
+                         </div>
+
+                         {/* Type de livraison */}
+                         {order.delivery_address?.deliveryType && (
+                           <div className="flex items-center gap-3 text-sm">
+                             {order.delivery_address.deliveryType === 'pickup' ? (
+                               <MapPin className="h-4 w-4 text-muted-foreground" />
+                             ) : (
+                               <Truck className="h-4 w-4 text-muted-foreground" />
+                             )}
+                             <span>{order.delivery_address.deliveryType === 'pickup' ? 'Retrait sur place' : 'Livraison à domicile'}</span>
+                           </div>
+                         )}
+
+                         {/* Montant total */}
+                         <div className="flex items-center gap-3 text-sm">
+                           <DollarSign className="h-4 w-4 text-muted-foreground" />
+                           <span className="font-semibold text-primary text-lg">{order.total_amount.toLocaleString()} {order.currency}</span>
                          </div>
                        </div>
 
-                       {/* Actions */}
-                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                       {/* Résumé des produits (condensé) */}
+                       <div className="mb-4 p-3 bg-muted/30 rounded-lg">
+                         <p className="text-sm text-muted-foreground">
+                           {order.order_items.length} article{order.order_items.length > 1 ? 's' : ''} - {order.order_items.map(item => `${item.product_name} (x${item.quantity})`).join(', ')}
+                         </p>
+                       </div>
+
+                       {/* Bouton Voir Détail */}
+                       <div className="flex justify-between items-center pt-4 border-t border-border/50">
+                         <div className="text-xs text-muted-foreground">
+                           Mode de paiement: {order.notes?.includes('Mobile Money') ? 'Mobile Money' : 'À la livraison/retrait'}
+                         </div>
                          <Button 
-                           size="sm" 
-                           className="flex-1"
-                           onClick={() => {
-                             const phone = order.delivery_address?.donorPhone || order.delivery_address?.beneficiaryPhone;
-                             if (phone) {
-                               window.open(`tel:${phone}`, '_self');
-                             } else {
-                               toast.error('Aucun numéro de téléphone disponible');
-                             }
-                           }}
-                         >
-                           <Phone className="h-4 w-4 mr-2" />
-                           Appeler client
-                         </Button>
-                         <Button 
-                           size="sm" 
                            variant="outline" 
-                           className="flex-1"
+                           size="sm"
                            onClick={() => {
-                             toast.success(`Commande ${order.id.slice(0, 8)} confirmée`);
+                             toast.success(`Détails de la commande ${order.id.slice(0, 8)} affichés`);
                            }}
+                           className="flex items-center gap-2"
                          >
-                           <Check className="h-4 w-4 mr-2" />
-                           Confirmer
+                           <FileText className="h-4 w-4" />
+                           Voir Détail
                          </Button>
                        </div>
                      </Card>
                    ))}
                  </div>
-              )}
-            </Card>
-          </TabsContent>
+               )}
+             </Card>
+           </TabsContent>
 
-          {/* Onglet Analytics */}
-          <TabsContent value="analytics" className="mt-6">
-            <h2 className="text-xl font-semibold mb-6">Analytics & Statistiques</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+           {/* Onglet Analytics */}
+           <TabsContent value="analytics" className="mt-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <Card className="p-4">
                 <h3 className="font-medium mb-4 flex items-center gap-2">
                   <PieChart className="h-4 w-4" />
