@@ -27,30 +27,16 @@ export default function BusinessAccount() {
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
   const [products, setProducts] = useState<Array<{
-    id: string | number;
+    id: string;
     name: string;
     category: string;
     price: number;
     stock: number;
     sales: number;
     status: string;
-  }>>([{
-    id: 1,
-    name: "Bracelet Doré Élégance",
-    category: "Bijoux",
-    price: 15000,
-    stock: 8,
-    sales: 24,
-    status: "active"
-  }, {
-    id: 2,
-    name: "Parfum Roses de Yamoussoukro",
-    category: "Parfums",
-    price: 35000,
-    stock: 5,
-    sales: 12,
-    status: "active"
-  }]);
+  }>>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -65,17 +51,26 @@ export default function BusinessAccount() {
   }, []);
   const loadProducts = async () => {
     if (!user) return;
+    
+    setLoadingProducts(true);
+    console.log('🔄 Loading products for user:', user.id);
+    
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('products').select('*').eq('business_owner_id', user.id).eq('is_active', true).order('created_at', {
-        ascending: false
-      });
+      // Load ALL products (active and inactive) to show complete list
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('business_owner_id', user.id)
+        .order('created_at', { ascending: false });
+      
       if (error) {
-        console.error('Error loading products:', error);
+        console.error('❌ Error loading products:', error);
+        toast.error('Erreur lors du chargement des produits');
         return;
       }
+      
+      console.log('✅ Products loaded from database:', data?.length || 0);
+      
       if (data && data.length > 0) {
         const formattedProducts = data.map(product => ({
           id: product.id,
@@ -83,16 +78,20 @@ export default function BusinessAccount() {
           category: "Produit",
           price: product.price,
           stock: product.stock_quantity || 0,
-          sales: 0,
-          // This would need to be calculated from orders
-          status: "active"
+          sales: 0, // This would need to be calculated from orders
+          status: product.is_active ? "active" : "inactive"
         }));
         setProducts(formattedProducts);
+        console.log('✅ Products formatted and set in state:', formattedProducts.length);
       } else {
-        setProducts([]); // Clear products if none found
+        setProducts([]);
+        console.log('ℹ️ No products found');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error in loadProducts:', error);
+      toast.error('Erreur lors du chargement des produits');
+    } finally {
+      setLoadingProducts(false);
     }
   };
 
@@ -171,20 +170,36 @@ export default function BusinessAccount() {
     }
   };
   const handleDeleteProduct = async (productId: string | number) => {
+    const productIdStr = String(productId);
+    console.log('🗑️ Attempting to delete product:', productIdStr);
+    console.log('👤 Current user ID:', user?.id);
+    
     if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement ce produit ? Il sera supprimé de vos produits et retiré de la boutique.')) {
       return;
     }
     
+    if (!user?.id) {
+      toast.error('Utilisateur non connecté');
+      return;
+    }
+    
+    setDeletingProductId(productIdStr);
+    
     try {
+      console.log('🔄 Executing delete query...');
+      
       // Delete product from database - this removes it from everywhere (My Products + Shop)
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('products')
         .delete()
-        .eq('id', String(productId))
-        .eq('business_owner_id', user?.id);
+        .eq('id', productIdStr)
+        .eq('business_owner_id', user.id)
+        .select(); // Add select to see what would be deleted
+      
+      console.log('📊 Delete query result:', { error, data });
       
       if (error) {
-        console.error('Error deleting product:', error);
+        console.error('❌ Error deleting product:', error);
         
         // Handle foreign key constraint violation (product referenced in orders/favorites/etc)
         if (error.code === '23503') {
@@ -195,37 +210,49 @@ export default function BusinessAccount() {
           // Offer to deactivate the product instead
           if (confirm('Ce produit ne peut pas être supprimé car il est référencé dans des commandes. Voulez-vous le désactiver à la place ? Il restera dans vos produits mais sera masqué de la boutique.')) {
             try {
+              console.log('🔄 Deactivating product instead...');
               const { error: updateError } = await supabase
                 .from('products')
                 .update({ is_active: false })
-                .eq('id', String(productId))
-                .eq('business_owner_id', user?.id);
+                .eq('id', productIdStr)
+                .eq('business_owner_id', user.id);
               
               if (updateError) {
-                console.error('Error deactivating product:', updateError);
+                console.error('❌ Error deactivating product:', updateError);
                 toast.error('Erreur lors de la désactivation du produit');
                 return;
               }
               
+              console.log('✅ Product deactivated successfully');
               toast.success('Produit désactivé avec succès - Il est maintenant masqué de la boutique');
-              loadProducts(); // Reload to show updated status
+              await loadProducts(); // Reload to show updated status
             } catch (deactivateError) {
-              console.error('Error deactivating product:', deactivateError);
+              console.error('❌ Error deactivating product:', deactivateError);
               toast.error('Erreur lors de la désactivation du produit');
             }
           }
         } else {
-          toast.error('Erreur lors de la suppression du produit');
+          toast.error(`Erreur lors de la suppression: ${error.message}`);
         }
         return;
       }
       
+      if (!data || data.length === 0) {
+        console.log('⚠️ No product was deleted - might not exist or not owned by user');
+        toast.error('Produit introuvable ou non autorisé');
+        return;
+      }
+      
       // Success - product deleted from database (removed from My Products AND Shop)
+      console.log('✅ Product deleted successfully:', data);
       toast.success('Produit supprimé avec succès de vos produits et de la boutique');
-      loadProducts(); // Reload the products list
+      await loadProducts(); // Reload the products list
+      
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Erreur lors de la suppression du produit');
+      console.error('❌ Unexpected error in handleDeleteProduct:', error);
+      toast.error('Erreur inattendue lors de la suppression du produit');
+    } finally {
+      setDeletingProductId(null);
     }
   };
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -474,33 +501,78 @@ export default function BusinessAccount() {
 
             {/* Liste des produits existants */}
             <Card className="p-4">
-              <h3 className="font-medium mb-4">Mes produits ({products.length})</h3>
-              <div className="space-y-3">
-                {products.map(product => <div key={product.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">{product.category}</div>
-                        <div className="text-sm font-medium text-primary mt-1">
-                          {product.price.toLocaleString()} F
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium">Mes produits ({products.length})</h3>
+                <Button onClick={() => setIsAddProductModalOpen(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter
+                </Button>
+              </div>
+              
+              {loadingProducts ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-muted-foreground">Chargement des produits...</div>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Aucun produit ajouté</p>
+                  <p className="text-sm">Cliquez sur "Ajouter" pour créer votre premier produit</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {products.map(product => (
+                    <div key={product.id} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{product.name}</span>
+                            {product.status === "inactive" && (
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                                Désactivé
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">{product.category}</div>
+                          <div className="text-sm font-medium text-primary mt-1">
+                            {product.price.toLocaleString()} F
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm">Stock: {product.stock}</div>
+                          <div className="text-sm text-muted-foreground">{product.sales} ventes</div>
+                          <Badge variant="secondary" className={`mt-1 ${product.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
+                            {product.status === "active" ? "En stock" : "Désactivé"}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEditProduct(product.id)}
+                            disabled={deletingProductId === product.id}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDeleteProduct(product.id)}
+                            disabled={deletingProductId === product.id}
+                            className={deletingProductId === product.id ? "opacity-50" : ""}
+                          >
+                            {deletingProductId === product.id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm">Stock: {product.stock}</div>
-                        <div className="text-sm text-muted-foreground">{product.sales} ventes</div>
-                        <Badge variant="secondary" className="mt-1">En stock</Badge>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
-                  </div>)}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </TabsContent>
 
