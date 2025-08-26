@@ -1201,17 +1201,22 @@ export default function BusinessDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* En-tête des Paramètres avec bouton Ajouter un business */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Paramètres du compte</h2>
+                  <Button 
+                    onClick={() => setIsAddBusinessModalOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajouter un business
+                  </Button>
+                </div>
+
                 {/* Gestion des Business multiples */}
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-medium">Mes Business</h3>
-                    <Button 
-                      onClick={() => setIsAddBusinessModalOpen(true)}
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Ajouter un business
-                    </Button>
                   </div>
                   
                   {loadingBusinesses ? (
