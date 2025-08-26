@@ -143,7 +143,7 @@ export default function Gifts() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard?tab=cadeaux')}
               className="p-2"
             >
               <ArrowLeft className="h-5 w-5" />

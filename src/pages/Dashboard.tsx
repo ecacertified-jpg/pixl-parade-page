@@ -4,13 +4,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
+  
+  // Déterminer l'onglet par défaut selon les paramètres URL
+  const defaultTab = searchParams.get('tab') || 'amis';
+  
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
@@ -68,7 +73,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Onglets */}
-        <Tabs defaultValue="amis" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid grid-cols-4">
             <TabsTrigger value="amis" className="flex gap-2 bg-zinc-50"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-2"><CalendarDays className="h-4 w-4" aria-hidden />Événements</TabsTrigger>
