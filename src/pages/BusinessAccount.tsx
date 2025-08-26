@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff } from "lucide-react";
+import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff, Eye } from "lucide-react";
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
@@ -441,6 +441,11 @@ export default function BusinessAccount() {
     toast.success('Commande masquée');
   };
 
+  const handleUnhideAllOrders = () => {
+    setHiddenOrders(new Set());
+    toast.success('Toutes les commandes sont maintenant visibles');
+  };
+
   const visibleOrders = orders.filter(order => !hiddenOrders.has(order.id));
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
@@ -696,7 +701,20 @@ export default function BusinessAccount() {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Commandes clients</h3>
-                <Badge variant="secondary">{orders.length} commandes</Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant="secondary">{visibleOrders.length} commandes</Badge>
+                  {hiddenOrders.size > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleUnhideAllOrders}
+                      className="flex items-center gap-2 text-primary hover:text-primary"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Démasquer toutes
+                    </Button>
+                  )}
+                </div>
               </div>
               
               {loadingOrders ? (
