@@ -1201,6 +1201,54 @@ export default function BusinessDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Gestion des Business multiples */}
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium">Mes Business</h3>
+                    <Button 
+                      onClick={() => setIsAddBusinessModalOpen(true)}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Ajouter un business
+                    </Button>
+                  </div>
+                  
+                  {loadingBusinesses ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : businesses.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {businesses.map((business) => (
+                        <BusinessCard
+                          key={business.id}
+                          business={business}
+                          onEdit={handleEditBusiness}
+                          onDeleted={() => {
+                            loadBusinesses();
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-4">
+                        Aucun business créé pour le moment
+                      </p>
+                      <Button 
+                        onClick={() => setIsAddBusinessModalOpen(true)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Créer votre premier business
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+
                 {/* Informations de base */}
                 <Card className="p-4">
                   <div className="flex items-center justify-between mb-4">
