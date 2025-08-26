@@ -28,7 +28,8 @@ export default function Checkout() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
+  const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
   const [address, setAddress] = useState("");
   const [orderItems, setOrderItems] = useState<CheckoutItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,8 +55,8 @@ export default function Checkout() {
   const shipping = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shipping;
 
-  // Check if form is valid (phone and address filled)
-  const isFormValid = phoneNumber.trim() !== "" && address.trim() !== "";
+  // Check if form is valid (both phones and address filled)
+  const isFormValid = donorPhoneNumber.trim() !== "" && beneficiaryPhoneNumber.trim() !== "" && address.trim() !== "";
 
   const handleConfirmOrder = async () => {
     if (!user) {
@@ -77,7 +78,7 @@ export default function Checkout() {
           total_amount: total,
           currency: "XOF",
           status: "pending",
-          delivery_address: { address, phone: phoneNumber },
+          delivery_address: { address, donorPhone: donorPhoneNumber, beneficiaryPhone: beneficiaryPhoneNumber },
           notes: paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"
         })
         .select()
@@ -170,7 +171,8 @@ export default function Checkout() {
       // Store order details for confirmation page
       localStorage.setItem('lastOrderDetails', JSON.stringify({
         total,
-        phone: phoneNumber,
+        donorPhone: donorPhoneNumber,
+        beneficiaryPhone: beneficiaryPhoneNumber,
         location: address,
         orderId: orderData.id
       }));
@@ -261,12 +263,23 @@ export default function Checkout() {
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="phone" className="text-sm font-medium">Numéro de téléphone *</Label>
+              <Label htmlFor="donorPhone" className="text-sm font-medium">Numéro de téléphone du donateur *</Label>
               <Input 
-                id="phone" 
+                id="donorPhone" 
                 placeholder="+225 XX XX XX XX XX" 
-                value={phoneNumber} 
-                onChange={(e) => setPhoneNumber(e.target.value)} 
+                value={donorPhoneNumber} 
+                onChange={(e) => setDonorPhoneNumber(e.target.value)} 
+                className="mt-1" 
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="beneficiaryPhone" className="text-sm font-medium">Numéro de téléphone du bénéficiaire *</Label>
+              <Input 
+                id="beneficiaryPhone" 
+                placeholder="+225 XX XX XX XX XX" 
+                value={beneficiaryPhoneNumber} 
+                onChange={(e) => setBeneficiaryPhoneNumber(e.target.value)} 
                 className="mt-1" 
               />
             </div>
