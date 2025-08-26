@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
+import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings } from "lucide-react";
 import { AddProductModal } from "@/components/AddProductModal";
+import { AddBusinessModal } from "@/components/AddBusinessModal";
+import { BusinessCard } from "@/components/BusinessCard";
+import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -19,6 +22,10 @@ export default function BusinessAccount() {
   } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [loadingBusinesses, setLoadingBusinesses] = useState(false);
   const [products, setProducts] = useState<Array<{
     id: string | number;
     name: string;
@@ -54,6 +61,7 @@ export default function BusinessAccount() {
   useEffect(() => {
     document.title = "Compte Business | JOIE DE VIVRE";
     loadProducts();
+    loadBusinesses();
   }, []);
   const loadProducts = async () => {
     if (!user) return;
@@ -86,6 +94,50 @@ export default function BusinessAccount() {
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const loadBusinesses = async () => {
+    if (!user) return;
+    
+    setLoadingBusinesses(true);
+    try {
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading businesses:', error);
+        return;
+      }
+
+      setBusinesses((data || []).map(business => ({
+        ...business,
+        opening_hours: business.opening_hours as Record<string, { open: string; close: string; closed?: boolean; }>,
+        delivery_zones: business.delivery_zones as Array<{ name: string; radius: number; cost: number; active?: boolean; }>,
+        payment_info: business.payment_info as { mobile_money?: string; account_holder?: string; },
+        delivery_settings: business.delivery_settings as { free_delivery_threshold: number; standard_cost: number; }
+      })));
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoadingBusinesses(false);
+    }
+  };
+
+  const handleEditBusiness = (business: Business) => {
+    setEditingBusiness(business);
+    setIsAddBusinessModalOpen(true);
+  };
+
+  const handleBusinessModalClose = () => {
+    setIsAddBusinessModalOpen(false);
+    setEditingBusiness(null);
+  };
+
+  const handleBusinessChanged = () => {
+    loadBusinesses();
   };
   const handleEditProduct = (productId: string | number) => {
     // Find the product to edit
@@ -252,7 +304,7 @@ export default function BusinessAccount() {
 
         {/* Dashboard avec onglets */}
         <Tabs defaultValue="vue-ensemble" className="w-full">
-          <TabsList className="grid grid-cols-4 text-xs">
+          <TabsList className="grid grid-cols-5 text-xs">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Vue d'ens.</span>
@@ -268,6 +320,10 @@ export default function BusinessAccount() {
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="configuration" className="flex flex-col gap-1">
+              <Settings className="h-4 w-4" />
+              <span className="text-xs">Config</span>
             </TabsTrigger>
           </TabsList>
 
@@ -597,11 +653,70 @@ export default function BusinessAccount() {
               </div>
             </Card>
           </TabsContent>
+
+          {/* Onglet Configuration */}
+          <TabsContent value="configuration" className="mt-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-semibold text-base text-gray-500">Configuration des business</h2>
+              <Button 
+                onClick={() => setIsAddBusinessModalOpen(true)} 
+                className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]"
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter son business
+              </Button>
+            </div>
+
+            {/* Liste des business existants */}
+            <div className="space-y-4">
+              {loadingBusinesses ? (
+                <Card className="p-8 text-center">
+                  <div className="text-muted-foreground">Chargement des business...</div>
+                </Card>
+              ) : businesses.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <div className="text-muted-foreground mb-4">
+                    Aucun business configuré pour le moment
+                  </div>
+                  <Button 
+                    onClick={() => setIsAddBusinessModalOpen(true)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Créer votre premier business
+                  </Button>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  <h3 className="font-medium">Mes business ({businesses.length})</h3>
+                  {businesses.map((business) => (
+                    <BusinessCard
+                      key={business.id}
+                      business={business}
+                      onEdit={handleEditBusiness}
+                      onDeleted={handleBusinessChanged}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
 
         <div className="pb-20" />
       </main>
 
-      <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
+      <AddProductModal 
+        isOpen={isAddProductModalOpen} 
+        onClose={() => setIsAddProductModalOpen(false)} 
+        onProductAdded={loadProducts} 
+      />
+      <AddBusinessModal
+        isOpen={isAddBusinessModalOpen}
+        onClose={handleBusinessModalClose}
+        onBusinessAdded={handleBusinessChanged}
+        editingBusiness={editingBusiness}
+      />
     </div>;
 }
