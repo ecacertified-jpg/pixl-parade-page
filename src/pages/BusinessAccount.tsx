@@ -672,109 +672,141 @@ export default function BusinessAccount() {
                   <div className="text-muted-foreground">Aucune commande reçue</div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {orders.map(order => (
-                    <Card key={order.id} className="p-4 border-l-4 border-l-primary">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="font-medium">Commande #{order.id.slice(0, 8)}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(order.created_at).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </div>
-                        </div>
-                        <Badge className={getStatusColor(order.status)}>
-                          {getStatusText(order.status)}
-                        </Badge>
-                      </div>
+                 <div className="space-y-4">
+                   {orders.map(order => (
+                     <Card 
+                       key={order.id} 
+                       className="p-4 border-l-4 border-l-primary cursor-pointer hover:bg-muted/30 transition-colors"
+                       onClick={() => {
+                         toast.success(`Commande ${order.id.slice(0, 8)} sélectionnée`);
+                       }}
+                     >
+                       <div className="flex items-start justify-between mb-3">
+                         <div>
+                           <div className="font-medium">Commande #{order.id.slice(0, 8)}</div>
+                           <div className="text-sm text-muted-foreground">
+                             {new Date(order.created_at).toLocaleDateString('fr-FR', {
+                               day: '2-digit',
+                               month: '2-digit', 
+                               year: 'numeric',
+                               hour: '2-digit',
+                               minute: '2-digit'
+                             })}
+                           </div>
+                         </div>
+                         <Badge className={getStatusColor(order.status)}>
+                           {getStatusText(order.status)}
+                         </Badge>
+                       </div>
 
-                      {/* Résumé de commande */}
-                      <div className="mb-4">
-                        <h4 className="font-medium text-sm mb-2">📋 Produits commandés</h4>
-                        <div className="space-y-2">
-                          {order.order_items.map(item => (
-                            <div key={item.id} className="flex justify-between text-sm">
-                              <span>{item.product_name} x{item.quantity}</span>
-                              <span className="font-medium">{item.total_price.toLocaleString()} F</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="border-t pt-2 mt-2 flex justify-between font-medium">
-                          <span>Total</span>
-                          <span className="text-primary">{order.total_amount.toLocaleString()} {order.currency}</span>
-                        </div>
-                      </div>
+                       {/* Résumé de commande */}
+                       <div className="mb-4">
+                         <h4 className="font-medium text-sm mb-2">📋 Produits commandés</h4>
+                         <div className="space-y-2">
+                           {order.order_items.map(item => (
+                             <div key={item.id} className="flex justify-between text-sm">
+                               <span>{item.product_name} x{item.quantity}</span>
+                               <span className="font-medium">{item.total_price.toLocaleString()} F</span>
+                             </div>
+                           ))}
+                         </div>
+                         <div className="border-t pt-2 mt-2 flex justify-between font-medium">
+                           <span>Total</span>
+                           <span className="text-primary">{order.total_amount.toLocaleString()} {order.currency}</span>
+                         </div>
+                       </div>
 
-                      {/* Informations de livraison */}
-                      {order.delivery_address && (
-                        <div className="mb-4">
-                          <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                            📦 Informations de livraison
-                          </h4>
-                          <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
-                            {order.delivery_address.donorPhone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-muted-foreground" />
-                                <span>Donateur: {order.delivery_address.donorPhone}</span>
-                              </div>
-                            )}
-                            {order.delivery_address.beneficiaryPhone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-muted-foreground" />
-                                <span>Bénéficiaire: {order.delivery_address.beneficiaryPhone}</span>
-                              </div>
-                            )}
-                            {order.delivery_address.address && (
-                              <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                <span>{order.delivery_address.address}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                       {/* Informations de livraison */}
+                       {order.delivery_address && (
+                         <div className="mb-4">
+                           <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                             <MapPin className="h-4 w-4" />
+                             📦 Informations de livraison
+                           </h4>
+                           <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                             {order.delivery_address.donorPhone && (
+                               <div className="flex items-center gap-2">
+                                 <Phone className="h-4 w-4 text-green-600" />
+                                 <span className="font-medium">Donateur: {order.delivery_address.donorPhone}</span>
+                               </div>
+                             )}
+                             {order.delivery_address.beneficiaryPhone && (
+                               <div className="flex items-center gap-2">
+                                 <Phone className="h-4 w-4 text-blue-600" />
+                                 <span className="font-medium">Bénéficiaire: {order.delivery_address.beneficiaryPhone}</span>
+                               </div>
+                             )}
+                             {order.delivery_address.address && (
+                               <div className="flex items-start gap-2">
+                                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                 <span>{order.delivery_address.address}</span>
+                               </div>
+                             )}
+                             {order.delivery_address.deliveryType && (
+                               <div className="flex items-center gap-2">
+                                 <Truck className="h-4 w-4 text-orange-600" />
+                                 <span className="font-medium">
+                                   {order.delivery_address.deliveryType === 'pickup' ? 'Retrait sur place' : 'Livraison à domicile'}
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       )}
 
-                      {/* Mode de paiement */}
-                      <div className="mb-4">
-                        <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                          <CreditCard className="h-4 w-4" />
-                          💳 Mode de paiement
-                        </h4>
-                        <div className="bg-muted/50 p-3 rounded-lg text-sm">
-                          {order.notes?.includes('Mobile Money') ? (
-                            <div className="flex items-center gap-2">
-                              <Smartphone className="h-4 w-4 text-green-600" />
-                              <span>Mobile Money (Orange/MTN)</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-orange-600" />
-                              <span>Paiement à la livraison</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                       {/* Mode de paiement */}
+                       <div className="mb-4">
+                         <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                           <CreditCard className="h-4 w-4" />
+                           💳 Mode de paiement
+                         </h4>
+                         <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                           {order.notes?.includes('Mobile Money') ? (
+                             <div className="flex items-center gap-2">
+                               <Smartphone className="h-4 w-4 text-green-600" />
+                               <span className="font-medium">Mobile Money (Orange/MTN)</span>
+                             </div>
+                           ) : (
+                             <div className="flex items-center gap-2">
+                               <Phone className="h-4 w-4 text-orange-600" />
+                               <span className="font-medium">Paiement à la livraison</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
 
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Appeler client
-                        </Button>
-                        <Button size="sm" variant="outline" className="flex-1">
-                          <Check className="h-4 w-4 mr-2" />
-                          Confirmer
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                       {/* Actions */}
+                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                         <Button 
+                           size="sm" 
+                           className="flex-1"
+                           onClick={() => {
+                             const phone = order.delivery_address?.donorPhone || order.delivery_address?.beneficiaryPhone;
+                             if (phone) {
+                               window.open(`tel:${phone}`, '_self');
+                             } else {
+                               toast.error('Aucun numéro de téléphone disponible');
+                             }
+                           }}
+                         >
+                           <Phone className="h-4 w-4 mr-2" />
+                           Appeler client
+                         </Button>
+                         <Button 
+                           size="sm" 
+                           variant="outline" 
+                           className="flex-1"
+                           onClick={() => {
+                             toast.success(`Commande ${order.id.slice(0, 8)} confirmée`);
+                           }}
+                         >
+                           <Check className="h-4 w-4 mr-2" />
+                           Confirmer
+                         </Button>
+                       </div>
+                     </Card>
+                   ))}
+                 </div>
               )}
             </Card>
           </TabsContent>
