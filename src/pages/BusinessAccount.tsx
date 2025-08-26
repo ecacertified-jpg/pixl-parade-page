@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings } from "lucide-react";
+import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone } from "lucide-react";
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
@@ -37,6 +37,23 @@ export default function BusinessAccount() {
   }>>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Array<{
+    id: string;
+    total_amount: number;
+    currency: string;
+    status: string;
+    created_at: string;
+    delivery_address: any;
+    notes: string;
+    order_items: Array<{
+      id: string;
+      product_name: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
+  }>>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -48,6 +65,7 @@ export default function BusinessAccount() {
     document.title = "Compte Business | JOIE DE VIVRE";
     loadProducts();
     loadBusinesses();
+    loadOrders();
   }, []);
   const loadProducts = async () => {
     if (!user) return;
@@ -122,6 +140,66 @@ export default function BusinessAccount() {
       console.error('Error:', error);
     } finally {
       setLoadingBusinesses(false);
+    }
+  };
+
+  const loadOrders = async () => {
+    if (!user) return;
+    
+    setLoadingOrders(true);
+    try {
+      // Load orders with their items for business owners
+      // We need to find orders that contain products from this business owner
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          total_amount,
+          currency,
+          status,
+          created_at,
+          delivery_address,
+          notes,
+          order_items (
+            id,
+            quantity,
+            unit_price,
+            total_price,
+            products (
+              name,
+              business_owner_id
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading orders:', error);
+        return;
+      }
+
+      // Filter orders that contain products from this business owner
+      const businessOrders = (data || [])
+        .filter(order => 
+          order.order_items.some(item => 
+            item.products && item.products.business_owner_id === user.id
+          )
+        )
+        .map(order => ({
+          ...order,
+          order_items: order.order_items
+            .filter(item => item.products && item.products.business_owner_id === user.id)
+            .map(item => ({
+              ...item,
+              product_name: item.products?.name || 'Produit supprimé'
+            }))
+        }));
+
+      setOrders(businessOrders);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoadingOrders(false);
     }
   };
 
@@ -368,7 +446,7 @@ export default function BusinessAccount() {
 
         {/* Dashboard avec onglets */}
         <Tabs defaultValue="vue-ensemble" className="w-full">
-          <TabsList className="grid grid-cols-4 text-xs">
+          <TabsList className="grid grid-cols-5 text-xs">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Vue d'ens.</span>
@@ -376,6 +454,10 @@ export default function BusinessAccount() {
             <TabsTrigger value="produits" className="flex flex-col gap-1">
               <Package className="h-4 w-4" />
               <span className="text-xs">Produits</span>
+            </TabsTrigger>
+            <TabsTrigger value="commandes" className="flex flex-col gap-1">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="text-xs">Commandes</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <TrendingUp className="h-4 w-4" />
@@ -572,6 +654,130 @@ export default function BusinessAccount() {
             </Card>
           </TabsContent>
 
+          {/* Onglet Commandes */}
+          <TabsContent value="commandes" className="mt-6">
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Commandes clients</h3>
+                <Badge variant="secondary">{orders.length} commandes</Badge>
+              </div>
+              
+              {loadingOrders ? (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground">Chargement des commandes...</div>
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <div className="text-muted-foreground">Aucune commande reçue</div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orders.map(order => (
+                    <Card key={order.id} className="p-4 border-l-4 border-l-primary">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="font-medium">Commande #{order.id.slice(0, 8)}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(order.created_at).toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        <Badge className={getStatusColor(order.status)}>
+                          {getStatusText(order.status)}
+                        </Badge>
+                      </div>
+
+                      {/* Résumé de commande */}
+                      <div className="mb-4">
+                        <h4 className="font-medium text-sm mb-2">📋 Produits commandés</h4>
+                        <div className="space-y-2">
+                          {order.order_items.map(item => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span>{item.product_name} x{item.quantity}</span>
+                              <span className="font-medium">{item.total_price.toLocaleString()} F</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="border-t pt-2 mt-2 flex justify-between font-medium">
+                          <span>Total</span>
+                          <span className="text-primary">{order.total_amount.toLocaleString()} {order.currency}</span>
+                        </div>
+                      </div>
+
+                      {/* Informations de livraison */}
+                      {order.delivery_address && (
+                        <div className="mb-4">
+                          <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            📦 Informations de livraison
+                          </h4>
+                          <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                            {order.delivery_address.donorPhone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>Donateur: {order.delivery_address.donorPhone}</span>
+                              </div>
+                            )}
+                            {order.delivery_address.beneficiaryPhone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>Bénéficiaire: {order.delivery_address.beneficiaryPhone}</span>
+                              </div>
+                            )}
+                            {order.delivery_address.address && (
+                              <div className="flex items-start gap-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                <span>{order.delivery_address.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mode de paiement */}
+                      <div className="mb-4">
+                        <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                          <CreditCard className="h-4 w-4" />
+                          💳 Mode de paiement
+                        </h4>
+                        <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                          {order.notes?.includes('Mobile Money') ? (
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="h-4 w-4 text-green-600" />
+                              <span>Mobile Money (Orange/MTN)</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-orange-600" />
+                              <span>Paiement à la livraison</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Button size="sm" className="flex-1">
+                          <Phone className="h-4 w-4 mr-2" />
+                          Appeler client
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1">
+                          <Check className="h-4 w-4 mr-2" />
+                          Confirmer
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
 
           {/* Onglet Analytics */}
           <TabsContent value="analytics" className="mt-6">
