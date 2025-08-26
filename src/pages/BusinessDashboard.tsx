@@ -598,7 +598,7 @@ export default function BusinessDashboard() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-5 text-xs">
+          <TabsList className="grid grid-cols-4 text-xs">
             <TabsTrigger value="overview" className="flex flex-col gap-1">
               <Eye className="h-4 w-4" />
               <span>Vue d'ensemble</span>
