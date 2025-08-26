@@ -368,7 +368,7 @@ export default function BusinessAccount() {
 
         {/* Dashboard avec onglets */}
         <Tabs defaultValue="vue-ensemble" className="w-full">
-          <TabsList className="grid grid-cols-5 text-xs">
+          <TabsList className="grid grid-cols-4 text-xs">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Vue d'ens.</span>
@@ -376,10 +376,6 @@ export default function BusinessAccount() {
             <TabsTrigger value="produits" className="flex flex-col gap-1">
               <Package className="h-4 w-4" />
               <span className="text-xs">Produits</span>
-            </TabsTrigger>
-            <TabsTrigger value="commandes" className="flex flex-col gap-1">
-              <ShoppingCart className="h-4 w-4" />
-              <span className="text-xs">Commandes</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <TrendingUp className="h-4 w-4" />
@@ -576,108 +572,6 @@ export default function BusinessAccount() {
             </Card>
           </TabsContent>
 
-          {/* Onglet Commandes */}
-          <TabsContent value="commandes" className="mt-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Gestion des commandes</h2>
-              <div className="flex gap-2">
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="new">Nouvelles</SelectItem>
-                    <SelectItem value="confirmed">Confirmées</SelectItem>
-                    <SelectItem value="preparing">En préparation</SelectItem>
-                    <SelectItem value="ready">Prêtes</SelectItem>
-                    <SelectItem value="delivered">Livrées</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Conseils pour les modes de retrait/livraison */}
-            <Card className="p-4 mb-6 border-blue-200 bg-blue-50/50">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-medium text-blue-900 mb-2">Conseils pour la gestion des commandes</h3>
-                  <div className="text-sm text-blue-800 space-y-2">
-                    <div><strong>Retrait sur place:</strong> Appelez immédiatement le client pour confirmer et indiquer l'adresse exacte de votre boutique.</div>
-                    <div><strong>Livraison:</strong> Contactez le client pour confirmer l'adresse. Livraison gratuite si montant &gt; 25 000 FCFA.</div>
-                    <div><strong>Délais:</strong> Préparez les commandes dans les 24h pour maintenir votre réputation.</div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            <div className="space-y-4">
-              {recentOrders.map(order => <Card key={order.id} className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="font-semibold text-lg">{order.id}</div>
-                      <div className="text-sm text-muted-foreground">{order.date}</div>
-                    </div>
-                    <Badge className={getStatusColor(order.status)}>
-                      {getStatusText(order.status)}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Détails de la commande</h4>
-                      <div className="space-y-1 text-sm">
-                        <div><strong>Produit:</strong> {order.product}</div>
-                        <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
-                        <div><strong>Client:</strong> {order.customer}</div>
-                        <div><strong>Donateur:</strong> {order.donor}</div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-medium mb-2">Mode de récupération</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        {order.type === "pickup" ? <>
-                            <MapPin className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm">Retrait sur place</span>
-                          </> : <>
-                            <Truck className="h-4 w-4 text-green-500" />
-                            <span className="text-sm">
-                              Livraison {order.amount > 25000 && "(Gratuite)"}
-                            </span>
-                          </>}
-                      </div>
-                      {order.type === "delivery" && order.amount <= 25000 && <div className="text-xs text-orange-600">
-                          Frais de livraison à la charge du donateur
-                        </div>}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {order.status === "new" && <>
-                        <Button size="sm" className="flex-1">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Appeler le client
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Check className="h-4 w-4 mr-2" />
-                          Confirmer
-                        </Button>
-                      </>}
-                    {order.status === "confirmed" && <Button size="sm" className="flex-1">
-                        Marquer en préparation
-                      </Button>}
-                    {order.status === "preparing" && <Button size="sm" className="flex-1">
-                        Marquer comme prêt
-                      </Button>}
-                    {order.status === "ready" && <Button size="sm" className="flex-1">
-                        Marquer comme livré/retiré
-                      </Button>}
-                  </div>
-                </Card>)}
-            </div>
-          </TabsContent>
 
           {/* Onglet Analytics */}
           <TabsContent value="analytics" className="mt-6">
