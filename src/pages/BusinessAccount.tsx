@@ -73,26 +73,22 @@ export default function BusinessAccount() {
   }, []);
   const loadProducts = async () => {
     if (!user) return;
-    
     setLoadingProducts(true);
     console.log('🔄 Loading products for user:', user.id);
-    
     try {
       // Load ALL products (active and inactive) to show complete list
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('business_owner_id', user.id)
-        .order('created_at', { ascending: false });
-      
+      const {
+        data,
+        error
+      } = await supabase.from('products').select('*').eq('business_owner_id', user.id).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('❌ Error loading products:', error);
         toast.error('Erreur lors du chargement des produits');
         return;
       }
-      
       console.log('✅ Products loaded from database:', data?.length || 0);
-      
       if (data && data.length > 0) {
         const formattedProducts = data.map(product => ({
           id: product.id,
@@ -100,7 +96,8 @@ export default function BusinessAccount() {
           category: "Produit",
           price: product.price,
           stock: product.stock_quantity || 0,
-          sales: 0, // This would need to be calculated from orders
+          sales: 0,
+          // This would need to be calculated from orders
           status: product.is_active ? "active" : "inactive"
         }));
         setProducts(formattedProducts);
@@ -116,29 +113,41 @@ export default function BusinessAccount() {
       setLoadingProducts(false);
     }
   };
-
   const loadBusinesses = async () => {
     if (!user) return;
-    
     setLoadingBusinesses(true);
     try {
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('businesses').select('*').eq('user_id', user.id).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error loading businesses:', error);
         return;
       }
-
       setBusinesses((data || []).map(business => ({
         ...business,
-        opening_hours: business.opening_hours as Record<string, { open: string; close: string; closed?: boolean; }>,
-        delivery_zones: business.delivery_zones as Array<{ name: string; radius: number; cost: number; active?: boolean; }>,
-        payment_info: business.payment_info as { mobile_money?: string; account_holder?: string; },
-        delivery_settings: business.delivery_settings as { free_delivery_threshold: number; standard_cost: number; }
+        opening_hours: business.opening_hours as Record<string, {
+          open: string;
+          close: string;
+          closed?: boolean;
+        }>,
+        delivery_zones: business.delivery_zones as Array<{
+          name: string;
+          radius: number;
+          cost: number;
+          active?: boolean;
+        }>,
+        payment_info: business.payment_info as {
+          mobile_money?: string;
+          account_holder?: string;
+        },
+        delivery_settings: business.delivery_settings as {
+          free_delivery_threshold: number;
+          standard_cost: number;
+        }
       })));
     } catch (error) {
       console.error('Error:', error);
@@ -146,17 +155,16 @@ export default function BusinessAccount() {
       setLoadingBusinesses(false);
     }
   };
-
   const loadOrders = async () => {
     if (!user) return;
-    
     setLoadingOrders(true);
     try {
       // Load orders with their items for business owners
       // We need to find orders that contain products from this business owner
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('orders').select(`
           id,
           total_amount,
           currency,
@@ -174,31 +182,22 @@ export default function BusinessAccount() {
               business_owner_id
             )
           )
-        `)
-        .order('created_at', { ascending: false });
-
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error loading orders:', error);
         return;
       }
 
       // Filter orders that contain products from this business owner
-      const businessOrders = (data || [])
-        .filter(order => 
-          order.order_items.some(item => 
-            item.products && item.products.business_owner_id === user.id
-          )
-        )
-        .map(order => ({
-          ...order,
-          order_items: order.order_items
-            .filter(item => item.products && item.products.business_owner_id === user.id)
-            .map(item => ({
-              ...item,
-              product_name: item.products?.name || 'Produit supprimé'
-            }))
-        }));
-
+      const businessOrders = (data || []).filter(order => order.order_items.some(item => item.products && item.products.business_owner_id === user.id)).map(order => ({
+        ...order,
+        order_items: order.order_items.filter(item => item.products && item.products.business_owner_id === user.id).map(item => ({
+          ...item,
+          product_name: item.products?.name || 'Produit supprimé'
+        }))
+      }));
       setOrders(businessOrders);
     } catch (error) {
       console.error('Error:', error);
@@ -206,17 +205,14 @@ export default function BusinessAccount() {
       setLoadingOrders(false);
     }
   };
-
   const handleEditBusiness = (business: Business) => {
     setEditingBusiness(business);
     setIsAddBusinessModalOpen(true);
   };
-
   const handleBusinessModalClose = () => {
     setIsAddBusinessModalOpen(false);
     setEditingBusiness(null);
   };
-
   const handleBusinessChanged = () => {
     loadBusinesses();
   };
@@ -255,56 +251,50 @@ export default function BusinessAccount() {
     const productIdStr = String(productId);
     console.log('🗑️ Attempting to delete product:', productIdStr);
     console.log('👤 Current user ID:', user?.id);
-    
     if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement ce produit ? Il sera supprimé de vos produits et retiré de la boutique.')) {
       return;
     }
-    
     if (!user?.id) {
       toast.error('Utilisateur non connecté');
       return;
     }
-    
     setDeletingProductId(productIdStr);
-    
     try {
       console.log('🔄 Executing delete query...');
-      
+
       // Delete product from database - this removes it from everywhere (My Products + Shop)
-      const { error, data } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productIdStr)
-        .eq('business_owner_id', user.id)
-        .select(); // Add select to see what would be deleted
-      
-      console.log('📊 Delete query result:', { error, data });
-      
+      const {
+        error,
+        data
+      } = await supabase.from('products').delete().eq('id', productIdStr).eq('business_owner_id', user.id).select(); // Add select to see what would be deleted
+
+      console.log('📊 Delete query result:', {
+        error,
+        data
+      });
       if (error) {
         console.error('❌ Error deleting product:', error);
-        
+
         // Handle foreign key constraint violation (product referenced in orders/favorites/etc)
         if (error.code === '23503') {
           toast.error('Impossible de supprimer ce produit car il fait partie de commandes existantes.', {
             duration: 4000
           });
-          
+
           // Offer to deactivate the product instead
           if (confirm('Ce produit ne peut pas être supprimé car il est référencé dans des commandes. Voulez-vous le désactiver à la place ? Il restera dans vos produits mais sera masqué de la boutique.')) {
             try {
               console.log('🔄 Deactivating product instead...');
-              const { error: updateError } = await supabase
-                .from('products')
-                .update({ is_active: false })
-                .eq('id', productIdStr)
-                .eq('business_owner_id', user.id);
-              
+              const {
+                error: updateError
+              } = await supabase.from('products').update({
+                is_active: false
+              }).eq('id', productIdStr).eq('business_owner_id', user.id);
               if (updateError) {
                 console.error('❌ Error deactivating product:', updateError);
                 toast.error('Erreur lors de la désactivation du produit');
                 return;
               }
-              
               console.log('✅ Product deactivated successfully');
               toast.success('Produit désactivé avec succès - Il est maintenant masqué de la boutique');
               await loadProducts(); // Reload to show updated status
@@ -318,18 +308,16 @@ export default function BusinessAccount() {
         }
         return;
       }
-      
       if (!data || data.length === 0) {
         console.log('⚠️ No product was deleted - might not exist or not owned by user');
         toast.error('Produit introuvable ou non autorisé');
         return;
       }
-      
+
       // Success - product deleted from database (removed from My Products AND Shop)
       console.log('✅ Product deleted successfully:', data);
       toast.success('Produit supprimé avec succès de vos produits et de la boutique');
       await loadProducts(); // Reload the products list
-      
     } catch (error) {
       console.error('❌ Unexpected error in handleDeleteProduct:', error);
       toast.error('Erreur inattendue lors de la suppression du produit');
@@ -379,13 +367,10 @@ export default function BusinessAccount() {
   }];
   const getStatusColor = (status: string, createdAt?: string) => {
     // Calculer si 72 heures se sont écoulées
-    const isExpired = createdAt ? 
-      (new Date().getTime() - new Date(createdAt).getTime()) > (72 * 60 * 60 * 1000) : false;
-    
+    const isExpired = createdAt ? new Date().getTime() - new Date(createdAt).getTime() > 72 * 60 * 60 * 1000 : false;
     if (isExpired && status === "pending") {
       return "bg-gray-500";
     }
-    
     switch (status) {
       case "confirmed":
         return "bg-green-500";
@@ -395,16 +380,12 @@ export default function BusinessAccount() {
         return "bg-gray-500";
     }
   };
-  
   const getStatusText = (status: string, createdAt?: string) => {
     // Calculer si 72 heures se sont écoulées
-    const isExpired = createdAt ? 
-      (new Date().getTime() - new Date(createdAt).getTime()) > (72 * 60 * 60 * 1000) : false;
-    
+    const isExpired = createdAt ? new Date().getTime() - new Date(createdAt).getTime() > 72 * 60 * 60 * 1000 : false;
     if (isExpired && status === "pending") {
       return "Non confirmée";
     }
-    
     switch (status) {
       case "confirmed":
         return "Confirmée";
@@ -414,20 +395,18 @@ export default function BusinessAccount() {
         return status;
     }
   };
-  
   const handleOrderConfirmed = async (orderId: string) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'confirmed' })
-        .eq('id', orderId);
-        
+      const {
+        error
+      } = await supabase.from('orders').update({
+        status: 'confirmed'
+      }).eq('id', orderId);
       if (error) {
         console.error('Error confirming order:', error);
         toast.error('Erreur lors de la confirmation');
         return;
       }
-      
       toast.success('Commande confirmée avec succès');
       await loadOrders(); // Recharger les commandes
     } catch (error) {
@@ -435,17 +414,14 @@ export default function BusinessAccount() {
       toast.error('Erreur lors de la confirmation');
     }
   };
-
   const handleHideOrder = (orderId: string) => {
     setHiddenOrders(prev => new Set([...prev, orderId]));
     toast.success('Commande masquée');
   };
-
   const handleUnhideAllOrders = () => {
     setHiddenOrders(new Set());
     toast.success('Toutes les commandes sont maintenant visibles');
   };
-
   const visibleOrders = orders.filter(order => !hiddenOrders.has(order.id));
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
@@ -629,29 +605,21 @@ export default function BusinessAccount() {
                 </Button>
               </div>
               
-              {loadingProducts ? (
-                <div className="flex items-center justify-center py-8">
+              {loadingProducts ? <div className="flex items-center justify-center py-8">
                   <div className="text-muted-foreground">Chargement des produits...</div>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                </div> : products.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>Aucun produit ajouté</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour créer votre premier produit</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {products.map(product => (
-                    <div key={product.id} className="border rounded-lg p-4">
+                </div> : <div className="space-y-3">
+                  {products.map(product => <div key={product.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{product.name}</span>
-                            {product.status === "inactive" && (
-                              <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                            {product.status === "inactive" && <Badge variant="secondary" className="bg-gray-100 text-gray-600">
                                 Désactivé
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
                           <div className="text-sm text-muted-foreground">{product.category}</div>
                           <div className="text-sm font-medium text-primary mt-1">
@@ -666,33 +634,16 @@ export default function BusinessAccount() {
                           </Badge>
                         </div>
                         <div className="flex gap-2 ml-4">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleEditProduct(product.id)}
-                            disabled={deletingProductId === product.id}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id)} disabled={deletingProductId === product.id}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleDeleteProduct(product.id)}
-                            disabled={deletingProductId === product.id}
-                            className={deletingProductId === product.id ? "opacity-50" : ""}
-                          >
-                            {deletingProductId === product.id ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
+                          <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} disabled={deletingProductId === product.id} className={deletingProductId === product.id ? "opacity-50" : ""}>
+                            {deletingProductId === product.id ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Trash2 className="h-4 w-4" />}
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </Card>
           </TabsContent>
 
@@ -702,34 +653,21 @@ export default function BusinessAccount() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Commandes clients</h3>
                 <div className="flex items-center gap-3">
-                  <Badge variant="secondary">{visibleOrders.length} commandes</Badge>
-                  {hiddenOrders.size > 0 && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleUnhideAllOrders}
-                      className="flex items-center gap-2 text-primary hover:text-primary"
-                    >
+                  <Badge variant="secondary" className="rounded-none mx-[2px] my-px px-0 py-0">{visibleOrders.length} commandes</Badge>
+                  {hiddenOrders.size > 0 && <Button variant="outline" size="sm" onClick={handleUnhideAllOrders} className="flex items-center gap-2 text-primary hover:text-primary text-xs px-[4px]">
                       <Eye className="h-4 w-4" />
                       Démasquer toutes
-                    </Button>
-                  )}
+                    </Button>}
                 </div>
               </div>
               
-              {loadingOrders ? (
-                <div className="text-center py-8">
+              {loadingOrders ? <div className="text-center py-8">
                   <div className="text-muted-foreground">Chargement des commandes...</div>
-                </div>
-              ) : orders.length === 0 ? (
-                <div className="text-center py-8">
+                </div> : orders.length === 0 ? <div className="text-center py-8">
                   <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                   <div className="text-muted-foreground">Aucune commande reçue</div>
-                </div>
-              ) : (
-                  <div className="space-y-4">
-                    {visibleOrders.map(order => (
-                      <Card key={order.id} className="p-4 border border-border/50 hover:shadow-md transition-all duration-200">
+                </div> : <div className="space-y-4">
+                    {visibleOrders.map(order => <Card key={order.id} className="p-4 border border-border/50 hover:shadow-md transition-all duration-200">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -750,44 +688,34 @@ export default function BusinessAccount() {
                         {/* Informations avec icônes */}
                         <div className="space-y-3 mb-4">
                           {/* Téléphone donateur */}
-                          {order.delivery_address?.donorPhone && (
-                            <div className="flex items-center gap-3 text-sm">
+                          {order.delivery_address?.donorPhone && <div className="flex items-center gap-3 text-sm">
                               <Phone className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium text-green-600">{order.delivery_address.donorPhone}</span>
-                            </div>
-                          )}
+                            </div>}
 
                           {/* Téléphone bénéficiaire */}
-                          {order.delivery_address?.beneficiaryPhone && (
-                            <div className="flex items-center gap-3 text-sm">
+                          {order.delivery_address?.beneficiaryPhone && <div className="flex items-center gap-3 text-sm">
                               <Smartphone className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium text-purple-600">{order.delivery_address.beneficiaryPhone}</span>
-                            </div>
-                          )}
+                            </div>}
 
                           {/* Date */}
                           <div className="flex items-center gap-3 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             <span>{new Date(order.created_at).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit', 
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}</span>
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</span>
                           </div>
 
                           {/* Type de livraison */}
-                          {order.delivery_address?.deliveryType && (
-                            <div className="flex items-center gap-3 text-sm">
-                              {order.delivery_address.deliveryType === 'pickup' ? (
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Truck className="h-4 w-4 text-muted-foreground" />
-                              )}
+                          {order.delivery_address?.deliveryType && <div className="flex items-center gap-3 text-sm">
+                              {order.delivery_address.deliveryType === 'pickup' ? <MapPin className="h-4 w-4 text-muted-foreground" /> : <Truck className="h-4 w-4 text-muted-foreground" />}
                               <span>{order.delivery_address.deliveryType === 'pickup' ? 'Retrait sur place' : 'Livraison à domicile'}</span>
-                            </div>
-                          )}
+                            </div>}
 
                           {/* Montant total */}
                           <div className="flex items-center gap-3 text-sm">
@@ -809,32 +737,20 @@ export default function BusinessAccount() {
                             Mode de paiement: {order.notes?.includes('Mobile Money') ? 'Mobile Money' : 'À la livraison/retrait'}
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setIsOrderDetailsModalOpen(true);
-                              }}
-                              className="flex items-center gap-2"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => {
+                      setSelectedOrder(order);
+                      setIsOrderDetailsModalOpen(true);
+                    }} className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               Voir Détail
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleHideOrder(order.id)}
-                              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleHideOrder(order.id)} className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50">
                               <EyeOff className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
-                      </Card>
-                    ))}
-                  </div>
-               )}
+                      </Card>)}
+                  </div>}
              </Card>
            </TabsContent>
 
@@ -924,10 +840,7 @@ export default function BusinessAccount() {
           <TabsContent value="configuration" className="mt-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-semibold text-base text-gray-500">Configuration des business</h2>
-              <Button 
-                onClick={() => setIsAddBusinessModalOpen(true)} 
-                className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]"
-              >
+              <Button onClick={() => setIsAddBusinessModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]">
                 <Plus className="h-4 w-4" />
                 Ajouter son business
               </Button>
@@ -935,37 +848,20 @@ export default function BusinessAccount() {
 
             {/* Liste des business existants */}
             <div className="space-y-4">
-              {loadingBusinesses ? (
-                <Card className="p-8 text-center">
+              {loadingBusinesses ? <Card className="p-8 text-center">
                   <div className="text-muted-foreground">Chargement des business...</div>
-                </Card>
-              ) : businesses.length === 0 ? (
-                <Card className="p-8 text-center">
+                </Card> : businesses.length === 0 ? <Card className="p-8 text-center">
                   <div className="text-muted-foreground mb-4">
                     Aucun business configuré pour le moment
                   </div>
-                  <Button 
-                    onClick={() => setIsAddBusinessModalOpen(true)}
-                    variant="outline"
-                    className="gap-2"
-                  >
+                  <Button onClick={() => setIsAddBusinessModalOpen(true)} variant="outline" className="gap-2">
                     <Plus className="h-4 w-4" />
                     Créer votre premier business
                   </Button>
-                </Card>
-              ) : (
-                <div className="grid gap-4">
+                </Card> : <div className="grid gap-4">
                   <h3 className="font-medium">Mes business ({businesses.length})</h3>
-                  {businesses.map((business) => (
-                    <BusinessCard
-                      key={business.id}
-                      business={business}
-                      onEdit={handleEditBusiness}
-                      onDeleted={handleBusinessChanged}
-                    />
-                  ))}
-                </div>
-              )}
+                  {businesses.map(business => <BusinessCard key={business.id} business={business} onEdit={handleEditBusiness} onDeleted={handleBusinessChanged} />)}
+                </div>}
             </div>
           </TabsContent>
         </Tabs>
@@ -973,25 +869,11 @@ export default function BusinessAccount() {
         <div className="pb-20" />
       </main>
 
-      <AddProductModal 
-        isOpen={isAddProductModalOpen} 
-        onClose={() => setIsAddProductModalOpen(false)} 
-        onProductAdded={loadProducts} 
-      />
-      <AddBusinessModal
-        isOpen={isAddBusinessModalOpen}
-        onClose={handleBusinessModalClose}
-        onBusinessAdded={handleBusinessChanged}
-        editingBusiness={editingBusiness}
-      />
-      <OrderDetailsModal
-        isOpen={isOrderDetailsModalOpen}
-        onClose={() => {
-          setIsOrderDetailsModalOpen(false);
-          setSelectedOrder(null);
-        }}
-        order={selectedOrder}
-        onOrderConfirmed={handleOrderConfirmed}
-      />
+      <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
+      <AddBusinessModal isOpen={isAddBusinessModalOpen} onClose={handleBusinessModalClose} onBusinessAdded={handleBusinessChanged} editingBusiness={editingBusiness} />
+      <OrderDetailsModal isOpen={isOrderDetailsModalOpen} onClose={() => {
+      setIsOrderDetailsModalOpen(false);
+      setSelectedOrder(null);
+    }} order={selectedOrder} onOrderConfirmed={handleOrderConfirmed} />
     </div>;
 }
