@@ -2,87 +2,19 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
-import { AddFriendModal } from "@/components/AddFriendModal";
-import { differenceInDays } from "date-fns";
-
-interface Friend {
-  id: string;
-  name: string;
-  phone: string;
-  relation: string;
-  location: string;
-  birthday: Date;
-}
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [friends, setFriends] = useState<Friend[]>([]);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
-  
-  // Charger les amis depuis localStorage au démarrage
-  useEffect(() => {
-    const savedFriends = localStorage.getItem('joie-de-vivre-friends');
-    if (savedFriends) {
-      const parsedFriends = JSON.parse(savedFriends).map((friend: any) => ({
-        ...friend,
-        birthday: new Date(friend.birthday),
-        // Migration des anciennes valeurs vers les nouvelles
-        relation: friend.relation === 'ami.e' ? 'ami' : 
-                 friend.relation === 'conjoint.e' ? 'conjoint' : 
-                 friend.relation
-      }));
-      setFriends(parsedFriends);
-      // Sauvegarder les données migrées
-      localStorage.setItem('joie-de-vivre-friends', JSON.stringify(parsedFriends));
-    } else {
-      // Ajouter l'ami par défaut seulement s'il n'y a pas de données sauvegardées
-      const defaultFriend = {
-        id: "1",
-        name: "Fatou Bamba",
-        phone: "07 XX XX XX XX",
-        relation: "sœur",
-        location: "Cocody, Abidjan",
-        birthday: new Date(2025, 7, 9) // 9 août 2025
-      };
-      setFriends([defaultFriend]);
-      localStorage.setItem('joie-de-vivre-friends', JSON.stringify([defaultFriend]));
-    }
-  }, []);
-
-  const handleAddFriend = (newFriend: Friend) => {
-    const updatedFriends = [...friends, newFriend];
-    setFriends(updatedFriends);
-    localStorage.setItem('joie-de-vivre-friends', JSON.stringify(updatedFriends));
-  };
-
-  const handleDeleteFriend = (friendId: string) => {
-    const updatedFriends = friends.filter(friend => friend.id !== friendId);
-    setFriends(updatedFriends);
-    localStorage.setItem('joie-de-vivre-friends', JSON.stringify(updatedFriends));
-  };
-
-  const calculateDaysUntilBirthday = (birthday: Date) => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    let nextBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
-    
-    if (nextBirthday < today) {
-      nextBirthday = new Date(currentYear + 1, birthday.getMonth(), birthday.getDate());
-    }
-    
-    return differenceInDays(nextBirthday, today);
-  };
-
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
@@ -109,11 +41,11 @@ export default function Dashboard() {
               <div className="font-semibold">Utilisateur Démo</div>
               <div className="text-sm text-muted-foreground">Abidjan, Côte d'Ivoire</div>
             </div>
-              <div className="flex gap-6 text-center">
-                <div>
-                  <div className="text-primary font-bold">{friends.length}</div>
-                  <div className="text-xs text-muted-foreground">Amis</div>
-                </div>
+            <div className="flex gap-6 text-center">
+              <div>
+                <div className="text-primary font-bold">3</div>
+                <div className="text-xs text-muted-foreground">Amis</div>
+              </div>
               <div>
                 <div className="text-primary font-bold">1</div>
                 <div className="text-xs text-muted-foreground">Reçus</div>
@@ -151,44 +83,18 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mes Amis & Donateurs</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-orange-500 hover:bg-orange-400" 
-                onClick={() => setShowAddFriendModal(true)}
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-                Ajouter
-              </Button>
+              <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
             </div>
-            <div className="space-y-3">
-              {friends.map((friend) => {
-                const daysUntil = calculateDaysUntilBirthday(friend.birthday);
-                return (
-                  <Card key={friend.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium">{friend.name}</div>
-                        <div className="text-xs text-muted-foreground">{friend.location}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-orange-500 capitalize">{friend.relation}</Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteFriend(friend.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Anniversaire dans {daysUntil} jour{daysUntil > 1 ? 's' : ''}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">Fatou Bamba</div>
+                  <div className="text-xs text-muted-foreground">Cocody, Abidjan</div>
+                </div>
+                <Badge>Donateur</Badge>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">Anniversaire dans 220 jours</div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
@@ -223,10 +129,10 @@ export default function Dashboard() {
           <TabsContent value="cadeaux" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 rounded-none">
                 
                 <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600" onClick={() => navigate('/shop')}>
-                  <Gift className="h-4 w-4" aria-hidden />
+                  <Gift aria-hidden className="h-4 w-4 my-0 py-[14px] px-[58px]" />
                   Offrir
                 </Button>
               </div>
@@ -388,11 +294,5 @@ export default function Dashboard() {
       <GiftHistoryModal isOpen={showGiftHistory} onClose={() => setShowGiftHistory(false)} />
 
       <ContributeModal isOpen={showContributeModal} onClose={() => setShowContributeModal(false)} />
-
-      <AddFriendModal 
-        isOpen={showAddFriendModal} 
-        onClose={() => setShowAddFriendModal(false)} 
-        onAddFriend={handleAddFriend}
-      />
     </div>;
 }
