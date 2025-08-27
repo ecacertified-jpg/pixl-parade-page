@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { OrderModal } from "@/components/OrderModal";
+import { useNavigate } from "react-router-dom";
 export default function Shop() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
   const [products, setProducts] = useState<Array<{
@@ -110,7 +112,7 @@ export default function Shop() {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
-            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/'} className="p-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="p-2">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2">

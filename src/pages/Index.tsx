@@ -10,6 +10,7 @@ import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSectio
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { memo } from "react";
 const Index = () => {
   const {
     toast
@@ -95,4 +96,4 @@ const Index = () => {
       <BottomNavigation />
     </div>;
 };
-export default Index;
+export default memo(Index);

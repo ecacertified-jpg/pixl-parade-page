@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { ArrowLeft, Gift, Filter, User, Heart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ interface GiftItem {
   receiver_name?: string;
 }
 
-export default function Gifts() {
+function Gifts() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
@@ -107,14 +107,20 @@ export default function Gifts() {
     }
   };
 
-  const filteredGifts = gifts.filter(gift => {
-    if (activeFilter === 'received') return gift.receiver_id === user?.id;
-    if (activeFilter === 'given') return gift.giver_id === user?.id;
-    return true;
-  });
-
-  const receivedGifts = gifts.filter(gift => gift.receiver_id === user?.id);
-  const givenGifts = gifts.filter(gift => gift.giver_id === user?.id);
+  const { filteredGifts, receivedGifts, givenGifts } = useMemo(() => {
+    const received = gifts.filter(gift => gift.receiver_id === user?.id);
+    const given = gifts.filter(gift => gift.giver_id === user?.id);
+    
+    let filtered = gifts;
+    if (activeFilter === 'received') filtered = received;
+    else if (activeFilter === 'given') filtered = given;
+    
+    return {
+      filteredGifts: filtered,
+      receivedGifts: received,
+      givenGifts: given
+    };
+  }, [gifts, activeFilter, user?.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -270,3 +276,5 @@ export default function Gifts() {
     </div>
   );
 }
+
+export default memo(Gifts);
