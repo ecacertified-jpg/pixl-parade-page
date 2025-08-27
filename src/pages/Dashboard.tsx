@@ -35,9 +35,15 @@ export default function Dashboard() {
     if (savedFriends) {
       const parsedFriends = JSON.parse(savedFriends).map((friend: any) => ({
         ...friend,
-        birthday: new Date(friend.birthday)
+        birthday: new Date(friend.birthday),
+        // Migration des anciennes valeurs vers les nouvelles
+        relation: friend.relation === 'ami.e' ? 'ami' : 
+                 friend.relation === 'conjoint.e' ? 'conjoint' : 
+                 friend.relation
       }));
       setFriends(parsedFriends);
+      // Sauvegarder les données migrées
+      localStorage.setItem('joie-de-vivre-friends', JSON.stringify(parsedFriends));
     } else {
       // Ajouter l'ami par défaut seulement s'il n'y a pas de données sauvegardées
       const defaultFriend = {
