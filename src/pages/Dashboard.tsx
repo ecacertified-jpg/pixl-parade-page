@@ -7,14 +7,53 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
+import { AddFriendModal } from "@/components/AddFriendModal";
+import { differenceInDays } from "date-fns";
+
+interface Friend {
+  id: string;
+  name: string;
+  phone: string;
+  relation: string;
+  location: string;
+  birthday: Date;
+}
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([
+    {
+      id: "1",
+      name: "Fatou Bamba",
+      phone: "07 XX XX XX XX",
+      relation: "sœur",
+      location: "Cocody, Abidjan",
+      birthday: new Date(2025, 7, 9) // 9 août 2025
+    }
+  ]);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
+  
+  const handleAddFriend = (newFriend: Friend) => {
+    setFriends(prev => [...prev, newFriend]);
+  };
+
+  const calculateDaysUntilBirthday = (birthday: Date) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    let nextBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
+    
+    if (nextBirthday < today) {
+      nextBirthday = new Date(currentYear + 1, birthday.getMonth(), birthday.getDate());
+    }
+    
+    return differenceInDays(nextBirthday, today);
+  };
+
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
@@ -41,11 +80,11 @@ export default function Dashboard() {
               <div className="font-semibold">Utilisateur Démo</div>
               <div className="text-sm text-muted-foreground">Abidjan, Côte d'Ivoire</div>
             </div>
-            <div className="flex gap-6 text-center">
-              <div>
-                <div className="text-primary font-bold">3</div>
-                <div className="text-xs text-muted-foreground">Amis</div>
-              </div>
+              <div className="flex gap-6 text-center">
+                <div>
+                  <div className="text-primary font-bold">{friends.length}</div>
+                  <div className="text-xs text-muted-foreground">Amis</div>
+                </div>
               <div>
                 <div className="text-primary font-bold">1</div>
                 <div className="text-xs text-muted-foreground">Reçus</div>
@@ -83,18 +122,34 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mes Amis & Donateurs</h2>
-              <Button size="sm" className="gap-2 bg-orange-500 hover:bg-orange-400"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
+              <Button 
+                size="sm" 
+                className="gap-2 bg-orange-500 hover:bg-orange-400" 
+                onClick={() => setShowAddFriendModal(true)}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Ajouter
+              </Button>
             </div>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">Fatou Bamba</div>
-                  <div className="text-xs text-muted-foreground">Cocody, Abidjan</div>
-                </div>
-                <Badge className="bg-orange-500">Sœur </Badge>
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">Anniversaire dans 220 jours</div>
-            </Card>
+            <div className="space-y-3">
+              {friends.map((friend) => {
+                const daysUntil = calculateDaysUntilBirthday(friend.birthday);
+                return (
+                  <Card key={friend.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{friend.name}</div>
+                        <div className="text-xs text-muted-foreground">{friend.location}</div>
+                      </div>
+                      <Badge className="bg-orange-500 capitalize">{friend.relation}</Badge>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Anniversaire dans {daysUntil} jour{daysUntil > 1 ? 's' : ''}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
@@ -294,5 +349,11 @@ export default function Dashboard() {
       <GiftHistoryModal isOpen={showGiftHistory} onClose={() => setShowGiftHistory(false)} />
 
       <ContributeModal isOpen={showContributeModal} onClose={() => setShowContributeModal(false)} />
+
+      <AddFriendModal 
+        isOpen={showAddFriendModal} 
+        onClose={() => setShowAddFriendModal(false)} 
+        onAddFriend={handleAddFriend}
+      />
     </div>;
 }
