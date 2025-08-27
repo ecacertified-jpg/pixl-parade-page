@@ -12,10 +12,9 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
-  
+
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
-  
   useEffect(() => {
     document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
   }, []);
@@ -84,7 +83,7 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mes Amis & Donateurs</h2>
-              <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
+              <Button size="sm" className="gap-2 bg-orange-500 hover:bg-orange-400"><Plus className="h-4 w-4" aria-hidden />Ajouter</Button>
             </div>
             <Card className="p-4">
               <div className="flex items-center justify-between">
@@ -92,7 +91,7 @@ export default function Dashboard() {
                   <div className="font-medium">Fatou Bamba</div>
                   <div className="text-xs text-muted-foreground">Cocody, Abidjan</div>
                 </div>
-                <Badge>Donateur</Badge>
+                <Badge className="bg-orange-500">Sœur </Badge>
               </div>
               <div className="mt-2 text-xs text-muted-foreground">Anniversaire dans 220 jours</div>
             </Card>
