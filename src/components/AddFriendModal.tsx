@@ -111,9 +111,9 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
                 <SelectItem value="frère">Frère</SelectItem>
                 <SelectItem value="sœur">Sœur</SelectItem>
                 <SelectItem value="famille">Famille</SelectItem>
-                <SelectItem value="ami.e">Ami.e</SelectItem>
+                <SelectItem value="ami.e">Ami(e)</SelectItem>
                 <SelectItem value="collègue">Collègue</SelectItem>
-                <SelectItem value="conjoint.e">Conjoint.e</SelectItem>
+<SelectItem value="conjoint.e">Conjoint(e)</SelectItem>
               </SelectContent>
             </Select>
           </div>
