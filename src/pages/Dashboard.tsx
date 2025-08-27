@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft } from "lucide-react";
+import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
@@ -24,22 +24,45 @@ export default function Dashboard() {
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [friends, setFriends] = useState<Friend[]>([
-    {
-      id: "1",
-      name: "Fatou Bamba",
-      phone: "07 XX XX XX XX",
-      relation: "sœur",
-      location: "Cocody, Abidjan",
-      birthday: new Date(2025, 7, 9) // 9 août 2025
-    }
-  ]);
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
   
+  // Charger les amis depuis localStorage au démarrage
+  useEffect(() => {
+    const savedFriends = localStorage.getItem('joie-de-vivre-friends');
+    if (savedFriends) {
+      const parsedFriends = JSON.parse(savedFriends).map((friend: any) => ({
+        ...friend,
+        birthday: new Date(friend.birthday)
+      }));
+      setFriends(parsedFriends);
+    } else {
+      // Ajouter l'ami par défaut seulement s'il n'y a pas de données sauvegardées
+      const defaultFriend = {
+        id: "1",
+        name: "Fatou Bamba",
+        phone: "07 XX XX XX XX",
+        relation: "sœur",
+        location: "Cocody, Abidjan",
+        birthday: new Date(2025, 7, 9) // 9 août 2025
+      };
+      setFriends([defaultFriend]);
+      localStorage.setItem('joie-de-vivre-friends', JSON.stringify([defaultFriend]));
+    }
+  }, []);
+
   const handleAddFriend = (newFriend: Friend) => {
-    setFriends(prev => [...prev, newFriend]);
+    const updatedFriends = [...friends, newFriend];
+    setFriends(updatedFriends);
+    localStorage.setItem('joie-de-vivre-friends', JSON.stringify(updatedFriends));
+  };
+
+  const handleDeleteFriend = (friendId: string) => {
+    const updatedFriends = friends.filter(friend => friend.id !== friendId);
+    setFriends(updatedFriends);
+    localStorage.setItem('joie-de-vivre-friends', JSON.stringify(updatedFriends));
   };
 
   const calculateDaysUntilBirthday = (birthday: Date) => {
@@ -137,11 +160,21 @@ export default function Dashboard() {
                 return (
                   <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <div className="font-medium">{friend.name}</div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                       </div>
-                      <Badge className="bg-orange-500 capitalize">{friend.relation}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-orange-500 capitalize">{friend.relation}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteFriend(friend.id)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
                       Anniversaire dans {daysUntil} jour{daysUntil > 1 ? 's' : ''}
