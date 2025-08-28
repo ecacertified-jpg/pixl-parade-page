@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
+import { AddEventModal, Event } from "@/components/AddEventModal";
 interface Friend {
   id: string;
   name: string;
@@ -23,7 +26,9 @@ export default function Dashboard() {
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -37,6 +42,18 @@ export default function Dashboard() {
         birthday: new Date(friend.birthday)
       }));
       setFriends(parsedFriends);
+    }
+  }, []);
+
+  // Charger les événements depuis localStorage
+  useEffect(() => {
+    const savedEvents = localStorage.getItem('events');
+    if (savedEvents) {
+      const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
+        ...event,
+        date: new Date(event.date)
+      }));
+      setEvents(parsedEvents);
     }
   }, []);
 
@@ -54,6 +71,24 @@ export default function Dashboard() {
     localStorage.setItem('friends', JSON.stringify(updatedFriends));
   };
 
+  // Fonction pour ajouter un événement
+  const handleAddEvent = (newEvent: Omit<Event, 'id'>) => {
+    const eventWithId = {
+      ...newEvent,
+      id: Date.now().toString()
+    };
+    const updatedEvents = [...events, eventWithId];
+    setEvents(updatedEvents);
+    localStorage.setItem('events', JSON.stringify(updatedEvents));
+  };
+
+  // Fonction pour supprimer un événement
+  const handleDeleteEvent = (eventId: string) => {
+    const updatedEvents = events.filter(event => event.id !== eventId);
+    setEvents(updatedEvents);
+    localStorage.setItem('events', JSON.stringify(updatedEvents));
+  };
+
   // Calculer les jours jusqu'à l'anniversaire
   const getDaysUntilBirthday = (birthday: Date) => {
     const today = new Date();
@@ -65,6 +100,14 @@ export default function Dashboard() {
     }
     
     const diffTime = nextBirthday.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Calculer les jours jusqu'à un événement
+  const getDaysUntilEvent = (eventDate: Date) => {
+    const today = new Date();
+    const diffTime = eventDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
@@ -185,30 +228,76 @@ export default function Dashboard() {
           <TabsContent value="evenements" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Événements à Venir</h2>
-              <Button size="sm" className="gap-2 text-primary-foreground bg-amber-400 hover:bg-amber-300">
+              <Button size="sm" className="gap-2 text-primary-foreground bg-amber-400 hover:bg-amber-300" onClick={() => setShowAddEventModal(true)}>
                 <Plus className="h-4 w-4" aria-hidden />
                 Ajouter
               </Button>
             </div>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <CalendarDays className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-medium">Anniversaire de Fatou</div>
-                    <div className="text-xs text-muted-foreground">samedi 9 août 2025</div>
-                  </div>
+            
+            {events.length === 0 ? (
+              <Card className="p-6 text-center">
+                <div className="text-muted-foreground">
+                  <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Aucun événement ajouté pour le moment</p>
+                  <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
                 </div>
-                <div className="text-right">
-                  <Badge variant="secondary" className="bg-primary text-primary-foreground">
-                    2j
-                  </Badge>
-                </div>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {events
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((event) => {
+                    const daysUntil = getDaysUntilEvent(event.date);
+                    return (
+                      <Card key={event.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <CalendarDays className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="font-medium">{event.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {format(event.date, "EEEE d MMMM yyyy", { locale: fr })}
+                              </div>
+                              <div className="text-xs text-muted-foreground capitalize">
+                                {event.type}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                              {daysUntil > 0 ? `${daysUntil}j` : daysUntil === 0 ? "Aujourd'hui" : "Passé"}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {daysUntil >= 0 && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            {daysUntil === 0 ? "C'est aujourd'hui !" : 
+                             daysUntil === 1 ? "Dans 1 jour" : 
+                             `Dans ${daysUntil} jours`}
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
               </div>
-              <div className="mt-2 text-xs text-muted-foreground">Dans 2 jour(s)</div>
-            </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
@@ -384,6 +473,12 @@ export default function Dashboard() {
         isOpen={showAddFriendModal} 
         onClose={() => setShowAddFriendModal(false)} 
         onAddFriend={handleAddFriend}
+      />
+
+      <AddEventModal 
+        isOpen={showAddEventModal} 
+        onClose={() => setShowAddEventModal(false)} 
+        onAddEvent={handleAddEvent}
       />
     </div>;
 }
