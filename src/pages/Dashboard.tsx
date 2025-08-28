@@ -19,7 +19,6 @@ interface Friend {
   location: string;
   birthday: Date;
 }
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -76,7 +75,7 @@ export default function Dashboard() {
   const handleAddEvent = (eventData: Omit<Event, 'id'>) => {
     const newEvent: Event = {
       ...eventData,
-      id: Date.now().toString(),
+      id: Date.now().toString()
     };
     const updatedEvents = [...events, newEvent];
     setEvents(updatedEvents);
@@ -85,9 +84,10 @@ export default function Dashboard() {
 
   // Fonction pour modifier un événement
   const handleEditEvent = (eventId: string, eventData: Omit<Event, 'id'>) => {
-    const updatedEvents = events.map(event => 
-      event.id === eventId ? { ...eventData, id: eventId } : event
-    );
+    const updatedEvents = events.map(event => event.id === eventId ? {
+      ...eventData,
+      id: eventId
+    } : event);
     setEvents(updatedEvents);
     localStorage.setItem('events', JSON.stringify(updatedEvents));
     setEditingEvent(null);
@@ -117,11 +117,9 @@ export default function Dashboard() {
     const today = new Date();
     const currentYear = today.getFullYear();
     let nextBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
-    
     if (nextBirthday < today) {
       nextBirthday = new Date(currentYear + 1, birthday.getMonth(), birthday.getDate());
     }
-    
     const diffTime = nextBirthday.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -208,18 +206,14 @@ export default function Dashboard() {
               </Button>
             </div>
             
-            {friends.length === 0 ? (
-              <Card className="p-6 text-center">
+            {friends.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Aucun ami ajouté pour le moment</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
                 </div>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {friends.map((friend) => (
-                  <Card key={friend.id} className="p-4">
+              </Card> : <div className="space-y-3">
+                {friends.map(friend => <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="font-medium">{friend.name}</div>
@@ -232,20 +226,13 @@ export default function Dashboard() {
                         <Badge variant="secondary" className="capitalize">
                           {friend.relation}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteFriend(friend.id)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteFriend(friend.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            )}
+                  </Card>)}
+              </div>}
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
@@ -257,22 +244,16 @@ export default function Dashboard() {
               </Button>
             </div>
             
-            {events.length === 0 ? (
-              <Card className="p-6 text-center">
+            {events.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Aucun événement ajouté pour le moment</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
                 </div>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {events
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .map((event) => {
-                    const daysUntil = getDaysUntilEvent(event.date);
-                    return (
-                      <Card key={event.id} className="p-4">
+              </Card> : <div className="space-y-3">
+                {events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(event => {
+              const daysUntil = getDaysUntilEvent(event.date);
+              return <Card key={event.id} className="p-4">
                         {/* Header: Title and Badge */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3 flex-1">
@@ -282,51 +263,37 @@ export default function Dashboard() {
                             <div className="flex-1">
                               <div className="font-medium">{event.title}</div>
                               <div className="text-xs text-muted-foreground">
-                                {format(event.date, "EEEE d MMMM yyyy", { locale: fr })}
+                                {format(event.date, "EEEE d MMMM yyyy", {
+                          locale: fr
+                        })}
                               </div>
                               <div className="text-xs text-muted-foreground capitalize">
                                 {event.type}
                               </div>
                             </div>
                           </div>
-                          <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                          <Badge variant="secondary" className="text-primary-foreground bg-amber-400">
                             {daysUntil > 0 ? `${daysUntil}j` : daysUntil === 0 ? "Aujourd'hui" : "Passé"}
                           </Badge>
                         </div>
 
                         {/* Footer: Days text and Action buttons */}
-                        {daysUntil >= 0 && (
-                          <div className="flex items-center justify-between">
+                        {daysUntil >= 0 && <div className="flex items-center justify-between">
                             <div className="text-xs text-muted-foreground">
-                              {daysUntil === 0 ? "C'est aujourd'hui !" : 
-                               daysUntil === 1 ? "Dans 1 jour" : 
-                               `Dans ${daysUntil} jours`}
+                              {daysUntil === 0 ? "C'est aujourd'hui !" : daysUntil === 1 ? "Dans 1 jour" : `Dans ${daysUntil} jours`}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditModal(event)}
-                                className="h-8 w-8 p-0"
-                              >
+                              <Button variant="ghost" size="sm" onClick={() => openEditModal(event)} className="h-8 w-8 p-0">
                                 <Edit2 className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteEvent(event.id)}
-                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteEvent(event.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
-                        )}
-                      </Card>
-                    );
-                  })}
-              </div>
-            )}
+                          </div>}
+                      </Card>;
+            })}
+              </div>}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
@@ -498,18 +465,8 @@ export default function Dashboard() {
 
       <ContributeModal isOpen={showContributeModal} onClose={() => setShowContributeModal(false)} />
 
-      <AddFriendModal 
-        isOpen={showAddFriendModal} 
-        onClose={() => setShowAddFriendModal(false)} 
-        onAddFriend={handleAddFriend}
-      />
+      <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} />
 
-        <AddEventModal
-          isOpen={showAddEventModal}
-          onClose={closeEventModal}
-          onAddEvent={handleAddEvent}
-          onEditEvent={handleEditEvent}
-          eventToEdit={editingEvent}
-        />
+        <AddEventModal isOpen={showAddEventModal} onClose={closeEventModal} onAddEvent={handleAddEvent} onEditEvent={handleEditEvent} eventToEdit={editingEvent} />
     </div>;
 }
