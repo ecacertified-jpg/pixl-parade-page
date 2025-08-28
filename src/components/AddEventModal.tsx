@@ -22,6 +22,8 @@ interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddEvent: (event: Omit<Event, 'id'>) => void;
+  onEditEvent?: (eventId: string, event: Omit<Event, 'id'>) => void;
+  eventToEdit?: Event | null;
 }
 
 const eventTypes = [
@@ -36,10 +38,27 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen,
   onClose,
   onAddEvent,
+  onEditEvent,
+  eventToEdit,
 }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [type, setType] = useState('');
+
+  const isEditing = !!eventToEdit;
+
+  // Pre-fill form when editing
+  React.useEffect(() => {
+    if (eventToEdit) {
+      setTitle(eventToEdit.title);
+      setDate(eventToEdit.date);
+      setType(eventToEdit.type);
+    } else {
+      setTitle('');
+      setDate(undefined);
+      setType('');
+    }
+  }, [eventToEdit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,11 +67,17 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       return;
     }
 
-    onAddEvent({
+    const eventData = {
       title: title.trim(),
       date,
       type,
-    });
+    };
+
+    if (isEditing && eventToEdit && onEditEvent) {
+      onEditEvent(eventToEdit.id, eventData);
+    } else {
+      onAddEvent(eventData);
+    }
 
     // Reset form
     setTitle('');
@@ -72,7 +97,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleCancel}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Ajouter un événement</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            {isEditing ? 'Modifier l\'événement' : 'Ajouter un événement'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -143,7 +170,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
               disabled={!title.trim() || !date || !type}
             >
-              Ajouter
+              {isEditing ? 'Modifier' : 'Ajouter'}
             </Button>
           </div>
         </form>
