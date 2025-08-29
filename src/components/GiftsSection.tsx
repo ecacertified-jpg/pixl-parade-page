@@ -213,7 +213,7 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
               <Card key={gift.id} className="overflow-hidden bg-card border">
                 <div className="flex">
                   {/* Image du cadeau */}
-                  <div className="w-20 h-20 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
+                  <div className="w-20 h-20 flex-shrink-0 bg-white rounded flex items-center justify-center">
                     {gift.product_image_url ? (
                       <img 
                         src={gift.product_image_url} 
