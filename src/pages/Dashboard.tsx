@@ -11,6 +11,7 @@ import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
+import { GiftsSection } from "@/components/GiftsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -32,11 +33,19 @@ export default function Dashboard() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
+  const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
+
+  // Callback pour mettre à jour les compteurs de cadeaux
+  const handleGiftCountChange = (received: number, given: number) => {
+    setReceivedGiftsCount(received);
+    setGivenGiftsCount(given);
+  };
 
   // Charger les données depuis le localStorage et Supabase
   useEffect(() => {
@@ -276,11 +285,11 @@ export default function Dashboard() {
                 <div className="text-xs text-muted-foreground">Amis</div>
               </div>
               <div>
-                <div className="text-primary font-bold">1</div>
+                <div className="text-primary font-bold">{receivedGiftsCount}</div>
                 <div className="text-xs text-muted-foreground">Reçus</div>
               </div>
               <div>
-                <div className="text-primary font-bold">1</div>
+                <div className="text-primary font-bold">{givenGiftsCount}</div>
                 <div className="text-xs text-muted-foreground">Offerts</div>
               </div>
             </div>
@@ -302,9 +311,10 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid grid-cols-3">
+          <TabsList className="grid grid-cols-4">
             <TabsTrigger value="amis" className="flex gap-2 bg-zinc-50"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-2"><CalendarDays className="h-4 w-4" aria-hidden />Événements</TabsTrigger>
+            <TabsTrigger value="cadeaux" className="flex gap-2"><Gift className="h-4 w-4" aria-hidden />Cadeaux</TabsTrigger>
             <TabsTrigger value="cotisations" className="flex gap-2"><PiggyBank className="h-4 w-4" aria-hidden />Cotisations</TabsTrigger>
           </TabsList>
 
@@ -407,6 +417,12 @@ export default function Dashboard() {
               </div>}
           </TabsContent>
 
+          <TabsContent value="cadeaux" className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
+            </div>
+            <GiftsSection onGiftCountChange={handleGiftCountChange} />
+          </TabsContent>
 
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">

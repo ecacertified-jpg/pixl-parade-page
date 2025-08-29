@@ -153,7 +153,7 @@ function Gifts() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => navigate('/dashboard?tab=cadeaux')}
+              onClick={() => navigate('/dashboard')}
               className="p-2"
             >
               <ArrowLeft className="h-5 w-5" />
