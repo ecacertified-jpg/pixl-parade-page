@@ -38,8 +38,14 @@ export default function Dashboard() {
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
 
-  // Charger les amis depuis localStorage
+  // Charger les données depuis le localStorage et Supabase
   useEffect(() => {
+    loadFriendsFromStorage();
+    loadFriendsFromSupabase();
+    loadEventsFromStorage();
+  }, [user]);
+
+  const loadFriendsFromStorage = () => {
     const savedFriends = localStorage.getItem('friends');
     if (savedFriends) {
       const parsedFriends = JSON.parse(savedFriends).map((friend: any) => ({
@@ -48,10 +54,52 @@ export default function Dashboard() {
       }));
       setFriends(parsedFriends);
     }
-  }, []);
+  };
 
-  // Charger les événements depuis localStorage
-  useEffect(() => {
+  const loadFriendsFromSupabase = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (error) {
+        console.error('Erreur lors du chargement des contacts:', error);
+        return;
+      }
+
+      // Convertir les contacts Supabase vers le format Friend local
+      const supabaseContacts: Friend[] = data.map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        phone: contact.phone || '',
+        relation: contact.relationship || '',
+        location: contact.notes || '', // Utiliser notes pour la localisation
+        birthday: contact.birthday ? new Date(contact.birthday) : new Date()
+      }));
+
+      // Fusionner avec les amis locaux en évitant les doublons
+      const existingFriends = JSON.parse(localStorage.getItem('friends') || '[]');
+      const combinedFriends = [...existingFriends];
+      
+      supabaseContacts.forEach(supabaseContact => {
+        const exists = combinedFriends.find(f => f.name === supabaseContact.name && f.phone === supabaseContact.phone);
+        if (!exists) {
+          combinedFriends.push(supabaseContact);
+        }
+      });
+
+      setFriends(combinedFriends);
+      localStorage.setItem('friends', JSON.stringify(combinedFriends));
+    } catch (error) {
+      console.error('Erreur lors du chargement des contacts:', error);
+    }
+  };
+
+  const loadEventsFromStorage = () => {
     const savedEvents = localStorage.getItem('events');
     if (savedEvents) {
       const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
@@ -60,7 +108,7 @@ export default function Dashboard() {
       }));
       setEvents(parsedEvents);
     }
-  }, []);
+  };
 
   // Fonction pour ajouter un ami
   const handleAddFriend = async (newFriend: Friend) => {
@@ -78,7 +126,7 @@ export default function Dashboard() {
             name: newFriend.name,
             phone: newFriend.phone,
             relationship: newFriend.relation,
-            location: newFriend.location,
+            notes: newFriend.location, // Utiliser notes pour stocker la localisation
             birthday: newFriend.birthday.toISOString().split('T')[0] // Format YYYY-MM-DD
           });
 
