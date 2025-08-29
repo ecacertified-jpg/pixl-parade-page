@@ -869,7 +869,8 @@ export type Database = {
           id: string
           occasion: string | null
           product_id: string | null
-          receiver_id: string
+          receiver_id: string | null
+          receiver_name: string | null
           status: string | null
         }
         Insert: {
@@ -883,7 +884,8 @@ export type Database = {
           id?: string
           occasion?: string | null
           product_id?: string | null
-          receiver_id: string
+          receiver_id?: string | null
+          receiver_name?: string | null
           status?: string | null
         }
         Update: {
@@ -897,7 +899,8 @@ export type Database = {
           id?: string
           occasion?: string | null
           product_id?: string | null
-          receiver_id?: string
+          receiver_id?: string | null
+          receiver_name?: string | null
           status?: string | null
         }
         Relationships: [

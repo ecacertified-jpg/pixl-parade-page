@@ -137,6 +137,7 @@ export function OrderModal({
           .insert({
             giver_id: user.id,
             receiver_id: null, // Contact n'est pas forcément un utilisateur enregistré
+            receiver_name: selectedContact.name, // Stocker le nom du contact
             gift_name: product.name,
             gift_description: product.description,
             amount: product.price,

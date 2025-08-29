@@ -18,9 +18,10 @@ interface GiftItem {
   occasion: string;
   status: string;
   giver_id: string;
-  receiver_id: string;
+  receiver_id: string | null;
+  receiver_name: string | null;
   giver_name?: string;
-  receiver_name?: string;
+  receiver_display_name?: string;
 }
 
 function Gifts() {
@@ -69,7 +70,8 @@ function Gifts() {
           occasion,
           status,
           giver_id,
-          receiver_id
+          receiver_id,
+          receiver_name
         `)
         .or(`giver_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('gift_date', { ascending: false });
@@ -80,7 +82,9 @@ function Gifts() {
       const userIds = new Set<string>();
       data?.forEach(gift => {
         userIds.add(gift.giver_id);
-        userIds.add(gift.receiver_id);
+        if (gift.receiver_id) {
+          userIds.add(gift.receiver_id);
+        }
       });
 
       const { data: profiles } = await supabase
@@ -96,7 +100,7 @@ function Gifts() {
       const giftsWithNames = data?.map(gift => ({
         ...gift,
         giver_name: profileMap.get(gift.giver_id) || 'Utilisateur',
-        receiver_name: profileMap.get(gift.receiver_id) || 'Utilisateur'
+        receiver_display_name: gift.receiver_name || profileMap.get(gift.receiver_id) || 'Utilisateur'
       })) || [];
 
       setGifts(giftsWithNames);
@@ -257,11 +261,11 @@ function Gifts() {
                       <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
                         {isReceived ? 
                           (gift.giver_name?.charAt(0) || 'G') : 
-                          (gift.receiver_name?.charAt(0) || 'R')
+                          (gift.receiver_display_name?.charAt(0) || 'R')
                         }
                       </div>
                       <span className="text-sm">
-                        {isReceived ? gift.giver_name : gift.receiver_name}
+                        {isReceived ? gift.giver_name : gift.receiver_display_name}
                       </span>
                     </div>
                   </div>
