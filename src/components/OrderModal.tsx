@@ -128,11 +128,50 @@ export function OrderModal({
     setSelectedContact(contact);
   };
 
-  const handleGiftToContact = () => {
-    if (selectedContact) {
-      addToCart(false, selectedContact);
-      navigate("/cart");
-      handleClose();
+  const handleGiftToContact = async () => {
+    if (selectedContact && user) {
+      try {
+        // Créer une entrée de cadeau dans Supabase
+        const { error } = await supabase
+          .from('gifts')
+          .insert({
+            giver_id: user.id,
+            receiver_id: null, // Contact n'est pas forcément un utilisateur enregistré
+            gift_name: product.name,
+            gift_description: product.description,
+            amount: product.price,
+            currency: product.currency,
+            gift_date: new Date().toISOString().split('T')[0], // Date du jour
+            occasion: selectedContact.birthday ? 'Anniversaire' : 'Cadeau',
+            status: 'given'
+          });
+
+        if (error) {
+          console.error('Error saving gift:', error);
+          toast({
+            title: "Erreur",
+            description: "Impossible de sauvegarder le cadeau",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        toast({
+          title: "Cadeau offert ! 🎁",
+          description: `Cadeau pour ${selectedContact.name} ajouté à votre historique`,
+        });
+
+        // Naviguer vers l'onglet Cadeaux du Dashboard
+        navigate("/dashboard?tab=cadeaux");
+        handleClose();
+      } catch (error) {
+        console.error('Error handling gift:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue",
+          variant: "destructive"
+        });
+      }
     }
   };
   return <Dialog open={isOpen} onOpenChange={handleClose}>
