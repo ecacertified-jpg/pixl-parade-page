@@ -299,10 +299,12 @@ export default function Dashboard() {
           <TabsContent value="cadeaux" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
-              <div className="flex gap-2 rounded-none">
-                
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setShowGiftHistory(true)}>
+                  Voir tout
+                </Button>
                 <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600" onClick={() => navigate('/shop')}>
-                  <Gift aria-hidden className="h-4 w-4 my-0 py-[14px] px-[58px]" />
+                  <Gift className="h-4 w-4" />
                   Offrir
                 </Button>
               </div>
@@ -311,13 +313,13 @@ export default function Dashboard() {
             {/* Filtres */}
             <div className="flex gap-2 mb-4">
               <Button variant="default" size="sm" className="bg-primary text-primary-foreground">
-                Tous (2)
+                Tous (4)
               </Button>
               <Button variant="outline" size="sm">
-                Reçus (1)
+                Reçus (2)
               </Button>
               <Button variant="outline" size="sm">
-                Offerts (1)
+                Offerts (2)
               </Button>
             </div>
 
@@ -361,7 +363,7 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            {/* Cadeau principal */}
+            {/* Cadeau offert récent */}
             <Card className="p-4 mb-4 border-blue-200 bg-blue-50">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -385,6 +387,62 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
                   <span className="text-sm">Fatou Bamba</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Cadeau reçu ancien */}
+            <Card className="p-4 mb-4 border-green-200 bg-green-50">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Gift className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Livre sur l'entrepreneuriat</div>
+                  <div className="text-xs text-muted-foreground">Réussite universitaire</div>
+                  <div className="text-xs text-muted-foreground">10/06/2025</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-green-600">12 000 F</div>
+                </div>
+              </div>
+              
+              <div className="border-t pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-600">Reçu de :</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">M</div>
+                  <span className="text-sm">Maman</span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Cadeau offert ancien */}
+            <Card className="p-4 mb-4 border-blue-200 bg-blue-50">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Gift className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Montre connectée</div>
+                  <div className="text-xs text-muted-foreground">Anniversaire</div>
+                  <div className="text-xs text-muted-foreground">25/04/2025</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-blue-600">45 000 F</div>
+                </div>
+              </div>
+              
+              <div className="border-t pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm font-medium text-orange-600">Offert à :</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
+                  <span className="text-sm">Kofi Asante</span>
                 </div>
               </div>
             </Card>
