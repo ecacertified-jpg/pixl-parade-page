@@ -293,9 +293,17 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Cadeaux récents */}
+          {/* Section des cadeaux récents */}
           {recentGifts.length > 0 && (
             <div className="space-y-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                  Récents
+                </h3>
+                <div className="text-xs text-muted-foreground">
+                  {recentGifts.length} cadeau{recentGifts.length > 1 ? 's' : ''}
+                </div>
+              </div>
               {recentGifts.map((gift) => renderGiftCard(gift))}
             </div>
           )}
@@ -308,7 +316,7 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowOlderGifts(!showOlderGifts)}
-                  className="gap-2"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
                 >
                   {showOlderGifts ? (
                     <>
@@ -325,10 +333,32 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
               </div>
               
               {showOlderGifts && (
-                <div className="space-y-4 opacity-75">
-                  {olderGifts.map((gift) => renderGiftCard(gift))}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Plus anciens
+                    </h3>
+                    <div className="text-xs text-muted-foreground">
+                      {olderGifts.length} cadeau{olderGifts.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div className="space-y-4 opacity-75">
+                    {olderGifts.map((gift) => renderGiftCard(gift))}
+                  </div>
                 </div>
               )}
+            </div>
+          )}
+          
+          {/* Message si aucun cadeau récent */}
+          {recentGifts.length === 0 && olderGifts.length === 0 && (
+            <div className="text-center py-8">
+              <Gift className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">
+                {activeFilter === 'received' ? 'Aucun cadeau reçu' : 
+                 activeFilter === 'given' ? 'Aucun cadeau offert' : 
+                 'Aucun cadeau dans cette section'}
+              </p>
             </div>
           )}
         </div>
