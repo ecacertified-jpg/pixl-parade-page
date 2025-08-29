@@ -420,6 +420,14 @@ export default function Dashboard() {
           <TabsContent value="cadeaux" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
+              <Button 
+                size="sm" 
+                className="gap-2 bg-pink-500 text-white hover:bg-pink-600" 
+                onClick={() => navigate('/shop')}
+              >
+                <Gift className="h-4 w-4" aria-hidden />
+                Offrir
+              </Button>
             </div>
             <GiftsSection onGiftCountChange={handleGiftCountChange} />
           </TabsContent>
