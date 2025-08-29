@@ -129,9 +129,9 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
     else if (activeFilter === 'given') filtered = given;
     
     // Séparer les cadeaux récents des anciens
-    // Les 5 premiers cadeaux sont considérés comme récents
-    const recent = filtered.slice(0, 5);
-    const older = filtered.slice(5);
+    // Les 3 premiers cadeaux sont considérés comme récents
+    const recent = filtered.slice(0, 3);
+    const older = filtered.slice(3);
     
     // Notify parent component of counts
     if (onGiftCountChange) {
