@@ -203,51 +203,73 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
             const isReceived = gift.receiver_id === user?.id;
             
             return (
-              <Card key={gift.id} className={`p-4 ${isReceived ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isReceived ? 'bg-green-100' : 'bg-blue-100'}`}>
-                    <Gift className={`h-6 w-6 ${isReceived ? 'text-green-600' : 'text-blue-600'}`} />
+              <Card key={gift.id} className="overflow-hidden bg-card border">
+                <div className="flex">
+                  {/* Image du cadeau */}
+                  <div className="w-20 h-20 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
+                    <img 
+                      src="/placeholder.svg" 
+                      alt="Cadeau"
+                      className="w-12 h-12 object-cover rounded"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <Gift className="h-8 w-8 text-primary/60 hidden" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{gift.gift_name}</div>
-                    {gift.gift_description && (
-                      <div className="text-xs text-muted-foreground">{gift.gift_description}</div>
-                    )}
-                    <div className="text-xs text-muted-foreground">
+                  
+                  {/* Contenu principal */}
+                  <div className="flex-1 p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{gift.gift_name}</h3>
+                        {gift.gift_description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">{gift.gift_description}</p>
+                        )}
+                      </div>
+                      <div className={`font-bold text-lg ${isReceived ? 'text-emerald-600' : 'text-blue-600'}`}>
+                        {gift.amount?.toLocaleString()} {gift.currency}
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground mb-3">
                       {gift.occasion} • {formatDate(gift.gift_date)}
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-semibold ${isReceived ? 'text-green-600' : 'text-blue-600'}`}>
-                      {gift.amount?.toLocaleString()} {gift.currency}
+                    
+                    {/* Encadré destinataire/expéditeur */}
+                    <div className={`rounded-lg p-3 border ${
+                      isReceived 
+                        ? 'bg-emerald-50/50 border-emerald-200/50' 
+                        : 'bg-blue-50/50 border-blue-200/50'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm ${
+                          isReceived ? 'bg-emerald-500' : 'bg-blue-500'
+                        }`}>
+                          {isReceived ? 
+                            (gift.giver_name?.charAt(0)?.toUpperCase() || 'G') : 
+                            (gift.receiver_display_name?.charAt(0)?.toUpperCase() || 'R')
+                          }
+                        </div>
+                        <div className="flex-1">
+                          <div className={`text-sm font-medium ${
+                            isReceived ? 'text-emerald-700' : 'text-blue-700'
+                          }`}>
+                            {isReceived ? 'Reçu de :' : 'Offert à :'}
+                          </div>
+                          <div className="text-sm text-foreground">
+                            {isReceived ? gift.giver_name : gift.receiver_display_name}
+                          </div>
+                        </div>
+                        {isReceived ? (
+                          <Gift className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Heart className="h-4 w-4 text-blue-500" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    {isReceived ? (
-                      <>
-                        <Gift className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-600">Reçu de :</span>
-                      </>
-                    ) : (
-                      <>
-                        <Heart className="h-4 w-4 text-orange-500" />
-                        <span className="text-sm font-medium text-orange-600">Offert à :</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
-                      {isReceived ? 
-                        (gift.giver_name?.charAt(0) || 'G') : 
-                        (gift.receiver_display_name?.charAt(0) || 'R')
-                      }
-                    </div>
-                    <span className="text-sm">
-                      {isReceived ? gift.giver_name : gift.receiver_display_name}
-                    </span>
                   </div>
                 </div>
               </Card>
