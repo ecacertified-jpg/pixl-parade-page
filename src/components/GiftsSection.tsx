@@ -18,6 +18,8 @@ interface GiftItem {
   giver_id: string;
   receiver_id: string | null;
   receiver_name: string | null;
+  product_id?: string;
+  product_image_url?: string;
   giver_name?: string;
   receiver_display_name?: string;
 }
@@ -72,7 +74,11 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
           status,
           giver_id,
           receiver_id,
-          receiver_name
+          receiver_name,
+          product_id,
+          products:product_id (
+            image_url
+          )
         `)
         .or(`giver_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('gift_date', { ascending: false });
@@ -101,7 +107,8 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
       const giftsWithNames = data?.map(gift => ({
         ...gift,
         giver_name: profileMap.get(gift.giver_id) || 'Utilisateur',
-        receiver_display_name: gift.receiver_name || profileMap.get(gift.receiver_id) || 'Utilisateur'
+        receiver_display_name: gift.receiver_name || profileMap.get(gift.receiver_id) || 'Utilisateur',
+        product_image_url: gift.products?.image_url
       })) || [];
 
       setGifts(giftsWithNames);
@@ -207,17 +214,19 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
                 <div className="flex">
                   {/* Image du cadeau */}
                   <div className="w-20 h-20 flex-shrink-0 bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center">
-                    <img 
-                      src="/placeholder.svg" 
-                      alt="Cadeau"
-                      className="w-12 h-12 object-cover rounded"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                    <Gift className="h-8 w-8 text-primary/60 hidden" />
+                    {gift.product_image_url ? (
+                      <img 
+                        src={gift.product_image_url} 
+                        alt={gift.gift_name}
+                        className="w-full h-full object-cover rounded"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <Gift className={`h-8 w-8 text-primary/60 ${gift.product_image_url ? 'hidden' : ''}`} />
                   </div>
                   
                   {/* Contenu principal */}

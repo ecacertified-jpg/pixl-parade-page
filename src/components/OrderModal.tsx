@@ -175,6 +175,7 @@ export function OrderModal({
             giver_id: user.id,
             receiver_id: receiverId, // ID de l'utilisateur si trouvé, sinon null
             receiver_name: selectedContact.name, // Stocker le nom du contact
+            product_id: product.id.toString(), // Lier le cadeau au produit
             gift_name: product.name,
             gift_description: product.description,
             amount: product.price,
