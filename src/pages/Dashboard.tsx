@@ -11,6 +11,9 @@ import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { ContributeModal } from "@/components/ContributeModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 interface Friend {
   id: string;
   name: string;
@@ -29,6 +32,8 @@ export default function Dashboard() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -58,17 +63,68 @@ export default function Dashboard() {
   }, []);
 
   // Fonction pour ajouter un ami
-  const handleAddFriend = (newFriend: Friend) => {
+  const handleAddFriend = async (newFriend: Friend) => {
     const updatedFriends = [...friends, newFriend];
     setFriends(updatedFriends);
     localStorage.setItem('friends', JSON.stringify(updatedFriends));
+
+    // Synchroniser avec Supabase
+    if (user) {
+      try {
+        const { error } = await supabase
+          .from('contacts')
+          .insert({
+            user_id: user.id,
+            name: newFriend.name,
+            phone: newFriend.phone,
+            relationship: newFriend.relation,
+            location: newFriend.location,
+            birthday: newFriend.birthday.toISOString().split('T')[0] // Format YYYY-MM-DD
+          });
+
+        if (error) {
+          console.error('Erreur lors de la sauvegarde du contact:', error);
+          toast({
+            title: "Attention",
+            description: "Contact ajouté localement mais pas synchronisé en ligne",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Contact ajouté",
+            description: `${newFriend.name} a été ajouté à vos contacts`
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde du contact:', error);
+      }
+    }
   };
 
   // Fonction pour supprimer un ami
-  const handleDeleteFriend = (friendId: string) => {
+  const handleDeleteFriend = async (friendId: string) => {
+    const friendToDelete = friends.find(f => f.id === friendId);
     const updatedFriends = friends.filter(friend => friend.id !== friendId);
     setFriends(updatedFriends);
     localStorage.setItem('friends', JSON.stringify(updatedFriends));
+
+    // Synchroniser avec Supabase
+    if (user && friendToDelete) {
+      try {
+        const { error } = await supabase
+          .from('contacts')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('name', friendToDelete.name)
+          .eq('phone', friendToDelete.phone);
+
+        if (error) {
+          console.error('Erreur lors de la suppression du contact:', error);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du contact:', error);
+      }
+    }
   };
 
   // Fonction pour ajouter un événement
