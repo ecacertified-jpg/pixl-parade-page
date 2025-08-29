@@ -131,12 +131,49 @@ export function OrderModal({
   const handleGiftToContact = async () => {
     if (selectedContact && user) {
       try {
+        // Chercher si le contact correspond à un utilisateur enregistré
+        let receiverId = null;
+        
+        // Recherche d'abord par email si disponible
+        if (selectedContact.email) {
+          const { data: userByEmail } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .ilike('email', selectedContact.email.trim())
+            .single();
+          
+          if (userByEmail) {
+            receiverId = userByEmail.user_id;
+          }
+        }
+        
+        // Si pas trouvé par email, rechercher par nom
+        if (!receiverId) {
+          const { data: usersByName } = await supabase
+            .from('profiles')
+            .select('user_id, first_name, last_name')
+            .or(`first_name.ilike.%${selectedContact.name}%,last_name.ilike.%${selectedContact.name}%`)
+            .limit(5);
+          
+          // Chercher une correspondance exacte du nom complet
+          if (usersByName && usersByName.length > 0) {
+            const exactMatch = usersByName.find(user => {
+              const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+              return fullName.toLowerCase() === selectedContact.name.toLowerCase();
+            });
+            
+            if (exactMatch) {
+              receiverId = exactMatch.user_id;
+            }
+          }
+        }
+
         // Créer une entrée de cadeau dans Supabase
         const { error } = await supabase
           .from('gifts')
           .insert({
             giver_id: user.id,
-            receiver_id: null, // Contact n'est pas forcément un utilisateur enregistré
+            receiver_id: receiverId, // ID de l'utilisateur si trouvé, sinon null
             receiver_name: selectedContact.name, // Stocker le nom du contact
             gift_name: product.name,
             gift_description: product.description,
