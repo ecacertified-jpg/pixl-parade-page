@@ -21,6 +21,8 @@ interface CollectiveFund {
   occasion?: string;
   creator_name?: string;
   beneficiary_name?: string;
+  beneficiary_avatar?: string;
+  beneficiary_relationship?: string;
   contributors_count: number;
   my_contribution?: number;
 }
@@ -53,7 +55,7 @@ export default function CollectiveFunds() {
         .select(`
           *,
           fund_contributions(contributor_id, amount),
-          contacts!collective_funds_beneficiary_contact_id_fkey(name)
+          contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
         `)
         .or(`creator_id.eq.${user.id},fund_contributions.contributor_id.eq.${user.id}`)
         .eq("status", "active");
@@ -64,7 +66,9 @@ export default function CollectiveFunds() {
         ...fund,
         contributors_count: fund.fund_contributions?.length || 0,
         my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0,
-        beneficiary_name: fund.contacts?.name || "Bénéficiaire"
+        beneficiary_name: fund.contacts?.name || "Bénéficiaire",
+        beneficiary_avatar: fund.contacts?.avatar_url,
+        beneficiary_relationship: fund.contacts?.relationship
       })) || [];
 
       setFunds(fundsWithStats);
@@ -170,11 +174,8 @@ export default function CollectiveFunds() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-lg font-semibold">{selectedFund.title}</h1>
-              <p className="text-sm text-muted-foreground">
-                Pour: {selectedFund.beneficiary_name || "Bénéficiaire"}
-              </p>
             </div>
             <div className="ml-auto flex gap-2">
               <Button variant="outline" size="sm">Initiateur</Button>
@@ -183,6 +184,27 @@ export default function CollectiveFunds() {
               </Button>
             </div>
           </div>
+
+          {/* Recipient Card */}
+          {selectedFund.beneficiary_name && (
+            <Card className="p-4 mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={selectedFund.beneficiary_avatar} />
+                  <AvatarFallback className="bg-blue-100 text-blue-600">
+                    {selectedFund.beneficiary_name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-900">{selectedFund.beneficiary_name}</h3>
+                  <p className="text-sm text-blue-600">
+                    {selectedFund.beneficiary_relationship || "Proche"}
+                  </p>
+                </div>
+                <Gift className="h-5 w-5 text-blue-500" />
+              </div>
+            </Card>
+          )}
 
           {/* Progress Card */}
           <Card className="p-6 mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
@@ -280,11 +302,27 @@ export default function CollectiveFunds() {
                 onClick={() => handleFundClick(fund)}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">{fund.title}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Pour: {fund.beneficiary_name || "Bénéficiaire"}
-                    </p>
+                  <div className="flex items-center gap-3 flex-1">
+                    {fund.beneficiary_name && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={fund.beneficiary_avatar} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                          {fund.beneficiary_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">{fund.title}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Pour: {fund.beneficiary_name || "Bénéficiaire"}</span>
+                        {fund.beneficiary_relationship && (
+                          <>
+                            <span>•</span>
+                            <span>{fund.beneficiary_relationship}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <Badge variant="secondary" className="text-xs">
                     {fund.occasion}

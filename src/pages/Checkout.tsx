@@ -109,7 +109,7 @@ export default function Checkout() {
             .from("collective_funds")
             .insert({
               creator_id: user.id,
-              beneficiary_contact_id: null,
+              beneficiary_contact_id: gift.beneficiaryId,
               title: `Cadeau pour ${gift.beneficiaryName}`,
               description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
               target_amount: gift.price,
