@@ -53,43 +53,31 @@ export default function CollectiveFunds() {
   }, [user]);
 
   const loadFunds = async () => {
-    if (!user) return;
+    if (!user) {
+      setFunds([]);
+      return;
+    }
 
+    setLoading(true);
     try {
-      // Get funds created by user (all statuses)
-      const { data: createdFunds, error: createdError } = await supabase
+      // Avec le nouveau système, on récupère seulement les cotisations visibles
+      // Les RLS s'occuperont de filtrer automatiquement selon les relations d'amitié
+      const { data: visibleFunds, error } = await supabase
         .from("collective_funds")
         .select(`
           *,
           fund_contributions(contributor_id, amount),
           contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
         `)
-        .eq("creator_id", user.id)
-        .in("status", ["active", "completed", "target_reached"]);
-
-      if (createdError) throw createdError;
-
-      // Get funds where user has contributed (all statuses)
-      const { data: contributedFunds, error: contributedError } = await supabase
-        .from("collective_funds")
-        .select(`
-          *,
-          fund_contributions!inner(contributor_id, amount),
-          contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
-        `)
-        .eq("fund_contributions.contributor_id", user.id)
         .in("status", ["active", "completed", "target_reached"])
-        .neq("creator_id", user.id); // Exclude funds already in createdFunds
+        .order("created_at", { ascending: false });
 
-      if (contributedError) throw contributedError;
+      if (error) {
+        console.error('Error loading funds:', error);
+        throw error;
+      }
 
-      // Combine and deduplicate funds
-      const allFunds = [...(createdFunds || []), ...(contributedFunds || [])];
-      const uniqueFunds = allFunds.filter((fund, index, self) => 
-        index === self.findIndex(f => f.id === fund.id)
-      );
-
-      const fundsWithStats = uniqueFunds.map(fund => {
+      const fundsWithStats = (visibleFunds || []).map(fund => {
         // Extract beneficiary name from title if contact info is not available
         let beneficiaryName = fund.contacts?.name;
         if (!beneficiaryName && fund.title) {
@@ -111,6 +99,11 @@ export default function CollectiveFunds() {
       setFunds(fundsWithStats);
     } catch (error) {
       console.error('Error loading funds:', error);
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger les cotisations. Vérifiez que vous avez des amis qui ont créé des cotisations.",
+        variant: "destructive"
+      });
       setFunds([]);
     } finally {
       setLoading(false);
@@ -222,6 +215,9 @@ export default function CollectiveFunds() {
 
       if (error) {
         console.error('Contribution insert error:', error);
+        if (error.code === '42501' || error.message.includes('policy')) {
+          throw new Error("Vous n'êtes pas autorisé à contribuer à cette cotisation. Assurez-vous d'être ami avec le créateur.");
+        }
         throw new Error(`Erreur lors de l'ajout de la contribution: ${error.message}`);
       }
 
