@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -41,31 +41,61 @@ export function CollaborativeGiftModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Mock contacts data - In real app, fetch from Supabase
-  const contacts: Contact[] = [
-    {
-      id: "1",
-      name: "Fatou Bamba",
-      relationship: "Amie",
-      birthday: "2024-08-20",
-      avatar_url: "/api/placeholder/40/40"
-    },
-    {
-      id: "2", 
-      name: "Kofi Asante",
-      relationship: "Collègue"
-    },
-    {
-      id: "3",
-      name: "Aisha Traoré", 
-      relationship: "Sœur",
-      avatar_url: "/api/placeholder/40/40"
+  // Fetch contacts from Supabase when modal opens
+  useEffect(() => {
+    if (isOpen && user) {
+      loadContacts();
     }
-  ];
+  }, [isOpen, user]);
+
+  const loadContacts = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (error) {
+        console.error('Erreur lors du chargement des contacts:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger vos contacts",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Convert Supabase contacts to Contact interface
+      const formattedContacts: Contact[] = data.map(contact => ({
+        id: contact.id,
+        name: contact.name,
+        relationship: contact.relationship || 'Ami(e)',
+        birthday: contact.birthday,
+        avatar_url: contact.avatar_url
+      }));
+
+      setContacts(formattedContacts);
+    } catch (error) {
+      console.error('Erreur lors du chargement des contacts:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger vos contacts",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -166,7 +196,24 @@ export function CollaborativeGiftModal({
 
           {/* Contacts List */}
           <div className="space-y-3 max-h-60 overflow-y-auto">
-            {filteredContacts.map((contact) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">Chargement de vos contacts...</div>
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <div className="text-muted-foreground">
+                  {searchTerm ? "Aucun contact trouvé" : "Aucun contact ajouté"}
+                </div>
+                {!searchTerm && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Ajoutez des amis depuis votre tableau de bord
+                  </div>
+                )}
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
               <div
                 key={contact.id}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -206,7 +253,8 @@ export function CollaborativeGiftModal({
                   </p>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Selected Contact Action */}
