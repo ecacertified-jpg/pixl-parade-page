@@ -62,14 +62,23 @@ export default function CollectiveFunds() {
 
       if (error) throw error;
 
-      const fundsWithStats = data?.map(fund => ({
-        ...fund,
-        contributors_count: fund.fund_contributions?.length || 0,
-        my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0,
-        beneficiary_name: fund.contacts?.name || "Bénéficiaire",
-        beneficiary_avatar: fund.contacts?.avatar_url,
-        beneficiary_relationship: fund.contacts?.relationship
-      })) || [];
+      const fundsWithStats = data?.map(fund => {
+        // Extract beneficiary name from title if contact info is not available
+        let beneficiaryName = fund.contacts?.name;
+        if (!beneficiaryName && fund.title) {
+          const match = fund.title.match(/Cadeau pour (.+)$/);
+          beneficiaryName = match ? match[1] : 'Bénéficiaire';
+        }
+
+        return {
+          ...fund,
+          contributors_count: fund.fund_contributions?.length || 0,
+          my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0,
+          beneficiary_name: beneficiaryName || 'Bénéficiaire',
+          beneficiary_avatar: fund.contacts?.avatar_url,
+          beneficiary_relationship: fund.contacts?.relationship
+        };
+      }) || [];
 
       setFunds(fundsWithStats);
     } catch (error) {

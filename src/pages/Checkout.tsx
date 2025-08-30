@@ -105,11 +105,27 @@ export default function Checkout() {
       if (collaborativeGifts.length > 0) {
         // Create collective funds for collaborative gifts
         for (const gift of collaborativeGifts) {
+          // Verify if the contact exists, if not, the beneficiaryId will be used as-is
+          let beneficiaryContactId = gift.beneficiaryId;
+          
+          // Check if the contact actually exists in the database
+          const { data: existingContact } = await supabase
+            .from("contacts")
+            .select("id")
+            .eq("id", gift.beneficiaryId)
+            .single();
+          
+          // If contact doesn't exist, set beneficiaryContactId to null
+          // The UI will handle extracting the name from the title
+          if (!existingContact) {
+            beneficiaryContactId = null;
+          }
+
           const { data, error } = await supabase
             .from("collective_funds")
             .insert({
               creator_id: user.id,
-              beneficiary_contact_id: gift.beneficiaryId,
+              beneficiary_contact_id: beneficiaryContactId,
               title: `Cadeau pour ${gift.beneficiaryName}`,
               description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
               target_amount: gift.price,
