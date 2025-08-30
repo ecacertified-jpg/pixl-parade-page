@@ -1,14 +1,11 @@
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Users, Target, Calendar, Gift, Plus, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Users, Target, Calendar, Gift } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CollectiveFund {
@@ -17,16 +14,14 @@ interface CollectiveFund {
   description: string;
   target_amount: number;
   current_amount: number;
-  currency: string;
   deadline_date?: string;
-  status: string;
   occasion?: string;
-  creator_name?: string;
-  beneficiary_name?: string;
-  beneficiary_avatar?: string;
-  beneficiary_relationship?: string;
-  contributors_count: number;
-  my_contribution?: number;
+  beneficiary_contact_id?: string;
+  creator_id: string;
+  status: string;
+  currency: string;
+  isOwner?: boolean;
+  hasContributed?: boolean;
 }
 
 interface Contributor {
@@ -37,78 +32,57 @@ interface Contributor {
 }
 
 export default function CollectiveFunds() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
   const [funds, setFunds] = useState<CollectiveFund[]>([]);
   const [selectedFund, setSelectedFund] = useState<CollectiveFund | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [contributingToFund, setContributingToFund] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
-  const [showCustomInput, setShowCustomInput] = useState<{[key: string]: boolean}>({});
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    loadFunds();
-  }, [user]);
+  const [showCustomInput, setShowCustomInput] = useState<string | null>(null);
 
   const loadFunds = async () => {
-    if (!user) {
-      setFunds([]);
-      return;
-    }
-
-    setLoading(true);
+    if (!user) return;
+    
+    setIsLoading(true);
     try {
-      // Avec le nouveau système, on récupère seulement les cotisations visibles
-      // Les RLS s'occuperont de filtrer automatiquement selon les relations d'amitié
-      const { data: visibleFunds, error } = await supabase
+      // Fetch all accessible funds (own funds + friends' funds with can_see_funds = true)
+      const { data: accessibleFunds, error: fundsError } = await supabase
         .from("collective_funds")
-        .select(`
-          *,
-          fund_contributions(contributor_id, amount),
-          contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
-        `)
-        .in("status", ["active", "completed", "target_reached"])
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error('Error loading funds:', error);
-        throw error;
+      if (fundsError) {
+        console.error('Error fetching funds:', fundsError);
+        throw new Error(`Erreur lors du chargement des cotisations: ${fundsError.message}`);
       }
 
-      const fundsWithStats = (visibleFunds || []).map(fund => {
-        // Extract beneficiary name from title if contact info is not available
-        let beneficiaryName = fund.contacts?.name;
-        if (!beneficiaryName && fund.title) {
-          const match = fund.title.match(/Cadeau pour (.+)$/);
-          beneficiaryName = match ? match[1] : 'Bénéficiaire';
-        }
+      // Process funds and mark ownership
+      const allFunds = accessibleFunds?.map(fund => ({
+        ...fund,
+        isOwner: fund.creator_id === user.id,
+        hasContributed: false // Cette information sera mise à jour si nécessaire
+      })) || [];
 
-        return {
-          ...fund,
-          contributors_count: fund.fund_contributions?.length || 0,
-          my_contribution: fund.fund_contributions?.find(c => c.contributor_id === user.id)?.amount || 0,
-          beneficiary_name: beneficiaryName || 'Bénéficiaire',
-          beneficiary_avatar: fund.contacts?.avatar_url,
-          beneficiary_relationship: fund.contacts?.relationship
-        };
-      });
-
-      console.log('Loaded funds:', fundsWithStats);
-      setFunds(fundsWithStats);
-    } catch (error) {
+      setFunds(allFunds);
+    } catch (error: any) {
       console.error('Error loading funds:', error);
       toast({
-        title: "Erreur de chargement",
-        description: "Impossible de charger les cotisations. Vérifiez que vous avez des amis qui ont créé des cotisations.",
+        title: "Erreur",
+        description: error.message || "Impossible de charger les cotisations. Veuillez réessayer.",
         variant: "destructive"
       });
       setFunds([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadFunds();
+  }, [user]);
 
   const loadContributors = async (fundId: string) => {
     try {
@@ -215,8 +189,8 @@ export default function CollectiveFunds() {
 
       if (error) {
         console.error('Contribution insert error:', error);
-        if (error.code === '42501' || error.message.includes('policy')) {
-          throw new Error("Vous n'êtes pas autorisé à contribuer à cette cotisation. Assurez-vous d'être ami avec le créateur.");
+        if (error.message.includes('RLS') || error.message.includes('policy')) {
+          throw new Error("Vous n'avez pas l'autorisation de contribuer à cette cotisation. Assurez-vous d'être ami avec le créateur.");
         }
         throw new Error(`Erreur lors de l'ajout de la contribution: ${error.message}`);
       }
@@ -244,16 +218,25 @@ export default function CollectiveFunds() {
         });
       }
 
-      // Reload funds to show updated amounts
+      // Reload data
       await loadFunds();
-      if (selectedFund) {
-        await loadContributors(selectedFund.id);
+      if (selectedFund && selectedFund.id === fundId) {
+        await loadContributors(fundId);
       }
+
     } catch (error: any) {
-      console.error('Error contributing:', error);
+      console.error('Error contributing to fund:', error);
+      let errorMessage = "Impossible d'ajouter votre contribution";
+      
+      if (error.message.includes("autorisation") || error.message.includes("RLS") || error.message.includes("policy")) {
+        errorMessage = "Vous n'êtes pas autorisé à contribuer à cette cotisation. Contactez le créateur pour qu'il vous ajoute comme ami.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Erreur lors de la contribution",
-        description: error.message || "Une erreur inattendue s'est produite. Veuillez réessayer.",
+        title: "Erreur de contribution",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -261,454 +244,301 @@ export default function CollectiveFunds() {
     }
   };
 
-  const createFundOrder = async (fund: any) => {
+  const createFundOrder = async (fundData: any) => {
     try {
-      // Extract product info from description
-      const productMatch = fund.description?.match(/Produit: (.+?)(?:\n|$)/);
-      const productName = productMatch ? productMatch[1] : fund.title;
-
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: fund.creator_id,
-          total_amount: fund.target_amount,
-          currency: fund.currency || "XOF",
-          status: "pending",
-          notes: `Commande créée automatiquement pour la cagnotte: ${fund.title} (ID: ${fund.id})`,
-          delivery_address: {
-            type: "fund_order",
-            fund_id: fund.id,
-            beneficiary_contact_id: fund.beneficiary_contact_id
-          }
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      console.log('Order created for completed fund:', order);
+      // Mock order creation
+      console.log('Creating order for completed fund:', fundData.id);
+      
+      // Here you would typically create an order in your orders table
+      // For now, we'll just log the action
     } catch (error) {
       console.error('Error creating fund order:', error);
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = "XOF") => {
-    return `${amount.toLocaleString()} ${currency}`;
+  const formatCurrency = (amount: number): string => {
+    return `${amount.toLocaleString()} FCFA`;
   };
 
-  const getProgressPercentage = (current: number, target: number) => {
+  const getProgressPercentage = (current: number, target: number): number => {
     return Math.min((current / target) * 100, 100);
   };
 
-  const getRemainingAmount = (current: number, target: number) => {
-    return Math.max(0, target - current);
+  const getRemainingAmount = (current: number, target: number): number => {
+    return Math.max(target - current, 0);
   };
 
   const handleCustomContribution = async (fundId: string) => {
-    const amount = parseFloat(customAmount);
-    if (isNaN(amount) || amount <= 0) return;
-
-    // Get current fund to check remaining amount
-    const fund = funds.find(f => f.id === fundId) || selectedFund;
-    if (!fund) return;
-
-    const remaining = getRemainingAmount(fund.current_amount, fund.target_amount);
-    const contributionAmount = Math.min(amount, remaining);
-
-    await handleContribute(fundId, contributionAmount);
+    const amount = parseInt(customAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Veuillez saisir un montant valide",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    await handleContribute(fundId, amount);
     setCustomAmount("");
-    setShowCustomInput(prev => ({ ...prev, [fundId]: false }));
+    setShowCustomInput(null);
   };
 
   const toggleCustomInput = (fundId: string) => {
-    setShowCustomInput(prev => ({ ...prev, [fundId]: !prev[fundId] }));
+    setShowCustomInput(showCustomInput === fundId ? null : fundId);
     setCustomAmount("");
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-md mx-auto">
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="p-4 h-32" />
-            ))}
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
   if (selectedFund) {
+    const progressPercentage = getProgressPercentage(selectedFund.current_amount, selectedFund.target_amount);
+    const remainingAmount = getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount);
+    const isCompleted = selectedFund.current_amount >= selectedFund.target_amount;
+
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-md mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedFund(null)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-semibold">{selectedFund.title}</h1>
-            </div>
-            <div className="ml-auto flex gap-2">
-              <Button variant="outline" size="sm">Initiateur</Button>
-              <Button variant="outline" size="sm" className="bg-green-50 text-green-700 border-green-200">
-                Actif
-              </Button>
-            </div>
-          </div>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Button 
+          variant="ghost" 
+          onClick={() => setSelectedFund(null)}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Retour aux cotisations
+        </Button>
 
-          {/* Recipient Card */}
-          {selectedFund.beneficiary_name && (
-            <Card className="p-4 mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={selectedFund.beneficiary_avatar} />
-                  <AvatarFallback className="bg-blue-100 text-blue-600">
-                    {selectedFund.beneficiary_name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-blue-900">{selectedFund.beneficiary_name}</h3>
-                  <p className="text-sm text-blue-600">
-                    {selectedFund.beneficiary_relationship || "Proche"}
-                  </p>
-                </div>
-                <Gift className="h-5 w-5 text-blue-500" />
-              </div>
-            </Card>
-          )}
-
-          {/* Progress Card */}
-          <Card className="p-6 mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-            <div className="text-center mb-4">
-              <h2 className="text-xl font-bold">Progression</h2>
-              <p className="text-2xl font-bold text-purple-600">
-                {formatCurrency(selectedFund.current_amount)} / {formatCurrency(selectedFund.target_amount)}
-              </p>
-            </div>
-            
-            <Progress 
-              value={getProgressPercentage(selectedFund.current_amount, selectedFund.target_amount)} 
-              className="h-3 mb-2"
-            />
-            
-            <p className="text-center text-purple-600 font-medium">
-              {Math.round(getProgressPercentage(selectedFund.current_amount, selectedFund.target_amount))}% atteint
-            </p>
-          </Card>
-
-          {/* Contributors */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">
-              Contributeurs ({contributors.length}):
-            </h3>
-            
-            <div className="space-y-3">
-              {contributors.map((contributor) => (
-                <div key={contributor.id} className="flex items-center justify-between p-3 bg-card rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
-                      {contributor.name.charAt(0)}
-                    </div>
-                    <span className="font-medium">{contributor.name}</span>
-                  </div>
-                  <span className="font-bold text-green-600">
-                    {formatCurrency(contributor.amount)}
+        <Card className="p-6">
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <h1 className="text-2xl font-bold">{selectedFund.title}</h1>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedFund.isOwner ? "Votre cotisation" : "Cotisation d'ami"}
                   </span>
+                  {!selectedFund.isOwner && (
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      Privée
+                    </span>
+                  )}
                 </div>
-              ))}
+              </div>
+              {selectedFund.description && (
+                <p className="text-muted-foreground">{selectedFund.description}</p>
+              )}
             </div>
-          </div>
 
-          {/* Contribute Section */}
-          {selectedFund.status !== "completed" ? (
             <div className="space-y-4">
-              {/* Quick Amount Buttons */}
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleContribute(selectedFund.id, 2000)}
-                  disabled={contributingToFund === selectedFund.id}
-                  className="text-xs"
-                >
-                  {contributingToFund === selectedFund.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "2 000"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleContribute(selectedFund.id, 5000)}
-                  disabled={contributingToFund === selectedFund.id}
-                  className="text-xs"
-                >
-                  {contributingToFund === selectedFund.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "5 000"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleContribute(selectedFund.id, 10000)}
-                  disabled={contributingToFund === selectedFund.id}
-                  className="text-xs"
-                >
-                  {contributingToFund === selectedFund.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "10 000"
-                  )}
-                </Button>
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold">Progression</span>
+                <span className="text-2xl font-bold text-primary">
+                  {formatCurrency(selectedFund.current_amount)} / {formatCurrency(selectedFund.target_amount)}
+                </span>
               </div>
+              
+              <Progress value={progressPercentage} className="h-3" />
+              
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{progressPercentage.toFixed(1)}% de l'objectif atteint</span>
+                <span>
+                  {isCompleted 
+                    ? "🎉 Objectif atteint !" 
+                    : `Plus que ${formatCurrency(remainingAmount)} à collecter`
+                  }
+                </span>
+              </div>
+            </div>
 
-              {/* Custom Amount Input */}
+            <div>
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Contributeurs ({contributors.length})
+              </h3>
+              
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Montant personnalisé"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    className="flex-1"
-                  />
-                  <span className="flex items-center px-3 text-sm text-muted-foreground">
-                    XOF
-                  </span>
-                </div>
-                
-                {customAmount && (
-                  <div className="text-xs text-muted-foreground text-center">
-                    Montant restant: {formatCurrency(getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))}
+                {contributors.map((contributor) => (
+                  <div key={contributor.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                        {contributor.name.charAt(0)}
+                      </div>
+                      <span className="font-medium">{contributor.name}</span>
+                    </div>
+                    <span className="text-primary font-semibold">
+                      {formatCurrency(contributor.amount)}
+                    </span>
                   </div>
-                )}
-
-                <Button
-                  onClick={() => handleCustomContribution(selectedFund.id)}
-                  disabled={!customAmount || parseFloat(customAmount) <= 0 || contributingToFund === selectedFund.id}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                >
-                  {contributingToFund === selectedFund.id ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4 mr-2" />
-                  )}
-                  Contribuer {customAmount && contributingToFund !== selectedFund.id ? formatCurrency(Math.min(parseFloat(customAmount) || 0, getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))) : ""}
-                </Button>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="text-center p-4">
-              <Badge className="bg-green-100 text-green-800 mb-2">
-                ✅ Objectif atteint
-              </Badge>
-              <p className="text-sm text-green-600 font-medium">
-                Commande créée automatiquement
-              </p>
-            </div>
-          )}
-        </div>
+
+            {!isCompleted && (
+              <div>
+                <h3 className="font-semibold mb-4">Contribuer à cette cotisation</h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {[5000, 10000, 15000, 25000].map((amount) => (
+                    <Button
+                      key={amount}
+                      variant="outline"
+                      onClick={() => handleContribute(selectedFund.id, amount)}
+                      disabled={contributingToFund === selectedFund.id}
+                    >
+                      {formatCurrency(amount)}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => toggleCustomInput(selectedFund.id)}
+                    className="w-full"
+                  >
+                    {showCustomInput === selectedFund.id ? "Annuler" : "Autre montant"}
+                  </Button>
+
+                  {showCustomInput === selectedFund.id && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Montant en FCFA"
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => handleCustomContribution(selectedFund.id)}
+                        disabled={contributingToFund === selectedFund.id || !customAmount}
+                      >
+                        {contributingToFund === selectedFund.id ? "..." : "Contribuer"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Cotisations</h1>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Cotisations</h1>
+        <p className="text-muted-foreground">
+          Découvrez les cotisations de vos amis et contribuez ensemble pour des cadeaux mémorables
+        </p>
+      </div>
 
-        {/* Funds List */}
-        <div className="space-y-4">
-          {funds.length === 0 ? (
-            <Card className="p-8 text-center">
-              <Gift className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-semibold mb-2">Aucune cotisation active</h3>
-              <p className="text-sm text-muted-foreground">
-                Les cotisations auxquelles vous participez apparaîtront ici
+      {funds.length === 0 ? (
+        <Card className="p-8 text-center">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+              <Gift className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Aucune cotisation disponible</h3>
+              <p className="text-muted-foreground">
+                Créez votre première cotisation ou ajoutez des amis pour voir leurs cotisations
               </p>
-            </Card>
-          ) : (
-            funds.map((fund) => (
-              <Card
-                key={fund.id}
-                className="p-4 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleFundClick(fund)}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    {fund.beneficiary_name && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={fund.beneficiary_avatar} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {fund.beneficiary_name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{fund.title}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Pour: {fund.beneficiary_name || "Bénéficiaire"}</span>
-                        {fund.beneficiary_relationship && (
-                          <>
-                            <span>•</span>
-                            <span>{fund.beneficiary_relationship}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Badge variant="secondary" className="text-xs self-start">
-                      {fund.occasion}
-                    </Badge>
-                    <Badge 
-                      className={`text-xs self-start ${
-                        fund.status === "completed" 
-                          ? "bg-green-100 text-green-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {fund.status === "completed" ? "Terminé" : "Actif"}
-                    </Badge>
-                  </div>
-                </div>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {funds.map((fund) => {
+            const progressPercentage = getProgressPercentage(fund.current_amount, fund.target_amount);
+            const remainingAmount = getRemainingAmount(fund.current_amount, fund.target_amount);
+            const isCompleted = fund.current_amount >= fund.target_amount;
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">
-                      {formatCurrency(fund.current_amount)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      / {formatCurrency(fund.target_amount)}
-                    </span>
-                  </div>
-                  
-                  <Progress 
-                    value={getProgressPercentage(fund.current_amount, fund.target_amount)} 
-                    className="h-2"
-                  />
-                  
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span>{fund.contributors_count} contributeurs</span>
-                    </div>
-                    {fund.my_contribution > 0 && (
-                      <span className="text-green-600 font-medium">
-                        Votre contribution: {formatCurrency(fund.my_contribution)}
+            return (
+              <Card key={fund.id} className="p-6 cursor-pointer hover:shadow-lg transition-shadow">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-lg">{fund.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {fund.isOwner ? "Votre cotisation" : "Cotisation d'ami"}
                       </span>
-                    )}
+                      {!fund.isOwner && (
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          Privée
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {fund.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">{fund.description}</p>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Objectif: {formatCurrency(fund.target_amount)}</span>
+                      <span className="font-semibold">{progressPercentage.toFixed(1)}%</span>
+                    </div>
+                    <Progress value={progressPercentage} className="h-2" />
+                    <div className="text-xs text-muted-foreground">
+                      {formatCurrency(fund.current_amount)} collectés
+                      {!isCompleted && ` • Plus que ${formatCurrency(remainingAmount)}`}
+                    </div>
                   </div>
 
-                  {/* Status and Action */}
-                  {fund.status === "completed" ? (
-                    <div className="text-center">
-                      <Badge className="bg-green-100 text-green-800 mb-2">
-                        ✅ Objectif atteint
-                      </Badge>
-                      <p className="text-xs text-green-600 font-medium">
-                        Commande créée automatiquement
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {!showCustomInput[fund.id] ? (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleContribute(fund.id, 2000);
-                            }}
-                            className="flex-1 text-xs"
-                          >
-                            +2k
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleContribute(fund.id, 5000);
-                            }}
-                            className="flex-1 text-xs"
-                          >
-                            +5k
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleCustomInput(fund.id);
-                            }}
-                            className="px-2"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Input
-                            type="number"
-                            placeholder="Montant"
-                            value={customAmount}
-                            onChange={(e) => setCustomAmount(e.target.value)}
-                            className="flex-1 h-8 text-xs"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                handleCustomContribution(fund.id);
-                              }
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleCustomContribution(fund.id)}
-                            disabled={!customAmount || parseFloat(customAmount) <= 0}
-                            className="h-8 px-2 text-xs"
-                          >
-                            OK
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleCustomInput(fund.id)}
-                            className="h-8 px-2"
-                          >
-                            ✕
-                          </Button>
-                        </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {fund.occasion && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {fund.occasion}
+                        </span>
                       )}
+                    </div>
+                    
+                    <Button
+                      size="sm"
+                      onClick={() => handleFundClick(fund)}
+                      variant={isCompleted ? "secondary" : "default"}
+                    >
+                      {isCompleted ? "Voir" : "Contribuer"}
+                    </Button>
+                  </div>
+
+                  {!isCompleted && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[5000, 10000, 15000].map((amount) => (
+                        <Button
+                          key={amount}
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleContribute(fund.id, amount);
+                          }}
+                          disabled={contributingToFund === fund.id}
+                          className="text-xs"
+                        >
+                          {amount >= 1000 ? `${amount/1000}K` : amount}
+                        </Button>
+                      ))}
                     </div>
                   )}
                 </div>
               </Card>
-            ))
-          )}
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
