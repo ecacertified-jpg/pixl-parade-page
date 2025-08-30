@@ -5,10 +5,11 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Users, Target, Calendar, Gift, Plus } from "lucide-react";
+import { ArrowLeft, Users, Target, Calendar, Gift, Plus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface CollectiveFund {
   id: string;
@@ -40,9 +41,11 @@ export default function CollectiveFunds() {
   const [selectedFund, setSelectedFund] = useState<CollectiveFund | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [contributingToFund, setContributingToFund] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
   const [showCustomInput, setShowCustomInput] = useState<{[key: string]: boolean}>({});
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -150,9 +153,30 @@ export default function CollectiveFunds() {
   };
 
   const handleContribute = async (fundId: string, amount: number) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Erreur d'authentification",
+        description: "Veuillez vous connecter pour contribuer",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validation du montant
+    if (amount <= 0) {
+      toast({
+        title: "Montant invalide",
+        description: "Le montant doit être supérieur à 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setContributingToFund(fundId);
 
     try {
+      console.log('Contributing to fund:', fundId, 'amount:', amount);
+
       // Get current fund data
       const { data: fundData, error: fundError } = await supabase
         .from("collective_funds")
@@ -160,10 +184,31 @@ export default function CollectiveFunds() {
         .eq("id", fundId)
         .single();
 
-      if (fundError) throw fundError;
+      if (fundError) {
+        console.error('Fund fetch error:', fundError);
+        throw new Error("Impossible de récupérer les données de la cotisation");
+      }
 
-      const newTotal = (fundData.current_amount || 0) + amount;
+      if (fundData.status !== "active") {
+        throw new Error("Cette cotisation n'est plus active");
+      }
+
+      // Vérifier le montant restant
+      const remaining = getRemainingAmount(fundData.current_amount || 0, fundData.target_amount);
+      if (remaining <= 0) {
+        throw new Error("L'objectif de cette cotisation a déjà été atteint");
+      }
+
+      const contributionAmount = Math.min(amount, remaining);
+      const newTotal = (fundData.current_amount || 0) + contributionAmount;
       const targetReached = newTotal >= fundData.target_amount;
+
+      console.log('Inserting contribution:', {
+        fund_id: fundId,
+        contributor_id: user.id,
+        amount: contributionAmount,
+        currency: "XOF"
+      });
 
       // Add contribution
       const { error } = await supabase
@@ -171,11 +216,16 @@ export default function CollectiveFunds() {
         .insert({
           fund_id: fundId,
           contributor_id: user.id,
-          amount,
+          amount: contributionAmount,
           currency: "XOF"
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Contribution insert error:', error);
+        throw new Error(`Erreur lors de l'ajout de la contribution: ${error.message}`);
+      }
+
+      console.log('Contribution added successfully');
 
       // If target is reached, create order and update status
       if (targetReached && fundData.status === "active") {
@@ -186,6 +236,16 @@ export default function CollectiveFunds() {
           .from("collective_funds")
           .update({ status: "completed" })
           .eq("id", fundId);
+
+        toast({
+          title: "🎉 Objectif atteint !",
+          description: `Votre contribution de ${formatCurrency(contributionAmount)} a permis d'atteindre l'objectif de la cotisation !`
+        });
+      } else {
+        toast({
+          title: "Contribution ajoutée !",
+          description: `Votre contribution de ${formatCurrency(contributionAmount)} a été ajoutée avec succès.`
+        });
       }
 
       // Reload funds to show updated amounts
@@ -193,8 +253,15 @@ export default function CollectiveFunds() {
       if (selectedFund) {
         await loadContributors(selectedFund.id);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error contributing:', error);
+      toast({
+        title: "Erreur lors de la contribution",
+        description: error.message || "Une erreur inattendue s'est produite. Veuillez réessayer.",
+        variant: "destructive"
+      });
+    } finally {
+      setContributingToFund(null);
     }
   };
 
@@ -373,25 +440,40 @@ export default function CollectiveFunds() {
                   size="sm"
                   variant="outline"
                   onClick={() => handleContribute(selectedFund.id, 2000)}
+                  disabled={contributingToFund === selectedFund.id}
                   className="text-xs"
                 >
-                  2 000
+                  {contributingToFund === selectedFund.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "2 000"
+                  )}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleContribute(selectedFund.id, 5000)}
+                  disabled={contributingToFund === selectedFund.id}
                   className="text-xs"
                 >
-                  5 000
+                  {contributingToFund === selectedFund.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "5 000"
+                  )}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleContribute(selectedFund.id, 10000)}
+                  disabled={contributingToFund === selectedFund.id}
                   className="text-xs"
                 >
-                  10 000
+                  {contributingToFund === selectedFund.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "10 000"
+                  )}
                 </Button>
               </div>
 
@@ -418,11 +500,15 @@ export default function CollectiveFunds() {
 
                 <Button
                   onClick={() => handleCustomContribution(selectedFund.id)}
-                  disabled={!customAmount || parseFloat(customAmount) <= 0}
+                  disabled={!customAmount || parseFloat(customAmount) <= 0 || contributingToFund === selectedFund.id}
                   className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Contribuer {customAmount ? formatCurrency(Math.min(parseFloat(customAmount) || 0, getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))) : ""}
+                  {contributingToFund === selectedFund.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Contribuer {customAmount && contributingToFund !== selectedFund.id ? formatCurrency(Math.min(parseFloat(customAmount) || 0, getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))) : ""}
                 </Button>
               </div>
             </div>
