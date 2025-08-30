@@ -515,22 +515,55 @@ export default function CollectiveFunds() {
                   </div>
 
                   {!isCompleted && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {[5000, 10000, 15000].map((amount) => (
+                    <div className="space-y-3">
+                      {/* Boutons rapides */}
+                      <div className="grid grid-cols-3 gap-2">
+                        {[5000, 10000, 15000].map((amount) => (
+                          <Button
+                            key={amount}
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleContribute(fund.id, amount);
+                            }}
+                            disabled={contributingToFund === fund.id}
+                            className="text-xs"
+                          >
+                            {amount >= 1000 ? `${amount/1000}K` : amount}
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      {/* Montant personnalisé */}
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          placeholder="Autre montant"
+                          value={showCustomInput === fund.id ? customAmount : ""}
+                          onChange={(e) => {
+                            setCustomAmount(e.target.value);
+                            if (showCustomInput !== fund.id) {
+                              setShowCustomInput(fund.id);
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCustomInput(fund.id);
+                          }}
+                          className="flex-1 text-sm"
+                        />
                         <Button
-                          key={amount}
-                          variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleContribute(fund.id, amount);
+                            handleCustomContribution(fund.id);
                           }}
-                          disabled={contributingToFund === fund.id}
-                          className="text-xs"
+                          disabled={contributingToFund === fund.id || !customAmount || showCustomInput !== fund.id}
                         >
-                          {amount >= 1000 ? `${amount/1000}K` : amount}
+                          {contributingToFund === fund.id ? "..." : "Contribuer"}
                         </Button>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </div>
