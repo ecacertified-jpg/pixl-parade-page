@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, Target, Calendar, Gift } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Users, Target, Calendar, Gift, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +40,8 @@ export default function CollectiveFunds() {
   const [selectedFund, setSelectedFund] = useState<CollectiveFund | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [showCustomInput, setShowCustomInput] = useState<{[key: string]: boolean}>({});
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -235,6 +238,31 @@ export default function CollectiveFunds() {
     return Math.min((current / target) * 100, 100);
   };
 
+  const getRemainingAmount = (current: number, target: number) => {
+    return Math.max(0, target - current);
+  };
+
+  const handleCustomContribution = async (fundId: string) => {
+    const amount = parseFloat(customAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    // Get current fund to check remaining amount
+    const fund = funds.find(f => f.id === fundId) || selectedFund;
+    if (!fund) return;
+
+    const remaining = getRemainingAmount(fund.current_amount, fund.target_amount);
+    const contributionAmount = Math.min(amount, remaining);
+
+    await handleContribute(fundId, contributionAmount);
+    setCustomAmount("");
+    setShowCustomInput(prev => ({ ...prev, [fundId]: false }));
+  };
+
+  const toggleCustomInput = (fundId: string) => {
+    setShowCustomInput(prev => ({ ...prev, [fundId]: !prev[fundId] }));
+    setCustomAmount("");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -336,22 +364,78 @@ export default function CollectiveFunds() {
             </div>
           </div>
 
-          {/* Contribute Button */}
-          <div className="space-y-3">
-            <Button
-              onClick={() => handleContribute(selectedFund.id, 5000)}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-            >
-              Contribuer 5 000 XOF
-            </Button>
-            
-            <Button
-              onClick={() => handleContribute(selectedFund.id, 10000)}
-              className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
-            >
-              Contribuer 10 000 XOF
-            </Button>
-          </div>
+          {/* Contribute Section */}
+          {selectedFund.status !== "completed" ? (
+            <div className="space-y-4">
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleContribute(selectedFund.id, 2000)}
+                  className="text-xs"
+                >
+                  2 000
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleContribute(selectedFund.id, 5000)}
+                  className="text-xs"
+                >
+                  5 000
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleContribute(selectedFund.id, 10000)}
+                  className="text-xs"
+                >
+                  10 000
+                </Button>
+              </div>
+
+              {/* Custom Amount Input */}
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Montant personnalisé"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    className="flex-1"
+                  />
+                  <span className="flex items-center px-3 text-sm text-muted-foreground">
+                    XOF
+                  </span>
+                </div>
+                
+                {customAmount && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    Montant restant: {formatCurrency(getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))}
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => handleCustomContribution(selectedFund.id)}
+                  disabled={!customAmount || parseFloat(customAmount) <= 0}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Contribuer {customAmount ? formatCurrency(Math.min(parseFloat(customAmount) || 0, getRemainingAmount(selectedFund.current_amount, selectedFund.target_amount))) : ""}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center p-4">
+              <Badge className="bg-green-100 text-green-800 mb-2">
+                ✅ Objectif atteint
+              </Badge>
+              <p className="text-sm text-green-600 font-medium">
+                Commande créée automatiquement
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -466,28 +550,75 @@ export default function CollectiveFunds() {
                       </p>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContribute(fund.id, 5000);
-                        }}
-                        className="flex-1 text-xs h-8"
-                      >
-                        +5 000 XOF
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContribute(fund.id, 10000);
-                        }}
-                        className="flex-1 text-xs h-8 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                      >
-                        +10 000 XOF
-                      </Button>
+                    <div className="space-y-2">
+                      {!showCustomInput[fund.id] ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleContribute(fund.id, 2000);
+                            }}
+                            className="flex-1 text-xs"
+                          >
+                            +2k
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleContribute(fund.id, 5000);
+                            }}
+                            className="flex-1 text-xs"
+                          >
+                            +5k
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleCustomInput(fund.id);
+                            }}
+                            className="px-2"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            type="number"
+                            placeholder="Montant"
+                            value={customAmount}
+                            onChange={(e) => setCustomAmount(e.target.value)}
+                            className="flex-1 h-8 text-xs"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCustomContribution(fund.id);
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleCustomContribution(fund.id)}
+                            disabled={!customAmount || parseFloat(customAmount) <= 0}
+                            className="h-8 px-2 text-xs"
+                          >
+                            OK
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleCustomInput(fund.id)}
+                            className="h-8 px-2"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
