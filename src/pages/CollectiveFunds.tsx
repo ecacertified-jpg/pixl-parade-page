@@ -50,7 +50,7 @@ export default function CollectiveFunds() {
     if (!user) return;
 
     try {
-      // Get funds created by user
+      // Get funds created by user (all statuses)
       const { data: createdFunds, error: createdError } = await supabase
         .from("collective_funds")
         .select(`
@@ -59,11 +59,11 @@ export default function CollectiveFunds() {
           contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
         `)
         .eq("creator_id", user.id)
-        .eq("status", "active");
+        .in("status", ["active", "completed", "target_reached"]);
 
       if (createdError) throw createdError;
 
-      // Get funds where user has contributed
+      // Get funds where user has contributed (all statuses)
       const { data: contributedFunds, error: contributedError } = await supabase
         .from("collective_funds")
         .select(`
@@ -72,7 +72,7 @@ export default function CollectiveFunds() {
           contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
         `)
         .eq("fund_contributions.contributor_id", user.id)
-        .eq("status", "active")
+        .in("status", ["active", "completed", "target_reached"])
         .neq("creator_id", user.id); // Exclude funds already in createdFunds
 
       if (contributedError) throw contributedError;
@@ -150,6 +150,19 @@ export default function CollectiveFunds() {
     if (!user) return;
 
     try {
+      // Get current fund data
+      const { data: fundData, error: fundError } = await supabase
+        .from("collective_funds")
+        .select("*")
+        .eq("id", fundId)
+        .single();
+
+      if (fundError) throw fundError;
+
+      const newTotal = (fundData.current_amount || 0) + amount;
+      const targetReached = newTotal >= fundData.target_amount;
+
+      // Add contribution
       const { error } = await supabase
         .from("fund_contributions")
         .insert({
@@ -161,6 +174,17 @@ export default function CollectiveFunds() {
 
       if (error) throw error;
 
+      // If target is reached, create order and update status
+      if (targetReached && fundData.status === "active") {
+        await createFundOrder(fundData);
+        
+        // Update fund status
+        await supabase
+          .from("collective_funds")
+          .update({ status: "completed" })
+          .eq("id", fundId);
+      }
+
       // Reload funds to show updated amounts
       await loadFunds();
       if (selectedFund) {
@@ -168,6 +192,38 @@ export default function CollectiveFunds() {
       }
     } catch (error) {
       console.error('Error contributing:', error);
+    }
+  };
+
+  const createFundOrder = async (fund: any) => {
+    try {
+      // Extract product info from description
+      const productMatch = fund.description?.match(/Produit: (.+?)(?:\n|$)/);
+      const productName = productMatch ? productMatch[1] : fund.title;
+
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: fund.creator_id,
+          total_amount: fund.target_amount,
+          currency: fund.currency || "XOF",
+          status: "pending",
+          notes: `Commande créée automatiquement pour la cagnotte: ${fund.title} (ID: ${fund.id})`,
+          delivery_address: {
+            type: "fund_order",
+            fund_id: fund.id,
+            beneficiary_contact_id: fund.beneficiary_contact_id
+          }
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      console.log('Order created for completed fund:', order);
+    } catch (error) {
+      console.error('Error creating fund order:', error);
     }
   };
 
@@ -356,9 +412,20 @@ export default function CollectiveFunds() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {fund.occasion}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="secondary" className="text-xs self-start">
+                      {fund.occasion}
+                    </Badge>
+                    <Badge 
+                      className={`text-xs self-start ${
+                        fund.status === "completed" 
+                          ? "bg-green-100 text-green-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {fund.status === "completed" ? "Terminé" : "Actif"}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -376,7 +443,7 @@ export default function CollectiveFunds() {
                     className="h-2"
                   />
                   
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
                       <span>{fund.contributors_count} contributeurs</span>
@@ -387,6 +454,42 @@ export default function CollectiveFunds() {
                       </span>
                     )}
                   </div>
+
+                  {/* Status and Action */}
+                  {fund.status === "completed" ? (
+                    <div className="text-center">
+                      <Badge className="bg-green-100 text-green-800 mb-2">
+                        ✅ Objectif atteint
+                      </Badge>
+                      <p className="text-xs text-green-600 font-medium">
+                        Commande créée automatiquement
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContribute(fund.id, 5000);
+                        }}
+                        className="flex-1 text-xs h-8"
+                      >
+                        +5 000 XOF
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContribute(fund.id, 10000);
+                        }}
+                        className="flex-1 text-xs h-8 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      >
+                        +10 000 XOF
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             ))
