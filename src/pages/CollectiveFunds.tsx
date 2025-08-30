@@ -50,19 +50,40 @@ export default function CollectiveFunds() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      // Get funds created by user
+      const { data: createdFunds, error: createdError } = await supabase
         .from("collective_funds")
         .select(`
           *,
           fund_contributions(contributor_id, amount),
           contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
         `)
-        .or(`creator_id.eq.${user.id},fund_contributions.contributor_id.eq.${user.id}`)
+        .eq("creator_id", user.id)
         .eq("status", "active");
 
-      if (error) throw error;
+      if (createdError) throw createdError;
 
-      const fundsWithStats = data?.map(fund => {
+      // Get funds where user has contributed
+      const { data: contributedFunds, error: contributedError } = await supabase
+        .from("collective_funds")
+        .select(`
+          *,
+          fund_contributions!inner(contributor_id, amount),
+          contacts!collective_funds_beneficiary_contact_id_fkey(name, avatar_url, relationship)
+        `)
+        .eq("fund_contributions.contributor_id", user.id)
+        .eq("status", "active")
+        .neq("creator_id", user.id); // Exclude funds already in createdFunds
+
+      if (contributedError) throw contributedError;
+
+      // Combine and deduplicate funds
+      const allFunds = [...(createdFunds || []), ...(contributedFunds || [])];
+      const uniqueFunds = allFunds.filter((fund, index, self) => 
+        index === self.findIndex(f => f.id === fund.id)
+      );
+
+      const fundsWithStats = uniqueFunds.map(fund => {
         // Extract beneficiary name from title if contact info is not available
         let beneficiaryName = fund.contacts?.name;
         if (!beneficiaryName && fund.title) {
@@ -78,11 +99,13 @@ export default function CollectiveFunds() {
           beneficiary_avatar: fund.contacts?.avatar_url,
           beneficiary_relationship: fund.contacts?.relationship
         };
-      }) || [];
+      });
 
+      console.log('Loaded funds:', fundsWithStats);
       setFunds(fundsWithStats);
     } catch (error) {
       console.error('Error loading funds:', error);
+      setFunds([]);
     } finally {
       setLoading(false);
     }
