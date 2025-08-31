@@ -131,7 +131,8 @@ export default function Checkout() {
               target_amount: gift.price,
               currency: "XOF",
               occasion: "promotion",
-              is_public: true,
+            // Mettre à jour le statut de la cagnotte en "public: false" pour la visibilité par les amis uniquement
+            is_public: false,
               allow_anonymous_contributions: false
             })
             .select()

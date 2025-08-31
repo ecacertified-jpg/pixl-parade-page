@@ -11,9 +11,11 @@ import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
 import { GiftsSection } from "@/components/GiftsSection";
+import { CollectiveFundCard } from "@/components/CollectiveFundCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 interface Friend {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { funds, loading: fundsLoading, refreshFunds } = useCollectiveFunds();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -418,23 +421,39 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-emerald-500 hover:bg-emerald-400"
-                disabled
-              >
-                <Plus className="h-4 w-4" aria-hidden />
-                Bientôt
-              </Button>
             </div>
             
-            <Card className="p-6 text-center">
-              <div className="text-muted-foreground">
-                <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Aucune cotisation en cours</p>
-                <p className="text-sm">Créez une cagnotte collaborative pour un cadeau</p>
+            {fundsLoading ? (
+              <Card className="p-6 text-center">
+                <div className="text-muted-foreground">
+                  <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Chargement des cotisations...</p>
+                </div>
+              </Card>
+            ) : funds.length === 0 ? (
+              <Card className="p-6 text-center">
+                <div className="text-muted-foreground">
+                  <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Aucune cotisation active pour le moment</p>
+                  <p className="text-sm">Les cotisations créées depuis la boutique apparaîtront ici</p>
+                </div>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {funds.map((fund) => (
+                  <CollectiveFundCard 
+                    key={fund.id} 
+                    fund={fund}
+                    onContribute={() => {
+                      toast({
+                        title: "Contribution",
+                        description: "Fonctionnalité en cours de développement"
+                      });
+                    }}
+                  />
+                ))}
               </div>
-            </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
