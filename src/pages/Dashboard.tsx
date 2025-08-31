@@ -421,10 +421,10 @@ export default function Dashboard() {
               <Button 
                 size="sm" 
                 className="gap-2 bg-emerald-500 hover:bg-emerald-400"
-                onClick={() => navigate('/collective-funds')}
+                disabled
               >
                 <Plus className="h-4 w-4" aria-hidden />
-                Nouvelle
+                Bientôt
               </Button>
             </div>
             

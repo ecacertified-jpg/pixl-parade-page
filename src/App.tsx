@@ -17,7 +17,6 @@ import Gifts from "./pages/Gifts";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
-import CollectiveFunds from "./pages/CollectiveFunds";
 
 const queryClient = new QueryClient();
 
@@ -78,11 +77,6 @@ const App = () => (
             <Route path="/order-confirmation" element={
               <ProtectedRoute>
                 <OrderConfirmation />
-              </ProtectedRoute>
-            } />
-            <Route path="/collective-funds" element={
-              <ProtectedRoute>
-                <CollectiveFunds />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
