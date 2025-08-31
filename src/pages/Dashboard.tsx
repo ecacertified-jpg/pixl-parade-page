@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, PiggyBank, Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
-import { ContributeModal } from "@/components/ContributeModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
 import { GiftsSection } from "@/components/GiftsSection";
@@ -27,7 +26,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
-  const [showContributeModal, setShowContributeModal] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -311,11 +309,10 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid grid-cols-4">
+          <TabsList className="grid grid-cols-3">
             <TabsTrigger value="amis" className="flex gap-2 bg-zinc-50"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-2"><CalendarDays className="h-4 w-4" aria-hidden />Événements</TabsTrigger>
             <TabsTrigger value="cadeaux" className="flex gap-2"><Gift className="h-4 w-4" aria-hidden />Cadeaux</TabsTrigger>
-            <TabsTrigger value="cotisations" className="flex gap-2"><PiggyBank className="h-4 w-4" aria-hidden />Cotisations</TabsTrigger>
           </TabsList>
 
           <TabsContent value="amis" className="mt-4">
@@ -432,80 +429,12 @@ export default function Dashboard() {
             <GiftsSection onGiftCountChange={handleGiftCountChange} />
           </TabsContent>
 
-          <TabsContent value="cotisations" className="mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-base">Cotisations Groupées</h2>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => navigate('/collective-funds')}>
-                  Voir tout
-                </Button>
-                <Button size="sm" className="gap-2 bg-green-500 text-white hover:bg-green-600" onClick={() => setShowContributeModal(true)}>
-                  <Plus className="h-4 w-4" aria-hidden />
-                  Cotiser
-                </Button>
-              </div>
-            </div>
-            
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">Cadeau pour la promotion d'Aisha</h3>
-                <div className="flex gap-2">
-                  <Badge variant="outline" className="text-xs">Initiateur</Badge>
-                  <Badge className="text-xs bg-green-500">Actif</Badge>
-                </div>
-              </div>
-              
-              <div className="text-sm text-muted-foreground mb-3">Pour: Aisha Traoré</div>
-              
-              <div className="mb-3">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Progression</span>
-                  <span className="font-medium">35 000 / 50 000 F</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{
-                  width: '70%'
-                }}></div>
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">70% atteint</div>
-              </div>
-              
-              <div>
-                <div className="text-sm font-medium mb-2">Contributeurs (3):</div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">M</div>
-                      <span className="text-sm">Moi</span>
-                    </div>
-                    <span className="text-sm font-medium">15 000 F</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center text-xs text-white">F</div>
-                      <span className="text-sm">Fatou Bamba</span>
-                    </div>
-                    <span className="text-sm font-medium">12 000 F</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">K</div>
-                      <span className="text-sm">Kofi Asante</span>
-                    </div>
-                    <span className="text-sm font-medium">8 000 F</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         <div className="pb-20" />
       </main>
 
       <GiftHistoryModal isOpen={showGiftHistory} onClose={() => setShowGiftHistory(false)} />
-
-      <ContributeModal isOpen={showContributeModal} onClose={() => setShowContributeModal(false)} />
 
       <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} />
 
