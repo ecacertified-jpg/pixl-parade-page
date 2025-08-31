@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2 } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -309,10 +309,11 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid grid-cols-3">
-            <TabsTrigger value="amis" className="flex gap-2 bg-zinc-50"><Users className="h-4 w-4" aria-hidden />Amis</TabsTrigger>
-            <TabsTrigger value="evenements" className="flex gap-2"><CalendarDays className="h-4 w-4" aria-hidden />Événements</TabsTrigger>
-            <TabsTrigger value="cadeaux" className="flex gap-2"><Gift className="h-4 w-4" aria-hidden />Cadeaux</TabsTrigger>
+          <TabsList className="grid grid-cols-4">
+            <TabsTrigger value="amis" className="flex gap-1 text-xs"><Users className="h-3 w-3" aria-hidden />Amis</TabsTrigger>
+            <TabsTrigger value="evenements" className="flex gap-1 text-xs"><CalendarDays className="h-3 w-3" aria-hidden />Événements</TabsTrigger>
+            <TabsTrigger value="cotisations" className="flex gap-1 text-xs"><PiggyBank className="h-3 w-3" aria-hidden />Cotisations</TabsTrigger>
+            <TabsTrigger value="cadeaux" className="flex gap-1 text-xs"><Gift className="h-3 w-3" aria-hidden />Cadeaux</TabsTrigger>
           </TabsList>
 
           <TabsContent value="amis" className="mt-4">
@@ -412,6 +413,28 @@ export default function Dashboard() {
                       </Card>;
             })}
               </div>}
+          </TabsContent>
+
+          <TabsContent value="cotisations" className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-base">Mes Cotisations</h2>
+              <Button 
+                size="sm" 
+                className="gap-2 bg-emerald-500 hover:bg-emerald-400"
+                onClick={() => navigate('/collective-funds')}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Nouvelle
+              </Button>
+            </div>
+            
+            <Card className="p-6 text-center">
+              <div className="text-muted-foreground">
+                <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Aucune cotisation en cours</p>
+                <p className="text-sm">Créez une cagnotte collaborative pour un cadeau</p>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
