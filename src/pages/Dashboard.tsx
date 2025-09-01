@@ -35,9 +35,17 @@ export default function Dashboard() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { funds, loading: fundsLoading, refreshFunds } = useCollectiveFunds();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    funds,
+    loading: fundsLoading,
+    refreshFunds
+  } = useCollectiveFunds();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -54,7 +62,6 @@ export default function Dashboard() {
     loadFriendsFromSupabase();
     loadEventsFromStorage();
   }, [user]);
-
   const loadFriendsFromStorage = () => {
     const savedFriends = localStorage.getItem('friends');
     if (savedFriends) {
@@ -65,17 +72,13 @@ export default function Dashboard() {
       setFriends(parsedFriends);
     }
   };
-
   const loadFriendsFromSupabase = async () => {
     if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-
+      const {
+        data,
+        error
+      } = await supabase.from('contacts').select('*').eq('user_id', user.id).order('name');
       if (error) {
         console.error('Erreur lors du chargement des contacts:', error);
         return;
@@ -87,28 +90,26 @@ export default function Dashboard() {
         name: contact.name,
         phone: contact.phone || '',
         relation: contact.relationship || '',
-        location: contact.notes || '', // Utiliser notes pour la localisation
+        location: contact.notes || '',
+        // Utiliser notes pour la localisation
         birthday: contact.birthday ? new Date(contact.birthday) : new Date()
       }));
 
       // Fusionner avec les amis locaux en évitant les doublons
       const existingFriends = JSON.parse(localStorage.getItem('friends') || '[]');
       const combinedFriends = [...existingFriends];
-      
       supabaseContacts.forEach(supabaseContact => {
         const exists = combinedFriends.find(f => f.name === supabaseContact.name && f.phone === supabaseContact.phone);
         if (!exists) {
           combinedFriends.push(supabaseContact);
         }
       });
-
       setFriends(combinedFriends);
       localStorage.setItem('friends', JSON.stringify(combinedFriends));
     } catch (error) {
       console.error('Erreur lors du chargement des contacts:', error);
     }
   };
-
   const loadEventsFromStorage = () => {
     const savedEvents = localStorage.getItem('events');
     if (savedEvents) {
@@ -129,17 +130,17 @@ export default function Dashboard() {
     // Synchroniser avec Supabase
     if (user) {
       try {
-        const { error } = await supabase
-          .from('contacts')
-          .insert({
-            user_id: user.id,
-            name: newFriend.name,
-            phone: newFriend.phone,
-            relationship: newFriend.relation,
-            notes: newFriend.location, // Utiliser notes pour stocker la localisation
-            birthday: newFriend.birthday.toISOString().split('T')[0] // Format YYYY-MM-DD
-          });
-
+        const {
+          error
+        } = await supabase.from('contacts').insert({
+          user_id: user.id,
+          name: newFriend.name,
+          phone: newFriend.phone,
+          relationship: newFriend.relation,
+          notes: newFriend.location,
+          // Utiliser notes pour stocker la localisation
+          birthday: newFriend.birthday.toISOString().split('T')[0] // Format YYYY-MM-DD
+        });
         if (error) {
           console.error('Erreur lors de la sauvegarde du contact:', error);
           toast({
@@ -169,13 +170,9 @@ export default function Dashboard() {
     // Synchroniser avec Supabase
     if (user && friendToDelete) {
       try {
-        const { error } = await supabase
-          .from('contacts')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('name', friendToDelete.name)
-          .eq('phone', friendToDelete.phone);
-
+        const {
+          error
+        } = await supabase.from('contacts').delete().eq('user_id', user.id).eq('name', friendToDelete.name).eq('phone', friendToDelete.phone);
         if (error) {
           console.error('Erreur lors de la suppression du contact:', error);
         }
@@ -229,13 +226,12 @@ export default function Dashboard() {
   // Calculer les jours jusqu'à l'anniversaire
   const getDaysUntilBirthday = (birthday: Date | string | null | undefined) => {
     if (!birthday) return 0;
-    
+
     // Convertir en Date si nécessaire
     const birthdayDate = birthday instanceof Date ? birthday : new Date(birthday);
-    
+
     // Vérifier que la date est valide
     if (isNaN(birthdayDate.getTime())) return 0;
-    
     const today = new Date();
     const currentYear = today.getFullYear();
     let nextBirthday = new Date(currentYear, birthdayDate.getMonth(), birthdayDate.getDate());
@@ -304,7 +300,7 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center px-[8px] py-[10px]" onClick={() => navigate('/business-account')}>
+            <Button variant="secondary" onClick={() => navigate('/business-account')} className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center py-[10px] px-[3px]">
               Compte Business
             </Button>
           </div>
@@ -423,47 +419,31 @@ export default function Dashboard() {
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
             </div>
             
-            {fundsLoading ? (
-              <Card className="p-6 text-center">
+            {fundsLoading ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Chargement des cotisations...</p>
                 </div>
-              </Card>
-            ) : funds.length === 0 ? (
-              <Card className="p-6 text-center">
+              </Card> : funds.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Aucune cotisation active pour le moment</p>
                   <p className="text-sm">Les cotisations créées depuis la boutique apparaîtront ici</p>
                 </div>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {funds.map((fund) => (
-                  <CollectiveFundCard 
-                    key={fund.id} 
-                    fund={fund}
-                    onContribute={() => {
-                      toast({
-                        title: "Contribution",
-                        description: "Fonctionnalité en cours de développement"
-                      });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+              </Card> : <div className="space-y-4">
+                {funds.map(fund => <CollectiveFundCard key={fund.id} fund={fund} onContribute={() => {
+              toast({
+                title: "Contribution",
+                description: "Fonctionnalité en cours de développement"
+              });
+            }} />)}
+              </div>}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-pink-500 text-white hover:bg-pink-600" 
-                onClick={() => navigate('/shop')}
-              >
+              <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600" onClick={() => navigate('/shop')}>
                 <Gift className="h-4 w-4" aria-hidden />
                 Offrir
               </Button>
