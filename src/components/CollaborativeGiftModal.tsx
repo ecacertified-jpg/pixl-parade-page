@@ -143,13 +143,25 @@ export function CollaborativeGiftModal({
           }
         });
 
+      // Add to cart
+      const cartItem = {
+        id: Date.now(),
+        product: product,
+        quantity: 1,
+        isGift: false,
+        recipientName: selectedContact.name
+      };
+
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      localStorage.setItem('cart', JSON.stringify([...existingCart, cartItem]));
+
       toast({
         title: "Cotisation créée ! 🎉",
-        description: `Cotisation pour ${selectedContact.name} créée avec succès`
+        description: `Article ajouté au panier pour ${selectedContact.name}`
       });
 
       onClose();
-      navigate('/dashboard');
+      navigate('/cart');
     } catch (error) {
       console.error('Error creating fund:', error);
       toast({
