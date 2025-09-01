@@ -296,7 +296,7 @@ export default function Dashboard() {
         {/* CTA Business */}
         <Card className="p-4 mb-4 bg-green-100">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="mx-0 my-0 py-0 text-xs px-[11px]">
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
