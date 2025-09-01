@@ -113,10 +113,14 @@ export function CollaborativeGiftModal({
       // Add to cart
       const cartItem = {
         id: Date.now(),
-        product: product,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        image: product.image,
         quantity: 1,
-        isGift: true,
-        recipientName: selectedContact.name
+        isCollaborativeGift: true,
+        beneficiaryName: selectedContact.name
       };
 
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
