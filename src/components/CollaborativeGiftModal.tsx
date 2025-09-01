@@ -106,49 +106,16 @@ export function CollaborativeGiftModal({
   };
 
   const handleStartFund = async () => {
-    if (!selectedContact || !product || !user) return;
+    if (!selectedContact || !product) return;
 
     setIsCreating(true);
     try {
-      // Create collective fund directly
-      const { data, error } = await supabase
-        .from("collective_funds")
-        .insert({
-          creator_id: user.id,
-          beneficiary_contact_id: selectedContact.id,
-          title: `Cadeau pour ${selectedContact.name}`,
-          description: `Cotisation groupée pour offrir ${product.name} à ${selectedContact.name}`,
-          target_amount: product.price,
-          currency: "XOF",
-          occasion: "promotion",
-          is_public: false,
-          allow_anonymous_contributions: false
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Create initial activity
-      await supabase
-        .from("fund_activities")
-        .insert({
-          fund_id: data.id,
-          contributor_id: user.id,
-          activity_type: 'fund_created',
-          message: `Cagnotte créée pour ${selectedContact.name}`,
-          metadata: {
-            product_id: product.id,
-            product_name: product.name
-          }
-        });
-
       // Add to cart
       const cartItem = {
         id: Date.now(),
         product: product,
         quantity: 1,
-        isGift: false,
+        isGift: true,
         recipientName: selectedContact.name
       };
 
@@ -156,17 +123,17 @@ export function CollaborativeGiftModal({
       localStorage.setItem('cart', JSON.stringify([...existingCart, cartItem]));
 
       toast({
-        title: "Cotisation créée ! 🎉",
+        title: "Article ajouté ! 🎉",
         description: `Article ajouté au panier pour ${selectedContact.name}`
       });
 
       onClose();
       navigate('/cart');
     } catch (error) {
-      console.error('Error creating fund:', error);
+      console.error('Error adding to cart:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer la cotisation",
+        description: "Impossible d'ajouter l'article au panier",
         variant: "destructive"
       });
     } finally {
