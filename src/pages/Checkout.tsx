@@ -17,9 +17,6 @@ interface CheckoutItem {
   description?: string;
   price: number;
   quantity: number;
-  isCollaborativeGift?: boolean;
-  beneficiaryName?: string;
-  beneficiaryId?: string;
   productId?: number;
 }
 
@@ -99,91 +96,7 @@ export default function Checkout() {
           });
       }
 
-      // Check for collaborative gifts
-      const collaborativeGifts = orderItems.filter(item => item.isCollaborativeGift);
-      
-      if (collaborativeGifts.length > 0) {
-        // Create collective funds for collaborative gifts
-        for (const gift of collaborativeGifts) {
-          // Verify if the contact exists, if not, the beneficiaryId will be used as-is
-          let beneficiaryContactId = gift.beneficiaryId;
-          
-          // Check if the contact actually exists in the database
-          const { data: existingContact } = await supabase
-            .from("contacts")
-            .select("id")
-            .eq("id", gift.beneficiaryId)
-            .single();
-          
-          // If contact doesn't exist, set beneficiaryContactId to null
-          // The UI will handle extracting the name from the title
-          if (!existingContact) {
-            beneficiaryContactId = null;
-          }
-
-          const { data, error } = await supabase
-            .from("collective_funds")
-            .insert({
-              creator_id: user.id,
-              beneficiary_contact_id: beneficiaryContactId,
-              title: `Cadeau pour ${gift.beneficiaryName}`,
-              description: `Cotisation groupée pour offrir ${gift.name} à ${gift.beneficiaryName}`,
-              target_amount: gift.price,
-              currency: "XOF",
-              occasion: "promotion",
-            // Mettre à jour le statut de la cagnotte en "public: false" pour la visibilité par les amis uniquement
-            is_public: false,
-              allow_anonymous_contributions: false
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          // Create initial activity
-          await supabase.rpc('create_fund_activity', {
-            p_fund_id: data.id,
-            p_contributor_id: user.id,
-            p_activity_type: 'fund_created',
-            p_message: `Cagnotte créée pour ${gift.beneficiaryName}`,
-            p_metadata: {
-              product_id: gift.productId,
-              product_name: gift.name,
-              order_id: orderData.id
-            }
-          });
-        }
-      } else {
-        // For regular gifts, create gift record for beneficiary notification
-        for (const item of orderItems) {
-          if (item.beneficiaryName && item.beneficiaryId) {
-            // Create gift record
-            await supabase
-              .from("gifts")
-              .insert({
-                giver_id: user.id,
-                receiver_id: item.beneficiaryId,
-                gift_name: item.name,
-                gift_description: item.description,
-                amount: item.price,
-                currency: "XOF",
-                gift_date: new Date().toISOString().split('T')[0],
-                occasion: "promotion",
-                status: "given"
-              });
-
-            // Create notification for beneficiary
-            await supabase
-              .from("notifications")
-              .insert({
-                user_id: item.beneficiaryId,
-                title: "🎁 Nouveau cadeau reçu !",
-                message: `Vous avez reçu ${item.name} de la part de votre proche !`,
-                type: "gift_received"
-              });
-          }
-        }
-      }
+      // For gifts, create gift record for beneficiary notification (if applicable)
 
       // Store order details for confirmation page
       localStorage.setItem('lastOrderDetails', JSON.stringify({
@@ -236,12 +149,6 @@ export default function Checkout() {
                 <div className="w-12 h-12 bg-muted rounded-lg"></div>
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{item.name}</h4>
-                  {item.isCollaborativeGift && (
-                    <div className="flex items-center gap-1 text-xs text-primary mb-1">
-                      <span>🎁</span>
-                      <span>Cadeau pour {item.beneficiaryName}</span>
-                    </div>
-                  )}
                   {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                     <span>📍</span>
