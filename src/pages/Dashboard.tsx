@@ -365,7 +365,7 @@ export default function Dashboard() {
             {events.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Aucun événement ajouté pour le moment</p>
+                  <p className="mx-[55px]">Aucun événement ajouté pour le moment</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
                 </div>
               </Card> : <div className="space-y-3">
