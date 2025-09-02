@@ -599,10 +599,7 @@ export default function BusinessAccount() {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium">Mes produits ({products.length})</h3>
-                <Button onClick={() => setIsAddProductModalOpen(true)} size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter
-                </Button>
+                
               </div>
               
               {loadingProducts ? <div className="flex items-center justify-center py-8">
