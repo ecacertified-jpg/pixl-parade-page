@@ -63,9 +63,17 @@ export default function Cart() {
     }
   };
   const proceedToCheckout = () => {
+    // Check if there are collaborative gifts
+    const hasCollaborativeGifts = cartItems.some(item => item.isCollaborativeGift);
+    
     // Store cart items for checkout
     localStorage.setItem('checkoutItems', JSON.stringify(cartItems));
-    navigate("/checkout");
+    
+    if (hasCollaborativeGifts) {
+      navigate("/collective-checkout");
+    } else {
+      navigate("/checkout");
+    }
   };
   const addAnotherItem = () => {
     navigate("/shop");
