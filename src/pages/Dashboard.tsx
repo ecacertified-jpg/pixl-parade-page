@@ -427,8 +427,8 @@ export default function Dashboard() {
               </Card> : funds.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <PiggyBank className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Aucune cotisation active pour le moment</p>
-                  <p className="text-sm">Les cotisations créées depuis la boutique apparaîtront ici</p>
+                  <p className="mx-[54px]">Aucune cotisation active pour le moment</p>
+                  <p className="text-sm mx-[45px]">Les cotisations créées depuis la boutique apparaîtront ici</p>
                 </div>
               </Card> : <div className="space-y-4">
                 {funds.map(fund => <CollectiveFundCard key={fund.id} fund={fund} onContribute={() => {
