@@ -375,6 +375,62 @@ export type Database = {
         }
         Relationships: []
       }
+      collective_fund_orders: {
+        Row: {
+          beneficiary_phone: string
+          created_at: string
+          creator_id: string
+          currency: string
+          delivery_address: string
+          donor_phone: string
+          fund_id: string
+          id: string
+          order_summary: Json
+          payment_method: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_phone: string
+          created_at?: string
+          creator_id: string
+          currency?: string
+          delivery_address: string
+          donor_phone: string
+          fund_id: string
+          id?: string
+          order_summary?: Json
+          payment_method?: string
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_phone?: string
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          delivery_address?: string
+          donor_phone?: string
+          fund_id?: string
+          id?: string
+          order_summary?: Json
+          payment_method?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_fund_orders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collective_funds: {
         Row: {
           allow_anonymous_contributions: boolean | null

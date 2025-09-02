@@ -10,7 +10,7 @@ interface Contributor {
   avatar?: string;
 }
 
-interface CollectiveFund {
+export interface CollectiveFund {
   id: string;
   title: string;
   beneficiaryName: string;
@@ -22,6 +22,8 @@ interface CollectiveFund {
   contributors: Contributor[];
   status: 'active' | 'completed' | 'expired';
   occasion: string;
+  orderData?: any;
+  creatorId?: string;
 }
 
 export function useCollectiveFunds() {
@@ -47,6 +49,7 @@ export function useCollectiveFunds() {
           currency,
           occasion,
           status,
+          creator_id,
           beneficiary_contact_id,
           contacts:beneficiary_contact_id(name),
           fund_contributions(
@@ -54,6 +57,14 @@ export function useCollectiveFunds() {
             amount,
             contributor_id,
             profiles:contributor_id(first_name, last_name)
+          ),
+          collective_fund_orders(
+            id,
+            order_summary,
+            donor_phone,
+            beneficiary_phone,
+            delivery_address,
+            payment_method
           )
         `)
         .or(`creator_id.eq.${user.id},creator_id.in.(
@@ -64,7 +75,6 @@ export function useCollectiveFunds() {
           FROM contact_relationships 
           WHERE (user_a = '${user.id}' OR user_b = '${user.id}')
         )`)
-        .eq('status', 'active');
 
       if (fundsError) {
         console.error('Erreur lors du chargement des cagnottes:', fundsError);
@@ -89,6 +99,25 @@ export function useCollectiveFunds() {
           beneficiaryName = fund.title.split('pour ')[1];
         }
 
+        // Extraire les informations du produit depuis la commande
+        const orderData = fund.collective_fund_orders?.[0];
+        const orderSummary = orderData?.order_summary as any;
+        const firstItem = orderSummary?.items?.[0];
+        
+        let productName = 'Cadeau';
+        let productImage = undefined;
+        
+        if (firstItem) {
+          productName = firstItem.name || 'Cadeau';
+          productImage = firstItem.image;
+        } else {
+          // Fallback: extraire du titre
+          const titleParts = fund.title.split(' pour ');
+          if (titleParts.length > 1) {
+            productName = titleParts[0];
+          }
+        }
+
         return {
           id: fund.id,
           title: fund.title,
@@ -96,10 +125,13 @@ export function useCollectiveFunds() {
           targetAmount: fund.target_amount,
           currentAmount: fund.current_amount || 0,
           currency: fund.currency || 'XOF',
-          productName: fund.title.replace(`Cadeau pour ${beneficiaryName}`, '').trim() || 'Cadeau',
+          productName,
+          productImage,
           contributors,
           status: fund.current_amount >= fund.target_amount ? 'completed' : 'active',
-          occasion: fund.occasion || 'anniversaire'
+          occasion: fund.occasion || 'anniversaire',
+          orderData: orderData || null,
+          creatorId: fund.creator_id
         };
       });
 

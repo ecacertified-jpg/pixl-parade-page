@@ -96,9 +96,9 @@ export default function CollectiveCheckout() {
         .from('collective_funds')
         .insert({
           creator_id: user.id,
-          title: `Cadeau pour ${item.beneficiaryName}`,
+          title: `${item.name} pour ${item.beneficiaryName}`,
           description: item.description,
-          target_amount: item.price,
+          target_amount: item.price * item.quantity,
           occasion: 'cadeau',
           currency: 'XOF',
           status: 'active'
@@ -110,6 +110,39 @@ export default function CollectiveCheckout() {
         throw fundError;
       }
 
+      // Create collective fund order with all the details
+      const orderSummary = {
+        items: items.map(item => ({
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          quantity: item.quantity,
+          currency: item.currency,
+          image: item.image
+        })),
+        subtotal,
+        shippingCost,
+        total
+      };
+
+      const { error: orderError } = await supabase
+        .from('collective_fund_orders')
+        .insert({
+          fund_id: fundData.id,
+          creator_id: user.id,
+          donor_phone: donorPhone,
+          beneficiary_phone: beneficiaryPhone,
+          delivery_address: deliveryAddress,
+          payment_method: paymentMethod,
+          order_summary: orderSummary,
+          total_amount: total,
+          currency: 'XOF'
+        });
+
+      if (orderError) {
+        throw orderError;
+      }
+
       // Clear cart items
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutItems');
@@ -119,7 +152,7 @@ export default function CollectiveCheckout() {
         description: `La cotisation pour ${item.beneficiaryName} a été créée avec succès`,
       });
 
-      navigate("/dashboard");
+      navigate("/dashboard?tab=cotisations");
       
     } catch (error) {
       console.error('Erreur lors de la création de la cotisation:', error);

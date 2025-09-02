@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { 
   ArrowLeft, 
   BarChart3,
@@ -48,6 +49,7 @@ import LocationSelector from "@/components/LocationSelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
+import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessCard";
 import type { Business } from "@/types/business";
 
 
@@ -86,6 +88,7 @@ interface BusinessAccount {
 export default function BusinessDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { funds, loading: fundsLoading } = useCollectiveFunds();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -967,10 +970,41 @@ export default function BusinessDashboard() {
                     <div><strong>Retrait sur place:</strong> Appelez immédiatement le client pour confirmer et indiquer l'adresse exacte de votre boutique.</div>
                     <div><strong>Livraison:</strong> Contactez le client pour confirmer l'adresse. Livraison gratuite si montant &gt; 25 000 FCFA.</div>
                     <div><strong>Délais:</strong> Préparez les commandes dans les 24h pour maintenir votre réputation.</div>
+                    <div><strong>Cotisations:</strong> Les cotisations à 100% apparaissent ci-dessous avec toutes les infos de livraison.</div>
                   </div>
                 </div>
               </div>
             </Card>
+
+            {/* Section Cotisations terminées */}
+            {fundsLoading ? (
+              <Card className="p-4 mb-6">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>Chargement des cotisations...</span>
+                </div>
+              </Card>
+            ) : (
+              <>
+                {funds.filter(fund => fund.status === 'completed' && fund.orderData).length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-green-500" />
+                      Cotisations terminées - Prêtes pour livraison
+                    </h3>
+                    <div className="space-y-4">
+                      {funds
+                        .filter(fund => fund.status === 'completed' && fund.orderData)
+                        .map(fund => (
+                          <CollectiveFundBusinessCard key={fund.id} fund={fund} />
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <h3 className="text-lg font-semibold mb-4">Commandes régulières</h3>
 
             <div className="space-y-4">
               {loadingOrders ? (

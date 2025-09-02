@@ -6,26 +6,13 @@ import { Progress } from "@/components/ui/progress";
 import { Users, Gift } from "lucide-react";
 import { useState } from "react";
 import { ContributeModal } from "./ContributeModal";
+import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 
 interface Contributor {
   id: string;
   name: string;
   amount: number;
   avatar?: string;
-}
-
-interface CollectiveFund {
-  id: string;
-  title: string;
-  beneficiaryName: string;
-  targetAmount: number;
-  currentAmount: number;
-  currency: string;
-  productImage?: string;
-  productName: string;
-  contributors: Contributor[];
-  status: 'active' | 'completed' | 'expired';
-  occasion: string;
 }
 
 interface CollectiveFundCardProps {
