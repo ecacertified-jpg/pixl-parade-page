@@ -17,6 +17,7 @@ import Gifts from "./pages/Gifts";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import CollectiveCheckout from "./pages/CollectiveCheckout";
+import CollectiveOrderConfirmation from "./pages/CollectiveOrderConfirmation";
 import OrderConfirmation from "./pages/OrderConfirmation";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,11 @@ const App = () => (
             <Route path="/collective-checkout" element={
               <ProtectedRoute>
                 <CollectiveCheckout />
+              </ProtectedRoute>
+            } />
+            <Route path="/collective-order-confirmation" element={
+              <ProtectedRoute>
+                <CollectiveOrderConfirmation />
               </ProtectedRoute>
             } />
             <Route path="/order-confirmation" element={

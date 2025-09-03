@@ -152,7 +152,15 @@ export default function CollectiveCheckout() {
         description: `La cotisation pour ${item.beneficiaryName} a été créée avec succès`,
       });
 
-      navigate("/dashboard?tab=cotisations");
+      // Navigate to confirmation page with order details
+      navigate("/collective-order-confirmation", {
+        state: {
+          orderSummary,
+          donorPhone,
+          deliveryAddress,
+          beneficiaryName: item.beneficiaryName
+        }
+      });
       
     } catch (error) {
       console.error('Erreur lors de la création de la cotisation:', error);
