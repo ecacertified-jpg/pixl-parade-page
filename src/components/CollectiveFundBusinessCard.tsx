@@ -88,21 +88,19 @@ export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardP
         </div>
       </div>
 
-      {/* Barre de progression - Seulement si terminé */}
-      {isCompleted && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Progression</span>
-            <span className="font-medium">
-              {fund.currentAmount.toLocaleString()} / {fund.targetAmount.toLocaleString()} {fund.currency}
-            </span>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-          <p className="text-xs text-muted-foreground text-center">
-            100% atteint - Prêt pour livraison 🎉
-          </p>
+      {/* Barre de progression */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Progression</span>
+          <span className="font-medium">
+            {fund.currentAmount.toLocaleString()} / {fund.targetAmount.toLocaleString()} {fund.currency}
+          </span>
         </div>
-      )}
+        <Progress value={progressPercentage} className="h-2" />
+        <p className="text-xs text-muted-foreground text-center">
+          {isCompleted ? "100% atteint - Prêt pour livraison 🎉" : `${Math.round(progressPercentage)}% atteint`}
+        </p>
+      </div>
 
       {/* Contributeurs */}
       {fund.contributors.length > 0 && (
