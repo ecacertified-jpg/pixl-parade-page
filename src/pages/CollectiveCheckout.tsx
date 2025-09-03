@@ -89,8 +89,29 @@ export default function CollectiveCheckout() {
     setProcessing(true);
 
     try {
+      // Verify authentication session is active
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('Session error:', sessionError);
+        toast({
+          title: "Session expirée",
+          description: "Votre session a expiré. Veuillez vous reconnecter.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('User authenticated:', { userId: user.id, sessionUserId: session.user.id });
+
       // Create collective fund for the first item (assuming one item per fund)
       const item = items[0];
+      
+      console.log('Creating collective fund with data:', {
+        creator_id: user.id,
+        title: `${item.name} pour ${item.beneficiaryName}`,
+        target_amount: item.price * item.quantity
+      });
       
       const { data: fundData, error: fundError } = await supabase
         .from('collective_funds')
@@ -107,8 +128,31 @@ export default function CollectiveCheckout() {
         .single();
 
       if (fundError) {
-        throw fundError;
+        console.error('Fund creation error:', fundError);
+        
+        if (fundError.code === '42501' || fundError.message.includes('row-level security')) {
+          toast({
+            title: "Erreur d'authentification",
+            description: "Problème d'autorisation. Veuillez vous reconnecter.",
+            variant: "destructive"
+          });
+        } else if (fundError.code === 'PGRST301') {
+          toast({
+            title: "Erreur de validation",
+            description: "Données invalides. Vérifiez les informations saisies.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erreur de création",
+            description: `Impossible de créer la cotisation: ${fundError.message}`,
+            variant: "destructive"
+          });
+        }
+        return;
       }
+
+      console.log('Fund created successfully:', fundData);
 
       // Create collective fund order with all the details
       const orderSummary = {
