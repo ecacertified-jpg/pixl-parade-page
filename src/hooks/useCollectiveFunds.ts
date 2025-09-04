@@ -38,8 +38,8 @@ export function useCollectiveFunds() {
     try {
       setLoading(true);
 
-      // Charger les cagnottes créées par l'utilisateur ou auxquelles il peut accéder via ses amis
-      const { data: fundsData, error: fundsError } = await supabase
+      // Charger les cagnottes créées par l'utilisateur
+      const { data: ownFunds, error: ownFundsError } = await supabase
         .from('collective_funds')
         .select(`
           id,
@@ -67,22 +67,71 @@ export function useCollectiveFunds() {
             payment_method
           )
         `)
-        .or(`creator_id.eq.${user.id},creator_id.in.(
-          SELECT CASE 
-            WHEN user_a = '${user.id}' THEN user_b 
-            ELSE user_a 
-          END
-          FROM contact_relationships 
-          WHERE (user_a = '${user.id}' OR user_b = '${user.id}')
-        )`)
+        .eq('creator_id', user.id);
 
-      if (fundsError) {
-        console.error('Erreur lors du chargement des cagnottes:', fundsError);
+      if (ownFundsError) {
+        console.error('Erreur lors du chargement des cagnottes créées:', ownFundsError);
         return;
       }
 
+      // Charger les cagnottes auxquelles l'utilisateur a contribué
+      const { data: contributedFunds, error: contributedFundsError } = await supabase
+        .from('collective_funds')
+        .select(`
+          id,
+          title,
+          target_amount,
+          current_amount,
+          currency,
+          occasion,
+          status,
+          creator_id,
+          beneficiary_contact_id,
+          contacts:beneficiary_contact_id(name),
+          fund_contributions(
+            id,
+            amount,
+            contributor_id,
+            profiles:contributor_id(first_name, last_name)
+          ),
+          collective_fund_orders(
+            id,
+            order_summary,
+            donor_phone,
+            beneficiary_phone,
+            delivery_address,
+            payment_method
+          )
+        `)
+        .in('id', 
+          // Récupérer les IDs des fonds auxquels l'utilisateur a contribué
+          (await supabase
+            .from('fund_contributions')
+            .select('fund_id')
+            .eq('contributor_id', user.id)
+          ).data?.map(c => c.fund_id) || []
+        );
+
+      if (contributedFundsError) {
+        console.error('Erreur lors du chargement des cagnottes contributées:', contributedFundsError);
+      }
+
+      // Combiner et dédupliquer les résultats
+      const allFunds = [...(ownFunds || [])];
+      
+      // Ajouter les cagnottes contributées qui ne sont pas déjà dans la liste
+      if (contributedFunds) {
+        contributedFunds.forEach(fund => {
+          if (!allFunds.find(f => f.id === fund.id)) {
+            allFunds.push(fund);
+          }
+        });
+      }
+
+      console.log('Données des cagnottes chargées:', allFunds);
+
       // Transformer les données pour correspondre à l'interface
-      const transformedFunds: CollectiveFund[] = (fundsData || []).map(fund => {
+      const transformedFunds: CollectiveFund[] = (allFunds || []).map(fund => {
         const contributors: Contributor[] = (fund.fund_contributions || []).map(contrib => ({
           id: contrib.contributor_id,
           name: contrib.profiles 
