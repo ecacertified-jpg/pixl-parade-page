@@ -986,7 +986,7 @@ export default function BusinessDashboard() {
               </Card>
             ) : (
               <>
-                {funds.filter(fund => (fund.status === 'active' && fund.currentAmount >= fund.targetAmount) && fund.orderData).length > 0 && (
+                {funds.filter(fund => fund.currentAmount >= fund.targetAmount && fund.orderData).length > 0 && (
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                       <Target className="h-5 w-5 text-green-500" />
@@ -994,7 +994,7 @@ export default function BusinessDashboard() {
                     </h3>
                     <div className="space-y-4">
                       {funds
-                        .filter(fund => (fund.status === 'active' && fund.currentAmount >= fund.targetAmount) && fund.orderData)
+                        .filter(fund => fund.currentAmount >= fund.targetAmount && fund.orderData)
                         .map(fund => (
                           <CollectiveFundBusinessCard key={fund.id} fund={fund} />
                         ))}
