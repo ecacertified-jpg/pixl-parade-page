@@ -2357,6 +2357,10 @@ export type Database = {
         }
         Returns: string
       }
+      current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       decrypt_instagram_token: {
         Args: { p_encrypted_token: string }
         Returns: string
