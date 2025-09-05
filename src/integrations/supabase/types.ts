@@ -2440,6 +2440,10 @@ export type Database = {
         Args: { p_beneficiary_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_super_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       log_security_event: {
         Args: {
           p_admin_user_id?: string
