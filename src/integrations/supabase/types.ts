@@ -2317,6 +2317,10 @@ export type Database = {
         Args: { fund_uuid: string }
         Returns: boolean
       }
+      check_admin_permission: {
+        Args: { required_role?: string }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: {
           p_bucket_type: string
