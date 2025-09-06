@@ -74,6 +74,50 @@ export function useCollectiveFunds() {
         return;
       }
 
+      // Charger les cagnottes des amis (seuls les utilisateurs avec relation can_see_funds = true)
+      const { data: friendsFunds, error: friendsFundsError } = await supabase
+        .from('collective_funds')
+        .select(`
+          id,
+          title,
+          target_amount,
+          current_amount,
+          currency,
+          occasion,
+          status,
+          creator_id,
+          beneficiary_contact_id,
+          contacts:beneficiary_contact_id(name),
+          fund_contributions(
+            id,
+            amount,
+            contributor_id,
+            profiles:contributor_id(first_name, last_name)
+          ),
+          collective_fund_orders(
+            id,
+            order_summary,
+            donor_phone,
+            beneficiary_phone,
+            delivery_address,
+            payment_method
+          )
+        `)
+        .in('creator_id', 
+          // Récupérer les IDs des amis avec permission de voir les cagnottes
+          (await supabase
+            .from('contact_relationships')
+            .select('user_a, user_b')
+            .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+            .eq('can_see_funds', true)
+          ).data?.map(rel => rel.user_a === user.id ? rel.user_b : rel.user_a) || []
+        )
+        .neq('creator_id', user.id); // Exclure ses propres fonds
+
+      if (friendsFundsError) {
+        console.error('Erreur lors du chargement des cagnottes des amis:', friendsFundsError);
+      }
+
       // Charger les cagnottes auxquelles l'utilisateur a contribué
       const { data: contributedFunds, error: contributedFundsError } = await supabase
         .from('collective_funds')
@@ -118,6 +162,15 @@ export function useCollectiveFunds() {
 
       // Combiner et dédupliquer les résultats
       const allFunds = [...(ownFunds || [])];
+      
+      // Ajouter les cagnottes des amis qui ne sont pas déjà dans la liste
+      if (friendsFunds) {
+        friendsFunds.forEach(fund => {
+          if (!allFunds.find(f => f.id === fund.id)) {
+            allFunds.push(fund);
+          }
+        });
+      }
       
       // Ajouter les cagnottes contributées qui ne sont pas déjà dans la liste
       if (contributedFunds) {

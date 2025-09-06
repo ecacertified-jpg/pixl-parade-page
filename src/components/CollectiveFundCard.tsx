@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Users, Gift } from "lucide-react";
 import { useState } from "react";
-import { ContributeModal } from "./ContributeModal";
+import { ContributionModal } from "./ContributionModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 
 interface Contributor {
@@ -18,10 +18,11 @@ interface Contributor {
 interface CollectiveFundCardProps {
   fund: CollectiveFund;
   onContribute?: (fundId: string) => void;
+  onContributionSuccess?: () => void;
 }
 
-export function CollectiveFundCard({ fund, onContribute }: CollectiveFundCardProps) {
-  const [showContributeModal, setShowContributeModal] = useState(false);
+export function CollectiveFundCard({ fund, onContribute, onContributionSuccess }: CollectiveFundCardProps) {
+  const [showContributionModal, setShowContributionModal] = useState(false);
   
   const progressPercentage = Math.min((fund.currentAmount / fund.targetAmount) * 100, 100);
   const isCompleted = fund.currentAmount >= fund.targetAmount;
@@ -30,7 +31,7 @@ export function CollectiveFundCard({ fund, onContribute }: CollectiveFundCardPro
     if (onContribute) {
       onContribute(fund.id);
     } else {
-      setShowContributeModal(true);
+      setShowContributionModal(true);
     }
   };
 
@@ -131,11 +132,24 @@ export function CollectiveFundCard({ fund, onContribute }: CollectiveFundCardPro
             Contribuer
           </Button>
         )}
+        
+        {isCompleted && (
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-green-600 font-medium text-sm">✅ Objectif atteint !</div>
+            <div className="text-xs text-green-600 mt-1">La commande est en cours de traitement</div>
+          </div>
+        )}
       </Card>
 
-      <ContributeModal 
-        isOpen={showContributeModal}
-        onClose={() => setShowContributeModal(false)}
+      <ContributionModal 
+        isOpen={showContributionModal}
+        onClose={() => setShowContributionModal(false)}
+        fundId={fund.id}
+        fundTitle={fund.title}
+        targetAmount={fund.targetAmount}
+        currentAmount={fund.currentAmount}
+        currency={fund.currency}
+        onContributionSuccess={onContributionSuccess}
       />
     </>
   );
