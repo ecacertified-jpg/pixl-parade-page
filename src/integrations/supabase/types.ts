@@ -285,6 +285,72 @@ export type Database = {
         }
         Relationships: []
       }
+      business_orders: {
+        Row: {
+          beneficiary_phone: string
+          business_account_id: string
+          created_at: string
+          currency: string
+          delivery_address: string
+          donor_phone: string
+          fund_id: string
+          id: string
+          order_summary: Json
+          payment_method: string
+          processed_at: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_phone: string
+          business_account_id: string
+          created_at?: string
+          currency?: string
+          delivery_address: string
+          donor_phone: string
+          fund_id: string
+          id?: string
+          order_summary?: Json
+          payment_method?: string
+          processed_at?: string | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_phone?: string
+          business_account_id?: string
+          created_at?: string
+          currency?: string
+          delivery_address?: string
+          donor_phone?: string
+          fund_id?: string
+          id?: string
+          order_summary?: Json
+          payment_method?: string
+          processed_at?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_orders_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_orders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address: string | null

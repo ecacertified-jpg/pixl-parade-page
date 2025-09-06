@@ -51,6 +51,7 @@ import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
 import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessCard";
 import type { Business } from "@/types/business";
+import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 
 
 interface OrderItem {
@@ -977,21 +978,28 @@ export default function BusinessDashboard() {
             </Card>
 
             {/* Section Cotisations terminées */}
-            {fundsLoading ? (
-              <Card className="p-4 mb-6">
-                <div className="flex items-center justify-center">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  <span>Chargement des cotisations...</span>
-                </div>
-              </Card>
-            ) : (
-              <>
-                {funds.filter(fund => fund.currentAmount >= fund.targetAmount && fund.orderData).length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Target className="h-5 w-5 text-green-500" />
-                      Cotisations terminées - Prêtes pour livraison
-                    </h3>
+            <div className="mb-8">
+              <BusinessOrdersSection />
+            </div>
+
+            {/* Section Commandes Normales */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Commandes Individuelles</h3>
+              {fundsLoading ? (
+                <Card className="p-4 mb-6">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span>Chargement des cotisations...</span>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  {funds.filter(fund => fund.currentAmount >= fund.targetAmount && fund.orderData).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Target className="h-5 w-5 text-green-500" />
+                        Cotisations terminées - Prêtes pour livraison
+                      </h3>
                     <div className="space-y-4">
                       {funds
                         .filter(fund => fund.currentAmount >= fund.targetAmount && fund.orderData)
@@ -1147,7 +1155,8 @@ export default function BusinessDashboard() {
                    </div>
                  </Card>
                ))
-              )}
+               )}
+             </div>
             </div>
           </TabsContent>
 
