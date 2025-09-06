@@ -2252,47 +2252,7 @@ export type Database = {
       }
     }
     Views: {
-      fund_activities_secure: {
-        Row: {
-          activity_type: string | null
-          amount: number | null
-          created_at: string | null
-          currency: string | null
-          fund_id: string | null
-          id: string | null
-          message: string | null
-          metadata: Json | null
-        }
-        Insert: {
-          activity_type?: string | null
-          amount?: number | null
-          created_at?: string | null
-          currency?: string | null
-          fund_id?: string | null
-          id?: string | null
-          message?: never
-          metadata?: Json | null
-        }
-        Update: {
-          activity_type?: string | null
-          amount?: number | null
-          created_at?: string | null
-          currency?: string | null
-          fund_id?: string | null
-          id?: string | null
-          message?: never
-          metadata?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fund_activities_fund_id_fkey"
-            columns: ["fund_id"]
-            isOneToOne: false
-            referencedRelation: "collective_funds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       add_loyalty_points: {
