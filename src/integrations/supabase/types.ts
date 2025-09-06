@@ -2425,6 +2425,19 @@ export type Database = {
           product_price: number
         }[]
       }
+      get_fund_activities_for_user: {
+        Args: { p_fund_id: string }
+        Returns: {
+          activity_type: string
+          amount: number
+          created_at: string
+          currency: string
+          fund_id: string
+          id: string
+          message: string
+          metadata: Json
+        }[]
+      }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
