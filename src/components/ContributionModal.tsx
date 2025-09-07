@@ -45,6 +45,14 @@ export function ContributionModal({
     if (!user || !amount) return;
 
     const contributionAmount = parseFloat(amount);
+    console.log('ContributionModal - Début contribution', {
+      fundId,
+      userId: user.id,
+      contributionAmount,
+      currency,
+      remainingAmount
+    });
+
     if (contributionAmount <= 0) {
       toast({
         title: "Erreur",
@@ -66,7 +74,24 @@ export function ContributionModal({
     setLoading(true);
 
     try {
+      // Vérifier les permissions avant la contribution
+      console.log('ContributionModal - Vérification des permissions...');
+      const { data: canContribute, error: permissionError } = await supabase
+        .rpc('can_contribute_to_fund', { fund_uuid: fundId });
+
+      console.log('ContributionModal - Résultat permissions', { canContribute, permissionError });
+
+      if (permissionError) {
+        console.error('ContributionModal - Erreur permissions:', permissionError);
+        throw new Error(`Erreur de permissions: ${permissionError.message}`);
+      }
+
+      if (!canContribute) {
+        throw new Error('Vous n\'avez pas l\'autorisation de contribuer à cette cagnotte');
+      }
+
       // Créer la contribution
+      console.log('ContributionModal - Insertion contribution...');
       const { error: contributionError } = await supabase
         .from('fund_contributions')
         .insert({
@@ -78,6 +103,7 @@ export function ContributionModal({
           is_anonymous: isAnonymous
         });
 
+      console.log('ContributionModal - Résultat insertion', { contributionError });
       if (contributionError) throw contributionError;
 
       toast({
@@ -97,10 +123,14 @@ export function ContributionModal({
       
       onClose();
     } catch (error) {
-      console.error('Erreur lors de la contribution:', error);
+      console.error('ContributionModal - Erreur complète:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Erreur inconnue lors de la contribution';
+      
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter votre contribution",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
