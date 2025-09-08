@@ -40,6 +40,62 @@ export function ContributionModal({
   const remainingAmount = targetAmount - currentAmount;
   const maxAmount = Math.min(remainingAmount, 500000); // Limite maximum de 500,000 XOF
 
+  const getErrorMessage = (error: any) => {
+    console.log('ContributionModal - Analyse d\'erreur:', error);
+    
+    // Erreurs de permissions RLS
+    if (error?.message?.includes('new row violates row-level security policy')) {
+      return {
+        title: "Permissions insuffisantes",
+        description: "Vous n'êtes pas autorisé à contribuer à cette cagnotte. Vous devez être ami avec le créateur et avoir les permissions appropriées.",
+        suggestion: "Contactez le créateur de la cagnotte pour qu'il vous ajoute à sa liste d'amis."
+      };
+    }
+
+    // Erreurs de fonction RPC
+    if (error?.code === '42883' || error?.message?.includes('function')) {
+      return {
+        title: "Erreur système",
+        description: "Un problème technique empêche la contribution. Veuillez réessayer dans quelques instants.",
+        suggestion: "Si le problème persiste, contactez le support."
+      };
+    }
+
+    // Erreurs de permissions explicites
+    if (error?.message?.includes('autorisation') || error?.message?.includes('permission')) {
+      return {
+        title: "Accès non autorisé",
+        description: "Vous n'avez pas l'autorisation de contribuer à cette cagnotte.",
+        suggestion: "Demandez au créateur de vous donner accès à ses cagnottes."
+      };
+    }
+
+    // Erreurs de validation
+    if (error?.message?.includes('violates check constraint') || error?.message?.includes('invalid input')) {
+      return {
+        title: "Données invalides",
+        description: "Les informations saisies ne sont pas valides.",
+        suggestion: "Vérifiez le montant et réessayez."
+      };
+    }
+
+    // Erreurs réseau/connectivité
+    if (error?.message?.includes('Failed to fetch') || error?.message?.includes('Network')) {
+      return {
+        title: "Problème de connexion",
+        description: "Impossible de se connecter au serveur.",
+        suggestion: "Vérifiez votre connexion internet et réessayez."
+      };
+    }
+
+    // Erreurs par défaut
+    return {
+      title: "Erreur de contribution",
+      description: error?.message || 'Une erreur inattendue s\'est produite lors de la contribution.',
+      suggestion: "Réessayez dans quelques instants. Si le problème persiste, contactez le support."
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !amount) return;
@@ -83,11 +139,22 @@ export function ContributionModal({
 
       if (permissionError) {
         console.error('ContributionModal - Erreur permissions:', permissionError);
-        throw new Error(`Erreur de permissions: ${permissionError.message}`);
+        const errorInfo = getErrorMessage(permissionError);
+        toast({
+          title: errorInfo.title,
+          description: `${errorInfo.description} ${errorInfo.suggestion}`,
+          variant: "destructive"
+        });
+        return;
       }
 
       if (!canContribute) {
-        throw new Error('Vous n\'avez pas l\'autorisation de contribuer à cette cagnotte');
+        toast({
+          title: "Accès refusé",
+          description: "Vous n'avez pas l'autorisation de contribuer à cette cagnotte. Assurez-vous d'être ami avec le créateur.",
+          variant: "destructive"
+        });
+        return;
       }
 
       // Créer la contribution
@@ -104,7 +171,17 @@ export function ContributionModal({
         });
 
       console.log('ContributionModal - Résultat insertion', { contributionError });
-      if (contributionError) throw contributionError;
+      
+      if (contributionError) {
+        console.error('ContributionModal - Erreur contribution:', contributionError);
+        const errorInfo = getErrorMessage(contributionError);
+        toast({
+          title: errorInfo.title,
+          description: `${errorInfo.description} ${errorInfo.suggestion}`,
+          variant: "destructive"
+        });
+        return;
+      }
 
       toast({
         title: "Contribution ajoutée !",
@@ -124,13 +201,11 @@ export function ContributionModal({
       onClose();
     } catch (error) {
       console.error('ContributionModal - Erreur complète:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Erreur inconnue lors de la contribution';
+      const errorInfo = getErrorMessage(error);
       
       toast({
-        title: "Erreur",
-        description: errorMessage,
+        title: errorInfo.title,
+        description: `${errorInfo.description} ${errorInfo.suggestion}`,
         variant: "destructive"
       });
     } finally {
