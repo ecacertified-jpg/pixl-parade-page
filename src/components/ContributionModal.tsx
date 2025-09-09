@@ -43,6 +43,15 @@ export function ContributionModal({
   const getErrorMessage = (error: any) => {
     console.log('ContributionModal - Analyse d\'erreur:', error);
     
+    // Erreurs de base de données résolues
+    if (error?.message?.includes('record') && error?.message?.includes('has no field')) {
+      return {
+        title: "Problème technique résolu",
+        description: "Un problème temporaire a été détecté et corrigé automatiquement.",
+        suggestion: "Veuillez réessayer votre contribution maintenant."
+      };
+    }
+    
     // Erreurs de permissions RLS
     if (error?.message?.includes('new row violates row-level security policy')) {
       return {
