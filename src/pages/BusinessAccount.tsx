@@ -836,7 +836,7 @@ export default function BusinessAccount() {
           {/* Onglet Configuration */}
           <TabsContent value="configuration" className="mt-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-semibold text-base text-gray-500">Configuration des business</h2>
+              <h2 className="font-semibold text-base text-gray-500 mx-[17px]">Configuration des business</h2>
               <Button onClick={() => setIsAddBusinessModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]">
                 <Plus className="h-4 w-4" />
                 Ajouter son business
