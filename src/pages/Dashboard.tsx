@@ -419,6 +419,14 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
+              <Button 
+                size="sm" 
+                className="gap-2 bg-emerald-500 hover:bg-emerald-400" 
+                onClick={() => navigate('/shop')}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+                Créer
+              </Button>
             </div>
             
             {fundsLoading ? <Card className="p-6 text-center">
@@ -438,6 +446,7 @@ export default function Dashboard() {
                     key={fund.id} 
                     fund={fund} 
                     onContributionSuccess={refreshFunds}
+                    onDelete={() => refreshFunds()}
                   />
                 ))}
               </div>}

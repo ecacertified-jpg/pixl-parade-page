@@ -3,10 +3,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, Gift } from "lucide-react";
+import { Users, Gift, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ContributionModal } from "./ContributionModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contributor {
   id: string;
@@ -19,13 +22,17 @@ interface CollectiveFundCardProps {
   fund: CollectiveFund;
   onContribute?: (fundId: string) => void;
   onContributionSuccess?: () => void;
+  onDelete?: (fundId: string) => void;
 }
 
-export function CollectiveFundCard({ fund, onContribute, onContributionSuccess }: CollectiveFundCardProps) {
+export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, onDelete }: CollectiveFundCardProps) {
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   const progressPercentage = Math.min((fund.currentAmount / fund.targetAmount) * 100, 100);
   const isCompleted = fund.currentAmount >= fund.targetAmount;
+  const isCreator = user?.id === fund.creatorId;
   
   const handleContribute = () => {
     if (onContribute) {
@@ -35,21 +42,63 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess }
     }
   };
 
+  const handleDelete = async () => {
+    if (!isCreator) return;
+    
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .delete()
+        .eq('id', fund.id)
+        .eq('creator_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cotisation supprimée",
+        description: "La cotisation a été supprimée avec succès"
+      });
+
+      if (onDelete) {
+        onDelete(fund.id);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la cotisation",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <>
       <Card className="p-4 space-y-4">
         {/* Header avec nom du bénéficiaire et statut */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex-1">
             <h3 className="font-semibold text-lg">{fund.title}</h3>
             <p className="text-sm text-muted-foreground">Pour: {fund.beneficiaryName}</p>
           </div>
-          <Badge 
-            variant={isCompleted ? "default" : "secondary"}
-            className={isCompleted ? "bg-green-500 hover:bg-green-600" : ""}
-          >
-            {isCompleted ? "Terminé" : "En cours"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant={isCompleted ? "default" : "secondary"}
+              className={isCompleted ? "bg-green-500 hover:bg-green-600" : ""}
+            >
+              {isCompleted ? "Terminé" : "En cours"}
+            </Badge>
+            {isCreator && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Produit avec image et nom */}
