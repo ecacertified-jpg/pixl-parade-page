@@ -2335,6 +2335,10 @@ export type Database = {
         Args: { p_user_a: string; p_user_b: string }
         Returns: boolean
       }
+      calculate_fund_deadline: {
+        Args: { contact_birthday: string; created_year?: number }
+        Returns: string
+      }
       calculate_loyalty_points: {
         Args: { p_activity_type: string; p_amount?: number }
         Returns: number
@@ -2513,6 +2517,15 @@ export type Database = {
       }
       request_contact_relationship: {
         Args: { p_message?: string; p_target_user_id: string }
+        Returns: string
+      }
+      request_refund_from_service: {
+        Args: {
+          p_amount: number
+          p_currency?: string
+          p_fund_id: string
+          p_user_id: string
+        }
         Returns: string
       }
       respond_to_contact_request: {

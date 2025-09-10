@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, Gift, Trash2 } from "lucide-react";
+import { Users, Gift, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { ContributionModal } from "./ContributionModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
@@ -32,9 +32,19 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
   
   const progressPercentage = Math.min((fund.currentAmount / fund.targetAmount) * 100, 100);
   const isCompleted = fund.currentAmount >= fund.targetAmount;
+  const isExpired = fund.status === 'expired';
   const isCreator = user?.id === fund.creatorId;
   
   const handleContribute = () => {
+    if (isExpired) {
+      toast({
+        title: "Cotisation expirée",
+        description: "Cette cotisation a expiré et n'accepte plus de contributions",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (onContribute) {
       onContribute(fund.id);
     } else {
@@ -72,6 +82,32 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
     }
   };
 
+  const handleRequestRefund = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('request-refund', {
+        body: { 
+          fund_id: fund.id,
+          user_id: user?.id,
+          fund_title: fund.title 
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Demande de remboursement envoyée",
+        description: "Votre demande a été transmise au service de remboursement de JOIE DE VIVRE"
+      });
+    } catch (error) {
+      console.error('Erreur lors de la demande de remboursement:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer la demande de remboursement",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <>
       <Card className="p-4 space-y-4">
@@ -83,10 +119,13 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           </div>
           <div className="flex items-center gap-2">
             <Badge 
-              variant={isCompleted ? "default" : "secondary"}
-              className={isCompleted ? "bg-green-500 hover:bg-green-600" : ""}
+              variant={isExpired ? "destructive" : isCompleted ? "default" : "secondary"}
+              className={
+                isExpired ? "bg-red-500 hover:bg-red-600" : 
+                isCompleted ? "bg-green-500 hover:bg-green-600" : ""
+              }
             >
-              {isCompleted ? "Terminé" : "En cours"}
+              {isExpired ? "Expirée" : isCompleted ? "Terminé" : "En cours"}
             </Badge>
             {isCreator && (
               <Button
@@ -172,8 +211,34 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           </div>
         </div>
 
-        {/* Bouton d'action */}
-        {!isCompleted && (
+        {/* Messages d'état et boutons d'action */}
+        {isExpired && (
+          <div className="space-y-3">
+            <div className="text-center p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center justify-center gap-2 text-red-600 font-medium text-sm mb-1">
+                <AlertTriangle className="h-4 w-4" />
+                Cotisation expirée
+              </div>
+              <div className="text-xs text-red-600">
+                L'objectif n'a pas été atteint avant la date limite. Les remboursements ont été traités automatiquement.
+              </div>
+            </div>
+            
+            {/* Bouton remboursement pour les contributeurs */}
+            {fund.contributors.some(c => c.id === user?.id) && (
+              <Button 
+                onClick={handleRequestRefund}
+                variant="outline"
+                className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Demander le remboursement
+              </Button>
+            )}
+          </div>
+        )}
+        
+        {!isCompleted && !isExpired && (
           <Button 
             onClick={handleContribute}
             className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
@@ -190,16 +255,18 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
         )}
       </Card>
 
-      <ContributionModal 
-        isOpen={showContributionModal}
-        onClose={() => setShowContributionModal(false)}
-        fundId={fund.id}
-        fundTitle={fund.title}
-        targetAmount={fund.targetAmount}
-        currentAmount={fund.currentAmount}
-        currency={fund.currency}
-        onContributionSuccess={onContributionSuccess}
-      />
+      {!isExpired && (
+        <ContributionModal 
+          isOpen={showContributionModal}
+          onClose={() => setShowContributionModal(false)}
+          fundId={fund.id}
+          fundTitle={fund.title}
+          targetAmount={fund.targetAmount}
+          currentAmount={fund.currentAmount}
+          currency={fund.currency}
+          onContributionSuccess={onContributionSuccess}
+        />
+      )}
     </>
   );
 }
