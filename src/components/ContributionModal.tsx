@@ -126,6 +126,22 @@ export function ContributionModal({
       });
       return;
     }
+    
+    // Vérifier si la cotisation est expirée
+    const { data: fundCheck } = await supabase
+      .from('collective_funds')
+      .select('status')
+      .eq('id', fundId)
+      .single();
+      
+    if (fundCheck?.status === 'expired') {
+      toast({
+        title: "Cotisation expirée",
+        description: "Cette cotisation a expiré et n'accepte plus de contributions",
+        variant: "destructive"
+      });
+      return;
+    }
 
     if (contributionAmount > remainingAmount) {
       toast({

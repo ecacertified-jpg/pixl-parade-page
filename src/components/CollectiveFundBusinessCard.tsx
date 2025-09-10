@@ -22,7 +22,7 @@ interface CollectiveFundBusinessCardProps {
     productImage?: string;
     productName: string;
     contributors: Contributor[];
-    status: 'active' | 'completed' | 'expired';
+    status: 'active' | 'completed' | 'expired' | 'target_reached';
     occasion: string;
     orderData?: {
       donor_phone: string;

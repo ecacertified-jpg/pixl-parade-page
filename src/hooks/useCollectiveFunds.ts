@@ -20,7 +20,7 @@ export interface CollectiveFund {
   productImage?: string;
   productName: string;
   contributors: Contributor[];
-  status: 'active' | 'completed' | 'expired';
+  status: 'active' | 'completed' | 'expired' | 'target_reached';
   occasion: string;
   orderData?: any;
   creatorId?: string;
@@ -230,7 +230,9 @@ export function useCollectiveFunds() {
           productName,
           productImage,
           contributors,
-          status: fund.current_amount >= fund.target_amount ? 'completed' : 'active',
+          status: fund.status === 'target_reached' ? 'completed' : 
+                  fund.status === 'expired' ? 'expired' : 
+                  fund.current_amount >= fund.target_amount ? 'completed' : 'active',
           occasion: fund.occasion || 'anniversaire',
           orderData: orderData || null,
           creatorId: fund.creator_id
