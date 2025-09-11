@@ -41,14 +41,21 @@ export function ContributionModal({
   const maxAmount = Math.min(remainingAmount, 500000); // Limite maximum de 500,000 XOF
 
   const getErrorMessage = (error: any) => {
-    console.log('ContributionModal - Analyse d\'erreur:', error);
+    console.log('ContributionModal - Analyse d\'erreur complète:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint
+    });
     
-    // Erreurs de base de données résolues
+    // Log pour comprendre les erreurs spécifiques
     if (error?.message?.includes('record') && error?.message?.includes('has no field')) {
+      console.log('ContributionModal - Erreur de champ manquant détectée:', error);
       return {
-        title: "Problème technique résolu",
-        description: "Un problème temporaire a été détecté et corrigé automatiquement.",
-        suggestion: "Veuillez réessayer votre contribution maintenant."
+        title: "Erreur de données",
+        description: "Un problème avec la structure des données a été détecté.",
+        suggestion: "Veuillez réessayer dans quelques instants."
       };
     }
     
@@ -160,10 +167,26 @@ export function ContributionModal({
       const { data: canContribute, error: permissionError } = await supabase
         .rpc('can_contribute_to_fund', { fund_uuid: fundId });
 
-      console.log('ContributionModal - Résultat permissions', { canContribute, permissionError });
+      console.log('ContributionModal - Résultat permissions:', { 
+        canContribute, 
+        permissionError,
+        errorMessage: permissionError?.message,
+        errorCode: permissionError?.code
+      });
 
       if (permissionError) {
         console.error('ContributionModal - Erreur permissions:', permissionError);
+        
+        // Si c'est une erreur de "record has no field", c'est probablement un problème de trigger
+        if (permissionError?.message?.includes('record') && permissionError?.message?.includes('has no field')) {
+          toast({
+            title: "Erreur système temporaire",
+            description: "Un problème technique empêche la vérification des permissions. Réessayez dans un moment.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         const errorInfo = getErrorMessage(permissionError);
         toast({
           title: errorInfo.title,
@@ -195,10 +218,25 @@ export function ContributionModal({
           is_anonymous: isAnonymous
         });
 
-      console.log('ContributionModal - Résultat insertion', { contributionError });
+      console.log('ContributionModal - Résultat insertion:', { 
+        contributionError,
+        errorMessage: contributionError?.message,
+        errorCode: contributionError?.code
+      });
       
       if (contributionError) {
         console.error('ContributionModal - Erreur contribution:', contributionError);
+        
+        // Gestion spécifique pour les erreurs de trigger
+        if (contributionError?.message?.includes('record') && contributionError?.message?.includes('has no field')) {
+          toast({
+            title: "Erreur de contribution",
+            description: "Un problème technique empêche l'ajout de votre contribution. Veuillez réessayer.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
         const errorInfo = getErrorMessage(contributionError);
         toast({
           title: errorInfo.title,
