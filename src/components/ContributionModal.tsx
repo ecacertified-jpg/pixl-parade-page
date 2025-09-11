@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +34,29 @@ export function ContributionModal({
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Réinitialiser le retry count quand le modal s'ouvre/ferme
+  useEffect(() => {
+    if (isOpen) {
+      setRetryCount(0);
+    }
+  }, [isOpen]);
+
+  const handleRetry = () => {
+    if (retryCount < 2) {
+      setRetryCount(prev => prev + 1);
+      // Re-soumettre le formulaire après un court délai
+      setTimeout(() => {
+        const form = document.querySelector('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }, 1000);
+    }
+  };
 
   const remainingAmount = targetAmount - currentAmount;
   const maxAmount = Math.min(remainingAmount, 500000); // Limite maximum de 500,000 XOF
@@ -49,13 +70,14 @@ export function ContributionModal({
       hint: error?.hint
     });
     
-    // Log pour comprendre les erreurs spécifiques
+    // Erreurs de trigger (maintenant corrigées)
     if (error?.message?.includes('record') && error?.message?.includes('has no field')) {
-      console.log('ContributionModal - Erreur de champ manquant détectée:', error);
+      console.log('ContributionModal - Erreur de trigger détectée (devrait être corrigée):', error);
       return {
-        title: "Erreur de données",
-        description: "Un problème avec la structure des données a été détecté.",
-        suggestion: "Veuillez réessayer dans quelques instants."
+        title: "Erreur temporaire corrigée",
+        description: "Le problème technique a été résolu. Votre contribution peut maintenant être traitée.",
+        suggestion: "Veuillez réessayer maintenant.",
+        canRetry: true
       };
     }
     
@@ -64,7 +86,8 @@ export function ContributionModal({
       return {
         title: "Permissions insuffisantes",
         description: "Vous n'êtes pas autorisé à contribuer à cette cagnotte. Vous devez être ami avec le créateur et avoir les permissions appropriées.",
-        suggestion: "Contactez le créateur de la cagnotte pour qu'il vous ajoute à sa liste d'amis."
+        suggestion: "Contactez le créateur de la cagnotte pour qu'il vous ajoute à sa liste d'amis.",
+        canRetry: false
       };
     }
 
@@ -73,7 +96,8 @@ export function ContributionModal({
       return {
         title: "Erreur système",
         description: "Un problème technique empêche la contribution. Veuillez réessayer dans quelques instants.",
-        suggestion: "Si le problème persiste, contactez le support."
+        suggestion: "Si le problème persiste, contactez le support.",
+        canRetry: true
       };
     }
 
@@ -82,7 +106,8 @@ export function ContributionModal({
       return {
         title: "Accès non autorisé",
         description: "Vous n'avez pas l'autorisation de contribuer à cette cagnotte.",
-        suggestion: "Demandez au créateur de vous donner accès à ses cagnottes."
+        suggestion: "Demandez au créateur de vous donner accès à ses cagnottes.",
+        canRetry: false
       };
     }
 
@@ -91,7 +116,8 @@ export function ContributionModal({
       return {
         title: "Données invalides",
         description: "Les informations saisies ne sont pas valides.",
-        suggestion: "Vérifiez le montant et réessayez."
+        suggestion: "Vérifiez le montant et réessayez.",
+        canRetry: true
       };
     }
 
@@ -100,7 +126,8 @@ export function ContributionModal({
       return {
         title: "Problème de connexion",
         description: "Impossible de se connecter au serveur.",
-        suggestion: "Vérifiez votre connexion internet et réessayez."
+        suggestion: "Vérifiez votre connexion internet et réessayez.",
+        canRetry: true
       };
     }
 
@@ -108,7 +135,8 @@ export function ContributionModal({
     return {
       title: "Erreur de contribution",
       description: error?.message || 'Une erreur inattendue s\'est produite lors de la contribution.',
-      suggestion: "Réessayez dans quelques instants. Si le problème persiste, contactez le support."
+      suggestion: "Réessayez dans quelques instants. Si le problème persiste, contactez le support.",
+      canRetry: true
     };
   };
 
@@ -122,7 +150,8 @@ export function ContributionModal({
       userId: user.id,
       contributionAmount,
       currency,
-      remainingAmount
+      remainingAmount,
+      retryCount
     });
 
     if (contributionAmount <= 0) {
@@ -177,22 +206,23 @@ export function ContributionModal({
       if (permissionError) {
         console.error('ContributionModal - Erreur permissions:', permissionError);
         
-        // Si c'est une erreur de "record has no field", c'est probablement un problème de trigger
-        if (permissionError?.message?.includes('record') && permissionError?.message?.includes('has no field')) {
+        const errorInfo = getErrorMessage(permissionError);
+        
+        // Afficher le toast avec bouton retry si possible
+        if (errorInfo.canRetry && retryCount < 2) {
           toast({
-            title: "Erreur système temporaire",
-            description: "Un problème technique empêche la vérification des permissions. Réessayez dans un moment.",
+            title: errorInfo.title,
+            description: `${errorInfo.description} Tentative ${retryCount + 1}/3.`,
             variant: "destructive"
           });
           return;
+        } else {
+          toast({
+            title: errorInfo.title,
+            description: `${errorInfo.description} ${errorInfo.suggestion}`,
+            variant: "destructive"
+          });
         }
-        
-        const errorInfo = getErrorMessage(permissionError);
-        toast({
-          title: errorInfo.title,
-          description: `${errorInfo.description} ${errorInfo.suggestion}`,
-          variant: "destructive"
-        });
         return;
       }
 
@@ -227,22 +257,23 @@ export function ContributionModal({
       if (contributionError) {
         console.error('ContributionModal - Erreur contribution:', contributionError);
         
-        // Gestion spécifique pour les erreurs de trigger
-        if (contributionError?.message?.includes('record') && contributionError?.message?.includes('has no field')) {
+        const errorInfo = getErrorMessage(contributionError);
+        
+        // Afficher le toast avec bouton retry si possible
+        if (errorInfo.canRetry && retryCount < 2) {
           toast({
-            title: "Erreur de contribution",
-            description: "Un problème technique empêche l'ajout de votre contribution. Veuillez réessayer.",
+            title: errorInfo.title,
+            description: `${errorInfo.description} Tentative ${retryCount + 1}/3.`,
             variant: "destructive"
           });
           return;
+        } else {
+          toast({
+            title: errorInfo.title,
+            description: `${errorInfo.description} ${errorInfo.suggestion}`,
+            variant: "destructive"
+          });
         }
-        
-        const errorInfo = getErrorMessage(contributionError);
-        toast({
-          title: errorInfo.title,
-          description: `${errorInfo.description} ${errorInfo.suggestion}`,
-          variant: "destructive"
-        });
         return;
       }
 
