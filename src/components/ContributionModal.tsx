@@ -70,17 +70,6 @@ export function ContributionModal({
       hint: error?.hint
     });
     
-    // Erreurs de trigger (maintenant corrigées)
-    if (error?.message?.includes('record') && error?.message?.includes('has no field')) {
-      console.log('ContributionModal - Erreur de trigger détectée (devrait être corrigée):', error);
-      return {
-        title: "Erreur temporaire corrigée",
-        description: "Le problème technique a été résolu. Votre contribution peut maintenant être traitée.",
-        suggestion: "Veuillez réessayer maintenant.",
-        canRetry: true
-      };
-    }
-    
     // Erreurs de permissions RLS
     if (error?.message?.includes('new row violates row-level security policy')) {
       return {
