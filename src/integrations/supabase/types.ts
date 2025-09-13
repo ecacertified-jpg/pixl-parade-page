@@ -255,6 +255,64 @@ export type Database = {
         }
         Relationships: []
       }
+      business_collective_funds: {
+        Row: {
+          auto_notifications: boolean | null
+          beneficiary_user_id: string
+          business_id: string
+          created_at: string | null
+          fund_id: string
+          id: string
+          notification_schedule: Json | null
+          product_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_notifications?: boolean | null
+          beneficiary_user_id: string
+          business_id: string
+          created_at?: string | null
+          fund_id: string
+          id?: string
+          notification_schedule?: Json | null
+          product_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_notifications?: boolean | null
+          beneficiary_user_id?: string
+          business_id?: string
+          created_at?: string | null
+          fund_id?: string
+          id?: string
+          notification_schedule?: Json | null
+          product_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_collective_funds_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: true
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_locations: {
         Row: {
           commune: string | null
@@ -501,7 +559,9 @@ export type Database = {
         Row: {
           allow_anonymous_contributions: boolean | null
           beneficiary_contact_id: string | null
+          business_product_id: string | null
           created_at: string
+          created_by_business_id: string | null
           creator_id: string
           currency: string | null
           current_amount: number | null
@@ -519,7 +579,9 @@ export type Database = {
         Insert: {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
+          business_product_id?: string | null
           created_at?: string
+          created_by_business_id?: string | null
           creator_id: string
           currency?: string | null
           current_amount?: number | null
@@ -537,7 +599,9 @@ export type Database = {
         Update: {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
+          business_product_id?: string | null
           created_at?: string
+          created_by_business_id?: string | null
           creator_id?: string
           currency?: string | null
           current_amount?: number | null
@@ -558,6 +622,20 @@ export type Database = {
             columns: ["beneficiary_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_funds_business_product_id_fkey"
+            columns: ["business_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_funds_created_by_business_id_fkey"
+            columns: ["created_by_business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -2360,6 +2438,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_business_collective_fund: {
+        Args: {
+          p_beneficiary_user_id: string
+          p_business_id: string
+          p_currency?: string
+          p_description?: string
+          p_occasion?: string
+          p_product_id: string
+          p_target_amount?: number
+          p_title: string
+        }
+        Returns: string
+      }
       create_fund_activity: {
         Args: {
           p_activity_type: string
@@ -2414,6 +2505,17 @@ export type Database = {
       encrypt_sensitive_data: {
         Args: { data: string; key_id?: string }
         Returns: string
+      }
+      find_users_in_delivery_zones: {
+        Args: { p_business_id: string; p_search_term?: string }
+        Returns: {
+          address: string
+          email: string
+          first_name: string
+          last_name: string
+          phone: string
+          user_id: string
+        }[]
       }
       generate_event_analytics: {
         Args: Record<PropertyKey, never>

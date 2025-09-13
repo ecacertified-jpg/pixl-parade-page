@@ -12,6 +12,8 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
+import { useBusinessProducts } from "@/hooks/useBusinessProducts";
+import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { 
   ArrowLeft, 
   BarChart3,
@@ -50,6 +52,8 @@ import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
 import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessCard";
+import { BusinessProductCard } from "@/components/BusinessProductCard";
+import { BusinessFundCard } from "@/components/BusinessFundCard";
 import type { Business } from "@/types/business";
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 
@@ -90,6 +94,8 @@ export default function BusinessDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { funds, loading: fundsLoading } = useCollectiveFunds();
+  const { products: businessProducts, loading: productsLoading, refreshProducts } = useBusinessProducts();
+  const { funds: businessFunds, loading: businessFundsLoading } = useBusinessCollectiveFunds();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -346,10 +352,11 @@ export default function BusinessDashboard() {
     setNewProduct({ name: "", description: "", price: "", category: "", stock: "" });
   };
 
+  // Mock products data and stats
   const stats = {
     totalSales: 850000,
     monthlyOrders: 42,
-    activeProducts: 12,
+    activeProducts: businessProducts.length,
     rating: 4.8,
     commission: 127500,
     netRevenue: 722500
@@ -533,27 +540,6 @@ export default function BusinessDashboard() {
       window.open(`tel:${order.customerPhone}`, '_self');
     }
   };
-
-  const products = [
-    {
-      id: 1,
-      name: "Bracelet Doré Élégance",
-      category: "Bijoux",
-      price: 15000,
-      stock: 8,
-      sales: 24,
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "Parfum Roses de Yamoussoukro",
-      category: "Parfums",
-      price: 35000,
-      stock: 5,
-      sales: 12,
-      status: "active"
-    }
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -907,37 +893,42 @@ export default function BusinessDashboard() {
             </Card>
 
             {/* Liste des produits existants */}
-            <Card className="p-4">
-              <h3 className="font-medium mb-4">Mes produits ({products.length})</h3>
-              <div className="space-y-3">
-                {products.map((product) => (
-                  <div key={product.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">{product.category}</div>
-                        <div className="text-sm font-medium text-primary mt-1">
-                          {product.price.toLocaleString()} F
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm">Stock: {product.stock}</div>
-                        <div className="text-sm text-muted-foreground">{product.sales} ventes</div>
-                        <Badge variant="secondary" className="mt-1">En stock</Badge>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+            <div>
+              <h3 className="font-medium mb-4">Mes produits ({businessProducts.length})</h3>
+              
+              {productsLoading ? (
+                <Card className="p-8">
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Chargement des produits...</span>
+                  </div>
+                </Card>
+              ) : businessProducts.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <div className="space-y-4">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <h3 className="font-medium text-lg">Aucun produit ajouté</h3>
+                      <p className="text-muted-foreground">
+                        Ajoutez vos premiers produits pour commencer à créer des cotisations
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </Card>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {businessProducts.map((product) => (
+                    <BusinessProductCard
+                      key={product.id}
+                      product={product}
+                      businessId={businessAccount.id || ''}
+                      onEdit={(product) => console.log('Edit product:', product)}
+                      onDelete={(productId) => console.log('Delete product:', productId)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           {/* Gestion des commandes */}
@@ -976,6 +967,28 @@ export default function BusinessDashboard() {
                 </div>
               </div>
             </Card>
+
+            {/* Section Business Collective Funds */}
+            {businessFundsLoading ? (
+              <Card className="p-4 mb-6">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>Chargement des cotisations business...</span>
+                </div>
+              </Card>
+            ) : businessFunds.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-purple-500" />
+                  Cotisations créées par votre business ({businessFunds.length})
+                </h3>
+                <div className="space-y-4">
+                  {businessFunds.map(fund => (
+                    <BusinessFundCard key={fund.id} fund={fund} />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Section Cotisations terminées */}
             <div className="mb-8">
@@ -1169,14 +1182,14 @@ export default function BusinessDashboard() {
               <Card className="p-4">
                 <h3 className="font-medium mb-4">Ventes par produit</h3>
                 <div className="space-y-3">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between">
-                      <span className="text-sm">{product.name}</span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">{product.sales} ventes</div>
-                        <div className="text-xs text-muted-foreground">
-                          {(product.sales * product.price).toLocaleString()} F
-                        </div>
+                {businessProducts.map((product) => (
+                  <div key={product.id} className="flex items-center justify-between">
+                    <span className="text-sm">{product.name}</span>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">-- ventes</div>
+                      <div className="text-xs text-muted-foreground">
+                        {product.price.toLocaleString()} F (prix)
+                      </div>
                       </div>
                     </div>
                   ))}
