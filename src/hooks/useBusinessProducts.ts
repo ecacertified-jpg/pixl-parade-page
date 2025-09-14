@@ -11,7 +11,8 @@ interface Product {
   currency: string;
   image_url?: string;
   business_owner_id: string;
-  category?: string;
+  category_id?: string;
+  category_name?: string;
   stock?: number;
   is_active?: boolean;
   created_at: string;
@@ -36,7 +37,10 @@ export function useBusinessProducts() {
       
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          category_name:categories(name)
+        `)
         .eq('business_owner_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -44,7 +48,13 @@ export function useBusinessProducts() {
         throw error;
       }
 
-      setProducts(data || []);
+      // Map the data to include category name
+      const mappedProducts = (data || []).map(product => ({
+        ...product,
+        category_name: product.category_name?.name || 'Sans catégorie'
+      }));
+      
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error loading business products:', error);
       toast({

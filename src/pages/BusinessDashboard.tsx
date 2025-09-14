@@ -921,7 +921,7 @@ export default function BusinessDashboard() {
                     <BusinessProductCard
                       key={product.id}
                       product={product}
-                      businessId={businessAccount.id || ''}
+                      businessId={businessAccount.id || user?.id || ''}
                       onEdit={(product) => console.log('Edit product:', product)}
                       onDelete={(productId) => console.log('Delete product:', productId)}
                     />

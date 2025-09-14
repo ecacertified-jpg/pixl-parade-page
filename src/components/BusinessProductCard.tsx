@@ -13,7 +13,8 @@ interface Product {
   currency: string;
   image_url?: string;
   business_owner_id: string;
-  category?: string;
+  category_id?: string;
+  category_name?: string;
   stock?: number;
   is_active?: boolean;
 }
@@ -46,6 +47,10 @@ export function BusinessProductCard({
   };
 
   const handleCreateCollective = () => {
+    if (!businessId) {
+      console.error('Business ID is required to create collective fund');
+      return;
+    }
     setShowCollectiveModal(true);
   };
 
@@ -107,9 +112,9 @@ export function BusinessProductCard({
                 </span>
               </div>
               
-              {product.category && (
+              {product.category_name && (
                 <Badge variant="outline" className="text-xs">
-                  {product.category}
+                  {product.category_name}
                 </Badge>
               )}
             </div>
@@ -126,7 +131,8 @@ export function BusinessProductCard({
           <div className="space-y-2">
             <Button
               onClick={handleCreateCollective}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              disabled={!businessId}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50"
             >
               <Users className="h-4 w-4 mr-2" />
               Créer une cotisation
