@@ -26,7 +26,10 @@ export function useBusinessProducts() {
   const { toast } = useToast();
 
   const loadProducts = async () => {
+    console.log('🔍 [useBusinessProducts] loadProducts called, user:', user?.id);
+    
     if (!user?.id) {
+      console.log('❌ [useBusinessProducts] No user ID, setting empty products');
       setProducts([]);
       setLoading(false);
       return;
@@ -34,6 +37,7 @@ export function useBusinessProducts() {
 
     try {
       setLoading(true);
+      console.log('📡 [useBusinessProducts] Fetching products for user:', user.id);
       
       const { data, error } = await supabase
         .from('products')
@@ -43,6 +47,9 @@ export function useBusinessProducts() {
         `)
         .eq('business_owner_id', user.id)
         .order('created_at', { ascending: false });
+
+      console.log('📊 [useBusinessProducts] Raw data from DB:', data);
+      console.log('🚨 [useBusinessProducts] Error from DB:', error);
 
       if (error) {
         throw error;
@@ -54,9 +61,12 @@ export function useBusinessProducts() {
         category_name: product.category_name?.name || 'Sans catégorie'
       }));
       
+      console.log('✅ [useBusinessProducts] Mapped products:', mappedProducts);
+      console.log('📝 [useBusinessProducts] Number of products found:', mappedProducts.length);
+      
       setProducts(mappedProducts);
     } catch (error) {
-      console.error('Error loading business products:', error);
+      console.error('❌ [useBusinessProducts] Error loading business products:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger vos produits",

@@ -34,6 +34,16 @@ export function BusinessProductCard({
 }: BusinessProductCardProps) {
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
 
+  // Debug logs
+  console.log('🎨 [BusinessProductCard] Rendering product card:', {
+    productName: product.name,
+    productId: product.id,
+    businessId: businessId,
+    hasBusinessId: !!businessId,
+    businessIdType: typeof businessId,
+    businessIdValue: businessId
+  });
+
   const handleEdit = () => {
     if (onEdit) {
       onEdit(product);
@@ -129,6 +139,13 @@ export function BusinessProductCard({
 
           {/* Action Buttons */}
           <div className="space-y-2">
+            {(() => {
+              console.log('🔘 [BusinessProductCard] Rendering button for product:', product.name);
+              console.log('🔘 [BusinessProductCard] Button businessId:', businessId);
+              console.log('🔘 [BusinessProductCard] Button disabled:', !businessId);
+              return null;
+            })()}
+            
             <Button
               onClick={handleCreateCollective}
               disabled={!businessId}

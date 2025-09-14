@@ -896,6 +896,17 @@ export default function BusinessDashboard() {
             <div>
               <h3 className="font-medium mb-4">Mes produits ({businessProducts.length})</h3>
               
+              {(() => {
+                console.log('🎯 [BusinessDashboard] Rendering products section');
+                console.log('📊 [BusinessDashboard] Products loading state:', productsLoading);
+                console.log('📦 [BusinessDashboard] Business products array:', businessProducts);
+                console.log('📦 [BusinessDashboard] Business products length:', businessProducts.length);
+                console.log('🏢 [BusinessDashboard] Business account:', businessAccount);
+                console.log('👤 [BusinessDashboard] User ID:', user?.id);
+                console.log('🆔 [BusinessDashboard] Business ID being passed:', businessAccount.id || user?.id || '');
+                return null;
+              })()}
+              
               {productsLoading ? (
                 <Card className="p-8">
                   <div className="flex items-center justify-center">
@@ -917,15 +928,19 @@ export default function BusinessDashboard() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {businessProducts.map((product) => (
-                    <BusinessProductCard
-                      key={product.id}
-                      product={product}
-                      businessId={businessAccount.id || user?.id || ''}
-                      onEdit={(product) => console.log('Edit product:', product)}
-                      onDelete={(productId) => console.log('Delete product:', productId)}
-                    />
-                  ))}
+                  {businessProducts.map((product) => {
+                    console.log('🎨 [BusinessDashboard] Rendering product card:', product.name);
+                    console.log('🎨 [BusinessDashboard] Product data:', product);
+                    return (
+                      <BusinessProductCard
+                        key={product.id}
+                        product={product}
+                        businessId={businessAccount.id || user?.id || ''}
+                        onEdit={(product) => console.log('Edit product:', product)}
+                        onDelete={(productId) => console.log('Delete product:', productId)}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
