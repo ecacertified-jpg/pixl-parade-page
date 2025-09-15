@@ -146,14 +146,15 @@ export function BusinessProductCard({
               return null;
             })()}
             
-            <Button
-              onClick={handleCreateCollective}
-              disabled={!businessId}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Créer une cotisation
-            </Button>
+             <Button
+               onClick={handleCreateCollective}
+               disabled={!businessId}
+               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+               title={!businessId ? "ID business requis pour créer une cotisation" : ""}
+             >
+               <Users className="h-4 w-4 mr-2" />
+               Créer une cotisation
+             </Button>
             
             <p className="text-xs text-center text-muted-foreground">
               Organisez une cotisation pour offrir ce produit à un client
