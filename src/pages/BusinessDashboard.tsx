@@ -159,7 +159,7 @@ export default function BusinessDashboard() {
 
       if (data && data.length > 0) {
         const businessData = data[0];
-        setBusinessAccount({
+        const businessAccount = {
           id: businessData.id,
           business_name: businessData.business_name || "",
           business_type: businessData.business_type || "",
@@ -189,7 +189,13 @@ export default function BusinessDashboard() {
           delivery_settings: (businessData.delivery_settings && typeof businessData.delivery_settings === 'object') 
             ? businessData.delivery_settings as { free_delivery_threshold: number; standard_cost: number }
             : { free_delivery_threshold: 25000, standard_cost: 2000 }
-        });
+        };
+        
+        console.log('✅ [BusinessDashboard] Business account loaded:', businessAccount);
+        console.log('✅ [BusinessDashboard] Business ID for products:', businessAccount.id);
+        setBusinessAccount(businessAccount);
+      } else {
+        console.log('⚠️ [BusinessDashboard] No business account found, will use user ID as fallback');
       }
     } catch (error) {
       console.error('Error loading business account:', error);
