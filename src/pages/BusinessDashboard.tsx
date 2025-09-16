@@ -992,16 +992,23 @@ export default function BusinessDashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {businessProducts.map((product) => {
-                     console.log('🎨 [BusinessDashboard] Rendering product card:', product.name);
-                     console.log('🎨 [BusinessDashboard] Product data:', product);
-                     console.log('🎨 [BusinessDashboard] businessAccount.id:', businessAccount.id);
+                     console.log('🎨 [BusinessDashboard] === PRODUCT CARD DEBUG ===');
+                     console.log('🎨 [BusinessDashboard] Product:', product.name);
+                     console.log('🎨 [BusinessDashboard] businessAccount:', businessAccount);
+                     console.log('🎨 [BusinessDashboard] businessAccount.id:', businessAccount?.id);
+                     console.log('🎨 [BusinessDashboard] user:', user);
                      console.log('🎨 [BusinessDashboard] user?.id:', user?.id);
-                     console.log('🎨 [BusinessDashboard] final businessId:', businessAccount.id || user?.id || '');
+                     
+                     // Force use user.id as businessId - simplify logic
+                     const finalBusinessId = user?.id || '';
+                     console.log('🎨 [BusinessDashboard] FORCED businessId (user.id):', finalBusinessId);
+                     console.log('🎨 [BusinessDashboard] === END DEBUG ===');
+                     
                      return (
                        <BusinessProductCard
                          key={product.id}
                          product={product}
-                         businessId={businessAccount.id || user?.id || ''}
+                         businessId={finalBusinessId}
                          onEdit={(product) => console.log('Edit product:', product)}
                          onDelete={(productId) => console.log('Delete product:', productId)}
                        />

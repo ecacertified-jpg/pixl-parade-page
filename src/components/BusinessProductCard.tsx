@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,19 @@ export function BusinessProductCard({
   onDelete 
 }: BusinessProductCardProps) {
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
+
+  // Debug logs for troubleshooting
+  useEffect(() => {
+    console.log('🔘 [BusinessProductCard] === DEBUG START ===');
+    console.log('🔘 [BusinessProductCard] Product:', product.name);
+    console.log('🔘 [BusinessProductCard] businessId received:', businessId);
+    console.log('🔘 [BusinessProductCard] businessId type:', typeof businessId);
+    console.log('🔘 [BusinessProductCard] businessId length:', businessId?.length);
+    console.log('🔘 [BusinessProductCard] businessId truthy:', !!businessId);
+    console.log('🔘 [BusinessProductCard] businessId after trim:', businessId?.trim());
+    console.log('🔘 [BusinessProductCard] Button will be disabled:', !businessId || businessId.trim().length === 0);
+    console.log('🔘 [BusinessProductCard] === DEBUG END ===');
+  }, [businessId, product.name]);
 
   // Debug logs
   console.log('🎨 [BusinessProductCard] Rendering product card:', {
@@ -139,24 +152,15 @@ export function BusinessProductCard({
 
           {/* Action Buttons */}
           <div className="space-y-2">
-            {(() => {
-              console.log('🔘 [BusinessProductCard] Rendering button for product:', product.name);
-              console.log('🔘 [BusinessProductCard] Button businessId:', businessId);
-              console.log('🔘 [BusinessProductCard] businessId type:', typeof businessId);
-              console.log('🔘 [BusinessProductCard] businessId valid:', Boolean(businessId && businessId.trim().length > 0));
-              
-              return null;
-            })()}
-            
-             <Button
-               onClick={handleCreateCollective}
-               disabled={!businessId}
-               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-               title={!businessId ? "ID business requis pour créer une cotisation" : "Créer une cotisation collaborative pour ce produit"}
-             >
-               <Users className="h-4 w-4 mr-2" />
-               Créer une cotisation
-             </Button>
+            <Button
+              onClick={handleCreateCollective}
+              disabled={!businessId || businessId.trim().length === 0}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title={(!businessId || businessId.trim().length === 0) ? `ID business requis (reçu: "${businessId}")` : "Créer une cotisation collaborative pour ce produit"}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Créer une cotisation
+            </Button>
             
             <p className="text-xs text-center text-muted-foreground">
               Organisez une cotisation pour offrir ce produit à un client
