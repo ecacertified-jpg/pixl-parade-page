@@ -195,7 +195,64 @@ export default function BusinessDashboard() {
         console.log('✅ [BusinessDashboard] Business ID for products:', businessAccount.id);
         setBusinessAccount(businessAccount);
       } else {
-        console.log('⚠️ [BusinessDashboard] No business account found, will use user ID as fallback');
+        console.log('⚠️ [BusinessDashboard] No business account found, creating basic account with user ID');
+        
+        // Auto-create a basic business account using user ID
+        const { data: createData, error: createError } = await supabase.rpc('upsert_business_account', {
+          p_user_id: user.id,
+          p_business_name: 'Mon Commerce',
+          p_business_type: 'commerce',
+          p_phone: '',
+          p_address: '',
+          p_description: '',
+          p_logo_url: '',
+          p_website_url: '',
+          p_email: '',
+          p_opening_hours: {
+            lundi: { open: "09:00", close: "18:00" },
+            mardi: { open: "09:00", close: "18:00" },
+            mercredi: { open: "09:00", close: "18:00" },
+            jeudi: { open: "09:00", close: "18:00" },
+            vendredi: { open: "09:00", close: "18:00" },
+            samedi: { open: "09:00", close: "18:00" },
+            dimanche: { open: "09:00", close: "18:00", closed: true }
+          },
+          p_delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
+          p_payment_info: { mobile_money: "", account_holder: "" },
+          p_delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
+        });
+
+        if (createError) {
+          console.error('Error creating business account:', createError);
+          // Use user ID as fallback even if creation fails
+          setBusinessAccount({
+            id: user.id, // Use user.id as fallback businessId
+            business_name: 'Mon Commerce',
+            business_type: 'commerce',
+            phone: '',
+            address: '',
+            description: '',
+            logo_url: '',
+            website_url: '',
+            email: '',
+            opening_hours: {
+              lundi: { open: "09:00", close: "18:00" },
+              mardi: { open: "09:00", close: "18:00" },
+              mercredi: { open: "09:00", close: "18:00" },
+              jeudi: { open: "09:00", close: "18:00" },
+              vendredi: { open: "09:00", close: "18:00" },
+              samedi: { open: "09:00", close: "18:00" },
+              dimanche: { open: "09:00", close: "18:00", closed: true }
+            },
+            delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
+            payment_info: { mobile_money: "", account_holder: "" },
+            delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
+          });
+        } else {
+          console.log('✅ [BusinessDashboard] Business account created:', createData);
+          // Reload the account after creation
+          loadBusinessAccount();
+        }
       }
     } catch (error) {
       console.error('Error loading business account:', error);

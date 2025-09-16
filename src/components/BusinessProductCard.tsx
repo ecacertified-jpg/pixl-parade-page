@@ -143,20 +143,16 @@ export function BusinessProductCard({
               console.log('🔘 [BusinessProductCard] Rendering button for product:', product.name);
               console.log('🔘 [BusinessProductCard] Button businessId:', businessId);
               console.log('🔘 [BusinessProductCard] businessId type:', typeof businessId);
-              console.log('🔘 [BusinessProductCard] businessId length:', businessId?.length);
-              console.log('🔘 [BusinessProductCard] Button disabled:', !businessId);
-              
-              const isBusinessIdValid = Boolean(businessId && businessId.trim().length > 0);
-              console.log('🔘 [BusinessProductCard] isBusinessIdValid:', isBusinessIdValid);
+              console.log('🔘 [BusinessProductCard] businessId valid:', Boolean(businessId && businessId.trim().length > 0));
               
               return null;
             })()}
             
              <Button
                onClick={handleCreateCollective}
-               disabled={!businessId || businessId.trim().length === 0}
+               disabled={!businessId}
                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-               title={(!businessId || businessId.trim().length === 0) ? `ID business requis pour créer une cotisation (reçu: ${businessId})` : "Créer une cotisation collaborative pour ce produit"}
+               title={!businessId ? "ID business requis pour créer une cotisation" : "Créer une cotisation collaborative pour ce produit"}
              >
                <Users className="h-4 w-4 mr-2" />
                Créer une cotisation
