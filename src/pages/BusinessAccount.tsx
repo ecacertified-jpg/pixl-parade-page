@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, Ma
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
+import { BusinessProductCard } from "@/components/BusinessProductCard";
 import { OrderDetailsModal } from "@/components/OrderDetailsModal";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
@@ -602,45 +603,44 @@ export default function BusinessAccount() {
                 
               </div>
               
-              {loadingProducts ? <div className="flex items-center justify-center py-8">
+              {loadingProducts ? (
+                <div className="flex items-center justify-center py-8">
                   <div className="text-muted-foreground">Chargement des produits...</div>
-                </div> : products.length === 0 ? <div className="text-center py-8 text-muted-foreground">
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>Aucun produit ajouté</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour créer votre premier produit</p>
-                </div> : <div className="space-y-3">
-                  {products.map(product => <div key={product.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{product.name}</span>
-                            {product.status === "inactive" && <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                                Désactivé
-                              </Badge>}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{product.category}</div>
-                          <div className="text-sm font-medium text-primary mt-1">
-                            {product.price.toLocaleString()} F
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm">Stock: {product.stock}</div>
-                          <div className="text-sm text-muted-foreground">{product.sales} ventes</div>
-                          <Badge variant="secondary" className={`mt-1 ${product.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"}`}>
-                            {product.status === "active" ? "En stock" : "Désactivé"}
-                          </Badge>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                          <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id)} disabled={deletingProductId === product.id}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleDeleteProduct(product.id)} disabled={deletingProductId === product.id} className={deletingProductId === product.id ? "opacity-50" : ""}>
-                            {deletingProductId === product.id ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Trash2 className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>)}
-                </div>}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {products.map(product => {
+                    // Transform product data to match BusinessProductCard interface
+                    const transformedProduct = {
+                      id: product.id,
+                      name: product.name,
+                      description: product.category, // Use category as description for now
+                      price: product.price,
+                      currency: 'XOF',
+                      business_owner_id: user?.id || '',
+                      category_name: product.category,
+                      stock: product.stock,
+                      is_active: product.status === 'active'
+                    };
+                    
+                    return (
+                      <BusinessProductCard
+                        key={product.id}
+                        product={transformedProduct}
+                        businessId={user?.id}
+                        onEdit={(product) => handleEditProduct(product.id)}
+                        onDelete={(productId) => handleDeleteProduct(productId)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </TabsContent>
 
