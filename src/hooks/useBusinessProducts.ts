@@ -22,12 +22,20 @@ interface Product {
 export function useBusinessProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const loadProducts = async () => {
-    console.log('🔍 [useBusinessProducts] loadProducts called, user:', user?.id);
+    console.log('🔍 [useBusinessProducts] loadProducts called');
+    console.log('🔍 [useBusinessProducts] user:', user?.id);
+    console.log('🔍 [useBusinessProducts] authLoading:', authLoading);
     
+    // Don't load if still authenticating
+    if (authLoading) {
+      console.log('⏳ [useBusinessProducts] Still loading auth, waiting...');
+      return;
+    }
+
     if (!user?.id) {
       console.log('❌ [useBusinessProducts] No user ID, setting empty products');
       setProducts([]);
@@ -82,12 +90,15 @@ export function useBusinessProducts() {
   };
 
   useEffect(() => {
-    loadProducts();
-  }, [user]);
+    // Only load products when auth is ready and user is available
+    if (!authLoading) {
+      loadProducts();
+    }
+  }, [user, authLoading]);
 
   return {
     products,
-    loading,
+    loading: loading || authLoading, // Include auth loading in overall loading state
     refreshProducts
   };
 }

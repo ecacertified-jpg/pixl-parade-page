@@ -151,6 +151,8 @@ export default function BusinessDashboard() {
     
     try {
       setLoading(true);
+      console.log('📋 [BusinessDashboard] Loading business account for user:', user.id);
+      
       const { data, error } = await supabase.rpc('get_business_account', {
         p_user_id: user.id
       });
@@ -160,7 +162,7 @@ export default function BusinessDashboard() {
       if (data && data.length > 0) {
         const businessData = data[0];
         const businessAccount = {
-          id: businessData.id,
+          id: businessData.id || user.id, // Ensure we always have an ID
           business_name: businessData.business_name || "",
           business_type: businessData.business_type || "",
           phone: businessData.phone || "",
@@ -191,24 +193,23 @@ export default function BusinessDashboard() {
             : { free_delivery_threshold: 25000, standard_cost: 2000 }
         };
         
-        console.log('✅ [BusinessDashboard] Business account loaded:', businessAccount);
-        console.log('✅ [BusinessDashboard] Business ID for products:', businessAccount.id);
+        console.log('✅ [BusinessDashboard] Business account loaded with ID:', businessAccount.id);
         setBusinessAccount(businessAccount);
       } else {
-        console.log('⚠️ [BusinessDashboard] No business account found, creating basic account with user ID');
+        console.log('⚠️ [BusinessDashboard] No business account found, using user ID as fallback');
         
-        // Auto-create a basic business account using user ID
-        const { data: createData, error: createError } = await supabase.rpc('upsert_business_account', {
-          p_user_id: user.id,
-          p_business_name: 'Mon Commerce',
-          p_business_type: 'commerce',
-          p_phone: '',
-          p_address: '',
-          p_description: '',
-          p_logo_url: '',
-          p_website_url: '',
-          p_email: '',
-          p_opening_hours: {
+        // Use user.id directly as businessId - simpler approach
+        setBusinessAccount({
+          id: user.id,
+          business_name: 'Mon Commerce',
+          business_type: 'commerce',
+          phone: '',
+          address: '',
+          description: '',
+          logo_url: '',
+          website_url: '',
+          email: '',
+          opening_hours: {
             lundi: { open: "09:00", close: "18:00" },
             mardi: { open: "09:00", close: "18:00" },
             mercredi: { open: "09:00", close: "18:00" },
@@ -217,45 +218,39 @@ export default function BusinessDashboard() {
             samedi: { open: "09:00", close: "18:00" },
             dimanche: { open: "09:00", close: "18:00", closed: true }
           },
-          p_delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
-          p_payment_info: { mobile_money: "", account_holder: "" },
-          p_delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
+          delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
+          payment_info: { mobile_money: "", account_holder: "" },
+          delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
         });
-
-        if (createError) {
-          console.error('Error creating business account:', createError);
-          // Use user ID as fallback even if creation fails
-          setBusinessAccount({
-            id: user.id, // Use user.id as fallback businessId
-            business_name: 'Mon Commerce',
-            business_type: 'commerce',
-            phone: '',
-            address: '',
-            description: '',
-            logo_url: '',
-            website_url: '',
-            email: '',
-            opening_hours: {
-              lundi: { open: "09:00", close: "18:00" },
-              mardi: { open: "09:00", close: "18:00" },
-              mercredi: { open: "09:00", close: "18:00" },
-              jeudi: { open: "09:00", close: "18:00" },
-              vendredi: { open: "09:00", close: "18:00" },
-              samedi: { open: "09:00", close: "18:00" },
-              dimanche: { open: "09:00", close: "18:00", closed: true }
-            },
-            delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
-            payment_info: { mobile_money: "", account_holder: "" },
-            delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
-          });
-        } else {
-          console.log('✅ [BusinessDashboard] Business account created:', createData);
-          // Reload the account after creation
-          loadBusinessAccount();
-        }
       }
     } catch (error) {
       console.error('Error loading business account:', error);
+      // Even on error, ensure we have a business account with user ID
+      if (user?.id) {
+        setBusinessAccount({
+          id: user.id,
+          business_name: 'Mon Commerce',
+          business_type: 'commerce',
+          phone: '',
+          address: '',
+          description: '',
+          logo_url: '',
+          website_url: '',
+          email: '',
+          opening_hours: {
+            lundi: { open: "09:00", close: "18:00" },
+            mardi: { open: "09:00", close: "18:00" },
+            mercredi: { open: "09:00", close: "18:00" },
+            jeudi: { open: "09:00", close: "18:00" },
+            vendredi: { open: "09:00", close: "18:00" },
+            samedi: { open: "09:00", close: "18:00" },
+            dimanche: { open: "09:00", close: "18:00", closed: true }
+          },
+          delivery_zones: [{ name: "Zone standard", radius: 15, cost: 2000 }],
+          payment_info: { mobile_money: "", account_holder: "" },
+          delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
+        });
+      }
       toast({
         title: "Erreur",
         description: "Impossible de charger les informations business",

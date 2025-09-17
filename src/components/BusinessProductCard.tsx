@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Users, Package, DollarSign } from "lucide-react";
 import { BusinessCollaborativeGiftModal } from "./BusinessCollaborativeGiftModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Product {
   id: string;
@@ -21,7 +22,7 @@ interface Product {
 
 interface BusinessProductCardProps {
   product: Product;
-  businessId: string;
+  businessId?: string;
   onEdit?: (product: Product) => void;
   onDelete?: (productId: string) => void;
 }
@@ -32,30 +33,36 @@ export function BusinessProductCard({
   onEdit, 
   onDelete 
 }: BusinessProductCardProps) {
+  const { user, loading: authLoading } = useAuth();
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
 
-  // Debug logs for troubleshooting
-  useEffect(() => {
-    console.log('🔘 [BusinessProductCard] === DEBUG START ===');
-    console.log('🔘 [BusinessProductCard] Product:', product.name);
-    console.log('🔘 [BusinessProductCard] businessId received:', businessId);
-    console.log('🔘 [BusinessProductCard] businessId type:', typeof businessId);
-    console.log('🔘 [BusinessProductCard] businessId length:', businessId?.length);
-    console.log('🔘 [BusinessProductCard] businessId truthy:', !!businessId);
-    console.log('🔘 [BusinessProductCard] businessId after trim:', businessId?.trim());
-    console.log('🔘 [BusinessProductCard] Button will be disabled:', !businessId || businessId.trim().length === 0);
-    console.log('🔘 [BusinessProductCard] === DEBUG END ===');
-  }, [businessId, product.name]);
+  // Use user.id as primary businessId, businessId prop as fallback
+  const effectiveBusinessId = businessId || user?.id;
 
-  // Debug logs
-  console.log('🎨 [BusinessProductCard] Rendering product card:', {
-    productName: product.name,
-    productId: product.id,
-    businessId: businessId,
-    hasBusinessId: !!businessId,
-    businessIdType: typeof businessId,
-    businessIdValue: businessId
-  });
+  // Debug logs - comprehensive
+  useEffect(() => {
+    console.log('🔘 [BusinessProductCard] === COMPREHENSIVE DEBUG ===');
+    console.log('🔘 [BusinessProductCard] Product:', product.name);
+    console.log('🔘 [BusinessProductCard] businessId prop:', businessId);
+    console.log('🔘 [BusinessProductCard] user?.id:', user?.id);
+    console.log('🔘 [BusinessProductCard] effectiveBusinessId:', effectiveBusinessId);
+    console.log('🔘 [BusinessProductCard] authLoading:', authLoading);
+    console.log('🔘 [BusinessProductCard] user object:', user);
+    console.log('🔘 [BusinessProductCard] Button should be enabled:', !authLoading && !!effectiveBusinessId);
+    console.log('🔘 [BusinessProductCard] === END DEBUG ===');
+  }, [businessId, user?.id, effectiveBusinessId, authLoading, product.name]);
+
+  // Don't render if still loading auth
+  if (authLoading) {
+    return (
+      <Card className="overflow-hidden">
+        <div className="p-4 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground mt-2">Chargement...</p>
+        </div>
+      </Card>
+    );
+  }
 
   const handleEdit = () => {
     if (onEdit) {
@@ -70,10 +77,11 @@ export function BusinessProductCard({
   };
 
   const handleCreateCollective = () => {
-    if (!businessId) {
+    if (!effectiveBusinessId) {
       console.error('Business ID is required to create collective fund');
       return;
     }
+    console.log('🎯 [BusinessProductCard] Creating collective fund with businessId:', effectiveBusinessId);
     setShowCollectiveModal(true);
   };
 
@@ -154,9 +162,9 @@ export function BusinessProductCard({
           <div className="space-y-2">
             <Button
               onClick={handleCreateCollective}
-              disabled={!businessId || businessId.trim().length === 0}
+              disabled={authLoading || !effectiveBusinessId}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              title={(!businessId || businessId.trim().length === 0) ? `ID business requis (reçu: "${businessId}")` : "Créer une cotisation collaborative pour ce produit"}
+              title={authLoading ? "Chargement..." : !effectiveBusinessId ? "Connexion requise" : "Créer une cotisation collaborative pour ce produit"}
             >
               <Users className="h-4 w-4 mr-2" />
               Créer une cotisation
@@ -173,7 +181,7 @@ export function BusinessProductCard({
         isOpen={showCollectiveModal}
         onClose={() => setShowCollectiveModal(false)}
         product={product}
-        businessId={businessId}
+        businessId={effectiveBusinessId || ''}
         onBack={() => setShowCollectiveModal(false)}
       />
     </>
