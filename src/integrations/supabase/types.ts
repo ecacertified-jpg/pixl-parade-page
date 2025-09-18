@@ -2517,6 +2517,17 @@ export type Database = {
           user_id: string
         }[]
       }
+      find_users_outside_delivery_zones: {
+        Args: { p_business_id: string; p_search_term?: string }
+        Returns: {
+          address: string
+          email: string
+          first_name: string
+          last_name: string
+          phone: string
+          user_id: string
+        }[]
+      }
       generate_event_analytics: {
         Args: Record<PropertyKey, never>
         Returns: number

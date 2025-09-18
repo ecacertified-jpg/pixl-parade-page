@@ -46,22 +46,27 @@ export function BusinessCollaborativeGiftModal({
   const [isCreating, setIsCreating] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showOutsideZone, setShowOutsideZone] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch users when modal opens
+  // Fetch users when modal opens or when zone filter changes
   useEffect(() => {
     if (isOpen && businessId) {
       loadUsers();
     }
-  }, [isOpen, businessId, searchTerm]);
+  }, [isOpen, businessId, searchTerm, showOutsideZone]);
 
   const loadUsers = async () => {
     if (!businessId) return;
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('find_users_in_delivery_zones', {
+      const functionName = showOutsideZone 
+        ? 'find_users_outside_delivery_zones'
+        : 'find_users_in_delivery_zones';
+        
+      const { data, error } = await supabase.rpc(functionName, {
         p_business_id: businessId,
         p_search_term: searchTerm || null
       });
@@ -199,6 +204,30 @@ export function BusinessCollaborativeGiftModal({
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+
+          {/* Zone Toggle */}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={!showOutsideZone ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowOutsideZone(false)}
+              className="flex-1"
+            >
+              <MapPin className="h-4 w-4 mr-2" />
+              Dans votre zone
+            </Button>
+            <Button
+              type="button"
+              variant={showOutsideZone ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowOutsideZone(true)}
+              className="flex-1"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Hors de votre zone
+            </Button>
           </div>
 
           {/* Users List */}
