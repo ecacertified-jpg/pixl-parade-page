@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff, Eye } from "lucide-react";
+import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
@@ -646,6 +647,11 @@ export default function BusinessAccount() {
 
           {/* Onglet Commandes */}
           <TabsContent value="commandes" className="mt-6">
+            {/* Section des cotisations initiées par le prestataire */}
+            <div className="mb-6">
+              <BusinessInitiatedFundsSection />
+            </div>
+
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Commandes clients</h3>
