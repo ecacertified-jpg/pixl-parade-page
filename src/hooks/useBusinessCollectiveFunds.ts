@@ -88,6 +88,9 @@ export function useBusinessCollectiveFunds() {
             last_name,
             email,
             phone
+          ),
+          business_accounts!business_id (
+            user_id
           )
         `)
         .eq('business_accounts.user_id', user.id)
