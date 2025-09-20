@@ -137,6 +137,9 @@ export function BusinessCollaborativeGiftModal({
         description: `Cotisation créée pour ${selectedUser.first_name} ${selectedUser.last_name}. Les notifications seront envoyées à ses proches.`
       });
 
+      // Refresh the business funds list to show the new fund
+      window.dispatchEvent(new Event('refresh-business-funds'));
+
       onClose();
     } catch (error) {
       console.error('Erreur lors de la création de la cotisation:', error);

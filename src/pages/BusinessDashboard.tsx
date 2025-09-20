@@ -56,6 +56,7 @@ import { BusinessProductCard } from "@/components/BusinessProductCard";
 import { BusinessFundCard } from "@/components/BusinessFundCard";
 import type { Business } from "@/types/business";
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
+import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
 
 
 interface OrderItem {
@@ -1073,7 +1074,12 @@ export default function BusinessDashboard() {
               </div>
             )}
 
-            {/* Section Cotisations terminées */}
+            {/* Section Cotisations initiées */}
+            <div className="mb-8">
+              <BusinessInitiatedFundsSection />
+            </div>
+
+            {/* Section Commandes de cotisations */}
             <div className="mb-8">
               <BusinessOrdersSection />
             </div>

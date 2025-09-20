@@ -151,6 +151,17 @@ export function useBusinessCollectiveFunds() {
 
   useEffect(() => {
     loadBusinessFunds();
+    
+    // Listen for refresh events
+    const handleRefresh = () => {
+      loadBusinessFunds();
+    };
+    
+    window.addEventListener('refresh-business-funds', handleRefresh);
+    
+    return () => {
+      window.removeEventListener('refresh-business-funds', handleRefresh);
+    };
   }, [user]);
 
   return {
