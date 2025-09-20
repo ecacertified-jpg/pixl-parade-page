@@ -23,7 +23,6 @@ interface Contributor {
   id: string;
   name: string;
   amount: number;
-  avatar?: string;
 }
 
 interface BusinessInitiatedFund {
@@ -42,7 +41,7 @@ interface BusinessInitiatedFund {
   beneficiary_phone?: string;
   beneficiary_address?: string;
   contributors: Contributor[];
-  non_contributors: Array<{ id: string; name: string; avatar?: string }>;
+  non_contributors: Array<{ id: string; name: string }>;
 }
 
 export function BusinessInitiatedFundsSection() {
@@ -71,13 +70,7 @@ export function BusinessInitiatedFundsSection() {
           .select(`
             id,
             amount,
-            contributor_id,
-            profiles!contributor_id (
-              user_id,
-              first_name,
-              last_name,
-              avatar_url
-            )
+            contributor_id
           `)
           .eq('fund_id', fund.fund_id);
 
@@ -86,35 +79,28 @@ export function BusinessInitiatedFundsSection() {
           continue;
         }
 
-        // Transform contributors
-        const contributors: Contributor[] = (contributions || []).map(contrib => ({
-          id: contrib.contributor_id,
-          name: contrib.profiles 
-            ? `${contrib.profiles.first_name || ''} ${contrib.profiles.last_name || ''}`.trim() || 'Anonyme'
-            : 'Anonyme',
-          amount: contrib.amount,
-          avatar: contrib.profiles?.avatar_url
-        }));
+        // Get contributor profiles separately
+        const contributors: Contributor[] = [];
+        for (const contrib of contributions || []) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', contrib.contributor_id)
+            .single();
+
+          contributors.push({
+            id: contrib.contributor_id,
+            name: profile 
+              ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Anonyme'
+              : 'Anonyme',
+            amount: contrib.amount
+          });
+        }
 
         // Get potential contributors (friends of beneficiary who haven't contributed)
         const { data: friendsData } = await supabase
           .from('contact_relationships')
-          .select(`
-            user_a,
-            user_b,
-            profiles!contact_relationships_user_a_fkey (
-              user_id,
-              first_name,
-              last_name,
-              avatar_url
-            ),
-            profiles_user_b:profiles!contact_relationships_user_b_fkey (
-              user_id,
-              first_name,
-              last_name,
-              avatar_url
-            )
-          `)
+          .select('user_a, user_b')
           .or(`user_a.eq.${fund.beneficiary_user_id},user_b.eq.${fund.beneficiary_user_id}`)
           .eq('can_see_funds', true);
 
@@ -124,17 +110,19 @@ export function BusinessInitiatedFundsSection() {
         if (friendsData) {
           for (const relation of friendsData) {
             const friendId = relation.user_a === fund.beneficiary_user_id ? relation.user_b : relation.user_a;
-            const friendProfile = relation.user_a === fund.beneficiary_user_id 
-              ? relation.profiles_user_b 
-              : relation.profiles;
 
             if (!contributorIds.includes(friendId)) {
+              const { data: friendProfile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('user_id', friendId)
+                .single();
+
               nonContributors.push({
                 id: friendId,
                 name: friendProfile 
                   ? `${friendProfile.first_name || ''} ${friendProfile.last_name || ''}`.trim() || 'Ami'
-                  : 'Ami',
-                avatar: friendProfile?.avatar_url
+                  : 'Ami'
               });
             }
           }
@@ -289,7 +277,6 @@ export function BusinessInitiatedFundsSection() {
                     {fund.contributors.map((contributor) => (
                       <div key={contributor.id} className="flex items-center gap-2 text-sm">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={contributor.avatar} />
                           <AvatarFallback className="text-xs">
                             {contributor.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
@@ -319,7 +306,6 @@ export function BusinessInitiatedFundsSection() {
                     {fund.non_contributors.slice(0, 5).map((nonContributor) => (
                       <div key={nonContributor.id} className="flex items-center gap-2 text-sm">
                         <Avatar className="h-6 w-6">
-                          <AvatarImage src={nonContributor.avatar} />
                           <AvatarFallback className="text-xs">
                             {nonContributor.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
