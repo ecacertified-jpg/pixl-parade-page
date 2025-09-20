@@ -89,10 +89,17 @@ export function useBusinessCollectiveFunds() {
         throw error;
       }
 
-      // Filter funds that belong to current user's business
+      // Get user's business accounts to check which funds belong to them
+      const { data: businessAccounts } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const userBusinessIds = (businessAccounts || []).map(ba => ba.id);
+
+      // Filter funds that belong to current user's business accounts OR directly to the user
       const userFunds = (data || []).filter(fund => {
-        // Check if this fund belongs to user's business (compare business_id with user.id)
-        return fund.business_id === user.id;
+        return userBusinessIds.includes(fund.business_id) || fund.business_id === user.id;
       });
 
       // Transform the data to match our interface and get beneficiary info separately
