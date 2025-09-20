@@ -81,38 +81,49 @@ export function useBusinessCollectiveFunds() {
             price,
             currency,
             image_url
-          ),
-          profiles!beneficiary_user_id (
-            user_id,
-            first_name,
-            last_name,
-            email,
-            phone
-          ),
-          business_accounts!business_id (
-            user_id
           )
         `)
-        .eq('business_accounts.user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      // Transform the data to match our interface
-      const transformedFunds: BusinessCollectiveFund[] = (data || []).map(item => ({
-        id: item.id,
-        fund_id: item.fund_id,
-        business_id: item.business_id,
-        product_id: item.product_id,
-        beneficiary_user_id: item.beneficiary_user_id,
-        auto_notifications: item.auto_notifications,
-        created_at: item.created_at,
-        fund: Array.isArray(item.collective_funds) ? item.collective_funds[0] : item.collective_funds,
-        product: Array.isArray(item.products) ? item.products[0] : item.products,
-        beneficiary: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles
-      }));
+      // Filter funds that belong to current user's business
+      const userFunds = (data || []).filter(fund => {
+        // Check if this fund belongs to user's business (compare business_id with user.id)
+        return fund.business_id === user.id;
+      });
+
+      // Transform the data to match our interface and get beneficiary info separately
+      const transformedFunds: BusinessCollectiveFund[] = [];
+      
+      for (const item of userFunds) {
+        // Get beneficiary profile if beneficiary_user_id exists
+        let beneficiary = null;
+        if (item.beneficiary_user_id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_id, first_name, last_name, phone')
+            .eq('user_id', item.beneficiary_user_id)
+            .single();
+          
+          beneficiary = profileData;
+        }
+
+        transformedFunds.push({
+          id: item.id,
+          fund_id: item.fund_id,
+          business_id: item.business_id,
+          product_id: item.product_id,
+          beneficiary_user_id: item.beneficiary_user_id,
+          auto_notifications: item.auto_notifications,
+          created_at: item.created_at,
+          fund: Array.isArray(item.collective_funds) ? item.collective_funds[0] : item.collective_funds,
+          product: Array.isArray(item.products) ? item.products[0] : item.products,
+          beneficiary: beneficiary
+        });
+      }
 
       setFunds(transformedFunds);
     } catch (error) {
