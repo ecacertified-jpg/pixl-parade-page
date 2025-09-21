@@ -75,7 +75,7 @@ export function useBusinessCollectiveFunds() {
       console.log('🏢 [DEBUG] User business account IDs:', userBusinessIds);
       console.log('🏢 [DEBUG] Business accounts:', businessAccounts);
 
-      // Get business collective funds with related data
+      // Now get business collective funds - RLS should automatically filter for us
       const { data, error } = await supabase
         .from('business_collective_funds')
         .select(`
@@ -107,19 +107,19 @@ export function useBusinessCollectiveFunds() {
         throw error;
       }
 
-      console.log('💰 [DEBUG] All business collective funds:', data?.length || 0);
+      console.log('💰 [DEBUG] Business collective funds (after RLS):', data?.length || 0);
       console.log('💰 [DEBUG] Sample fund business_ids:', data?.slice(0, 3).map(f => ({ id: f.id, business_id: f.business_id })));
 
-      // Filter funds that belong to current user's business accounts OR directly to the user
+      // RLS should have already filtered the data, but let's keep a safety check
       const userFunds = (data || []).filter(fund => {
         const belongsToUser = userBusinessIds.includes(fund.business_id) || fund.business_id === user.id;
         if (!belongsToUser) {
-          console.log('❌ [DEBUG] Fund filtered out:', { fund_id: fund.id, business_id: fund.business_id, user_id: user.id, userBusinessIds });
+          console.log('❌ [DEBUG] Fund filtered out (safety check):', { fund_id: fund.id, business_id: fund.business_id, user_id: user.id, userBusinessIds });
         }
         return belongsToUser;
       });
 
-      console.log('✅ [DEBUG] Filtered user funds:', userFunds.length);
+      console.log('✅ [DEBUG] Final filtered user funds:', userFunds.length);
       console.log('✅ [DEBUG] User funds:', userFunds.map(f => ({ id: f.id, business_id: f.business_id, fund_id: f.fund_id })));
 
       // Transform the data to match our interface and get beneficiary info separately
