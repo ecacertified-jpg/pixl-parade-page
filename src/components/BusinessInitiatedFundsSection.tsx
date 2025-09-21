@@ -51,8 +51,12 @@ export function BusinessInitiatedFundsSection() {
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
+    console.log('🎯 [DEBUG] BusinessInitiatedFundsSection - businessFunds changed:', businessFunds.length);
+    console.log('🎯 [DEBUG] BusinessInitiatedFundsSection - funds:', businessFunds);
     if (businessFunds.length > 0) {
       loadFundDetails();
+    } else {
+      setFundsWithDetails([]);
     }
   }, [businessFunds]);
 

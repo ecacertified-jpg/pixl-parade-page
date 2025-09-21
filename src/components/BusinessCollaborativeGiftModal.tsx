@@ -137,8 +137,10 @@ export function BusinessCollaborativeGiftModal({
         description: `Cotisation créée pour ${selectedUser.first_name} ${selectedUser.last_name}. Les notifications seront envoyées à ses proches.`
       });
 
-      // Refresh the business funds list to show the new fund
-      window.dispatchEvent(new Event('refresh-business-funds'));
+      // Force immediate refresh with a small delay to ensure database consistency
+      setTimeout(() => {
+        window.dispatchEvent(new Event('refresh-business-funds'));
+      }, 500);
 
       onClose();
     } catch (error) {

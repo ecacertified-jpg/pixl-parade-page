@@ -58,6 +58,23 @@ export function useBusinessCollectiveFunds() {
     try {
       setLoading(true);
       
+      console.log('🔍 [DEBUG] Loading business funds for user:', user.id);
+      
+      // Get user's business accounts first
+      const { data: businessAccounts, error: businessError } = await supabase
+        .from('business_accounts')
+        .select('id, business_name')
+        .eq('user_id', user.id);
+
+      if (businessError) {
+        console.error('❌ [DEBUG] Error loading business accounts:', businessError);
+        throw businessError;
+      }
+
+      const userBusinessIds = (businessAccounts || []).map(ba => ba.id);
+      console.log('🏢 [DEBUG] User business account IDs:', userBusinessIds);
+      console.log('🏢 [DEBUG] Business accounts:', businessAccounts);
+
       // Get business collective funds with related data
       const { data, error } = await supabase
         .from('business_collective_funds')
@@ -86,21 +103,24 @@ export function useBusinessCollectiveFunds() {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('❌ [DEBUG] Error loading business collective funds:', error);
         throw error;
       }
 
-      // Get user's business accounts to check which funds belong to them
-      const { data: businessAccounts } = await supabase
-        .from('business_accounts')
-        .select('id')
-        .eq('user_id', user.id);
-
-      const userBusinessIds = (businessAccounts || []).map(ba => ba.id);
+      console.log('💰 [DEBUG] All business collective funds:', data?.length || 0);
+      console.log('💰 [DEBUG] Sample fund business_ids:', data?.slice(0, 3).map(f => ({ id: f.id, business_id: f.business_id })));
 
       // Filter funds that belong to current user's business accounts OR directly to the user
       const userFunds = (data || []).filter(fund => {
-        return userBusinessIds.includes(fund.business_id) || fund.business_id === user.id;
+        const belongsToUser = userBusinessIds.includes(fund.business_id) || fund.business_id === user.id;
+        if (!belongsToUser) {
+          console.log('❌ [DEBUG] Fund filtered out:', { fund_id: fund.id, business_id: fund.business_id, user_id: user.id, userBusinessIds });
+        }
+        return belongsToUser;
       });
+
+      console.log('✅ [DEBUG] Filtered user funds:', userFunds.length);
+      console.log('✅ [DEBUG] User funds:', userFunds.map(f => ({ id: f.id, business_id: f.business_id, fund_id: f.fund_id })));
 
       // Transform the data to match our interface and get beneficiary info separately
       const transformedFunds: BusinessCollectiveFund[] = [];
@@ -132,9 +152,10 @@ export function useBusinessCollectiveFunds() {
         });
       }
 
+      console.log('🎯 [DEBUG] Final transformed funds:', transformedFunds.length);
       setFunds(transformedFunds);
     } catch (error) {
-      console.error('Error loading business collective funds:', error);
+      console.error('❌ [ERROR] Error loading business collective funds:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les cotisations business",
@@ -146,6 +167,7 @@ export function useBusinessCollectiveFunds() {
   };
 
   const refreshFunds = () => {
+    console.log('🔄 [DEBUG] Manual refresh triggered');
     loadBusinessFunds();
   };
 
@@ -154,6 +176,7 @@ export function useBusinessCollectiveFunds() {
     
     // Listen for refresh events
     const handleRefresh = () => {
+      console.log('🔄 [DEBUG] Refresh event received');
       loadBusinessFunds();
     };
     
