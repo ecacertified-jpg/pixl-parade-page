@@ -67,6 +67,15 @@ export default function Checkout() {
 
     setIsProcessing(true);
     try {
+      // Get product details to identify business products
+      const productIds = orderItems.map(item => (item.productId || item.id).toString());
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, business_id, business_owner_id")
+        .in("id", productIds);
+
+      if (productsError) throw productsError;
+
       // Create order in database
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -96,7 +105,54 @@ export default function Checkout() {
           });
       }
 
-      // For gifts, create gift record for beneficiary notification (if applicable)
+      // Create business orders for products that belong to businesses
+      const businessItems = orderItems.filter(item => {
+        const product = products?.find(p => p.id === (item.productId || item.id).toString());
+        return product && product.business_id;
+      });
+
+      if (businessItems.length > 0) {
+        // Group items by business
+        const itemsByBusiness = businessItems.reduce((acc, item) => {
+          const product = products?.find(p => p.id === (item.productId || item.id).toString());
+          if (product?.business_id) {
+            if (!acc[product.business_id]) {
+              acc[product.business_id] = [];
+            }
+            acc[product.business_id].push(item);
+          }
+          return acc;
+        }, {} as { [businessId: string]: typeof businessItems });
+
+        // Create business order for each business
+        for (const [businessId, items] of Object.entries(itemsByBusiness)) {
+          const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          
+          await supabase
+            .from("business_orders")
+            .insert({
+              fund_id: orderData.id, // Using order ID as reference
+              business_account_id: businessId,
+              order_summary: {
+                items: items.map(item => ({
+                  name: item.name,
+                  description: item.description,
+                  price: item.price,
+                  quantity: item.quantity,
+                  total: item.price * item.quantity
+                })),
+                order_id: orderData.id
+              },
+              total_amount: businessTotal,
+              currency: "XOF",
+              donor_phone: donorPhoneNumber,
+              beneficiary_phone: beneficiaryPhoneNumber,
+              delivery_address: address,
+              payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
+              status: "pending"
+            });
+        }
+      }
 
       // Store order details for confirmation page
       localStorage.setItem('lastOrderDetails', JSON.stringify({
