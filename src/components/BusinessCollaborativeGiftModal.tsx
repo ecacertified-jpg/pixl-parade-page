@@ -124,11 +124,21 @@ export function BusinessCollaborativeGiftModal({
 
       if (error) {
         console.error('Erreur lors de la création de la cotisation:', error);
-        toast({
-          title: "Erreur",
-          description: error.message || "Impossible de créer la cotisation",
-          variant: "destructive"
-        });
+        
+        // Gérer spécifiquement l'erreur de cotisation déjà active
+        if (error.message?.includes('cotisation est déjà en cours')) {
+          toast({
+            title: "Cotisation déjà active",
+            description: `${getDisplayName(selectedUser)} a déjà une cotisation en cours. Veuillez attendre qu'elle soit terminée avant d'en créer une nouvelle.`,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Erreur",
+            description: error.message || "Impossible de créer la cotisation",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
@@ -143,13 +153,23 @@ export function BusinessCollaborativeGiftModal({
       }, 500);
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la création de la cotisation:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de créer la cotisation",
-        variant: "destructive"
-      });
+      
+      // Gérer spécifiquement l'erreur de cotisation déjà active
+      if (error.message?.includes('cotisation est déjà en cours')) {
+        toast({
+          title: "Cotisation déjà active",
+          description: `${getDisplayName(selectedUser)} a déjà une cotisation en cours. Veuillez attendre qu'elle soit terminée avant d'en créer une nouvelle.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: error.message || "Impossible de créer la cotisation",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsCreating(false);
     }

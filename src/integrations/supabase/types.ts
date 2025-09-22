@@ -2439,16 +2439,27 @@ export type Database = {
         Returns: boolean
       }
       create_business_collective_fund: {
-        Args: {
-          p_beneficiary_user_id: string
-          p_business_id: string
-          p_currency?: string
-          p_description?: string
-          p_occasion?: string
-          p_product_id: string
-          p_target_amount?: number
-          p_title: string
-        }
+        Args:
+          | {
+              p_auto_notifications?: boolean
+              p_beneficiary_user_id: string
+              p_business_id: string
+              p_currency?: string
+              p_description?: string
+              p_product_id: string
+              p_target_amount: number
+              p_title?: string
+            }
+          | {
+              p_beneficiary_user_id: string
+              p_business_id: string
+              p_currency?: string
+              p_description?: string
+              p_occasion?: string
+              p_product_id: string
+              p_target_amount?: number
+              p_title: string
+            }
         Returns: string
       }
       create_fund_activity: {
@@ -2599,6 +2610,10 @@ export type Database = {
       handle_failed_verification: {
         Args: { p_verification_id: string }
         Returns: undefined
+      }
+      has_active_fund_for_beneficiary: {
+        Args: { p_beneficiary_user_id: string }
+        Returns: boolean
       }
       is_first_payment_to_beneficiary: {
         Args: { p_beneficiary_id: string; p_user_id: string }
