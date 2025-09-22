@@ -248,22 +248,41 @@ export function BusinessInitiatedFundsSection() {
               </p>
             </div>
 
-            {/* Informations du bénéficiaire */}
-            <div className="mb-4 space-y-2">
-              {fund.beneficiary_phone && (
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-purple-600">{fund.beneficiary_phone}</span>
-                </div>
-              )}
-              {fund.deadline_date && (
-                <div className="flex items-center gap-3 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    Échéance: {new Date(fund.deadline_date).toLocaleDateString('fr-FR')}
+            {/* Informations du bénéficiaire et livraison */}
+            <div className="mb-4 space-y-3">
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-sm text-blue-800 mb-2 flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Informations de contact et livraison
+                </h4>
+                
+                {fund.beneficiary_phone && (
+                  <div className="flex items-center gap-3 text-sm mb-2">
+                    <Phone className="h-3 w-3 text-blue-600" />
+                    <span className="text-muted-foreground">Bénéficiaire:</span>
+                    <span className="font-medium text-blue-800">{fund.beneficiary_phone}</span>
+                  </div>
+                )}
+                
+                {/* Placeholder pour l'adresse de livraison - À récupérer depuis la base */}
+                <div className="flex items-start gap-3 text-sm mb-2">
+                  <MapPin className="h-3 w-3 text-blue-600 mt-0.5" />
+                  <span className="text-muted-foreground">Livraison:</span>
+                  <span className="text-blue-800">
+                    {fund.beneficiary_address || "Adresse à confirmer avec le bénéficiaire"}
                   </span>
                 </div>
-              )}
+                
+                {fund.deadline_date && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Clock className="h-3 w-3 text-blue-600" />
+                    <span className="text-muted-foreground">Échéance:</span>
+                    <span className="text-blue-800">
+                      {new Date(fund.deadline_date).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Contributors section */}

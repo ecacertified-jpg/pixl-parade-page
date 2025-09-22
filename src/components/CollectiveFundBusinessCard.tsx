@@ -138,50 +138,72 @@ export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardP
         </div>
       )}
 
-      {/* Informations de livraison - Seulement si terminé et orderData disponible */}
-      {isCompleted && fund.orderData && (
-        <div className="border-t pt-4 space-y-3">
-          <h4 className="font-medium text-sm flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-orange-500" />
-            Informations de livraison
-          </h4>
-          
-          <div className="space-y-2 text-xs">
+      {/* Informations de contact et livraison */}
+      <div className="border-t pt-4 space-y-3">
+        <h4 className="font-medium text-sm flex items-center gap-2">
+          <Phone className="h-4 w-4 text-blue-500" />
+          Informations de contact
+        </h4>
+        
+        <div className="p-3 bg-blue-50 rounded-lg space-y-2 text-xs">
+          {fund.orderData?.beneficiary_phone && (
             <div className="flex items-center gap-2">
-              <Phone className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">Donateur:</span>
-              <span>{fund.orderData.donor_phone}</span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Phone className="h-3 w-3 text-muted-foreground" />
+              <Phone className="h-3 w-3 text-blue-600" />
               <span className="text-muted-foreground">Bénéficiaire:</span>
-              <span>{fund.orderData.beneficiary_phone}</span>
+              <span className="font-medium">{fund.orderData.beneficiary_phone}</span>
             </div>
-            
+          )}
+          
+          {fund.orderData?.delivery_address && (
             <div className="flex items-start gap-2">
-              <MapPin className="h-3 w-3 text-muted-foreground mt-0.5" />
-              <span className="text-muted-foreground">Adresse:</span>
+              <MapPin className="h-3 w-3 text-blue-600 mt-0.5" />
+              <span className="text-muted-foreground">Livraison:</span>
               <span className="flex-1">{fund.orderData.delivery_address}</span>
             </div>
+          )}
+          
+          {!fund.orderData?.delivery_address && (
+            <div className="flex items-start gap-2">
+              <MapPin className="h-3 w-3 text-orange-500 mt-0.5" />
+              <span className="text-muted-foreground">Livraison:</span>
+              <span className="flex-1 text-orange-600">Adresse à confirmer</span>
+            </div>
+          )}
+        </div>
+
+        {/* Informations de commande complètes si terminé */}
+        {isCompleted && fund.orderData && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-green-500" />
+              Détails de la commande
+            </h4>
             
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">Paiement:</span>
-              <span>
-                {fund.orderData.payment_method === 'cash_on_delivery' ? 'À la livraison' : 'Mobile Money'}
-              </span>
+            <div className="p-3 bg-green-50 rounded-lg space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Phone className="h-3 w-3 text-green-600" />
+                <span className="text-muted-foreground">Donateur:</span>
+                <span className="font-medium">{fund.orderData.donor_phone}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-3 w-3 text-green-600" />
+                <span className="text-muted-foreground">Paiement:</span>
+                <span>
+                  {fund.orderData.payment_method === 'cash_on_delivery' ? 'À la livraison' : 'Mobile Money'}
+                </span>
+              </div>
+            </div>
+
+            {/* Notification pour le prestataire */}
+            <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+              <p className="text-xs font-medium text-green-800">
+                🎉 Objectif atteint ! Vous pouvez maintenant préparer et livrer ce cadeau.
+              </p>
             </div>
           </div>
-
-          {/* Notification pour le prestataire */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-            <p className="text-xs font-medium text-green-800">
-              🎉 Objectif atteint ! Vous pouvez maintenant préparer et livrer ce cadeau.
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </Card>
   );
 }
