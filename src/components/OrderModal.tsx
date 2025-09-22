@@ -128,89 +128,14 @@ export function OrderModal({
     setSelectedContact(contact);
   };
 
-  const handleGiftToContact = async () => {
-    if (selectedContact && user) {
-      try {
-        // Chercher si le contact correspond à un utilisateur enregistré
-        let receiverId = null;
-        
-        // Recherche d'abord par email si disponible
-        if (selectedContact.email) {
-          const { data: userByEmail } = await supabase
-            .from('profiles')
-            .select('user_id')
-            .ilike('email', selectedContact.email.trim())
-            .single();
-          
-          if (userByEmail) {
-            receiverId = userByEmail.user_id;
-          }
-        }
-        
-        // Si pas trouvé par email, rechercher par nom
-        if (!receiverId) {
-          const { data: usersByName } = await supabase
-            .from('profiles')
-            .select('user_id, first_name, last_name')
-            .or(`first_name.ilike.%${selectedContact.name}%,last_name.ilike.%${selectedContact.name}%`)
-            .limit(5);
-          
-          // Chercher une correspondance exacte du nom complet
-          if (usersByName && usersByName.length > 0) {
-            const exactMatch = usersByName.find(user => {
-              const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-              return fullName.toLowerCase() === selectedContact.name.toLowerCase();
-            });
-            
-            if (exactMatch) {
-              receiverId = exactMatch.user_id;
-            }
-          }
-        }
-
-        // Créer une entrée de cadeau dans Supabase
-        const { error } = await supabase
-          .from('gifts')
-          .insert({
-            giver_id: user.id,
-            receiver_id: receiverId, // ID de l'utilisateur si trouvé, sinon null
-            receiver_name: selectedContact.name, // Stocker le nom du contact
-            product_id: product.id.toString(), // Lier le cadeau au produit
-            gift_name: product.name,
-            gift_description: product.description,
-            amount: product.price,
-            currency: product.currency,
-            gift_date: new Date().toISOString().split('T')[0], // Date du jour
-            occasion: selectedContact.birthday ? 'Anniversaire' : 'Cadeau',
-            status: 'given'
-          });
-
-        if (error) {
-          console.error('Error saving gift:', error);
-          toast({
-            title: "Erreur",
-            description: "Impossible de sauvegarder le cadeau",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        toast({
-          title: "Cadeau offert ! 🎁",
-          description: `Cadeau pour ${selectedContact.name} ajouté à votre historique`,
-        });
-
-        // Naviguer vers l'onglet Cadeaux du Dashboard
-        navigate("/dashboard?tab=cadeaux");
-        handleClose();
-      } catch (error) {
-        console.error('Error handling gift:', error);
-        toast({
-          title: "Erreur",
-          description: "Une erreur est survenue",
-          variant: "destructive"
-        });
-      }
+  const handleGiftToContact = () => {
+    if (selectedContact) {
+      // Ajouter le cadeau au panier
+      addToCart(false, selectedContact);
+      
+      // Naviguer vers le panier
+      navigate("/cart");
+      handleClose();
     }
   };
   return <Dialog open={isOpen} onOpenChange={handleClose}>
