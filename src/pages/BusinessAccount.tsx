@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff, Eye } from "lucide-react";
 import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
+import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
@@ -652,17 +653,33 @@ export default function BusinessAccount() {
               <BusinessInitiatedFundsSection />
             </div>
 
-            <Card className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Commandes clients</h3>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="rounded-none mx-[2px] my-px px-0 py-0">{visibleOrders.length} commandes</Badge>
-                  {hiddenOrders.size > 0 && <Button variant="outline" size="sm" onClick={handleUnhideAllOrders} className="flex items-center gap-2 text-primary hover:text-primary text-xs px-[4px]">
-                      <Eye className="h-4 w-4" />
-                      Démasquer toutes
-                    </Button>}
-                </div>
+            {/* Section Autres Commandes */}
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <ShoppingCart className="h-6 w-6 text-primary" />
+                Autres Commandes
+              </h2>
+              
+              {/* Commandes de cotisations collectives */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Commandes de Cotisations Collectives</h3>
+                <BusinessOrdersSection />
               </div>
+
+              {/* Commandes individuelles */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Commandes Individuelles</h3>
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold">Commandes clients</h4>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="secondary" className="rounded-none mx-[2px] my-px px-0 py-0">{visibleOrders.length} commandes</Badge>
+                      {hiddenOrders.size > 0 && <Button variant="outline" size="sm" onClick={handleUnhideAllOrders} className="flex items-center gap-2 text-primary hover:text-primary text-xs px-[4px]">
+                          <Eye className="h-4 w-4" />
+                          Démasquer toutes
+                        </Button>}
+                    </div>
+                  </div>
               
               {loadingOrders ? <div className="text-center py-8">
                   <div className="text-muted-foreground">Chargement des commandes...</div>
@@ -752,10 +769,12 @@ export default function BusinessAccount() {
                             </Button>
                           </div>
                         </div>
-                      </Card>)}
-                  </div>}
-             </Card>
-           </TabsContent>
+                       </Card>)}
+                   </div>}
+              </Card>
+              </div>
+            </div>
+          </TabsContent>
 
            {/* Onglet Analytics */}
            <TabsContent value="analytics" className="mt-6">
