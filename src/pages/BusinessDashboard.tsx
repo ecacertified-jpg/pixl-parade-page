@@ -1079,14 +1079,22 @@ export default function BusinessDashboard() {
               <BusinessInitiatedFundsSection />
             </div>
 
-            {/* Section Commandes de cotisations */}
-            <div className="mb-8">
-              <BusinessOrdersSection />
-            </div>
+            {/* Section Autres Commandes */}
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6 text-primary" />
+                  Autres Commandes
+                </h2>
+                
+                {/* Commandes de cotisations collectives */}
+                <div className="mb-8">
+                  <BusinessOrdersSection />
+                </div>
 
-            {/* Section Commandes Normales */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Commandes Individuelles</h3>
+                {/* Commandes individuelles */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Commandes Individuelles</h3>
               {fundsLoading ? (
                 <Card className="p-4 mb-6">
                   <div className="flex items-center justify-center">
@@ -1256,9 +1264,11 @@ export default function BusinessDashboard() {
                      )}
                    </div>
                  </Card>
-               ))
-               )}
-             </div>
+                ))
+                )}
+              </div>
+            </div>
+              </div>
             </div>
           </TabsContent>
 
