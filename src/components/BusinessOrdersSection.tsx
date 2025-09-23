@@ -165,11 +165,6 @@ export function BusinessOrdersSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-lg">Commandes des Cotisations</h2>
-        <Badge variant="outline">{orders.length} commande{orders.length > 1 ? 's' : ''}</Badge>
-      </div>
-
       {orders.map((order) => {
         const orderSummary = order.order_summary;
         const items = orderSummary?.items || [];
