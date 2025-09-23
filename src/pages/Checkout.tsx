@@ -76,6 +76,20 @@ export default function Checkout() {
 
       if (productsError) throw productsError;
 
+      // Get business accounts for products with business_owner_id
+      const businessOwnerIds = products?.filter(p => p.business_owner_id).map(p => p.business_owner_id) || [];
+      let businessAccounts: any[] = [];
+      
+      if (businessOwnerIds.length > 0) {
+        const { data: accounts, error: accountsError } = await supabase
+          .from("business_accounts")
+          .select("id, user_id")
+          .in("user_id", businessOwnerIds);
+        
+        if (accountsError) throw accountsError;
+        businessAccounts = accounts || [];
+      }
+
       // Create order in database
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
@@ -108,31 +122,41 @@ export default function Checkout() {
       // Create business orders for products that belong to businesses
       const businessItems = orderItems.filter(item => {
         const product = products?.find(p => p.id === (item.productId || item.id).toString());
-        return product && product.business_id;
+        return product && (product.business_id || product.business_owner_id);
       });
 
       if (businessItems.length > 0) {
-        // Group items by business
-        const itemsByBusiness = businessItems.reduce((acc, item) => {
+        // Group items by business account
+        const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
+          let businessAccountId = null;
+          
           if (product?.business_id) {
-            if (!acc[product.business_id]) {
-              acc[product.business_id] = [];
+            businessAccountId = product.business_id;
+          } else if (product?.business_owner_id) {
+            // Find business account by user_id
+            const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
+            businessAccountId = businessAccount?.id;
+          }
+          
+          if (businessAccountId) {
+            if (!acc[businessAccountId]) {
+              acc[businessAccountId] = [];
             }
-            acc[product.business_id].push(item);
+            acc[businessAccountId].push(item);
           }
           return acc;
-        }, {} as { [businessId: string]: typeof businessItems });
+        }, {} as { [businessAccountId: string]: typeof businessItems });
 
-        // Create business order for each business
-        for (const [businessId, items] of Object.entries(itemsByBusiness)) {
+        // Create business order for each business account
+        for (const [businessAccountId, items] of Object.entries(itemsByBusinessAccount)) {
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
           await supabase
             .from("business_orders")
             .insert({
               fund_id: orderData.id, // Using order ID as reference
-              business_account_id: businessId,
+              business_account_id: businessAccountId,
               order_summary: {
                 items: items.map(item => ({
                   name: item.name,

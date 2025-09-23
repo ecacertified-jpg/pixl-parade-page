@@ -38,6 +38,21 @@ export function BusinessOrdersSection() {
 
     try {
       setLoading(true);
+      
+      // Get the business account for the current user
+      const { data: businessAccount, error: businessError } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (businessError) throw businessError;
+
+      if (!businessAccount) {
+        setOrders([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('business_orders')
         .select(`
@@ -53,6 +68,7 @@ export function BusinessOrdersSection() {
           status,
           created_at
         `)
+        .eq('business_account_id', businessAccount.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
