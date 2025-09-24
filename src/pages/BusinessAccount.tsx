@@ -18,13 +18,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Business } from "@/types/business";
-
-
 export default function BusinessAccount() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
@@ -78,7 +79,6 @@ export default function BusinessAccount() {
   });
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
-
   useEffect(() => {
     if (user) {
       loadBusinesses();
@@ -86,18 +86,15 @@ export default function BusinessAccount() {
       loadOrders();
     }
   }, [user]);
-
   const loadBusinesses = async () => {
     if (!user) return;
     setLoadingBusinesses(true);
     try {
-      const { data, error } = await supabase
-        .from('business_accounts')
-        .select('*')
-        .eq('user_id', user.id);
-
+      const {
+        data,
+        error
+      } = await supabase.from('business_accounts').select('*').eq('user_id', user.id);
       if (error) throw error;
-
       const businessesWithFormattedData: Business[] = (data || []).map(business => ({
         id: business.id,
         business_name: business.business_name,
@@ -130,7 +127,6 @@ export default function BusinessAccount() {
           standard_cost: number;
         }
       }));
-      
       setBusinesses(businessesWithFormattedData);
     } catch (error) {
       console.error('Error:', error);
@@ -138,13 +134,15 @@ export default function BusinessAccount() {
       setLoadingBusinesses(false);
     }
   };
-
   const loadOrders = async () => {
     if (!user) return;
     setLoadingOrders(true);
     try {
       // Load orders with their items for business owners
-      const { data, error } = await supabase.from('orders').select(`
+      const {
+        data,
+        error
+      } = await supabase.from('orders').select(`
           id,
           total_amount,
           currency,
@@ -162,32 +160,26 @@ export default function BusinessAccount() {
               business_owner_id
             )
           )
-        `).order('created_at', { ascending: false });
-      
+        `).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('Error loading orders:', error);
         return;
       }
 
       // Filter orders that contain products from this business owner
-      const businessOrders = (data || []).filter(order => 
-        order.order_items.some(item => item.products && item.products.business_owner_id === user.id)
-      ).map(order => ({
+      const businessOrders = (data || []).filter(order => order.order_items.some(item => item.products && item.products.business_owner_id === user.id)).map(order => ({
         ...order,
-        order_items: order.order_items.filter(item => 
-          item.products && item.products.business_owner_id === user.id
-        ).map(item => ({
+        order_items: order.order_items.filter(item => item.products && item.products.business_owner_id === user.id).map(item => ({
           ...item,
           product_name: item.products?.name || 'Produit supprimé'
         }))
       }));
-      
       setOrders(businessOrders);
 
       // Load individual orders (orders marked as individual orders)
-      const individualOrdersData = businessOrders.filter(order => 
-        order.notes && order.notes.includes('Commande individuelle')
-      );
+      const individualOrdersData = businessOrders.filter(order => order.notes && order.notes.includes('Commande individuelle'));
       setIndividualOrders(individualOrdersData);
     } catch (error) {
       console.error('Error:', error);
@@ -195,32 +187,26 @@ export default function BusinessAccount() {
       setLoadingOrders(false);
     }
   };
-
   const handleEditBusiness = (business: Business) => {
     setEditingBusiness(business);
     setIsAddBusinessModalOpen(true);
   };
-
   const handleBusinessModalClose = () => {
     setIsAddBusinessModalOpen(false);
     setEditingBusiness(null);
   };
-
   const handleBusinessChanged = () => {
     loadBusinesses();
     handleBusinessModalClose();
   };
-
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('business_owner_id', user?.id);
-
+      const {
+        data,
+        error
+      } = await supabase.from('products').select('*').eq('business_owner_id', user?.id);
       if (error) throw error;
-
       const formattedProducts = (data || []).map(product => ({
         id: product.id,
         name: product.name,
@@ -230,7 +216,6 @@ export default function BusinessAccount() {
         sales: 0,
         status: product.is_active ? 'active' : 'inactive'
       }));
-
       setProducts(formattedProducts);
     } catch (error) {
       console.error('Error loading products:', error);
@@ -238,17 +223,13 @@ export default function BusinessAccount() {
       setLoadingProducts(false);
     }
   };
-
   const handleDeleteProduct = async (productId: string) => {
     setDeletingProductId(productId);
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
-
+      const {
+        error
+      } = await supabase.from('products').delete().eq('id', productId);
       if (error) throw error;
-
       toast({
         title: "Succès",
         description: "Produit supprimé avec succès"
@@ -265,7 +246,6 @@ export default function BusinessAccount() {
       setDeletingProductId(null);
     }
   };
-
   const handleOrderConfirmed = async (orderId: string) => {
     try {
       await loadOrders();
@@ -278,7 +258,6 @@ export default function BusinessAccount() {
       });
     }
   };
-
   const handleHideOrder = (orderId: string) => {
     setHiddenOrders(prev => new Set([...prev, orderId]));
     toast({
@@ -286,23 +265,18 @@ export default function BusinessAccount() {
       description: "Commande masquée"
     });
   };
-
   const handleUnhideAllOrders = () => {
     setHiddenOrders(new Set());
     toast({
-      title: "Succès", 
+      title: "Succès",
       description: "Toutes les commandes sont maintenant visibles"
     });
   };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
-
   const visibleOrders = orders.filter(order => !hiddenOrders.has(order.id));
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
@@ -320,7 +294,7 @@ export default function BusinessAccount() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+            <TabsTrigger value="overview">Vue d'ens.</TabsTrigger>
             <TabsTrigger value="products">Produits</TabsTrigger>
             <TabsTrigger value="orders">Commandes</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -363,18 +337,9 @@ export default function BusinessAccount() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Informations Business</h3>
-                {businesses.length > 0 ? (
-                  <div className="space-y-4">
-                    {businesses.map((business) => (
-                      <BusinessCard
-                        key={business.id}
-                        business={business}
-                        onEdit={() => handleEditBusiness(business)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
+                {businesses.length > 0 ? <div className="space-y-4">
+                    {businesses.map(business => <BusinessCard key={business.id} business={business} onEdit={() => handleEditBusiness(business)} />)}
+                  </div> : <div className="text-center py-8">
                     <div className="text-muted-foreground mb-4">
                       Aucun compte business configuré
                     </div>
@@ -382,16 +347,13 @@ export default function BusinessAccount() {
                       <Plus className="h-4 w-4 mr-2" />
                       Créer un compte business
                     </Button>
-                  </div>
-                )}
+                  </div>}
               </Card>
 
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Commandes récentes</h3>
-                {orders.length > 0 ? (
-                  <div className="space-y-3">
-                    {orders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                {orders.length > 0 ? <div className="space-y-3">
+                    {orders.slice(0, 5).map(order => <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div>
                           <p className="font-medium">#{order.id.slice(-8)}</p>
                           <p className="text-sm text-muted-foreground">
@@ -404,14 +366,10 @@ export default function BusinessAccount() {
                             {order.status}
                           </Badge>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
+                      </div>)}
+                  </div> : <div className="text-center py-8 text-muted-foreground">
                     Aucune commande pour le moment
-                  </div>
-                )}
+                  </div>}
               </Card>
             </div>
           </TabsContent>
@@ -427,23 +385,17 @@ export default function BusinessAccount() {
             </div>
 
             <Card className="p-6">
-              {loadingProducts ? (
-                <div className="text-center py-8">
+              {loadingProducts ? <div className="text-center py-8">
                   <div className="text-muted-foreground">Chargement des produits...</div>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-8">
+                </div> : products.length === 0 ? <div className="text-center py-8">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <div className="text-muted-foreground mb-4">Aucun produit ajouté</div>
                   <Button onClick={() => setIsAddProductModalOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Ajouter votre premier produit
                   </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
+                </div> : <div className="space-y-4">
+                  {products.map(product => <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <h3 className="font-medium">{product.name}</h3>
                         <p className="text-sm text-muted-foreground">{product.category}</p>
@@ -456,19 +408,12 @@ export default function BusinessAccount() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteProduct(product.id)}
-                          disabled={deletingProductId === product.id}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteProduct(product.id)} disabled={deletingProductId === product.id}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </Card>
           </TabsContent>
 
@@ -499,21 +444,15 @@ export default function BusinessAccount() {
                     </div>
                   </div>
               
-                  {loadingOrders ? (
-                    <div className="text-center py-8">
+                  {loadingOrders ? <div className="text-center py-8">
                       <div className="text-muted-foreground">Chargement des commandes...</div>
-                    </div>
-                  ) : individualOrders.length === 0 ? (
-                    <div className="text-center py-8">
+                    </div> : individualOrders.length === 0 ? <div className="text-center py-8">
                       <div className="text-muted-foreground flex items-center justify-center gap-2">
                         <AlertCircle className="h-5 w-5" />
                         Aucune commande individuelle pour le moment
                       </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {individualOrders.map(order => (
-                        <Card key={order.id} className="border border-muted">
+                    </div> : <div className="space-y-3">
+                      {individualOrders.map(order => <Card key={order.id} className="border border-muted">
                           <div className="p-4">
                             <div className="flex items-start justify-between mb-3">
                               <div>
@@ -533,8 +472,7 @@ export default function BusinessAccount() {
                               <div>
                                 <p className="text-sm font-medium">Articles commandés:</p>
                                 <div className="space-y-1">
-                                  {order.order_items?.map((item: any, index: number) => (
-                                    <div key={index} className="text-sm bg-muted/30 p-2 rounded">
+                                  {order.order_items?.map((item: any, index: number) => <div key={index} className="text-sm bg-muted/30 p-2 rounded">
                                       <div className="flex justify-between items-center">
                                         <span className="font-medium">{item.product_name}</span>
                                         <span>Qté: {item.quantity}</span>
@@ -542,8 +480,7 @@ export default function BusinessAccount() {
                                       <div className="text-xs font-medium text-primary">
                                         {item.unit_price?.toLocaleString()} F × {item.quantity} = {item.total_price?.toLocaleString()} F
                                       </div>
-                                    </div>
-                                  ))}
+                                    </div>)}
                                 </div>
                               </div>
                               
@@ -588,10 +525,8 @@ export default function BusinessAccount() {
                               </p>
                             </div>
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
+                        </Card>)}
+                    </div>}
                 </Card>
               </div>
             </div>
@@ -636,26 +571,11 @@ export default function BusinessAccount() {
       </main>
 
       {/* Modals */}
-      <AddProductModal 
-        isOpen={isAddProductModalOpen} 
-        onClose={() => setIsAddProductModalOpen(false)} 
-        onProductAdded={loadProducts} 
-      />
-      <AddBusinessModal 
-        isOpen={isAddBusinessModalOpen} 
-        onClose={handleBusinessModalClose} 
-        onBusinessAdded={handleBusinessChanged} 
-        editingBusiness={editingBusiness} 
-      />
-      <OrderDetailsModal 
-        isOpen={isOrderDetailsModalOpen} 
-        onClose={() => {
-          setIsOrderDetailsModalOpen(false);
-          setSelectedOrder(null);
-        }} 
-        order={selectedOrder} 
-        onOrderConfirmed={handleOrderConfirmed} 
-      />
-    </div>
-  );
+      <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
+      <AddBusinessModal isOpen={isAddBusinessModalOpen} onClose={handleBusinessModalClose} onBusinessAdded={handleBusinessChanged} editingBusiness={editingBusiness} />
+      <OrderDetailsModal isOpen={isOrderDetailsModalOpen} onClose={() => {
+      setIsOrderDetailsModalOpen(false);
+      setSelectedOrder(null);
+    }} order={selectedOrder} onOrderConfirmed={handleOrderConfirmed} />
+    </div>;
 }
