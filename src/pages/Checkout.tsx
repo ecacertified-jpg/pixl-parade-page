@@ -130,16 +130,32 @@ export default function Checkout() {
       });
 
       if (businessItems.length > 0) {
+        // Get all business accounts for both business_id and business_owner_id products
+        const allBusinessIds = products?.filter(p => p.business_id).map(p => p.business_id) || [];
+        let allBusinessAccounts: any[] = [...businessAccounts];
+        
+        if (allBusinessIds.length > 0) {
+          const { data: additionalAccounts, error: additionalError } = await supabase
+            .from("business_accounts")
+            .select("id, user_id")
+            .in("id", allBusinessIds);
+          
+          if (additionalError) throw additionalError;
+          allBusinessAccounts = [...allBusinessAccounts, ...(additionalAccounts || [])];
+        }
+
         // Group items by business account
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
           let businessAccountId = null;
           
           if (product?.business_id) {
-            businessAccountId = product.business_id;
+            // Find business account by business_id
+            const businessAccount = allBusinessAccounts.find(ba => ba.id === product.business_id);
+            businessAccountId = businessAccount?.id;
           } else if (product?.business_owner_id) {
             // Find business account by user_id
-            const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
+            const businessAccount = allBusinessAccounts.find(ba => ba.user_id === product.business_owner_id);
             businessAccountId = businessAccount?.id;
           }
           
