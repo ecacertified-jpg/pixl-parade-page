@@ -574,7 +574,7 @@ export default function BusinessAccount() {
             <div className="space-y-6">
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Configuration Business</h2>
+                <h2 className="font-bold text-xl">Configuration Business</h2>
                 <Button onClick={() => setIsAddBusinessModalOpen(true)} className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un business
