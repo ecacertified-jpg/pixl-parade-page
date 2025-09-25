@@ -572,197 +572,45 @@ export default function BusinessAccount() {
           {/* Onglet Config */}
           <TabsContent value="config" className="mt-6">
             <div className="space-y-6">
-              {/* Configuration générale */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Configuration générale
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="business-name">Nom du business</Label>
-                      <Input 
-                        id="business-name" 
-                        placeholder="Nom de votre business"
-                        value={businesses[0]?.business_name || ''}
-                        disabled
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="business-type">Type de business</Label>
-                      <Input 
-                        id="business-type" 
-                        placeholder="Type de business"
-                        value={businesses[0]?.business_type || ''}
-                        disabled
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="business-phone">Téléphone</Label>
-                      <Input 
-                        id="business-phone" 
-                        placeholder="Numéro de téléphone"
-                        value={businesses[0]?.phone || ''}
-                        disabled
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="business-email">Email</Label>
-                      <Input 
-                        id="business-email" 
-                        placeholder="Email du business"
-                        value={businesses[0]?.email || ''}
-                        disabled
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="business-website">Site web</Label>
-                      <Input 
-                        id="business-website" 
-                        placeholder="URL du site web"
-                        value={businesses[0]?.website_url || ''}
-                        disabled
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="business-address">Adresse</Label>
-                      <Textarea 
-                        id="business-address" 
-                        placeholder="Adresse du business"
-                        value={businesses[0]?.address || ''}
-                        disabled
-                        className="min-h-[80px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => businesses[0] && handleEditBusiness(businesses[0])}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Modifier les informations
-                  </Button>
-                </div>
-              </Card>
+              {/* Header with Add Button */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Configuration Business</h2>
+                <Button 
+                  onClick={() => setIsAddBusinessModalOpen(true)}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter un business
+                </Button>
+              </div>
 
-              {/* Zones de livraison */}
+              {/* Business List */}
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Truck className="h-5 w-5" />
-                  Zones de livraison
-                </h3>
-                {businesses[0]?.delivery_zones && businesses[0].delivery_zones.length > 0 ? (
-                  <div className="space-y-3">
-                    {businesses[0].delivery_zones.map((zone, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <h4 className="font-medium">{zone.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Rayon: {zone.radius}km - Coût: {zone.cost} F
-                          </p>
-                        </div>
-                        <Badge variant={zone.active !== false ? "default" : "secondary"}>
-                          {zone.active !== false ? "Actif" : "Inactif"}
-                        </Badge>
+                <h3 className="text-xl font-semibold mb-6">Informations Business</h3>
+                <div className="space-y-4">
+                  {businesses.map((business) => (
+                    <BusinessCard
+                      key={business.id}
+                      business={business}
+                      onEdit={() => handleEditBusiness(business)}
+                      onDeleted={loadBusinesses}
+                    />
+                  ))}
+                  {businesses.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="text-muted-foreground mb-4">
+                        <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        Aucun business configuré pour le moment
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aucune zone de livraison configurée
-                  </div>
-                )}
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => businesses[0] && handleEditBusiness(businesses[0])}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Gérer les zones de livraison
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Horaires d'ouverture */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Horaires d'ouverture
-                </h3>
-                {businesses[0]?.opening_hours ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(businesses[0].opening_hours).map(([day, schedule]) => (
-                      <div key={day} className="flex items-center justify-between p-3 border rounded-lg">
-                        <span className="font-medium capitalize">{day}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {schedule.closed ? 'Fermé' : `${schedule.open} - ${schedule.close}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aucun horaire configuré
-                  </div>
-                )}
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => businesses[0] && handleEditBusiness(businesses[0])}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Modifier les horaires
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Informations de paiement */}
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Informations de paiement
-                </h3>
-                {businesses[0]?.payment_info ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">Mobile Money</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {businesses[0].payment_info.mobile_money || 'Non configuré'}
-                        </p>
-                      </div>
+                      <Button 
+                        onClick={() => setIsAddBusinessModalOpen(true)}
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Créer votre premier business
+                      </Button>
                     </div>
-                    <div className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">Titulaire du compte</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {businesses[0].payment_info.account_holder || 'Non configuré'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aucune information de paiement configurée
-                  </div>
-                )}
-                <div className="mt-4 flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => businesses[0] && handleEditBusiness(businesses[0])}
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Configurer les paiements
-                  </Button>
+                  )}
                 </div>
               </Card>
             </div>
