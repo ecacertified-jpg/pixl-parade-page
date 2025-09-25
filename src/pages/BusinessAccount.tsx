@@ -114,8 +114,8 @@ export default function BusinessAccount() {
         },
         delivery_zones: business.delivery_zones as Array<{
           name: string;
+          radius: number;
           cost: number;
-          radius?: number;
           active?: boolean;
         }>,
         payment_info: business.payment_info as {
@@ -338,7 +338,7 @@ export default function BusinessAccount() {
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Informations Business</h3>
                 {businesses.length > 0 ? <div className="space-y-4">
-                    {businesses.map(business => <BusinessCard key={business.id} business={business} onEdit={() => handleEditBusiness(business)} />)}
+                    {businesses.map(business => <BusinessCard key={business.id} business={business} onEdit={() => handleEditBusiness(business)} onDeleted={() => loadBusinesses()} />)}
                   </div> : <div className="text-center py-8">
                     <div className="text-muted-foreground mb-4">
                       Aucun compte business configuré
