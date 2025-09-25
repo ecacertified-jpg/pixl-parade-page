@@ -16,7 +16,6 @@ interface CartItem {
   beneficiaryName?: string;
   beneficiaryId?: string;
   productId?: number;
-  isIndividualOrder?: boolean;
 }
 export default function Cart() {
   const navigate = useNavigate();
@@ -76,9 +75,6 @@ export default function Cart() {
       navigate("/checkout");
     }
   };
-
-  // Check if cart contains individual orders
-  const hasIndividualOrders = cartItems.some(item => item.isIndividualOrder);
   const addAnotherItem = () => {
     navigate("/shop");
   };
@@ -210,7 +206,7 @@ export default function Cart() {
         {/* Checkout button */}
         <Button onClick={proceedToCheckout} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg">
           <ShoppingCart className="h-4 w-4 mr-2" />
-          {hasIndividualOrders ? "Passer commande individuelle" : "Passer commande"} - {total.toLocaleString()} F
+          Passer commande - {total.toLocaleString()} F
         </Button>
 
         <div className="pb-20" />

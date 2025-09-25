@@ -77,8 +77,7 @@ export function OrderModal({
       image: product.image,
       quantity: 1,
       isGift: !forSelf,
-      recipient: recipient,
-      isIndividualOrder: forSelf // Mark items ordered "pour moi-même" as individual orders
+      recipient: recipient
     };
     
     const updatedCart = [...existingCart, newItem];

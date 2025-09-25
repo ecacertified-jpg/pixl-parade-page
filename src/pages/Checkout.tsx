@@ -18,7 +18,6 @@ interface CheckoutItem {
   price: number;
   quantity: number;
   productId?: number;
-  isIndividualOrder?: boolean;
 }
 
 export default function Checkout() {
@@ -55,9 +54,6 @@ export default function Checkout() {
 
   // Check if form is valid (both phones and address filled)
   const isFormValid = donorPhoneNumber.trim() !== "" && beneficiaryPhoneNumber.trim() !== "" && address.trim() !== "";
-
-  // Check if checkout contains individual orders
-  const hasIndividualOrders = orderItems.some(item => item.isIndividualOrder);
 
   const handleConfirmOrder = async () => {
     if (!user) {
@@ -103,7 +99,7 @@ export default function Checkout() {
           currency: "XOF",
           status: "pending",
           delivery_address: { address, donorPhone: donorPhoneNumber, beneficiaryPhone: beneficiaryPhoneNumber },
-          notes: `${paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"}${hasIndividualOrders ? " - Commande individuelle" : ""}`
+          notes: paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"
         })
         .select()
         .single();
@@ -130,32 +126,16 @@ export default function Checkout() {
       });
 
       if (businessItems.length > 0) {
-        // Get all business accounts for both business_id and business_owner_id products
-        const allBusinessIds = products?.filter(p => p.business_id).map(p => p.business_id) || [];
-        let allBusinessAccounts: any[] = [...businessAccounts];
-        
-        if (allBusinessIds.length > 0) {
-          const { data: additionalAccounts, error: additionalError } = await supabase
-            .from("business_accounts")
-            .select("id, user_id")
-            .in("id", allBusinessIds);
-          
-          if (additionalError) throw additionalError;
-          allBusinessAccounts = [...allBusinessAccounts, ...(additionalAccounts || [])];
-        }
-
         // Group items by business account
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
           let businessAccountId = null;
           
           if (product?.business_id) {
-            // Find business account by business_id
-            const businessAccount = allBusinessAccounts.find(ba => ba.id === product.business_id);
-            businessAccountId = businessAccount?.id;
+            businessAccountId = product.business_id;
           } else if (product?.business_owner_id) {
             // Find business account by user_id
-            const businessAccount = allBusinessAccounts.find(ba => ba.user_id === product.business_owner_id);
+            const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
             businessAccountId = businessAccount?.id;
           }
           
@@ -357,7 +337,7 @@ export default function Checkout() {
           disabled={isProcessing || !isFormValid} 
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isProcessing ? "Traitement..." : `${hasIndividualOrders ? "Confirmer la commande individuelle" : "Confirmer la commande"} - ${total.toLocaleString()} F`}
+          {isProcessing ? "Traitement..." : `Confirmer la commande - ${total.toLocaleString()} F`}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
