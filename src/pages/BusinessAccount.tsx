@@ -294,11 +294,11 @@ export default function BusinessAccount() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Vue d'ens.</TabsTrigger>
-            <TabsTrigger value="products">Produits</TabsTrigger>
-            <TabsTrigger value="orders">Commandes</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="config">Config</TabsTrigger>
+            <TabsTrigger value="overview" className="text-xs">Vue d'ens.</TabsTrigger>
+            <TabsTrigger value="products" className="text-xs">Produits</TabsTrigger>
+            <TabsTrigger value="orders" className="text-xs">Commandes</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs">Analytics</TabsTrigger>
+            <TabsTrigger value="config" className="text-xs">Config</TabsTrigger>
           </TabsList>
 
           {/* Onglet Vue d'ensemble */}
@@ -575,10 +575,7 @@ export default function BusinessAccount() {
               {/* Header with Add Button */}
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Configuration Business</h2>
-                <Button 
-                  onClick={() => setIsAddBusinessModalOpen(true)}
-                  className="bg-primary hover:bg-primary/90"
-                >
+                <Button onClick={() => setIsAddBusinessModalOpen(true)} className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un business
                 </Button>
@@ -588,29 +585,17 @@ export default function BusinessAccount() {
               <Card className="p-6">
                 <h3 className="text-xl font-semibold mb-6">Informations Business</h3>
                 <div className="space-y-4">
-                  {businesses.map((business) => (
-                    <BusinessCard
-                      key={business.id}
-                      business={business}
-                      onEdit={() => handleEditBusiness(business)}
-                      onDeleted={loadBusinesses}
-                    />
-                  ))}
-                  {businesses.length === 0 && (
-                    <div className="text-center py-12">
+                  {businesses.map(business => <BusinessCard key={business.id} business={business} onEdit={() => handleEditBusiness(business)} onDeleted={loadBusinesses} />)}
+                  {businesses.length === 0 && <div className="text-center py-12">
                       <div className="text-muted-foreground mb-4">
                         <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         Aucun business configuré pour le moment
                       </div>
-                      <Button 
-                        onClick={() => setIsAddBusinessModalOpen(true)}
-                        variant="outline"
-                      >
+                      <Button onClick={() => setIsAddBusinessModalOpen(true)} variant="outline">
                         <Plus className="h-4 w-4 mr-2" />
                         Créer votre premier business
                       </Button>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </Card>
             </div>
