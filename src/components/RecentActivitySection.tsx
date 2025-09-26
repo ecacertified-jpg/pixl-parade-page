@@ -1,4 +1,4 @@
-import { User, Users, ShoppingBag, Gift } from "lucide-react";
+import { User, Users, ShoppingBag, Gift, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -74,6 +74,13 @@ export function BottomNavigation() {
     { icon: <User className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
     { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
     { 
+      icon: <Plus className="h-4 w-4" />, 
+      label: "Ajouter", 
+      active: false, 
+      path: "/add",
+      isSpecial: true
+    },
+    { 
       icon: <Gift className="h-5 w-5" />, 
       label: "Cadeaux", 
       active: false, 
@@ -95,7 +102,10 @@ export function BottomNavigation() {
               className="flex flex-col items-center gap-1 py-2 relative"
             >
               <div className="relative">
-                <div className={`p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`}>
+                <div className={`${item.isSpecial 
+                  ? 'w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white shadow-lg' 
+                  : `p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`
+                }`}>
                   {item.icon}
                 </div>
                 {item.badge && (
