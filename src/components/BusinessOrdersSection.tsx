@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface BusinessOrder {
+interface CollectiveOrder {
   id: string;
   fund_id: string;
   order_summary: any;
@@ -22,7 +22,7 @@ interface BusinessOrder {
 }
 
 export function BusinessOrdersSection() {
-  const [orders, setOrders] = useState<BusinessOrder[]>([]);
+  const [orders, setOrders] = useState<CollectiveOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -39,22 +39,9 @@ export function BusinessOrdersSection() {
     try {
       setLoading(true);
       
-      // Get the business account for the current user
-      const { data: businessAccount, error: businessError } = await supabase
-        .from('business_accounts')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (businessError) throw businessError;
-
-      if (!businessAccount) {
-        setOrders([]);
-        return;
-      }
-
+      // Get collective fund orders for products belonging to this user's business
       const { data, error } = await supabase
-        .from('business_orders')
+        .from('collective_fund_orders')
         .select(`
           id,
           fund_id,
@@ -66,9 +53,15 @@ export function BusinessOrdersSection() {
           delivery_address,
           payment_method,
           status,
-          created_at
+          created_at,
+          collective_funds!inner (
+            business_product_id,
+            products!collective_funds_business_product_id_fkey (
+              business_owner_id
+            )
+          )
         `)
-        .eq('business_account_id', businessAccount.id)
+        .eq('collective_funds.products.business_owner_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -88,10 +81,10 @@ export function BusinessOrdersSection() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
-        .from('business_orders')
+        .from('collective_fund_orders')
         .update({ 
           status: newStatus,
-          processed_at: newStatus === 'processed' ? new Date().toISOString() : null
+          updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
 
