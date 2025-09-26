@@ -436,8 +436,13 @@ export default function BusinessAccount() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-semibold">Compte Business</h1>
-              <p className="text-sm text-muted-foreground">Boutique Élégance - Cocody, Abidjan</p>
+              <h1 className="text-xl font-semibold">Mon Espace Business</h1>
+              <p className="text-sm text-muted-foreground">
+                {businesses.length > 0 
+                  ? `Gérez ${businesses[0].business_name} et vos ventes`
+                  : 'Gérez votre business et vos ventes'
+                }
+              </p>
             </div>
             <Badge className="ml-auto bg-green-500">Actif</Badge>
           </div>
