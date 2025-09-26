@@ -67,7 +67,7 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">Célébrez ensemble</p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground" />
               <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -79,15 +79,6 @@ const Index = () => {
               <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 1
               </div>
-            </div>
-            <div className="relative">
-              <button 
-                onClick={() => navigate("/business-auth")}
-                className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
-              >
-                <ShoppingCart className="h-3 w-3" />
-                Business
-              </button>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
