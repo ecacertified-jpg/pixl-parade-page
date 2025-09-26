@@ -319,7 +319,7 @@ export default function Dashboard() {
 
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-base">Mes Amis & Donateurs</h2>
+              <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
               <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400" onClick={() => setShowAddFriendModal(true)}>
                 <Plus className="h-4 w-4" aria-hidden />
                 Ajouter
