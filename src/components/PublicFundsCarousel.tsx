@@ -61,6 +61,20 @@ export function PublicFundsCarousel() {
           </div>
         </Card>
 
+        {/* Create Friends Circle Card */}
+        <Card 
+          className="flex-shrink-0 w-48 h-32 bg-gradient-to-br from-accent/5 to-muted/5 border-2 border-dashed border-accent/30 hover:border-accent/50 cursor-pointer transition-all duration-300 hover:shadow-soft flex flex-col items-center justify-center gap-2 group"
+          onClick={() => navigate("/dashboard")}
+        >
+          <div className="bg-accent/10 p-3 rounded-full group-hover:bg-accent/20 transition-colors">
+            <Users className="h-6 w-6 text-accent" />
+          </div>
+          <div className="text-center">
+            <p className="font-medium text-foreground text-sm">Créer son cercle d'amis</p>
+            <p className="text-xs text-muted-foreground mt-1">Partager la joie</p>
+          </div>
+        </Card>
+
         {/* Funds Cards */}
         {publicFunds.map((fund) => {
           const progress = (fund.currentAmount / fund.targetAmount) * 100;
