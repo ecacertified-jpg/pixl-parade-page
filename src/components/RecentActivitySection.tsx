@@ -75,7 +75,7 @@ export function BottomNavigation() {
     { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
     { 
       icon: <Plus className="h-4 w-4" />, 
-      label: "Ajouter", 
+      label: "", 
       active: false, 
       path: "/add",
       isSpecial: true
@@ -114,9 +114,11 @@ export function BottomNavigation() {
                   </div>
                 )}
               </div>
-              <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
-                {item.label}
-              </span>
+              {item.label && (
+                <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
+                  {item.label}
+                </span>
+              )}
             </button>
           ))}
         </div>
