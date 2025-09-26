@@ -66,61 +66,66 @@ export function PublicFundsCarousel() {
           const progress = (fund.currentAmount / fund.targetAmount) * 100;
           
           return (
-            <Card key={fund.id} className="flex-shrink-0 w-64 h-40 bg-card/80 backdrop-blur-sm border border-border/50 shadow-card overflow-hidden group hover:shadow-soft transition-all duration-300">
-              <div className="p-4 h-full flex flex-col">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-foreground text-sm leading-tight line-clamp-2">
-                      {fund.title}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      pour {fund.beneficiaryName}
-                    </p>
+            <Card key={fund.id} className="flex-shrink-0 w-64 bg-white rounded-2xl shadow-lg border-0 overflow-hidden hover:shadow-xl transition-all duration-300">
+              {/* Product Image */}
+              <div className="h-32 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
+                {fund.productImage ? (
+                  <img 
+                    src={fund.productImage} 
+                    alt={fund.productName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Gift className="h-8 w-8 text-pink-300" />
                   </div>
-                  {fund.productImage && (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 ml-2">
-                      <img 
-                        src={fund.productImage} 
-                        alt={fund.productName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
+                )}
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {/* Title and Beneficiary */}
+                <div className="text-center">
+                  <h4 className="font-semibold text-gray-900 text-base">
+                    {fund.productName || fund.title} pour {fund.beneficiaryName}
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {fund.occasion} dans 5 jours
+                  </p>
                 </div>
 
-                {/* Progress */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium text-primary">
+                {/* Amount Progress */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-lg font-bold text-pink-600">
                       {fund.currentAmount.toLocaleString()} {fund.currency}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-sm text-gray-400">
                       {fund.targetAmount.toLocaleString()} {fund.currency}
                     </span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-auto">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
+                {/* Contributors and Button */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">
                       {fund.contributors.length} contributeur{fund.contributors.length > 1 ? 's' : ''}
                     </span>
                   </div>
+                  
                   <Button
-                    size="sm"
                     onClick={() => handleContribute(fund.id)}
-                    className="h-7 px-3 text-xs bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90"
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-2 text-sm font-medium rounded-full border-0"
                   >
-                    <Gift className="h-3 w-3 mr-1" />
+                    <Gift className="h-4 w-4 mr-1" />
                     Contribuer
                   </Button>
                 </div>
