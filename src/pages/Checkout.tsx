@@ -30,6 +30,7 @@ export default function Checkout() {
   const [address, setAddress] = useState("");
   const [orderItems, setOrderItems] = useState<CheckoutItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [businessAccounts, setBusinessAccounts] = useState<any[]>([]);
 
   useEffect(() => {
     // Load checkout items from localStorage
@@ -46,6 +47,21 @@ export default function Checkout() {
         quantity: 1
       }]);
     }
+  }, []);
+
+  useEffect(() => {
+    // Load all business accounts to map business_owner_id to business_account_id
+    const loadBusinessAccounts = async () => {
+      const { data, error } = await supabase
+        .from('business_accounts')
+        .select('id, user_id');
+      
+      if (!error && data) {
+        setBusinessAccounts(data);
+      }
+    };
+    
+    loadBusinessAccounts();
   }, []);
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);

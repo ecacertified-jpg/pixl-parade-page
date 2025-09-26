@@ -83,7 +83,7 @@ export function BusinessOrdersSection() {
       if (collectiveError) throw collectiveError;
       setCollectiveOrders(collectiveData || []);
 
-      // Load individual business orders
+      // Load individual business orders for the current user's business
       const { data: individualData, error: individualError } = await supabase
         .from('business_orders')
         .select(`
@@ -97,8 +97,12 @@ export function BusinessOrdersSection() {
           delivery_address,
           payment_method,
           status,
-          created_at
+          created_at,
+          business_accounts!inner (
+            user_id
+          )
         `)
+        .eq('business_accounts.user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (individualError) throw individualError;
