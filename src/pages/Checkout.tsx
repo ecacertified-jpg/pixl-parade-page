@@ -125,7 +125,11 @@ export default function Checkout() {
         return product && (product.business_id || product.business_owner_id);
       });
 
+      console.log('Found business items:', businessItems);
+
       if (businessItems.length > 0) {
+        console.log('Processing business items for orders...');
+        
         // Group items by business account
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
@@ -198,9 +202,30 @@ export default function Checkout() {
       navigate("/order-confirmation");
     } catch (error) {
       console.error('Error creating order:', error);
+      console.error('Order items:', orderItems);
+      
+      // Enhanced error handling with specific messages
+      let errorTitle = "Erreur";
+      let errorDescription = "Impossible de finaliser la commande";
+      
+      if (error instanceof Error) {
+        console.error("Error details:", error.message);
+        console.error("Error stack:", error.stack);
+        
+        if (error.message.includes('business_orders')) {
+          errorDescription = "Erreur lors de la création de la commande business. Veuillez réessayer.";
+        } else if (error.message.includes('uuid')) {
+          errorDescription = "Erreur de format des données. Veuillez contacter le support.";
+        } else if (error.message.includes('permission') || error.message.includes('RLS')) {
+          errorDescription = "Erreur d'autorisation. Veuillez vous reconnecter.";
+        } else {
+          errorDescription = `Erreur technique: ${error.message}`;
+        }
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Impossible de finaliser la commande",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive"
       });
     } finally {
