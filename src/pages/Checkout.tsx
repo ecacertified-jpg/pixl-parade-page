@@ -52,12 +52,16 @@ export default function Checkout() {
   useEffect(() => {
     // Load all business accounts to map business_owner_id to business_account_id
     const loadBusinessAccounts = async () => {
+      console.log('Loading business accounts...');
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, user_id');
       
-      if (!error && data) {
-        setBusinessAccounts(data);
+      if (error) {
+        console.error('Error loading business accounts:', error);
+      } else {
+        console.log('Business accounts loaded:', data);
+        setBusinessAccounts(data || []);
       }
     };
     
@@ -141,45 +145,48 @@ export default function Checkout() {
         return product && (product.business_id || product.business_owner_id);
       });
 
-      console.log('Found business items:', businessItems);
+      console.log('🏪 Found business items:', businessItems);
+      console.log('📦 All products:', products);
+      console.log('🏢 Business accounts:', businessAccounts);
 
       if (businessItems.length > 0) {
-        console.log('Processing business items for orders...');
+        console.log('🔄 Processing business items for orders...');
         
         // Group items by business account
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
           let businessAccountId = null;
           
-          console.log('Processing item:', item, 'Product found:', product);
+          console.log('📝 Processing item:', item.name, 'Product found:', product);
           
           if (product?.business_id) {
             businessAccountId = product.business_id;
-            console.log('Using business_id:', businessAccountId);
+            console.log('✅ Using direct business_id:', businessAccountId);
           } else if (product?.business_owner_id) {
             // Find business account by user_id
             const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
             businessAccountId = businessAccount?.id;
-            console.log('Found business account for owner_id:', product.business_owner_id, 'account:', businessAccount);
+            console.log('🔍 Found business account for owner_id:', product.business_owner_id, 
+                       'account:', businessAccount, 'final ID:', businessAccountId);
           }
           
           if (businessAccountId) {
-            console.log('Adding item to business account:', businessAccountId);
+            console.log('➕ Adding item to business account:', businessAccountId);
             if (!acc[businessAccountId]) {
               acc[businessAccountId] = [];
             }
             acc[businessAccountId].push(item);
           } else {
-            console.log('No business account found for item:', item);
+            console.error('❌ No business account found for item:', item.name, 'Product:', product);
           }
           return acc;
         }, {} as { [businessAccountId: string]: typeof businessItems });
 
-        console.log('Items grouped by business account:', itemsByBusinessAccount);
+        console.log('📊 Items grouped by business account:', itemsByBusinessAccount);
 
         // Create business order for each business account
         for (const [businessAccountId, items] of Object.entries(itemsByBusinessAccount)) {
-          console.log('Creating business order for account:', businessAccountId, 'with items:', items);
+          console.log('🚀 Creating business order for account:', businessAccountId, 'with items:', items.length);
           
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
@@ -189,13 +196,17 @@ export default function Checkout() {
             order_summary: {
               items: items.map(item => ({
                 name: item.name,
-                description: item.description,
+                description: item.description || '',
                 price: item.price,
                 quantity: item.quantity,
                 total: item.price * item.quantity
               })),
               order_id: orderData.id,
-              order_type: 'individual'
+              order_type: 'individual',
+              customer_info: {
+                donor_phone: donorPhoneNumber,
+                beneficiary_phone: beneficiaryPhoneNumber
+              }
             },
             total_amount: businessTotal,
             currency: "XOF",
@@ -206,21 +217,25 @@ export default function Checkout() {
             status: "pending"
           };
           
-          console.log('Inserting business order data:', businessOrderData);
+          console.log('📤 Inserting business order data:', businessOrderData);
           
-          // Use the service role to insert business orders for other business owners
           const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
             .insert(businessOrderData)
             .select();
           
           if (businessOrderError) {
-            console.error('Error creating business order:', businessOrderError);
+            console.error('💥 Error creating business order:', businessOrderError);
+            console.error('📋 Order data that failed:', businessOrderData);
             throw new Error(`Erreur lors de la création de la commande business: ${businessOrderError.message}`);
           }
           
-          console.log('Business order created successfully:', businessOrderResult);
+          console.log('✅ Business order created successfully:', businessOrderResult);
         }
+        
+        console.log('🎉 All business orders processed successfully!');
+      } else {
+        console.log('ℹ️ No business items found in this order.');
       }
 
       // Store order details for confirmation page
