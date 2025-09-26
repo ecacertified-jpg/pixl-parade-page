@@ -152,10 +152,13 @@ export default function Checkout() {
         for (const [businessAccountId, items] of Object.entries(itemsByBusinessAccount)) {
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
+          // For individual orders, use a special UUID to indicate it's not a collective fund
+          const individualOrderFundId = '00000000-0000-0000-0000-000000000001';
+          
           await supabase
             .from("business_orders")
             .insert({
-              fund_id: orderData.id, // Using order ID as reference
+              fund_id: individualOrderFundId, // Use special UUID for individual orders
               business_account_id: businessAccountId,
               order_summary: {
                 items: items.map(item => ({
@@ -165,7 +168,8 @@ export default function Checkout() {
                   quantity: item.quantity,
                   total: item.price * item.quantity
                 })),
-                order_id: orderData.id
+                order_id: orderData.id,
+                order_type: 'individual' // Mark as individual order
               },
               total_amount: businessTotal,
               currency: "XOF",
