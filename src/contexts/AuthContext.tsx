@@ -28,23 +28,80 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        if (mounted) {
+          console.log('🔐 Initial session:', session?.user?.id || 'No session');
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      async (event, session) => {
+        console.log('🔄 Auth state changed:', event, session?.user?.id || 'No session');
+        
+        if (mounted) {
+          // For SIGNED_OUT events, ensure we clear everything
+          if (event === 'SIGNED_OUT') {
+            setSession(null);
+            setUser(null);
+          } else {
+            // For other events, validate session is actually working
+            if (session?.user) {
+              try {
+                // Quick test to ensure the session works with Supabase
+                const { error: testError } = await supabase
+                  .from('profiles')
+                  .select('id')
+                  .limit(1);
+                
+                if (testError && testError.code === '401') {
+                  console.warn('⚠️ Session appears invalid, clearing auth state');
+                  setSession(null);
+                  setUser(null);
+                } else {
+                  setSession(session);
+                  setUser(session.user);
+                }
+              } catch (error) {
+                console.error('Session validation failed:', error);
+                setSession(session);
+                setUser(session.user);
+              }
+            } else {
+              setSession(session);
+              setUser(session?.user ?? null);
+            }
+          }
+          setLoading(false);
+        }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    initAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
