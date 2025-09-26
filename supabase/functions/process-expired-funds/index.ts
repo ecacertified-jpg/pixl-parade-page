@@ -79,7 +79,13 @@ serve(async (req) => {
 
     let processedCount = 0;
 
-    for (const fund of expiredFunds as ExpiredFund[]) {
+    for (const fund of expiredFunds.map(f => ({
+      ...f,
+      contributors: f.fund_contributions.map(contrib => ({
+        ...contrib,
+        profiles: contrib.profiles?.[0] // Take first profile since it's an array from the query
+      }))
+    })) as ExpiredFund[]) {
       try {
         console.log(`Traitement de la cotisation expirée: ${fund.title} (${fund.id})`);
 
@@ -194,7 +200,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Erreur dans process-expired-funds:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

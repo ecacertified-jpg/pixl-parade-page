@@ -87,6 +87,47 @@ export default function Checkout() {
 
     setIsProcessing(true);
     try {
+      // DEBUG: Check authentication state in detail
+      console.log('🔍 Starting order creation process...');
+      console.log('👤 User from React context:', user?.id, user?.email);
+      
+      // Force fresh session retrieval to ensure Supabase session is synchronized
+      console.log('🔄 Retrieving fresh Supabase session...');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Session error:', sessionError);
+        throw new Error('Erreur de session. Veuillez vous reconnecter.');
+      }
+      
+      if (!sessionData.session?.user) {
+        console.error('❌ No valid session found despite React user state');
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter pour continuer",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return;
+      }
+      
+      console.log('✅ Valid session found:', sessionData.session.user.id);
+      console.log('🔑 Session access token exists:', !!sessionData.session.access_token);
+      
+      // Verify auth.uid() works by testing a simple query
+      console.log('🧪 Testing auth.uid() with a simple query...');
+      const { data: testAuth, error: testAuthError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('user_id', sessionData.session.user.id)
+        .limit(1);
+      
+      if (testAuthError) {
+        console.error('❌ Auth test failed:', testAuthError);
+        throw new Error('Problème d\'authentification détecté. Veuillez vous reconnecter.');
+      }
+      
+      console.log('✅ Authentication test passed, proceeding with order...');
       // Get product details to identify business products
       const productIds = orderItems.map(item => (item.productId || item.id).toString());
       const { data: products, error: productsError } = await supabase
@@ -221,6 +262,10 @@ export default function Checkout() {
           
           console.log('📤 Inserting business order data:', businessOrderData);
           
+          // Re-verify session right before business order creation
+          const { data: preInsertSession } = await supabase.auth.getSession();
+          console.log('🔐 Pre-insert session check:', !!preInsertSession.session?.user);
+          
           const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
             .insert(businessOrderData)
@@ -229,7 +274,18 @@ export default function Checkout() {
           if (businessOrderError) {
             console.error('💥 Error creating business order:', businessOrderError);
             console.error('📋 Order data that failed:', businessOrderData);
-            throw new Error(`Erreur lors de la création de la commande business: ${businessOrderError.message}`);
+            console.error('🔍 Error code:', businessOrderError.code);
+            console.error('🔍 Error details:', businessOrderError.details);
+            console.error('🔍 Error hint:', businessOrderError.hint);
+            
+            // Provide more specific error messages based on the error type
+            if (businessOrderError.code === '42501' || businessOrderError.message.includes('permission')) {
+              throw new Error('Erreur d\'autorisation: Votre session a expiré. Veuillez vous reconnecter.');
+            } else if (businessOrderError.code === '23503') {
+              throw new Error('Référence invalide dans la commande. Veuillez contacter le support.');
+            } else {
+              throw new Error(`Erreur lors de la création de la commande business: ${businessOrderError.message}`);
+            }
           }
           
           console.log('✅ Business order created successfully:', businessOrderResult);
@@ -263,15 +319,27 @@ export default function Checkout() {
       let errorDescription = "Impossible de finaliser la commande";
       
       if (error instanceof Error) {
-        console.error("Error details:", error.message);
-        console.error("Error stack:", error.stack);
+        console.error("🚨 Order creation failed:");
+        console.error("📄 Error message:", error.message);
+        console.error("📚 Error stack:", error.stack);
         
-        if (error.message.includes('business_orders')) {
+        if (error.message.includes('Session expirée') || error.message.includes('session a expiré')) {
+          errorTitle = "Session expirée";
+          errorDescription = "Votre session a expiré. Vous allez être redirigé vers la page de connexion.";
+          // Redirect to auth after showing the toast
+          setTimeout(() => navigate('/auth'), 2000);
+        } else if (error.message.includes('autorisation') || error.message.includes('permission')) {
+          errorTitle = "Problème d'authentification";
+          errorDescription = "Erreur d'autorisation. Veuillez vous reconnecter.";
+        } else if (error.message.includes('business_orders')) {
+          errorTitle = "Erreur commande business";
           errorDescription = "Erreur lors de la création de la commande business. Veuillez réessayer.";
         } else if (error.message.includes('uuid')) {
+          errorTitle = "Erreur de données";
           errorDescription = "Erreur de format des données. Veuillez contacter le support.";
-        } else if (error.message.includes('permission') || error.message.includes('RLS')) {
-          errorDescription = "Erreur d'autorisation. Veuillez vous reconnecter.";
+        } else if (error.message.includes('RLS') || error.message.includes('policy')) {
+          errorTitle = "Problème de sécurité";
+          errorDescription = "Erreur de politique de sécurité. Veuillez vous reconnecter.";
         } else {
           errorDescription = `Erreur technique: ${error.message}`;
         }
