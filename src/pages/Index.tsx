@@ -8,6 +8,7 @@ import { OccasionSection } from "@/components/OccasionSection";
 import { PopularCategoriesSection } from "@/components/PopularCategoriesSection";
 import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
+import { BusinessEntryPoint } from "@/components/BusinessEntryPoint";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { memo } from "react";
@@ -50,6 +51,15 @@ const Index = () => {
                 1
               </div>
             </div>
+            <div className="relative">
+              <button 
+                onClick={() => navigate("/business-auth")}
+                className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+              >
+                <ShoppingCart className="h-3 w-3" />
+                Business
+              </button>
+            </div>
             <User className="h-6 w-6 text-muted-foreground" />
           </div>
         </div>
@@ -62,6 +72,9 @@ const Index = () => {
 
         {/* Welcome Section */}
         <WelcomeSection userName="Aminata" />
+
+        {/* Business Entry Point */}
+        <BusinessEntryPoint />
 
         {/* Action Cards */}
         <div className="grid grid-cols-2 gap-4 mb-6">

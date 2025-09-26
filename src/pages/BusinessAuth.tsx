@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,22 +9,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
-import { Store } from 'lucide-react';
-import { handleSmartRedirect } from '@/utils/authRedirect';
+import { Store, ArrowLeft } from 'lucide-react';
 
-const authSchema = z.object({
+const businessAuthSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
   firstName: z.string().min(1, 'Le prénom est requis').optional(),
   lastName: z.string().min(1, 'Le nom est requis').optional(),
+  businessName: z.string().min(1, 'Le nom de l\'entreprise est requis').optional(),
+  businessType: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  description: z.string().optional(),
 });
 
-type AuthFormData = z.infer<typeof authSchema>;
+type BusinessAuthFormData = z.infer<typeof businessAuthSchema>;
 
-const Auth = () => {
+const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,21 +40,46 @@ const Auth = () => {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<AuthFormData>({
-    resolver: zodResolver(authSchema),
+    setValue,
+    watch,
+  } = useForm<BusinessAuthFormData>({
+    resolver: zodResolver(businessAuthSchema),
   });
+
+  const businessType = watch('businessType');
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      handleSmartRedirect(user, navigate);
+      checkBusinessAccountAndRedirect();
     }
   }, [user, navigate]);
 
-  const signIn = async (data: AuthFormData) => {
+  const checkBusinessAccountAndRedirect = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: businessAccount } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (businessAccount) {
+        navigate('/business-account', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (error) {
+      console.error('Error checking business account:', error);
+      navigate('/dashboard', { replace: true });
+    }
+  };
+
+  const signIn = async (data: BusinessAuthFormData) => {
     try {
       setIsLoading(true);
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
@@ -71,14 +101,13 @@ const Auth = () => {
         return;
       }
 
-      if (authData.user) {
-        toast({
-          title: 'Connexion réussie',
-          description: 'Vous êtes maintenant connecté',
-        });
-        // Use smart redirect based on user type
-        await handleSmartRedirect(authData.user, navigate);
-      }
+      toast({
+        title: 'Connexion réussie',
+        description: 'Bienvenue dans votre espace business',
+      });
+      
+      // Check if user has business account and redirect
+      await checkBusinessAccountAndRedirect();
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -90,12 +119,12 @@ const Auth = () => {
     }
   };
 
-  const signUp = async (data: AuthFormData) => {
+  const signUp = async (data: BusinessAuthFormData) => {
     try {
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/business-account`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -103,6 +132,7 @@ const Auth = () => {
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
+            is_business: true,
           },
         },
       });
@@ -124,8 +154,30 @@ const Auth = () => {
         return;
       }
 
+      // If user is created, create business account
+      if (authData.user) {
+        try {
+          const { error: businessError } = await supabase
+            .from('business_accounts')
+            .insert({
+              user_id: authData.user.id,
+              business_name: data.businessName || '',
+              business_type: data.businessType || '',
+              phone: data.phone || '',
+              address: data.address || '',
+              description: data.description || '',
+            });
+
+          if (businessError) {
+            console.error('Error creating business account:', businessError);
+          }
+        } catch (businessCreationError) {
+          console.error('Error creating business account:', businessCreationError);
+        }
+      }
+
       toast({
-        title: 'Compte créé',
+        title: 'Compte business créé',
         description: 'Vérifiez votre email pour confirmer votre compte',
       });
       reset();
@@ -140,29 +192,43 @@ const Auth = () => {
     }
   };
 
+  const businessTypes = [
+    'Bijouterie',
+    'Parfumerie',
+    'Technologie',
+    'Gastronomie',
+    'Mode',
+    'Artisanat',
+    'Services',
+    'Autre'
+  ];
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Joie de Vivre</CardTitle>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Store className="h-6 w-6 text-primary" />
+            <CardTitle className="text-2xl font-bold">Business JOIE DE VIVRE</CardTitle>
+          </div>
           <CardDescription>
-            Connectez-vous ou créez un compte pour commencer
+            Créez votre compte business ou connectez-vous à votre espace vendeur
           </CardDescription>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/business-auth')}
+            onClick={() => navigate('/auth')}
             className="mt-2 text-sm"
           >
-            <Store className="h-4 w-4 mr-2" />
-            Espace Business
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Compte client
           </Button>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
+              <TabsTrigger value="signup">Inscription Business</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
@@ -172,7 +238,7 @@ const Auth = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="votre@email.com"
+                    placeholder="votre@business-email.com"
                     {...register('email')}
                   />
                   {errors.email && (
@@ -226,13 +292,69 @@ const Auth = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="businessName">Nom de l'entreprise *</Label>
+                  <Input
+                    id="businessName"
+                    placeholder="Mon Enterprise SARL"
+                    {...register('businessName')}
+                  />
+                  {errors.businessName && (
+                    <p className="text-sm text-destructive">{errors.businessName.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="businessType">Type d'activité</Label>
+                  <Select onValueChange={(value) => setValue('businessType', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez votre activité" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businessTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input
+                    id="phone"
+                    placeholder="+225 XX XX XX XX XX"
+                    {...register('phone')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Adresse</Label>
+                  <Input
+                    id="address"
+                    placeholder="Cocody, Abidjan"
+                    {...register('address')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (optionnel)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Décrivez votre activité..."
+                    rows={3}
+                    {...register('description')}
+                  />
+                </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="votre@email.com"
+                    placeholder="votre@business-email.com"
                     {...register('email')}
                   />
                   {errors.email && (
@@ -254,7 +376,7 @@ const Auth = () => {
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Création...' : 'Créer un compte'}
+                  {isLoading ? 'Création...' : 'Créer mon compte business'}
                 </Button>
               </form>
             </TabsContent>
@@ -265,4 +387,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default BusinessAuth;

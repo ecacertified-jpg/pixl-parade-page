@@ -169,6 +169,24 @@ export default function Shop() {
             </Button>)}
         </div>
 
+        {/* Business CTA */}
+        <Card className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30">
+          <div className="p-4 flex items-center justify-between">
+            <div>
+              <h3 className="font-medium text-sm">Vous êtes vendeur ?</h3>
+              <p className="text-xs text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => navigate('/business-auth')}
+              className="text-xs"
+            >
+              Rejoindre
+            </Button>
+          </div>
+        </Card>
+
         {/* Products Grid */}
         <div className="space-y-4">
           {products.map(product => <Card key={product.id} className="overflow-hidden">

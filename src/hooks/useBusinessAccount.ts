@@ -1,0 +1,59 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface BusinessAccount {
+  id: string;
+  business_name: string;
+  business_type?: string;
+  is_active: boolean;
+}
+
+export const useBusinessAccount = () => {
+  const [businessAccount, setBusinessAccount] = useState<BusinessAccount | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      setBusinessAccount(null);
+      setLoading(false);
+      return;
+    }
+
+    checkBusinessAccount();
+  }, [user]);
+
+  const checkBusinessAccount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('business_accounts')
+        .select('id, business_name, business_type, is_active')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking business account:', error);
+        setBusinessAccount(null);
+      } else {
+        setBusinessAccount(data);
+      }
+    } catch (error) {
+      console.error('Error checking business account:', error);
+      setBusinessAccount(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const hasBusinessAccount = businessAccount !== null;
+  const isActiveBusinessAccount = businessAccount?.is_active === true;
+
+  return {
+    businessAccount,
+    hasBusinessAccount,
+    isActiveBusinessAccount,
+    loading,
+    refetch: checkBusinessAccount,
+  };
+};

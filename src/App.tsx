@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import BusinessAuth from "./pages/BusinessAuth";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import BusinessAccount from "./pages/BusinessAccount";
@@ -31,6 +32,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/business-auth" element={<BusinessAuth />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <Index />
