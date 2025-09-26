@@ -1,4 +1,4 @@
-import { User, Heart, ShoppingBag, Gift } from "lucide-react";
+import { User, Users, ShoppingBag, Gift } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -81,7 +81,7 @@ export function BottomNavigation() {
       badge: giftNotifications > 0 ? giftNotifications.toString() : undefined,
       isBlinking: giftNotifications > 0
     },
-    { icon: <Heart className="h-5 w-5" />, label: "Favoris", active: false, badge: "3", path: "/favorites" }
+    { icon: <Users className="h-5 w-5" />, label: "Communauté", active: false, path: "/community" }
   ];
 
   return (
