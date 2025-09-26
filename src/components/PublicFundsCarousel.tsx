@@ -66,9 +66,9 @@ export function PublicFundsCarousel() {
           const progress = (fund.currentAmount / fund.targetAmount) * 100;
           
           return (
-            <Card key={fund.id} className="flex-shrink-0 w-48 bg-white rounded-xl shadow-md border-0 overflow-hidden hover:shadow-lg transition-all duration-300">
+            <Card key={fund.id} className="flex-shrink-0 w-44 bg-white rounded-xl shadow-md border-0 overflow-hidden hover:shadow-lg transition-all duration-300">
               {/* Product Image */}
-              <div className="h-24 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
+              <div className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
                 {fund.productImage ? (
                   <img 
                     src={fund.productImage} 
@@ -77,26 +77,26 @@ export function PublicFundsCarousel() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Gift className="h-8 w-8 text-pink-300" />
+                    <Gift className="h-6 w-6 text-pink-300" />
                   </div>
                 )}
               </div>
               
-              <div className="p-3 space-y-2">
-                {/* Title and Beneficiary */}
-                <div className="text-center">
-                  <h4 className="font-semibold text-gray-900 text-sm leading-tight">
-                    {fund.productName || fund.title} pour {fund.beneficiaryName}
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {fund.occasion} dans 5 jours
-                  </p>
-                </div>
+              <div className="p-2.5 space-y-2">
+                {/* Title and Beneficiary - Single Line */}
+                <h4 className="font-semibold text-gray-900 text-xs leading-tight text-center truncate">
+                  {fund.productName || fund.title} pour {fund.beneficiaryName}
+                </h4>
+                
+                {/* Occasion - Single Line */}
+                <p className="text-xs text-gray-500 text-center truncate">
+                  {fund.occasion} dans 5 jours
+                </p>
 
                 {/* Amount Progress */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <div className="flex justify-between items-baseline">
-                    <span className="text-sm font-bold text-pink-600">
+                    <span className="text-xs font-bold text-pink-600">
                       {fund.currentAmount.toLocaleString()} {fund.currency}
                     </span>
                     <span className="text-xs text-gray-400">
@@ -104,7 +104,7 @@ export function PublicFundsCarousel() {
                     </span>
                   </div>
                   
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(progress, 100)}%` }}
@@ -112,18 +112,19 @@ export function PublicFundsCarousel() {
                   </div>
                 </div>
 
-                {/* Contributors and Button */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-gray-500">
-                    <Users className="h-3 w-3" />
-                    <span className="text-xs">
-                      {fund.contributors.length} contributeur{fund.contributors.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  
+                {/* Contributors */}
+                <div className="flex items-center justify-center gap-1 text-gray-500">
+                  <Users className="h-3 w-3" />
+                  <span className="text-xs">
+                    {fund.contributors.length} contributeur{fund.contributors.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                
+                {/* Centered Button */}
+                <div className="flex justify-center pt-1">
                   <Button
                     onClick={() => handleContribute(fund.id)}
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-3 py-1.5 text-xs font-medium rounded-full border-0"
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-1.5 text-xs font-medium rounded-full border-0"
                   >
                     <Gift className="h-3 w-3 mr-1" />
                     Contribuer
