@@ -152,33 +152,35 @@ export default function Checkout() {
       if (businessItems.length > 0) {
         console.log('🔄 Processing business items for orders...');
         
-        // Group items by business account
+        // Group items by business account using business_owner_id mapping
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
-          let businessAccountId = null;
           
           console.log('📝 Processing item:', item.name, 'Product found:', product);
           
-          if (product?.business_id) {
-            businessAccountId = product.business_id;
-            console.log('✅ Using direct business_id:', businessAccountId);
-          } else if (product?.business_owner_id) {
-            // Find business account by user_id
-            const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
-            businessAccountId = businessAccount?.id;
-            console.log('🔍 Found business account for owner_id:', product.business_owner_id, 
-                       'account:', businessAccount, 'final ID:', businessAccountId);
+          if (!product?.business_owner_id) {
+            console.error('❌ Product missing business_owner_id:', item.name);
+            return acc;
           }
           
-          if (businessAccountId) {
-            console.log('➕ Adding item to business account:', businessAccountId);
-            if (!acc[businessAccountId]) {
-              acc[businessAccountId] = [];
-            }
-            acc[businessAccountId].push(item);
-          } else {
-            console.error('❌ No business account found for item:', item.name, 'Product:', product);
+          // Find business account by business_owner_id
+          const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
+          
+          if (!businessAccount) {
+            console.error('❌ No business account found for owner_id:', product.business_owner_id, 'Product:', item.name);
+            throw new Error(`Aucun compte business trouvé pour le propriétaire du produit "${item.name}"`);
           }
+          
+          const businessAccountId = businessAccount.id;
+          console.log('🔍 Found business account for owner_id:', product.business_owner_id, 
+                     'account ID:', businessAccountId, 'for product:', item.name);
+          
+          console.log('➕ Adding item to business account:', businessAccountId);
+          if (!acc[businessAccountId]) {
+            acc[businessAccountId] = [];
+          }
+          acc[businessAccountId].push(item);
+          
           return acc;
         }, {} as { [businessAccountId: string]: typeof businessItems });
 
