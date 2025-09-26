@@ -13,7 +13,7 @@ const mockPosts: Post[] = [
     content: 'Mon fils a obtenu son baccalauréat avec mention ! 🎓✨ Je suis tellement fière de lui. Merci à tous ceux qui l\'ont soutenu dans cette aventure.',
     timestamp: 'Il y a 2 heures',
     type: 'text',
-    occasion: 'Réussite académique',
+    occasion: 'Réussite',
     reactions: {
       love: 24,
       gift: 8,
@@ -76,7 +76,7 @@ const mockPosts: Post[] = [
     content: 'Promotion obtenue après 3 ans d\'efforts ! 🚀 Je dédie cette réussite à ma famille qui m\'a toujours soutenu. Maintenant, place aux célébrations !',
     timestamp: 'Il y a 8 heures',
     type: 'text',
-    occasion: 'Promotion professionnelle',
+    occasion: 'Promotion',
     reactions: {
       love: 89,
       gift: 15,
