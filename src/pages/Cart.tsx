@@ -206,7 +206,7 @@ export default function Cart() {
         {/* Checkout button */}
         <Button onClick={proceedToCheckout} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg">
           <ShoppingCart className="h-4 w-4 mr-2" />
-          Passer commande - {total.toLocaleString()} F
+          Passer commande individuelle - {total.toLocaleString()} F
         </Button>
 
         <div className="pb-20" />

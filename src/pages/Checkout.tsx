@@ -337,7 +337,7 @@ export default function Checkout() {
           disabled={isProcessing || !isFormValid} 
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isProcessing ? "Traitement..." : `Confirmer la commande - ${total.toLocaleString()} F`}
+          {isProcessing ? "Traitement..." : `Confirmer la commande individuelle - ${total.toLocaleString()} F`}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
