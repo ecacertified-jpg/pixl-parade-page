@@ -151,54 +151,77 @@ export default function Checkout() {
           const product = products?.find(p => p.id === (item.productId || item.id).toString());
           let businessAccountId = null;
           
+          console.log('Processing item:', item, 'Product found:', product);
+          
           if (product?.business_id) {
             businessAccountId = product.business_id;
+            console.log('Using business_id:', businessAccountId);
           } else if (product?.business_owner_id) {
             // Find business account by user_id
             const businessAccount = businessAccounts.find(ba => ba.user_id === product.business_owner_id);
             businessAccountId = businessAccount?.id;
+            console.log('Found business account for owner_id:', product.business_owner_id, 'account:', businessAccount);
           }
           
           if (businessAccountId) {
+            console.log('Adding item to business account:', businessAccountId);
             if (!acc[businessAccountId]) {
               acc[businessAccountId] = [];
             }
             acc[businessAccountId].push(item);
+          } else {
+            console.log('No business account found for item:', item);
           }
           return acc;
         }, {} as { [businessAccountId: string]: typeof businessItems });
 
+        console.log('Items grouped by business account:', itemsByBusinessAccount);
+
         // Create business order for each business account
         for (const [businessAccountId, items] of Object.entries(itemsByBusinessAccount)) {
+          console.log('Creating business order for account:', businessAccountId, 'with items:', items);
+          
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
           // For individual orders, use a special UUID to indicate it's not a collective fund
           const individualOrderFundId = '00000000-0000-0000-0000-000000000001';
           
-          await supabase
+          const businessOrderData = {
+            fund_id: individualOrderFundId,
+            business_account_id: businessAccountId,
+            order_summary: {
+              items: items.map(item => ({
+                name: item.name,
+                description: item.description,
+                price: item.price,
+                quantity: item.quantity,
+                total: item.price * item.quantity
+              })),
+              order_id: orderData.id,
+              order_type: 'individual'
+            },
+            total_amount: businessTotal,
+            currency: "XOF",
+            donor_phone: donorPhoneNumber,
+            beneficiary_phone: beneficiaryPhoneNumber,
+            delivery_address: address,
+            payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
+            status: "pending"
+          };
+          
+          console.log('Inserting business order data:', businessOrderData);
+          
+          const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
-            .insert({
-              fund_id: individualOrderFundId, // Use special UUID for individual orders
-              business_account_id: businessAccountId,
-              order_summary: {
-                items: items.map(item => ({
-                  name: item.name,
-                  description: item.description,
-                  price: item.price,
-                  quantity: item.quantity,
-                  total: item.price * item.quantity
-                })),
-                order_id: orderData.id,
-                order_type: 'individual' // Mark as individual order
-              },
-              total_amount: businessTotal,
-              currency: "XOF",
-              donor_phone: donorPhoneNumber,
-              beneficiary_phone: beneficiaryPhoneNumber,
-              delivery_address: address,
-              payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
-              status: "pending"
-            });
+            .insert(businessOrderData)
+            .select();
+          
+          if (businessOrderError) {
+            console.error('Error creating business order:', businessOrderError);
+            throw new Error(`Erreur lors de la création de la commande business: ${businessOrderError.message}`);
+          }
+          
+          console.log('Business order created successfully:', businessOrderResult);
         }
       }
 
