@@ -291,8 +291,10 @@ export default function BusinessAccount() {
               const {
                 error: updateError
               } = await supabase.from('products').update({
-                is_active: false
+                is_active: false,
+                updated_at: new Date().toISOString()
               }).eq('id', productIdStr).eq('business_owner_id', user.id);
+              
               if (updateError) {
                 console.error('❌ Error deactivating product:', updateError);
                 toast.error('Erreur lors de la désactivation du produit');
