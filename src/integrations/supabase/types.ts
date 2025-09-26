@@ -351,7 +351,7 @@ export type Database = {
           currency: string
           delivery_address: string
           donor_phone: string
-          fund_id: string
+          fund_id: string | null
           id: string
           order_summary: Json
           payment_method: string
@@ -367,7 +367,7 @@ export type Database = {
           currency?: string
           delivery_address: string
           donor_phone: string
-          fund_id: string
+          fund_id?: string | null
           id?: string
           order_summary?: Json
           payment_method?: string
@@ -383,7 +383,7 @@ export type Database = {
           currency?: string
           delivery_address?: string
           donor_phone?: string
-          fund_id?: string
+          fund_id?: string | null
           id?: string
           order_summary?: Json
           payment_method?: string

@@ -183,11 +183,8 @@ export default function Checkout() {
           
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
-          // For individual orders, use a special UUID to indicate it's not a collective fund
-          const individualOrderFundId = '00000000-0000-0000-0000-000000000001';
-          
           const businessOrderData = {
-            fund_id: individualOrderFundId,
+            fund_id: null, // NULL for individual orders
             business_account_id: businessAccountId,
             order_summary: {
               items: items.map(item => ({
@@ -211,6 +208,7 @@ export default function Checkout() {
           
           console.log('Inserting business order data:', businessOrderData);
           
+          // Use the service role to insert business orders for other business owners
           const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
             .insert(businessOrderData)
