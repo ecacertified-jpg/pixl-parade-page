@@ -20,6 +20,8 @@ const authSchema = z.object({
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
   firstName: z.string().min(1, 'Le prénom est requis').optional(),
   lastName: z.string().min(1, 'Le nom est requis').optional(),
+  birthday: z.string().optional(),
+  city: z.string().min(1, 'La ville est requise').optional(),
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
@@ -103,6 +105,8 @@ const Auth = () => {
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
+            birthday: data.birthday,
+            city: data.city,
           },
         },
       });
@@ -223,6 +227,32 @@ const Auth = () => {
                     />
                     {errors.lastName && (
                       <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="birthday">Date d'anniversaire</Label>
+                    <Input
+                      id="birthday"
+                      type="date"
+                      {...register('birthday')}
+                    />
+                    {errors.birthday && (
+                      <p className="text-sm text-destructive">{errors.birthday.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Ville ou quartier</Label>
+                    <Input
+                      id="city"
+                      placeholder="Votre ville"
+                      {...register('city')}
+                    />
+                    {errors.city && (
+                      <p className="text-sm text-destructive">{errors.city.message}</p>
                     )}
                   </div>
                 </div>
