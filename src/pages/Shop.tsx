@@ -171,17 +171,12 @@ export default function Shop() {
 
         {/* Business CTA */}
         <Card className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30">
-          <div className="p-4 flex items-center justify-between">
+          <div className="p-4 flex items-center justify-between bg-green-200">
             <div>
               <h3 className="font-medium text-sm">Vous êtes vendeur ?</h3>
               <p className="text-xs text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</p>
             </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => navigate('/business-auth')}
-              className="text-xs"
-            >
+            <Button size="sm" variant="outline" onClick={() => navigate('/business-auth')} className="text-xs bg-green-500 hover:bg-green-400">
               Rejoindre
             </Button>
           </div>
