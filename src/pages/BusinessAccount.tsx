@@ -445,7 +445,7 @@ export default function BusinessAccount() {
                   }
                 </span>
                 <span className="hidden sm:inline"> - </span>
-                <span className="block sm:inline text-xs sm:text-sm">
+                <span className="block sm:inline text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis">
                   Connecté en tant que : {user?.email}
                 </span>
               </p>
