@@ -25,7 +25,7 @@ export function WhatDoYouWantCard() {
             {user?.email?.charAt(0).toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
-        <h2 className="text-lg font-medium text-purple-700">
+        <h2 className="text-lg font-medium text-gray-500">
           Que voulez-vous célébrer aujourd'hui ?
         </h2>
       </div>
