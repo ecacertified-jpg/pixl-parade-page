@@ -22,7 +22,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
-
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -30,7 +29,6 @@ interface UserProfile {
   phone: string | null;
   birthday: string | null;
 }
-
 interface Friend {
   id: string;
   name: string;
@@ -51,9 +49,16 @@ export default function Dashboard() {
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const { user } = useAuth();
-  const { hasBusinessAccount, isActiveBusinessAccount = false } = useBusinessAccount();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    hasBusinessAccount,
+    isActiveBusinessAccount = false
+  } = useBusinessAccount();
+  const {
+    toast
+  } = useToast();
   const {
     funds,
     loading: fundsLoading,
@@ -86,22 +91,17 @@ export default function Dashboard() {
       setFriends(parsedFriends);
     }
   };
-
   const loadUserProfile = async () => {
     if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, city, phone, birthday')
-        .eq('user_id', user.id)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('profiles').select('first_name, last_name, city, phone, birthday').eq('user_id', user.id).single();
       if (error) {
         console.error('Erreur lors du chargement du profil:', error);
         return;
       }
-
       setUserProfile(data);
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
@@ -307,19 +307,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0 pr-4">
               <div className="font-semibold truncate">
-                {userProfile?.first_name && userProfile?.last_name 
-                  ? `${userProfile.first_name} ${userProfile.last_name}`
-                  : user?.user_metadata?.first_name && user?.user_metadata?.last_name
-                    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
-                    : 'Utilisateur'
-                }
+                {userProfile?.first_name && userProfile?.last_name ? `${userProfile.first_name} ${userProfile.last_name}` : user?.user_metadata?.first_name && user?.user_metadata?.last_name ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}` : 'Utilisateur'}
               </div>
               <div className="text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
-                {userProfile?.birthday ? (
-                  `Anniv. dans ${getDaysUntilBirthday(userProfile.birthday)} jours`
-                ) : (
-                  userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'
-                )}
+                {userProfile?.birthday ? `Anniv. dans ${getDaysUntilBirthday(userProfile.birthday)} jours` : userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'}
               </div>
             </div>
             <div className="flex gap-6 text-center">
@@ -346,7 +337,7 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" onClick={() => navigate('/business-account')} className="font-medium mx-0 bg-green-600 hover:bg-green-500 my-[4px] text-center py-[10px] px-[3px]">
+            <Button variant="secondary" onClick={() => navigate('/business-account')} className="font-medium mx-0 my-[4px] text-center py-[10px] px-[3px] bg-green-600 hover:bg-green-500 text-gray-50">
               Compte Business
             </Button>
           </div>
@@ -463,11 +454,7 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
-              <Button 
-                size="sm" 
-                className="gap-2 bg-emerald-500 hover:bg-emerald-400" 
-                onClick={() => navigate('/shop')}
-              >
+              <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => navigate('/shop')}>
                 <Plus className="h-4 w-4" aria-hidden />
                 Créer
               </Button>
@@ -485,14 +472,7 @@ export default function Dashboard() {
                   <p className="text-sm mx-[45px]">Les cotisations créées depuis la boutique apparaîtront ici</p>
                 </div>
               </Card> : <div className="space-y-4">
-                {funds.map(fund => (
-                  <CollectiveFundCard 
-                    key={fund.id} 
-                    fund={fund} 
-                    onContributionSuccess={refreshFunds}
-                    onDelete={() => refreshFunds()}
-                  />
-                ))}
+                {funds.map(fund => <CollectiveFundCard key={fund.id} fund={fund} onContributionSuccess={refreshFunds} onDelete={() => refreshFunds()} />)}
               </div>}
           </TabsContent>
 
