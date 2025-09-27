@@ -113,7 +113,7 @@ export function PublicFundsCarousel() {
                 
                 {/* Centered Button */}
                 <div className="flex justify-center pt-1">
-                  <Button onClick={() => handleContribute(fund.id)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-1.5 text-xs font-medium rounded-full border-0">
+                  <Button onClick={() => handleContribute(fund.id)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-xs font-medium rounded-full border-0 px-[24px] py-0 mx-[10px] my-[13px]">
                     <Gift className="h-3 w-3 mr-1" />
                     Contribuer
                   </Button>
