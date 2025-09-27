@@ -47,31 +47,32 @@ export function PublicFundsCarousel() {
       </h3>
 
       <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-        {/* Add Fund Card */}
-        <Card 
-          className="flex-shrink-0 w-48 h-32 bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-dashed border-primary/30 hover:border-primary/50 cursor-pointer transition-all duration-300 hover:shadow-soft flex flex-col items-center justify-center gap-2 group"
-          onClick={handleAddFund}
-        >
-          <div className="bg-primary/10 p-3 rounded-full group-hover:bg-primary/20 transition-colors">
-            <Plus className="h-6 w-6 text-primary" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-foreground text-sm">Ajouter une cagnotte</p>
-            <p className="text-xs text-muted-foreground mt-1">Créer ensemble</p>
-          </div>
-        </Card>
+        {/* Actions Card */}
+        <Card className="flex-shrink-0 w-48 bg-white rounded-xl shadow-md border-0 overflow-hidden hover:shadow-lg transition-all duration-300">
+          <div className="p-4 space-y-3">
+            {/* Add Fund Button */}
+            <div 
+              className="bg-gradient-to-br from-pink-50 to-pink-100 border-2 border-dashed border-pink-200 hover:border-pink-300 cursor-pointer transition-all duration-300 rounded-lg p-3 flex flex-col items-center text-center group"
+              onClick={handleAddFund}
+            >
+              <div className="bg-pink-500 p-2 rounded-full mb-2 group-hover:bg-pink-600 transition-colors">
+                <Plus className="h-4 w-4 text-white" />
+              </div>
+              <p className="font-semibold text-gray-900 text-sm">Ajouter une cagnotte</p>
+              <p className="text-xs text-pink-600">Créer ensemble</p>
+            </div>
 
-        {/* Create Friends Circle Card */}
-        <Card 
-          className="flex-shrink-0 w-48 h-32 bg-gradient-to-br from-accent/5 to-muted/5 border-2 border-dashed border-accent/30 hover:border-accent/50 cursor-pointer transition-all duration-300 hover:shadow-soft flex flex-col items-center justify-center gap-2 group"
-          onClick={() => navigate("/dashboard")}
-        >
-          <div className="bg-accent/10 p-3 rounded-full group-hover:bg-accent/20 transition-colors">
-            <Users className="h-6 w-6 text-accent" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-foreground text-sm">Créer son cercle d'amis</p>
-            <p className="text-xs text-muted-foreground mt-1">Partager la joie</p>
+            {/* Create Friends Circle Button */}
+            <div 
+              className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-dashed border-purple-200 hover:border-purple-300 cursor-pointer transition-all duration-300 rounded-lg p-3 flex flex-col items-center text-center group"
+              onClick={() => navigate("/dashboard")}
+            >
+              <div className="bg-purple-500 p-2 rounded-full mb-2 group-hover:bg-purple-600 transition-colors">
+                <Users className="h-4 w-4 text-white" />
+              </div>
+              <p className="font-semibold text-gray-900 text-sm">Créer son cercle d'amis</p>
+              <p className="text-xs text-purple-600">Partager la joie</p>
+            </div>
           </div>
         </Card>
 
