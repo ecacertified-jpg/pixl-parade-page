@@ -8,6 +8,7 @@ import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import logoJV from "@/assets/logo-jv.png";
 
 const Home = () => {
   // Force rebuild - Home component 
@@ -19,11 +20,8 @@ const Home = () => {
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Joie de vivre
-            </h1>
-            <p className="text-sm text-muted-foreground">Célébrez ensemble</p>
+          <div className="flex items-center">
+            <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
           </div>
           
           <div className="flex items-center gap-4">

@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { memo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import logoJV from "@/assets/logo-jv.png";
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -41,9 +42,8 @@ const Index = () => {
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">Joie de vivre </h1>
-            <p className="text-sm text-muted-foreground">Célébrez ensemble</p>
+          <div className="flex items-center">
+            <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
           </div>
           
           <div className="flex items-center gap-4">
