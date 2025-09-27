@@ -438,10 +438,16 @@ export default function BusinessAccount() {
             <div>
               <h1 className="text-xl font-semibold">Mon Espace Business</h1>
               <p className="text-sm text-muted-foreground">
-                {businesses.length > 0 
-                  ? `Gérez ${businesses[0].business_name} et vos ventes`
-                  : 'Gérez votre business et vos ventes'
-                } - Connecté en tant que : {user?.email}
+                <span className="block sm:inline">
+                  {businesses.length > 0 
+                    ? `Gérez ${businesses[0].business_name} et vos ventes`
+                    : 'Gérez votre business et vos ventes'
+                  }
+                </span>
+                <span className="hidden sm:inline"> - </span>
+                <span className="block sm:inline text-xs sm:text-sm">
+                  Connecté en tant que : {user?.email}
+                </span>
               </p>
             </div>
             <Badge className="ml-auto bg-green-500">Actif</Badge>
