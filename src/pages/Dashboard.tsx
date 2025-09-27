@@ -306,8 +306,8 @@ export default function Dashboard() {
         {/* Carte résumé */}
         <Card className="p-4 mb-4">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="font-semibold">
+            <div className="flex-1 min-w-0 pr-4">
+              <div className="font-semibold truncate">
                 {userProfile?.first_name && userProfile?.last_name 
                   ? `${userProfile.first_name} ${userProfile.last_name}`
                   : user?.user_metadata?.first_name && user?.user_metadata?.last_name
@@ -315,7 +315,7 @@ export default function Dashboard() {
                     : 'Utilisateur'
                 }
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                 {userProfile?.birthday ? (
                   `Anniversaire dans ${getDaysUntilBirthday(userProfile.birthday)} jours`
                 ) : (
