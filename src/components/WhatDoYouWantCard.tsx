@@ -16,7 +16,7 @@ export function WhatDoYouWantCard() {
     // Navigate to create event/post page or show modal
     navigate("/dashboard");
   };
-  return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-purple-100">
+  return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-purple-200">
       {/* Header with profile and question */}
       <div className="flex items-center gap-3 mb-6">
         <Avatar className="h-12 w-12">
