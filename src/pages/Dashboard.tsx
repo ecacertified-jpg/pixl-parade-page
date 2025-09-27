@@ -317,7 +317,7 @@ export default function Dashboard() {
               </div>
               <div className="text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                 {userProfile?.birthday ? (
-                  `Anniversaire dans ${getDaysUntilBirthday(userProfile.birthday)} jours`
+                  `Anniv. dans ${getDaysUntilBirthday(userProfile.birthday)} jours`
                 ) : (
                   userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'
                 )}
@@ -384,7 +384,7 @@ export default function Dashboard() {
                         <div className="font-medium">{friend.name}</div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          Anniversaire dans {getDaysUntilBirthday(friend.birthday)} jours
+                          Anniv. dans {getDaysUntilBirthday(friend.birthday)} jours
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
