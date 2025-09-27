@@ -130,6 +130,32 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-nunito;
+  }
+
+  /* Hiérarchie typographique Joie de Vivre */
+  h1, .text-title-main {
+    @apply font-poppins font-semibold text-xl md:text-2xl;
+  }
+
+  h2, .text-title-section {
+    @apply font-poppins font-medium text-lg md:text-xl;
+  }
+
+  h3, .text-subtitle {
+    @apply font-poppins font-medium text-base md:text-lg;
+  }
+
+  .text-content {
+    @apply font-nunito font-normal text-sm md:text-base;
+  }
+
+  .text-secondary {
+    @apply font-nunito font-light text-xs md:text-sm text-muted-foreground;
+  }
+
+  /* Boutons avec typographie chaleureuse */
+  .btn-primary {
+    @apply font-poppins font-medium;
   }
 }
