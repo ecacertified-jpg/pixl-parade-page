@@ -8,41 +8,48 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 248 100% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* Palette Joie de Vivre - tons chauds et émotionnels */
+    --background: 276 47% 94%; /* Lavande clair #E8E2F5 */
+    --foreground: 0 0% 18%; /* Gris foncé #2E2E2E */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* Blanc pur #FFFFFF */
+    --card-foreground: 0 0% 18%; /* Gris foncé #2E2E2E */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%; /* Blanc pur */
+    --popover-foreground: 0 0% 18%; /* Gris foncé */
 
-    --primary: 348 83% 47%;
+    --primary: 259 58% 59%; /* Violet profond #7A5DC7 */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 265 85% 70%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 330 70% 89%; /* Rose pastel #FAD4E1 */
+    --secondary-foreground: 0 0% 18%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 96%; /* Gris doux #F4F4F4 */
+    --muted-foreground: 0 0% 44%; /* Gris moyen #6F6F6F */
 
-    --accent: 265 85% 70%;
+    --accent: 272 76% 75%; /* Violet feu d'artifice #C084FC */
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Couleurs d'action spécifiques */
+    --heart: 345 100% 65%; /* Rouge cœur #FF4D6D */
+    --gift: 345 100% 76%; /* Rose cadeau #FF85A1 */  
+    --gratitude: 45 88% 63%; /* Or doux #F7C948 */
+    --celebration: 272 76% 75%; /* Violet feu d'artifice #C084FC */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 348 83% 47%;
+    --destructive: 345 100% 65%; /* Rouge cœur pour cohérence */
+    --destructive-foreground: 0 0% 98%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(348 83% 47%), hsl(265 85% 70%));
-    --gradient-background: linear-gradient(180deg, hsl(248 100% 98%), hsl(320 60% 96%));
-    --shadow-soft: 0 4px 20px hsl(348 83% 47% / 0.1);
-    --shadow-card: 0 2px 12px hsl(0 0% 0% / 0.05);
+    --border: 0 0% 82%; /* Gris doux #D1D1D1 */
+    --input: 0 0% 82%;
+    --ring: 259 58% 59%; /* Violet profond */
+
+    --gradient-primary: linear-gradient(135deg, hsl(259 58% 59%), hsl(272 76% 75%));
+    --gradient-background: linear-gradient(180deg, hsl(276 47% 94%), hsl(330 70% 89%));
+    --shadow-soft: 0 4px 20px hsl(259 58% 59% / 0.15);
+    --shadow-card: 0 2px 12px hsl(259 58% 59% / 0.08);
 
     --radius: 1rem;
 
@@ -64,41 +71,48 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Mode sombre Joie de Vivre - élégant et chaleureux */
+    --background: 259 25% 8%; /* Violet très sombre */
+    --foreground: 276 20% 92%; /* Lavande très clair */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 259 20% 12%; /* Violet sombre */
+    --card-foreground: 276 15% 88%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 259 20% 12%;
+    --popover-foreground: 276 15% 88%;
 
-    --primary: 348 83% 57%;
+    --primary: 259 58% 65%; /* Violet profond éclairci */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 265 85% 70%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 330 45% 25%; /* Rose pastel assombri */
+    --secondary-foreground: 276 15% 88%;
 
     --success: 142 76% 46%;
     --success-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 259 15% 18%; /* Gris violet sombre */
+    --muted-foreground: 0 0% 65%; /* Gris moyen */
 
-    --accent: 265 85% 70%;
+    --accent: 272 76% 70%; /* Violet feu d'artifice légèrement assombri */
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Couleurs d'action en mode sombre */
+    --heart: 345 85% 70%; /* Rouge cœur éclairci */
+    --gift: 345 85% 75%; /* Rose cadeau éclairci */
+    --gratitude: 45 80% 70%; /* Or doux éclairci */
+    --celebration: 272 76% 70%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 348 83% 57%;
+    --destructive: 345 85% 70%;
+    --destructive-foreground: 0 0% 98%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(348 83% 57%), hsl(265 85% 70%));
-    --gradient-background: linear-gradient(180deg, hsl(222.2 84% 4.9%), hsl(265 40% 10%));
-    --shadow-soft: 0 4px 20px hsl(348 83% 57% / 0.2);
-    --shadow-card: 0 2px 12px hsl(0 0% 0% / 0.2);
+    --border: 259 15% 22%; /* Bordures violet sombre */
+    --input: 259 15% 22%;
+    --ring: 259 58% 65%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(259 58% 65%), hsl(272 76% 70%));
+    --gradient-background: linear-gradient(180deg, hsl(259 25% 8%), hsl(330 30% 15%));
+    --shadow-soft: 0 4px 20px hsl(259 58% 65% / 0.25);
+    --shadow-card: 0 2px 12px hsl(0 0% 0% / 0.4);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
