@@ -452,22 +452,22 @@ export default function BusinessAccount() {
       <main className="max-w-4xl mx-auto px-4 py-6">
         {/* Statut du compte */}
         <Card className="p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-2 sm:gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats.totalProducts}</div>
-              <div className="text-sm text-muted-foreground">Produits</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalProducts}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Produits</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats.totalOrders}</div>
-              <div className="text-sm text-muted-foreground">Commandes</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalOrders}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Commandes</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
-              <div className="text-sm text-muted-foreground">Revenus (F)</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Revenus (F)</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{stats.rating}</div>
-              <div className="text-sm text-muted-foreground">Note</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.rating}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Note</div>
             </div>
           </div>
         </Card>
