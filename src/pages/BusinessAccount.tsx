@@ -431,13 +431,16 @@ export default function BusinessAccount() {
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2">
+          <div className="flex items-start justify-between gap-2 w-full">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2 flex-shrink-0">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-semibold">Mon Espace Business</h1>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h1 className="text-xl font-semibold">Mon Espace Business</h1>
+                  <Badge className="bg-green-500 flex-shrink-0">Actif</Badge>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   <span className="block sm:inline">
                     {businesses.length > 0 
@@ -452,7 +455,6 @@ export default function BusinessAccount() {
                 </p>
               </div>
             </div>
-            <Badge className="bg-green-500 mt-1">Actif</Badge>
           </div>
         </div>
       </header>
