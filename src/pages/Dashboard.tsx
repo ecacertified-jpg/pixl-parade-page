@@ -316,9 +316,10 @@ export default function Dashboard() {
                 }
               </div>
               <div className="text-sm text-muted-foreground">
-                {userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'}
-                {userProfile?.birthday && (
-                  <> • Anniversaire dans {getDaysUntilBirthday(userProfile.birthday)} jours</>
+                {userProfile?.birthday ? (
+                  `Anniversaire dans ${getDaysUntilBirthday(userProfile.birthday)} jours`
+                ) : (
+                  userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'
                 )}
               </div>
             </div>
