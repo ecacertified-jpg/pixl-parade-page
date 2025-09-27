@@ -431,26 +431,28 @@ export default function BusinessAccount() {
   return <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-semibold">Mon Espace Business</h1>
-              <p className="text-sm text-muted-foreground">
-                <span className="block sm:inline">
-                  {businesses.length > 0 
-                    ? `Gérez ${businesses[0].business_name} et vos ventes`
-                    : 'Gérez votre business et vos ventes'
-                  }
-                </span>
-                <span className="hidden sm:inline"> - </span>
-                <span className="block sm:inline text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-                  Connecté en tant que : {user?.email}
-                </span>
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="p-2">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl font-semibold">Mon Espace Business</h1>
+                <p className="text-sm text-muted-foreground">
+                  <span className="block sm:inline">
+                    {businesses.length > 0 
+                      ? `Gérez ${businesses[0].business_name} et vos ventes`
+                      : 'Gérez votre business et vos ventes'
+                    }
+                  </span>
+                  <span className="hidden sm:inline"> - </span>
+                  <span className="block sm:inline text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+                    Connecté en tant que : {user?.email}
+                  </span>
+                </p>
+              </div>
             </div>
-            <Badge className="ml-auto bg-green-500">Actif</Badge>
+            <Badge className="bg-green-500 mt-1">Actif</Badge>
           </div>
         </div>
       </header>
