@@ -53,7 +53,7 @@ export const EditBioModal = ({ isOpen, onClose, currentBio, userId, onBioUpdate 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md z-[200]">
         <DialogHeader>
           <DialogTitle>Modifier votre bio</DialogTitle>
         </DialogHeader>
