@@ -16,7 +16,7 @@ export function WhatDoYouWantCard() {
     // Navigate to create event/post page or show modal
     navigate("/dashboard");
   };
-  return <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl">
+  return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-red-50">
       {/* Header with profile and question */}
       <div className="flex items-center gap-3 mb-6">
         <Avatar className="h-12 w-12">
@@ -33,13 +33,13 @@ export function WhatDoYouWantCard() {
       {/* Action buttons */}
       <div className="grid grid-cols-2 gap-3">
         {/* Offer Gift Button */}
-        <Button onClick={handleOfferGift} variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 bg-card hover:bg-muted/50 border border-border rounded-2xl transition-all duration-200 hover:shadow-md">
+        <Button onClick={handleOfferGift} variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 border border-border rounded-2xl transition-all duration-200 hover:shadow-md bg-neutral-50">
           <Gift className="h-5 w-5 text-primary" />
           <span className="font-medium text-foreground">Offrir</span>
         </Button>
 
         {/* Celebrate Button */}
-        <Button onClick={handleCelebrate} variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 bg-card hover:bg-muted/50 border border-border rounded-2xl transition-all duration-200 hover:shadow-md">
+        <Button onClick={handleCelebrate} variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 border border-border rounded-2xl transition-all duration-200 hover:shadow-md bg-neutral-50">
           <PartyPopper className="h-5 w-5 text-secondary" />
           <span className="font-medium text-foreground">Célébrer</span>
         </Button>
