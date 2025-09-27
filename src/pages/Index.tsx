@@ -43,7 +43,7 @@ const Index = () => {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
+            <img src={logoJV} alt="Joie de Vivre" className="h-12 w-auto" />
           </div>
           
           <div className="flex items-center gap-4">
