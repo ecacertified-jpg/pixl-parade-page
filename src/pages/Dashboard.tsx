@@ -73,6 +73,11 @@ export default function Dashboard() {
     loadFriendsFromSupabase();
     loadEventsFromStorage();
     loadUserProfile();
+    
+    // Debug pour voir les données utilisateur
+    if (user) {
+      console.log('User metadata:', user.user_metadata);
+    }
   }, [user]);
   const loadFriendsFromStorage = () => {
     const savedFriends = localStorage.getItem('friends');
@@ -316,12 +321,10 @@ export default function Dashboard() {
               </div>
               <div className="text-sm text-muted-foreground">
                 {userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'}
+                {user?.user_metadata?.birthday && (
+                  <> • Anniversaire dans {getDaysUntilBirthday(user.user_metadata.birthday)} jours</>
+                )}
               </div>
-              {user?.user_metadata?.birthday && (
-                <div className="text-sm text-muted-foreground">
-                  Anniversaire dans {getDaysUntilBirthday(user.user_metadata.birthday)} jours
-                </div>
-              )}
             </div>
             <div className="flex gap-6 text-center">
               <div>
