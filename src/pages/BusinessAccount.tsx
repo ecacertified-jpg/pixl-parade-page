@@ -441,10 +441,7 @@ export default function BusinessAccount() {
                 {businesses.length > 0 
                   ? `Gérez ${businesses[0].business_name} et vos ventes`
                   : 'Gérez votre business et vos ventes'
-                }
-              </p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                Connecté en tant que : {user?.email}
+                } - Connecté en tant que : {user?.email}
               </p>
             </div>
             <Badge className="ml-auto bg-green-500">Actif</Badge>
