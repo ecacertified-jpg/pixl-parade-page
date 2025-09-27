@@ -1812,6 +1812,7 @@ export type Database = {
       profiles: {
         Row: {
           bio: string | null
+          birthday: string | null
           city: string | null
           created_at: string
           first_name: string | null
@@ -1824,6 +1825,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          birthday?: string | null
           city?: string | null
           created_at?: string
           first_name?: string | null
@@ -1836,6 +1838,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          birthday?: string | null
           city?: string | null
           created_at?: string
           first_name?: string | null
