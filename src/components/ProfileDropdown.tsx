@@ -1,6 +1,7 @@
-import { User, BarChart3, Heart, Users, LogOut } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -10,16 +11,45 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EditBioModal } from "@/components/EditBioModal";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [bio, setBio] = useState<string>("");
+  const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
 
   // Debug: Log user data
   console.log('ProfileDropdown - User:', user);
   console.log('ProfileDropdown - Loading:', loading);
+
+  // Fetch user bio from profiles table
+  useEffect(() => {
+    const fetchUserBio = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('bio')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching bio:', error);
+          return;
+        }
+        
+        setBio(data?.bio || "");
+      } catch (error) {
+        console.error('Error fetching bio:', error);
+      }
+    };
+
+    fetchUserBio();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     try {
@@ -66,7 +96,15 @@ export const ProfileDropdown = () => {
             {/* User Info */}
             <h3 className="font-semibold text-foreground text-lg mb-1">{userName}</h3>
             <p className="text-muted-foreground text-sm mb-2">{userHandle}</p>
-            <p className="text-muted-foreground text-xs">Bio de l'utilisateur</p>
+            <div 
+              className="flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-2 py-1 transition-colors group"
+              onClick={() => setIsEditBioModalOpen(true)}
+            >
+              <p className="text-muted-foreground text-xs">
+                {bio || "Ajouter une bio..."}
+              </p>
+              <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
         </div>
 
@@ -125,6 +163,15 @@ export const ProfileDropdown = () => {
           </button>
         </div>
       </DropdownMenuContent>
+      
+      {/* Edit Bio Modal */}
+      <EditBioModal
+        isOpen={isEditBioModalOpen}
+        onClose={() => setIsEditBioModalOpen(false)}
+        currentBio={bio}
+        userId={user?.id || ""}
+        onBioUpdate={(newBio) => setBio(newBio)}
+      />
     </DropdownMenu>
   );
 };
