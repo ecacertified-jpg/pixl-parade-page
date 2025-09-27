@@ -295,7 +295,6 @@ export default function BusinessAccount() {
                 is_active: false,
                 updated_at: new Date().toISOString()
               }).eq('id', productIdStr).eq('business_owner_id', user.id);
-              
               if (updateError) {
                 console.error('❌ Error deactivating product:', updateError);
                 toast.error('Erreur lors de la désactivation du produit');
@@ -444,10 +443,7 @@ export default function BusinessAccount() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   <span className="block sm:inline">
-                    {businesses.length > 0 
-                      ? `Gérez ${businesses[0].business_name} et vos ventes`
-                      : 'Gérez votre business et vos ventes'
-                    }
+                    {businesses.length > 0 ? `Gérez ${businesses[0].business_name} et vos ventes` : 'Gérez votre business et vos ventes'}
                   </span>
                   <span className="hidden sm:inline"> - </span>
                   <span className="block sm:inline text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis">
@@ -485,7 +481,7 @@ export default function BusinessAccount() {
 
         {/* Dashboard avec onglets */}
         <Tabs defaultValue="vue-ensemble" className="w-full">
-          <TabsList className="grid grid-cols-5 text-xs">
+          <TabsList className="grid grid-cols-5 text-xs mx-0 my-0 px-0 py-0">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
               <span className="text-xs">Vue d'ens.</span>
@@ -623,44 +619,30 @@ export default function BusinessAccount() {
                 
               </div>
               
-              {loadingProducts ? (
-                <div className="flex items-center justify-center py-8">
+              {loadingProducts ? <div className="flex items-center justify-center py-8">
                   <div className="text-muted-foreground">Chargement des produits...</div>
-                </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                </div> : products.length === 0 ? <div className="text-center py-8 text-muted-foreground">
                   <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>Aucun produit ajouté</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour créer votre premier produit</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {products.map(product => {
-                    // Transform product data to match BusinessProductCard interface
-                    const transformedProduct = {
-                      id: product.id,
-                      name: product.name,
-                      description: product.category, // Use category as description for now
-                      price: product.price,
-                      currency: 'XOF',
-                      business_owner_id: user?.id || '',
-                      category_name: product.category,
-                      stock: product.stock,
-                      is_active: product.status === 'active'
-                    };
-                    
-                    return (
-                      <BusinessProductCard
-                        key={product.id}
-                        product={transformedProduct}
-                        businessId={user?.id}
-                        onEdit={(product) => handleEditProduct(product.id)}
-                        onDelete={(productId) => handleDeleteProduct(productId)}
-                      />
-                    );
-                  })}
-                </div>
-              )}
+                // Transform product data to match BusinessProductCard interface
+                const transformedProduct = {
+                  id: product.id,
+                  name: product.name,
+                  description: product.category,
+                  // Use category as description for now
+                  price: product.price,
+                  currency: 'XOF',
+                  business_owner_id: user?.id || '',
+                  category_name: product.category,
+                  stock: product.stock,
+                  is_active: product.status === 'active'
+                };
+                return <BusinessProductCard key={product.id} product={transformedProduct} businessId={user?.id} onEdit={product => handleEditProduct(product.id)} onDelete={productId => handleDeleteProduct(productId)} />;
+              })}
+                </div>}
             </Card>
           </TabsContent>
 
@@ -741,12 +723,12 @@ export default function BusinessAccount() {
                           <div className="flex items-center gap-3 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground" />
                             <span>{new Date(order.created_at).toLocaleDateString('fr-FR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</span>
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
                           </div>
 
                           {/* Type de livraison */}
@@ -776,9 +758,9 @@ export default function BusinessAccount() {
                           </div>
                           <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={() => {
-                      setSelectedOrder(order);
-                      setIsOrderDetailsModalOpen(true);
-                    }} className="flex items-center gap-2">
+                          setSelectedOrder(order);
+                          setIsOrderDetailsModalOpen(true);
+                        }} className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               Voir Détail
                             </Button>
