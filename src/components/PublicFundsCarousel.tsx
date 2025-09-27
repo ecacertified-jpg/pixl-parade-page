@@ -10,8 +10,11 @@ export function PublicFundsCarousel() {
   const navigate = useNavigate();
   const { funds, loading } = useCollectiveFunds();
 
-  // Filter for active funds that could be public or from friends
-  const publicFunds = funds.filter(fund => fund.status === 'active').slice(0, 5);
+  // Filter and prioritize funds: friends' public funds first, then others, all active
+  const publicFunds = funds
+    .filter(fund => fund.status === 'active' && (fund.isPublic || fund.priority <= 3))
+    .sort((a, b) => (a.priority || 4) - (b.priority || 4))
+    .slice(0, 5);
 
   const handleAddFund = () => {
     navigate("/dashboard");
