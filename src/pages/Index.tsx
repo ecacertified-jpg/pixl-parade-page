@@ -1,4 +1,4 @@
-import { Bell, User, Gift, ShoppingCart, Settings, LogOut, UserCircle } from "lucide-react";
+import { Bell, User, Gift, ShoppingCart } from "lucide-react";
 import { NotificationCard } from "@/components/NotificationCard";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
@@ -9,19 +9,11 @@ import { PopularCategoriesSection } from "@/components/PopularCategoriesSection"
 import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { BusinessEntryPoint } from "@/components/BusinessEntryPoint";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { memo } from "react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -42,22 +34,6 @@ const Index = () => {
     navigate("/shop");
   };
 
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt sur JOIE DE VIVRE !"
-      });
-      navigate("/auth");
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la déconnexion",
-        variant: "destructive"
-      });
-    }
-  };
   return <div className="min-h-screen bg-gradient-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
@@ -80,32 +56,7 @@ const Index = () => {
                 1
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="relative cursor-pointer p-2 rounded-full hover:bg-muted/50 transition-colors">
-                  <User className="h-6 w-6 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-50 bg-background border shadow-md">
-                <DropdownMenuLabel>
-                  Mon compte
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Mon profil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Paramètres</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Se déconnecter</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ProfileDropdown />
           </div>
         </div>
       </header>
