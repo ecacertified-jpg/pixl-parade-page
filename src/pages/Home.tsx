@@ -2,14 +2,17 @@ import { Bell, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { memo } from "react";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { WhatDoYouWantCard } from "@/components/WhatDoYouWantCard";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
+import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 
 const Home = () => {
   // Force rebuild - Home component 
   const navigate = useNavigate();
+  const { isActiveBusinessAccount } = useBusinessAccount();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
@@ -36,7 +39,7 @@ const Home = () => {
                 1
               </div>
             </div>
-            <ProfileDropdown />
+            {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
           </div>
         </div>
       </header>

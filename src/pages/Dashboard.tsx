@@ -15,10 +15,12 @@ import { AddEventModal, Event } from "@/components/AddEventModal";
 import { GiftsSection } from "@/components/GiftsSection";
 import { CollectiveFundCard } from "@/components/CollectiveFundCard";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 
 interface UserProfile {
@@ -49,12 +51,9 @@ export default function Dashboard() {
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user } = useAuth();
+  const { hasBusinessAccount, isActiveBusinessAccount } = useBusinessAccount();
+  const { toast } = useToast();
   const {
     funds,
     loading: fundsLoading,
@@ -293,7 +292,7 @@ export default function Dashboard() {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <ProfileDropdown />
+            {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
             <div>
               <h1 className="text-xl font-semibold">Mon Tableau de Bord</h1>
               <p className="text-sm text-muted-foreground">Gérez vos relations et événements</p>

@@ -10,14 +10,17 @@ import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSectio
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { BusinessEntryPoint } from "@/components/BusinessEntryPoint";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { memo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isActiveBusinessAccount } = useBusinessAccount();
 
   const handleGiftAction = () => {
     toast({
@@ -56,7 +59,7 @@ const Index = () => {
                 1
               </div>
             </div>
-            <ProfileDropdown />
+            {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
           </div>
         </div>
       </header>

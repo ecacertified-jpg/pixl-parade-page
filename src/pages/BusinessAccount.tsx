@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff, Eye } from "lucide-react";
+import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 import { AddProductModal } from "@/components/AddProductModal";

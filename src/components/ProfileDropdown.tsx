@@ -1,4 +1,4 @@
-import { User, BarChart3, Heart, Users, LogOut, Edit3 } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3, Store } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -12,12 +12,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
+import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasBusinessAccount } = useBusinessAccount();
   const [bio, setBio] = useState<string>("");
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
 
@@ -151,6 +153,16 @@ export const ProfileDropdown = () => {
             <Heart className="h-4 w-4 mr-3 text-muted-foreground" />
             <span className="text-sm font-medium">Articles préférés</span>
           </button>
+
+          {hasBusinessAccount && (
+            <button 
+              onClick={() => navigate("/business-account")}
+              className="w-full flex items-center px-4 py-3 text-left text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              <Store className="h-4 w-4 mr-3 text-muted-foreground" />
+              <span className="text-sm font-medium">Mode business</span>
+            </button>
+          )}
 
           <DropdownMenuSeparator className="my-2" />
           
