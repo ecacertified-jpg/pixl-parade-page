@@ -337,9 +337,7 @@ export default function Dashboard() {
               <div className="font-semibold bg-green-100">Vous êtes commerçant ?</div>
               <div className="text-sm text-muted-foreground">Vendez vos produits sur JOIE DE VIVRE</div>
             </div>
-            <Button variant="secondary" onClick={() => navigate('/business-account')} className="font-medium mx-0 my-[4px] text-center py-[10px] px-[3px] bg-green-600 hover:bg-green-500 text-gray-50">
-              Compte Business
-            </Button>
+            <Button variant="secondary" onClick={() => navigate('/business-account')} className="font-medium text-center bg-green-600 hover:bg-green-500 text-gray-50 my-0 px-[15px] mx-[2px] py-px">Rejoindre</Button>
           </div>
         </Card>
 
