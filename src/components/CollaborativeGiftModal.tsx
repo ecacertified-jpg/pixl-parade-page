@@ -75,14 +75,21 @@ export function CollaborativeGiftModal({
         return;
       }
 
-      // Convert Supabase contacts to Contact interface
-      const formattedContacts: Contact[] = data.map(contact => ({
-        id: contact.id,
-        name: contact.name,
-        relationship: contact.relationship || 'Ami(e)',
-        birthday: contact.birthday,
-        avatar_url: contact.avatar_url
-      }));
+      // Convert Supabase contacts to Contact interface and exclude self
+      const formattedContacts: Contact[] = data
+        .filter(contact => {
+          // Exclude contacts that might represent the user themselves
+          // This is a safety check in case contacts contain self-references
+          return contact.name !== user.user_metadata?.first_name + ' ' + user.user_metadata?.last_name &&
+                 contact.email !== user.email;
+        })
+        .map(contact => ({
+          id: contact.id,
+          name: contact.name,
+          relationship: contact.relationship || 'Ami(e)',
+          birthday: contact.birthday,
+          avatar_url: contact.avatar_url
+        }));
 
       setContacts(formattedContacts);
     } catch (error) {
@@ -208,6 +215,9 @@ export function CollaborativeGiftModal({
                     Ajoutez des amis depuis votre tableau de bord
                   </div>
                 )}
+                <div className="text-xs text-amber-600 mt-2 p-2 bg-amber-50 rounded-md">
+                  ℹ️ Vous ne pouvez pas créer une cagnotte pour vous-même
+                </div>
               </div>
             ) : (
               filteredContacts.map((contact) => (
