@@ -14,6 +14,7 @@ import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
 import { GiftsSection } from "@/components/GiftsSection";
 import { CollectiveFundCard } from "@/components/CollectiveFundCard";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -291,9 +292,7 @@ export default function Dashboard() {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="p-2">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+            <ProfileDropdown />
             <div>
               <h1 className="text-xl font-semibold">Mon Tableau de Bord</h1>
               <p className="text-sm text-muted-foreground">Gérez vos relations et événements</p>
