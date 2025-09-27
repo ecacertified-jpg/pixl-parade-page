@@ -8,6 +8,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 
 const Home = () => {
+  // Force rebuild - Home component 
   const navigate = useNavigate();
 
   return (
