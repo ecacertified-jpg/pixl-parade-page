@@ -18,6 +18,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
+
+interface UserProfile {
+  first_name: string | null;
+  last_name: string | null;
+  city: string | null;
+  phone: string | null;
+}
+
 interface Friend {
   id: string;
   name: string;
@@ -37,6 +45,7 @@ export default function Dashboard() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const {
     user
   } = useAuth();
@@ -63,6 +72,7 @@ export default function Dashboard() {
     loadFriendsFromStorage();
     loadFriendsFromSupabase();
     loadEventsFromStorage();
+    loadUserProfile();
   }, [user]);
   const loadFriendsFromStorage = () => {
     const savedFriends = localStorage.getItem('friends');
@@ -72,6 +82,27 @@ export default function Dashboard() {
         birthday: friend.birthday ? new Date(friend.birthday) : new Date()
       }));
       setFriends(parsedFriends);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, city, phone')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Erreur lors du chargement du profil:', error);
+        return;
+      }
+
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Erreur lors du chargement du profil:', error);
     }
   };
   const loadFriendsFromSupabase = async () => {
@@ -259,7 +290,7 @@ export default function Dashboard() {
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="p-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="p-2">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -275,8 +306,20 @@ export default function Dashboard() {
         <Card className="p-4 mb-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-semibold">Utilisateur Démo</div>
-              <div className="text-sm text-muted-foreground">Abidjan, Côte d'Ivoire</div>
+              <div className="font-semibold">
+                {userProfile?.first_name && userProfile?.last_name 
+                  ? `${userProfile.first_name} ${userProfile.last_name}`
+                  : user?.user_metadata?.first_name && user?.user_metadata?.last_name
+                    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                    : 'Utilisateur'
+                }
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'}
+                {user?.user_metadata?.birthday && (
+                  <> • Anniversaire: {format(new Date(user.user_metadata.birthday), 'dd MMMM', { locale: fr })}</>
+                )}
+              </div>
             </div>
             <div className="flex gap-6 text-center">
               <div>
