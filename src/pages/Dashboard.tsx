@@ -52,7 +52,7 @@ export default function Dashboard() {
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { user } = useAuth();
-  const { hasBusinessAccount, isActiveBusinessAccount } = useBusinessAccount();
+  const { hasBusinessAccount, isActiveBusinessAccount = false } = useBusinessAccount();
   const { toast } = useToast();
   const {
     funds,
