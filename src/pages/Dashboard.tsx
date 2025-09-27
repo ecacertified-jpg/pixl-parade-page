@@ -15,6 +15,7 @@ import { AddEventModal, Event } from "@/components/AddEventModal";
 import { GiftsSection } from "@/components/GiftsSection";
 import { CollectiveFundCard } from "@/components/CollectiveFundCard";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { BottomNavigation } from "@/components/RecentActivitySection";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -517,5 +518,7 @@ export default function Dashboard() {
       <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} />
 
         <AddEventModal isOpen={showAddEventModal} onClose={closeEventModal} onAddEvent={handleAddEvent} onEditEvent={handleEditEvent} eventToEdit={editingEvent} />
+        
+        <BottomNavigation />
     </div>;
 }
