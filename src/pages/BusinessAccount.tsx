@@ -662,7 +662,7 @@ export default function BusinessAccount() {
               
               {/* Commandes de cotisations collectives */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Commandes de Cotisations Collectives</h3>
+                
                 <BusinessOrdersSection />
               </div>
 
