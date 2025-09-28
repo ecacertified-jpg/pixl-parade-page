@@ -363,9 +363,9 @@ export function BusinessOrdersSection() {
   return (
     <Tabs defaultValue="individual" className="space-y-4">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="individual">Commandes individuelles</TabsTrigger>
-        <TabsTrigger value="collective">Commandes collectives</TabsTrigger>
-        <TabsTrigger value="business-funds">Cotisations initiées</TabsTrigger>
+        <TabsTrigger value="individual">Individuelles</TabsTrigger>
+        <TabsTrigger value="collective">Collectives</TabsTrigger>
+        <TabsTrigger value="business-funds">Initiées</TabsTrigger>
       </TabsList>
 
       <TabsContent value="individual" className="space-y-4">
