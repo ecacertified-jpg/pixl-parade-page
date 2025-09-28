@@ -655,10 +655,7 @@ export default function BusinessAccount() {
 
             {/* Section Autres Commandes */}
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6 text-primary" />
-                Autres Commandes
-              </h2>
+              
               
               {/* Commandes de cotisations collectives */}
               <div>
