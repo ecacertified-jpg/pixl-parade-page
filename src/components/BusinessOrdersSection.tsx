@@ -3,10 +3,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 
 interface CollectiveOrder {
   id: string;
@@ -42,6 +43,7 @@ export function BusinessOrdersSection() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { funds: businessFunds, loading: loadingBusinessFunds } = useBusinessCollectiveFunds();
 
   useEffect(() => {
     if (user) {
@@ -286,11 +288,84 @@ export function BusinessOrdersSection() {
     );
   };
 
+  const renderBusinessFundCard = (fund: any) => {
+    const progress = fund.fund?.target_amount ? (fund.fund.current_amount / fund.fund.target_amount) * 100 : 0;
+    
+    return (
+      <Card key={fund.id} className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="font-medium flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Cotisation business #{fund.fund_id.slice(-6)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {formatDate(fund.created_at)}
+            </div>
+          </div>
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            <Target className="h-3 w-3 mr-1" />
+            {fund.fund?.status || 'active'}
+          </Badge>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div>
+            <div className="font-semibold text-lg">{fund.fund?.title}</div>
+            <div className="text-sm text-muted-foreground">
+              Pour: {fund.beneficiary?.first_name} {fund.beneficiary?.last_name}
+            </div>
+          </div>
+
+          {fund.product && (
+            <div className="flex items-center gap-3 p-2 bg-muted/30 rounded">
+              <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                <Package className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div className="flex-1">
+                <div className="font-medium text-sm">{fund.product.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {fund.product.price?.toLocaleString()} {fund.product.currency}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progression</span>
+              <span className="font-medium">{progress.toFixed(0)}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-primary rounded-full h-2 transition-all duration-300"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{fund.fund?.current_amount?.toLocaleString() || 0} {fund.fund?.currency}</span>
+              <span>{fund.fund?.target_amount?.toLocaleString()} {fund.fund?.currency}</span>
+            </div>
+          </div>
+
+          {fund.beneficiary?.phone && (
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Bénéficiaire:</span>
+              <span>{fund.beneficiary.phone}</span>
+            </div>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <Tabs defaultValue="individual" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="individual">Commandes individuelles</TabsTrigger>
         <TabsTrigger value="collective">Commandes collectives</TabsTrigger>
+        <TabsTrigger value="business-funds">Cotisations initiées</TabsTrigger>
       </TabsList>
 
       <TabsContent value="individual" className="space-y-4">
@@ -343,6 +418,33 @@ export function BusinessOrdersSection() {
         ) : (
           <div className="space-y-4">
             {collectiveOrders.map((order) => renderOrderCard(order, false))}
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="business-funds" className="space-y-4">
+        {loadingBusinessFunds ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : businessFunds.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">Aucune cotisation initiée</h3>
+            <p className="text-sm text-muted-foreground">
+              Les cotisations que vous avez créées pour vos clients apparaîtront ici
+            </p>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {businessFunds.map((fund) => renderBusinessFundCard(fund))}
           </div>
         )}
       </TabsContent>
