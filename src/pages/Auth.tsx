@@ -9,36 +9,60 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { Store } from 'lucide-react';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 
-const authSchema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  firstName: z.string().min(1, 'Le prénom est requis').optional(),
-  birthday: z.string().optional(),
-  city: z.string().min(1, 'La ville est requise').optional(),
-  phone: z.string().optional(),
+const phoneRegex = /^(\+225)?[0-9]{8,10}$/;
+
+const signInSchema = z.object({
+  phone: z.string().regex(phoneRegex, 'Format de téléphone invalide (+225XXXXXXXX)'),
+  countryCode: z.string().default('+225'),
 });
 
-type AuthFormData = z.infer<typeof authSchema>;
+const signUpSchema = z.object({
+  firstName: z.string().min(1, 'Le prénom est requis'),
+  birthday: z.string().optional(),
+  city: z.string().min(1, 'La ville est requise').optional(),
+  phone: z.string().regex(phoneRegex, 'Format de téléphone invalide (+225XXXXXXXX)'),
+  countryCode: z.string().default('+225'),
+  otp: z.string().optional(),
+});
+
+const otpSchema = z.object({
+  otp: z.string().length(6, 'Le code doit contenir 6 chiffres'),
+});
+
+type SignInFormData = z.infer<typeof signInSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
+type OtpFormData = z.infer<typeof otpSchema>;
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [currentPhone, setCurrentPhone] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<AuthFormData>({
-    resolver: zodResolver(authSchema),
+  const signInForm = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { countryCode: '+225' }
+  });
+
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { countryCode: '+225' }
+  });
+
+  const otpForm = useForm<OtpFormData>({
+    resolver: zodResolver(otpSchema),
   });
 
   // Redirect if already authenticated
@@ -48,37 +72,119 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  const signIn = async (data: AuthFormData) => {
+  // Countdown timer for resending OTP
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const sendOtpSignIn = async (data: SignInFormData) => {
     try {
       setIsLoading(true);
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      const fullPhone = `${data.countryCode}${data.phone}`;
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
       });
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: 'Erreur de connexion',
-            description: 'Email ou mot de passe incorrect',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Erreur',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setCountdown(60);
+      toast({
+        title: 'Code envoyé',
+        description: 'Un code de vérification a été envoyé par SMS',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendOtpSignUp = async (data: SignUpFormData) => {
+    try {
+      setIsLoading(true);
+      const fullPhone = `${data.countryCode}${data.phone}`;
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
+        options: {
+          data: {
+            first_name: data.firstName,
+            birthday: data.birthday,
+            city: data.city,
+            phone: fullPhone,
+          },
+        },
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setAuthMode('signup');
+      setCountdown(60);
+      toast({
+        title: 'Code envoyé',
+        description: 'Un code de vérification a été envoyé par SMS',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOtp = async (data: OtpFormData) => {
+    try {
+      setIsLoading(true);
+      
+      const { data: authData, error } = await supabase.auth.verifyOtp({
+        phone: currentPhone,
+        token: data.otp,
+        type: 'sms',
+      });
+
+      if (error) {
+        toast({
+          title: 'Code invalide',
+          description: 'Le code saisi est incorrect ou expiré',
+          variant: 'destructive',
+        });
         return;
       }
 
       if (authData.user) {
         toast({
-          title: 'Connexion réussie',
-          description: 'Vous êtes maintenant connecté',
+          title: authMode === 'signup' ? 'Compte créé' : 'Connexion réussie',
+          description: authMode === 'signup' ? 'Votre compte a été créé avec succès' : 'Vous êtes maintenant connecté',
         });
-        // Use smart redirect based on user type
         await handleSmartRedirect(authData.user, navigate);
       }
     } catch (error) {
@@ -92,47 +198,29 @@ const Auth = () => {
     }
   };
 
-  const signUp = async (data: AuthFormData) => {
+  const resendOtp = async () => {
+    if (countdown > 0) return;
+    
     try {
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            first_name: data.firstName,
-            birthday: data.birthday,
-            city: data.city,
-            phone: data.phone,
-          },
-        },
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: currentPhone,
       });
 
       if (error) {
-        if (error.message.includes('User already registered')) {
-          toast({
-            title: 'Compte existant',
-            description: 'Un compte avec cet email existe déjà. Essayez de vous connecter.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Erreur',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
         return;
       }
 
+      setCountdown(60);
       toast({
-        title: 'Compte créé',
-        description: 'Vérifiez votre email pour confirmer votre compte',
+        title: 'Code renvoyé',
+        description: 'Un nouveau code a été envoyé par SMS',
       });
-      reset();
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -142,6 +230,13 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetOtpFlow = () => {
+    setOtpSent(false);
+    setCurrentPhone('');
+    setCountdown(0);
+    otpForm.reset();
   };
 
   return (
@@ -163,131 +258,189 @@ const Auth = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="signin">
-              <form onSubmit={handleSubmit(signIn)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    {...register('email')}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...register('password')}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
-                  )}
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Connexion...' : 'Se connecter'}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSubmit(signUp)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom</Label>
-                  <Input
-                    id="firstName"
-                    placeholder="Prénom"
-                    {...register('firstName')}
-                  />
-                  {errors.firstName && (
-                    <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+          {!otpSent ? (
+            <Tabs defaultValue="signin" onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="signin">Connexion</TabsTrigger>
+                <TabsTrigger value="signup">Inscription</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="signin">
+                <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="birthday">Date d'anniversaire</Label>
-                    <Input
-                      id="birthday"
-                      type="date"
-                      {...register('birthday')}
-                    />
-                    {errors.birthday && (
-                      <p className="text-sm text-destructive">{errors.birthday.message}</p>
+                    <Label htmlFor="signin-phone">Numéro de téléphone</Label>
+                    <div className="flex gap-2">
+                      <Select 
+                        value={signInForm.watch('countryCode')} 
+                        onValueChange={(value) => signInForm.setValue('countryCode', value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="+225">🇨🇮 +225</SelectItem>
+                          <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        id="signin-phone"
+                        type="tel"
+                        placeholder="01234567"
+                        {...signInForm.register('phone')}
+                        className="flex-1"
+                      />
+                    </div>
+                    {signInForm.formState.errors.phone && (
+                      <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
                     )}
                   </div>
                   
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Envoi...' : 'Envoyer le code'}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <form onSubmit={signUpForm.handleSubmit(sendOtpSignUp)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">Ville ou quartier</Label>
+                    <Label htmlFor="firstName">Prénom</Label>
                     <Input
-                      id="city"
-                      placeholder="Votre ville"
-                      {...register('city')}
+                      id="firstName"
+                      placeholder="Prénom"
+                      {...signUpForm.register('firstName')}
                     />
-                    {errors.city && (
-                      <p className="text-sm text-destructive">{errors.city.message}</p>
+                    {signUpForm.formState.errors.firstName && (
+                      <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
                     )}
                   </div>
-                </div>
-                
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="birthday">Date d'anniversaire</Label>
+                      <Input
+                        id="birthday"
+                        type="date"
+                        {...signUpForm.register('birthday')}
+                      />
+                      {signUpForm.formState.errors.birthday && (
+                        <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="city">Ville ou quartier</Label>
+                      <Input
+                        id="city"
+                        placeholder="Votre ville"
+                        {...signUpForm.register('city')}
+                      />
+                      {signUpForm.formState.errors.city && (
+                        <p className="text-sm text-destructive">{signUpForm.formState.errors.city.message}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Numéro de téléphone</Label>
+                    <div className="flex gap-2">
+                      <Select 
+                        value={signUpForm.watch('countryCode')} 
+                        onValueChange={(value) => signUpForm.setValue('countryCode', value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="+225">🇨🇮 +225</SelectItem>
+                          <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        placeholder="01234567"
+                        {...signUpForm.register('phone')}
+                        className="flex-1"
+                      />
+                    </div>
+                    {signUpForm.formState.errors.phone && (
+                      <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
+                    )}
+                  </div>
+                  
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Envoi...' : 'Envoyer le code'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold">Vérification du numéro</h3>
+                <p className="text-sm text-muted-foreground">
+                  Code envoyé au {currentPhone}
+                </p>
+              </div>
+              
+              <form onSubmit={otpForm.handleSubmit(verifyOtp)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Numéro de téléphone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Votre numéro de téléphone"
-                    {...register('phone')}
-                  />
-                  {errors.phone && (
-                    <p className="text-sm text-destructive">{errors.phone.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    {...register('email')}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...register('password')}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
+                  <Label htmlFor="otp">Code de vérification</Label>
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otpForm.watch('otp') || ''}
+                      onChange={(value) => otpForm.setValue('otp', value)}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  {otpForm.formState.errors.otp && (
+                    <p className="text-sm text-destructive text-center">{otpForm.formState.errors.otp.message}</p>
                   )}
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Création...' : 'Créer un compte'}
+                  {isLoading ? 'Vérification...' : 'Vérifier'}
                 </Button>
               </form>
-            </TabsContent>
-          </Tabs>
+              
+              <div className="space-y-2">
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resendOtp}
+                    disabled={countdown > 0 || isLoading}
+                  >
+                    {countdown > 0 ? `Renvoyer dans ${countdown}s` : 'Renvoyer le code'}
+                  </Button>
+                </div>
+                
+                <div className="text-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetOtpFlow}
+                  >
+                    Modifier le numéro
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
