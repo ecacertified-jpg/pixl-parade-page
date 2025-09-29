@@ -212,8 +212,16 @@ export function BusinessOrdersSection() {
         <div className="space-y-2 mb-4">
           {items.map((item: any, index: number) => (
             <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
-              <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                <Package className="h-6 w-6 text-muted-foreground" />
+              <div className="w-12 h-12 bg-muted rounded overflow-hidden flex items-center justify-center">
+                {item.image ? (
+                  <img 
+                    src={item.image} 
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                )}
               </div>
               <div className="flex-1">
                 <div className="font-medium text-sm">{item.name}</div>
@@ -319,8 +327,16 @@ export function BusinessOrdersSection() {
 
           {fund.product && (
             <div className="flex items-center gap-3 p-2 bg-muted/30 rounded">
-              <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                <Package className="h-6 w-6 text-muted-foreground" />
+              <div className="w-12 h-12 bg-muted rounded overflow-hidden flex items-center justify-center">
+                {fund.product.image ? (
+                  <img 
+                    src={fund.product.image} 
+                    alt={fund.product.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                )}
               </div>
               <div className="flex-1">
                 <div className="font-medium text-sm">{fund.product.name}</div>
