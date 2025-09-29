@@ -22,6 +22,7 @@ const authSchema = z.object({
   lastName: z.string().min(1, 'Le nom est requis').optional(),
   birthday: z.string().optional(),
   city: z.string().min(1, 'La ville est requise').optional(),
+  phone: z.string().optional(),
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
@@ -107,6 +108,7 @@ const Auth = () => {
             last_name: data.lastName,
             birthday: data.birthday,
             city: data.city,
+            phone: data.phone,
           },
         },
       });
@@ -255,6 +257,19 @@ const Auth = () => {
                       <p className="text-sm text-destructive">{errors.city.message}</p>
                     )}
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Numéro de téléphone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="Votre numéro de téléphone"
+                    {...register('phone')}
+                  />
+                  {errors.phone && (
+                    <p className="text-sm text-destructive">{errors.phone.message}</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
