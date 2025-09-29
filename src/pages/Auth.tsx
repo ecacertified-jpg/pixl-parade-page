@@ -19,7 +19,6 @@ const authSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
   firstName: z.string().min(1, 'Le prénom est requis').optional(),
-  lastName: z.string().min(1, 'Le nom est requis').optional(),
   birthday: z.string().optional(),
   city: z.string().min(1, 'La ville est requise').optional(),
   phone: z.string().optional(),
@@ -105,7 +104,6 @@ const Auth = () => {
           emailRedirectTo: redirectUrl,
           data: {
             first_name: data.firstName,
-            last_name: data.lastName,
             birthday: data.birthday,
             city: data.city,
             phone: data.phone,
@@ -207,30 +205,16 @@ const Auth = () => {
             
             <TabsContent value="signup">
               <form onSubmit={handleSubmit(signUp)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
-                    <Input
-                      id="firstName"
-                      placeholder="Prénom"
-                      {...register('firstName')}
-                    />
-                    {errors.firstName && (
-                      <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Nom"
-                      {...register('lastName')}
-                    />
-                    {errors.lastName && (
-                      <p className="text-sm text-destructive">{errors.lastName.message}</p>
-                    )}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Prénom</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="Prénom"
+                    {...register('firstName')}
+                  />
+                  {errors.firstName && (
+                    <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
