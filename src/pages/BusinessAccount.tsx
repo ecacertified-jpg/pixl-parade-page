@@ -665,110 +665,8 @@ export default function BusinessAccount() {
 
               {/* Commandes individuelles */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Commandes Individuelles</h3>
-                <Card className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold">Commandes clients</h4>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary" className="rounded-none mx-[2px] my-px px-0 py-0">{visibleOrders.length} commandes</Badge>
-                      {hiddenOrders.size > 0 && <Button variant="outline" size="sm" onClick={handleUnhideAllOrders} className="flex items-center gap-2 text-primary hover:text-primary text-xs px-[4px]">
-                          <Eye className="h-4 w-4" />
-                          Démasquer toutes
-                        </Button>}
-                    </div>
-                  </div>
-              
-              {loadingOrders ? <div className="text-center py-8">
-                  <div className="text-muted-foreground">Chargement des commandes...</div>
-                </div> : orders.length === 0 ? <div className="text-center py-8">
-                  <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <div className="text-muted-foreground">Aucune commande reçue</div>
-                </div> : <div className="space-y-4">
-                    {visibleOrders.map(order => <Card key={order.id} className="p-4 border border-border/50 hover:shadow-md transition-all duration-200">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                              <ShoppingCart className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg">Commande #{order.id.slice(0, 8)}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {order.order_items.map(item => item.product_name).join(', ')}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge className={getStatusColor(order.status, order.created_at)}>
-                            {getStatusText(order.status, order.created_at)}
-                          </Badge>
-                        </div>
-
-                        {/* Informations avec icônes */}
-                        <div className="space-y-3 mb-4">
-                          {/* Téléphone donateur */}
-                          {order.delivery_address?.donorPhone && <div className="flex items-center gap-3 text-sm">
-                              <Phone className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium text-green-600">{order.delivery_address.donorPhone}</span>
-                            </div>}
-
-                          {/* Téléphone bénéficiaire */}
-                          {order.delivery_address?.beneficiaryPhone && <div className="flex items-center gap-3 text-sm">
-                              <Smartphone className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium text-purple-600">{order.delivery_address.beneficiaryPhone}</span>
-                            </div>}
-
-                          {/* Date */}
-                          <div className="flex items-center gap-3 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{new Date(order.created_at).toLocaleDateString('fr-FR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}</span>
-                          </div>
-
-                          {/* Type de livraison */}
-                          {order.delivery_address?.deliveryType && <div className="flex items-center gap-3 text-sm">
-                              {order.delivery_address.deliveryType === 'pickup' ? <MapPin className="h-4 w-4 text-muted-foreground" /> : <Truck className="h-4 w-4 text-muted-foreground" />}
-                              <span>{order.delivery_address.deliveryType === 'pickup' ? 'Retrait sur place' : 'Livraison à domicile'}</span>
-                            </div>}
-
-                          {/* Montant total */}
-                          <div className="flex items-center gap-3 text-sm">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold text-primary text-lg">{order.total_amount.toLocaleString()} {order.currency}</span>
-                          </div>
-                        </div>
-
-                        {/* Résumé des produits (condensé) */}
-                        <div className="mb-4 p-3 bg-muted/30 rounded-lg">
-                          <p className="text-sm text-muted-foreground">
-                            {order.order_items.length} article{order.order_items.length > 1 ? 's' : ''} - {order.order_items.map(item => `${item.product_name} (x${item.quantity})`).join(', ')}
-                          </p>
-                        </div>
-
-                        {/* Boutons Voir Détail et Masquer */}
-                        <div className="flex justify-between items-center pt-4 border-t border-border/50">
-                          <div className="text-xs text-muted-foreground">
-                            Mode de paiement: {order.notes?.includes('Mobile Money') ? 'Mobile Money' : 'À la livraison/retrait'}
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => {
-                          setSelectedOrder(order);
-                          setIsOrderDetailsModalOpen(true);
-                        }} className="flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              Voir Détail
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleHideOrder(order.id)} className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50">
-                              <EyeOff className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                       </Card>)}
-                   </div>}
-              </Card>
+                
+                
               </div>
             </div>
           </TabsContent>
@@ -885,7 +783,7 @@ export default function BusinessAccount() {
           </TabsContent>
         </Tabs>
 
-        <div className="pb-20" />
+        
       </main>
 
       <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
