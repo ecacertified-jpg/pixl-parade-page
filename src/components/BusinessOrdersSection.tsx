@@ -51,6 +51,14 @@ export function BusinessOrdersSection() {
     }
   }, [user]);
 
+  // Helper function to normalize image URLs
+  const normalizeImageUrl = (imageUrl: string | null | undefined) => {
+    if (!imageUrl || imageUrl === '/placeholder.svg') return null;
+    if (imageUrl.startsWith('http')) return imageUrl;
+    if (imageUrl.startsWith('/')) return `${window.location.origin}${imageUrl}`;
+    return imageUrl;
+  };
+
   const loadOrders = async () => {
     if (!user) return;
 
@@ -85,7 +93,7 @@ export function BusinessOrdersSection() {
       if (collectiveError) throw collectiveError;
       setCollectiveOrders(collectiveData || []);
 
-      // Load individual business orders for the current user's business
+      // Load individual business orders with product information
       const { data: individualData, error: individualError } = await supabase
         .from('business_orders')
         .select(`
@@ -108,7 +116,41 @@ export function BusinessOrdersSection() {
         .order('created_at', { ascending: false });
 
       if (individualError) throw individualError;
-      setIndividualOrders(individualData || []);
+
+      // Enrich individual orders with product images
+      const enrichedIndividualOrders = await Promise.all(
+        (individualData || []).map(async (order) => {
+          const orderSummary = order.order_summary as any;
+          const items = orderSummary?.items || [];
+          const enrichedItems = await Promise.all(
+            items.map(async (item: any) => {
+              if (item.product_id) {
+                const { data: productData } = await supabase
+                  .from('products')
+                  .select('image_url')
+                  .eq('id', item.product_id)
+                  .single();
+                
+                return {
+                  ...item,
+                  image: normalizeImageUrl(productData?.image_url)
+                };
+              }
+              return item;
+            })
+          );
+          
+          return {
+            ...order,
+            order_summary: {
+              ...(orderSummary || {}),
+              items: enrichedItems
+            }
+          };
+        })
+      );
+
+      setIndividualOrders(enrichedIndividualOrders);
 
     } catch (error) {
       console.error('Erreur lors du chargement des commandes:', error);
@@ -328,9 +370,9 @@ export function BusinessOrdersSection() {
           {fund.product && (
             <div className="flex items-center gap-3 p-2 bg-muted/30 rounded">
               <div className="w-12 h-12 bg-muted rounded overflow-hidden flex items-center justify-center">
-                {fund.product.image ? (
+                {fund.product.image_url ? (
                   <img 
-                    src={fund.product.image} 
+                    src={fund.product.image_url} 
                     alt={fund.product.name}
                     className="w-full h-full object-cover"
                   />
