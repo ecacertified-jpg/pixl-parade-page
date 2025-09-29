@@ -117,19 +117,21 @@ export function BusinessOrdersSection() {
 
       if (individualError) throw individualError;
 
-      // Enrich individual orders with product images
+      // Enrich individual orders with product images by matching product names
       const enrichedIndividualOrders = await Promise.all(
         (individualData || []).map(async (order) => {
           const orderSummary = order.order_summary as any;
           const items = orderSummary?.items || [];
           const enrichedItems = await Promise.all(
             items.map(async (item: any) => {
-              if (item.product_id) {
+              if (item.name) {
+                // Match by product name since individual orders don't have product_id
                 const { data: productData } = await supabase
                   .from('products')
                   .select('image_url')
-                  .eq('id', item.product_id)
-                  .single();
+                  .eq('name', item.name)
+                  .limit(1)
+                  .maybeSingle();
                 
                 return {
                   ...item,
