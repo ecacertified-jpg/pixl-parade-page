@@ -307,7 +307,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0 pr-4">
               <div className="font-semibold truncate">
-                {userProfile?.first_name && userProfile?.last_name ? `${userProfile.first_name} ${userProfile.last_name}` : user?.user_metadata?.first_name && user?.user_metadata?.last_name ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}` : 'Utilisateur'}
+                {userProfile?.first_name || user?.user_metadata?.first_name || 'Utilisateur'}
               </div>
               <div className="text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                 {userProfile?.birthday ? `Anniv. dans ${getDaysUntilBirthday(userProfile.birthday)} jours` : userProfile?.city || user?.user_metadata?.city || 'Ville non renseignée'}
