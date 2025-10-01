@@ -20,37 +20,37 @@ export const ProfileDropdown = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasBusinessAccount } = useBusinessAccount();
-  const [bio, setBio] = useState<string>("");
+  const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; bio?: string }>({});
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
 
   // Debug: Log user data
   console.log('ProfileDropdown - User:', user);
   console.log('ProfileDropdown - Loading:', loading);
 
-  // Fetch user bio from profiles table
+  // Fetch user profile from profiles table
   useEffect(() => {
-    const fetchUserBio = async () => {
+    const fetchUserProfile = async () => {
       if (!user?.id) return;
       
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('bio')
+          .select('first_name, last_name, bio')
           .eq('user_id', user.id)
           .maybeSingle();
         
         if (error) {
-          console.error('Error fetching bio:', error);
+          console.error('Error fetching profile:', error);
           return;
         }
         
-        setBio(data?.bio || "");
+        setUserProfile(data || {});
       } catch (error) {
-        console.error('Error fetching bio:', error);
+        console.error('Error fetching profile:', error);
       }
     };
 
-    fetchUserBio();
+    fetchUserProfile();
   }, [user?.id]);
 
   const handleSignOut = async () => {
@@ -70,7 +70,7 @@ export const ProfileDropdown = () => {
     }
   };
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Utilisateur";
+  const userName = userProfile?.first_name || user?.user_metadata?.first_name || "Utilisateur";
   const userHandle = `@${userName.toLowerCase().replace(/\s+/g, '')}`;
 
   return (
@@ -103,7 +103,7 @@ export const ProfileDropdown = () => {
               onClick={() => setIsEditBioModalOpen(true)}
             >
               <p className="text-muted-foreground text-xs">
-                {bio || "Ajouter une bio..."}
+                {userProfile?.bio || "Ajouter une bio..."}
               </p>
               <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
@@ -180,9 +180,9 @@ export const ProfileDropdown = () => {
       <EditBioModal
         isOpen={isEditBioModalOpen}
         onClose={() => setIsEditBioModalOpen(false)}
-        currentBio={bio}
+        currentBio={userProfile?.bio || ""}
         userId={user?.id || ""}
-        onBioUpdate={(newBio) => setBio(newBio)}
+        onBioUpdate={(newBio) => setUserProfile({ ...userProfile, bio: newBio })}
       />
     </DropdownMenu>
   );
