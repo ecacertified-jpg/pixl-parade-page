@@ -112,13 +112,29 @@ export function useCollectiveFunds() {
         : { data: [], error: null };
 
       // 4. Charger les cagnottes publiques générales (priorité 4)
-      const { data: generalPublicFunds, error: generalPublicError } = await supabase
-        .from('collective_funds')
-        .select(selectQuery)
-        .eq('is_public', true)
-        .eq('status', 'active')
-        .neq('creator_id', user.id)
-        .not('creator_id', 'in', `(${friendIds.join(',') || 'null'})`);
+      let generalPublicFunds = null;
+      let generalPublicError = null;
+      
+      if (friendIds.length > 0) {
+        const result = await supabase
+          .from('collective_funds')
+          .select(selectQuery)
+          .eq('is_public', true)
+          .eq('status', 'active')
+          .neq('creator_id', user.id)
+          .not('creator_id', 'in', `(${friendIds.join(',')})`);
+        generalPublicFunds = result.data;
+        generalPublicError = result.error;
+      } else {
+        const result = await supabase
+          .from('collective_funds')
+          .select(selectQuery)
+          .eq('is_public', true)
+          .eq('status', 'active')
+          .neq('creator_id', user.id);
+        generalPublicFunds = result.data;
+        generalPublicError = result.error;
+      }
 
       if (ownFundsError || friendsPublicError || contributedFundsError || generalPublicError) {
         console.error('Erreur lors du chargement des cagnottes:', { 

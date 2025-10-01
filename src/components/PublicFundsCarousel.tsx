@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Fonction pour calculer les jours avant l'anniversaire
 const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined): string => {
-  if (!birthdayDate) return "Cadeau bientôt";
+  if (!birthdayDate) return "Cadeau surprise";
   
   const today = new Date();
   const birthday = new Date(birthdayDate);
