@@ -14,6 +14,7 @@ export interface CollectiveFund {
   id: string;
   title: string;
   beneficiaryName: string;
+  beneficiaryBirthday?: string;
   targetAmount: number;
   currentAmount: number;
   currency: string;
@@ -70,7 +71,7 @@ export function useCollectiveFunds() {
         creator_id,
         is_public,
         beneficiary_contact_id,
-        contacts:beneficiary_contact_id(name),
+        contacts:beneficiary_contact_id(name, birthday),
         fund_contributions(
           id,
           amount,
@@ -181,8 +182,10 @@ export function useCollectiveFunds() {
 
         // Extraire le nom du bénéficiaire du titre ou des contacts
         let beneficiaryName = 'Bénéficiaire';
+        let beneficiaryBirthday = undefined;
         if (fund.contacts && fund.contacts.name) {
           beneficiaryName = fund.contacts.name;
+          beneficiaryBirthday = fund.contacts.birthday;
         } else if (fund.title.includes('pour ')) {
           beneficiaryName = fund.title.split('pour ')[1];
         }
@@ -210,6 +213,7 @@ export function useCollectiveFunds() {
           id: fund.id,
           title: fund.title,
           beneficiaryName,
+          beneficiaryBirthday,
           targetAmount: fund.target_amount,
           currentAmount: fund.current_amount || 0,
           currency: fund.currency || 'XOF',

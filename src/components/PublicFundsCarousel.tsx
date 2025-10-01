@@ -5,6 +5,32 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Fonction pour calculer les jours avant l'anniversaire
+const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined): string => {
+  if (!birthdayDate) return "Cadeau bientôt";
+  
+  const today = new Date();
+  const birthday = new Date(birthdayDate);
+  
+  // Set this year's birthday
+  const thisYearBirthday = new Date(
+    today.getFullYear(),
+    birthday.getMonth(),
+    birthday.getDate()
+  );
+  
+  // If birthday already passed this year, calculate for next year
+  if (thisYearBirthday < today) {
+    thisYearBirthday.setFullYear(today.getFullYear() + 1);
+  }
+  
+  // Calculate difference in days
+  const diffTime = thisYearBirthday.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return `Anniv. dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
+};
 export function PublicFundsCarousel() {
   const navigate = useNavigate();
   const {
@@ -82,7 +108,7 @@ export function PublicFundsCarousel() {
                 
                 {/* Occasion - Single Line */}
                 <p className="text-xs text-gray-500 text-center truncate">
-                  {fund.occasion} dans 5 jours
+                  {getDaysUntilBirthday(fund.beneficiaryBirthday)}
                 </p>
 
                 {/* Amount Progress */}

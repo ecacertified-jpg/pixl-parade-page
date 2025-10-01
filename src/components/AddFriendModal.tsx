@@ -80,10 +80,10 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nom complet</Label>
+            <Label htmlFor="name">Prénom</Label>
             <Input
               id="name"
-              placeholder="Amtey Florentin ABOUTOU"
+              placeholder="Florentin"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
