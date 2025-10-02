@@ -41,6 +41,12 @@ export function useCollectiveFunds() {
     try {
       setLoading(true);
 
+      // Charger les contacts de l'utilisateur pour les anniversaires
+      const { data: userContacts } = await supabase
+        .from('contacts')
+        .select('id, name, birthday')
+        .eq('user_id', user.id);
+
       // Get friends IDs first
       const { data: friendsData } = await supabase
         .from('contact_relationships')
@@ -204,6 +210,18 @@ export function useCollectiveFunds() {
           beneficiaryBirthday = fund.contacts.birthday;
         } else if (fund.title.includes('pour ')) {
           beneficiaryName = fund.title.split('pour ')[1];
+          
+          // Chercher un contact correspondant dans la liste de l'utilisateur
+          if (userContacts && userContacts.length > 0) {
+            const matchingContact = userContacts.find(contact => 
+              contact.name.toLowerCase().includes(beneficiaryName.toLowerCase()) ||
+              beneficiaryName.toLowerCase().includes(contact.name.toLowerCase())
+            );
+            
+            if (matchingContact && matchingContact.birthday) {
+              beneficiaryBirthday = matchingContact.birthday;
+            }
+          }
         }
 
         // Extraire les informations du produit depuis la commande
