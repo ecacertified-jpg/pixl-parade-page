@@ -127,7 +127,8 @@ export function CollaborativeGiftModal({
         image: product.image,
         quantity: 1,
         isCollaborativeGift: true,
-        beneficiaryName: selectedContact.name
+        beneficiaryName: selectedContact.name,
+        beneficiaryContactId: selectedContact.id // Ajout de l'ID du contact
       };
 
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');

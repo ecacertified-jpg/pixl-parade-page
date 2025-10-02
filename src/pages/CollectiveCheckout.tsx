@@ -22,6 +22,7 @@ interface CollectiveItem {
   isCollaborativeGift?: boolean;
   beneficiaryName?: string;
   beneficiaryId?: string;
+  beneficiaryContactId?: string; // Ajout de beneficiaryContactId
   productId?: number;
 }
 
@@ -117,6 +118,7 @@ export default function CollectiveCheckout() {
         .from('collective_funds')
         .insert({
           creator_id: user.id,
+          beneficiary_contact_id: item.beneficiaryContactId || null, // Utiliser le contact_id du bénéficiaire
           title: `${item.name} pour ${item.beneficiaryName}`,
           description: item.description,
           target_amount: item.price * item.quantity,
