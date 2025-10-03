@@ -544,11 +544,11 @@ export default function BusinessAccount() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span>Ventes brutes</span>
-                  <span className="font-medium">{stats.totalRevenue.toLocaleString()} F</span>
+                  <span className="font-medium text-sm">{stats.totalRevenue.toLocaleString()} F</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Commission JOIE DE VIVRE (8%)</span>
-                  <span className="font-medium text-red-600">-{stats.commission.toLocaleString()} F</span>
+                  <span className="text-red-600 font-normal text-xs">-{stats.commission.toLocaleString()} F</span>
                 </div>
                 <div className="border-t pt-2 flex justify-between">
                   <span className="font-medium">Revenus nets</span>
