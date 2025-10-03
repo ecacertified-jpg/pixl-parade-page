@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, Phone, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 interface OrderSummary {
   items: Array<{
     name: string;
@@ -17,34 +16,32 @@ interface OrderSummary {
   shippingCost: number;
   total: number;
 }
-
 interface ConfirmationState {
   orderSummary: OrderSummary;
   donorPhone: string;
   deliveryAddress: string;
   beneficiaryName: string;
 }
-
 export default function CollectiveOrderConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as ConfirmationState;
-
   useEffect(() => {
     // Redirect if no state is provided
     if (!state) {
       navigate("/dashboard");
     }
   }, [state, navigate]);
-
   if (!state) {
     return null;
   }
-
-  const { orderSummary, donorPhone, deliveryAddress, beneficiaryName } = state;
-
-  return (
-    <div className="min-h-screen bg-gradient-background">
+  const {
+    orderSummary,
+    donorPhone,
+    deliveryAddress,
+    beneficiaryName
+  } = state;
+  return <div className="min-h-screen bg-gradient-background">
       <main className="max-w-md mx-auto px-4 py-8">
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
@@ -55,10 +52,10 @@ export default function CollectiveOrderConfirmation() {
 
         {/* Success Message */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+          <h1 className="font-bold text-foreground mb-2 text-xl">
             🎉 Commande confirmée !
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Votre cotisation pour {beneficiaryName} a été créée avec succès
           </p>
         </div>
@@ -93,24 +90,16 @@ export default function CollectiveOrderConfirmation() {
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          <Button 
-            onClick={() => navigate("/shop")}
-            className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg"
-          >
+          <Button onClick={() => navigate("/shop")} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg">
             Continuer mes achats
           </Button>
           
-          <Button 
-            onClick={() => navigate("/dashboard?tab=cotisations")}
-            variant="outline"
-            className="w-full py-3 rounded-lg border-border hover:bg-muted"
-          >
+          <Button onClick={() => navigate("/dashboard?tab=cotisations")} variant="outline" className="w-full py-3 rounded-lg border-border hover:bg-muted">
             Voir mes commandes
           </Button>
         </div>
 
         <div className="pb-20" />
       </main>
-    </div>
-  );
+    </div>;
 }
