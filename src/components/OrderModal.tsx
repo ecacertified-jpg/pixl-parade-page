@@ -67,6 +67,16 @@ export function OrderModal({
   );
 
   const addToCart = (forSelf = true, recipient = null) => {
+    // Validate that product has a valid UUID
+    if (!product.id || typeof product.id === 'number') {
+      toast({
+        title: "Erreur",
+        description: "Ce produit n'est pas valide. Veuillez en choisir un autre.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
     const newItem = {
       id: Date.now(),

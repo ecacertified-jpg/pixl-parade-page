@@ -29,17 +29,6 @@ export default function Cart() {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
       setCartItems(JSON.parse(savedCart));
-    } else {
-      // Default item if no cart
-      setCartItems([{
-        id: 1,
-        name: "Bracelet Doré Élégance",
-        description: "Bracelet en or 18 carats avec finitions délicates",
-        price: 15000,
-        currency: "F",
-        image: "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-        quantity: 1
-      }]);
     }
   }, []);
   const FREE_SHIPPING_THRESHOLD = 25000;
