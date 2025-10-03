@@ -35,6 +35,34 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
   const isExpired = fund.status === 'expired';
   const isCreator = user?.id === fund.creatorId;
   
+  // Calculer le nombre de jours jusqu'à l'anniversaire
+  const getDaysUntilBirthday = () => {
+    if (!fund.beneficiaryBirthday) return null;
+    
+    const today = new Date();
+    const birthday = new Date(fund.beneficiaryBirthday);
+    
+    // Définir l'anniversaire pour cette année
+    const nextBirthday = new Date(
+      today.getFullYear(),
+      birthday.getMonth(),
+      birthday.getDate()
+    );
+    
+    // Si l'anniversaire est déjà passé cette année, utiliser l'année prochaine
+    if (nextBirthday < today) {
+      nextBirthday.setFullYear(today.getFullYear() + 1);
+    }
+    
+    // Calculer la différence en jours
+    const diffTime = nextBirthday.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+  
+  const daysUntilBirthday = getDaysUntilBirthday();
+  
   const handleContribute = () => {
     if (isExpired) {
       toast({
@@ -115,7 +143,12 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{fund.title}</h3>
-            <p className="text-sm text-muted-foreground">Pour: {fund.beneficiaryName}</p>
+            <p className="text-sm text-muted-foreground">
+              {daysUntilBirthday !== null 
+                ? `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`
+                : `Pour: ${fund.beneficiaryName}`
+              }
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge 
