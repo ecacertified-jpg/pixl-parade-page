@@ -55,13 +55,17 @@ export const ProfileDropdown = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+      
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt sur JOIE DE VIVRE !"
       });
-      navigate("/auth");
+      
+      navigate("/auth", { replace: true });
     } catch (error) {
+      console.error('Sign out error:', error);
       toast({
         title: "Erreur",
         description: "Erreur lors de la déconnexion",
