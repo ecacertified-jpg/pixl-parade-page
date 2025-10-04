@@ -48,14 +48,14 @@ const BusinessAuth = () => {
 
   const businessType = watch('businessType');
 
-  // Redirect if already authenticated
+  // Redirect only if already has business account
   useEffect(() => {
     if (user) {
-      checkBusinessAccountAndRedirect();
+      checkExistingBusinessAccount();
     }
   }, [user, navigate]);
 
-  const checkBusinessAccountAndRedirect = async () => {
+  const checkExistingBusinessAccount = async () => {
     if (!user) return;
     
     try {
@@ -65,14 +65,14 @@ const BusinessAuth = () => {
         .eq('user_id', user.id)
         .single();
 
+      // Only redirect if user already has a business account
       if (businessAccount) {
         navigate('/business-account', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
       }
+      // If no business account, let them access the form
     } catch (error) {
-      console.error('Error checking business account:', error);
-      navigate('/dashboard', { replace: true });
+      // Error likely means no business account exists, which is fine
+      console.log('No existing business account found, showing form');
     }
   };
 
@@ -106,8 +106,8 @@ const BusinessAuth = () => {
         description: 'Bienvenue dans votre espace business',
       });
       
-      // Check if user has business account and redirect
-      await checkBusinessAccountAndRedirect();
+      // Redirect to business account
+      navigate('/business-account', { replace: true });
     } catch (error) {
       toast({
         title: 'Erreur',
