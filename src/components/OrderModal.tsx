@@ -125,7 +125,17 @@ export function OrderModal({
     setShowCollaborativeModal(false);
   };
 
-  const handleContactSelection = () => {
+  const handleContactSelection = async () => {
+    // Verify user is logged in before showing contacts
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Veuillez vous connecter pour offrir un cadeau",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
     setShowContactSelection(true);
   };
 

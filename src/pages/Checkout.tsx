@@ -23,7 +23,7 @@ interface CheckoutItem {
 export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
   const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
@@ -87,12 +87,16 @@ export default function Checkout() {
 
     setIsProcessing(true);
     try {
+      // Force session refresh to ensure we have a valid, fresh session
+      console.log('🔄 Refreshing session...');
+      await refreshSession();
+      
       // DEBUG: Check authentication state in detail
       console.log('🔍 Starting order creation process...');
       console.log('👤 User from React context:', user?.id, user?.email);
       
-      // Force fresh session retrieval to ensure Supabase session is synchronized
-      console.log('🔄 Retrieving fresh Supabase session...');
+      // Verify the refreshed session
+      console.log('🔄 Verifying refreshed session...');
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -270,7 +274,9 @@ export default function Checkout() {
           
           console.log('📤 Inserting business order data:', businessOrderData);
           
-          // Re-verify session right before business order creation
+          // Refresh session again right before business order creation
+          console.log('🔄 Refreshing session before business order insert...');
+          await refreshSession();
           const { data: preInsertSession } = await supabase.auth.getSession();
           console.log('🔐 Pre-insert session check:', !!preInsertSession.session?.user);
           
