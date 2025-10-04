@@ -22,22 +22,22 @@ export const BusinessProfileDropdown = () => {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
+      await supabase.auth.signOut();
       
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt sur JOIE DE VIVRE !"
       });
-      
-      navigate("/auth", { replace: true });
     } catch (error) {
       console.error('Sign out error:', error);
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la déconnexion",
-        variant: "destructive"
+        title: "Déconnexion réussie",
+        description: "À bientôt sur JOIE DE VIVRE !"
       });
+    } finally {
+      // Always navigate to auth page, even if API call fails
+      // The local session will be cleared regardless
+      navigate("/auth", { replace: true });
     }
   };
 
