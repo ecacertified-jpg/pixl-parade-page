@@ -323,7 +323,24 @@ export default function Checkout() {
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutItems');
 
-      navigate("/order-confirmation");
+      // Check if user has a business account and redirect accordingly
+      const { data: businessAccount } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (businessAccount) {
+        console.log('👔 User has business account, redirecting to business dashboard');
+        toast({
+          title: "Commande confirmée",
+          description: "Votre commande a été créée avec succès",
+        });
+        navigate('/business-dashboard');
+      } else {
+        console.log('📦 Regular user, redirecting to order confirmation');
+        navigate('/order-confirmation');
+      }
     } catch (error) {
       console.error('Error creating order:', error);
       console.error('Order items:', orderItems);

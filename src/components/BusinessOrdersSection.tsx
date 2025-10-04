@@ -51,6 +51,52 @@ export function BusinessOrdersSection() {
     }
   }, [user]);
 
+  // Set up realtime listener for business_orders
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('🔔 Setting up realtime listener for business_orders');
+    
+    const channel = supabase
+      .channel('business-orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'business_orders'
+        },
+        (payload) => {
+          console.log('🆕 New business order detected:', payload);
+          // Reload orders when a new one is inserted
+          loadOrders();
+          toast({
+            title: "Nouvelle commande",
+            description: "Une nouvelle commande individuelle a été reçue",
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'business_orders'
+        },
+        (payload) => {
+          console.log('📝 Business order updated:', payload);
+          // Reload orders when one is updated
+          loadOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔕 Cleaning up realtime listener');
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Helper function to normalize image URLs
   const normalizeImageUrl = (imageUrl: string | null | undefined) => {
     if (!imageUrl || imageUrl === '/placeholder.svg') return null;
