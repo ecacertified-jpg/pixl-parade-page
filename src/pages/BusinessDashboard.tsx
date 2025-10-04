@@ -458,11 +458,11 @@ export default function BusinessDashboard() {
               products!inner(
                 name, 
                 description,
-                business_owner_id
+                business_id
               )
             )
           `)
-          .eq('order_items.products.business_owner_id', user.id)
+          .eq('order_items.products.business_id', businessAccount?.id)
           .order('created_at', { ascending: false })
           .limit(10);
 

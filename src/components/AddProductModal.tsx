@@ -52,7 +52,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
 
     try {
       const { data, error } = await supabase
-        .from('businesses')
+        .from('business_accounts')
         .select('id, business_name')
         .eq('user_id', user.id)
         .eq('is_active', true)

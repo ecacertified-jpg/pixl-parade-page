@@ -1745,7 +1745,7 @@ export type Database = {
       }
       products: {
         Row: {
-          business_id: string | null
+          business_id: string
           business_owner_id: string | null
           category_id: string | null
           created_at: string
@@ -1761,7 +1761,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          business_id?: string | null
+          business_id: string
           business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
@@ -1777,7 +1777,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          business_id?: string | null
+          business_id?: string
           business_owner_id?: string | null
           category_id?: string | null
           created_at?: string
@@ -1797,7 +1797,7 @@ export type Database = {
             foreignKeyName: "products_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
-            referencedRelation: "businesses"
+            referencedRelation: "business_accounts"
             referencedColumns: ["id"]
           },
           {
