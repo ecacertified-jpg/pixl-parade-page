@@ -1884,6 +1884,89 @@ export type Database = {
         }
         Relationships: []
       }
+      reciprocity_scores: {
+        Row: {
+          academic_contributions: number | null
+          badge_level: string | null
+          birthday_contributions: number | null
+          generosity_score: number | null
+          last_calculated_at: string | null
+          promotion_contributions: number | null
+          total_amount_given: number | null
+          total_contributions_count: number | null
+          total_funds_initiated: number | null
+          user_id: string
+          wedding_contributions: number | null
+        }
+        Insert: {
+          academic_contributions?: number | null
+          badge_level?: string | null
+          birthday_contributions?: number | null
+          generosity_score?: number | null
+          last_calculated_at?: string | null
+          promotion_contributions?: number | null
+          total_amount_given?: number | null
+          total_contributions_count?: number | null
+          total_funds_initiated?: number | null
+          user_id: string
+          wedding_contributions?: number | null
+        }
+        Update: {
+          academic_contributions?: number | null
+          badge_level?: string | null
+          birthday_contributions?: number | null
+          generosity_score?: number | null
+          last_calculated_at?: string | null
+          promotion_contributions?: number | null
+          total_amount_given?: number | null
+          total_contributions_count?: number | null
+          total_funds_initiated?: number | null
+          user_id?: string
+          wedding_contributions?: number | null
+        }
+        Relationships: []
+      }
+      reciprocity_tracking: {
+        Row: {
+          beneficiary_id: string
+          contribution_amount: number
+          created_at: string | null
+          currency: string | null
+          donor_id: string
+          fund_id: string | null
+          id: string
+          occasion: string | null
+        }
+        Insert: {
+          beneficiary_id: string
+          contribution_amount: number
+          created_at?: string | null
+          currency?: string | null
+          donor_id: string
+          fund_id?: string | null
+          id?: string
+          occasion?: string | null
+        }
+        Update: {
+          beneficiary_id?: string
+          contribution_amount?: number
+          created_at?: string | null
+          currency?: string | null
+          donor_id?: string
+          fund_id?: string | null
+          id?: string
+          occasion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reciprocity_tracking_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           amount: number
@@ -2295,6 +2378,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reciprocity_preferences: {
+        Row: {
+          created_at: string | null
+          enable_for_academic: boolean | null
+          enable_for_birthdays: boolean | null
+          enable_for_promotions: boolean | null
+          enable_for_weddings: boolean | null
+          enable_reciprocity_system: boolean | null
+          show_generosity_badge: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enable_for_academic?: boolean | null
+          enable_for_birthdays?: boolean | null
+          enable_for_promotions?: boolean | null
+          enable_for_weddings?: boolean | null
+          enable_reciprocity_system?: boolean | null
+          show_generosity_badge?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enable_for_academic?: boolean | null
+          enable_for_birthdays?: boolean | null
+          enable_for_promotions?: boolean | null
+          enable_for_weddings?: boolean | null
+          enable_reciprocity_system?: boolean | null
+          show_generosity_badge?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sync_preferences: {
         Row: {
           created_at: string
@@ -2598,6 +2717,16 @@ export type Database = {
           metadata: Json
         }[]
       }
+      get_reciprocity_candidates: {
+        Args: { fund_uuid: string }
+        Returns: {
+          candidate_id: string
+          candidate_name: string
+          generosity_score: number
+          past_contribution_amount: number
+          past_contribution_date: string
+        }[]
+      }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
@@ -2675,6 +2804,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      update_reciprocity_score: {
+        Args: { user_uuid: string }
+        Returns: undefined
       }
       upsert_business_account: {
         Args: {

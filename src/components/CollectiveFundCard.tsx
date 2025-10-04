@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, Gift, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +29,28 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
   const [showContributionModal, setShowContributionModal] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [reciprocityInfo, setReciprocityInfo] = useState<{
+    contribution_amount: number;
+    created_at: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (user && fund.creatorId) {
+      supabase
+        .from('reciprocity_tracking')
+        .select('contribution_amount, created_at')
+        .eq('donor_id', user.id)
+        .eq('beneficiary_id', fund.creatorId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setReciprocityInfo(data);
+          }
+        });
+    }
+  }, [user, fund.creatorId]);
   
   const progressPercentage = Math.min((fund.currentAmount / fund.targetAmount) * 100, 100);
   const isCompleted = fund.currentAmount >= fund.targetAmount;
@@ -268,6 +290,18 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
                 Demander le remboursement
               </Button>
             )}
+          </div>
+        )}
+
+        {reciprocityInfo && !isExpired && (
+          <div className="p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 text-sm font-medium mb-1">
+              <Heart className="h-4 w-4 fill-current" />
+              Tu as déjà contribué {reciprocityInfo.contribution_amount} XOF
+            </div>
+            <div className="text-xs text-orange-600 dark:text-orange-400">
+              C'est le moment de rendre la pareille ! 🎁
+            </div>
           </div>
         )}
         

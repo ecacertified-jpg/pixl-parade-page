@@ -22,6 +22,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
+import { useReciprocityScore } from "@/hooks/useReciprocityScore";
+import { ReciprocityBadge } from "@/components/ReciprocityBadge";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -64,6 +66,7 @@ export default function Dashboard() {
     loading: fundsLoading,
     refreshFunds
   } = useCollectiveFunds();
+  const { score: reciprocityScore } = useReciprocityScore();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -329,6 +332,15 @@ export default function Dashboard() {
             </div>
           </div>
         </Card>
+
+        {reciprocityScore && (
+          <ReciprocityBadge
+            score={reciprocityScore.generosity_score}
+            badge={reciprocityScore.badge_level}
+            contributionsCount={reciprocityScore.total_contributions_count}
+            totalAmount={reciprocityScore.total_amount_given}
+          />
+        )}
 
         {/* CTA Business */}
         <Card className="p-4 mb-4 bg-green-100">
