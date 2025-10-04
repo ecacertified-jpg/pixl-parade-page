@@ -1178,14 +1178,11 @@ export default function BusinessDashboard() {
 
             {/* Section Autres Commandes */}
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6 text-primary" />
-                Autres Commandes
-              </h2>
+              
               
               {/* Commandes de cotisations collectives */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Commandes de Cotisations Collectives</h3>
+                
                 <BusinessOrdersSection />
               </div>
 
