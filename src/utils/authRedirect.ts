@@ -3,6 +3,12 @@ import { User } from '@supabase/supabase-js';
 
 export const getRedirectPath = async (user: User): Promise<string> => {
   try {
+    // Check if user metadata indicates they signed up as business
+    // This is the primary indicator of a real business account
+    if (user.user_metadata?.is_business) {
+      return '/business-account';
+    }
+
     // Check if user has a business account
     const { data: businessAccount } = await supabase
       .from('business_accounts')
@@ -10,22 +16,13 @@ export const getRedirectPath = async (user: User): Promise<string> => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    // If user has an active business account, redirect to business space
-    if (businessAccount?.is_active) {
+    // Only redirect to business account if is_business flag is set
+    // This prevents auto-created business accounts from redirecting regular users
+    if (businessAccount && user.user_metadata?.is_business) {
       return '/business-account';
     }
 
-    // If user has an inactive business account, still redirect to business but they'll see inactive status
-    if (businessAccount) {
-      return '/business-account';
-    }
-
-    // Check if user metadata indicates they signed up as business
-    if (user.user_metadata?.is_business) {
-      return '/business-account';
-    }
-
-    // Default to regular dashboard
+    // Default to regular dashboard for all regular users
     return '/dashboard';
   } catch (error) {
     console.error('Error determining redirect path:', error);
