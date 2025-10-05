@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { CreatePostDrawer } from "@/components/CreatePostDrawer";
 
 export function RecentActivitySection() {
   return (
@@ -27,6 +28,7 @@ export function RecentActivitySection() {
 export function BottomNavigation() {
   const navigate = useNavigate();
   const [giftNotifications, setGiftNotifications] = useState(0);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -77,8 +79,8 @@ export function BottomNavigation() {
       icon: <Plus className="h-4 w-4" />, 
       label: "", 
       active: false, 
-      path: "/add",
-      isSpecial: true
+      isSpecial: true,
+      onClick: () => setIsCreateDrawerOpen(true)
     },
     { 
       icon: <Gift className="h-5 w-5" />, 
@@ -92,37 +94,41 @@ export function BottomNavigation() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 backdrop-blur-sm">
-      <div className="max-w-md mx-auto px-4 py-2">
-        <div className="flex items-center justify-around">
-          {navItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => navigate(item.path)}
-              className="flex flex-col items-center gap-1 py-2 relative"
-            >
-              <div className="relative">
-                <div className={`${item.isSpecial 
-                  ? 'w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white shadow-lg' 
-                  : `p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`
-                }`}>
-                  {item.icon}
-                </div>
-                {item.badge && (
-                  <div className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ${item.isBlinking ? 'animate-pulse' : ''}`}>
-                    {item.badge}
+    <>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 backdrop-blur-sm">
+        <div className="max-w-md mx-auto px-4 py-2">
+          <div className="flex items-center justify-around">
+            {navItems.map((item, index) => (
+              <button
+                key={index}
+                onClick={() => item.onClick ? item.onClick() : navigate(item.path!)}
+                className="flex flex-col items-center gap-1 py-2 relative"
+              >
+                <div className="relative">
+                  <div className={`${item.isSpecial 
+                    ? 'w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white shadow-lg' 
+                    : `p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`
+                  }`}>
+                    {item.icon}
                   </div>
+                  {item.badge && (
+                    <div className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ${item.isBlinking ? 'animate-pulse' : ''}`}>
+                      {item.badge}
+                    </div>
+                  )}
+                </div>
+                {item.label && (
+                  <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
+                    {item.label}
+                  </span>
                 )}
-              </div>
-              {item.label && (
-                <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
-                  {item.label}
-                </span>
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+
+      <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
+    </>
   );
 }

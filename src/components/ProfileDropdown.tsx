@@ -143,7 +143,7 @@ export const ProfileDropdown = () => {
           </button>
           
           <button 
-            onClick={() => navigate("/gifts")}
+            onClick={() => navigate("/publications")}
             className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
           >
             <Users className="h-4 w-4 mr-3 text-muted-foreground" />

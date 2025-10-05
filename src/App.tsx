@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
+import Publications from "./pages/Publications";
 import BusinessAccount from "./pages/BusinessAccount";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import Shop from "./pages/Shop";
@@ -52,6 +53,11 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/publications" element={
+              <ProtectedRoute>
+                <Publications />
               </ProtectedRoute>
             } />
             <Route path="/business-account" element={
