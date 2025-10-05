@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { FileText, Camera, Music, Send, X, Image as ImageIcon, Video } from "lucide-react";
+import { Camera, Music, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +23,6 @@ type PostType = 'text' | 'image' | 'video' | 'audio' | 'ai_song';
 export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [step, setStep] = useState<'menu' | 'create'>('menu');
   const [postType, setPostType] = useState<PostType>('text');
   const [content, setContent] = useState('');
   const [occasion, setOccasion] = useState('');
@@ -34,7 +32,6 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const [isPublishing, setIsPublishing] = useState(false);
 
   const resetForm = () => {
-    setStep('menu');
     setPostType('text');
     setContent('');
     setOccasion('');
@@ -42,17 +39,6 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
     setMediaPreview(null);
   };
 
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setMediaFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setMediaPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const uploadMedia = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
@@ -151,169 +137,190 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
     }
   };
 
-  const menuOptions = [
-    {
-      icon: <FileText className="h-6 w-6" />,
-      label: "Écrire un post",
-      onClick: () => {
-        setPostType('text');
-        setStep('create');
-      },
-    },
-    {
-      icon: <Camera className="h-6 w-6" />,
-      label: "Importer média",
-      onClick: () => {
+
+  const handleMediaImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setMediaFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setMediaPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        setPostType(file.type.startsWith('video') ? 'video' : 'image');
+      }
+    };
+    input.click();
+  };
+
+  const handleCameraCapture = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setMediaFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setMediaPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
         setPostType('image');
-        setStep('create');
-      },
-    },
-    {
-      icon: <Music className="h-6 w-6" />,
-      label: "Générer Chant IA",
-      onClick: () => {
-        setPostType('ai_song');
-        setStep('create');
-      },
-    },
-    {
-      icon: <Send className="h-6 w-6" />,
-      label: "Publier",
-      onClick: () => {
-        setPostType('text');
-        setStep('create');
-      },
-    },
-  ];
+      }
+    };
+    input.click();
+  };
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => {
       onOpenChange(isOpen);
       if (!isOpen) resetForm();
     }}>
-      <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl">
-        <SheetHeader>
-          <SheetTitle className="text-center">
-            {step === 'menu' ? 'Création' : 'Nouvelle publication'}
-          </SheetTitle>
-        </SheetHeader>
+      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl p-0">
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-xs font-medium">
+                  {user?.email?.[0].toUpperCase() || 'U'}
+                </span>
+              </div>
+              <span className="text-sm font-medium">Tout le monde</span>
+            </div>
 
-        {step === 'menu' ? (
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            {menuOptions.map((option, index) => (
+            <Button
+              onClick={handlePublish}
+              disabled={isPublishing || (!content && !mediaFile)}
+              className="px-6"
+            >
+              {isPublishing ? 'Publication...' : 'Publier'}
+            </Button>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <Textarea
+              placeholder="Partagez votre moment de joie..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="min-h-[120px] border-0 resize-none text-base focus-visible:ring-0 p-0"
+            />
+
+            {/* Media Preview */}
+            {mediaPreview && (
+              <div className="relative mt-4">
+                {postType === 'image' ? (
+                  <img
+                    src={mediaPreview}
+                    alt="Preview"
+                    className="w-full max-h-[300px] object-cover rounded-lg"
+                  />
+                ) : postType === 'video' ? (
+                  <video
+                    src={mediaPreview}
+                    className="w-full max-h-[300px] object-cover rounded-lg"
+                    controls
+                  />
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setMediaFile(null);
+                    setMediaPreview(null);
+                    setPostType('text');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Occasion input */}
+            {content && (
+              <div className="mt-4">
+                <Input
+                  placeholder="Occasion (optionnel) - Ex: Anniversaire, Mariage..."
+                  value={occasion}
+                  onChange={(e) => setOccasion(e.target.value)}
+                  className="border-0 bg-muted/50"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="border-t p-4">
+            <div className="flex items-center justify-around">
               <button
-                key={index}
-                onClick={option.onClick}
-                className="flex flex-col items-center gap-3 p-6 bg-card rounded-2xl border border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                onClick={handleMediaImport}
+                className="flex flex-col items-center gap-1 p-2 hover:bg-muted rounded-lg transition-colors"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                  {option.icon}
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <span className="text-sm font-medium text-center">{option.label}</span>
+                <div className="text-center">
+                  <div className="text-xs font-medium">Médias</div>
+                  <div className="text-[10px] text-muted-foreground">Importer image</div>
+                </div>
               </button>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 space-y-4 overflow-y-auto max-h-[calc(90vh-200px)]">
-            <div className="space-y-2">
-              <Label>Contenu</Label>
-              <Textarea
-                placeholder={
-                  postType === 'ai_song'
-                    ? "Décrivez le chant que vous souhaitez générer..."
-                    : "Partagez votre moment de joie..."
-                }
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label>Occasion (optionnel)</Label>
-              <Input
-                placeholder="Ex: Anniversaire, Mariage, Réussite..."
-                value={occasion}
-                onChange={(e) => setOccasion(e.target.value)}
-              />
-            </div>
-
-            {(postType === 'image' || postType === 'video') && (
-              <div className="space-y-2">
-                <Label>
-                  {postType === 'image' ? 'Image' : 'Vidéo'}
-                </Label>
-                <Input
-                  type="file"
-                  accept={postType === 'image' ? 'image/*' : 'video/*'}
-                  onChange={handleMediaSelect}
-                  className="cursor-pointer"
-                />
-                {mediaPreview && postType === 'image' && (
-                  <div className="relative mt-2">
-                    <img
-                      src={mediaPreview}
-                      alt="Preview"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-2 right-2"
-                      onClick={() => {
-                        setMediaFile(null);
-                        setMediaPreview(null);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {postType === 'audio' && (
-              <div className="space-y-2">
-                <Label>Audio</Label>
-                <Input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleMediaSelect}
-                  className="cursor-pointer"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setStep('menu')}
+              <button
+                onClick={handleCameraCapture}
+                className="flex flex-col items-center gap-1 p-2 hover:bg-muted rounded-lg transition-colors"
               >
-                Retour
-              </Button>
-              
-              {postType === 'ai_song' ? (
-                <Button
-                  className="flex-1"
-                  onClick={generateAISong}
-                  disabled={isGenerating || !content}
-                >
-                  {isGenerating ? 'Génération...' : 'Générer'}
-                </Button>
-              ) : (
-                <Button
-                  className="flex-1"
-                  onClick={handlePublish}
-                  disabled={isPublishing || (!content && !mediaFile)}
-                >
-                  {isPublishing ? 'Publication...' : 'Publier'}
-                </Button>
-              )}
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <Camera className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium">Appareil</div>
+                  <div className="text-[10px] text-muted-foreground">photo</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPostType('ai_song');
+                  if (content) {
+                    generateAISong();
+                  } else {
+                    toast({
+                      title: "Information",
+                      description: "Décrivez d'abord le chant que vous souhaitez générer",
+                    });
+                  }
+                }}
+                disabled={isGenerating}
+                className="flex flex-col items-center gap-1 p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
+              >
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <Music className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium">Générer</div>
+                  <div className="text-[10px] text-muted-foreground">Chant IA</div>
+                </div>
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </SheetContent>
     </Sheet>
   );
