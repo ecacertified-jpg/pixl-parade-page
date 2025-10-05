@@ -3,6 +3,7 @@ import { Camera, Music, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,8 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [aiSongPrompt, setAiSongPrompt] = useState('');
+  const [isGeneratingAiSong, setIsGeneratingAiSong] = useState(false);
 
   const resetForm = () => {
     setPostType('text');
@@ -39,6 +42,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
     setOccasion('');
     setMediaFile(null);
     setMediaPreview(null);
+    setAiSongPrompt('');
   };
 
 
@@ -61,31 +65,43 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   };
 
   const generateAISong = async () => {
-    if (!content) {
+    if (!aiSongPrompt.trim()) {
       toast({
-        title: "Erreur",
-        description: "Veuillez décrire le chant que vous souhaitez générer",
+        title: "Texte requis",
+        description: "Veuillez entrer le texte du chant à générer",
         variant: "destructive",
       });
       return;
     }
 
-    setIsGenerating(true);
+    setIsGeneratingAiSong(true);
     try {
-      toast({
-        title: "Génération en cours...",
-        description: "Cette fonctionnalité sera bientôt disponible avec Lovable AI",
+      const { data, error } = await supabase.functions.invoke('generate-ai-music', {
+        body: { 
+          prompt: aiSongPrompt,
+          duration: 8 
+        }
       });
-      // TODO: Implémenter la génération de chant avec Lovable AI
-    } catch (error) {
+
+      if (error) throw error;
+
+      if (data?.audioUrl) {
+        setMediaPreview(data.audioUrl);
+        setPostType('audio');
+        toast({
+          title: "Chant généré ! 🎵",
+          description: "Votre chant a été créé avec succès",
+        });
+      }
+    } catch (error: any) {
       console.error('Error generating AI song:', error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la génération du chant",
+        description: error.message || "Impossible de générer le chant",
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingAiSong(false);
     }
   };
 
@@ -234,6 +250,13 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
                     className="w-full max-h-[300px] object-cover rounded-lg"
                     controls
                   />
+                ) : postType === 'audio' ? (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <audio src={mediaPreview} controls className="w-full" />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      🎵 Chant généré par IA
+                    </p>
+                  </div>
                 ) : null}
                 <Button
                   size="sm"
@@ -243,9 +266,40 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
                     setMediaFile(null);
                     setMediaPreview(null);
                     setPostType('text');
+                    setAiSongPrompt('');
                   }}
                 >
                   <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* AI Song Prompt Input */}
+            {postType === 'ai_song' && !mediaPreview && (
+              <div className="mt-4 space-y-3 p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Music className="h-4 w-4" />
+                  Décrivez le chant à générer
+                </label>
+                <Textarea
+                  placeholder="Ex: Un chant joyeux d'anniversaire avec des instruments africains traditionnels"
+                  value={aiSongPrompt}
+                  onChange={(e) => setAiSongPrompt(e.target.value)}
+                  className="min-h-[100px]"
+                />
+                <Button
+                  onClick={generateAISong}
+                  disabled={isGeneratingAiSong || !aiSongPrompt.trim()}
+                  className="w-full"
+                >
+                  {isGeneratingAiSong ? (
+                    "Génération en cours..."
+                  ) : (
+                    <>
+                      <Music className="h-4 w-4 mr-2" />
+                      Générer le chant
+                    </>
+                  )}
                 </Button>
               </div>
             )}
