@@ -56,8 +56,8 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
 
   const uploadMedia = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
-    const filePath = `posts/${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `${user?.id}/${fileName}`;
 
     const { error: uploadError, data } = await supabase.storage
       .from('posts')
