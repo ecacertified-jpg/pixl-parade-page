@@ -10,6 +10,13 @@ interface Contributor {
   avatar?: string;
 }
 
+interface ContactData {
+  id: string;
+  name: string;
+  birthday?: string;
+  user_id?: string;
+}
+
 export interface CollectiveFund {
   id: string;
   title: string;
@@ -41,7 +48,7 @@ export function useCollectiveFunds() {
     try {
       setLoading(true);
 
-      // Requête améliorée avec toutes les informations nécessaires
+      // Requête principale sans le JOIN contacts (pour éviter les problèmes RLS)
       const selectQuery = `
         id,
         title,
@@ -53,12 +60,6 @@ export function useCollectiveFunds() {
         creator_id,
         is_public,
         beneficiary_contact_id,
-        contacts:beneficiary_contact_id(
-          id,
-          name,
-          birthday,
-          user_id
-        ),
         fund_contributions(
           id,
           amount,
@@ -105,6 +106,31 @@ export function useCollectiveFunds() {
         throw error;
       }
 
+      // Étape 2: Récupérer les contacts liés aux cagnottes (requête séparée pour profiter de la RLS)
+      const contactIds = allFundsData
+        ?.map(f => f.beneficiary_contact_id)
+        .filter(Boolean) || [];
+
+      console.log('🔍 [DEBUG] Contact IDs à récupérer:', contactIds);
+
+      const { data: contactsData, error: contactsError } = contactIds.length > 0 
+        ? await supabase
+            .from('contacts')
+            .select('id, name, birthday, user_id')
+            .in('id', contactIds)
+        : { data: [], error: null };
+
+      if (contactsError) {
+        console.warn('⚠️ Erreur lors du chargement des contacts:', contactsError);
+      }
+
+      console.log('✅ [DEBUG] Contacts récupérés:', contactsData);
+
+      // Créer un Map pour accès rapide aux contacts
+      const contactsMap = new Map<string, ContactData>(
+        contactsData?.map(c => [c.id, c] as [string, ContactData]) || []
+      );
+
       // Calculer la priorité pour chaque cagnotte
       const allFunds = (allFundsData || []).map(fund => {
         let priority = 4; // Par défaut : cagnotte publique générale
@@ -147,33 +173,34 @@ export function useCollectiveFunds() {
           amount: contrib.amount,
         }));
 
-        // Extraire le nom du bénéficiaire du titre ou des contacts
-        // Gérer les deux formats de retour de Supabase (tableau ou objet)
+        // Récupérer le contact depuis le Map
+        const contact: ContactData | undefined = fund.beneficiary_contact_id 
+          ? contactsMap.get(fund.beneficiary_contact_id)
+          : undefined;
+        
         let beneficiaryName = 'Bénéficiaire';
-        let beneficiaryBirthday = undefined;
+        let beneficiaryBirthday: string | undefined = undefined;
         
-        const contactData = Array.isArray(fund.contacts) ? fund.contacts[0] : fund.contacts;
-        
-        if (contactData && contactData.name) {
-          beneficiaryName = contactData.name;
-          beneficiaryBirthday = contactData.birthday;
+        if (contact?.name) {
+          beneficiaryName = contact.name;
+          beneficiaryBirthday = contact.birthday;
           
-          console.log('🎂 [DEBUG] Contact data found:', {
+          console.log('🎂 [DEBUG] Contact trouvé dans le Map:', {
             fundId: fund.id,
             fundTitle: fund.title,
+            contactId: contact.id,
             contactName: beneficiaryName,
-            birthday: beneficiaryBirthday,
-            isArray: Array.isArray(fund.contacts)
+            birthday: beneficiaryBirthday
           });
         } else if (fund.title.includes('pour ')) {
           beneficiaryName = fund.title.split('pour ')[1];
           
-          console.log('⚠️ [DEBUG] No contact data, extracting from title:', {
+          console.log('⚠️ [DEBUG] Contact non trouvé, extraction du titre:', {
             fundId: fund.id,
             fundTitle: fund.title,
             extractedName: beneficiaryName,
             beneficiaryContactId: fund.beneficiary_contact_id,
-            contactsData: fund.contacts
+            contactInMap: contactsMap.has(fund.beneficiary_contact_id || '')
           });
         }
 
