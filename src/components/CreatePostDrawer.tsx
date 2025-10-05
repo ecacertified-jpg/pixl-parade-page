@@ -35,6 +35,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [aiSongPrompt, setAiSongPrompt] = useState('');
   const [isGeneratingAiSong, setIsGeneratingAiSong] = useState(false);
+  const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
 
   const resetForm = () => {
     setPostType('text');
@@ -43,6 +44,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
     setMediaFile(null);
     setMediaPreview(null);
     setAiSongPrompt('');
+    setVisibility('public');
   };
 
 
@@ -132,6 +134,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
           media_url: mediaUrl,
           occasion: occasion || null,
           is_published: true,
+          visibility: visibility,
         });
 
       if (error) throw error;
@@ -199,22 +202,30 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-            
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-xs font-medium">
                   {(user?.email?.[0] || 'U').toUpperCase()}
                 </span>
               </div>
-              <span className="text-sm font-medium">Tout le monde</span>
+              <div className="flex gap-1">
+                <Button
+                  variant={visibility === 'public' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setVisibility('public')}
+                  className="h-7 text-xs px-3"
+                >
+                  Tout le monde
+                </Button>
+                <Button
+                  variant={visibility === 'friends' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setVisibility('friends')}
+                  className="h-7 text-xs px-3"
+                >
+                  Amis uniquement
+                </Button>
+              </div>
             </div>
 
             <Button
