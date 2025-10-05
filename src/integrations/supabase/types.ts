@@ -2646,6 +2646,14 @@ export type Database = {
         Args: { data: string; key_id?: string }
         Returns: string
       }
+      extract_beneficiary_name: {
+        Args: { fund_title: string }
+        Returns: string
+      }
+      find_contact_by_name: {
+        Args: { p_creator_id: string; p_name: string }
+        Returns: string
+      }
       find_users_in_delivery_zones: {
         Args: { p_business_id: string; p_search_term?: string }
         Returns: {
