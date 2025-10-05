@@ -148,13 +148,33 @@ export function useCollectiveFunds() {
         }));
 
         // Extraire le nom du bénéficiaire du titre ou des contacts
+        // Gérer les deux formats de retour de Supabase (tableau ou objet)
         let beneficiaryName = 'Bénéficiaire';
         let beneficiaryBirthday = undefined;
-        if (fund.contacts && fund.contacts.name) {
-          beneficiaryName = fund.contacts.name;
-          beneficiaryBirthday = fund.contacts.birthday;
+        
+        const contactData = Array.isArray(fund.contacts) ? fund.contacts[0] : fund.contacts;
+        
+        if (contactData && contactData.name) {
+          beneficiaryName = contactData.name;
+          beneficiaryBirthday = contactData.birthday;
+          
+          console.log('🎂 [DEBUG] Contact data found:', {
+            fundId: fund.id,
+            fundTitle: fund.title,
+            contactName: beneficiaryName,
+            birthday: beneficiaryBirthday,
+            isArray: Array.isArray(fund.contacts)
+          });
         } else if (fund.title.includes('pour ')) {
           beneficiaryName = fund.title.split('pour ')[1];
+          
+          console.log('⚠️ [DEBUG] No contact data, extracting from title:', {
+            fundId: fund.id,
+            fundTitle: fund.title,
+            extractedName: beneficiaryName,
+            beneficiaryContactId: fund.beneficiary_contact_id,
+            contactsData: fund.contacts
+          });
         }
 
         // Extraire les informations du produit depuis la commande
