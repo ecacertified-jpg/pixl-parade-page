@@ -569,9 +569,13 @@ export type Database = {
           description: string | null
           id: string
           is_public: boolean | null
+          is_surprise: boolean | null
           occasion: string | null
           share_token: string | null
           status: string | null
+          surprise_message: string | null
+          surprise_reveal_date: string | null
+          surprise_song_prompt: string | null
           target_amount: number
           title: string
           updated_at: string
@@ -589,9 +593,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean | null
+          is_surprise?: boolean | null
           occasion?: string | null
           share_token?: string | null
           status?: string | null
+          surprise_message?: string | null
+          surprise_reveal_date?: string | null
+          surprise_song_prompt?: string | null
           target_amount: number
           title: string
           updated_at?: string
@@ -609,9 +617,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_public?: boolean | null
+          is_surprise?: boolean | null
           occasion?: string | null
           share_token?: string | null
           status?: string | null
+          surprise_message?: string | null
+          surprise_reveal_date?: string | null
+          surprise_song_prompt?: string | null
           target_amount?: number
           title?: string
           updated_at?: string
@@ -2275,6 +2287,44 @@ export type Database = {
         }
         Relationships: []
       }
+      surprise_contributors: {
+        Row: {
+          contributor_id: string
+          created_at: string | null
+          fund_id: string
+          has_seen_surprise: boolean | null
+          id: string
+          invited_at: string | null
+          invited_by: string
+        }
+        Insert: {
+          contributor_id: string
+          created_at?: string | null
+          fund_id: string
+          has_seen_surprise?: boolean | null
+          id?: string
+          invited_at?: string | null
+          invited_by: string
+        }
+        Update: {
+          contributor_id?: string
+          created_at?: string | null
+          fund_id?: string
+          has_seen_surprise?: boolean | null
+          id?: string
+          invited_at?: string | null
+          invited_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surprise_contributors_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suspicious_activities: {
         Row: {
           action_taken: string | null
@@ -2895,6 +2945,16 @@ export type Database = {
           past_contribution_date: string
         }[]
       }
+      get_surprises_to_reveal: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          beneficiary_contact_id: string
+          creator_id: string
+          fund_id: string
+          surprise_message: string
+          surprise_song_prompt: string
+        }[]
+      }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
@@ -2941,6 +3001,10 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
+      }
+      mark_surprise_revealed: {
+        Args: { p_fund_id: string }
+        Returns: undefined
       }
       mask_contributor_info: {
         Args: { is_anonymous?: boolean; name: string }

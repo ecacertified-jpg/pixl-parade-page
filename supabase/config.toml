@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.request-refund]
 verify_jwt = true
+
+[functions.schedule-surprise-reveal]
+verify_jwt = false
