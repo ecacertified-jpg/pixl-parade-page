@@ -160,7 +160,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const handleCameraCapture = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = 'image/*,video/*';
     input.capture = 'environment';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
@@ -171,7 +171,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
           setMediaPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
-        setPostType('image');
+        setPostType(file.type.startsWith('video') ? 'video' : 'image');
       }
     };
     input.click();
