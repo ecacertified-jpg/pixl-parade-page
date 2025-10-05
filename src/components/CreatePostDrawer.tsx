@@ -198,7 +198,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-xs font-medium">
-                  {user?.email?.[0].toUpperCase() || 'U'}
+                  {(user?.email?.[0] || 'U').toUpperCase()}
                 </span>
               </div>
               <span className="text-sm font-medium">Tout le monde</span>
