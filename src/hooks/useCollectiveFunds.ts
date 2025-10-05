@@ -58,6 +58,15 @@ export function useCollectiveFunds() {
         rel.user_a === user.id ? rel.user_b : rel.user_a
       ) || [];
 
+      // Get friend contacts (contacts that belong to friends)
+      const { data: friendContactsData } = friendIds.length > 0 ? await supabase
+        .from('contacts')
+        .select('id, user_id')
+        .in('user_id', friendIds)
+        : { data: [] };
+
+      const friendContactIds = friendContactsData?.map(c => c.id) || [];
+
       // Get contributed fund IDs
       const { data: contributionsData } = await supabase
         .from('fund_contributions')
@@ -95,12 +104,23 @@ export function useCollectiveFunds() {
       `;
 
       // 1. Charger les cagnottes publiques des amis (priorité 1)
-      const { data: friendsPublicFunds, error: friendsPublicError } = await supabase
+      const { data: friendsPublicFunds, error: friendsPublicError } = friendIds.length > 0 ? await supabase
         .from('collective_funds')
         .select(selectQuery)
         .in('creator_id', friendIds)
         .eq('is_public', true)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        : { data: [], error: null };
+
+      // 1.5. Charger les cagnottes publiques créées POUR les amis (priorité 1.5)
+      const { data: fundsForFriends, error: fundsForFriendsError } = friendContactIds.length > 0 ? await supabase
+        .from('collective_funds')
+        .select(selectQuery)
+        .in('beneficiary_contact_id', friendContactIds)
+        .eq('is_public', true)
+        .eq('status', 'active')
+        .neq('creator_id', user.id) // Exclure ses propres fonds
+        : { data: [], error: null };
 
       // 2. Charger les cagnottes créées par l'utilisateur (priorité 2)
       const { data: ownFunds, error: ownFundsError } = await supabase
@@ -142,10 +162,11 @@ export function useCollectiveFunds() {
         generalPublicError = result.error;
       }
 
-      if (ownFundsError || friendsPublicError || contributedFundsError || generalPublicError) {
+      if (ownFundsError || friendsPublicError || fundsForFriendsError || contributedFundsError || generalPublicError) {
         console.error('Erreur lors du chargement des cagnottes:', { 
           ownFundsError, 
-          friendsPublicError, 
+          friendsPublicError,
+          fundsForFriendsError, 
           contributedFundsError, 
           generalPublicError 
         });
@@ -159,6 +180,15 @@ export function useCollectiveFunds() {
         friendsPublicFunds.forEach(fund => {
           if (!allFunds.find(f => f.id === fund.id)) {
             allFunds.push({ ...fund, priority: 1 });
+          }
+        });
+      }
+
+      // 1.5. Ajouter les cagnottes créées POUR les amis (priorité 1.5)
+      if (fundsForFriends) {
+        fundsForFriends.forEach(fund => {
+          if (!allFunds.find(f => f.id === fund.id)) {
+            allFunds.push({ ...fund, priority: 1.5 });
           }
         });
       }
