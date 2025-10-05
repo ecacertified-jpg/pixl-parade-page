@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
@@ -27,6 +28,8 @@ interface CollectiveFundCardProps {
 
 export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, onDelete }: CollectiveFundCardProps) {
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const [isPublic, setIsPublic] = useState(fund.isPublic || false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const [reciprocityInfo, setReciprocityInfo] = useState<{
@@ -158,6 +161,38 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
     }
   };
 
+  const handleToggleVisibility = async (checked: boolean) => {
+    if (!isCreator) return;
+    
+    setIsUpdatingVisibility(true);
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .update({ is_public: checked })
+        .eq('id', fund.id)
+        .eq('creator_id', user?.id);
+
+      if (error) throw error;
+
+      setIsPublic(checked);
+      toast({
+        title: checked ? "Cagnotte publique" : "Cagnotte privée",
+        description: checked 
+          ? "Tout le monde peut voir et contribuer à cette cagnotte"
+          : "Seuls vos amis autorisés peuvent voir cette cagnotte"
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier la visibilité",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
+
   return (
     <>
       <Card className="p-4 space-y-4">
@@ -194,6 +229,35 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
             )}
           </div>
         </div>
+
+        {/* Toggle de visibilité (pour le créateur uniquement) */}
+        {isCreator && (
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              {isPublic ? (
+                <Globe className="h-4 w-4 text-primary" />
+              ) : (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-medium">
+                  {isPublic ? "Cagnotte publique" : "Cagnotte privée"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isPublic 
+                    ? "Visible par tous" 
+                    : "Visible par vos amis uniquement"
+                  }
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={isPublic}
+              onCheckedChange={handleToggleVisibility}
+              disabled={isUpdatingVisibility || isExpired}
+            />
+          </div>
+        )}
 
         {/* Produit avec image et nom */}
         <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
