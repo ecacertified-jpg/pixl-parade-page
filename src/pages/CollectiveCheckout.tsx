@@ -156,6 +156,18 @@ export default function CollectiveCheckout() {
 
       console.log('Fund created successfully:', fundData);
 
+      // Appeler la fonction edge pour notifications de réciprocité (non-bloquant)
+      try {
+        console.log('🔔 Invoking notify-reciprocity for fund:', fundData.id);
+        await supabase.functions.invoke('notify-reciprocity', {
+          body: { fund_id: fundData.id }
+        });
+        console.log('✅ Notify-reciprocity invoked successfully');
+      } catch (reciprocityError) {
+        // Ne pas bloquer le flux si la notification échoue
+        console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
+      }
+
       // Create collective fund order with all the details
       const orderSummary = {
         items: items.map(item => ({
