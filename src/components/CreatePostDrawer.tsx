@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { CameraCapture } from "@/components/CameraCapture";
 
 interface CreatePostDrawerProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const resetForm = () => {
     setPostType('text');
@@ -158,23 +160,18 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   };
 
   const handleCameraCapture = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*';
-    input.capture = 'environment';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        setMediaFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setMediaPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        setPostType(file.type.startsWith('video') ? 'video' : 'image');
-      }
+    setIsCameraOpen(true);
+  };
+
+  const handleCaptureFromCamera = (file: File) => {
+    setMediaFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMediaPreview(reader.result as string);
     };
-    input.click();
+    reader.readAsDataURL(file);
+    setPostType(file.type.startsWith('video') ? 'video' : 'image');
+    setIsCameraOpen(false);
   };
 
   return (
@@ -322,6 +319,12 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
           </div>
         </div>
       </SheetContent>
+
+      <CameraCapture
+        open={isCameraOpen}
+        onOpenChange={setIsCameraOpen}
+        onCapture={handleCaptureFromCamera}
+      />
     </Sheet>
   );
 }
