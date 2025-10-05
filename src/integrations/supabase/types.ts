@@ -2197,6 +2197,7 @@ export type Database = {
       }
       scheduled_notifications: {
         Row: {
+          action_data: Json | null
           contact_id: string | null
           created_at: string
           delivery_methods: string[]
@@ -2204,14 +2205,17 @@ export type Database = {
           message: string
           metadata: Json | null
           notification_type: string
+          priority_score: number | null
           scheduled_for: string
           sent_at: string | null
+          smart_notification_category: string | null
           status: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          action_data?: Json | null
           contact_id?: string | null
           created_at?: string
           delivery_methods: string[]
@@ -2219,14 +2223,17 @@ export type Database = {
           message: string
           metadata?: Json | null
           notification_type: string
+          priority_score?: number | null
           scheduled_for: string
           sent_at?: string | null
+          smart_notification_category?: string | null
           status?: string
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          action_data?: Json | null
           contact_id?: string | null
           created_at?: string
           delivery_methods?: string[]
@@ -2234,8 +2241,10 @@ export type Database = {
           message?: string
           metadata?: Json | null
           notification_type?: string
+          priority_score?: number | null
           scheduled_for?: string
           sent_at?: string | null
+          smart_notification_category?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -2840,9 +2849,36 @@ export type Database = {
         Args: { encrypted_data: string; key_id?: string }
         Returns: string
       }
+      detect_domino_effect: {
+        Args: { p_contributor_id: string; p_fund_id: string }
+        Returns: {
+          total_amount_triggered: number
+          triggered_contributions: number
+        }[]
+      }
+      detect_reciprocity_imbalance: {
+        Args: { p_user_id: string }
+        Returns: {
+          friend_id: string
+          friend_name: string
+          given_count: number
+          imbalance_score: number
+          received_count: number
+        }[]
+      }
       detect_suspicious_behavior: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      detect_upcoming_birthdays_without_fund: {
+        Args: { p_user_id: string }
+        Returns: {
+          birthday: string
+          contact_id: string
+          contact_name: string
+          days_until: number
+          existing_contributors: number
+        }[]
       }
       encrypt_instagram_token: {
         Args: { p_token: string }
@@ -2981,6 +3017,10 @@ export type Database = {
       increment_gratitude_reaction: {
         Args: { p_gratitude_id: string }
         Returns: undefined
+      }
+      is_beneficiary_of_surprise: {
+        Args: { fund_uuid: string; user_uuid: string }
+        Returns: boolean
       }
       is_first_payment_to_beneficiary: {
         Args: { p_beneficiary_id: string; p_user_id: string }
