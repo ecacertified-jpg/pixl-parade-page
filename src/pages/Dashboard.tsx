@@ -168,6 +168,36 @@ export default function Dashboard() {
     // Synchroniser avec Supabase
     if (user) {
       try {
+        // 1. Rechercher si un utilisateur existe avec ce numéro
+        const { data: existingUser, error: searchError } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('phone', newFriend.phone)
+          .maybeSingle();
+
+        if (searchError && searchError.code !== 'PGRST116') {
+          console.error('Erreur lors de la recherche de l\'utilisateur:', searchError);
+        }
+
+        // 2. Si l'utilisateur existe, créer une relation d'amitié
+        if (existingUser?.user_id && existingUser.user_id !== user.id) {
+          const { error: relationError } = await supabase
+            .from('contact_relationships')
+            .insert({
+              user_a: user.id,
+              user_b: existingUser.user_id,
+              can_see_funds: true,
+              relationship_type: 'friend'
+            });
+
+          if (relationError) {
+            console.error('Erreur lors de la création de la relation:', relationError);
+          } else {
+            console.log('Relation d\'amitié créée avec succès');
+          }
+        }
+
+        // 3. Créer le contact dans la table contacts
         const {
           error
         } = await supabase.from('contacts').insert({
@@ -176,9 +206,9 @@ export default function Dashboard() {
           phone: newFriend.phone,
           relationship: newFriend.relation,
           notes: newFriend.location,
-          // Utiliser notes pour stocker la localisation
-          birthday: newFriend.birthday.toISOString().split('T')[0] // Format YYYY-MM-DD
+          birthday: newFriend.birthday.toISOString().split('T')[0]
         });
+
         if (error) {
           console.error('Erreur lors de la sauvegarde du contact:', error);
           toast({
@@ -187,10 +217,17 @@ export default function Dashboard() {
             variant: "destructive"
           });
         } else {
-          toast({
-            title: "Contact ajouté",
-            description: `${newFriend.name} a été ajouté à vos contacts`
-          });
+          if (existingUser?.user_id) {
+            toast({
+              title: "Contact ajouté et connecté",
+              description: `${newFriend.name} est maintenant dans votre cercle d'amis. Vous pouvez voir ses cotisations.`
+            });
+          } else {
+            toast({
+              title: "Contact ajouté",
+              description: `${newFriend.name} a été ajouté à vos contacts`
+            });
+          }
         }
       } catch (error) {
         console.error('Erreur lors de la sauvegarde du contact:', error);
