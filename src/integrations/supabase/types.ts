@@ -2550,6 +2550,10 @@ export type Database = {
         Args: { fund_uuid: string }
         Returns: boolean
       }
+      can_see_fund_for_friend: {
+        Args: { fund_uuid: string; viewer_uuid: string }
+        Returns: boolean
+      }
       check_admin_permission: {
         Args: { required_role?: string }
         Returns: boolean

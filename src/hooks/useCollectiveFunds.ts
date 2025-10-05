@@ -41,40 +41,7 @@ export function useCollectiveFunds() {
     try {
       setLoading(true);
 
-      // Charger les contacts de l'utilisateur pour les anniversaires
-      const { data: userContacts } = await supabase
-        .from('contacts')
-        .select('id, name, birthday')
-        .eq('user_id', user.id);
-
-      // Get friends IDs first
-      const { data: friendsData } = await supabase
-        .from('contact_relationships')
-        .select('user_a, user_b')
-        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-        .eq('can_see_funds', true);
-
-      const friendIds = friendsData?.map(rel => 
-        rel.user_a === user.id ? rel.user_b : rel.user_a
-      ) || [];
-
-      // Get friend contacts (contacts that belong to friends)
-      const { data: friendContactsData } = friendIds.length > 0 ? await supabase
-        .from('contacts')
-        .select('id, user_id')
-        .in('user_id', friendIds)
-        : { data: [] };
-
-      const friendContactIds = friendContactsData?.map(c => c.id) || [];
-
-      // Get contributed fund IDs
-      const { data: contributionsData } = await supabase
-        .from('fund_contributions')
-        .select('fund_id')
-        .eq('contributor_id', user.id);
-
-      const contributedFundIds = contributionsData?.map(c => c.fund_id) || [];
-
+      // Requête améliorée avec toutes les informations nécessaires
       const selectQuery = `
         id,
         title,
@@ -86,7 +53,12 @@ export function useCollectiveFunds() {
         creator_id,
         is_public,
         beneficiary_contact_id,
-        contacts:beneficiary_contact_id(name, birthday),
+        contacts:beneficiary_contact_id(
+          id,
+          name,
+          birthday,
+          user_id
+        ),
         fund_contributions(
           id,
           amount,
@@ -103,122 +75,65 @@ export function useCollectiveFunds() {
         )
       `;
 
-      // 1. Charger les cagnottes publiques des amis (priorité 1)
-      const { data: friendsPublicFunds, error: friendsPublicError } = friendIds.length > 0 ? await supabase
+      // Récupérer les IDs des amis pour calculer les priorités
+      const { data: friendsData } = await supabase
+        .from('contact_relationships')
+        .select('user_a, user_b')
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
+
+      const friendIds = friendsData?.map(rel => 
+        rel.user_a === user.id ? rel.user_b : rel.user_a
+      ) || [];
+
+      // Récupérer les contacts des amis pour identifier les bénéficiaires
+      const { data: friendContactsData } = friendIds.length > 0 ? await supabase
+        .from('contacts')
+        .select('id, user_id')
+        .in('user_id', friendIds)
+        : { data: [] };
+
+      const friendContactIds = friendContactsData?.map(c => c.id) || [];
+
+      // Récupérer toutes les cagnottes accessibles (la RLS fait le filtrage)
+      const { data: allFundsData, error } = await supabase
         .from('collective_funds')
         .select(selectQuery)
-        .in('creator_id', friendIds)
-        .eq('is_public', true)
-        .eq('status', 'active')
-        : { data: [], error: null };
+        .order('created_at', { ascending: false });
 
-      // 1.5. Charger les cagnottes publiques créées POUR les amis (priorité 1.5)
-      const { data: fundsForFriends, error: fundsForFriendsError } = friendContactIds.length > 0 ? await supabase
-        .from('collective_funds')
-        .select(selectQuery)
-        .in('beneficiary_contact_id', friendContactIds)
-        .eq('is_public', true)
-        .eq('status', 'active')
-        .neq('creator_id', user.id) // Exclure ses propres fonds
-        : { data: [], error: null };
-
-      // 2. Charger les cagnottes créées par l'utilisateur (priorité 2)
-      const { data: ownFunds, error: ownFundsError } = await supabase
-        .from('collective_funds')
-        .select(selectQuery)
-        .eq('creator_id', user.id);
-
-      // 3. Charger les cagnottes auxquelles l'utilisateur a contribué (priorité 3)
-      const { data: contributedFunds, error: contributedFundsError } = contributedFundIds.length > 0 ? 
-        await supabase
-          .from('collective_funds')
-          .select(selectQuery)
-          .in('id', contributedFundIds)
-          .neq('creator_id', user.id) // Exclude own funds
-        : { data: [], error: null };
-
-      // 4. Charger les cagnottes publiques générales (priorité 4)
-      let generalPublicFunds = null;
-      let generalPublicError = null;
-      
-      if (friendIds.length > 0) {
-        const result = await supabase
-          .from('collective_funds')
-          .select(selectQuery)
-          .eq('is_public', true)
-          .eq('status', 'active')
-          .neq('creator_id', user.id)
-          .not('creator_id', 'in', `(${friendIds.join(',')})`);
-        generalPublicFunds = result.data;
-        generalPublicError = result.error;
-      } else {
-        const result = await supabase
-          .from('collective_funds')
-          .select(selectQuery)
-          .eq('is_public', true)
-          .eq('status', 'active')
-          .neq('creator_id', user.id);
-        generalPublicFunds = result.data;
-        generalPublicError = result.error;
+      if (error) {
+        console.error('Erreur lors du chargement des cagnottes:', error);
+        throw error;
       }
 
-      if (ownFundsError || friendsPublicError || fundsForFriendsError || contributedFundsError || generalPublicError) {
-        console.error('Erreur lors du chargement des cagnottes:', { 
-          ownFundsError, 
-          friendsPublicError,
-          fundsForFriendsError, 
-          contributedFundsError, 
-          generalPublicError 
-        });
-      }
+      // Calculer la priorité pour chaque cagnotte
+      const allFunds = (allFundsData || []).map(fund => {
+        let priority = 4; // Par défaut : cagnotte publique générale
 
-      // Combiner avec priorités et dédupliquer
-      const allFunds = [];
-      
-      // 1. Ajouter les cagnottes publiques des amis (priorité 1)
-      if (friendsPublicFunds) {
-        friendsPublicFunds.forEach(fund => {
-          if (!allFunds.find(f => f.id === fund.id)) {
-            allFunds.push({ ...fund, priority: 1 });
-          }
-        });
-      }
+        // Priorité 1: Cagnotte créée par un ami
+        if (friendIds.includes(fund.creator_id)) {
+          priority = 1;
+        }
+        
+        // Priorité 1.5: Cagnotte créée POUR un ami (bénéficiaire est un ami)
+        if (fund.beneficiary_contact_id && friendContactIds.includes(fund.beneficiary_contact_id)) {
+          priority = Math.min(priority, 1.5);
+        }
 
-      // 1.5. Ajouter les cagnottes créées POUR les amis (priorité 1.5)
-      if (fundsForFriends) {
-        fundsForFriends.forEach(fund => {
-          if (!allFunds.find(f => f.id === fund.id)) {
-            allFunds.push({ ...fund, priority: 1.5 });
-          }
-        });
-      }
-      
-      // 2. Ajouter ses propres cagnottes (priorité 2)
-      if (ownFunds) {
-        ownFunds.forEach(fund => {
-          if (!allFunds.find(f => f.id === fund.id)) {
-            allFunds.push({ ...fund, priority: 2 });
-          }
-        });
-      }
-      
-      // 3. Ajouter les cagnottes contributées (priorité 3)
-      if (contributedFunds) {
-        contributedFunds.forEach(fund => {
-          if (!allFunds.find(f => f.id === fund.id)) {
-            allFunds.push({ ...fund, priority: 3 });
-          }
-        });
-      }
-      
-      // 4. Ajouter les cagnottes publiques générales (priorité 4)
-      if (generalPublicFunds) {
-        generalPublicFunds.forEach(fund => {
-          if (!allFunds.find(f => f.id === fund.id)) {
-            allFunds.push({ ...fund, priority: 4 });
-          }
-        });
-      }
+        // Priorité 2: Mes propres cagnottes
+        if (fund.creator_id === user.id) {
+          priority = 2;
+        }
+
+        // Priorité 3: Cagnottes auxquelles j'ai contribué
+        const hasContributed = fund.fund_contributions?.some(
+          contrib => contrib.contributor_id === user.id
+        );
+        if (hasContributed && fund.creator_id !== user.id) {
+          priority = Math.min(priority, 3);
+        }
+
+        return { ...fund, priority };
+      });
 
       console.log('Données des cagnottes chargées:', allFunds);
 
@@ -240,18 +155,6 @@ export function useCollectiveFunds() {
           beneficiaryBirthday = fund.contacts.birthday;
         } else if (fund.title.includes('pour ')) {
           beneficiaryName = fund.title.split('pour ')[1];
-          
-          // Chercher un contact correspondant dans la liste de l'utilisateur
-          if (userContacts && userContacts.length > 0) {
-            const matchingContact = userContacts.find(contact => 
-              contact.name.toLowerCase().includes(beneficiaryName.toLowerCase()) ||
-              beneficiaryName.toLowerCase().includes(contact.name.toLowerCase())
-            );
-            
-            if (matchingContact && matchingContact.birthday) {
-              beneficiaryBirthday = matchingContact.birthday;
-            }
-          }
         }
 
         // Extraire les informations du produit depuis la commande
