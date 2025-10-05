@@ -86,6 +86,14 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
     return diffDays;
   };
   
+  // Fonction pour obtenir le texte d'affichage
+  const getBirthdayDisplayText = () => {
+    if (daysUntilBirthday !== null) {
+      return `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`;
+    }
+    return fund.beneficiaryName ? `Pour: ${fund.beneficiaryName}` : 'Cadeau surprise';
+  };
+  
   const daysUntilBirthday = getDaysUntilBirthday();
   
   const handleContribute = () => {
@@ -201,10 +209,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           <div className="flex-1">
             <h3 className="font-semibold text-lg">{fund.title}</h3>
             <p className="text-sm text-muted-foreground">
-              {daysUntilBirthday !== null 
-                ? `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`
-                : `Pour: ${fund.beneficiaryName}`
-              }
+              {getBirthdayDisplayText()}
             </p>
           </div>
           <div className="flex items-center gap-2">

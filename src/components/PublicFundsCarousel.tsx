@@ -7,7 +7,12 @@ import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Fonction pour calculer les jours avant l'anniversaire
-const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined): string => {
+const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
+  // Si on a un nom de bénéficiaire mais pas d'anniversaire, afficher "Pour [nom]"
+  if (!birthdayDate && beneficiaryName) {
+    return `Pour ${beneficiaryName}`;
+  }
+  
   if (!birthdayDate) return "Cadeau surprise";
   
   const today = new Date();
@@ -108,7 +113,7 @@ export function PublicFundsCarousel() {
                 
                 {/* Occasion - Single Line */}
                 <p className="text-xs text-gray-500 text-center truncate">
-                  {getDaysUntilBirthday(fund.beneficiaryBirthday)}
+                  {getDaysUntilBirthday(fund.beneficiaryBirthday, fund.beneficiaryName)}
                 </p>
 
                 {/* Amount Progress */}
