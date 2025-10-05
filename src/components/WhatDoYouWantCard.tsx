@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import { CreatePostDrawer } from "@/components/CreatePostDrawer";
+
 export function WhatDoYouWantCard() {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  
   const handleOfferGift = () => {
     navigate("/shop");
   };
+  
   const handleCelebrate = () => {
-    // Navigate to create event/post page or show modal
-    navigate("/dashboard");
+    setIsCreateDrawerOpen(true);
   };
   return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-sky-50">
       {/* Header with profile and question */}
@@ -44,5 +47,7 @@ export function WhatDoYouWantCard() {
           <span className="font-medium text-foreground">Célébrer</span>
         </Button>
       </div>
+
+      <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
     </Card>;
 }

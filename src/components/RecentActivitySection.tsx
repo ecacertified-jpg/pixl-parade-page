@@ -1,4 +1,4 @@
-import { User, Users, ShoppingBag, Gift, Plus } from "lucide-react";
+import { Home, Users, ShoppingBag, Gift, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -73,7 +73,7 @@ export function BottomNavigation() {
   }, [user]);
   
   const navItems = [
-    { icon: <User className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
+    { icon: <Home className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
     { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
     { 
       icon: <Plus className="h-4 w-4" />, 
