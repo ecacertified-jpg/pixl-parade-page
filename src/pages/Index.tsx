@@ -9,6 +9,7 @@ import { PopularCategoriesSection } from "@/components/PopularCategoriesSection"
 import { CollaborativeOfferSection } from "@/components/CollaborativeOfferSection";
 import { RecentActivitySection, BottomNavigation } from "@/components/RecentActivitySection";
 import { BusinessEntryPoint } from "@/components/BusinessEntryPoint";
+import { GratitudeWallSection } from "@/components/GratitudeWallSection";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +85,9 @@ const Index = () => {
           
           <ActionCard title="Offrir un Cadeau" subtitle="Parcourez et offrez" icon={Gift} variant="success" onClick={handleOfferGift} />
         </div>
+
+        {/* Mur de Gratitude */}
+        <GratitudeWallSection />
 
         {/* Favorite Articles Section */}
         <FavoriteArticlesSection />

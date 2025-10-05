@@ -1127,6 +1127,53 @@ export type Database = {
           },
         ]
       }
+      gratitude_wall: {
+        Row: {
+          beneficiary_id: string
+          contributor_id: string
+          created_at: string | null
+          fund_id: string
+          id: string
+          is_public: boolean | null
+          message_text: string
+          message_type: string
+          reaction_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          beneficiary_id: string
+          contributor_id: string
+          created_at?: string | null
+          fund_id: string
+          id?: string
+          is_public?: boolean | null
+          message_text: string
+          message_type: string
+          reaction_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          beneficiary_id?: string
+          contributor_id?: string
+          created_at?: string | null
+          fund_id?: string
+          id?: string
+          is_public?: boolean | null
+          message_text?: string
+          message_type?: string
+          reaction_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gratitude_wall_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_connections: {
         Row: {
           access_token_encrypted: string | null
@@ -2870,6 +2917,10 @@ export type Database = {
       has_active_fund_for_beneficiary: {
         Args: { p_beneficiary_user_id: string }
         Returns: boolean
+      }
+      increment_gratitude_reaction: {
+        Args: { p_gratitude_id: string }
+        Returns: undefined
       }
       is_first_payment_to_beneficiary: {
         Args: { p_beneficiary_id: string; p_user_id: string }

@@ -2,3 +2,18 @@ project_id = "vaimfeurvzokepqqqrsl"
 
 [functions.generate-ai-music]
 verify_jwt = true
+
+[functions.enhance-gratitude-message]
+verify_jwt = true
+
+[functions.notify-business-fund-contributors]
+verify_jwt = false
+
+[functions.notify-reciprocity]
+verify_jwt = false
+
+[functions.process-expired-funds]
+verify_jwt = false
+
+[functions.request-refund]
+verify_jwt = true

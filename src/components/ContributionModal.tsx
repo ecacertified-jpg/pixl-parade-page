@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AddGratitudeModal } from "@/components/AddGratitudeModal";
 
 interface ContributionModalProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export function ContributionModal({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [showGratitudeModal, setShowGratitudeModal] = useState(false);
+  const [beneficiaryId, setBeneficiaryId] = useState<string>("");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -276,6 +279,18 @@ export function ContributionModal({
       setMessage("");
       setIsAnonymous(false);
       
+      // Récupérer le beneficiaryId pour le modal de gratitude
+      const { data: fundData } = await supabase
+        .from('collective_funds')
+        .select('creator_id')
+        .eq('id', fundId)
+        .single();
+      
+      if (fundData?.creator_id) {
+        setBeneficiaryId(fundData.creator_id);
+        setShowGratitudeModal(true);
+      }
+      
       // Callback de succès
       if (onContributionSuccess) {
         onContributionSuccess();
@@ -384,6 +399,15 @@ export function ContributionModal({
           </form>
         </div>
       </DialogContent>
+
+      {/* Modal de Gratitude après contribution */}
+      <AddGratitudeModal
+        isOpen={showGratitudeModal}
+        onClose={() => setShowGratitudeModal(false)}
+        fundId={fundId}
+        beneficiaryId={beneficiaryId}
+        fundTitle={fundTitle}
+      />
     </Dialog>
   );
 }
