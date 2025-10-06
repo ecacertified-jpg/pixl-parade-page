@@ -2766,7 +2766,7 @@ export type Database = {
         Returns: boolean
       }
       can_see_fund_for_friend: {
-        Args: { fund_uuid: string; viewer_uuid: string }
+        Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
       }
       check_admin_permission: {
@@ -3014,6 +3014,10 @@ export type Database = {
         Args: { p_beneficiary_user_id: string }
         Returns: boolean
       }
+      has_contributed_to_fund: {
+        Args: { fund_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
       increment_gratitude_reaction: {
         Args: { p_gratitude_id: string }
         Returns: undefined
@@ -3028,6 +3032,10 @@ export type Database = {
       }
       is_super_admin: {
         Args: { user_uuid: string }
+        Returns: boolean
+      }
+      is_surprise_contributor: {
+        Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
       }
       log_security_event: {
