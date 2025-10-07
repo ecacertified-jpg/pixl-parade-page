@@ -1,8 +1,9 @@
-import { MessageCircle, Share2, Heart, Gift, ThumbsUp, MoreHorizontal, Play } from "lucide-react";
+import { MessageCircle, Share2, Heart, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -144,7 +145,7 @@ export function PostCard({ post }: PostCardProps) {
               )}
               {getReactionCount('like') > 0 && (
                 <span className="flex items-center gap-1">
-                  <ThumbsUp className="h-3 w-3 text-blue-500 fill-current" />
+                  <PartyPopper className="h-3 w-3 text-blue-500 fill-current" />
                   {getReactionCount('like')}
                 </span>
               )}
@@ -172,18 +173,27 @@ export function PostCard({ post }: PostCardProps) {
             <span className="hidden sm:inline">J'adore</span>
           </Button>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleReaction('gift')}
-            className={cn(
-              "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
-              userReaction === 'gift' && "bg-primary/10 text-primary"
-            )}
-          >
-            <Gift className={cn("h-3.5 w-3.5", userReaction === 'gift' && "fill-current")} />
-            <span className="hidden sm:inline">Cadeau</span>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleReaction('gift')}
+                  className={cn(
+                    "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
+                    userReaction === 'gift' && "bg-primary/10 text-primary"
+                  )}
+                >
+                  <Gift className={cn("h-3.5 w-3.5", userReaction === 'gift' && "fill-current")} />
+                  <span className="hidden sm:inline">Cadeau</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-center">
+                <p className="text-xs">Attention, vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           <Button
             variant="ghost"
@@ -194,8 +204,8 @@ export function PostCard({ post }: PostCardProps) {
               userReaction === 'like' && "bg-blue-50 text-blue-600"
             )}
           >
-            <ThumbsUp className={cn("h-3.5 w-3.5", userReaction === 'like' && "fill-current")} />
-            <span className="hidden sm:inline">J'aime</span>
+            <PartyPopper className={cn("h-3.5 w-3.5", userReaction === 'like' && "fill-current")} />
+            <span className="hidden sm:inline">Bravo</span>
           </Button>
           
           <Button

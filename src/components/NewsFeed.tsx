@@ -1,11 +1,11 @@
-import { Heart } from "lucide-react";
+import { Heart, MessageCircle, Share2, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Share2, Gift, ThumbsUp, MoreHorizontal, Play } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -169,12 +169,12 @@ export function NewsFeed() {
                           {post.reactions.gift}
                         </span>
                       )}
-                      {post.reactions.like > 0 && (
-                        <span className="flex items-center gap-1">
-                          <ThumbsUp className="h-3 w-3 text-blue-500 fill-current" />
-                          {post.reactions.like}
-                        </span>
-                      )}
+                        {post.reactions.like > 0 && (
+                          <span className="flex items-center gap-1">
+                            <PartyPopper className="h-3 w-3 text-blue-500 fill-current" />
+                            {post.reactions.like}
+                          </span>
+                        )}
                     </div>
                     {post.comments_count! > 0 && (
                       <span className="text-xs text-muted-foreground ml-auto">
@@ -199,31 +199,40 @@ export function NewsFeed() {
                     <span className="hidden sm:inline">J'adore</span>
                   </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleReaction(post.id, 'gift')}
-                    className={cn(
-                      "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
-                      post.user_reaction === 'gift' && "bg-primary/10 text-primary"
-                    )}
-                  >
-                    <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
-                    <span className="hidden sm:inline">Cadeau</span>
-                  </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleReaction(post.id, 'gift')}
+                            className={cn(
+                              "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
+                              post.user_reaction === 'gift' && "bg-primary/10 text-primary"
+                            )}
+                          >
+                            <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
+                            <span className="hidden sm:inline">Cadeau</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-center">
+                          <p className="text-xs">Attention, vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleReaction(post.id, 'like')}
-                    className={cn(
-                      "flex-1 h-8 text-xs gap-1 px-1 hover:bg-blue-50 hover:text-blue-600 transition-colors",
-                      post.user_reaction === 'like' && "bg-blue-50 text-blue-600"
-                    )}
-                  >
-                    <ThumbsUp className={cn("h-3.5 w-3.5", post.user_reaction === 'like' && "fill-current")} />
-                    <span className="hidden sm:inline">J'aime</span>
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleReaction(post.id, 'like')}
+                      className={cn(
+                        "flex-1 h-8 text-xs gap-1 px-1 hover:bg-blue-50 hover:text-blue-600 transition-colors",
+                        post.user_reaction === 'like' && "bg-blue-50 text-blue-600"
+                      )}
+                    >
+                      <PartyPopper className={cn("h-3.5 w-3.5", post.user_reaction === 'like' && "fill-current")} />
+                      <span className="hidden sm:inline">Bravo</span>
+                    </Button>
 
                   <Button
                     variant="ghost"

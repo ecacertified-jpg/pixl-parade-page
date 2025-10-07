@@ -135,6 +135,10 @@ export function usePosts() {
     if (!user?.id) return;
 
     try {
+      // Get post author id
+      const post = posts.find(p => p.id === postId);
+      const postAuthorId = post?.user_id;
+
       // Check if user already reacted
       const { data: existingReaction } = await supabase
         .from('post_reactions')
@@ -150,12 +154,43 @@ export function usePosts() {
             .from('post_reactions')
             .delete()
             .eq('id', existingReaction.id);
+          
+          // If removing gift reaction, also remove gift promise
+          if (reactionType === 'gift') {
+            await supabase
+              .from('gift_promises' as any)
+              .delete()
+              .eq('post_id', postId)
+              .eq('user_id', user.id);
+          }
         } else {
           // If different reaction, update it
           await supabase
             .from('post_reactions')
             .update({ reaction_type: reactionType })
             .eq('id', existingReaction.id);
+          
+          // If changing TO gift reaction, create promise
+          if (reactionType === 'gift' && postAuthorId) {
+            await supabase
+              .from('gift_promises' as any)
+              .upsert({
+                user_id: user.id,
+                post_id: postId,
+                post_author_id: postAuthorId,
+              }, {
+                onConflict: 'user_id,post_id'
+              });
+          }
+          
+          // If changing FROM gift reaction, remove promise
+          if (existingReaction.reaction_type === 'gift') {
+            await supabase
+              .from('gift_promises' as any)
+              .delete()
+              .eq('post_id', postId)
+              .eq('user_id', user.id);
+          }
         }
       } else {
         // Add new reaction
@@ -166,6 +201,17 @@ export function usePosts() {
             user_id: user.id,
             reaction_type: reactionType,
           });
+        
+        // If adding gift reaction, create promise
+        if (reactionType === 'gift' && postAuthorId) {
+          await supabase
+            .from('gift_promises' as any)
+            .insert({
+              user_id: user.id,
+              post_id: postId,
+              post_author_id: postAuthorId,
+            });
+        }
       }
 
       // Refresh posts to update reactions
