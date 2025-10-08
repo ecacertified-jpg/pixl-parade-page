@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Share2, Heart, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CommentsSection } from "@/components/CommentsSection";
+import { ShareMenu } from "@/components/ShareMenu";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -17,7 +19,9 @@ import { fr } from "date-fns/locale";
 const Publications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { posts, loading, toggleReaction } = usePosts();
+  const { posts, loading, toggleReaction, refreshPosts } = usePosts();
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
 
   // Filter to show only current user's posts
   const userPosts = posts.filter((post) => post.user_id === user?.id);
@@ -244,6 +248,7 @@ const Publications = () => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
                         className="flex-1 h-8 text-xs gap-1 px-1 hover:bg-muted/50 transition-colors"
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
@@ -253,13 +258,31 @@ const Publications = () => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setShareMenuOpen(post.id)}
                         className="flex-1 h-8 text-xs gap-1 px-1 hover:bg-muted/50 transition-colors"
                       >
                         <Share2 className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Partager</span>
                       </Button>
                     </div>
+
+                    {/* Comments Section */}
+                    {showComments[post.id] && (
+                      <CommentsSection 
+                        postId={post.id} 
+                        onCommentAdded={refreshPosts}
+                      />
+                    )}
                   </div>
+
+                  {/* Share Menu */}
+                  <ShareMenu
+                    open={shareMenuOpen === post.id}
+                    onOpenChange={(open) => setShareMenuOpen(open ? post.id : null)}
+                    postId={post.id}
+                    postContent={post.content || ''}
+                    authorName={authorName}
+                  />
                 </Card>
               );
             })}

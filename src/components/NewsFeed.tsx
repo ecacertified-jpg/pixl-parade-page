@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Heart, MessageCircle, Share2, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,10 +15,13 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { CommentsSection } from "@/components/CommentsSection";
+import { ShareMenu } from "@/components/ShareMenu";
 
-// Gift promises feature with tooltips
 export function NewsFeed() {
-  const { posts, loading, toggleReaction } = usePosts();
+  const { posts, loading, toggleReaction, refreshPosts } = usePosts();
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -243,6 +247,7 @@ export function NewsFeed() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
                     className="flex-1 h-8 text-xs gap-1 px-1 hover:bg-muted/50 transition-colors"
                   >
                     <MessageCircle className="h-3.5 w-3.5" />
@@ -252,13 +257,31 @@ export function NewsFeed() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setShareMenuOpen(post.id)}
                     className="flex-1 h-8 text-xs gap-1 px-1 hover:bg-muted/50 transition-colors"
                   >
                     <Share2 className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Partager</span>
                   </Button>
                 </div>
+
+                {/* Comments Section */}
+                {showComments[post.id] && (
+                  <CommentsSection 
+                    postId={post.id} 
+                    onCommentAdded={refreshPosts}
+                  />
+                )}
               </div>
+
+              {/* Share Menu */}
+              <ShareMenu
+                open={shareMenuOpen === post.id}
+                onOpenChange={(open) => setShareMenuOpen(open ? post.id : null)}
+                postId={post.id}
+                postContent={post.content || ''}
+                authorName={authorName}
+              />
             </Card>
           );
         })}
