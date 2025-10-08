@@ -52,7 +52,7 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
   };
 
   const shareOptions = [
-    // Option de partage natif (mobile principalement)
+    // Option de partage natif (prioritaire - fonctionne sur tous les navigateurs modernes)
     ...(navigator.share ? [{
       name: 'Partager...',
       icon: LinkIcon,
@@ -66,10 +66,22 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-green-600',
       bgColor: 'hover:bg-green-50',
       action: () => {
-        // Utiliser l'app WhatsApp sur mobile, WhatsApp Web sur desktop
-        const baseUrl = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
-        const url = `${baseUrl}?text=${encodeURIComponent(shareText + '\n' + postUrl)}`;
-        window.open(url, '_blank');
+        // Utiliser whatsapp:// sur mobile pour ouvrir l'app directement
+        const message = encodeURIComponent(shareText + '\n' + postUrl);
+        const url = isMobile 
+          ? `whatsapp://send?text=${message}`
+          : `https://web.whatsapp.com/send?text=${message}`;
+        
+        // Sur mobile, essayer d'ouvrir l'app. Si échec, fallback vers web
+        if (isMobile) {
+          window.location.href = url;
+          // Fallback vers web après 2 secondes si l'app ne s'ouvre pas
+          setTimeout(() => {
+            window.open(`https://wa.me/?text=${message}`, '_blank');
+          }, 2000);
+        } else {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
         toast.success('Ouverture de WhatsApp...');
       },
     },
@@ -79,8 +91,16 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-blue-600',
       bgColor: 'hover:bg-blue-50',
       action: () => {
-        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
-        window.open(url, '_blank', 'width=600,height=400');
+        // Utiliser fb:// sur mobile pour ouvrir l'app
+        const url = isMobile
+          ? `fb://facewebmodal/f?href=${encodeURIComponent(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`)}`
+          : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+        
+        if (isMobile) {
+          window.location.href = url;
+        } else {
+          window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
+        }
         toast.success('Ouverture de Facebook...');
       },
     },
@@ -90,8 +110,17 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-sky-600',
       bgColor: 'hover:bg-sky-50',
       action: () => {
-        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(postUrl)}`;
-        window.open(url, '_blank', 'width=600,height=400');
+        // Utiliser twitter:// sur mobile
+        const text = encodeURIComponent(shareText);
+        const url = isMobile
+          ? `twitter://post?message=${text}%20${encodeURIComponent(postUrl)}`
+          : `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(postUrl)}`;
+        
+        if (isMobile) {
+          window.location.href = url;
+        } else {
+          window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
+        }
         toast.success('Ouverture de Twitter...');
       },
     },
@@ -102,7 +131,7 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       bgColor: 'hover:bg-blue-50',
       action: () => {
         const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`;
-        window.open(url, '_blank', 'width=600,height=400');
+        window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
         toast.success('Ouverture de LinkedIn...');
       },
     },
@@ -112,8 +141,16 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-blue-500',
       bgColor: 'hover:bg-blue-50',
       action: () => {
-        const url = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`;
-        window.open(url, '_blank');
+        // Utiliser tg:// sur mobile
+        const url = isMobile
+          ? `tg://msg_url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`
+          : `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`;
+        
+        if (isMobile) {
+          window.location.href = url;
+        } else {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
         toast.success('Ouverture de Telegram...');
       },
     },
