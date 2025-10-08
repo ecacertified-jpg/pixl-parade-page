@@ -29,14 +29,46 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
   const postUrl = `${window.location.origin}/post/${postId}`;
   const shareText = `${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''} - Partagé par ${authorName} sur JOIE DE VIVRE`;
 
+  // Détection mobile pour WhatsApp
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  // Fonction pour utiliser le Web Share API natif si disponible
+  const nativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Publication de ${authorName}`,
+          text: shareText,
+          url: postUrl,
+        });
+        toast.success('Partage effectué avec succès !');
+        onOpenChange(false);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          toast.error('Erreur lors du partage');
+        }
+      }
+    }
+  };
+
   const shareOptions = [
+    // Option de partage natif (mobile principalement)
+    ...(navigator.share ? [{
+      name: 'Partager...',
+      icon: LinkIcon,
+      color: 'text-primary',
+      bgColor: 'hover:bg-primary/10',
+      action: nativeShare,
+    }] : []),
     {
       name: 'WhatsApp',
       icon: MessageCircle,
       color: 'text-green-600',
       bgColor: 'hover:bg-green-50',
       action: () => {
-        const url = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + postUrl)}`;
+        // Utiliser l'app WhatsApp sur mobile, WhatsApp Web sur desktop
+        const baseUrl = isMobile ? 'https://api.whatsapp.com/send' : 'https://web.whatsapp.com/send';
+        const url = `${baseUrl}?text=${encodeURIComponent(shareText + '\n' + postUrl)}`;
         window.open(url, '_blank');
         toast.success('Ouverture de WhatsApp...');
       },
