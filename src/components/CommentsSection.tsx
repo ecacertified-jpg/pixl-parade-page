@@ -113,7 +113,7 @@ export function CommentsSection({ postId, onCommentAdded }: CommentsSectionProps
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Avatar className="w-8 h-8 flex-shrink-0">
           <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-xs">
-            {user?.email?.[0].toUpperCase() || 'U'}
+            {user?.email?.[0]?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 flex gap-2">
