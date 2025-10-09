@@ -200,14 +200,16 @@ export function NewsFeed() {
                 <div className="flex items-center justify-between gap-0.5">
                   <Button variant="ghost" size="sm" onClick={() => toggleReaction(post.id, 'love')} className={cn("flex-1 h-8 text-xs gap-1 px-1 hover:bg-red-50 hover:text-red-600 transition-colors", post.user_reaction === 'love' && "bg-red-50 text-red-600")}>
                     <Heart className={cn("h-3.5 w-3.5", post.user_reaction === 'love' && "fill-current")} />
-                    <span className="hidden sm:inline">J'adore</span>
+                    {post.reactions?.love > 0 && <span className="font-medium">{post.reactions.love}</span>}
+                    <span className="hidden sm:inline">{!post.reactions?.love ? "J'adore" : ""}</span>
                   </Button>
 
                     <Popover open={giftPopoverOpen[post.id]} onOpenChange={(open) => setGiftPopoverOpen(prev => ({ ...prev, [post.id]: open }))}>
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="sm" onClick={() => handleGiftClick(post.id, authorName)} className={cn("flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors", post.user_reaction === 'gift' && "bg-primary/10 text-primary")}>
                           <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
-                          <span className="hidden sm:inline">Cadeau</span>
+                          {post.reactions?.gift > 0 && <span className="font-medium">{post.reactions.gift}</span>}
+                          <span className="hidden sm:inline">{!post.reactions?.gift ? "Cadeau" : ""}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-64" side="top">
@@ -223,7 +225,8 @@ export function NewsFeed() {
 
                     <Button variant="ghost" size="sm" onClick={() => toggleReaction(post.id, 'like')} className={cn("flex-1 h-8 text-xs gap-1 px-1 hover:bg-blue-50 hover:text-blue-600 transition-colors", post.user_reaction === 'like' && "bg-blue-50 text-blue-600")}>
                       <PartyPopper className={cn("h-3.5 w-3.5", post.user_reaction === 'like' && "fill-current")} />
-                      <span className="hidden sm:inline">Bravo</span>
+                      {post.reactions?.like > 0 && <span className="font-medium">{post.reactions.like}</span>}
+                      <span className="hidden sm:inline">{!post.reactions?.like ? "Bravo" : ""}</span>
                     </Button>
 
                   <Button variant="ghost" size="sm" onClick={() => setShowComments(prev => ({
