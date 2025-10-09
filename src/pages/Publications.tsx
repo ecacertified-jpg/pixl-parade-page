@@ -258,8 +258,7 @@ const Publications = () => {
                         )}
                       >
                         <Heart className={cn("h-3.5 w-3.5", post.user_reaction === 'love' && "fill-current")} />
-                        {post.reactions?.love > 0 && <span className="font-medium">{post.reactions.love}</span>}
-                        <span className="hidden sm:inline">{!post.reactions?.love ? "J'adore" : ""}</span>
+                        <span className="hidden sm:inline">J'adore</span>
                       </Button>
 
                       <Popover open={giftPopoverOpen[post.id]} onOpenChange={(open) => setGiftPopoverOpen(prev => ({ ...prev, [post.id]: open }))}>
@@ -274,8 +273,7 @@ const Publications = () => {
                             )}
                           >
                             <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
-                            {post.reactions?.gift > 0 && <span className="font-medium">{post.reactions.gift}</span>}
-                            <span className="hidden sm:inline">{!post.reactions?.gift ? "Cadeau" : ""}</span>
+                            <span className="hidden sm:inline">Cadeau</span>
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64" side="top">
@@ -299,8 +297,7 @@ const Publications = () => {
                         )}
                       >
                         <PartyPopper className={cn("h-3.5 w-3.5", post.user_reaction === 'like' && "fill-current")} />
-                        {post.reactions?.like > 0 && <span className="font-medium">{post.reactions.like}</span>}
-                        <span className="hidden sm:inline">{!post.reactions?.like ? "Bravo" : ""}</span>
+                        <span className="hidden sm:inline">Bravo</span>
                       </Button>
 
                       <Button
