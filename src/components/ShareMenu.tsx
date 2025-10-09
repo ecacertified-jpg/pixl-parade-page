@@ -66,22 +66,9 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-green-600',
       bgColor: 'hover:bg-green-50',
       action: () => {
-        // Utiliser whatsapp:// sur mobile pour ouvrir l'app directement
         const message = encodeURIComponent(shareText + '\n' + postUrl);
-        const url = isMobile 
-          ? `whatsapp://send?text=${message}`
-          : `https://web.whatsapp.com/send?text=${message}`;
-        
-        // Sur mobile, essayer d'ouvrir l'app. Si échec, fallback vers web
-        if (isMobile) {
-          window.location.href = url;
-          // Fallback vers web après 2 secondes si l'app ne s'ouvre pas
-          setTimeout(() => {
-            window.open(`https://wa.me/?text=${message}`, '_blank');
-          }, 2000);
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        }
+        const url = `https://wa.me/?text=${message}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
         toast.success('Ouverture de WhatsApp...');
       },
     },
@@ -91,16 +78,8 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-blue-600',
       bgColor: 'hover:bg-blue-50',
       action: () => {
-        // Utiliser fb:// sur mobile pour ouvrir l'app
-        const url = isMobile
-          ? `fb://facewebmodal/f?href=${encodeURIComponent(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`)}`
-          : `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
-        
-        if (isMobile) {
-          window.location.href = url;
-        } else {
-          window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
-        }
+        const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+        window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
         toast.success('Ouverture de Facebook...');
       },
     },
@@ -110,17 +89,9 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-sky-600',
       bgColor: 'hover:bg-sky-50',
       action: () => {
-        // Utiliser twitter:// sur mobile
         const text = encodeURIComponent(shareText);
-        const url = isMobile
-          ? `twitter://post?message=${text}%20${encodeURIComponent(postUrl)}`
-          : `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(postUrl)}`;
-        
-        if (isMobile) {
-          window.location.href = url;
-        } else {
-          window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
-        }
+        const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(postUrl)}`;
+        window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
         toast.success('Ouverture de Twitter...');
       },
     },
@@ -141,16 +112,8 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       color: 'text-blue-500',
       bgColor: 'hover:bg-blue-50',
       action: () => {
-        // Utiliser tg:// sur mobile
-        const url = isMobile
-          ? `tg://msg_url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`
-          : `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`;
-        
-        if (isMobile) {
-          window.location.href = url;
-        } else {
-          window.open(url, '_blank', 'noopener,noreferrer');
-        }
+        const url = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(shareText)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
         toast.success('Ouverture de Telegram...');
       },
     },

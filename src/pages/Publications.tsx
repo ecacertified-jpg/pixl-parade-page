@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,14 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Share2, Heart, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CommentsSection } from "@/components/CommentsSection";
 import { ShareMenu } from "@/components/ShareMenu";
+import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 const Publications = () => {
   const navigate = useNavigate();
@@ -22,9 +24,58 @@ const Publications = () => {
   const { posts, loading, toggleReaction, refreshPosts } = usePosts();
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const [giftWarningShown, setGiftWarningShown] = useState<Record<string, boolean>>({});
+  const [giftPopoverOpen, setGiftPopoverOpen] = useState<Record<string, boolean>>({});
+  const [showGiftPromise, setShowGiftPromise] = useState<Record<string, boolean>>({});
+  const [giftPromisePost, setGiftPromisePost] = useState<{ postId: string; authorName: string } | null>(null);
 
   // Filter to show only current user's posts
   const userPosts = posts.filter((post) => post.user_id === user?.id);
+
+  // Réinitialiser l'avertissement après 10 secondes
+  useEffect(() => {
+    Object.keys(giftWarningShown).forEach(postId => {
+      if (giftWarningShown[postId]) {
+        const timer = setTimeout(() => {
+          setGiftWarningShown(prev => ({ ...prev, [postId]: false }));
+        }, 10000);
+        return () => clearTimeout(timer);
+      }
+    });
+  }, [giftWarningShown]);
+
+  const handleGiftClick = (postId: string, authorName: string) => {
+    // Vibration haptique si disponible
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+
+    if (giftWarningShown[postId]) {
+      // Deuxième clic : afficher la modal de confirmation
+      setGiftPromisePost({ postId, authorName });
+      setShowGiftPromise(prev => ({ ...prev, [postId]: true }));
+      setGiftPopoverOpen(prev => ({ ...prev, [postId]: false }));
+    } else {
+      // Premier clic : afficher l'avertissement
+      setGiftWarningShown(prev => ({ ...prev, [postId]: true }));
+      setGiftPopoverOpen(prev => ({ ...prev, [postId]: true }));
+      
+      // Fermer automatiquement après 3 secondes
+      setTimeout(() => {
+        setGiftPopoverOpen(prev => ({ ...prev, [postId]: false }));
+      }, 3000);
+    }
+  };
+
+  const handleGiftPromiseConfirm = async () => {
+    if (giftPromisePost) {
+      await toggleReaction(giftPromisePost.postId, 'gift');
+      toast.success('🎁 Promesse de cadeau enregistrée avec succès !');
+      setGiftWarningShown(prev => ({ ...prev, [giftPromisePost.postId]: false }));
+      setShowGiftPromise(prev => ({ ...prev, [giftPromisePost.postId]: false }));
+      setGiftPromisePost(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
@@ -210,27 +261,31 @@ const Publications = () => {
                         <span className="hidden sm:inline">J'adore</span>
                       </Button>
 
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleReaction(post.id, 'gift')}
-                              className={cn(
-                                "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
-                                post.user_reaction === 'gift' && "bg-primary/10 text-primary"
-                              )}
-                            >
-                              <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
-                              <span className="hidden sm:inline">Cadeau</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-center">
-                            <p className="text-xs">Attention, vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Popover open={giftPopoverOpen[post.id]} onOpenChange={(open) => setGiftPopoverOpen(prev => ({ ...prev, [post.id]: open }))}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleGiftClick(post.id, authorName)}
+                            className={cn(
+                              "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
+                              post.user_reaction === 'gift' && "bg-primary/10 text-primary"
+                            )}
+                          >
+                            <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
+                            <span className="hidden sm:inline">Cadeau</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64" side="top">
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-foreground">⚠️ Attention</p>
+                            <p className="text-xs text-muted-foreground">
+                              Vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire. 
+                              Cliquez à nouveau pour confirmer.
+                            </p>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
 
                       <Button
                         variant="ghost"
@@ -282,6 +337,18 @@ const Publications = () => {
                     postId={post.id}
                     postContent={post.content || ''}
                     authorName={authorName}
+                  />
+
+                  {/* Gift Promise Modal */}
+                  <GiftPromiseModal 
+                    open={showGiftPromise[post.id] || false}
+                    onOpenChange={(open) => {
+                      setShowGiftPromise(prev => ({ ...prev, [post.id]: open }));
+                      if (!open) setGiftPromisePost(null);
+                    }}
+                    onConfirm={handleGiftPromiseConfirm}
+                    authorName={authorName}
+                    occasion={post.occasion}
                   />
                 </Card>
               );
