@@ -11,6 +11,7 @@ export interface PostData {
   media_thumbnail?: string | null;
   occasion?: string | null;
   is_published: boolean;
+  is_pinned?: boolean;
   created_at: string;
   profiles?: {
     first_name?: string;

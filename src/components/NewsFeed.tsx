@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
+import { Heart, MessageCircle, Share2, Gift, PartyPopper, Play } from "lucide-react";
 import { usePosts } from "@/hooks/usePosts";
+import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,8 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CommentsSection } from "@/components/CommentsSection";
 import { ShareMenu } from "@/components/ShareMenu";
 import { GiftPromiseModal } from "@/components/GiftPromiseModal";
+import { PostActionsMenu } from "@/components/PostActionsMenu";
 import { toast } from "sonner";
 export function NewsFeed() {
+  const { user } = useAuth();
   const {
     posts,
     loading,
@@ -144,9 +147,17 @@ export function NewsFeed() {
                       </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                  <PostActionsMenu
+                    postId={post.id}
+                    authorId={post.user_id}
+                    currentUserId={user?.id || null}
+                    isPinned={post.is_pinned}
+                    postContent={post.content}
+                    postMediaUrl={post.media_url}
+                    postMediaType={post.type}
+                    postOccasion={post.occasion}
+                    onRefresh={refreshPosts}
+                  />
                 </div>
 
                 {/* Content */}

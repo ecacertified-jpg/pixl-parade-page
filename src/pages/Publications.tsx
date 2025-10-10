@@ -8,11 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Share2, Heart, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
+import { MessageCircle, Share2, Heart, Gift, PartyPopper, Play } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CommentsSection } from "@/components/CommentsSection";
 import { ShareMenu } from "@/components/ShareMenu";
 import { GiftPromiseModal } from "@/components/GiftPromiseModal";
+import { PostActionsMenu } from "@/components/PostActionsMenu";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -166,9 +167,17 @@ const Publications = () => {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <PostActionsMenu
+                        postId={post.id}
+                        authorId={post.user_id}
+                        currentUserId={user?.id || null}
+                        isPinned={post.is_pinned}
+                        postContent={post.content}
+                        postMediaUrl={post.media_url}
+                        postMediaType={post.type}
+                        postOccasion={post.occasion}
+                        onRefresh={refreshPosts}
+                      />
                     </div>
 
                     {/* Content */}
