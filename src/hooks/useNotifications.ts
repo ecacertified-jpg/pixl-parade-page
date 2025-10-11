@@ -22,9 +22,15 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const loadNotifications = async () => {
-    if (!user) return;
+  console.log('[useNotifications] Hook initialized, user:', user?.id);
 
+  const loadNotifications = async () => {
+    if (!user) {
+      console.log('[useNotifications] No user, skipping load');
+      return;
+    }
+
+    console.log('[useNotifications] Loading notifications for user:', user.id);
     try {
       setLoading(true);
 
@@ -76,7 +82,9 @@ export const useNotifications = () => {
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setNotifications(allNotifs);
-      setUnreadCount(allNotifs.filter(n => !n.is_read).length);
+      const unread = allNotifs.filter(n => !n.is_read).length;
+      setUnreadCount(unread);
+      console.log('[useNotifications] Loaded', allNotifs.length, 'notifications,', unread, 'unread');
     } catch (error: any) {
       console.error("Error loading notifications:", error);
     } finally {
@@ -166,6 +174,7 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
+    console.log('[useNotifications] useEffect triggered, user:', user?.id);
     loadNotifications();
 
     // Écouter les nouvelles notifications en temps réel
