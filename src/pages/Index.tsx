@@ -1,6 +1,6 @@
 import { Bell, User, Gift, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NotificationPanel } from "@/components/NotificationPanel";
+// import { NotificationPanel } from "@/components/NotificationPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
@@ -60,7 +60,9 @@ const Index = () => {
             >
               <ShoppingCart className="h-5 w-5" />
             </Button>
-            <NotificationPanel />
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
             {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
           </div>
         </div>
