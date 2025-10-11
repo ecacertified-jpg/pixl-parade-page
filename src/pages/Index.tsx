@@ -1,5 +1,6 @@
 import { Bell, User, Gift, ShoppingCart } from "lucide-react";
-import { NotificationCard } from "@/components/NotificationCard";
+import { Button } from "@/components/ui/button";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { ActionCard } from "@/components/ActionCard";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
@@ -51,19 +52,15 @@ const Index = () => {
             </h1>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
-              <ShoppingCart className="h-6 w-6 text-muted-foreground" />
-              <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                2
-              </div>
-            </div>
-            <div className="relative">
-              <Bell className="h-6 w-6 text-muted-foreground" />
-              <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                1
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/cart")}
+            >
+              <ShoppingCart className="h-5 w-5" />
+            </Button>
+            <NotificationPanel />
             {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
           </div>
         </div>
@@ -71,9 +68,6 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Notification Card */}
-        <NotificationCard title="Anniversaire de Fatou" subtitle="Événement à venir" daysLeft={5} onAction={handleGiftAction} />
-
         {/* Welcome Section */}
         <WelcomeSection userName="Aminata" />
 
