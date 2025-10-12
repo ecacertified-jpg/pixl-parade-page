@@ -1,8 +1,9 @@
-import { Bell, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { memo } from "react";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
+import { NotificationPanel } from "@/components/NotificationPanel";
 import { WhatDoYouWantCard } from "@/components/WhatDoYouWantCard";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
@@ -34,12 +35,7 @@ const Home = () => {
                 2
               </div>
             </div>
-            <div className="relative">
-              <Bell className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
-              <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                1
-              </div>
-            </div>
+            <NotificationPanel />
             {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}
           </div>
         </div>
