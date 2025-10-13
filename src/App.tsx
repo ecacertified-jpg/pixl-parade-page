@@ -23,6 +23,7 @@ import Checkout from "./pages/Checkout";
 import CollectiveCheckout from "./pages/CollectiveCheckout";
 import CollectiveOrderConfirmation from "./pages/CollectiveOrderConfirmation";
 import OrderConfirmation from "./pages/OrderConfirmation";
+import NotificationSettings from "./pages/NotificationSettings";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,11 @@ const App = () => (
             <Route path="/order-confirmation" element={
               <ProtectedRoute>
                 <OrderConfirmation />
+              </ProtectedRoute>
+            } />
+            <Route path="/notification-settings" element={
+              <ProtectedRoute>
+                <NotificationSettings />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

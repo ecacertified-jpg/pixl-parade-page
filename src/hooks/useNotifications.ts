@@ -10,13 +10,17 @@ export interface Notification {
   message: string;
   type: string;
   is_read: boolean;
+  is_archived?: boolean;
+  archived_at?: string;
   created_at: string;
   metadata?: any;
   notification_type?: string;
   scheduled_for?: string;
 }
 
-export const useNotifications = () => {
+export type NotificationFilter = 'all' | 'gift' | 'fund' | 'birthday' | 'event' | 'ai';
+
+export const useNotifications = (showArchived: boolean = false, filter: NotificationFilter = 'all') => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -39,6 +43,7 @@ export const useNotifications = () => {
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_archived', showArchived)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -49,6 +54,7 @@ export const useNotifications = () => {
         .from('scheduled_notifications')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_archived', showArchived)
         .lte('scheduled_for', new Date().toISOString())
         .order('scheduled_for', { ascending: false })
         .limit(20);
@@ -56,7 +62,7 @@ export const useNotifications = () => {
       if (scheduledError) throw scheduledError;
 
       // Combiner et trier
-      const allNotifs: Notification[] = [
+      let allNotifs: Notification[] = [
         ...(regularNotifs || []).map(n => ({
           id: n.id,
           user_id: n.user_id,
@@ -64,6 +70,8 @@ export const useNotifications = () => {
           message: n.message,
           type: n.type,
           is_read: n.is_read ?? false,
+          is_archived: n.is_archived ?? false,
+          archived_at: n.archived_at,
           created_at: n.created_at,
           metadata: (n as any).metadata
         })),
@@ -73,13 +81,36 @@ export const useNotifications = () => {
           title: n.title,
           message: n.message,
           type: n.notification_type || 'info',
-          is_read: false, // scheduled_notifications n'ont pas de is_read, donc false par défaut
+          is_read: false,
+          is_archived: n.is_archived ?? false,
+          archived_at: n.archived_at,
           created_at: n.scheduled_for || n.created_at,
           metadata: n.metadata,
           notification_type: n.notification_type,
           scheduled_for: n.scheduled_for
         }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // Appliquer le filtre
+      if (filter !== 'all') {
+        allNotifs = allNotifs.filter(n => {
+          const type = n.type.toLowerCase();
+          switch (filter) {
+            case 'gift':
+              return type.includes('gift') || type.includes('promise');
+            case 'fund':
+              return type.includes('fund') || type.includes('contribution') || type.includes('collective');
+            case 'birthday':
+              return type.includes('birthday');
+            case 'event':
+              return type.includes('event') || type.includes('reminder');
+            case 'ai':
+              return type.includes('smart') || type.includes('ai') || type.includes('recommendation');
+            default:
+              return true;
+          }
+        });
+      }
 
       setNotifications(allNotifs);
       const unread = allNotifs.filter(n => !n.is_read).length;
@@ -144,6 +175,62 @@ export const useNotifications = () => {
     } catch (error: any) {
       console.error("Error marking all as read:", error);
       toast.error("Erreur lors de la mise à jour");
+    }
+  };
+
+  const archiveNotification = async (notificationId: string) => {
+    try {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (!notification) return;
+
+      if (notification?.notification_type) {
+        await supabase
+          .from('scheduled_notifications')
+          .update({ is_archived: true, archived_at: new Date().toISOString() })
+          .eq('id', notificationId);
+      } else {
+        await supabase
+          .from('notifications')
+          .update({ is_archived: true, archived_at: new Date().toISOString() })
+          .eq('id', notificationId);
+      }
+
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      if (!notification.is_read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      toast.success('Notification archivée');
+    } catch (error: any) {
+      console.error("Error archiving notification:", error);
+      toast.error("Erreur lors de l'archivage");
+    }
+  };
+
+  const archiveAllRead = async () => {
+    if (!user) return;
+
+    try {
+      const timestamp = new Date().toISOString();
+
+      await supabase
+        .from('notifications')
+        .update({ is_archived: true, archived_at: timestamp })
+        .eq('user_id', user.id)
+        .eq('is_read', true)
+        .eq('is_archived', false);
+
+      await supabase
+        .from('scheduled_notifications')
+        .update({ is_archived: true, archived_at: timestamp })
+        .eq('user_id', user.id)
+        .eq('is_archived', false);
+
+      const readCount = notifications.filter(n => n.is_read).length;
+      setNotifications(prev => prev.filter(n => !n.is_read));
+      toast.success(`${readCount} notifications archivées`);
+    } catch (error: any) {
+      console.error("Error archiving all read:", error);
+      toast.error("Erreur lors de l'archivage");
     }
   };
 
@@ -240,6 +327,8 @@ export const useNotifications = () => {
     loading,
     markAsRead,
     markAllAsRead,
+    archiveNotification,
+    archiveAllRead,
     deleteNotification,
     refreshNotifications: loadNotifications
   };

@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -7,11 +7,13 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { useNotifications, type Notification, type NotificationFilter } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { NotificationFilters } from "./NotificationFilters";
+import { useState, useMemo } from "react";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
@@ -64,11 +66,12 @@ const getNotificationAction = (notification: Notification, navigate: any) => {
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
+  onArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onNavigate: () => void;
 }
 
-const NotificationItem = ({ notification, onMarkAsRead, onDelete, onNavigate }: NotificationItemProps) => {
+const NotificationItem = ({ notification, onMarkAsRead, onArchive, onDelete, onNavigate }: NotificationItemProps) => {
   const handleClick = () => {
     if (!notification.is_read) {
       onMarkAsRead(notification.id);
@@ -127,6 +130,17 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onNavigate }: 
           <Button
             variant="ghost"
             size="sm"
+            className="h-7 w-7 p-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onArchive(notification.id);
+            }}
+          >
+            <Archive className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-7 w-7 p-0 text-destructive hover:text-destructive"
             onClick={(e) => {
               e.stopPropagation();
@@ -142,8 +156,35 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete, onNavigate }: 
 };
 
 export const NotificationPanel = () => {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
+  const [showArchived, setShowArchived] = useState(false);
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead, archiveNotification, archiveAllRead, deleteNotification } = useNotifications(showArchived, activeFilter);
   const navigate = useNavigate();
+
+  // Calculer les compteurs par filtre
+  const filterCounts = useMemo(() => {
+    const allNotifs = notifications;
+    return {
+      all: allNotifs.length,
+      gift: allNotifs.filter(n => {
+        const type = n.type.toLowerCase();
+        return type.includes('gift') || type.includes('promise');
+      }).length,
+      fund: allNotifs.filter(n => {
+        const type = n.type.toLowerCase();
+        return type.includes('fund') || type.includes('contribution') || type.includes('collective');
+      }).length,
+      birthday: allNotifs.filter(n => n.type.toLowerCase().includes('birthday')).length,
+      event: allNotifs.filter(n => {
+        const type = n.type.toLowerCase();
+        return type.includes('event') || type.includes('reminder');
+      }).length,
+      ai: allNotifs.filter(n => {
+        const type = n.type.toLowerCase();
+        return type.includes('smart') || type.includes('ai') || type.includes('recommendation');
+      }).length,
+    };
+  }, [notifications]);
 
   return (
     <Popover>
@@ -173,15 +214,57 @@ export const NotificationPanel = () => {
             )}
           </div>
           
-          {unreadCount > 0 && (
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/notification-settings')}
+              className="h-8 w-8"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={markAllAsRead}
+                className="h-8 text-xs"
+              >
+                <CheckCheck className="h-3 w-3 mr-1" />
+                Tout marquer
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <Separator />
+
+        <NotificationFilters
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          counts={filterCounts}
+        />
+
+        <Separator />
+
+        <div className="flex items-center justify-between px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+            className="h-7 text-xs"
+          >
+            <Archive className="h-3 w-3 mr-1" />
+            {showArchived ? 'Masquer archivées' : 'Voir archivées'}
+          </Button>
+          {!showArchived && notifications.some(n => n.is_read) && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={markAllAsRead}
-              className="h-8 text-xs"
+              onClick={archiveAllRead}
+              className="h-7 text-xs"
             >
-              <CheckCheck className="h-3 w-3 mr-1" />
-              Tout marquer
+              Archiver toutes lues
             </Button>
           )}
         </div>
@@ -208,6 +291,7 @@ export const NotificationPanel = () => {
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={markAsRead}
+                  onArchive={archiveNotification}
                   onDelete={deleteNotification}
                   onNavigate={() => {
                     const action = getNotificationAction(notification, navigate);

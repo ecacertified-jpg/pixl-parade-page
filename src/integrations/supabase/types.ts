@@ -1575,10 +1575,81 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          ai_suggestions: boolean | null
+          birthday_notifications: boolean | null
+          contribution_notifications: boolean | null
+          created_at: string | null
+          digest_frequency: string | null
+          digest_mode: boolean | null
+          email_enabled: boolean | null
+          event_notifications: boolean | null
+          fund_deadline_notifications: boolean | null
+          gift_notifications: boolean | null
+          id: string
+          in_app_enabled: boolean | null
+          push_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          sms_enabled: boolean | null
+          sound_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+          vibration_enabled: boolean | null
+        }
+        Insert: {
+          ai_suggestions?: boolean | null
+          birthday_notifications?: boolean | null
+          contribution_notifications?: boolean | null
+          created_at?: string | null
+          digest_frequency?: string | null
+          digest_mode?: boolean | null
+          email_enabled?: boolean | null
+          event_notifications?: boolean | null
+          fund_deadline_notifications?: boolean | null
+          gift_notifications?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          sms_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          vibration_enabled?: boolean | null
+        }
+        Update: {
+          ai_suggestions?: boolean | null
+          birthday_notifications?: boolean | null
+          contribution_notifications?: boolean | null
+          created_at?: string | null
+          digest_frequency?: string | null
+          digest_mode?: boolean | null
+          email_enabled?: boolean | null
+          event_notifications?: boolean | null
+          fund_deadline_notifications?: boolean | null
+          gift_notifications?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          push_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          sms_enabled?: boolean | null
+          sound_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          vibration_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
+          archived_at: string | null
           created_at: string
           id: string
+          is_archived: boolean | null
           is_read: boolean | null
           message: string
           scheduled_for: string | null
@@ -1587,8 +1658,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean | null
           is_read?: boolean | null
           message: string
           scheduled_for?: string | null
@@ -1597,8 +1670,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           id?: string
+          is_archived?: boolean | null
           is_read?: boolean | null
           message?: string
           scheduled_for?: string | null
@@ -2086,6 +2161,51 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string | null
+          device_name: string | null
+          device_type: string | null
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          p256dh_key: string
+          updated_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          p256dh_key: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          p256dh_key?: string
+          updated_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limit_buckets: {
         Row: {
           bucket_type: string
@@ -2332,10 +2452,12 @@ export type Database = {
       scheduled_notifications: {
         Row: {
           action_data: Json | null
+          archived_at: string | null
           contact_id: string | null
           created_at: string
           delivery_methods: string[]
           id: string
+          is_archived: boolean | null
           message: string
           metadata: Json | null
           notification_type: string
@@ -2350,10 +2472,12 @@ export type Database = {
         }
         Insert: {
           action_data?: Json | null
+          archived_at?: string | null
           contact_id?: string | null
           created_at?: string
           delivery_methods: string[]
           id?: string
+          is_archived?: boolean | null
           message: string
           metadata?: Json | null
           notification_type: string
@@ -2368,10 +2492,12 @@ export type Database = {
         }
         Update: {
           action_data?: Json | null
+          archived_at?: string | null
           contact_id?: string | null
           created_at?: string
           delivery_methods?: string[]
           id?: string
+          is_archived?: boolean | null
           message?: string
           metadata?: Json | null
           notification_type?: string
@@ -2881,6 +3007,10 @@ export type Database = {
           p_source_type: string
           p_user_id: string
         }
+        Returns: undefined
+      }
+      archive_old_notifications: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       are_users_connected: {
