@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -15,8 +15,7 @@ import { toast } from "sonner";
 export default function NotificationSettings() {
   const navigate = useNavigate();
   const { preferences, loading, saving, updatePreferences } = useNotificationPreferences();
-  const { isSupported, permission, isSubscribed, subscribe, unsubscribe, recheckPermission } = usePushNotifications();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
 
   if (loading) {
     return (
@@ -41,12 +40,6 @@ export default function NotificationSettings() {
       await unsubscribe();
       await updatePreferences({ push_enabled: false });
     }
-  };
-
-  const handleRefreshPermission = async () => {
-    setIsRefreshing(true);
-    await recheckPermission();
-    setIsRefreshing(false);
   };
 
   return (
@@ -84,68 +77,21 @@ export default function NotificationSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-3">
                 <Smartphone className="h-5 w-5 text-muted-foreground" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Label>Notifications push</Label>
-                    {!isSupported && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        Non supporté
-                      </span>
-                    )}
-                    {isSupported && permission === 'denied' && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        Bloqué
-                      </span>
-                    )}
-                    {isSupported && permission === 'granted' && isSubscribed && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        Actif
-                      </span>
-                    )}
-                  </div>
+                <div>
+                  <Label>Notifications push</Label>
                   <p className="text-sm text-muted-foreground">
-                    {!isSupported && "Votre navigateur ne supporte pas les notifications push"}
-                    {isSupported && permission === 'denied' && "Vous avez bloqué les notifications. Allez dans les paramètres de votre navigateur pour les réactiver."}
-                    {isSupported && permission === 'default' && "Notifications en temps réel sur votre appareil"}
-                    {isSupported && permission === 'granted' && "Notifications en temps réel"}
+                    Notifications en temps réel
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {isSupported && permission === 'denied' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRefreshPermission}
-                    disabled={isRefreshing}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Vérification...' : 'Rafraîchir'}
-                  </Button>
-                )}
-                <Switch
-                  checked={preferences.push_enabled && isSubscribed}
-                  onCheckedChange={handlePushToggle}
-                  disabled={!isSupported || permission === 'denied'}
-                />
-              </div>
+              <Switch
+                checked={preferences.push_enabled && isSubscribed}
+                onCheckedChange={handlePushToggle}
+                disabled={!isSupported || permission === 'denied'}
+              />
             </div>
-            
-            {isSupported && permission === 'denied' && (
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4 text-sm">
-                <p className="font-medium text-amber-900 dark:text-amber-100 mb-2">
-                  📱 Comment débloquer les notifications dans Chrome :
-                </p>
-                <ol className="list-decimal list-inside space-y-1 text-amber-800 dark:text-amber-200 ml-2">
-                  <li>Cliquez sur l'icône 🔒 ou ⓘ dans la barre d'adresse</li>
-                  <li>Trouvez "Notifications" et sélectionnez "Autoriser"</li>
-                  <li>Revenez sur cette page (elle se rafraîchira automatiquement)</li>
-                  <li>Ou cliquez sur le bouton "Rafraîchir" ci-dessus</li>
-                </ol>
-              </div>
-            )}
 
             <Separator />
 

@@ -13,55 +13,14 @@ export const usePushNotifications = () => {
   useEffect(() => {
     checkSupport();
     checkSubscription();
-
-    // Re-check permission when user returns to the tab (in case they changed browser settings)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        recheckPermission();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, []);
 
-  const checkSupport = async () => {
-    const hasBasicSupport = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-    
-    if (!hasBasicSupport) {
-      console.log('[Push] Browser does not support push notifications');
-      setIsSupported(false);
-      return;
-    }
-
-    try {
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-      console.log('[Push] Service Worker is ready');
-      setIsSupported(true);
+  const checkSupport = () => {
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    setIsSupported(supported);
+    if (supported) {
       setPermission(Notification.permission);
-    } catch (error) {
-      console.error('[Push] Service Worker registration failed:', error);
-      setIsSupported(false);
     }
-  };
-
-  const recheckPermission = async () => {
-    console.log('[Push] Rechecking permission...');
-    const newPermission = Notification.permission;
-    setPermission(newPermission);
-    
-    if (newPermission === 'granted') {
-      // If permission was granted, check if we need to subscribe
-      await checkSubscription();
-      toast.success('Notifications autorisées ! Vous pouvez maintenant les activer.');
-    }
-    
-    return newPermission;
   };
 
   const checkSubscription = async () => {
@@ -194,6 +153,5 @@ export const usePushNotifications = () => {
     loading,
     subscribe,
     unsubscribe,
-    recheckPermission,
   };
 };
