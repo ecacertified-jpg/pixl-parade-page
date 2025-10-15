@@ -13,6 +13,19 @@ export const usePushNotifications = () => {
   useEffect(() => {
     checkSupport();
     checkSubscription();
+
+    // Re-check permission when user returns to the tab (in case they changed browser settings)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        recheckPermission();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const checkSupport = async () => {
@@ -35,6 +48,20 @@ export const usePushNotifications = () => {
       console.error('[Push] Service Worker registration failed:', error);
       setIsSupported(false);
     }
+  };
+
+  const recheckPermission = async () => {
+    console.log('[Push] Rechecking permission...');
+    const newPermission = Notification.permission;
+    setPermission(newPermission);
+    
+    if (newPermission === 'granted') {
+      // If permission was granted, check if we need to subscribe
+      await checkSubscription();
+      toast.success('Notifications autorisées ! Vous pouvez maintenant les activer.');
+    }
+    
+    return newPermission;
   };
 
   const checkSubscription = async () => {
@@ -167,5 +194,6 @@ export const usePushNotifications = () => {
     loading,
     subscribe,
     unsubscribe,
+    recheckPermission,
   };
 };
