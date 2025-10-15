@@ -15,11 +15,25 @@ export const usePushNotifications = () => {
     checkSubscription();
   }, []);
 
-  const checkSupport = () => {
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-    setIsSupported(supported);
-    if (supported) {
+  const checkSupport = async () => {
+    const hasBasicSupport = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    
+    if (!hasBasicSupport) {
+      console.log('[Push] Browser does not support push notifications');
+      setIsSupported(false);
+      return;
+    }
+
+    try {
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      console.log('[Push] Service Worker is ready');
+      setIsSupported(true);
       setPermission(Notification.permission);
+    } catch (error) {
+      console.error('[Push] Service Worker registration failed:', error);
+      setIsSupported(false);
     }
   };
 

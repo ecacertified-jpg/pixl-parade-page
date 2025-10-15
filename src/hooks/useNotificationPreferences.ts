@@ -75,7 +75,7 @@ export const useNotificationPreferences = () => {
           digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       } else {
-        // Create default preferences
+        // Create default preferences using upsert to avoid unique constraint errors
         const newPrefs = {
           ...defaultPreferences,
           user_id: user.id,
@@ -83,11 +83,18 @@ export const useNotificationPreferences = () => {
         
         const { data: created, error: createError } = await supabase
           .from('notification_preferences')
-          .insert(newPrefs)
+          .upsert(newPrefs, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
+          })
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Error creating preferences:', createError);
+          throw createError;
+        }
+        
         setPreferences({
           ...created,
           digest_frequency: (created.digest_frequency as 'daily' | 'weekly') || 'daily'
