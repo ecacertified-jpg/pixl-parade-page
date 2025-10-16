@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -15,7 +16,8 @@ import { toast } from "sonner";
 export default function NotificationSettings() {
   const navigate = useNavigate();
   const { preferences, loading, saving, updatePreferences } = useNotificationPreferences();
-  const { isSupported, permission, isSubscribed, subscribe, unsubscribe } = usePushNotifications();
+  const { isSupported, permission, isSubscribed, subscribe, unsubscribe, recheckPermission } = usePushNotifications();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (loading) {
     return (
@@ -40,6 +42,13 @@ export default function NotificationSettings() {
       await unsubscribe();
       await updatePreferences({ push_enabled: false });
     }
+  };
+
+  const handleRefreshPermission = async () => {
+    setIsRefreshing(true);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    recheckPermission();
+    setIsRefreshing(false);
   };
 
   return (
@@ -76,6 +85,31 @@ export default function NotificationSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {permission === 'denied' && (
+              <Alert>
+                <Bell className="h-4 w-4" />
+                <AlertTitle>Notifications bloquées</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p className="text-sm">Pour activer les notifications push :</p>
+                  <ol className="text-sm list-decimal list-inside space-y-1 ml-2">
+                    <li>Cliquez sur l'icône 🔒 dans la barre d'adresse</li>
+                    <li>Cliquez sur "Paramètres du site"</li>
+                    <li>Dans "Notifications", sélectionnez "Autoriser"</li>
+                    <li>Cliquez sur le bouton ci-dessous</li>
+                  </ol>
+                  <Button 
+                    onClick={handleRefreshPermission}
+                    disabled={isRefreshing}
+                    className="mt-2 w-full"
+                    size="sm"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Vérification...' : 'Rafraîchir les permissions'}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Smartphone className="h-5 w-5 text-muted-foreground" />

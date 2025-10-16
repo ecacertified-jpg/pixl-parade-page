@@ -13,13 +13,36 @@ export const usePushNotifications = () => {
   useEffect(() => {
     checkSupport();
     checkSubscription();
-  }, []);
+
+    // Listen for visibility changes to auto-refresh permission
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isSupported) {
+        recheckPermission();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isSupported]);
 
   const checkSupport = () => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
     if (supported) {
       setPermission(Notification.permission);
+    }
+  };
+
+  const recheckPermission = () => {
+    if (isSupported) {
+      const currentPermission = Notification.permission;
+      setPermission(currentPermission);
+      if (currentPermission === 'granted') {
+        toast.success('Notifications autorisées !');
+      }
     }
   };
 
@@ -153,5 +176,6 @@ export const usePushNotifications = () => {
     loading,
     subscribe,
     unsubscribe,
+    recheckPermission,
   };
 };
