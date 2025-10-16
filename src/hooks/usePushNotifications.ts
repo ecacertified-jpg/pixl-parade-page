@@ -36,13 +36,21 @@ export const usePushNotifications = () => {
     }
   };
 
-  const recheckPermission = () => {
-    if (isSupported) {
-      const currentPermission = Notification.permission;
+  const recheckPermission = async () => {
+    if (!isSupported) return;
+    
+    try {
+      const currentPermission = await Notification.requestPermission();
       setPermission(currentPermission);
+      
       if (currentPermission === 'granted') {
         toast.success('Notifications autorisées !');
+      } else if (currentPermission === 'denied') {
+        toast.error('Notifications refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
       }
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      toast.error('Erreur lors de la demande de permission');
     }
   };
 

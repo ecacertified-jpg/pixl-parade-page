@@ -46,8 +46,7 @@ export default function NotificationSettings() {
 
   const handleRefreshPermission = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    recheckPermission();
+    await recheckPermission();
     setIsRefreshing(false);
   };
 
@@ -104,7 +103,7 @@ export default function NotificationSettings() {
                     size="sm"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Vérification...' : 'Rafraîchir les permissions'}
+                    {isRefreshing ? 'Autorisation en cours...' : 'Autoriser les notifications maintenant'}
                   </Button>
                 </AlertDescription>
               </Alert>
