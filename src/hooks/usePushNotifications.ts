@@ -40,7 +40,32 @@ export const usePushNotifications = () => {
     if (!isSupported) return;
     
     try {
-      const currentPermission = await Notification.requestPermission();
+      // Demander la permission
+      let currentPermission = await Notification.requestPermission();
+      
+      // Attendre un court délai pour que le navigateur mette à jour son état
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Relire la permission directement depuis l'API
+      currentPermission = Notification.permission;
+      
+      // Si toujours denied, tester avec le service worker pour confirmer
+      if (currentPermission === 'denied') {
+        try {
+          // Tenter d'enregistrer le service worker
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+          
+          // Si on arrive ici sans erreur, la permission est en fait accordée
+          // Chrome peut avoir un décalage entre la vraie permission et Notification.permission
+          currentPermission = 'granted';
+          console.log('Permission détectée comme granted via service worker');
+        } catch (swError) {
+          // Si l'enregistrement échoue, la permission est vraiment refusée
+          console.log('Service worker registration failed, permission is really denied');
+        }
+      }
+      
       setPermission(currentPermission);
       
       if (currentPermission === 'granted') {
