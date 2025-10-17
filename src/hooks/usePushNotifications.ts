@@ -36,36 +36,41 @@ export const usePushNotifications = () => {
     }
   };
 
+  const requestPermissionWithFallback = async (): Promise<NotificationPermission> => {
+    // Demander la permission
+    let currentPermission = await Notification.requestPermission();
+    
+    // Attendre un court délai pour que le navigateur mette à jour son état
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Relire la permission directement depuis l'API
+    currentPermission = Notification.permission;
+    
+    // Si toujours denied, tester avec le service worker pour confirmer
+    if (currentPermission === 'denied') {
+      try {
+        // Tenter d'enregistrer le service worker
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+        
+        // Si on arrive ici sans erreur, la permission est en fait accordée
+        // Chrome peut avoir un décalage entre la vraie permission et Notification.permission
+        currentPermission = 'granted';
+        console.log('Permission détectée comme granted via service worker');
+      } catch (swError) {
+        // Si l'enregistrement échoue, la permission est vraiment refusée
+        console.log('Service worker registration failed, permission is really denied');
+      }
+    }
+    
+    return currentPermission;
+  };
+
   const recheckPermission = async () => {
     if (!isSupported) return;
     
     try {
-      // Demander la permission
-      let currentPermission = await Notification.requestPermission();
-      
-      // Attendre un court délai pour que le navigateur mette à jour son état
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Relire la permission directement depuis l'API
-      currentPermission = Notification.permission;
-      
-      // Si toujours denied, tester avec le service worker pour confirmer
-      if (currentPermission === 'denied') {
-        try {
-          // Tenter d'enregistrer le service worker
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          await navigator.serviceWorker.ready;
-          
-          // Si on arrive ici sans erreur, la permission est en fait accordée
-          // Chrome peut avoir un décalage entre la vraie permission et Notification.permission
-          currentPermission = 'granted';
-          console.log('Permission détectée comme granted via service worker');
-        } catch (swError) {
-          // Si l'enregistrement échoue, la permission est vraiment refusée
-          console.log('Service worker registration failed, permission is really denied');
-        }
-      }
-      
+      const currentPermission = await requestPermissionWithFallback();
       setPermission(currentPermission);
       
       if (currentPermission === 'granted') {
@@ -118,8 +123,8 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Request permission
-      const perm = await Notification.requestPermission();
+      // Request permission avec fallback pour Chrome
+      const perm = await requestPermissionWithFallback();
       setPermission(perm);
 
       if (perm !== 'granted') {
