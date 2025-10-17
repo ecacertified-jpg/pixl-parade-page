@@ -122,7 +122,7 @@ export default function NotificationSettings() {
               <Switch
                 checked={preferences.push_enabled && isSubscribed}
                 onCheckedChange={handlePushToggle}
-                disabled={!isSupported || permission === 'denied'}
+                disabled={!isSupported}
               />
             </div>
 
