@@ -36,7 +36,10 @@ export const usePushNotifications = () => {
     }
   };
 
-  const requestPermissionWithFallback = async (): Promise<NotificationPermission> => {
+  const requestPermissionWithFallback = async (): Promise<{
+    permission: NotificationPermission;
+    registration?: ServiceWorkerRegistration;
+  }> => {
     // Demander la permission
     let currentPermission = await Notification.requestPermission();
     
@@ -45,12 +48,13 @@ export const usePushNotifications = () => {
     
     // Relire la permission directement depuis l'API
     currentPermission = Notification.permission;
+    let swRegistration: ServiceWorkerRegistration | undefined;
     
     // Si toujours denied, tester avec le service worker pour confirmer
     if (currentPermission === 'denied') {
       try {
         // Tenter d'enregistrer le service worker
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        swRegistration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
         
         // Si on arrive ici sans erreur, la permission est en fait accordée
@@ -63,14 +67,14 @@ export const usePushNotifications = () => {
       }
     }
     
-    return currentPermission;
+    return { permission: currentPermission, registration: swRegistration };
   };
 
   const recheckPermission = async () => {
     if (!isSupported) return;
     
     try {
-      const currentPermission = await requestPermissionWithFallback();
+      const { permission: currentPermission } = await requestPermissionWithFallback();
       setPermission(currentPermission);
       
       if (currentPermission === 'granted') {
@@ -124,7 +128,7 @@ export const usePushNotifications = () => {
       }
 
       // Request permission avec fallback pour Chrome
-      const perm = await requestPermissionWithFallback();
+      const { permission: perm, registration: existingRegistration } = await requestPermissionWithFallback();
       setPermission(perm);
 
       if (perm !== 'granted') {
@@ -132,9 +136,15 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
+      // Utiliser le registration existant ou en créer un nouveau
+      let registration: ServiceWorkerRegistration;
+      if (existingRegistration) {
+        registration = existingRegistration;
+        console.log('Réutilisation du service worker existant');
+      } else {
+        registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+      }
 
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
