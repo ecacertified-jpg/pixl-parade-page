@@ -36,6 +36,35 @@ export const usePushNotifications = () => {
     }
   };
 
+  const waitForServiceWorkerActivation = async (registration: ServiceWorkerRegistration): Promise<void> => {
+    // Si déjà activé, retourner immédiatement
+    if (registration.active && registration.active.state === 'activated') {
+      console.log('Service worker déjà activé');
+      return;
+    }
+
+    console.log('En attente de l\'activation du service worker...');
+    
+    // Attendre que le service worker soit activé
+    return new Promise((resolve) => {
+      const checkActivation = () => {
+        if (registration.active && registration.active.state === 'activated') {
+          console.log('Service worker activé avec succès');
+          // Délai supplémentaire pour garantir la stabilité
+          setTimeout(() => resolve(), 500);
+        } else if (registration.installing) {
+          registration.installing.addEventListener('statechange', checkActivation);
+        } else if (registration.waiting) {
+          registration.waiting.addEventListener('statechange', checkActivation);
+        } else {
+          // Fallback : attendre un peu et réessayer
+          setTimeout(checkActivation, 100);
+        }
+      };
+      checkActivation();
+    });
+  };
+
   const requestPermissionWithFallback = async (): Promise<{
     permission: NotificationPermission;
     registration?: ServiceWorkerRegistration;
@@ -56,6 +85,9 @@ export const usePushNotifications = () => {
         // Tenter d'enregistrer le service worker
         swRegistration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
+        
+        // Attendre l'activation complète
+        await waitForServiceWorkerActivation(swRegistration);
         
         // Si on arrive ici sans erreur, la permission est en fait accordée
         // Chrome peut avoir un décalage entre la vraie permission et Notification.permission
@@ -127,6 +159,8 @@ export const usePushNotifications = () => {
         return false;
       }
 
+      console.log('🔔 Début de l\'abonnement aux notifications push');
+
       // Request permission avec fallback pour Chrome
       const { permission: perm, registration: existingRegistration } = await requestPermissionWithFallback();
       setPermission(perm);
@@ -140,17 +174,30 @@ export const usePushNotifications = () => {
       let registration: ServiceWorkerRegistration;
       if (existingRegistration) {
         registration = existingRegistration;
-        console.log('Réutilisation du service worker existant');
+        console.log('✅ Réutilisation du service worker existant');
       } else {
+        console.log('📝 Enregistrement d\'un nouveau service worker');
         registration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
+        
+        // Attendre l'activation complète
+        await waitForServiceWorkerActivation(registration);
       }
+
+      // Vérifier que pushManager est disponible
+      if (!registration.pushManager) {
+        throw new Error('PushManager non disponible sur ce service worker');
+      }
+
+      console.log('📱 Tentative d\'abonnement au pushManager...');
 
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
+
+      console.log('✅ Abonnement push réussi', subscription);
 
       // Save subscription to database
       const { data: { user } } = await supabase.auth.getUser();
@@ -178,11 +225,11 @@ export const usePushNotifications = () => {
 
       if (error) throw error;
 
-      setIsSubscribed(true);
+    setIsSubscribed(true);
       toast.success('Notifications push activées !');
       return true;
     } catch (error) {
-      console.error('Error subscribing to push:', error);
+      console.error('❌ Error subscribing to push:', error);
       toast.error('Erreur lors de l\'activation des notifications push');
       return false;
     }
