@@ -12,54 +12,57 @@ import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-
 export default function NotificationSettings() {
   const navigate = useNavigate();
-  const { preferences, loading, saving, updatePreferences } = useNotificationPreferences();
-  const { isSupported, permission, isSubscribed, subscribe, unsubscribe, recheckPermission } = usePushNotifications();
+  const {
+    preferences,
+    loading,
+    saving,
+    updatePreferences
+  } = useNotificationPreferences();
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
+    subscribe,
+    unsubscribe,
+    recheckPermission
+  } = usePushNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background p-4">
+    return <div className="min-h-screen bg-background p-4">
         <div className="max-w-2xl mx-auto space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-64 w-full" />
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!preferences) return null;
-
   const handlePushToggle = async (enabled: boolean) => {
     if (enabled) {
       const success = await subscribe();
       if (success) {
-        await updatePreferences({ push_enabled: true });
+        await updatePreferences({
+          push_enabled: true
+        });
       }
     } else {
       await unsubscribe();
-      await updatePreferences({ push_enabled: false });
+      await updatePreferences({
+        push_enabled: false
+      });
     }
   };
-
   const handleRefreshPermission = async () => {
     setIsRefreshing(true);
     await recheckPermission();
     setIsRefreshing(false);
   };
-
-  return (
-    <div className="min-h-screen bg-background pb-20">
+  return <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
         <div className="flex items-center gap-3 p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -84,8 +87,7 @@ export default function NotificationSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {permission === 'denied' && (
-              <Alert>
+            {permission === 'denied' && <Alert>
                 <Bell className="h-4 w-4" />
                 <AlertTitle>Notifications bloquées</AlertTitle>
                 <AlertDescription className="space-y-2">
@@ -96,18 +98,12 @@ export default function NotificationSettings() {
                     <li>Dans "Notifications", sélectionnez "Autoriser"</li>
                     <li>Cliquez sur le bouton ci-dessous</li>
                   </ol>
-                  <Button 
-                    onClick={handleRefreshPermission}
-                    disabled={isRefreshing}
-                    className="mt-2 w-full"
-                    size="sm"
-                  >
+                  <Button onClick={handleRefreshPermission} disabled={isRefreshing} size="sm" className="mt-2 w-full text-sm">
                     <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                     {isRefreshing ? 'Autorisation en cours...' : 'Autoriser les notifications maintenant'}
                   </Button>
                 </AlertDescription>
-              </Alert>
-            )}
+              </Alert>}
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -119,11 +115,7 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.push_enabled && isSubscribed}
-                onCheckedChange={handlePushToggle}
-                disabled={!isSupported}
-              />
+              <Switch checked={preferences.push_enabled && isSubscribed} onCheckedChange={handlePushToggle} disabled={!isSupported} />
             </div>
 
             <Separator />
@@ -138,10 +130,9 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.email_enabled}
-                onCheckedChange={(checked) => updatePreferences({ email_enabled: checked })}
-              />
+              <Switch checked={preferences.email_enabled} onCheckedChange={checked => updatePreferences({
+              email_enabled: checked
+            })} />
             </div>
 
             <Separator />
@@ -156,10 +147,9 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.sms_enabled}
-                onCheckedChange={(checked) => updatePreferences({ sms_enabled: checked })}
-              />
+              <Switch checked={preferences.sms_enabled} onCheckedChange={checked => updatePreferences({
+              sms_enabled: checked
+            })} />
             </div>
 
             <Separator />
@@ -174,10 +164,9 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.in_app_enabled}
-                onCheckedChange={(checked) => updatePreferences({ in_app_enabled: checked })}
-              />
+              <Switch checked={preferences.in_app_enabled} onCheckedChange={checked => updatePreferences({
+              in_app_enabled: checked
+            })} />
             </div>
           </CardContent>
         </Card>
@@ -191,28 +180,42 @@ export default function NotificationSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {[
-              { key: 'birthday_notifications', label: 'Anniversaires', description: 'Rappels d\'anniversaires' },
-              { key: 'event_notifications', label: 'Événements', description: 'Rappels d\'événements importants' },
-              { key: 'contribution_notifications', label: 'Contributions', description: 'Nouvelles contributions aux cagnottes' },
-              { key: 'gift_notifications', label: 'Cadeaux', description: 'Promesses et réceptions de cadeaux' },
-              { key: 'fund_deadline_notifications', label: 'Échéances', description: 'Alertes d\'échéance de cagnottes' },
-              { key: 'ai_suggestions', label: 'Suggestions IA', description: 'Recommandations intelligentes' },
-            ].map((item, index) => (
-              <div key={item.key}>
+            {[{
+            key: 'birthday_notifications',
+            label: 'Anniversaires',
+            description: 'Rappels d\'anniversaires'
+          }, {
+            key: 'event_notifications',
+            label: 'Événements',
+            description: 'Rappels d\'événements importants'
+          }, {
+            key: 'contribution_notifications',
+            label: 'Contributions',
+            description: 'Nouvelles contributions aux cagnottes'
+          }, {
+            key: 'gift_notifications',
+            label: 'Cadeaux',
+            description: 'Promesses et réceptions de cadeaux'
+          }, {
+            key: 'fund_deadline_notifications',
+            label: 'Échéances',
+            description: 'Alertes d\'échéance de cagnottes'
+          }, {
+            key: 'ai_suggestions',
+            label: 'Suggestions IA',
+            description: 'Recommandations intelligentes'
+          }].map((item, index) => <div key={item.key}>
                 {index > 0 && <Separator />}
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>{item.label}</Label>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  <Switch
-                    checked={preferences[item.key as keyof typeof preferences] as boolean}
-                    onCheckedChange={(checked) => updatePreferences({ [item.key]: checked })}
-                  />
+                  <Switch checked={preferences[item.key as keyof typeof preferences] as boolean} onCheckedChange={checked => updatePreferences({
+                [item.key]: checked
+              })} />
                 </div>
-              </div>
-            ))}
+              </div>)}
           </CardContent>
         </Card>
 
@@ -235,23 +238,18 @@ export default function NotificationSettings() {
                   Recevoir un résumé groupé
                 </p>
               </div>
-              <Switch
-                checked={preferences.digest_mode}
-                onCheckedChange={(checked) => updatePreferences({ digest_mode: checked })}
-              />
+              <Switch checked={preferences.digest_mode} onCheckedChange={checked => updatePreferences({
+              digest_mode: checked
+            })} />
             </div>
 
-            {preferences.digest_mode && (
-              <>
+            {preferences.digest_mode && <>
                 <Separator />
                 <div className="space-y-2">
                   <Label>Fréquence du résumé</Label>
-                  <Select
-                    value={preferences.digest_frequency}
-                    onValueChange={(value: 'daily' | 'weekly') => 
-                      updatePreferences({ digest_frequency: value })
-                    }
-                  >
+                  <Select value={preferences.digest_frequency} onValueChange={(value: 'daily' | 'weekly') => updatePreferences({
+                digest_frequency: value
+              })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -261,8 +259,7 @@ export default function NotificationSettings() {
                     </SelectContent>
                   </Select>
                 </div>
-              </>
-            )}
+              </>}
           </CardContent>
         </Card>
 
@@ -285,10 +282,9 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.sound_enabled}
-                onCheckedChange={(checked) => updatePreferences({ sound_enabled: checked })}
-              />
+              <Switch checked={preferences.sound_enabled} onCheckedChange={checked => updatePreferences({
+              sound_enabled: checked
+            })} />
             </div>
 
             <Separator />
@@ -303,14 +299,12 @@ export default function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={preferences.vibration_enabled}
-                onCheckedChange={(checked) => updatePreferences({ vibration_enabled: checked })}
-              />
+              <Switch checked={preferences.vibration_enabled} onCheckedChange={checked => updatePreferences({
+              vibration_enabled: checked
+            })} />
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
