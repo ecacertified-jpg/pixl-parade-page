@@ -175,6 +175,8 @@ export const usePushNotifications = () => {
       if (existingRegistration) {
         registration = existingRegistration;
         console.log('✅ Réutilisation du service worker existant');
+        // Attendre l'activation même pour les registrations existants
+        await waitForServiceWorkerActivation(registration);
       } else {
         console.log('📝 Enregistrement d\'un nouveau service worker');
         registration = await navigator.serviceWorker.register('/sw.js');
