@@ -28,6 +28,27 @@ export const usePushNotifications = () => {
     };
   }, [isSupported]);
 
+  // Détecter les changements de permission en temps réel
+  useEffect(() => {
+    if (!isSupported) return;
+    
+    const checkPermissionInterval = setInterval(() => {
+      const currentPerm = Notification.permission;
+      if (currentPerm !== permission) {
+        console.log('🔄 Permission changée détectée:', permission, '→', currentPerm);
+        setPermission(currentPerm);
+        
+        if (currentPerm === 'granted') {
+          toast.success('Notifications autorisées ! Vous pouvez maintenant activer le toggle.');
+        } else if (currentPerm === 'denied') {
+          toast.error('Notifications bloquées dans le navigateur');
+        }
+      }
+    }, 1000);
+    
+    return () => clearInterval(checkPermissionInterval);
+  }, [isSupported, permission]);
+
   const checkSupport = () => {
     const isSecureContext = window.isSecureContext;
     const isLocalhost = window.location.hostname === 'localhost' || 
@@ -150,6 +171,50 @@ export const usePushNotifications = () => {
     return outputArray;
   };
 
+  const diagnosePermissionState = async () => {
+    console.log('🔍 DIAGNOSTIC COMPLET DE L\'ÉTAT DES PERMISSIONS');
+    console.log('====================================================');
+    console.log('📍 URL actuelle:', window.location.href);
+    console.log('🔒 Protocole:', window.location.protocol);
+    console.log('🌐 Hostname:', window.location.hostname);
+    console.log('✅ Secure Context:', window.isSecureContext);
+    console.log('🔔 Notification.permission:', Notification.permission);
+    console.log('📱 Service Worker supporté:', 'serviceWorker' in navigator);
+    console.log('🔊 PushManager supporté:', 'PushManager' in window);
+    console.log('🔔 Notification API supportée:', 'Notification' in window);
+    
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log('📋 Service Workers enregistrés:', registrations.length);
+      registrations.forEach((reg, index) => {
+        console.log(`  SW ${index + 1}:`, reg.scope, 'État:', reg.active?.state);
+      });
+    }
+    
+    console.log('====================================================');
+  };
+
+  const resetServiceWorkers = async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log('🧹 Nettoyage de', registrations.length, 'service worker(s)');
+      
+      for (const registration of registrations) {
+        await registration.unregister();
+        console.log('✅ Service worker désenregistré:', registration.scope);
+      }
+      
+      toast.success('Service workers réinitialisés. Veuillez rafraîchir la page.');
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error('❌ Erreur lors du nettoyage:', error);
+      toast.error('Erreur lors de la réinitialisation');
+    }
+  };
+
   const subscribe = async () => {
     try {
       if (!isSupported) {
@@ -157,6 +222,7 @@ export const usePushNotifications = () => {
         return false;
       }
 
+      await diagnosePermissionState();
       console.log('🔔 Début de l\'abonnement aux notifications push');
 
       // Request permission avec fallback pour Chrome
@@ -284,5 +350,6 @@ export const usePushNotifications = () => {
     subscribe,
     unsubscribe,
     recheckPermission,
+    resetServiceWorkers,
   };
 };

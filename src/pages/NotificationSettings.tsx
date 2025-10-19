@@ -26,7 +26,8 @@ export default function NotificationSettings() {
     isSubscribed,
     subscribe,
     unsubscribe,
-    recheckPermission
+    recheckPermission,
+    resetServiceWorkers
   } = usePushNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
   if (loading) {
@@ -91,16 +92,40 @@ export default function NotificationSettings() {
                 <Bell className="h-4 w-4" />
                 <AlertTitle>Notifications bloquées</AlertTitle>
                 <AlertDescription className="space-y-2">
+                  <p className="text-sm">État actuel : <strong className="text-destructive">{permission}</strong></p>
                   <p className="text-sm">Pour activer les notifications push :</p>
                   <ol className="text-sm list-decimal list-inside space-y-1 ml-2">
                     <li>Cliquez sur l'icône 🔒 dans la barre d'adresse</li>
                     <li>Cliquez sur "Paramètres du site"</li>
                     <li>Dans "Notifications", sélectionnez "Autoriser"</li>
-                    <li>Cliquez sur le bouton ci-dessous</li>
+                    <li>Rafraîchissez complètement la page (Ctrl+Shift+R)</li>
                   </ol>
-                  <Button onClick={handleRefreshPermission} disabled={isRefreshing} size="sm" className="mt-2 w-full text-sm">
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Autorisation en cours...' : 'Autoriser les notifications maintenant'}
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      onClick={handleRefreshPermission} 
+                      disabled={isRefreshing} 
+                      size="sm" 
+                      className="flex-1 text-sm"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      {isRefreshing ? 'Vérification...' : 'Vérifier maintenant'}
+                    </Button>
+                    <Button 
+                      onClick={() => window.location.reload()} 
+                      size="sm" 
+                      variant="outline"
+                      className="flex-1 text-sm"
+                    >
+                      Rafraîchir la page
+                    </Button>
+                  </div>
+                  <Button 
+                    onClick={resetServiceWorkers} 
+                    size="sm" 
+                    variant="destructive"
+                    className="w-full mt-2 text-sm"
+                  >
+                    🔧 Mode Debug : Réinitialiser complètement
                   </Button>
                 </AlertDescription>
               </Alert>}
