@@ -29,10 +29,27 @@ export const usePushNotifications = () => {
   }, [isSupported]);
 
   const checkSupport = () => {
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    const isSecureContext = window.isSecureContext;
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1';
+    
+    if (!isSecureContext && !isLocalhost) {
+      console.error('❌ Les notifications push nécessitent HTTPS');
+      toast.error('Les notifications nécessitent une connexion sécurisée (HTTPS)');
+      setIsSupported(false);
+      return;
+    }
+    
+    const supported = 'serviceWorker' in navigator && 
+                      'PushManager' in window && 
+                      'Notification' in window;
     setIsSupported(supported);
+    
     if (supported) {
       setPermission(Notification.permission);
+      console.log('✅ Notifications supportées, permission actuelle:', Notification.permission);
+    } else {
+      console.error('❌ Notifications non supportées par ce navigateur');
     }
   };
 
@@ -69,8 +86,15 @@ export const usePushNotifications = () => {
     permission: NotificationPermission;
     registration?: ServiceWorkerRegistration;
   }> => {
+    console.log('🔔 État actuel de la permission:', Notification.permission);
+    console.log('🌐 Protocole:', window.location.protocol);
+    console.log('🌐 Hostname:', window.location.hostname);
+    console.log('🔒 Secure Context:', window.isSecureContext);
+    
     // Demander la permission
     const permission = await Notification.requestPermission();
+    
+    console.log('✅ Permission après demande:', permission);
     
     // Retourner la vraie permission, sans fallback trompeur
     return { permission, registration: undefined };
@@ -140,7 +164,19 @@ export const usePushNotifications = () => {
       setPermission(perm);
 
       if (perm !== 'granted') {
-        toast.error('Permission refusée pour les notifications');
+        if (perm === 'denied') {
+          toast.error(
+            'Notifications bloquées. Cliquez sur le cadenas 🔒 à gauche de l\'URL, puis autorisez les notifications.',
+            { duration: 8000 }
+          );
+        } else if (perm === 'default') {
+          toast.error(
+            'Veuillez accepter la demande de notification dans la popup de votre navigateur.',
+            { duration: 5000 }
+          );
+        } else {
+          toast.error('Permission refusée pour les notifications');
+        }
         return false;
       }
 
