@@ -9,12 +9,14 @@ import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { useCart } from "@/hooks/useCart";
 import logoJV from "@/assets/logo-jv.png";
 
 const Home = () => {
   // Force rebuild - Home component 
   const navigate = useNavigate();
   const { isActiveBusinessAccount } = useBusinessAccount();
+  const { itemCount } = useCart();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
@@ -31,9 +33,11 @@ const Home = () => {
           <div className="flex items-center gap-4">
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
-              <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                2
-              </div>
+              {itemCount > 0 && (
+                <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {itemCount}
+                </div>
+              )}
             </div>
             <NotificationPanel />
             {isActiveBusinessAccount ? <BusinessProfileDropdown /> : <ProfileDropdown />}

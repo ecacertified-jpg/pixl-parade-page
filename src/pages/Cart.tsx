@@ -45,6 +45,7 @@ export default function Cart() {
     } : item);
     setCartItems(updatedItems);
     localStorage.setItem('cart', JSON.stringify(updatedItems));
+    window.dispatchEvent(new Event('cartUpdated'));
     if (newQuantity === 0) {
       toast({
         title: "Article supprimé",
