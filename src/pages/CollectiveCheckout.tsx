@@ -204,6 +204,7 @@ export default function CollectiveCheckout() {
       // Clear cart items
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutItems');
+      window.dispatchEvent(new Event('cartUpdated'));
       
       toast({
         title: "Cotisation créée !",

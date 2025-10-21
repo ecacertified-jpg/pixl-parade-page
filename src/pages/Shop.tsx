@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { OrderModal } from "@/components/OrderModal";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/hooks/useCart";
 export default function Shop() {
   const navigate = useNavigate();
+  const { itemCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
   const [products, setProducts] = useState<Array<{
@@ -107,11 +109,13 @@ export default function Shop() {
               <span className="text-sm text-muted-foreground">🏷️</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="relative">
+              <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/cart')}>
                 <ShoppingCart className="h-4 w-4" />
-                <Badge className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center p-0">
-                  2
-                </Badge>
+                {itemCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center p-0">
+                    {itemCount}
+                  </Badge>
+                )}
               </Button>
             </div>
           </div>

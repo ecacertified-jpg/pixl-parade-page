@@ -92,6 +92,7 @@ export function OrderModal({
     
     const updatedCart = [...existingCart, newItem];
     localStorage.setItem('cart', JSON.stringify(updatedCart));
+    window.dispatchEvent(new Event('cartUpdated'));
     
     toast({
       title: forSelf ? "Ajouté au panier" : "Cadeau ajouté au panier",

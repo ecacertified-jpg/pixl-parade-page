@@ -133,6 +133,7 @@ export function CollaborativeGiftModal({
 
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
       localStorage.setItem('cart', JSON.stringify([...existingCart, cartItem]));
+      window.dispatchEvent(new Event('cartUpdated'));
 
       toast({
         title: "Article ajouté ! 🎉",

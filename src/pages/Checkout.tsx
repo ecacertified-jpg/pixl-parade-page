@@ -322,6 +322,7 @@ export default function Checkout() {
       // Clear cart and checkout data
       localStorage.removeItem('cart');
       localStorage.removeItem('checkoutItems');
+      window.dispatchEvent(new Event('cartUpdated'));
 
       // Check if user has a business account and redirect accordingly
       const { data: businessAccount } = await supabase
