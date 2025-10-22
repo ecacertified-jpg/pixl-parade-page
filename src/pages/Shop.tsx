@@ -95,7 +95,34 @@ export default function Shop() {
     count: 6,
     active: false
   }];
-  const locations = ["Tous les lieux", "Abidjan - Cocody", "Abidjan - Marcory", "Abidjan - Yopougon", "Abidjan - Adjamé", "Bouaké", "Yamoussoukro", "San-Pédro"];
+  const locations = [
+    "Tous les lieux",
+    "Abobo-Anonkoua Kouté",
+    "Abobo Baoulé",
+    "Abobo-Gare",
+    "Abobo-N'Dotré",
+    "Abobo-PK 18 Extension",
+    "Abobo-Sagbé",
+    "Adjamé",
+    "Anyama",
+    "Attécoubé",
+    "Bingerville",
+    "Grand-Bassam",
+    "Koumassi",
+    "Koumassi-Aklomiabla",
+    "Koumassi Campement",
+    "Koumassi-Sicogi",
+    "Marcory",
+    "Plateau",
+    "Port-Bouët",
+    "Songon",
+    "Treichville",
+    "Yopougon-Attié (Sicogi, Andokoi, La Gare)",
+    "Yopougon-Banco",
+    "Yopougon-Kouté et Hôpital",
+    "Yopougon-Niangon",
+    "Yopougon-Zone Industrielle"
+  ];
   return <div className="min-h-screen bg-gradient-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
