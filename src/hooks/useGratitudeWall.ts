@@ -70,7 +70,7 @@ export const useGratitudeWall = (limit: number = 10) => {
   const addReaction = async (messageId: string) => {
     try {
       await supabase.rpc('increment_gratitude_reaction', {
-        p_gratitude_id: messageId
+        p_message_id: messageId
       });
       
       // Update local state

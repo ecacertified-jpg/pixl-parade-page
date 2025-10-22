@@ -659,6 +659,48 @@ export type Database = {
           },
         ]
       }
+      community_scores: {
+        Row: {
+          badge_level: string
+          created_at: string
+          funds_created_count: number
+          gifts_given_count: number
+          id: string
+          last_updated: string
+          posts_count: number
+          rank_position: number | null
+          reactions_received: number
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          badge_level?: string
+          created_at?: string
+          funds_created_count?: number
+          gifts_given_count?: number
+          id?: string
+          last_updated?: string
+          posts_count?: number
+          rank_position?: number | null
+          reactions_received?: number
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          badge_level?: string
+          created_at?: string
+          funds_created_count?: number
+          gifts_given_count?: number
+          id?: string
+          last_updated?: string
+          posts_count?: number
+          rank_position?: number | null
+          reactions_received?: number
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_events: {
         Row: {
           contact_id: string
@@ -3283,7 +3325,7 @@ export type Database = {
         Returns: boolean
       }
       increment_gratitude_reaction: {
-        Args: { p_gratitude_id: string }
+        Args: { p_message_id: string }
         Returns: undefined
       }
       is_beneficiary_of_surprise: {
@@ -3352,6 +3394,21 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      update_community_rankings: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_community_score: {
+        Args: {
+          p_funds_delta?: number
+          p_gifts_delta?: number
+          p_points_delta?: number
+          p_posts_delta?: number
+          p_reactions_delta?: number
+          p_user_id: string
+        }
+        Returns: undefined
       }
       update_reciprocity_score: {
         Args: { user_uuid: string }
