@@ -67,7 +67,7 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           revoked_at: string | null
           session_token: string
           user_agent: string | null
@@ -77,7 +77,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           revoked_at?: string | null
           session_token: string
           user_agent?: string | null
@@ -87,7 +87,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           revoked_at?: string | null
           session_token?: string
           user_agent?: string | null
@@ -112,7 +112,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
-          last_login_ip: unknown | null
+          last_login_ip: unknown
           locked_until: string | null
           mfa_enabled: boolean | null
           mfa_secret_encrypted: string | null
@@ -130,7 +130,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          last_login_ip?: unknown | null
+          last_login_ip?: unknown
           locked_until?: string | null
           mfa_enabled?: boolean | null
           mfa_secret_encrypted?: string | null
@@ -148,7 +148,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
-          last_login_ip?: unknown | null
+          last_login_ip?: unknown
           locked_until?: string | null
           mfa_enabled?: boolean | null
           mfa_secret_encrypted?: string | null
@@ -2100,13 +2100,16 @@ export type Database = {
           business_id: string
           business_owner_id: string | null
           category_id: string | null
+          category_name: string | null
           created_at: string
           currency: string | null
           description: string | null
+          experience_type: string | null
           id: string
           image_url: string | null
           images: Json | null
           is_active: boolean | null
+          is_experience: boolean | null
           name: string
           price: number
           stock_quantity: number | null
@@ -2116,13 +2119,16 @@ export type Database = {
           business_id: string
           business_owner_id?: string | null
           category_id?: string | null
+          category_name?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          experience_type?: string | null
           id?: string
           image_url?: string | null
           images?: Json | null
           is_active?: boolean | null
+          is_experience?: boolean | null
           name: string
           price: number
           stock_quantity?: number | null
@@ -2132,13 +2138,16 @@ export type Database = {
           business_id?: string
           business_owner_id?: string | null
           category_id?: string | null
+          category_name?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          experience_type?: string | null
           id?: string
           image_url?: string | null
           images?: Json | null
           is_active?: boolean | null
+          is_experience?: boolean | null
           name?: string
           price?: number
           stock_quantity?: number | null
@@ -2569,7 +2578,7 @@ export type Database = {
           event_data: Json | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           severity: string
           user_agent: string | null
           user_id: string | null
@@ -2580,7 +2589,7 @@ export type Database = {
           event_data?: Json | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           severity?: string
           user_agent?: string | null
           user_id?: string | null
@@ -2591,7 +2600,7 @@ export type Database = {
           event_data?: Json | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           severity?: string
           user_agent?: string | null
           user_id?: string | null
@@ -2698,7 +2707,7 @@ export type Database = {
           expires_at: string
           fund_id: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_verified: boolean
           user_id: string
           verification_attempts: number | null
@@ -2715,7 +2724,7 @@ export type Database = {
           expires_at?: string
           fund_id: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_verified?: boolean
           user_id: string
           verification_attempts?: number | null
@@ -2732,7 +2741,7 @@ export type Database = {
           expires_at?: string
           fund_id?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_verified?: boolean
           user_id?: string
           verification_attempts?: number | null
@@ -3051,10 +3060,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      archive_old_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      archive_old_notifications: { Args: never; Returns: undefined }
       are_users_connected: {
         Args: { p_user_a: string; p_user_b: string }
         Returns: boolean
@@ -3067,10 +3073,7 @@ export type Database = {
         Args: { p_activity_type: string; p_amount?: number }
         Returns: number
       }
-      can_contribute_to_fund: {
-        Args: { fund_uuid: string }
-        Returns: boolean
-      }
+      can_contribute_to_fund: { Args: { fund_uuid: string }; Returns: boolean }
       can_see_fund_for_friend: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
@@ -3088,19 +3091,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      create_business_collective_fund: {
-        Args:
-          | {
-              p_auto_notifications?: boolean
-              p_beneficiary_user_id: string
-              p_business_id: string
-              p_currency?: string
-              p_description?: string
-              p_product_id: string
-              p_target_amount: number
-              p_title?: string
-            }
-          | {
+      create_business_collective_fund:
+        | {
+            Args: {
               p_beneficiary_user_id: string
               p_business_id: string
               p_currency?: string
@@ -3110,8 +3103,21 @@ export type Database = {
               p_target_amount?: number
               p_title: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_auto_notifications?: boolean
+              p_beneficiary_user_id: string
+              p_business_id: string
+              p_currency?: string
+              p_description?: string
+              p_product_id: string
+              p_target_amount: number
+              p_title?: string
+            }
+            Returns: string
+          }
       create_fund_activity: {
         Args: {
           p_activity_type: string
@@ -3143,10 +3149,7 @@ export type Database = {
         }
         Returns: string
       }
-      current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      current_user_role: { Args: never; Returns: string }
       decrypt_instagram_token: {
         Args: { p_encrypted_token: string }
         Returns: string
@@ -3172,10 +3175,7 @@ export type Database = {
           received_count: number
         }[]
       }
-      detect_suspicious_behavior: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      detect_suspicious_behavior: { Args: never; Returns: number }
       detect_upcoming_birthdays_without_fund: {
         Args: { p_user_id: string }
         Returns: {
@@ -3186,10 +3186,7 @@ export type Database = {
           existing_contributors: number
         }[]
       }
-      encrypt_instagram_token: {
-        Args: { p_token: string }
-        Returns: string
-      }
+      encrypt_instagram_token: { Args: { p_token: string }; Returns: string }
       encrypt_sensitive_data: {
         Args: { data: string; key_id?: string }
         Returns: string
@@ -3224,10 +3221,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      generate_event_analytics: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      generate_event_analytics: { Args: never; Returns: number }
       get_business_account: {
         Args: { p_user_id: string }
         Returns: {
@@ -3288,7 +3282,7 @@ export type Database = {
         }[]
       }
       get_surprises_to_reveal: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           beneficiary_contact_id: string
           creator_id: string
@@ -3336,10 +3330,7 @@ export type Database = {
         Args: { p_beneficiary_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_super_admin: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_surprise_contributor: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
@@ -3364,10 +3355,7 @@ export type Database = {
         Args: { is_anonymous?: boolean; name: string }
         Returns: string
       }
-      process_expired_funds: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      process_expired_funds: { Args: never; Returns: undefined }
       request_contact_relationship: {
         Args: { p_message?: string; p_target_user_id: string }
         Returns: string
@@ -3395,10 +3383,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      update_community_rankings: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_community_rankings: { Args: never; Returns: undefined }
       update_community_score: {
         Args: {
           p_funds_delta?: number
