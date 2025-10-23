@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,27 +74,17 @@ export default function Shop() {
       console.error('Error:', error);
     }
   };
-  const categories = [{
-    name: "Bijoux",
-    count: 12,
-    active: true
-  }, {
-    name: "Parfums",
-    count: 8,
-    active: false
-  }, {
-    name: "Tech",
-    count: 15,
-    active: false
-  }, {
-    name: "Mode",
-    count: 22,
-    active: false
-  }, {
-    name: "Artisanat",
-    count: 6,
-    active: false
-  }];
+  const categories = [
+    { name: "Tous", icon: Gift, count: products.length, active: true },
+    { name: "Bijoux", icon: Gem, count: 12, active: false },
+    { name: "Parfums", icon: Sparkles, count: 8, active: false },
+    { name: "Tech", icon: Smartphone, count: 15, active: false },
+    { name: "Mode", icon: Shirt, count: 22, active: false },
+    { name: "Artisanat", icon: Hammer, count: 6, active: false },
+    { name: "Gastronomie", icon: UtensilsCrossed, count: 18, active: false },
+    { name: "Décoration", icon: Home, count: 9, active: false },
+    { name: "Bien-être", icon: HeartHandshake, count: 14, active: false }
+  ];
   const locations = [
     "Tous les lieux",
     "Abobo-Anonkoua Kouté",
@@ -181,10 +171,21 @@ export default function Shop() {
 
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-          {categories.map((category, index) => <Button key={index} variant={category.active ? "default" : "outline"} size="sm" className="whitespace-nowrap">
-              {category.name} ({category.count})
-            </Button>)}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+          {categories.map((category, index) => {
+            const Icon = category.icon;
+            return (
+              <Button 
+                key={index} 
+                variant={category.active ? "default" : "outline"} 
+                size="sm" 
+                className="whitespace-nowrap flex items-center gap-2"
+              >
+                <Icon className="h-4 w-4" />
+                {category.name} ({category.count})
+              </Button>
+            );
+          })}
         </div>
 
         {/* Business CTA */}

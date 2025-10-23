@@ -6,14 +6,22 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { CreatePostDrawer } from "@/components/CreatePostDrawer";
+import { ValueModal } from "@/components/ValueModal";
 
 export function WhatDoYouWantCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [showValueModal, setShowValueModal] = useState(false);
   
   const handleOfferGift = () => {
-    navigate("/shop");
+    const dontShow = localStorage.getItem('jdv_value_modal_dont_show');
+    
+    if (dontShow === 'true') {
+      navigate("/shop");
+    } else {
+      setShowValueModal(true);
+    }
   };
   
   const handleCelebrate = () => {
@@ -49,5 +57,6 @@ export function WhatDoYouWantCard() {
       </div>
 
       <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
+      <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
     </Card>;
 }

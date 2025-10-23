@@ -16,15 +16,17 @@ import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { ValueModal } from "@/components/ValueModal";
 import logoJV from "@/assets/logo-jv.png";
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isActiveBusinessAccount } = useBusinessAccount();
+  const [showValueModal, setShowValueModal] = useState(false);
 
   const handleGiftAction = () => {
     toast({
@@ -38,7 +40,13 @@ const Index = () => {
   };
 
   const handleOfferGift = () => {
-    navigate("/shop");
+    const dontShow = localStorage.getItem('jdv_value_modal_dont_show');
+    
+    if (dontShow === 'true') {
+      navigate("/shop");
+    } else {
+      setShowValueModal(true);
+    }
   };
 
   return <div className="min-h-screen bg-gradient-background">
@@ -111,6 +119,9 @@ const Index = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
+
+      {/* Value Modal */}
+      <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
     </div>;
 };
 export default memo(Index);

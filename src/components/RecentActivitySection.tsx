@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { CreatePostDrawer } from "@/components/CreatePostDrawer";
+import { ValueModal } from "@/components/ValueModal";
 
 export function RecentActivitySection() {
   return (
@@ -29,7 +30,18 @@ export function BottomNavigation() {
   const navigate = useNavigate();
   const [giftNotifications, setGiftNotifications] = useState(0);
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [showValueModal, setShowValueModal] = useState(false);
   const { user } = useAuth();
+
+  const handleShopClick = () => {
+    const dontShow = localStorage.getItem('jdv_value_modal_dont_show');
+    
+    if (dontShow === 'true') {
+      navigate("/shop");
+    } else {
+      setShowValueModal(true);
+    }
+  };
 
   useEffect(() => {
     const loadUnreadGifts = async () => {
@@ -74,7 +86,7 @@ export function BottomNavigation() {
   
   const navItems = [
     { icon: <Home className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
-    { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, path: "/shop" },
+    { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, onClick: handleShopClick },
     { 
       icon: <Plus className="h-4 w-4" />, 
       label: "", 
@@ -129,6 +141,7 @@ export function BottomNavigation() {
       </div>
 
       <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
+      <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
     </>
   );
 }
