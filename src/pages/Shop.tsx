@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderModal } from "@/components/OrderModal";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
@@ -13,6 +14,8 @@ export default function Shop() {
   const { itemCount } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
+  const [selectedCategory, setSelectedCategory] = useState("Tous");
+  const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [products, setProducts] = useState<Array<{
     id: string | number;
     name: string;
@@ -26,6 +29,8 @@ export default function Shop() {
     rating: number;
     reviews: number;
     inStock: boolean;
+    isExperience?: boolean;
+    categoryName?: string;
   }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -41,18 +46,21 @@ export default function Shop() {
     // Load products from database
     loadProducts();
   }, []);
+
   const loadProducts = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('products').select('*').eq('is_active', true).order('created_at', {
-        ascending: false
-      });
+      let query = supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true);
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
       if (error) {
         console.error('Error loading products:', error);
         return;
       }
+
       if (data && data.length > 0) {
         const formattedProducts = data.map(product => ({
           id: product.id,
@@ -61,12 +69,14 @@ export default function Shop() {
           price: product.price,
           currency: product.currency || "F",
           image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-          category: "Produit",
+          category: product.category_name || "Produit",
           vendor: "Boutique Élégance",
           distance: "2.3 km",
           rating: 4.8,
           reviews: 45,
-          inStock: (product.stock_quantity || 0) > 0
+          inStock: (product.stock_quantity || 0) > 0,
+          isExperience: product.is_experience || false,
+          categoryName: product.category_name
         }));
         setProducts(formattedProducts);
       }
@@ -74,17 +84,53 @@ export default function Shop() {
       console.error('Error:', error);
     }
   };
-  const categories = [
-    { name: "Tous", icon: Gift, count: products.length, active: true },
-    { name: "Bijoux", icon: Gem, count: 12, active: false },
-    { name: "Parfums", icon: Sparkles, count: 8, active: false },
-    { name: "Tech", icon: Smartphone, count: 15, active: false },
-    { name: "Mode", icon: Shirt, count: 22, active: false },
-    { name: "Artisanat", icon: Hammer, count: 6, active: false },
-    { name: "Gastronomie", icon: UtensilsCrossed, count: 18, active: false },
-    { name: "Décoration", icon: Home, count: 9, active: false },
-    { name: "Bien-être", icon: HeartHandshake, count: 14, active: false }
+
+  const getCategoryCount = (categoryName: string, isExperience: boolean) => {
+    if (categoryName === "Tous") {
+      return products.filter(p => (p.isExperience || false) === isExperience).length;
+    }
+    return products.filter(p => 
+      p.categoryName === categoryName && 
+      (p.isExperience || false) === isExperience
+    ).length;
+  };
+
+  const filteredProducts = products.filter(product => {
+    const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
+    const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesCategory && matchesSearch;
+  });
+  const productCategories = [
+    { name: "Tous", icon: Gift },
+    { name: "Bijoux & Accessoires", icon: Gem },
+    { name: "Parfums & Beauté", icon: Sparkles },
+    { name: "Tech & Électronique", icon: Smartphone },
+    { name: "Mode & Vêtements", icon: Shirt },
+    { name: "Artisanat Ivoirien", icon: Hammer },
+    { name: "Gastronomie & Délices", icon: UtensilsCrossed },
+    { name: "Décoration & Maison", icon: Home },
+    { name: "Loisirs & Divertissement", icon: Gamepad2 },
+    { name: "Bébé & Enfants", icon: Baby },
+    { name: "Affaires & Bureau", icon: Briefcase }
   ];
+
+  const experienceCategories = [
+    { name: "Tous", icon: Gift },
+    { name: "Restaurants & Gastronomie", icon: UtensilsCrossed },
+    { name: "Bien-être & Spa", icon: Sparkles },
+    { name: "Séjours & Hébergement", icon: Hotel },
+    { name: "Événements & Célébrations", icon: PartyPopper },
+    { name: "Formation & Développement", icon: GraduationCap },
+    { name: "Expériences VIP", icon: Star },
+    { name: "Souvenirs & Photographie", icon: Camera },
+    { name: "Culture & Loisirs", icon: Palette },
+    { name: "Mariage & Fiançailles", icon: Heart },
+    { name: "Occasions Spéciales", icon: Gift }
+  ];
+
+  const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
   const locations = [
     "Tous les lieux",
     "Abobo-Anonkoua Kouté",
@@ -170,23 +216,58 @@ export default function Shop() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
-        {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-          {categories.map((category, index) => {
-            const Icon = category.icon;
-            return (
-              <Button 
-                key={index} 
-                variant={category.active ? "default" : "outline"} 
-                size="sm" 
-                className="whitespace-nowrap flex items-center gap-2"
-              >
-                <Icon className="h-4 w-4" />
-                {category.name} ({category.count})
-              </Button>
-            );
-          })}
-        </div>
+        {/* Tabs for Products vs Experiences */}
+        <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
+          setActiveTab(value as "products" | "experiences");
+          setSelectedCategory("Tous");
+        }}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="products">🛍️ Produits</TabsTrigger>
+            <TabsTrigger value="experiences">✨ Expériences</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products" className="mt-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {productCategories.map((category, index) => {
+                const Icon = category.icon;
+                const count = getCategoryCount(category.name, false);
+                return (
+                  <Button 
+                    key={index} 
+                    variant={selectedCategory === category.name ? "default" : "outline"} 
+                    size="sm" 
+                    className="whitespace-nowrap flex items-center gap-2"
+                    onClick={() => setSelectedCategory(category.name)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {category.name} ({count})
+                  </Button>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="experiences" className="mt-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {experienceCategories.map((category, index) => {
+                const Icon = category.icon;
+                const count = getCategoryCount(category.name, true);
+                return (
+                  <Button 
+                    key={index} 
+                    variant={selectedCategory === category.name ? "default" : "outline"} 
+                    size="sm" 
+                    className="whitespace-nowrap flex items-center gap-2"
+                    onClick={() => setSelectedCategory(category.name)}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {category.name} ({count})
+                  </Button>
+                );
+              })}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Business CTA */}
         <Card className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30">
@@ -203,42 +284,60 @@ export default function Shop() {
 
         {/* Products Grid */}
         <div className="space-y-4">
-          {products.map(product => <Card key={product.id} className="overflow-hidden">
-              <div className="relative">
-                <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-                <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
-                  <Heart className="h-4 w-4" />
-                </Button>
+          {filteredProducts.length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
+            </Card>
+          ) : (
+            filteredProducts.map(product => (
+              <Card key={product.id} className="overflow-hidden">
+                <div className="relative">
+                  <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+                  {product.isExperience && (
+                    <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
+                      ✨ EXPÉRIENCE
+                    </Badge>
+                  )}
+                  <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                </div>
                 
-              </div>
-              
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xl font-bold text-primary">{product.price.toLocaleString()} {product.currency}</span>
-                  <Badge variant={product.inStock ? "default" : "secondary"}>
-                    {product.inStock ? "En stock" : "Épuisé"}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{product.rating}</span>
-                    <span className="text-sm text-muted-foreground">({product.reviews})</span>
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xl font-bold text-primary">
+                      {product.isExperience && "À partir de "}
+                      {product.price.toLocaleString()} {product.currency}
+                    </span>
+                    <Badge variant={product.inStock ? "default" : "secondary"}>
+                      {product.inStock ? (product.isExperience ? "Disponible" : "En stock") : "Épuisé"}
+                    </Badge>
                   </div>
-                  <span className="text-sm text-muted-foreground">• {product.vendor}</span>
-                </div>
 
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" onClick={() => {
-              setSelectedProduct(product);
-              setIsOrderModalOpen(true);
-            }}>
-                  Commander
-                </Button>
-              </div>
-            </Card>)}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm font-medium">{product.rating}</span>
+                      <span className="text-sm text-muted-foreground">({product.reviews})</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">• {product.vendor}</span>
+                  </div>
+
+                  <Button 
+                    className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" 
+                    onClick={() => {
+                      setSelectedProduct(product);
+                      setIsOrderModalOpen(true);
+                    }}
+                  >
+                    {product.isExperience ? "Réserver" : "Commander"}
+                  </Button>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
         <div className="pb-20" />
