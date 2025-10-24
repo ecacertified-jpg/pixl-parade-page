@@ -6,6 +6,7 @@ import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { WhatDoYouWantCard } from "@/components/WhatDoYouWantCard";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
+import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
@@ -53,7 +54,10 @@ const Home = () => {
         {/* Section 2: Public Funds Carousel */}
         <PublicFundsCarousel />
 
-        {/* Section 3: News Feed */}
+        {/* Section 3: Featured Experiences Carousel */}
+        <FeaturedExperiencesCarousel />
+
+        {/* Section 4: News Feed */}
         <NewsFeed />
 
         {/* Bottom padding for navigation */}
