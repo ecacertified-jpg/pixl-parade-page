@@ -12,7 +12,8 @@ import { useCart } from "@/hooks/useCart";
 export default function Shop() {
   const navigate = useNavigate();
   const { itemCount } = useCart();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [productSearchQuery, setProductSearchQuery] = useState("");
+  const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
@@ -98,8 +99,9 @@ export default function Shop() {
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
     const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
+    const matchesSearch = product.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(currentSearchQuery.toLowerCase());
     return matchesTab && matchesCategory && matchesSearch;
   });
   const productCategories = [
@@ -183,9 +185,6 @@ export default function Shop() {
             </div>
           </div>
           
-          {/* Search Bar */}
-          
-          
           {/* Conseil */}
           <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
             <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -206,12 +205,6 @@ export default function Shop() {
             </select>
             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           </div>
-
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Rechercher des produits..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
-          </div>
         </div>
       </header>
 
@@ -227,6 +220,17 @@ export default function Shop() {
           </TabsList>
 
           <TabsContent value="products" className="mt-4">
+            {/* Search Bar for Products */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Rechercher des produits..." 
+                value={productSearchQuery} 
+                onChange={e => setProductSearchQuery(e.target.value)} 
+                className="pl-10" 
+              />
+            </div>
+            
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {productCategories.map((category, index) => {
                 const Icon = category.icon;
@@ -248,6 +252,17 @@ export default function Shop() {
           </TabsContent>
 
           <TabsContent value="experiences" className="mt-4">
+            {/* Search Bar for Experiences */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Rechercher des expériences..." 
+                value={experienceSearchQuery} 
+                onChange={e => setExperienceSearchQuery(e.target.value)} 
+                className="pl-10" 
+              />
+            </div>
+            
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {experienceCategories.map((category, index) => {
                 const Icon = category.icon;
