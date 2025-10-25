@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, MapPin, Bell, User, ChevronDown, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderModal } from "@/components/OrderModal";
+import LocationSelector from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 export default function Shop() {
@@ -133,34 +134,6 @@ export default function Shop() {
   ];
 
   const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
-  const locations = [
-    "Tous les lieux",
-    "Abobo-Anonkoua Kouté",
-    "Abobo Baoulé",
-    "Abobo-Gare",
-    "Abobo-N'Dotré",
-    "Abobo-PK 18 Extension",
-    "Abobo-Sagbé",
-    "Adjamé",
-    "Anyama",
-    "Attécoubé",
-    "Bingerville",
-    "Grand-Bassam",
-    "Koumassi",
-    "Koumassi-Aklomiabla",
-    "Koumassi Campement",
-    "Koumassi-Sicogi",
-    "Marcory",
-    "Plateau",
-    "Port-Bouët",
-    "Songon",
-    "Treichville",
-    "Yopougon-Attié (Sicogi, Andokoi, La Gare)",
-    "Yopougon-Banco",
-    "Yopougon-Kouté et Hôpital",
-    "Yopougon-Niangon",
-    "Yopougon-Zone Industrielle"
-  ];
   return <div className="min-h-screen bg-gradient-background">
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
@@ -196,15 +169,12 @@ export default function Shop() {
           </div>
 
           {/* Location Selector */}
-          <div className="relative mb-4">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)} className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring appearance-none">
-              {locations.map(location => <option key={location} value={location}>
-                  {location}
-                </option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          </div>
+          <LocationSelector 
+            value={selectedLocation} 
+            onChange={setSelectedLocation}
+            label=""
+            placeholder="Sélectionner un lieu de livraison"
+          />
         </div>
       </header>
 
