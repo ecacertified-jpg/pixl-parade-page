@@ -14,7 +14,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useBusinessProducts } from "@/hooks/useBusinessProducts";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
+import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
@@ -87,6 +89,7 @@ export default function BusinessDashboard() {
     funds: businessFunds,
     loading: businessFundsLoading
   } = useBusinessCollectiveFunds();
+  
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -160,6 +163,10 @@ export default function BusinessDashboard() {
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  
+  // Load real analytics
+  const { stats, loading: analyticsLoading } = useBusinessAnalytics(businessAccount?.id);
+  
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
     loadBusinessAccount();
@@ -576,15 +583,6 @@ export default function BusinessDashboard() {
     });
   };
 
-  // Mock products data and stats
-  const stats = {
-    totalSales: 850000,
-    monthlyOrders: 42,
-    activeProducts: businessProducts.length,
-    rating: 4.8,
-    commission: 127500,
-    netRevenue: 722500
-  };
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
@@ -1195,67 +1193,194 @@ export default function BusinessDashboard() {
           <TabsContent value="analytics" className="mt-6">
             <h2 className="text-xl font-semibold mb-6">Analytics & Statistiques</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Statistiques des ventes par produit */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Ventes par produit</h3>
-                <div className="space-y-3">
-                {businessProducts.map(product => <div key={product.id} className="flex items-center justify-between">
-                    <span className="text-sm">{product.name}</span>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">-- ventes</div>
-                      <div className="text-xs text-muted-foreground">
-                        {product.price.toLocaleString()} F (prix)
-                      </div>
-                      </div>
-                    </div>)}
-                </div>
-              </Card>
-
-              {/* Répartition des modes de livraison */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Modes de récupération</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm">Retrait sur place</span>
-                    </div>
-                    <span className="text-sm font-medium">65%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-green-500" />
-                      <span className="text-sm">Livraison</span>
-                    </div>
-                    <span className="text-sm font-medium">35%</span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Performance mensuelle */}
-            <Card className="p-4">
-              <h3 className="font-medium mb-4">Performance mensuelle</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">42</div>
-                  <div className="text-sm text-muted-foreground">Commandes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">850K</div>
-                  <div className="text-sm text-muted-foreground">Revenus (F)</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">4.8</div>
-                  <div className="text-sm text-muted-foreground">Note moyenne</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">97%</div>
-                  <div className="text-sm text-muted-foreground">Satisfaction</div>
-                </div>
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            </Card>
+            ) : (
+              <>
+                {/* Métriques clés */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <Card className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats.averageOrderValue.toLocaleString()} F
+                      </div>
+                      <div className="text-sm text-muted-foreground">Panier moyen</div>
+                    </div>
+                  </Card>
+                  
+                  <Card className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {stats.conversionRate.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-muted-foreground">Taux de conversion</div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {stats.monthlyOrders}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Commandes ce mois</div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {stats.activeProducts}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Produits actifs</div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Graphique des ventes sur 30 jours */}
+                <Card className="p-4 mb-6">
+                  <h3 className="font-medium mb-4">Évolution des ventes (30 derniers jours)</h3>
+                  {stats.dailySales.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={stats.dailySales}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="date" 
+                          tickFormatter={(value) => new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                        />
+                        <YAxis />
+                        <Tooltip 
+                          formatter={(value: any) => `${Number(value).toLocaleString()} F`}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString('fr-FR')}
+                        />
+                        <Legend />
+                        <Line 
+                          type="monotone" 
+                          dataKey="sales" 
+                          stroke="#10b981" 
+                          strokeWidth={2}
+                          name="Ventes (F)"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="orders" 
+                          stroke="#3b82f6" 
+                          strokeWidth={2}
+                          name="Commandes"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Aucune donnée de vente disponible
+                    </div>
+                  )}
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Top 5 produits */}
+                  <Card className="p-4">
+                    <h3 className="font-medium mb-4">Top 5 Produits les plus vendus</h3>
+                    {stats.topProducts.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={stats.topProducts} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            width={100}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <Tooltip formatter={(value: any) => `${Number(value).toLocaleString()} F`} />
+                          <Bar dataKey="revenue" fill="#8b5cf6" name="Revenus" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        Aucune vente de produit enregistrée
+                      </div>
+                    )}
+                  </Card>
+
+                  {/* Répartition par catégorie */}
+                  <Card className="p-4">
+                    <h3 className="font-medium mb-4">Ventes par catégorie</h3>
+                    {stats.salesByCategory.length > 0 ? (
+                      <>
+                        <ResponsiveContainer width="100%" height={250}>
+                          <RechartsPC>
+                            <Pie
+                              data={stats.salesByCategory}
+                              dataKey="revenue"
+                              nameKey="category"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                              label={(entry) => `${entry.category.substring(0, 15)}${entry.category.length > 15 ? '...' : ''}`}
+                            >
+                              {stats.salesByCategory.map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][index % 6]} 
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: any) => `${Number(value).toLocaleString()} F`} />
+                          </RechartsPC>
+                        </ResponsiveContainer>
+                        <div className="mt-4 space-y-2">
+                          {stats.salesByCategory.slice(0, 5).map((cat, index) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ 
+                                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5] 
+                                  }}
+                                />
+                                <span>{cat.category}</span>
+                              </div>
+                              <span className="font-medium">{cat.revenue.toLocaleString()} F</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        Aucune catégorie avec des ventes
+                      </div>
+                    )}
+                  </Card>
+                </div>
+
+                {/* Détails des top produits */}
+                {stats.topProducts.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-medium mb-4">Détails des produits les plus performants</h3>
+                    <div className="space-y-3">
+                      {stats.topProducts.map((product, index) => (
+                        <div key={product.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                              {index + 1}
+                            </div>
+                            <span className="text-sm font-medium">{product.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{product.sales} ventes</div>
+                            <div className="text-xs text-muted-foreground">
+                              {product.revenue.toLocaleString()} F
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </>
+            )}
           </TabsContent>
 
         </Tabs>
