@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -24,21 +25,41 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
     name: "",
     description: "",
     price: "",
-    category_id: "",
+    category_name: "",
     stock_quantity: "",
-    business_id: ""
+    business_id: "",
+    is_experience: false
   });
 
   const [businesses, setBusinesses] = useState<Array<{ id: string; business_name: string }>>([]);
 
-  const categories = [
-    { id: "bijoux", name: "Bijoux" },
-    { id: "parfums", name: "Parfums" },
-    { id: "tech", name: "Tech" },
-    { id: "mode", name: "Mode" },
-    { id: "artisanat", name: "Artisanat" },
-    { id: "gourmet", name: "Gourmet" }
+  const productCategories = [
+    "Bijoux & Accessoires",
+    "Parfums & Beauté",
+    "Tech & Électronique",
+    "Mode & Vêtements",
+    "Artisanat Ivoirien",
+    "Gastronomie & Délices",
+    "Décoration & Maison",
+    "Loisirs & Divertissement",
+    "Bébé & Enfants",
+    "Affaires & Bureau"
   ];
+
+  const experienceCategories = [
+    "Restaurants & Gastronomie",
+    "Bien-être & Spa",
+    "Séjours & Hébergement",
+    "Événements & Célébrations",
+    "Formation & Développement",
+    "Expériences VIP",
+    "Souvenirs & Photographie",
+    "Culture & Loisirs",
+    "Mariage & Fiançailles",
+    "Occasions Spéciales"
+  ];
+
+  const allCategories = formData.is_experience ? experienceCategories : productCategories;
 
   // Load businesses when modal opens
   useEffect(() => {
@@ -70,7 +91,11 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'is_experience') {
+      setFormData(prev => ({ ...prev, [field]: value === 'true', category_name: "" }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -79,8 +104,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       return;
     }
 
-    if (!formData.name || !formData.price || !formData.business_id) {
-      toast.error("Veuillez remplir tous les champs obligatoires (nom, prix et business)");
+    if (!formData.name || !formData.price || !formData.business_id || !formData.category_name) {
+      toast.error("Veuillez remplir tous les champs obligatoires (nom, prix, business et catégorie)");
       return;
     }
 
@@ -128,6 +153,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           image_url: imageUrl,
           business_owner_id: user.id,
           business_id: formData.business_id,
+          category_name: formData.category_name,
+          is_experience: formData.is_experience,
           is_active: true
         })
         .select()
@@ -146,9 +173,10 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         name: "",
         description: "",
         price: "",
-        category_id: "",
+        category_name: "",
         stock_quantity: "",
-        business_id: ""
+        business_id: "",
+        is_experience: false
       });
       setSelectedFiles(null);
       
@@ -198,15 +226,28 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           </div>
 
           <div>
+            <div className="flex items-center space-x-2 mb-3">
+              <Checkbox
+                id="is_experience"
+                checked={formData.is_experience}
+                onCheckedChange={(checked) => handleInputChange('is_experience', checked.toString())}
+              />
+              <Label htmlFor="is_experience" className="cursor-pointer">
+                C'est une expérience (service, réservation)
+              </Label>
+            </div>
+          </div>
+
+          <div>
             <Label htmlFor="category">Catégorie *</Label>
-            <Select value={formData.category_id} onValueChange={(value) => handleInputChange('category_id', value)}>
+            <Select value={formData.category_name} onValueChange={(value) => handleInputChange('category_name', value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Sélectionner une catégorie" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {allCategories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category}
                   </SelectItem>
                 ))}
               </SelectContent>
