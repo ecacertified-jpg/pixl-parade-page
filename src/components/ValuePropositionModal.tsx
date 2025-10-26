@@ -51,7 +51,7 @@ export function ValuePropositionModal({
             <img 
               src={valueImage} 
               alt="La valeur de votre contribution - Cliquez pour contribuer" 
-              className="w-full max-h-[60vh] object-contain"
+              className="w-full max-h-[60vh] object-cover"
             />
           </div>
 
@@ -59,7 +59,7 @@ export function ValuePropositionModal({
           <div className="p-6 space-y-4 bg-white/10 backdrop-blur-sm">
             {/* Title */}
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">
                 Offrir à {beneficiaryName}
               </h3>
               <p className="text-white/90 text-sm">
