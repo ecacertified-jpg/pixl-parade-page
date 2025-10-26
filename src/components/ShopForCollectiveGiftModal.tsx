@@ -179,7 +179,7 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             />
           </div>
 
-          <div className="px-4 py-6">
+          <div className="max-w-md mx-auto px-4 py-6">
             {/* Tabs for Products vs Experiences */}
             <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
               setActiveTab(value as "products" | "experiences");
