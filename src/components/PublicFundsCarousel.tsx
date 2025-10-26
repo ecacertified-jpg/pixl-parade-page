@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import { ValuePropositionModal } from "@/components/ValuePropositionModal";
+import { ContributionModal } from "@/components/ContributionModal";
 
 // Fonction pour calculer les jours avant l'anniversaire
 const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
@@ -40,16 +43,42 @@ export function PublicFundsCarousel() {
   const navigate = useNavigate();
   const {
     funds,
-    loading
+    loading,
+    refreshFunds
   } = useCollectiveFunds();
+
+  const [showValueModal, setShowValueModal] = useState(false);
+  const [showContributionModal, setShowContributionModal] = useState(false);
+  const [selectedFund, setSelectedFund] = useState<{
+    id: string;
+    title: string;
+    beneficiaryName: string;
+    targetAmount: number;
+    currentAmount: number;
+    currency: string;
+  } | null>(null);
 
   // Filter and prioritize funds: friends' public funds first, then others, all active
   const publicFunds = funds.filter(fund => fund.status === 'active' && (fund.isPublic || fund.priority <= 3)).sort((a, b) => (a.priority || 4) - (b.priority || 4)).slice(0, 5);
+  
   const handleAddFund = () => {
     navigate("/dashboard");
   };
-  const handleContribute = (fundId: string) => {
-    navigate(`/collective-checkout?fundId=${fundId}`);
+  
+  const handleContribute = (fund: any) => {
+    setSelectedFund({
+      id: fund.id,
+      title: fund.productName || fund.title,
+      beneficiaryName: fund.beneficiaryName,
+      targetAmount: fund.targetAmount,
+      currentAmount: fund.currentAmount,
+      currency: fund.currency
+    });
+    setShowValueModal(true);
+  };
+
+  const handleOpenContributionModal = () => {
+    setShowContributionModal(true);
   };
   if (loading) {
     return <div>
@@ -144,7 +173,7 @@ export function PublicFundsCarousel() {
                 
                 {/* Centered Button */}
                 <div className="flex justify-center pt-1">
-                  <Button onClick={() => handleContribute(fund.id)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-xs font-medium rounded-full border-0 px-[24px] py-0 mx-[10px] my-[13px]">
+                  <Button onClick={() => handleContribute(fund)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-xs font-medium rounded-full border-0 px-[24px] py-0 mx-[10px] my-[13px]">
                     <Gift className="h-3 w-3 mr-1" />
                     Contribuer
                   </Button>
@@ -153,5 +182,34 @@ export function PublicFundsCarousel() {
             </Card>;
       })}
       </div>
+
+      {/* Value Proposition Modal */}
+      {selectedFund && (
+        <ValuePropositionModal
+          isOpen={showValueModal}
+          onClose={() => setShowValueModal(false)}
+          onContinue={handleOpenContributionModal}
+          fundTitle={selectedFund.title}
+          beneficiaryName={selectedFund.beneficiaryName}
+        />
+      )}
+
+      {/* Contribution Modal */}
+      {selectedFund && (
+        <ContributionModal
+          isOpen={showContributionModal}
+          onClose={() => setShowContributionModal(false)}
+          fundId={selectedFund.id}
+          fundTitle={selectedFund.title}
+          targetAmount={selectedFund.targetAmount}
+          currentAmount={selectedFund.currentAmount}
+          currency={selectedFund.currency}
+          isFromPublicFund={true}
+          onContributionSuccess={() => {
+            refreshFunds();
+            setShowContributionModal(false);
+          }}
+        />
+      )}
     </div>;
 }

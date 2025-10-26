@@ -18,6 +18,7 @@ interface ContributionModalProps {
   targetAmount: number;
   currentAmount: number;
   currency: string;
+  isFromPublicFund?: boolean;
   onContributionSuccess?: () => void;
 }
 
@@ -29,6 +30,7 @@ export function ContributionModal({
   targetAmount, 
   currentAmount, 
   currency,
+  isFromPublicFund = false,
   onContributionSuccess 
 }: ContributionModalProps) {
   const [amount, setAmount] = useState("");
@@ -367,16 +369,18 @@ export function ContributionModal({
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="anonymous"
-                checked={isAnonymous}
-                onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
-              />
-              <Label htmlFor="anonymous" className="text-sm">
-                Contribution anonyme
-              </Label>
-            </div>
+            {!isFromPublicFund && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="anonymous"
+                  checked={isAnonymous}
+                  onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
+                />
+                <Label htmlFor="anonymous" className="text-sm">
+                  Contribution anonyme
+                </Label>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
