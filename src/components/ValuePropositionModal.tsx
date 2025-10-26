@@ -20,7 +20,7 @@ export function ValuePropositionModal({
 }: ValuePropositionModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl p-0 gap-0 bg-gradient-to-br from-purple-600 to-pink-500 border-0 overflow-hidden">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 bg-gradient-to-br from-purple-600 to-pink-500 border-0">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -32,12 +32,26 @@ export function ValuePropositionModal({
 
         {/* Content */}
         <div className="relative">
-          {/* Image avec les 4 valeurs */}
-          <div className="relative w-full">
+          {/* Image cliquable avec les 4 valeurs */}
+          <div 
+            className="relative w-full cursor-pointer hover:opacity-95 transition-opacity"
+            onClick={() => {
+              onClose();
+              onContinue();
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                onClose();
+                onContinue();
+              }
+            }}
+          >
             <img 
               src={valueImage} 
-              alt="La valeur de votre contribution" 
-              className="w-full h-auto object-contain"
+              alt="La valeur de votre contribution - Cliquez pour contribuer" 
+              className="w-full max-h-[60vh] object-contain"
             />
           </div>
 
