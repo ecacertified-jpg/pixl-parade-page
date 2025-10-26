@@ -459,7 +459,7 @@ export default function BusinessDashboard() {
       const {
         data,
         error
-      } = await supabase.from('businesses').select('*').eq('user_id', user.id).order('created_at', {
+      } = await supabase.from('business_accounts').select('*').eq('user_id', user.id).order('created_at', {
         ascending: false
       });
       if (error) throw error;

@@ -158,7 +158,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
       if (editingBusiness) {
         // Update existing business
         const result = await supabase
-          .from('businesses')
+          .from('business_accounts')
           .update({
             business_name: formData.business_name,
             business_type: formData.business_type,
@@ -182,7 +182,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
       } else {
         // Create new business
         const result = await supabase
-          .from('businesses')
+          .from('business_accounts')
           .insert({
             user_id: user.id,
             business_name: formData.business_name,
