@@ -120,8 +120,14 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       
       console.log(`✅ ${data?.length || 0} business chargé(s):`, data?.map(b => b.business_name));
       setBusinesses(data || []);
+      
+      if (data?.length === 0) {
+        console.log('⚠️ Aucun business actif trouvé. Créez-en un dans Config > Business');
+        toast.info('Aucun business trouvé. Créez d\'abord un business dans la section Config.');
+      }
     } catch (error) {
       console.error('💥 Exception lors du chargement des business:', error);
+      toast.error('Erreur lors du chargement des business');
     }
   };
 
