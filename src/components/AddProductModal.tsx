@@ -61,11 +61,30 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
 
   const allCategories = formData.is_experience ? experienceCategories : productCategories;
 
-  // Load businesses when modal opens
+  // Load businesses when modal opens and subscribe to realtime changes
   useEffect(() => {
-    if (isOpen && user) {
-      loadBusinesses();
-    }
+    if (!isOpen || !user) return;
+    
+    // Load initial data
+    loadBusinesses();
+    
+    // Subscribe to realtime changes for business_accounts
+    const channel = supabase
+      .channel('business-accounts-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'business_accounts',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('✅ Nouveau business détecté:', payload.new);
+        loadBusinesses(); // Recharger la liste automatiquement
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isOpen, user]);
 
   const loadBusinesses = async () => {
@@ -141,6 +160,39 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         imageUrl = urlData.publicUrl;
       }
 
+      // Get business address to extract location
+      const { data: businessData } = await supabase
+        .from('business_accounts')
+        .select('address')
+        .eq('id', formData.business_id)
+        .single();
+      
+      // Extract location name from address (e.g., "Cocody" from "Cocody, Abidjan")
+      let locationName = null;
+      if (businessData?.address) {
+        locationName = businessData.address.split(',')[0].trim();
+        
+        // Check if location exists in business_locations
+        const { data: existingLocation } = await supabase
+          .from('business_locations')
+          .select('id')
+          .eq('name', locationName)
+          .maybeSingle();
+        
+        // Add location if it doesn't exist
+        if (!existingLocation && locationName) {
+          await supabase
+            .from('business_locations')
+            .insert({
+              name: locationName,
+              created_by: user.id,
+              is_public: true
+            });
+          
+          console.log(`✅ Nouveau lieu ajouté: ${locationName}`);
+        }
+      }
+
       // Create product in database
       const { data, error } = await supabase
         .from('products')
@@ -155,7 +207,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           business_id: formData.business_id,
           category_name: formData.category_name,
           is_experience: formData.is_experience,
-          is_active: true
+          is_active: true,
+          location_name: locationName
         })
         .select()
         .single();

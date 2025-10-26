@@ -35,6 +35,7 @@ export default function Shop() {
     inStock: boolean;
     isExperience?: boolean;
     categoryName?: string;
+    locationName?: string;
   }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -83,7 +84,8 @@ export default function Shop() {
           reviews: 45,
           inStock: (product.stock_quantity || 0) > 0,
           isExperience: product.is_experience || false,
-          categoryName: product.category_name
+          categoryName: product.category_name,
+          locationName: product.location_name || "Non spécifié"
         }));
         setProducts(formattedProducts);
       }
@@ -105,10 +107,13 @@ export default function Shop() {
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
     const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
+    const matchesLocation = selectedLocation === "Tous les lieux" || product.locationName === selectedLocation;
+    
     const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
     const matchesSearch = product.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
                          product.description.toLowerCase().includes(currentSearchQuery.toLowerCase());
-    return matchesTab && matchesCategory && matchesSearch;
+    
+    return matchesTab && matchesCategory && matchesLocation && matchesSearch;
   });
   const productCategories = [
     { name: "Tous", icon: Gift },

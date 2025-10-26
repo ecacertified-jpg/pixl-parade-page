@@ -2158,6 +2158,7 @@ export type Database = {
           images: Json | null
           is_active: boolean | null
           is_experience: boolean | null
+          location_name: string | null
           name: string
           price: number
           stock_quantity: number | null
@@ -2177,6 +2178,7 @@ export type Database = {
           images?: Json | null
           is_active?: boolean | null
           is_experience?: boolean | null
+          location_name?: string | null
           name: string
           price: number
           stock_quantity?: number | null
@@ -2196,6 +2198,7 @@ export type Database = {
           images?: Json | null
           is_active?: boolean | null
           is_experience?: boolean | null
+          location_name?: string | null
           name?: string
           price?: number
           stock_quantity?: number | null
