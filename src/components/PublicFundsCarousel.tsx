@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
+import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 
 // Fonction pour calculer les jours avant l'anniversaire
 const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
@@ -49,6 +50,8 @@ export function PublicFundsCarousel() {
 
   const [showValueModal, setShowValueModal] = useState(false);
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showValueModalForNewFund, setShowValueModalForNewFund] = useState(false);
+  const [showShopForCollectiveGift, setShowShopForCollectiveGift] = useState(false);
   const [selectedFund, setSelectedFund] = useState<{
     id: string;
     title: string;
@@ -62,7 +65,12 @@ export function PublicFundsCarousel() {
   const publicFunds = funds.filter(fund => fund.status === 'active' && (fund.isPublic || fund.priority <= 3)).sort((a, b) => (a.priority || 4) - (b.priority || 4)).slice(0, 5);
   
   const handleAddFund = () => {
-    navigate("/dashboard");
+    setShowValueModalForNewFund(true);
+  };
+
+  const handleOpenShopForCollectiveGift = () => {
+    setShowValueModalForNewFund(false);
+    setShowShopForCollectiveGift(true);
   };
   
   const handleContribute = (fund: any) => {
@@ -211,5 +219,21 @@ export function PublicFundsCarousel() {
           }}
         />
       )}
+
+      {/* Value Proposition Modal for Creating New Fund */}
+      <ValuePropositionModal
+        isOpen={showValueModalForNewFund}
+        onClose={() => setShowValueModalForNewFund(false)}
+        onContinue={handleOpenShopForCollectiveGift}
+        fundTitle="Créer une cagnotte"
+        beneficiaryName=""
+        isForCreatingFund={true}
+      />
+
+      {/* Shop Modal for Collective Gift */}
+      <ShopForCollectiveGiftModal
+        isOpen={showShopForCollectiveGift}
+        onClose={() => setShowShopForCollectiveGift(false)}
+      />
     </div>;
 }

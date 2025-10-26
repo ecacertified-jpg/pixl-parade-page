@@ -2,6 +2,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import valueImage from "@/assets/value-proposition-contribution.jpg";
+import collectiveGiftImage from "@/assets/value-proposition-collective-gift.jpg";
 
 interface ValuePropositionModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ValuePropositionModalProps {
   onContinue: () => void;
   fundTitle: string;
   beneficiaryName: string;
+  isForCreatingFund?: boolean;
 }
 
 export function ValuePropositionModal({ 
@@ -16,8 +18,10 @@ export function ValuePropositionModal({
   onClose, 
   onContinue,
   fundTitle,
-  beneficiaryName
+  beneficiaryName,
+  isForCreatingFund = false
 }: ValuePropositionModalProps) {
+  const imageToDisplay = isForCreatingFund ? collectiveGiftImage : valueImage;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 bg-gradient-to-br from-purple-600 to-pink-500 border-0">
@@ -49,7 +53,7 @@ export function ValuePropositionModal({
             }}
           >
             <img 
-              src={valueImage} 
+              src={imageToDisplay} 
               alt="La valeur de votre contribution - Cliquez pour contribuer" 
               className="w-full max-h-[60vh] object-contain"
             />
@@ -59,12 +63,20 @@ export function ValuePropositionModal({
           <div className="p-6 space-y-4 bg-white/10 backdrop-blur-sm">
             {/* Title */}
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                Offrir à {beneficiaryName}
-              </h3>
-              <p className="text-white/90 text-sm">
-                {fundTitle}
-              </p>
+              {isForCreatingFund ? (
+                <h3 className="text-xl font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">
+                  Créer de la joie ensemble
+                </h3>
+              ) : (
+                <>
+                  <h3 className="text-xl font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis">
+                    Offrir à {beneficiaryName}
+                  </h3>
+                  <p className="text-white/90 text-sm">
+                    {fundTitle}
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Buttons */}
