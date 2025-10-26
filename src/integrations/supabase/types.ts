@@ -1146,9 +1146,90 @@ export type Database = {
           },
         ]
       }
+      gift_thanks: {
+        Row: {
+          collective_fund_id: string | null
+          created_at: string | null
+          emoji: string | null
+          gift_id: string | null
+          id: string
+          is_group_message: boolean | null
+          message: string
+          sender_id: string
+        }
+        Insert: {
+          collective_fund_id?: string | null
+          created_at?: string | null
+          emoji?: string | null
+          gift_id?: string | null
+          id?: string
+          is_group_message?: boolean | null
+          message: string
+          sender_id: string
+        }
+        Update: {
+          collective_fund_id?: string | null
+          created_at?: string | null
+          emoji?: string | null
+          gift_id?: string | null
+          id?: string
+          is_group_message?: boolean | null
+          message?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_thanks_collective_fund_id_fkey"
+            columns: ["collective_fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_thanks_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_thanks_recipients: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          recipient_id: string
+          thank_message_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id: string
+          thank_message_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id?: string
+          thank_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_thanks_recipients_thank_message_id_fkey"
+            columns: ["thank_message_id"]
+            isOneToOne: false
+            referencedRelation: "gift_thanks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gifts: {
         Row: {
           amount: number | null
+          collective_fund_id: string | null
           created_at: string
           currency: string | null
           gift_date: string
@@ -1164,6 +1245,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          collective_fund_id?: string | null
           created_at?: string
           currency?: string | null
           gift_date: string
@@ -1179,6 +1261,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          collective_fund_id?: string | null
           created_at?: string
           currency?: string | null
           gift_date?: string
@@ -1193,6 +1276,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "gifts_collective_fund_id_fkey"
+            columns: ["collective_fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gifts_giver_id_fkey"
             columns: ["giver_id"]

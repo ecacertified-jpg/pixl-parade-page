@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo } from "react";
-import { ArrowLeft, Gift, Filter, User, Heart } from "lucide-react";
+import { ArrowLeft, Gift, Filter, User, Heart, MessageCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ThanksModal } from "@/components/ThanksModal";
+import { toast } from "sonner";
+
+interface Contributor {
+  id: string;
+  name: string;
+  amount: number;
+}
 
 interface GiftItem {
   id: string;
@@ -22,6 +30,9 @@ interface GiftItem {
   receiver_name: string | null;
   giver_name?: string;
   receiver_display_name?: string;
+  collective_fund_id?: string | null;
+  has_thanked?: boolean;
+  is_new?: boolean;
 }
 
 function Gifts() {
@@ -30,6 +41,9 @@ function Gifts() {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'received' | 'given'>('all');
+  const [showThanksModal, setShowThanksModal] = useState(false);
+  const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null);
+  const [contributors, setContributors] = useState<Contributor[]>([]);
 
   useEffect(() => {
     document.title = "Historique des Cadeaux | JOIE DE VIVRE";
@@ -71,7 +85,8 @@ function Gifts() {
           status,
           giver_id,
           receiver_id,
-          receiver_name
+          receiver_name,
+          collective_fund_id
         `)
         .or(`giver_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('gift_date', { ascending: false });
@@ -97,11 +112,34 @@ function Gifts() {
         profileMap.set(profile.user_id, `${profile.first_name || ''} ${profile.last_name || ''}`.trim());
       });
 
-      const giftsWithNames = data?.map(gift => ({
-        ...gift,
-        giver_name: profileMap.get(gift.giver_id) || 'Utilisateur',
-        receiver_display_name: gift.receiver_name || profileMap.get(gift.receiver_id) || 'Utilisateur'
-      })) || [];
+      // Check which gifts have been thanked
+      const giftIds = data?.map(g => g.id) || [];
+      const { data: thanksData } = await supabase
+        .from('gift_thanks')
+        .select('gift_id')
+        .in('gift_id', giftIds);
+
+      const thankedGiftIds = new Set(thanksData?.map(t => t.gift_id) || []);
+
+      // Check for new gifts (received in last 7 days and not thanked)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const giftsWithNames = data?.map(gift => {
+        const isReceived = gift.receiver_id === user.id;
+        const hasCollectiveFund = !!gift.collective_fund_id;
+        const hasThanked = thankedGiftIds.has(gift.id);
+        const giftDate = new Date(gift.gift_date);
+        const isNew = isReceived && hasCollectiveFund && !hasThanked && giftDate > sevenDaysAgo;
+
+        return {
+          ...gift,
+          giver_name: profileMap.get(gift.giver_id) || 'Utilisateur',
+          receiver_display_name: gift.receiver_name || profileMap.get(gift.receiver_id) || 'Utilisateur',
+          has_thanked: hasThanked,
+          is_new: isNew
+        };
+      }) || [];
 
       setGifts(giftsWithNames);
     } catch (error) {
@@ -109,6 +147,50 @@ function Gifts() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGiftClick = async (gift: GiftItem) => {
+    // Only open thanks modal for received gifts from collective funds that haven't been thanked
+    if (!gift.collective_fund_id || gift.has_thanked || gift.receiver_id !== user?.id) {
+      return;
+    }
+
+    try {
+      // Load contributors from the fund
+      const { data: contributionsData, error } = await supabase
+        .from('fund_contributions')
+        .select(`
+          contributor_id,
+          amount,
+          profiles:contributor_id (
+            user_id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('fund_id', gift.collective_fund_id);
+
+      if (error) throw error;
+
+      const contributorsList: Contributor[] = contributionsData?.map((contrib: any) => ({
+        id: contrib.contributor_id,
+        name: `${contrib.profiles?.first_name || ''} ${contrib.profiles?.last_name || ''}`.trim() || 'Contributeur',
+        amount: contrib.amount
+      })) || [];
+
+      setSelectedGift(gift);
+      setContributors(contributorsList);
+      setShowThanksModal(true);
+    } catch (error) {
+      console.error('Error loading contributors:', error);
+      toast.error("Impossible de charger les contributeurs");
+    }
+  };
+
+  const handleThanksSent = () => {
+    // Reload gifts to update the thanked status
+    loadGifts();
+    toast.success("Vos remerciements ont été envoyés avec succès ! 💝");
   };
 
   const { filteredGifts, receivedGifts, givenGifts } = useMemo(() => {
@@ -220,15 +302,27 @@ function Gifts() {
           <div className="space-y-4">
             {filteredGifts.map((gift) => {
               const isReceived = gift.receiver_id === user?.id;
+              const canThank = isReceived && gift.collective_fund_id && !gift.has_thanked;
               
               return (
-                <Card key={gift.id} className={`p-4 ${isReceived ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                <Card 
+                  key={gift.id} 
+                  className={`p-4 ${isReceived ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} ${canThank ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                  onClick={() => canThank && handleGiftClick(gift)}
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isReceived ? 'bg-green-100' : 'bg-blue-100'}`}>
                       <Gift className={`h-6 w-6 ${isReceived ? 'text-green-600' : 'text-blue-600'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">{gift.gift_name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">{gift.gift_name}</div>
+                        {gift.is_new && (
+                          <Badge variant="destructive" className="animate-pulse">
+                            Nouveau
+                          </Badge>
+                        )}
+                      </div>
                       {gift.gift_description && (
                         <div className="text-xs text-muted-foreground">{gift.gift_description}</div>
                       )}
@@ -257,16 +351,31 @@ function Gifts() {
                         </>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
-                        {isReceived ? 
-                          (gift.giver_name?.charAt(0) || 'G') : 
-                          (gift.receiver_display_name?.charAt(0) || 'R')
-                        }
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-white">
+                          {isReceived ? 
+                            (gift.giver_name?.charAt(0) || 'G') : 
+                            (gift.receiver_display_name?.charAt(0) || 'R')
+                          }
+                        </div>
+                        <span className="text-sm">
+                          {isReceived ? gift.giver_name : gift.receiver_display_name}
+                        </span>
                       </div>
-                      <span className="text-sm">
-                        {isReceived ? gift.giver_name : gift.receiver_display_name}
-                      </span>
+                      
+                      {canThank && (
+                        <Button size="sm" variant="outline" className="gap-2">
+                          <MessageCircle className="h-3 w-3" />
+                          Dire merci
+                        </Button>
+                      )}
+                      
+                      {gift.has_thanked && isReceived && (
+                        <Badge variant="secondary" className="text-xs">
+                          Remercié ✓
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -277,6 +386,22 @@ function Gifts() {
 
         <div className="pb-20" />
       </main>
+
+      {selectedGift && (
+        <ThanksModal
+          isOpen={showThanksModal}
+          onClose={() => {
+            setShowThanksModal(false);
+            setSelectedGift(null);
+            setContributors([]);
+          }}
+          giftId={selectedGift.id}
+          giftName={selectedGift.gift_name}
+          fundId={selectedGift.collective_fund_id || ''}
+          contributors={contributors}
+          onThanksSent={handleThanksSent}
+        />
+      )}
     </div>
   );
 }
