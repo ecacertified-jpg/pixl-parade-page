@@ -59,7 +59,12 @@ export default function Shop() {
     try {
       let query = supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          business_accounts!inner(
+            business_name
+          )
+        `)
         .eq('is_active', true);
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -78,7 +83,7 @@ export default function Shop() {
           currency: product.currency || "F",
           image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
           category: product.category_name || "Produit",
-          vendor: "Boutique Élégance",
+          vendor: product.business_accounts?.business_name || "Boutique",
           distance: "2.3 km",
           rating: 4.8,
           reviews: 45,
