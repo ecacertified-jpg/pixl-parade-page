@@ -24,6 +24,7 @@ import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
+import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -67,6 +68,7 @@ export default function Dashboard() {
     refreshFunds
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
+  const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -501,7 +503,7 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
-              <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => navigate('/shop')}>
+              <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => setShowShopForCollectiveGiftModal(true)}>
                 <Plus className="h-4 w-4" aria-hidden />
                 Créer
               </Button>
@@ -544,6 +546,11 @@ export default function Dashboard() {
       <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} />
 
         <AddEventModal isOpen={showAddEventModal} onClose={closeEventModal} onAddEvent={handleAddEvent} onEditEvent={handleEditEvent} eventToEdit={editingEvent} />
+        
+        <ShopForCollectiveGiftModal 
+          isOpen={showShopForCollectiveGiftModal} 
+          onClose={() => setShowShopForCollectiveGiftModal(false)} 
+        />
         
         <BottomNavigation />
     </div>;
