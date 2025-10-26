@@ -34,7 +34,7 @@ export function ValuePropositionModal({
         <div className="relative">
           {/* Image cliquable avec les 4 valeurs */}
           <div 
-            className="relative w-full cursor-pointer hover:opacity-95 transition-opacity"
+            className="relative w-full bg-gradient-to-br from-purple-600 to-pink-500 cursor-pointer hover:opacity-95 transition-opacity"
             onClick={() => {
               onClose();
               onContinue();
@@ -51,7 +51,7 @@ export function ValuePropositionModal({
             <img 
               src={valueImage} 
               alt="La valeur de votre contribution - Cliquez pour contribuer" 
-              className="w-full max-h-[60vh] object-cover"
+              className="w-full max-h-[60vh] object-contain"
             />
           </div>
 
