@@ -179,7 +179,7 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             />
           </div>
 
-          <div className="px-4 py-4">
+          <div className="px-4 py-6">
             {/* Tabs for Products vs Experiences */}
             <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
               setActiveTab(value as "products" | "experiences");
@@ -256,7 +256,7 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             </Tabs>
 
             {/* Products Grid */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {filteredProducts.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
@@ -265,22 +265,22 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                 filteredProducts.map(product => (
                   <Card key={product.id} className="overflow-hidden">
                     <div className="relative">
-                      <img src={product.image} alt={product.name} className="w-full h-40 object-cover" />
+                      <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
                       {product.isExperience && (
-                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
+                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
                           ✨ EXPÉRIENCE
                         </Badge>
                       )}
-                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8">
-                        <Heart className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
+                        <Heart className="h-4 w-4" />
                       </Button>
                     </div>
                     
-                    <div className="p-3">
-                      <h3 className="font-semibold text-base mb-1">{product.name}</h3>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
                       <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-lg font-bold text-primary">
+                        <span className="text-xl font-bold text-primary">
                           {product.isExperience && "À partir de "}
                           {product.price.toLocaleString()} {product.currency}
                         </span>
