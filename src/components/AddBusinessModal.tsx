@@ -145,8 +145,13 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
       return;
     }
 
-    if (!formData.business_name || !formData.business_type) {
-      toast.error("Veuillez remplir au moins le nom et le type de business");
+    if (!formData.business_name || formData.business_name.trim() === '') {
+      toast.error("Le nom du business est obligatoire");
+      return;
+    }
+
+    if (!formData.business_type) {
+      toast.error("Le type de business est obligatoire");
       return;
     }
 
@@ -269,8 +274,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                     id="business_name"
                     value={formData.business_name}
                     onChange={(e) => handleInputChange('business_name', e.target.value)}
-                    placeholder="Ex: Boutique Élégance"
+                    placeholder="Ex: Boutique Élégance Abidjan"
                     className="mt-1"
+                    required
                   />
                 </div>
                 <div>

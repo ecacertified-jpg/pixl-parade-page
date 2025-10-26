@@ -77,10 +77,13 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         table: 'business_accounts',
         filter: `user_id=eq.${user.id}`
       }, (payload) => {
-        console.log('✅ Nouveau business détecté:', payload.new);
+        console.log('✅ Nouveau business détecté via Realtime:', payload.new);
+        console.log('📋 Business name:', payload.new.business_name);
         loadBusinesses(); // Recharger la liste automatiquement
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Statut souscription Realtime:', status);
+      });
     
     return () => {
       supabase.removeChannel(channel);
