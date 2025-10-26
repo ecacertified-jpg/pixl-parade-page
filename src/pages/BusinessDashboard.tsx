@@ -27,6 +27,9 @@ import { BusinessFundCard } from "@/components/BusinessFundCard";
 import type { Business } from "@/types/business";
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
+import { BusinessMetricsBar } from "@/components/BusinessMetricsBar";
+import { BusinessMetricCards } from "@/components/BusinessMetricCards";
+import { BusinessFinancialSummary } from "@/components/BusinessFinancialSummary";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -802,72 +805,10 @@ export default function BusinessDashboard() {
 
           {/* Vue d'ensemble */}
           <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ventes totales</p>
-                    <p className="text-2xl font-bold">{stats.totalSales.toLocaleString()} F</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-green-500" />
-                </div>
-              </Card>
-              
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Commandes du mois</p>
-                    <p className="text-2xl font-bold">{stats.monthlyOrders}</p>
-                  </div>
-                  <ShoppingCart className="h-8 w-8 text-blue-500" />
-                </div>
-              </Card>
-
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Produits actifs</p>
-                    <p className="text-2xl font-bold">{stats.activeProducts}</p>
-                  </div>
-                  <Package className="h-8 w-8 text-purple-500" />
-                </div>
-              </Card>
-
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Note moyenne</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold">{stats.averageProductRating || '—'}</p>
-                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {stats.totalRatings} {stats.totalRatings === 1 ? 'avis' : 'avis'}
-                    </p>
-                  </div>
-                  <Star className="h-8 w-8 text-yellow-500" />
-                </div>
-              </Card>
-            </div>
-
-            {/* Commission et revenus */}
-            <Card className="p-4 mb-6">
-              <h3 className="font-semibold mb-4">Résumé financier</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Ventes brutes</span>
-                  <span className="font-medium">{stats.totalSales.toLocaleString()} F</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Commission JOIE DE VIVRE (15%)</span>
-                  <span className="font-medium text-red-600">-{stats.commission.toLocaleString()} F</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between">
-                  <span className="font-medium">Revenus nets</span>
-                  <span className="font-medium text-green-600">{stats.netRevenue.toLocaleString()} F</span>
-                </div>
-              </div>
-            </Card>
+            {/* New Metrics Display */}
+            <BusinessMetricsBar stats={stats} />
+            <BusinessMetricCards stats={stats} />
+            <BusinessFinancialSummary stats={stats} />
 
             {/* Commandes et Cagnottes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

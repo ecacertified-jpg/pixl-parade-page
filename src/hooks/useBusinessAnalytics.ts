@@ -111,8 +111,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
 
       const activeProducts = activeProductsCount || 0;
 
-      // Calculate commission and net revenue
-      const commission = totalSales * 0.15;
+      // Calculate commission and net revenue (8% commission rate)
+      const commission = totalSales * 0.08;
       const netRevenue = totalSales - commission;
 
       // Calculate average order value
