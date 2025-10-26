@@ -28,7 +28,7 @@ export const BusinessFinancialSummary = ({ stats }: BusinessFinancialSummaryProp
 
         {/* Commission */}
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Commission JOIE DE VIVRE (8%)</span>
+          <span className="text-sm text-muted-foreground">Commission JOIE DE VIVRE (15%)</span>
           <span className="text-lg font-semibold text-destructive">
             -{stats.commission.toLocaleString()} F
           </span>

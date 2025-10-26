@@ -111,9 +111,21 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
 
       const activeProducts = activeProductsCount || 0;
 
-      // Calculate commission and net revenue (8% commission rate)
-      const commission = totalSales * 0.08;
+      // Calculate commission and net revenue (15% commission rate)
+      const commission = totalSales * 0.15;
       const netRevenue = totalSales - commission;
+      
+      // Debug logs
+      console.log('📊 Business Analytics Debug:', {
+        businessId,
+        userId: user.id,
+        ordersCount: ordersData?.length || 0,
+        totalSales,
+        monthlyOrders,
+        activeProducts,
+        commission,
+        netRevenue
+      });
 
       // Calculate average order value
       const averageOrderValue = ordersData && ordersData.length > 0 
