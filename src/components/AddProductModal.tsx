@@ -91,7 +91,12 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
   }, [isOpen, user]);
 
   const loadBusinesses = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('❌ Pas d\'utilisateur connecté pour loadBusinesses');
+      return;
+    }
+
+    console.log('🔍 Chargement des business pour user_id:', user.id);
 
     try {
       const { data, error } = await supabase
@@ -101,10 +106,22 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         .eq('is_active', true)
         .order('business_name');
 
-      if (error) throw error;
+      console.log('📊 Résultat requête business_accounts:', { 
+        data, 
+        error, 
+        count: data?.length,
+        userIdUsed: user.id 
+      });
+
+      if (error) {
+        console.error('❌ Erreur lors du chargement des business:', error);
+        throw error;
+      }
+      
+      console.log(`✅ ${data?.length || 0} business chargé(s):`, data?.map(b => b.business_name));
       setBusinesses(data || []);
     } catch (error) {
-      console.error('Error loading businesses:', error);
+      console.error('💥 Exception lors du chargement des business:', error);
     }
   };
 
