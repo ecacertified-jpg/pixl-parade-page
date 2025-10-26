@@ -10,6 +10,8 @@ interface BusinessStats {
   netRevenue: number;
   averageOrderValue: number;
   conversionRate: number;
+  averageProductRating: number;
+  totalRatings: number;
   topProducts: Array<{
     id: string;
     name: string;
@@ -38,6 +40,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     netRevenue: 0,
     averageOrderValue: 0,
     conversionRate: 0,
+    averageProductRating: 0,
+    totalRatings: 0,
     topProducts: [],
     salesByCategory: [],
     dailySales: []
@@ -207,6 +211,17 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         .map(([date, data]) => ({ date, ...data }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
+      // Fetch product ratings statistics
+      const { data: ratingsData } = await supabase
+        .from('product_ratings')
+        .select('rating, product_id')
+        .in('product_id', productsData?.map(p => p.id) || []);
+
+      const totalRatings = ratingsData?.length || 0;
+      const averageProductRating = totalRatings > 0
+        ? parseFloat((ratingsData.reduce((sum, r) => sum + r.rating, 0) / totalRatings).toFixed(1))
+        : 0;
+
       setStats({
         totalSales,
         monthlyOrders,
@@ -215,6 +230,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         netRevenue,
         averageOrderValue,
         conversionRate,
+        averageProductRating,
+        totalRatings,
         topProducts,
         salesByCategory,
         dailySales

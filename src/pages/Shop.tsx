@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderModal } from "@/components/OrderModal";
+import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
+import { RatingModal } from "@/components/RatingModal";
 import LocationSelector from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
@@ -36,6 +38,9 @@ export default function Shop() {
   }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [ratingProductId, setRatingProductId] = useState<string>("");
+  const [ratingProductName, setRatingProductName] = useState<string>("");
   const [contributionTarget, setContributionTarget] = useState<any>(null);
   useEffect(() => {
     // Check if user came from contribution flow
@@ -301,13 +306,17 @@ export default function Shop() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{product.rating}</span>
-                      <span className="text-sm text-muted-foreground">({product.reviews})</span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">• {product.vendor}</span>
+                  <div className="flex items-center justify-between mb-4">
+                    <ProductRatingDisplay
+                      productId={String(product.id)}
+                      onWriteReview={() => {
+                        setRatingProductId(String(product.id));
+                        setRatingProductName(product.name);
+                        setIsRatingModalOpen(true);
+                      }}
+                      compact
+                    />
+                    <span className="text-sm text-muted-foreground">{product.vendor}</span>
                   </div>
 
                   <Button 
@@ -329,5 +338,16 @@ export default function Shop() {
       </main>
 
       <OrderModal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} product={selectedProduct} />
+      
+      <RatingModal
+        isOpen={isRatingModalOpen}
+        onClose={() => {
+          setIsRatingModalOpen(false);
+          setRatingProductId("");
+          setRatingProductName("");
+        }}
+        productId={ratingProductId}
+        productName={ratingProductName}
+      />
     </div>;
 }

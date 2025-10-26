@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Users, Package, DollarSign } from "lucide-react";
 import { BusinessCollaborativeGiftModal } from "./BusinessCollaborativeGiftModal";
+import { ProductRatingDisplay } from "./ProductRatingDisplay";
+import { RatingModal } from "./RatingModal";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Product {
@@ -35,6 +37,7 @@ export function BusinessProductCard({
 }: BusinessProductCardProps) {
   const { user, loading: authLoading } = useAuth();
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Use user.id as primary businessId, businessId prop as fallback
   const effectiveBusinessId = businessId || user?.id;
@@ -156,6 +159,15 @@ export function BusinessProductCard({
                 <span>Stock: {product.stock}</span>
               </div>
             )}
+
+            {/* Product Rating */}
+            <div className="pt-2 border-t">
+              <ProductRatingDisplay
+                productId={product.id}
+                onWriteReview={() => setShowRatingModal(true)}
+                compact
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
@@ -183,6 +195,13 @@ export function BusinessProductCard({
         product={product}
         businessId={effectiveBusinessId || ''}
         onBack={() => setShowCollectiveModal(false)}
+      />
+
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        productId={product.id}
+        productName={product.name}
       />
     </>
   );

@@ -832,6 +832,22 @@ export default function BusinessDashboard() {
                   <Package className="h-8 w-8 text-purple-500" />
                 </div>
               </Card>
+
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Note moyenne</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold">{stats.averageProductRating || '—'}</p>
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stats.totalRatings} {stats.totalRatings === 1 ? 'avis' : 'avis'}
+                    </p>
+                  </div>
+                  <Star className="h-8 w-8 text-yellow-500" />
+                </div>
+              </Card>
             </div>
 
             {/* Commission et revenus */}
