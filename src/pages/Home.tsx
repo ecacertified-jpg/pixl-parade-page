@@ -11,7 +11,6 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
-import { ModeSwitcher } from "@/components/ModeSwitcher";
 import logoJV from "@/assets/logo-jv.png";
 
 const Home = () => {
@@ -33,7 +32,6 @@ const Home = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <ModeSwitcher />
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
               {itemCount > 0 && (

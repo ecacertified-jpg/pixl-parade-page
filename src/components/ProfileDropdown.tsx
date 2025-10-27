@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { ModeSwitcher } from "@/components/ModeSwitcher";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
@@ -158,14 +159,12 @@ export const ProfileDropdown = () => {
             <span className="text-sm font-medium">Articles préférés</span>
           </button>
 
+          <DropdownMenuSeparator className="my-2" />
+          
           {hasBusinessAccount && (
-            <button 
-              onClick={() => navigate("/business-account")}
-              className="w-full flex items-center px-4 py-3 text-left text-muted-foreground hover:bg-muted/50 rounded-lg transition-colors"
-            >
-              <Store className="h-4 w-4 mr-3 text-muted-foreground" />
-              <span className="text-sm font-medium">Mode business</span>
-            </button>
+            <div className="px-4 py-2">
+              <ModeSwitcher />
+            </div>
           )}
 
           <DropdownMenuSeparator className="my-2" />
