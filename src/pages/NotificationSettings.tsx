@@ -12,6 +12,9 @@ import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { ReciprocitySettings } from "@/components/ReciprocitySettings";
+import { Heart } from "lucide-react";
+
 export default function NotificationSettings() {
   const navigate = useNavigate();
   const {
@@ -328,6 +331,22 @@ export default function NotificationSettings() {
               vibration_enabled: checked
             })} />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Réciprocité sociale */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              Réciprocité sociale
+            </CardTitle>
+            <CardDescription>
+              Recevez des notifications intelligentes basées sur vos contributions passées
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReciprocitySettings />
           </CardContent>
         </Card>
       </div>

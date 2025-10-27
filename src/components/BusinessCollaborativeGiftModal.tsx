@@ -142,6 +142,20 @@ export function BusinessCollaborativeGiftModal({
         return;
       }
 
+      // Appeler la fonction edge pour notifications de réciprocité (non-bloquant)
+      if (fundId) {
+        try {
+          console.log('🔔 Invoking notify-reciprocity for fund:', fundId);
+          await supabase.functions.invoke('notify-reciprocity', {
+            body: { fund_id: fundId }
+          });
+          console.log('✅ Notify-reciprocity invoked successfully');
+        } catch (reciprocityError) {
+          // Ne pas bloquer le flux si la notification échoue
+          console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
+        }
+      }
+
       toast({
         title: "Cotisation créée ! 🎉",
         description: `Cotisation créée pour ${selectedUser.first_name} ${selectedUser.last_name}. Les notifications seront envoyées à ses proches.`

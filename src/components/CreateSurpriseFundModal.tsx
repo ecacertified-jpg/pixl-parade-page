@@ -62,6 +62,20 @@ export const CreateSurpriseFundModal = ({
 
       if (error) throw error;
 
+      // Appeler la fonction edge pour notifications de réciprocité (non-bloquant)
+      if (data?.id) {
+        try {
+          console.log('🔔 Invoking notify-reciprocity for fund:', data.id);
+          await supabase.functions.invoke('notify-reciprocity', {
+            body: { fund_id: data.id }
+          });
+          console.log('✅ Notify-reciprocity invoked successfully');
+        } catch (reciprocityError) {
+          // Ne pas bloquer le flux si la notification échoue
+          console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
+        }
+      }
+
       toast.success(
         isSurprise 
           ? "🎉 Surprise créée ! Les contributeurs peuvent maintenant participer en secret."
