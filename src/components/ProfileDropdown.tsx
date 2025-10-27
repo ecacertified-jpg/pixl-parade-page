@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
-import { ModeSwitcherItems } from "@/components/ModeSwitcherItems";
+import { ModeSwitcher } from "@/components/ModeSwitcher";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
@@ -161,7 +161,9 @@ export const ProfileDropdown = () => {
           {hasBusinessAccount && (
             <>
               <DropdownMenuSeparator className="my-2" />
-              <ModeSwitcherItems />
+              <div className="px-2">
+                <ModeSwitcher variant="menu-item" />
+              </div>
             </>
           )}
 

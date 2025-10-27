@@ -11,7 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export const ModeSwitcher = () => {
+interface ModeSwitcherProps {
+  variant?: 'default' | 'menu-item';
+}
+
+export const ModeSwitcher = ({ variant = 'default' }: ModeSwitcherProps) => {
   const { userMode, setUserMode } = useAuth();
   const navigate = useNavigate();
 
@@ -24,7 +28,11 @@ export const ModeSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button 
+          variant={variant === 'menu-item' ? 'ghost' : 'outline'}
+          size="sm" 
+          className={variant === 'menu-item' ? 'w-full justify-start gap-2 h-10 px-2' : 'gap-2'}
+        >
           {userMode === 'business' ? (
             <>
               <Store className="h-4 w-4" />
@@ -38,7 +46,7 @@ export const ModeSwitcher = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+      <DropdownMenuContent align="end" className="w-[200px] z-[110]">
         <DropdownMenuLabel>Changer de mode</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
