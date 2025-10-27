@@ -12,15 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const ModeSwitcher = () => {
-  const { userMode, setUserMode, hasBusinessAccount } = useAuth();
+  const { userMode, setUserMode } = useAuth();
   const navigate = useNavigate();
 
-  // Ne pas afficher le switcher si l'utilisateur n'a pas de business account
-  if (!hasBusinessAccount) {
-    return null;
-  }
-
   const handleModeChange = (mode: 'client' | 'business') => {
+    console.log('ModeSwitcher - Changing mode to:', mode);
     setUserMode(mode);
     navigate(mode === 'business' ? '/business-account' : '/dashboard');
   };

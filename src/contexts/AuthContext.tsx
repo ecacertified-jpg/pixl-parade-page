@@ -69,7 +69,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .limit(1)
         .maybeSingle();
       
-      setHasBusinessAccount(data !== null);
+      const hasBusiness = data !== null;
+      console.log('AuthContext - checkBusinessAccount result:', hasBusiness, 'data:', data);
+      setHasBusinessAccount(hasBusiness);
     } catch (error) {
       console.error('Error checking business account:', error);
       setHasBusinessAccount(false);

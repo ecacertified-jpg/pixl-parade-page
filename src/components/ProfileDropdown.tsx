@@ -12,21 +12,20 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
-import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { ModeSwitcher } from "@/components/ModeSwitcher";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
-  const { user, loading } = useAuth();
+  const { user, loading, hasBusinessAccount } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasBusinessAccount } = useBusinessAccount();
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; bio?: string }>({});
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
 
-  // Debug: Log user data
+  // Debug: Log user data and business account status
   console.log('ProfileDropdown - User:', user);
   console.log('ProfileDropdown - Loading:', loading);
+  console.log('ProfileDropdown - hasBusinessAccount:', hasBusinessAccount);
 
   // Fetch user profile from profiles table
   useEffect(() => {
