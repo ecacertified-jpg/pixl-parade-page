@@ -25,6 +25,16 @@ import CollectiveOrderConfirmation from "./pages/CollectiveOrderConfirmation";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import NotificationSettings from "./pages/NotificationSettings";
 import Community from "./pages/Community";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import UserManagement from "./pages/Admin/UserManagement";
+import BusinessManagement from "./pages/Admin/BusinessManagement";
+import ContentModeration from "./pages/Admin/ContentModeration";
+import FinancialManagement from "./pages/Admin/FinancialManagement";
+import Analytics from "./pages/Admin/Analytics";
+import AdminManagement from "./pages/Admin/AdminManagement";
+import AuditLogs from "./pages/Admin/AuditLogs";
+import Settings from "./pages/Admin/Settings";
+import { AdminRoute } from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +132,52 @@ const App = () => (
               <ProtectedRoute>
                 <Community />
               </ProtectedRoute>
+            } />
+            {/* Admin routes */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/users" element={
+              <AdminRoute>
+                <UserManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/businesses" element={
+              <AdminRoute>
+                <BusinessManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/content" element={
+              <AdminRoute>
+                <ContentModeration />
+              </AdminRoute>
+            } />
+            <Route path="/admin/finances" element={
+              <AdminRoute>
+                <FinancialManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <AdminRoute>
+                <Analytics />
+              </AdminRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <AdminRoute requiredRole="super_admin">
+                <Settings />
+              </AdminRoute>
+            } />
+            <Route path="/admin/admins" element={
+              <AdminRoute requiredRole="super_admin">
+                <AdminManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/audit" element={
+              <AdminRoute>
+                <AuditLogs />
+              </AdminRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
