@@ -39,14 +39,15 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     commission: 0,
     netRevenue: 0,
     averageOrderValue: 0,
-    conversionRate: 0,
-    averageProductRating: 0,
-    totalRatings: 0,
     topProducts: [],
     salesByCategory: [],
-    dailySales: []
+    dailySales: [],
+    averageProductRating: 0,
+    totalRatings: 0,
+    conversionRate: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [businessAccounts, setBusinessAccounts] = useState<Array<{ id: string; business_name: string }>>([]);
 
   useEffect(() => {
     if (user?.id) {
@@ -60,13 +61,36 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     try {
       setLoading(true);
 
+      // Récupérer tous les business_accounts actifs de l'utilisateur
+      const { data: businessAccountsData, error: accountsError } = await supabase
+        .from('business_accounts')
+        .select('id, business_name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (accountsError) {
+        console.error('Error fetching business accounts:', accountsError);
+      }
+
+      const accounts = businessAccountsData || [];
+      setBusinessAccounts(accounts);
+      
       // Get business account ID if not provided
       let businessId = businessAccountId;
+      
+      // Si aucun businessAccountId fourni, utiliser le premier business_account actif
+      if (!businessId && accounts.length > 0) {
+        businessId = accounts[0].id;
+      }
+      
+      // Si toujours pas de businessId, essayer avec l'ancien système
       if (!businessId) {
         const { data: accountData } = await supabase
           .from('business_accounts')
           .select('id')
           .eq('user_id', user.id)
+          .limit(1)
           .maybeSingle();
         
         businessId = accountData?.id;
@@ -119,6 +143,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
       console.log('📊 Business Analytics Debug:', {
         businessId,
         userId: user.id,
+        businessAccountsCount: accounts.length,
+        businessAccountsList: accounts.map(a => ({ id: a.id, name: a.business_name })),
         ordersCount: ordersData?.length || 0,
         totalSales,
         monthlyOrders,
@@ -256,5 +282,5 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     }
   };
 
-  return { stats, loading, refetch: loadAnalytics };
+  return { stats, loading, businessAccounts, refetch: loadAnalytics };
 };

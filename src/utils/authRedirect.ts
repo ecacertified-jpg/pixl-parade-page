@@ -3,26 +3,31 @@ import { User } from '@supabase/supabase-js';
 
 export const getRedirectPath = async (user: User): Promise<string> => {
   try {
-    // Check if user metadata indicates they signed up as business
-    // This is the primary indicator of a real business account
-    if (user.user_metadata?.is_business) {
-      return '/business-account';
-    }
-
-    // Check if user has a business account
+    // Récupérer le mode préféré depuis localStorage
+    const preferredMode = localStorage.getItem('userMode') as 'client' | 'business' | null;
+    
+    // Vérifier si l'utilisateur a un business_account
     const { data: businessAccount } = await supabase
       .from('business_accounts')
       .select('id, is_active')
       .eq('user_id', user.id)
+      .eq('is_active', true)
+      .limit(1)
       .maybeSingle();
-
-    // Only redirect to business account if is_business flag is set
-    // This prevents auto-created business accounts from redirecting regular users
-    if (businessAccount && user.user_metadata?.is_business) {
+    
+    const hasBusinessAccount = businessAccount !== null;
+    
+    // Si mode business préféré ET possède un business_account
+    if (preferredMode === 'business' && hasBusinessAccount) {
       return '/business-account';
     }
-
-    // Default to regular dashboard for all regular users
+    
+    // Si flag is_business dans metadata ET a un business_account
+    if (user.user_metadata?.is_business && hasBusinessAccount) {
+      return '/business-account';
+    }
+    
+    // Sinon, mode client par défaut
     return '/dashboard';
   } catch (error) {
     console.error('Error determining redirect path:', error);

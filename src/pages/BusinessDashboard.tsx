@@ -167,8 +167,9 @@ export default function BusinessDashboard() {
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   
-  // Load real analytics
-  const { stats, loading: analyticsLoading } = useBusinessAnalytics(businessAccount?.id);
+  // Load real analytics with multi-business support
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | undefined>(undefined);
+  const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId || businessAccount?.id);
   
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
@@ -783,6 +784,35 @@ export default function BusinessDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
+        {/* Business Selector - if multiple businesses */}
+        {analyticsBusinessAccounts.length > 1 && (
+          <Card className="p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <Store className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1">
+                <Label htmlFor="business-selector" className="text-sm font-medium">
+                  Business actif
+                </Label>
+                <Select 
+                  value={selectedBusinessId || businessAccount?.id} 
+                  onValueChange={setSelectedBusinessId}
+                >
+                  <SelectTrigger id="business-selector" className="mt-1">
+                    <SelectValue placeholder="Sélectionner un business" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {analyticsBusinessAccounts.map((business) => (
+                      <SelectItem key={business.id} value={business.id}>
+                        {business.business_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid grid-cols-4 text-xs">
             <TabsTrigger value="overview" className="flex flex-col gap-1">
