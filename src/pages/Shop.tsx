@@ -184,12 +184,17 @@ export default function Shop() {
           </div>
 
           {/* Location Selector */}
-          <LocationSelector 
-            value={selectedLocation} 
-            onChange={setSelectedLocation}
-            label=""
-            placeholder="Sélectionner un lieu de livraison"
-          />
+          <div className="flex justify-center items-center">
+            <div className="w-full max-w-sm">
+              <LocationSelector 
+                value={selectedLocation} 
+                onChange={setSelectedLocation}
+                label=""
+                placeholder="Rechercher un lieu"
+                showAddButton={false}
+              />
+            </div>
+          </div>
         </div>
       </header>
 

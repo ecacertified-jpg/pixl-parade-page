@@ -18,9 +18,10 @@ interface LocationSelectorProps {
   onChange: (value: string) => void;
   label?: string;
   placeholder?: string;
+  showAddButton?: boolean;
 }
 
-export default function LocationSelector({ value, onChange, label = "Adresse complète", placeholder = "Sélectionner un lieu" }: LocationSelectorProps) {
+export default function LocationSelector({ value, onChange, label = "Adresse complète", placeholder = "Sélectionner un lieu", showAddButton = true }: LocationSelectorProps) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newLocation, setNewLocation] = useState("");
@@ -112,14 +113,16 @@ export default function LocationSelector({ value, onChange, label = "Adresse com
               ))}
             </SelectContent>
           </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAddingNew(true)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          {showAddButton && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddingNew(true)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ) : (
         <div className="flex gap-2">
