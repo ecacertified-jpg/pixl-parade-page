@@ -5,10 +5,13 @@ import { Sparkles, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SmartNotificationCard } from "./SmartNotificationCard";
+import { NotificationCard } from "./NotificationCard";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const SmartNotificationsSection = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -130,13 +133,36 @@ export const SmartNotificationsSection = () => {
 
       {/* Notifications */}
       <div className="space-y-3">
-        {notifications.map((notification) => (
-          <SmartNotificationCard
-            key={notification.id}
-            notification={notification}
-            onAction={() => handleMarkAsRead(notification.id)}
-          />
-        ))}
+        {notifications.map((notification) => {
+          // Use enhanced NotificationCard for reciprocity notifications
+          if (notification.notification_type === 'reciprocity_reminder') {
+            return (
+              <NotificationCard
+                key={notification.id}
+                type="reciprocity"
+                title={notification.title}
+                subtitle={notification.message}
+                contributionAmount={notification.metadata?.past_contribution_amount}
+                currency="XOF"
+                onAction={() => {
+                  if (notification.metadata?.fund_id) {
+                    navigate(`/gifts?fund=${notification.metadata.fund_id}`);
+                  }
+                  handleMarkAsRead(notification.id);
+                }}
+              />
+            );
+          }
+          
+          // Use SmartNotificationCard for other smart notifications
+          return (
+            <SmartNotificationCard
+              key={notification.id}
+              notification={notification}
+              onAction={() => handleMarkAsRead(notification.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );

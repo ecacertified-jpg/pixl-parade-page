@@ -24,6 +24,7 @@ import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
+import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotificationsSection";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 interface UserProfile {
   first_name: string | null;
@@ -379,6 +380,10 @@ export default function Dashboard() {
             contributionsCount={reciprocityScore.total_contributions_count}
             totalAmount={reciprocityScore.total_amount_given}
           />
+        )}
+
+        {reciprocityScore && (
+          <ReciprocityNotificationsSection />
         )}
 
         {/* CTA Business */}

@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,6 +17,8 @@ import { useState, useMemo } from "react";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
+    case 'reciprocity_reminder':
+      return <Heart className="h-4 w-4 text-primary fill-current" />;
     case 'gift':
     case 'gift_received':
     case 'gift_promise':
@@ -94,12 +96,19 @@ const NotificationItem = ({ notification, onMarkAsRead, onArchive, onDelete, onN
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h4 className={cn(
-              "text-sm leading-tight",
-              notification.is_read ? "text-muted-foreground" : "font-semibold text-foreground"
-            )}>
-              {notification.title}
-            </h4>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h4 className={cn(
+                "text-sm leading-tight",
+                notification.is_read ? "text-muted-foreground" : "font-semibold text-foreground"
+              )}>
+                {notification.title}
+              </h4>
+              {notification.type === 'reciprocity_reminder' && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                  Réciprocité
+                </span>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(new Date(notification.created_at), { 
                 addSuffix: true,
