@@ -16,13 +16,25 @@ interface ModeSwitcherProps {
 }
 
 export const ModeSwitcher = ({ variant = 'default' }: ModeSwitcherProps) => {
-  const { userMode, setUserMode } = useAuth();
+  const { userMode, setUserMode, hasBusinessAccount } = useAuth();
   const navigate = useNavigate();
 
   const handleModeChange = (mode: 'client' | 'business') => {
     console.log('ModeSwitcher - Changing mode to:', mode);
     setUserMode(mode);
-    navigate(mode === 'business' ? '/business-account' : '/dashboard');
+    
+    if (mode === 'business') {
+      // Si pas de compte business, rediriger vers la page d'authentification business
+      if (!hasBusinessAccount) {
+        navigate('/business-auth');
+      } else {
+        // Si compte business existant, aller au tableau de bord
+        navigate('/business-account');
+      }
+    } else {
+      // Mode client
+      navigate('/dashboard');
+    }
   };
 
   return (

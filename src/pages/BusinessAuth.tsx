@@ -33,7 +33,7 @@ const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setUserMode, refreshSession } = useAuth();
 
   const {
     register,
@@ -106,6 +106,9 @@ const BusinessAuth = () => {
         description: 'Bienvenue dans votre espace business',
       });
       
+      // Mettre à jour le mode utilisateur
+      setUserMode('business');
+      
       // Redirect to business account
       navigate('/business-account', { replace: true });
     } catch (error) {
@@ -170,6 +173,11 @@ const BusinessAuth = () => {
 
           if (businessError) {
             console.error('Error creating business account:', businessError);
+          } else {
+            // Mettre à jour le mode utilisateur
+            setUserMode('business');
+            // Rafraîchir la session pour que AuthContext détecte le nouveau business_account
+            await refreshSession();
           }
         } catch (businessCreationError) {
           console.error('Error creating business account:', businessCreationError);
