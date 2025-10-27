@@ -17,7 +17,7 @@ export default function Shop() {
   const { itemCount } = useCart();
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [products, setProducts] = useState<Array<{
@@ -112,7 +112,7 @@ export default function Shop() {
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
     const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
-    const matchesLocation = selectedLocation === "Tous les lieux" || product.locationName === selectedLocation;
+    const matchesLocation = !selectedLocation || selectedLocation === "Tous les lieux" || product.locationName === selectedLocation;
     
     const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
     const matchesSearch = product.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
