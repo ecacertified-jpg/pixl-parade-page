@@ -39,36 +39,37 @@ export const useAdmin = () => {
     try {
       setLoading(true);
       
-      // Appeler la fonction RPC pour récupérer le rôle
-      const { data: roleData, error: roleError } = await supabase.rpc('current_user_role');
+      console.log('🔍 [ADMIN DEBUG] Checking admin status for user:', user?.id);
       
-      if (roleError) {
-        console.error('Error fetching admin role:', roleError);
-        setAdminRole(null);
-        setLoading(false);
-        return;
-      }
-
-      // Si l'utilisateur n'est pas admin, arrêter
-      if (roleData === 'user' || !roleData) {
-        setAdminRole(null);
-        setLoading(false);
-        return;
-      }
-
-      // Récupérer les permissions de l'admin
+      // Fallback direct: interroger directement la table admin_users
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('role, permissions, is_active')
         .eq('user_id', user?.id)
         .single();
 
-      if (adminError || !adminData || !adminData.is_active) {
+      console.log('🔍 [ADMIN DEBUG] Admin data query result:', { adminData, adminError });
+
+      if (adminError) {
+        if (adminError.code === 'PGRST116') {
+          // No rows found - user is not an admin
+          console.log('🔍 [ADMIN DEBUG] User is not an admin (no record found)');
+        } else {
+          console.error('🔍 [ADMIN DEBUG] Error fetching admin data:', adminError);
+        }
         setAdminRole(null);
         setLoading(false);
         return;
       }
 
+      if (!adminData || !adminData.is_active) {
+        console.log('🔍 [ADMIN DEBUG] Admin account exists but is not active:', adminData);
+        setAdminRole(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ [ADMIN DEBUG] User is admin with role:', adminData.role);
       setAdminRole(adminData.role as AdminRole);
       
       // Safely parse permissions with defaults
@@ -81,8 +82,10 @@ export const useAdmin = () => {
         view_analytics: perms.view_analytics ?? false,
         manage_settings: perms.manage_settings ?? false,
       });
+      
+      console.log('✅ [ADMIN DEBUG] Permissions set:', perms);
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('❌ [ADMIN DEBUG] Error checking admin status:', error);
       setAdminRole(null);
     } finally {
       setLoading(false);
