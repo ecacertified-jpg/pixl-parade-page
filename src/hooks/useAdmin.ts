@@ -14,6 +14,8 @@ export interface AdminPermissions {
 export type AdminRole = 'super_admin' | 'moderator' | null;
 
 export const useAdmin = () => {
+  console.warn('⚠️⚠️⚠️ useAdmin HOOK CALLED ⚠️⚠️⚠️');
+  
   const [adminRole, setAdminRole] = useState<AdminRole>(null);
   const [permissions, setPermissions] = useState<AdminPermissions>({
     manage_users: false,
@@ -25,6 +27,8 @@ export const useAdmin = () => {
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  
+  console.warn('⚠️ useAdmin - Current user:', user?.id);
 
   useEffect(() => {
     if (user) {
@@ -39,7 +43,7 @@ export const useAdmin = () => {
     try {
       setLoading(true);
       
-      console.log('🔍 [ADMIN DEBUG] Checking admin status for user:', user?.id);
+      console.warn('🔍 [ADMIN DEBUG] Checking admin status for user:', user?.id);
       
       // Fallback direct: interroger directement la table admin_users
       const { data: adminData, error: adminError } = await supabase
@@ -48,12 +52,12 @@ export const useAdmin = () => {
         .eq('user_id', user?.id)
         .single();
 
-      console.log('🔍 [ADMIN DEBUG] Admin data query result:', { adminData, adminError });
+      console.warn('🔍 [ADMIN DEBUG] Admin data query result:', { adminData, adminError });
 
       if (adminError) {
         if (adminError.code === 'PGRST116') {
           // No rows found - user is not an admin
-          console.log('🔍 [ADMIN DEBUG] User is not an admin (no record found)');
+          console.warn('🔍 [ADMIN DEBUG] User is not an admin (no record found)');
         } else {
           console.error('🔍 [ADMIN DEBUG] Error fetching admin data:', adminError);
         }
@@ -63,13 +67,13 @@ export const useAdmin = () => {
       }
 
       if (!adminData || !adminData.is_active) {
-        console.log('🔍 [ADMIN DEBUG] Admin account exists but is not active:', adminData);
+        console.warn('🔍 [ADMIN DEBUG] Admin account exists but is not active:', adminData);
         setAdminRole(null);
         setLoading(false);
         return;
       }
 
-      console.log('✅ [ADMIN DEBUG] User is admin with role:', adminData.role);
+      console.warn('✅ [ADMIN DEBUG] User is admin with role:', adminData.role);
       setAdminRole(adminData.role as AdminRole);
       
       // Safely parse permissions with defaults
@@ -83,7 +87,7 @@ export const useAdmin = () => {
         manage_settings: perms.manage_settings ?? false,
       });
       
-      console.log('✅ [ADMIN DEBUG] Permissions set:', perms);
+      console.warn('✅ [ADMIN DEBUG] Permissions set:', perms);
     } catch (error) {
       console.error('❌ [ADMIN DEBUG] Error checking admin status:', error);
       setAdminRole(null);

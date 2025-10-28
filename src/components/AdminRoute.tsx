@@ -9,9 +9,14 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute = ({ children, requiredRole }: AdminRouteProps) => {
+  console.warn('🔒🔒🔒 AdminRoute RENDERED 🔒🔒🔒');
+  
   const { isAdmin, adminRole, loading, isSuperAdmin } = useAdmin();
+  
+  console.warn('🔒 AdminRoute state:', { isAdmin, adminRole, loading, isSuperAdmin });
 
   if (loading) {
+    console.warn('🔒 AdminRoute - Still loading...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -21,8 +26,11 @@ export const AdminRoute = ({ children, requiredRole }: AdminRouteProps) => {
 
   // Si pas admin du tout, rediriger vers home
   if (!isAdmin) {
+    console.warn('🔒 AdminRoute - User is NOT admin, redirecting to /');
     return <Navigate to="/" replace />;
   }
+  
+  console.warn('🔒 AdminRoute - User IS admin, allowing access');
 
   // Si un rôle spécifique est requis et l'utilisateur ne l'a pas
   if (requiredRole && requiredRole === 'super_admin' && !isSuperAdmin) {
