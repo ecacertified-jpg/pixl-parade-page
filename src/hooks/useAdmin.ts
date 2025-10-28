@@ -26,18 +26,21 @@ export const useAdmin = () => {
     manage_settings: false,
   });
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
-  console.warn('⚠️ useAdmin - Current user:', user?.id);
+  console.warn('⚠️ useAdmin - Current user:', user?.id, 'AuthContext loading:', authLoading);
 
   useEffect(() => {
     if (user) {
       checkAdminStatus();
-    } else {
+    } else if (!authLoading) {
+      // Seulement si AuthContext a fini de charger et qu'il n'y a pas d'utilisateur
+      console.warn('⚠️ useAdmin - No user found after auth loading complete');
       setAdminRole(null);
       setLoading(false);
     }
-  }, [user]);
+    // Si authLoading = true, on garde loading = true
+  }, [user, authLoading]);
 
   const checkAdminStatus = async () => {
     try {
