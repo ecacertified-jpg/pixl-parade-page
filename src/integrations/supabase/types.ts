@@ -2981,25 +2981,37 @@ export type Database = {
       }
       user_favorites: {
         Row: {
+          accept_alternatives: boolean | null
+          context_usage: string[] | null
           created_at: string
           id: string
           notes: string | null
+          occasion_type: string | null
+          priority_level: string | null
           product_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          accept_alternatives?: boolean | null
+          context_usage?: string[] | null
           created_at?: string
           id?: string
           notes?: string | null
+          occasion_type?: string | null
+          priority_level?: string | null
           product_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          accept_alternatives?: boolean | null
+          context_usage?: string[] | null
           created_at?: string
           id?: string
           notes?: string | null
+          occasion_type?: string | null
+          priority_level?: string | null
           product_id?: string
           updated_at?: string
           user_id?: string
@@ -3042,6 +3054,51 @@ export type Database = {
           reduce_animations?: boolean | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          allergies: string[] | null
+          clothing_size: string | null
+          created_at: string | null
+          dietary_restrictions: string[] | null
+          favorite_colors: string[] | null
+          id: string
+          price_ranges: Json | null
+          ring_size: string | null
+          shoe_size: string | null
+          updated_at: string | null
+          user_id: string
+          visibility_settings: Json | null
+        }
+        Insert: {
+          allergies?: string[] | null
+          clothing_size?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string[] | null
+          favorite_colors?: string[] | null
+          id?: string
+          price_ranges?: Json | null
+          ring_size?: string | null
+          shoe_size?: string | null
+          updated_at?: string | null
+          user_id: string
+          visibility_settings?: Json | null
+        }
+        Update: {
+          allergies?: string[] | null
+          clothing_size?: string | null
+          created_at?: string | null
+          dietary_restrictions?: string[] | null
+          favorite_colors?: string[] | null
+          id?: string
+          price_ranges?: Json | null
+          ring_size?: string | null
+          shoe_size?: string | null
+          updated_at?: string | null
+          user_id?: string
+          visibility_settings?: Json | null
         }
         Relationships: []
       }
