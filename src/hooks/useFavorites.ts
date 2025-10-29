@@ -200,6 +200,58 @@ export function useFavorites() {
     }
   };
 
+  const addFavorite = async (productId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Connexion requise",
+          description: "Veuillez vous connecter pour ajouter des favoris",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Check if already in favorites
+      const existing = favorites.find(f => f.product_id === productId);
+      if (existing) {
+        toast({
+          title: "Déjà dans les favoris",
+          description: "Cet article est déjà dans vos favoris",
+        });
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('user_favorites')
+        .insert({
+          user_id: user.id,
+          product_id: productId,
+          priority_level: 'medium',
+          accept_alternatives: true,
+          context_usage: []
+        });
+
+      if (error) throw error;
+
+      await loadFavorites();
+      toast({
+        title: "Ajouté aux favoris",
+        description: "L'article a été ajouté à votre liste de souhaits",
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error adding favorite:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter aux favoris",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const removeFavorite = async (favoriteId: string) => {
     try {
       const { error } = await supabase
@@ -224,6 +276,14 @@ export function useFavorites() {
     }
   };
 
+  const isFavorite = (productId: string) => {
+    return favorites.some(f => f.product_id === productId);
+  };
+
+  const getFavoriteId = (productId: string) => {
+    return favorites.find(f => f.product_id === productId)?.id;
+  };
+
   useEffect(() => {
     loadFavorites();
   }, []);
@@ -232,12 +292,15 @@ export function useFavorites() {
     favorites,
     loading,
     stats,
+    addFavorite,
     updatePriority,
     updateOccasion,
     toggleAlternatives,
     updateContextUsage,
     updateNotes,
     removeFavorite,
+    isFavorite,
+    getFavoriteId,
     refresh: loadFavorites
   };
 }
