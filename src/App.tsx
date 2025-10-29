@@ -24,6 +24,7 @@ import CollectiveCheckout from "./pages/CollectiveCheckout";
 import CollectiveOrderConfirmation from "./pages/CollectiveOrderConfirmation";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import NotificationSettings from "./pages/NotificationSettings";
+import Preferences from "./pages/Preferences";
 import Community from "./pages/Community";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import UserManagement from "./pages/Admin/UserManagement";
@@ -101,6 +102,11 @@ const App = () => (
             <Route path="/cart" element={
               <ProtectedRoute>
                 <Cart />
+              </ProtectedRoute>
+            } />
+            <Route path="/preferences" element={
+              <ProtectedRoute>
+                <Preferences />
               </ProtectedRoute>
             } />
             <Route path="/checkout" element={

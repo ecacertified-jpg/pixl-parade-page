@@ -1,4 +1,4 @@
-import { User, BarChart3, Heart, Users, LogOut, Edit3, Store } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -156,6 +156,14 @@ export const ProfileDropdown = () => {
           >
             <Heart className="h-4 w-4 mr-3 text-muted-foreground" />
             <span className="text-sm font-medium">Articles préférés</span>
+          </button>
+
+          <button 
+            onClick={() => navigate("/preferences")}
+            className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+          >
+            <Settings className="h-4 w-4 mr-3 text-muted-foreground" />
+            <span className="text-sm font-medium">Mes Préférences</span>
           </button>
 
           {hasBusinessAccount && (
