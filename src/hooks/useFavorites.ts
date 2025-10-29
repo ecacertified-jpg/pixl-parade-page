@@ -50,17 +50,20 @@ export function useFavorites() {
       }
 
       const { data, error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .select(`
           *,
-          product:products(*)
+          products (*)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const enrichedFavorites = (data || []) as EnrichedFavorite[];
+      const enrichedFavorites = (data || []).map((item: any) => ({
+        ...item,
+        product: item.products
+      })) as EnrichedFavorite[];
       setFavorites(enrichedFavorites);
 
       // Calculate stats
@@ -88,7 +91,7 @@ export function useFavorites() {
   const updatePriority = async (favoriteId: string, priority: PriorityLevel) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .update({ priority_level: priority })
         .eq('id', favoriteId);
 
@@ -112,7 +115,7 @@ export function useFavorites() {
   const updateOccasion = async (favoriteId: string, occasion: OccasionType | null) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .update({ occasion_type: occasion })
         .eq('id', favoriteId);
 
@@ -136,7 +139,7 @@ export function useFavorites() {
   const toggleAlternatives = async (favoriteId: string, accept: boolean) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .update({ accept_alternatives: accept })
         .eq('id', favoriteId);
 
@@ -156,7 +159,7 @@ export function useFavorites() {
   const updateContextUsage = async (favoriteId: string, contexts: string[]) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .update({ context_usage: contexts })
         .eq('id', favoriteId);
 
@@ -176,7 +179,7 @@ export function useFavorites() {
   const updateNotes = async (favoriteId: string, notes: string) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .update({ notes })
         .eq('id', favoriteId);
 
@@ -200,7 +203,7 @@ export function useFavorites() {
   const removeFavorite = async (favoriteId: string) => {
     try {
       const { error } = await supabase
-        .from('favorites')
+        .from('user_favorites')
         .delete()
         .eq('id', favoriteId);
 

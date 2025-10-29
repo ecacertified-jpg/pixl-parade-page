@@ -1,125 +1,88 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Heart, Plus, Trash2, Gift } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  image_url: string;
-  category_id: string;
-}
-
-interface Favorite {
-  id: string;
-  product_id: string;
-  notes: string;
-  created_at: string;
-  product: Product;
-}
+import { useFavorites } from "@/hooks/useFavorites";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { FavoriteStatsBar } from "@/components/favorites/FavoriteStatsBar";
+import { FavoriteFilters } from "@/components/favorites/FavoriteFilters";
+import { EnrichedFavoriteCard } from "@/components/favorites/EnrichedFavoriteCard";
+import { Link } from "react-router-dom";
 
 export default function Favorites() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    favorites,
+    loading,
+    stats,
+    updatePriority,
+    updateOccasion,
+    toggleAlternatives,
+    updateContextUsage,
+    updateNotes,
+    removeFavorite,
+  } = useFavorites();
 
-  useEffect(() => {
-    document.title = "Mes Favoris | JOIE DE VIVRE";
-    if (user) {
-      loadFavorites();
-    }
-  }, [user]);
+  const { preferences, completionScore } = useUserPreferences();
 
-  const loadFavorites = async () => {
-    if (!user) return;
+  const [selectedOccasion, setSelectedOccasion] = useState('all');
+  const [sortBy, setSortBy] = useState('priority');
+
+  // Filter and sort favorites
+  const filteredAndSorted = favorites
+    .filter(fav => {
+      if (selectedOccasion === 'all') return true;
+      return fav.occasion_type === selectedOccasion;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'priority':
+          const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+          return priorityOrder[a.priority_level] - priorityOrder[b.priority_level];
+        case 'date_desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'date_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'price_desc':
+          return (b.product?.price || 0) - (a.product?.price || 0);
+        case 'price_asc':
+          return (a.product?.price || 0) - (b.product?.price || 0);
+        default:
+          return 0;
+      }
+    });
+
+  const handleAddToCart = async (productId: string) => {
+    const favorite = favorites.find(f => f.product?.id === productId);
+    if (!favorite?.product) return;
+
+    const product = favorite.product;
+
+    // Add to localStorage cart
+    const savedCart = localStorage.getItem('cart');
+    const cartItems = savedCart ? JSON.parse(savedCart) : [];
     
-    try {
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select(`
-          id,
-          product_id,
-          notes,
-          created_at,
-          products (
-            id,
-            name,
-            description,
-            price,
-            currency,
-            image_url,
-            category_id
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const formattedFavorites = data?.map(item => ({
-        id: item.id,
-        product_id: item.product_id,
-        notes: item.notes || '',
-        created_at: item.created_at,
-        product: item.products ? item.products as any as Product : {
-          id: '',
-          name: 'Produit introuvable',
-          description: '',
-          price: 0,
-          currency: 'XOF',
-          image_url: '',
-          category_id: ''
-        }
-      })) || [];
-
-      setFavorites(formattedFavorites);
-    } catch (error) {
-      console.error('Error loading favorites:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger vos favoris",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeFavorite = async (favoriteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .delete()
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      setFavorites(prev => prev.filter(fav => fav.id !== favoriteId));
-      toast({
-        title: "Supprimé",
-        description: "Article retiré de vos favoris"
-      });
-    } catch (error) {
-      console.error('Error removing favorite:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer cet article",
-        variant: "destructive"
+    const existingItemIndex = cartItems.findIndex((item: any) => item.product_id === product.id);
+    
+    if (existingItemIndex > -1) {
+      cartItems[existingItemIndex].quantity += 1;
+    } else {
+      cartItems.push({
+        product_id: product.id,
+        quantity: 1,
+        price: product.price,
+        name: product.name,
+        image_url: product.image_url || '',
+        currency: product.currency
       });
     }
-  };
+    
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+    window.dispatchEvent(new Event('cartUpdated'));
 
-  const addToCart = (product: Product) => {
     toast({
       title: "Ajouté au panier",
       description: `${product.name} a été ajouté à votre panier`
@@ -140,7 +103,7 @@ export default function Favorites() {
   return (
     <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -152,142 +115,101 @@ export default function Favorites() {
             </Button>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
-                  {/* Ribbon bow */}
-                  <div className="absolute -top-1 -right-1 w-3 h-3">
-                    <div className="w-full h-full bg-yellow-400 rounded-sm rotate-45 relative">
-                      <div className="absolute inset-0 bg-yellow-500 rounded-sm transform -rotate-90"></div>
-                    </div>
-                  </div>
-                </div>
-                <h1 className="text-xl font-semibold">Mes Favoris</h1>
+                <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
+                <h1 className="text-xl font-semibold">Ma Liste de Souhaits</h1>
               </div>
-              <p className="text-sm text-muted-foreground">{favorites.length} article{favorites.length > 1 ? 's' : ''}</p>
+              <p className="text-sm text-muted-foreground">
+                Gérez vos articles préférés et aidez vos proches à vous gâter
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="p-2"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                </svg>
+              <Button variant="outline" size="sm" onClick={() => navigate('/cart')}>
+                <ShoppingCart className="h-5 w-5" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate('/cart')}
-                className="p-2"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6.5-5a2 2 0 104 0m-4 0a2 2 0 004 0" />
-                </svg>
+              <Button variant="outline" size="sm">
+                <Share2 className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6">
-        {favorites.length === 0 ? (
-          <div className="text-center py-12 px-6">
-            <div className="relative mx-auto mb-6 w-20 h-20">
-              <div className="absolute inset-0 bg-gradient-to-br from-pink-400 via-red-400 to-orange-400 rounded-full flex items-center justify-center">
-                <Heart className="h-10 w-10 text-white fill-white" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-                <Gift className="h-4 w-4 text-yellow-800" />
-              </div>
-            </div>
-            <h2 className="text-lg font-semibold mb-3 text-foreground">
-              Aucun favori pour l'instant
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <div className="space-y-6">
+          {/* Preferences completion alert */}
+          {completionScore < 70 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Complétez vos{" "}
+                <Link to="/preferences" className="font-medium underline">
+                  préférences
+                </Link>
+                {" "}pour que vos amis puissent mieux vous gâter ! ({completionScore}% complété)
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Stats */}
+          <FavoriteStatsBar 
+            total={stats.total}
+            urgent={stats.urgent}
+            estimatedBudget={stats.estimatedBudget}
+          />
+
+          {/* Filters */}
+          <FavoriteFilters
+            selectedOccasion={selectedOccasion}
+            onOccasionChange={setSelectedOccasion}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredAndSorted.length === 0 ? (
+          <div className="text-center py-12">
+            <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">
+              {favorites.length === 0 
+                ? "Aucun favori pour le moment" 
+                : "Aucun résultat pour ces filtres"}
             </h2>
-            <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-              Ajoutez des produits à vos favoris pour que vos amis<br />
-              sachent quoi vous offrir !
+            <p className="text-muted-foreground mb-4">
+              {favorites.length === 0
+                ? "Explorez notre boutique et créez votre liste de souhaits !"
+                : "Essayez de modifier vos filtres pour voir plus d'articles"}
             </p>
-            <Button 
-              onClick={() => navigate('/shop')} 
-              className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-3 rounded-full font-medium"
-            >
-              Découvrir les produits
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate('/shop')}>
+                Découvrir la boutique
+              </Button>
+              {favorites.length > 0 && (
+                <Button variant="outline" onClick={() => { setSelectedOccasion('all'); setSortBy('priority'); }}>
+                  Réinitialiser les filtres
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
-          <>
-            <div className="mb-4">
-              <Card className="p-3 bg-gradient-to-r from-pink-50 to-purple-50 border-pink-200/50">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-pink-500">💡</span>
-                  <span className="text-pink-700">
-                    Vos amis peuvent voir cette liste pour mieux vous gâter !
-                  </span>
-                </div>
-              </Card>
-            </div>
-
-            <div className="space-y-4">
-              {favorites.map((favorite) => (
-                <Card key={favorite.id} className="overflow-hidden">
-                  <div className="flex">
-                    <div className="w-24 h-24 bg-muted">
-                      {favorite.product.image_url ? (
-                        <img 
-                          src={favorite.product.image_url} 
-                          alt={favorite.product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Gift className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-sm mb-1">{favorite.product.name}</h3>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {favorite.product.description}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {favorite.product.price.toLocaleString()} {favorite.product.currency}
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFavorite(favorite.id)}
-                          className="p-1 h-auto text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {favorite.notes && (
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Note: {favorite.notes}
-                        </p>
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        onClick={() => addToCart(favorite.product)}
-                        className="w-full bg-primary hover:bg-primary/90 text-xs"
-                      >
-                        Ajouter au panier
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </>
+          <div className="space-y-4 mt-6">
+            {filteredAndSorted.map((favorite) => (
+              <EnrichedFavoriteCard
+                key={favorite.id}
+                favorite={favorite}
+                onUpdatePriority={updatePriority}
+                onUpdateOccasion={updateOccasion}
+                onToggleAlternatives={toggleAlternatives}
+                onUpdateContextUsage={updateContextUsage}
+                onUpdateNotes={updateNotes}
+                onRemove={removeFavorite}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
         )}
 
         <div className="pb-20" />
