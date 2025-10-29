@@ -947,6 +947,45 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          accept_alternatives: boolean | null
+          context_usage: string[] | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          occasion_type: string | null
+          priority_level: string | null
+          product_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accept_alternatives?: boolean | null
+          context_usage?: string[] | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          occasion_type?: string | null
+          priority_level?: string | null
+          product_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accept_alternatives?: boolean | null
+          context_usage?: string[] | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          occasion_type?: string | null
+          priority_level?: string | null
+          product_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fund_activities: {
         Row: {
           activity_type: string
@@ -3174,6 +3213,27 @@ export type Database = {
           sync_funds?: boolean | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      wishlist_views: {
+        Row: {
+          id: string
+          viewed_at: string | null
+          viewer_id: string
+          wishlist_owner_id: string
+        }
+        Insert: {
+          id?: string
+          viewed_at?: string | null
+          viewer_id: string
+          wishlist_owner_id: string
+        }
+        Update: {
+          id?: string
+          viewed_at?: string | null
+          viewer_id?: string
+          wishlist_owner_id?: string
         }
         Relationships: []
       }
