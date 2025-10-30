@@ -10,15 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 
 export const BusinessProfileDropdown = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { businessAccount } = useBusinessAccount();
+  const { stats, loading: statsLoading } = useBusinessAnalytics(businessAccount?.id);
 
   const handleSignOut = async () => {
     try {
@@ -83,15 +86,29 @@ export const BusinessProfileDropdown = () => {
         <div className="px-6 py-4 bg-background border-b border-border">
           <div className="flex justify-between text-center">
             <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">24</div>
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">{stats?.activeProducts || 0}</div>
+              )}
               <div className="text-muted-foreground text-xs">Produits</div>
             </div>
             <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">156</div>
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">{stats?.monthlyOrders || 0}</div>
+              )}
               <div className="text-muted-foreground text-xs">Commandes</div>
             </div>
             <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">4.8</div>
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">
+                  {stats?.averageProductRating ? stats.averageProductRating.toFixed(1) : '-'}
+                </div>
+              )}
               <div className="text-muted-foreground text-xs">Note</div>
             </div>
           </div>
