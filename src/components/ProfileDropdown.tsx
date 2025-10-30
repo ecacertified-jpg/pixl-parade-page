@@ -9,16 +9,19 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
 import { ModeSwitcher } from "@/components/ModeSwitcher";
+import { useUserStats } from "@/hooks/useUserStats";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
   const { user, loading, hasBusinessAccount } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { stats, loading: statsLoading } = useUserStats();
   const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; bio?: string }>({});
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
 
@@ -118,16 +121,28 @@ export const ProfileDropdown = () => {
         <div className="px-6 py-4 bg-background border-b border-border">
           <div className="flex justify-between text-center">
             <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">128</div>
-              <div className="text-muted-foreground text-xs">Suivis</div>
-            </div>
-            <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">64</div>
-              <div className="text-muted-foreground text-xs">Followers</div>
-            </div>
-            <div className="flex-1">
-              <div className="font-bold text-foreground text-lg">10</div>
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">{stats.friendsCount}</div>
+              )}
               <div className="text-muted-foreground text-xs">Amis</div>
+            </div>
+            <div className="flex-1">
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">{stats.giftsGiven}</div>
+              )}
+              <div className="text-muted-foreground text-xs">Donnés</div>
+            </div>
+            <div className="flex-1">
+              {statsLoading ? (
+                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+              ) : (
+                <div className="font-bold text-foreground text-lg">{stats.communityPoints}</div>
+              )}
+              <div className="text-muted-foreground text-xs">Points</div>
             </div>
           </div>
         </div>
