@@ -158,13 +158,6 @@ export const ProfileDropdown = () => {
             <span className="text-sm font-medium">Articles préférés</span>
           </button>
 
-          <button 
-            onClick={() => navigate("/preferences")}
-            className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-          >
-            <Settings className="h-4 w-4 mr-3 text-muted-foreground" />
-            <span className="text-sm font-medium">Mes Préférences</span>
-          </button>
 
           {hasBusinessAccount && (
             <>

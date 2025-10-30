@@ -26,6 +26,8 @@ import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
 import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotificationsSection";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
+import { OnboardingModal } from "@/components/OnboardingModal";
+import { useOnboarding } from "@/hooks/useOnboarding";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -43,7 +45,7 @@ interface Friend {
 }
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
@@ -70,6 +72,10 @@ export default function Dashboard() {
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
   const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
+  
+  // Onboarding
+  const { shouldShowOnboarding, completeOnboarding } = useOnboarding();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'amis');
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -87,6 +93,22 @@ export default function Dashboard() {
     loadEventsFromStorage();
     loadUserProfile();
   }, [user]);
+
+  // Handle URL parameters for tab switching and auto-open modals
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const add = searchParams.get('add');
+    
+    if (tab === 'amis') {
+      setActiveTab('amis');
+      if (add === 'true') {
+        setShowAddFriendModal(true);
+        // Clean up URL params after opening modal
+        searchParams.delete('add');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, setSearchParams]);
   const loadFriendsFromStorage = () => {
     const savedFriends = localStorage.getItem('friends');
     if (savedFriends) {
@@ -398,7 +420,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Onglets */}
-        <Tabs defaultValue={defaultTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-4">
             <TabsTrigger value="amis" className="flex gap-1 text-xs"><Users className="h-3 w-3" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-1 text-xs"><CalendarDays className="h-3 w-3" aria-hidden />Événements</TabsTrigger>
@@ -555,6 +577,12 @@ export default function Dashboard() {
         <ShopForCollectiveGiftModal 
           isOpen={showShopForCollectiveGiftModal} 
           onClose={() => setShowShopForCollectiveGiftModal(false)} 
+        />
+        
+        {/* Onboarding Modal */}
+        <OnboardingModal
+          open={shouldShowOnboarding}
+          onComplete={completeOnboarding}
         />
         
         <BottomNavigation />

@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -9,7 +11,6 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { FavoriteStatsBar } from "@/components/favorites/FavoriteStatsBar";
 import { FavoriteFilters } from "@/components/favorites/FavoriteFilters";
 import { EnrichedFavoriteCard } from "@/components/favorites/EnrichedFavoriteCard";
-import { Link } from "react-router-dom";
 
 export default function Favorites() {
   const navigate = useNavigate();
@@ -136,19 +137,39 @@ export default function Favorites() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">
-          {/* Preferences completion alert */}
-          {completionScore < 70 && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Complétez vos{" "}
-                <Link to="/preferences" className="font-medium underline">
-                  préférences
-                </Link>
-                {" "}pour que vos amis puissent mieux vous gâter ! ({completionScore}% complété)
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Mes Préférences Card */}
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex gap-3 flex-1">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Settings className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground mb-1">Mes Préférences</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Complétez vos préférences pour que vos amis puissent mieux vous gâter !
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Progress value={completionScore} className="flex-1 h-2" />
+                      <span className="text-sm font-medium text-primary">{completionScore}%</span>
+                    </div>
+                    {completionScore < 100 && (
+                      <div className="flex items-start gap-2 mt-2">
+                        <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground">
+                          Plus votre profil est complet, plus vos amis sauront quoi vous offrir
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <Button onClick={() => navigate('/preferences')} size="sm">
+                  {completionScore < 100 ? 'Compléter' : 'Modifier'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Stats */}
           <FavoriteStatsBar 

@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { Store } from 'lucide-react';
-import { handleSmartRedirect } from '@/utils/authRedirect';
+import { handleSmartRedirect, getRedirectPath } from '@/utils/authRedirect';
 
 const phoneRegex = /^(\+225)?[0-9]{8,10}$/;
 
@@ -181,11 +181,42 @@ const Auth = () => {
       }
 
       if (authData.user) {
+        // Check if this is a new signup by checking profile creation time
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('user_id', authData.user.id)
+          .single();
+
+        const isNewSignup = profileData && 
+          (new Date().getTime() - new Date(profileData.created_at).getTime()) < 60000; // Less than 1 minute old
+
         toast({
           title: authMode === 'signup' ? 'Compte créé' : 'Connexion réussie',
           description: authMode === 'signup' ? 'Votre compte a été créé avec succès' : 'Vous êtes maintenant connecté',
         });
-        await handleSmartRedirect(authData.user, navigate);
+        
+        // If new signup, add onboarding parameter
+        if (isNewSignup || authMode === 'signup') {
+          const redirectPath = await (async () => {
+            try {
+              const { data: businessAccount } = await supabase
+                .from('business_accounts')
+                .select('id')
+                .eq('user_id', authData.user.id)
+                .eq('is_active', true)
+                .limit(1)
+                .maybeSingle();
+              
+              return businessAccount ? '/business-account' : '/dashboard';
+            } catch {
+              return '/dashboard';
+            }
+          })();
+          navigate(`${redirectPath}?onboarding=true`);
+        } else {
+          await handleSmartRedirect(authData.user, navigate);
+        }
       }
     } catch (error) {
       toast({
