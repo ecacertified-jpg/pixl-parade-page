@@ -4,13 +4,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { PostCard } from "@/components/PostCard";
-
 export function NewsFeed() {
-  const { user } = useAuth();
-  const { posts, loading, toggleReaction, refreshPosts } = usePosts();
+  const {
+    user
+  } = useAuth();
+  const {
+    posts,
+    loading,
+    toggleReaction,
+    refreshPosts
+  } = usePosts();
   if (loading) {
     return <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-400">
           <Heart className="h-5 w-5 text-primary" />
           Fil d'actualités
         </h3>
@@ -46,24 +52,14 @@ export function NewsFeed() {
         </Card>
       </div>;
   }
-  return (
-    <div>
+  return <div>
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
         <Heart className="h-5 w-5 text-primary" />
         Fil d'actualités
       </h3>
 
       <div className="space-y-4">
-        {posts.map(post => (
-          <PostCard
-            key={post.id}
-            post={post}
-            currentUserId={user?.id || null}
-            toggleReaction={toggleReaction}
-            refreshPosts={refreshPosts}
-          />
-        ))}
+        {posts.map(post => <PostCard key={post.id} post={post} currentUserId={user?.id || null} toggleReaction={toggleReaction} refreshPosts={refreshPosts} />)}
       </div>
-    </div>
-  );
+    </div>;
 }
