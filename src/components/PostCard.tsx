@@ -1,56 +1,89 @@
-import { MessageCircle, Share2, Heart, Gift, PartyPopper, MoreHorizontal, Play } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Heart, MessageCircle, Share2, Gift, PartyPopper, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export interface Post {
-  id: string;
-  author: {
-    name: string;
-    avatar?: string;
-    initials: string;
-  };
-  content: string;
-  timestamp: string;
-  type: 'text' | 'image' | 'video' | 'audio';
-  media?: {
-    url: string;
-    thumbnail?: string;
-  };
-  occasion?: string;
-  reactions: {
-    love: number;
-    gift: number;
-    like: number;
-  };
-  comments: number;
-  userReaction?: 'love' | 'gift' | 'like' | null;
-}
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CommentsSection } from "@/components/CommentsSection";
+import { ShareMenu } from "@/components/ShareMenu";
+import { GiftPromiseModal } from "@/components/GiftPromiseModal";
+import { PostActionsMenu } from "@/components/PostActionsMenu";
+import { toast } from "sonner";
+import type { PostData } from "@/hooks/usePosts";
 
 interface PostCardProps {
-  post: Post;
+  post: PostData;
+  currentUserId: string | null;
+  toggleReaction: (postId: string, reactionType: 'love' | 'gift' | 'like') => Promise<void>;
+  refreshPosts: () => void;
 }
 
-export function PostCard({ post }: PostCardProps) {
-  const [userReaction, setUserReaction] = useState<'love' | 'gift' | 'like' | null>(post.userReaction || null);
+export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [giftWarningShown, setGiftWarningShown] = useState(false);
+  const [giftPopoverOpen, setGiftPopoverOpen] = useState(false);
+  const [showGiftPromise, setShowGiftPromise] = useState(false);
+  const [giftPromisePost, setGiftPromisePost] = useState<{ postId: string; authorName: string } | null>(null);
 
-  const handleReaction = (reaction: 'love' | 'gift' | 'like') => {
-    setUserReaction(prev => prev === reaction ? null : reaction);
+  const authorName = post.profiles?.first_name
+    ? `${post.profiles.first_name} ${post.profiles.last_name || ''}`
+    : 'Utilisateur';
+  const initials = authorName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+  const timestamp = formatDistanceToNow(new Date(post.created_at), {
+    addSuffix: true,
+    locale: fr,
+  });
+
+  // Réinitialiser l'avertissement après 10 secondes
+  useEffect(() => {
+    if (giftWarningShown) {
+      const timer = setTimeout(() => {
+        setGiftWarningShown(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [giftWarningShown]);
+
+  const handleGiftClick = () => {
+    // Vibration haptique si disponible
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
+
+    if (giftWarningShown) {
+      // Deuxième clic : afficher la modal de confirmation
+      setGiftPromisePost({ postId: post.id, authorName });
+      setShowGiftPromise(true);
+      setGiftPopoverOpen(false);
+    } else {
+      // Premier clic : afficher l'avertissement
+      setGiftWarningShown(true);
+      setGiftPopoverOpen(true);
+
+      // Fermer automatiquement après 3 secondes
+      setTimeout(() => {
+        setGiftPopoverOpen(false);
+      }, 3000);
+    }
   };
 
-  const getReactionCount = (reaction: 'love' | 'gift' | 'like') => {
-    const baseCount = post.reactions[reaction];
-    const hadReaction = post.userReaction === reaction;
-    const hasReaction = userReaction === reaction;
-    
-    if (hadReaction && !hasReaction) return baseCount - 1;
-    if (!hadReaction && hasReaction) return baseCount + 1;
-    return baseCount;
+  const handleGiftPromiseConfirm = async () => {
+    if (giftPromisePost) {
+      await toggleReaction(giftPromisePost.postId, 'gift');
+      toast.success('🎁 Promesse de cadeau enregistrée avec succès !');
+      setGiftWarningShown(false);
+      setShowGiftPromise(false);
+      setGiftPromisePost(null);
+    }
   };
 
   return (
@@ -60,15 +93,14 @@ export function PostCard({ post }: PostCardProps) {
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src={post.author.avatar} alt={post.author.name} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
-                {post.author.initials}
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h4 className="font-medium text-foreground text-sm">{post.author.name}</h4>
+              <h4 className="font-medium text-foreground text-sm">{authorName}</h4>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-muted-foreground">{post.timestamp}</p>
+                <p className="text-xs text-muted-foreground">{timestamp}</p>
                 {post.occasion && (
                   <Badge variant="secondary" className="text-xs px-2 py-0.5">
                     {post.occasion}
@@ -77,49 +109,56 @@ export function PostCard({ post }: PostCardProps) {
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          <PostActionsMenu
+            postId={post.id}
+            authorId={post.user_id}
+            currentUserId={currentUserId}
+            isPinned={post.is_pinned}
+            postContent={post.content}
+            postMediaUrl={post.media_url}
+            postMediaType={post.type}
+            postOccasion={post.occasion}
+            onRefresh={refreshPosts}
+          />
         </div>
 
         {/* Content */}
-        <div className="mb-3">
-          <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
-            {post.content}
-          </p>
-        </div>
+        {post.content && (
+          <div className="mb-3">
+            <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
+              {post.content}
+            </p>
+          </div>
+        )}
 
         {/* Media */}
-        {post.media && (
+        {post.media_url && (
           <div className="mb-3 rounded-xl overflow-hidden">
             {post.type === 'image' && (
-              <img 
-                src={post.media.url} 
-                alt="Post content" 
+              <img
+                src={post.media_url}
+                alt="Post content"
                 className="w-full h-auto object-cover"
               />
             )}
             {post.type === 'video' && (
               <div className="relative">
-                <img 
-                  src={post.media.thumbnail || post.media.url} 
-                  alt="Video thumbnail" 
-                  className="w-full h-48 object-cover"
+                <video
+                  src={post.media_url}
+                  controls
+                  className="w-full h-auto object-cover"
                 />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="bg-white/90 rounded-full p-3">
-                    <Play className="h-6 w-6 text-black fill-current ml-1" />
-                  </div>
-                </div>
               </div>
             )}
-            {post.type === 'audio' && (
+            {(post.type === 'audio' || post.type === 'ai_song') && (
               <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-4 rounded-xl flex items-center gap-3">
                 <div className="bg-primary/20 p-2 rounded-full">
                   <Play className="h-4 w-4 text-primary fill-current" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Message audio</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {post.type === 'ai_song' ? 'Chant IA' : 'Message audio'}
+                  </p>
                   <p className="text-xs text-muted-foreground">Appuyez pour écouter</p>
                 </div>
               </div>
@@ -128,31 +167,31 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Reactions Summary */}
-        {(post.reactions.love > 0 || post.reactions.gift > 0 || post.reactions.like > 0) && (
+        {post.reactions && (post.reactions.love > 0 || post.reactions.gift > 0 || post.reactions.like > 0) && (
           <div className="flex items-center gap-4 mb-3 pb-3 border-b border-border/30">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {getReactionCount('love') > 0 && (
+              {post.reactions.love > 0 && (
                 <span className="flex items-center gap-1">
                   <Heart className="h-3 w-3 text-red-500 fill-current" />
-                  {getReactionCount('love')}
+                  {post.reactions.love}
                 </span>
               )}
-              {getReactionCount('gift') > 0 && (
+              {post.reactions.gift > 0 && (
                 <span className="flex items-center gap-1">
                   <Gift className="h-3 w-3 text-primary fill-current" />
-                  {getReactionCount('gift')}
+                  {post.reactions.gift}
                 </span>
               )}
-              {getReactionCount('like') > 0 && (
+              {post.reactions.like > 0 && (
                 <span className="flex items-center gap-1">
                   <PartyPopper className="h-3 w-3 text-blue-500 fill-current" />
-                  {getReactionCount('like')}
+                  {post.reactions.like}
                 </span>
               )}
             </div>
-            {post.comments > 0 && (
+            {post.comments_count! > 0 && (
               <span className="text-xs text-muted-foreground ml-auto">
-                {post.comments} commentaire{post.comments > 1 ? 's' : ''}
+                {post.comments_count} commentaire{post.comments_count! > 1 ? 's' : ''}
               </span>
             )}
           </div>
@@ -163,51 +202,55 @@ export function PostCard({ post }: PostCardProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleReaction('love')}
+            onClick={() => toggleReaction(post.id, 'love')}
             className={cn(
               "flex-1 h-8 text-xs gap-1 px-1 hover:bg-red-50 hover:text-red-600 transition-colors",
-              userReaction === 'love' && "bg-red-50 text-red-600"
+              post.user_reaction === 'love' && "bg-red-50 text-red-600"
             )}
           >
-            <Heart className={cn("h-3.5 w-3.5", userReaction === 'love' && "fill-current")} />
+            <Heart className={cn("h-3.5 w-3.5", post.user_reaction === 'love' && "fill-current")} />
             <span className="hidden sm:inline">J'adore</span>
           </Button>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleReaction('gift')}
-                  className={cn(
-                    "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
-                    userReaction === 'gift' && "bg-primary/10 text-primary"
-                  )}
-                >
-                  <Gift className={cn("h-3.5 w-3.5", userReaction === 'gift' && "fill-current")} />
-                  <span className="hidden sm:inline">Cadeau</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-center">
-                <p className="text-xs">Attention, vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
+
+          <Popover open={giftPopoverOpen} onOpenChange={setGiftPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGiftClick}
+                className={cn(
+                  "flex-1 h-8 text-xs gap-1 px-1 hover:bg-primary/10 hover:text-primary transition-colors",
+                  post.user_reaction === 'gift' && "bg-primary/10 text-primary"
+                )}
+              >
+                <Gift className={cn("h-3.5 w-3.5", post.user_reaction === 'gift' && "fill-current")} />
+                <span className="hidden sm:inline">Cadeau</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" side="top">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-foreground">⚠️ Attention</p>
+                <p className="text-xs text-muted-foreground">
+                  Vous allez faire une promesse de contribuer à offrir un cadeau à cette personne à son anniversaire. 
+                  Cliquez à nouveau pour confirmer.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleReaction('like')}
+            onClick={() => toggleReaction(post.id, 'like')}
             className={cn(
               "flex-1 h-8 text-xs gap-1 px-1 hover:bg-blue-50 hover:text-blue-600 transition-colors",
-              userReaction === 'like' && "bg-blue-50 text-blue-600"
+              post.user_reaction === 'like' && "bg-blue-50 text-blue-600"
             )}
           >
-            <PartyPopper className={cn("h-3.5 w-3.5", userReaction === 'like' && "fill-current")} />
+            <PartyPopper className={cn("h-3.5 w-3.5", post.user_reaction === 'like' && "fill-current")} />
             <span className="hidden sm:inline">Bravo</span>
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -217,17 +260,47 @@ export function PostCard({ post }: PostCardProps) {
             <MessageCircle className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Commenter</span>
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setShareMenuOpen(true)}
             className="flex-1 h-8 text-xs gap-1 px-1 hover:bg-muted/50 transition-colors"
           >
             <Share2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Partager</span>
           </Button>
         </div>
+
+        {/* Comments Section */}
+        {showComments && (
+          <CommentsSection 
+            postId={post.id} 
+            onCommentAdded={refreshPosts}
+          />
+        )}
       </div>
+
+      {/* Share Menu */}
+      <ShareMenu
+        open={shareMenuOpen}
+        onOpenChange={setShareMenuOpen}
+        postId={post.id}
+        postContent={post.content || ''}
+        authorName={authorName}
+      />
+
+      {/* Gift Promise Modal */}
+      <GiftPromiseModal 
+        open={showGiftPromise}
+        onOpenChange={(open) => {
+          setShowGiftPromise(open);
+          if (!open) setGiftPromisePost(null);
+        }}
+        onConfirm={handleGiftPromiseConfirm}
+        authorName={authorName}
+        occasion={post.occasion}
+      />
     </Card>
   );
 }

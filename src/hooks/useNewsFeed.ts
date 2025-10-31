@@ -1,5 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Post } from '@/components/PostCard';
+
+// Interface for legacy Post (not used in main app anymore)
+interface Post {
+  id: string;
+  author: {
+    name: string;
+    avatar?: string;
+    initials: string;
+  };
+  content: string;
+  timestamp: string;
+  type: 'text' | 'image' | 'video' | 'audio';
+  media?: {
+    url: string;
+    thumbnail?: string;
+  };
+  occasion?: string;
+  reactions: {
+    love: number;
+    gift: number;
+    like: number;
+  };
+  comments: number;
+  userReaction?: 'love' | 'gift' | 'like' | null;
+}
 
 // Mock data for news feed posts with emotional content
 const mockPosts: Post[] = [
