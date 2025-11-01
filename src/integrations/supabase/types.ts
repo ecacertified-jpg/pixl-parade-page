@@ -2358,9 +2358,12 @@ export type Database = {
           created_at: string
           first_name: string | null
           id: string
+          is_suspended: boolean | null
           last_name: string | null
           phone: string | null
           preferences: Json | null
+          suspended_at: string | null
+          suspension_reason: string | null
           updated_at: string
           user_id: string
         }
@@ -2371,9 +2374,12 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          suspended_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2384,9 +2390,12 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          suspended_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2610,6 +2619,102 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_transactions"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      reported_comments: {
+        Row: {
+          comment_id: string
+          created_at: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string | null
+          id?: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reported_comments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reported_comments_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      reported_posts: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          reason: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          reason?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reported_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reported_posts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
           },
         ]
       }
