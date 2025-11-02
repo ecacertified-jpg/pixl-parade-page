@@ -20,11 +20,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { AddAdminModal } from '@/components/admin/AddAdminModal';
+import { EditPermissionsModal } from '@/components/admin/EditPermissionsModal';
+import { RevokeAdminDialog } from '@/components/admin/RevokeAdminDialog';
 
 interface Admin {
   id: string;
   user_id: string;
   role: string;
+  permissions: any;
   is_active: boolean;
   created_at: string;
   assigned_at: string;
@@ -38,6 +42,13 @@ interface Admin {
 export default function AdminManagement() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [editPermissionsOpen, setEditPermissionsOpen] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
+  const [selectedAdminName, setSelectedAdminName] = useState('');
+  const [selectedAdminRole, setSelectedAdminRole] = useState<'super_admin' | 'moderator'>('moderator');
+  const [currentPermissions, setCurrentPermissions] = useState<any>({});
 
   useEffect(() => {
     fetchAdmins();
@@ -52,6 +63,7 @@ export default function AdminManagement() {
           id,
           user_id,
           role,
+          permissions,
           is_active,
           created_at,
           assigned_at,
@@ -110,7 +122,7 @@ export default function AdminManagement() {
               Gérer les accès administrateurs (Super Admin uniquement)
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setAddAdminOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Ajouter un administrateur
           </Button>
@@ -168,11 +180,24 @@ export default function AdminManagement() {
                           >
                             {admin.is_active ? 'Désactiver' : 'Activer'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedAdminId(admin.id);
+                            setSelectedAdminName(`${admin.profiles?.first_name || ''} ${admin.profiles?.last_name || ''}`.trim() || 'Admin');
+                            setSelectedAdminRole(admin.role as 'super_admin' | 'moderator');
+                            setCurrentPermissions(admin.permissions || {});
+                            setEditPermissionsOpen(true);
+                          }}>
                             Modifier les permissions
                           </DropdownMenuItem>
                           {admin.role !== 'super_admin' && (
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => {
+                                setSelectedAdminId(admin.id);
+                                setSelectedAdminName(`${admin.profiles?.first_name || ''} ${admin.profiles?.last_name || ''}`.trim() || 'Admin');
+                                setRevokeDialogOpen(true);
+                              }}
+                            >
                               Révoquer l'accès admin
                             </DropdownMenuItem>
                           )}
@@ -185,6 +210,31 @@ export default function AdminManagement() {
             </Table>
           </CardContent>
         </Card>
+        
+        {/* Modals */}
+        <AddAdminModal
+          open={addAdminOpen}
+          onOpenChange={setAddAdminOpen}
+          onSuccess={fetchAdmins}
+        />
+        
+        <EditPermissionsModal
+          adminId={selectedAdminId}
+          adminName={selectedAdminName}
+          adminRole={selectedAdminRole}
+          currentPermissions={currentPermissions}
+          open={editPermissionsOpen}
+          onOpenChange={setEditPermissionsOpen}
+          onSuccess={fetchAdmins}
+        />
+        
+        <RevokeAdminDialog
+          adminId={selectedAdminId}
+          adminName={selectedAdminName}
+          open={revokeDialogOpen}
+          onOpenChange={setRevokeDialogOpen}
+          onSuccess={fetchAdmins}
+        />
       </div>
     </AdminLayout>
   );

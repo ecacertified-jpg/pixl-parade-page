@@ -21,6 +21,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { UserProfileModal } from '@/components/admin/UserProfileModal';
+import { UserTransactionsModal } from '@/components/admin/UserTransactionsModal';
+import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 
 interface User {
   user_id: string;
@@ -29,12 +32,19 @@ interface User {
   phone: string | null;
   created_at: string;
   bio: string | null;
+  is_suspended: boolean;
 }
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
+  const [selectedUserSuspended, setSelectedUserSuspended] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -45,7 +55,7 @@ export default function UserManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, phone, created_at, bio')
+        .select('user_id, first_name, last_name, phone, created_at, bio, is_suspended')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -128,10 +138,17 @@ export default function UserManagement() {
                     <TableCell>{user.phone || 'Non renseigné'}</TableCell>
                     <TableCell>{formatDate(user.created_at)}</TableCell>
                     <TableCell>
-                      <Badge variant="default">
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                        Actif
-                      </Badge>
+                      {user.is_suspended ? (
+                        <Badge variant="destructive">
+                          <XCircle className="mr-1 h-3 w-3" />
+                          Suspendu
+                        </Badge>
+                      ) : (
+                        <Badge variant="default">
+                          <CheckCircle className="mr-1 h-3 w-3" />
+                          Actif
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -141,15 +158,31 @@ export default function UserManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUserId(user.user_id);
+                            setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
+                            setProfileModalOpen(true);
+                          }}>
                             Voir le profil
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUserId(user.user_id);
+                            setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
+                            setTransactionsModalOpen(true);
+                          }}>
                             Historique des transactions
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => {
+                              setSelectedUserId(user.user_id);
+                              setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
+                              setSelectedUserSuspended(user.is_suspended);
+                              setSuspendDialogOpen(true);
+                            }}
+                          >
                             <Ban className="mr-2 h-4 w-4" />
-                            Suspendre le compte
+                            {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -160,6 +193,29 @@ export default function UserManagement() {
             </Table>
           </CardContent>
         </Card>
+        
+        {/* Modals */}
+        <UserProfileModal 
+          userId={selectedUserId}
+          open={profileModalOpen}
+          onOpenChange={setProfileModalOpen}
+        />
+        
+        <UserTransactionsModal
+          userId={selectedUserId}
+          userName={selectedUserName}
+          open={transactionsModalOpen}
+          onOpenChange={setTransactionsModalOpen}
+        />
+        
+        <SuspendUserDialog
+          userId={selectedUserId}
+          userName={selectedUserName}
+          isSuspended={selectedUserSuspended}
+          open={suspendDialogOpen}
+          onOpenChange={setSuspendDialogOpen}
+          onSuccess={fetchUsers}
+        />
       </div>
     </AdminLayout>
   );

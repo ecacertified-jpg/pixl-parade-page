@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 
 interface Business {
   id: string;
@@ -37,6 +38,8 @@ export default function BusinessManagement() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     fetchBusinesses();
@@ -214,7 +217,10 @@ export default function BusinessManagement() {
                           >
                             {business.is_active ? 'Désactiver' : 'Activer'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedBusinessId(business.id);
+                            setProfileModalOpen(true);
+                          }}>
                             Voir le profil complet
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -226,6 +232,13 @@ export default function BusinessManagement() {
             </Table>
           </CardContent>
         </Card>
+        
+        {/* Modal */}
+        <BusinessProfileModal
+          businessId={selectedBusinessId}
+          open={profileModalOpen}
+          onOpenChange={setProfileModalOpen}
+        />
       </div>
     </AdminLayout>
   );
