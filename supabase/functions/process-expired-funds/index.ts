@@ -199,9 +199,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Erreur dans process-expired-funds:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    console.error("[SERVER] Erreur dans process-expired-funds:", error);
+    return new Response(JSON.stringify({ 
+      error: 'Une erreur est survenue lors du traitement des cotisations expirées',
+      code: 'INTERNAL_ERROR'
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

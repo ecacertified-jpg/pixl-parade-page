@@ -219,9 +219,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Error in intelligent-notifications:", error);
+    console.error("[SERVER] Error in intelligent-notifications:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Une erreur est survenue lors de l\'analyse des notifications intelligentes',
+        code: 'INTERNAL_ERROR'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

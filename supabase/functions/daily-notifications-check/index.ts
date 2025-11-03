@@ -252,9 +252,12 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in daily-notifications-check:', error);
+    console.error('[SERVER] Error in daily-notifications-check:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Une erreur est survenue lors de la vérification des notifications',
+        code: 'INTERNAL_ERROR'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
