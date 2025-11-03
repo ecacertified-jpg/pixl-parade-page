@@ -3784,6 +3784,7 @@ export type Database = {
         Args: { p_message_id: string }
         Returns: undefined
       }
+      is_active_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_beneficiary_of_surprise: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
