@@ -2676,6 +2676,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_comment_reports_reviewed_by"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reported_comments_comment_id_fkey"
             columns: ["comment_id"]
             isOneToOne: false
@@ -2723,6 +2730,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_post_reports_reviewed_by"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reported_posts_post_id_fkey"
             columns: ["post_id"]
