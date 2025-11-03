@@ -637,6 +637,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "collective_funds_beneficiary_contact_id_fkey"
+            columns: ["beneficiary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "collective_funds_business_product_id_fkey"
             columns: ["business_product_id"]
             isOneToOne: false
@@ -738,6 +745,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
             referencedColumns: ["id"]
           },
         ]
@@ -1181,6 +1195,13 @@ export type Database = {
             columns: ["target_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_recommendations_target_contact_id_fkey"
+            columns: ["target_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
             referencedColumns: ["id"]
           },
         ]
@@ -2854,6 +2875,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_scheduled_notifications_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
         ]
       }
       security_events: {
@@ -3044,6 +3072,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_transaction_verifications_contact"
+            columns: ["beneficiary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_transaction_verifications_fund"
             columns: ["fund_id"]
             isOneToOne: false
@@ -3080,6 +3115,13 @@ export type Database = {
             columns: ["beneficiary_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_user_beneficiary_contact"
+            columns: ["beneficiary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
             referencedColumns: ["id"]
           },
         ]
@@ -3418,6 +3460,35 @@ export type Database = {
       }
     }
     Views: {
+      contacts_limited: {
+        Row: {
+          birthday: string | null
+          id: string | null
+          name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          birthday?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          birthday?: string | null
+          id?: string | null
+          name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       product_rating_stats: {
         Row: {
           average_rating: number | null
