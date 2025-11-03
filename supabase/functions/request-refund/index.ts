@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schema
+const RefundRequestSchema = z.object({
+  fund_id: z.string().uuid({ message: "Invalid fund ID format" }),
+  user_id: z.string().uuid({ message: "Invalid user ID format" }),
+  fund_title: z.string().min(1).max(200).optional()
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +20,22 @@ serve(async (req) => {
   }
 
   try {
-    const { fund_id, user_id, fund_title } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = RefundRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.error("Validation failed:", validationResult.error);
+      return new Response(JSON.stringify({ 
+        error: "Données invalides",
+        details: validationResult.error.errors 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    const { fund_id, user_id, fund_title } = validationResult.data;
 
     if (!fund_id || !user_id) {
       return new Response(JSON.stringify({ error: "Paramètres manquants" }), {
@@ -87,8 +110,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Erreur dans request-refund:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ 
+      error: "Une erreur est survenue lors du traitement de votre demande",
+      code: "INTERNAL_ERROR"
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

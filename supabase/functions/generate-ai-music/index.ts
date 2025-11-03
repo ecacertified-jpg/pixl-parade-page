@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const MusicGenerationSchema = z.object({
+  prompt: z.string().min(1).max(500).trim(),
+  duration: z.number().int().min(1).max(30).default(8)
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,14 +19,21 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, duration = 8 } = await req.json();
+    const body = await req.json();
     
-    if (!prompt) {
+    // Validate input
+    const validationResult = MusicGenerationSchema.safeParse(body);
+    if (!validationResult.success) {
       return new Response(
-        JSON.stringify({ error: 'Le texte du chant est requis' }),
+        JSON.stringify({ 
+          error: 'Données invalides',
+          details: validationResult.error.errors
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    const { prompt, duration } = validationResult.data;
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
@@ -139,7 +153,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-ai-music:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur inconnue' }),
+      JSON.stringify({ 
+        error: "Une erreur est survenue lors de la génération du chant",
+        code: "INTERNAL_ERROR"
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

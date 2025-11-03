@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+// Input validation schema
+const NotificationRequestSchema = z.object({
+  fund_id: z.string().uuid({ message: "Invalid fund ID format" }),
+  notification_type: z.enum(['created', 'reminder', 'progress', 'completed']),
+  custom_message: z.string().max(500).optional()
+});
 
 interface NotificationRequest {
   fund_id: string;
@@ -24,7 +32,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { fund_id, notification_type, custom_message }: NotificationRequest = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validationResult = NotificationRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Données invalides',
+          details: validationResult.error.errors
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { fund_id, notification_type, custom_message } = validationResult.data;
 
     console.log(`Processing notification for fund ${fund_id}, type: ${notification_type}`);
 
@@ -174,7 +196,10 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('Error in notify-business-fund-contributors function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: "Une erreur est survenue lors de l'envoi des notifications",
+        code: "INTERNAL_ERROR"
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
