@@ -53,7 +53,7 @@ export function NewsFeed() {
       </div>;
   }
   return <div>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-400">
         <Heart className="h-5 w-5 text-primary" />
         Fil d'actualités
       </h3>
