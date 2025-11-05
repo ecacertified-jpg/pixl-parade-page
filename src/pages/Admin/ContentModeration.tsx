@@ -85,8 +85,8 @@ export default function ContentModeration() {
         .from('reported_posts')
         .select(`
           *,
-          posts(content, user_id, profiles:user_id(first_name, last_name)),
-          reporter:reporter_id(first_name, last_name)
+          posts!fk_reported_posts_post(content, user_id, profiles!fk_posts_user(first_name, last_name)),
+          reporter:profiles!fk_reported_posts_reporter(first_name, last_name)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -103,7 +103,7 @@ export default function ContentModeration() {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('id, content, created_at, user_id, profiles:user_id(first_name, last_name)')
+        .select('id, content, created_at, user_id, profiles!fk_posts_user(first_name, last_name)')
         .order('created_at', { ascending: false })
         .limit(50);
       
