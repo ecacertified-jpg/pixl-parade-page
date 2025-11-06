@@ -5,9 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, MoreVertical, Eye, TestTube, Trash2 } from 'lucide-react';
+import { AlertCircle, MoreVertical, Eye, TestTube, Trash2, Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { isToday, isThisWeek, isThisMonth } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,19 +82,42 @@ export default function ContentModeration() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
+  
+  // Filter by date first
+  const dateFilteredReports = reportedPosts.filter(report => {
+    const reportDate = new Date(report.created_at);
+    switch (selectedDateFilter) {
+      case 'today':
+        return isToday(reportDate);
+      case 'week':
+        return isThisWeek(reportDate, { weekStartsOn: 1 });
+      case 'month':
+        return isThisMonth(reportDate);
+      default:
+        return true;
+    }
+  });
   
   const reportReasons = [
-    { value: 'all', label: 'Tous', count: reportedPosts.length },
-    { value: 'spam', label: 'Spam', count: reportedPosts.filter(r => r.reason === 'spam').length },
-    { value: 'inappropriate', label: 'Inapproprié', count: reportedPosts.filter(r => r.reason === 'inappropriate').length },
-    { value: 'harassment', label: 'Harcèlement', count: reportedPosts.filter(r => r.reason === 'harassment').length },
-    { value: 'fake_news', label: 'Fausses infos', count: reportedPosts.filter(r => r.reason === 'fake_news').length },
-    { value: 'other', label: 'Autre', count: reportedPosts.filter(r => r.reason === 'other').length },
+    { value: 'all', label: 'Tous', count: dateFilteredReports.length },
+    { value: 'spam', label: 'Spam', count: dateFilteredReports.filter(r => r.reason === 'spam').length },
+    { value: 'inappropriate', label: 'Inapproprié', count: dateFilteredReports.filter(r => r.reason === 'inappropriate').length },
+    { value: 'harassment', label: 'Harcèlement', count: dateFilteredReports.filter(r => r.reason === 'harassment').length },
+    { value: 'fake_news', label: 'Fausses infos', count: dateFilteredReports.filter(r => r.reason === 'fake_news').length },
+    { value: 'other', label: 'Autre', count: dateFilteredReports.filter(r => r.reason === 'other').length },
+  ];
+  
+  const datePeriods = [
+    { value: 'all', label: 'Toutes périodes' },
+    { value: 'today', label: "Aujourd'hui" },
+    { value: 'week', label: 'Cette semaine' },
+    { value: 'month', label: 'Ce mois' },
   ];
   
   const filteredReports = selectedFilter === 'all' 
-    ? reportedPosts 
-    : reportedPosts.filter(report => report.reason === selectedFilter);
+    ? dateFilteredReports 
+    : dateFilteredReports.filter(report => report.reason === selectedFilter);
   
   useEffect(() => {
     fetchData();
@@ -288,7 +312,22 @@ export default function ContentModeration() {
                 <CardTitle>Signalements en attente</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Filters */}
+                {/* Date Filters */}
+                <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b">
+                  <Calendar className="h-4 w-4 text-muted-foreground self-center" />
+                  {datePeriods.map((period) => (
+                    <Button
+                      key={period.value}
+                      variant={selectedDateFilter === period.value ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setSelectedDateFilter(period.value)}
+                    >
+                      {period.label}
+                    </Button>
+                  ))}
+                </div>
+                
+                {/* Reason Filters */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   {reportReasons.map((reason) => (
                     <Button
