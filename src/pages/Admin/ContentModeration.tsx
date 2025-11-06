@@ -5,8 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, MoreVertical, Eye } from 'lucide-react';
+import { AlertCircle, MoreVertical, Eye, TestTube } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Table,
   TableBody,
@@ -58,9 +59,11 @@ interface RecentPost {
 }
 
 export default function ContentModeration() {
+  const { user } = useAuth();
   const [reportedPosts, setReportedPosts] = useState<ReportedPost[]>([]);
   const [recentPosts, setRecentPosts] = useState<RecentPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creatingTest, setCreatingTest] = useState(false);
   
   const [moderatePostOpen, setModeratePostOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -129,6 +132,56 @@ export default function ContentModeration() {
     return text.substring(0, maxLength) + '...';
   };
   
+  const createTestReport = async () => {
+    if (!user) {
+      toast.error('Utilisateur non connecté');
+      return;
+    }
+    
+    setCreatingTest(true);
+    try {
+      // Get a random post
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('id')
+        .limit(10);
+      
+      if (postsError) throw postsError;
+      
+      if (!posts || posts.length === 0) {
+        toast.error('Aucune publication disponible pour créer un signalement de test');
+        return;
+      }
+      
+      // Select random post
+      const randomPost = posts[Math.floor(Math.random() * posts.length)];
+      
+      // Random reasons for testing
+      const testReasons = ['spam', 'inappropriate', 'harassment', 'fake_news', 'other'];
+      const randomReason = testReasons[Math.floor(Math.random() * testReasons.length)];
+      
+      // Create test report
+      const { error: insertError } = await supabase
+        .from('reported_posts')
+        .insert({
+          post_id: randomPost.id,
+          reporter_id: user.id,
+          reason: randomReason,
+          status: 'pending'
+        });
+      
+      if (insertError) throw insertError;
+      
+      toast.success('Signalement de test créé avec succès !');
+      await fetchData();
+    } catch (error) {
+      console.error('Error creating test report:', error);
+      toast.error('Erreur lors de la création du signalement de test');
+    } finally {
+      setCreatingTest(false);
+    }
+  };
+  
   if (loading) {
     return (
       <AdminLayout>
@@ -142,11 +195,22 @@ export default function ContentModeration() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Modération du contenu</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérer les publications, commentaires et signalements
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Modération du contenu</h1>
+            <p className="text-muted-foreground mt-2">
+              Gérer les publications, commentaires et signalements
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={createTestReport}
+            disabled={creatingTest}
+          >
+            <TestTube className="mr-2 h-4 w-4" />
+            {creatingTest ? 'Création...' : 'Créer un signalement test'}
+          </Button>
         </div>
         
         <Tabs defaultValue="reports" className="w-full">
