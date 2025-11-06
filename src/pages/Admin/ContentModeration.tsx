@@ -80,6 +80,20 @@ export default function ContentModeration() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  
+  const reportReasons = [
+    { value: 'all', label: 'Tous', count: reportedPosts.length },
+    { value: 'spam', label: 'Spam', count: reportedPosts.filter(r => r.reason === 'spam').length },
+    { value: 'inappropriate', label: 'Inapproprié', count: reportedPosts.filter(r => r.reason === 'inappropriate').length },
+    { value: 'harassment', label: 'Harcèlement', count: reportedPosts.filter(r => r.reason === 'harassment').length },
+    { value: 'fake_news', label: 'Fausses infos', count: reportedPosts.filter(r => r.reason === 'fake_news').length },
+    { value: 'other', label: 'Autre', count: reportedPosts.filter(r => r.reason === 'other').length },
+  ];
+  
+  const filteredReports = selectedFilter === 'all' 
+    ? reportedPosts 
+    : reportedPosts.filter(report => report.reason === selectedFilter);
   
   useEffect(() => {
     fetchData();
@@ -274,11 +288,32 @@ export default function ContentModeration() {
                 <CardTitle>Signalements en attente</CardTitle>
               </CardHeader>
               <CardContent>
-                {reportedPosts.length === 0 ? (
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {reportReasons.map((reason) => (
+                    <Button
+                      key={reason.value}
+                      variant={selectedFilter === reason.value ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedFilter(reason.value)}
+                      className="flex items-center gap-2"
+                    >
+                      {reason.label}
+                      <Badge variant="secondary" className="ml-1">
+                        {reason.count}
+                      </Badge>
+                    </Button>
+                  ))}
+                </div>
+                
+                {filteredReports.length === 0 ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Aucun signalement en attente de traitement.
+                      {selectedFilter === 'all' 
+                        ? 'Aucun signalement en attente de traitement.'
+                        : `Aucun signalement de type "${reportReasons.find(r => r.value === selectedFilter)?.label}".`
+                      }
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -294,7 +329,7 @@ export default function ContentModeration() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {reportedPosts.map((report) => (
+                      {filteredReports.map((report) => (
                         <TableRow key={report.id}>
                           <TableCell className="max-w-xs">
                             {truncateText(report.posts?.content || 'Contenu supprimé')}
