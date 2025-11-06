@@ -5,9 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, MoreVertical, Eye, TestTube } from 'lucide-react';
+import { AlertCircle, MoreVertical, Eye, TestTube, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -68,6 +78,8 @@ export default function ContentModeration() {
   const [moderatePostOpen, setModeratePostOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   useEffect(() => {
     fetchData();
@@ -182,6 +194,27 @@ export default function ContentModeration() {
     }
   };
   
+  const deleteAllTestReports = async () => {
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('reported_posts')
+        .delete()
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      
+      toast.success('Tous les signalements en attente ont été supprimés');
+      await fetchData();
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting test reports:', error);
+      toast.error('Erreur lors de la suppression des signalements');
+    } finally {
+      setDeleting(false);
+    }
+  };
+  
   if (loading) {
     return (
       <AdminLayout>
@@ -202,15 +235,28 @@ export default function ContentModeration() {
               Gérer les publications, commentaires et signalements
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={createTestReport}
-            disabled={creatingTest}
-          >
-            <TestTube className="mr-2 h-4 w-4" />
-            {creatingTest ? 'Création...' : 'Créer un signalement test'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={createTestReport}
+              disabled={creatingTest}
+            >
+              <TestTube className="mr-2 h-4 w-4" />
+              {creatingTest ? 'Création...' : 'Créer un signalement test'}
+            </Button>
+            {reportedPosts.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={deleting}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Nettoyer les signalements
+              </Button>
+            )}
+          </div>
         </div>
         
         <Tabs defaultValue="reports" className="w-full">
@@ -377,6 +423,29 @@ export default function ContentModeration() {
           onOpenChange={setModeratePostOpen}
           onSuccess={fetchData}
         />
+        
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir supprimer tous les signalements en attente ({reportedPosts.length}) ?
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteAllTestReports}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? 'Suppression...' : 'Supprimer tout'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
