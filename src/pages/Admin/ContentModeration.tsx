@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, MoreVertical, Eye, TestTube, Trash2, Calendar } from 'lucide-react';
+import { AlertCircle, MoreVertical, Eye, TestTube, Trash2, Calendar, CheckSquare, XSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { isToday, isThisWeek, isThisMonth } from 'date-fns';
@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ModeratePostDialog } from '@/components/admin/ModeratePostDialog';
 import { ModerateCommentDialog } from '@/components/admin/ModerateCommentDialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 interface ReportedPost {
@@ -83,6 +84,8 @@ export default function ContentModeration() {
   const [deleting, setDeleting] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('all');
+  const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+  const [bulkActioning, setBulkActioning] = useState(false);
   
   // Filter by date first
   const dateFilteredReports = reportedPosts.filter(report => {
@@ -253,6 +256,85 @@ export default function ContentModeration() {
     }
   };
   
+  const toggleSelectReport = (reportId: string) => {
+    const newSelected = new Set(selectedReports);
+    if (newSelected.has(reportId)) {
+      newSelected.delete(reportId);
+    } else {
+      newSelected.add(reportId);
+    }
+    setSelectedReports(newSelected);
+  };
+  
+  const toggleSelectAll = () => {
+    if (selectedReports.size === filteredReports.length) {
+      setSelectedReports(new Set());
+    } else {
+      setSelectedReports(new Set(filteredReports.map(r => r.id)));
+    }
+  };
+  
+  const handleBulkApprove = async () => {
+    setBulkActioning(true);
+    try {
+      const selectedArray = Array.from(selectedReports);
+      
+      // Update all selected reports to "resolved"
+      const { error } = await supabase
+        .from('reported_posts')
+        .update({ status: 'resolved' })
+        .in('id', selectedArray);
+      
+      if (error) throw error;
+      
+      toast.success(`${selectedArray.length} signalement(s) approuvé(s)`);
+      setSelectedReports(new Set());
+      await fetchData();
+    } catch (error) {
+      console.error('Error approving reports:', error);
+      toast.error('Erreur lors de l\'approbation des signalements');
+    } finally {
+      setBulkActioning(false);
+    }
+  };
+  
+  const handleBulkReject = async () => {
+    setBulkActioning(true);
+    try {
+      const selectedArray = Array.from(selectedReports);
+      
+      // Get all post IDs from selected reports
+      const postIds = filteredReports
+        .filter(r => selectedArray.includes(r.id))
+        .map(r => r.post_id);
+      
+      // Delete the posts
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .in('id', postIds);
+      
+      if (deleteError) throw deleteError;
+      
+      // Update reports status
+      const { error: updateError } = await supabase
+        .from('reported_posts')
+        .update({ status: 'resolved' })
+        .in('id', selectedArray);
+      
+      if (updateError) throw updateError;
+      
+      toast.success(`${selectedArray.length} signalement(s) rejeté(s) et publication(s) supprimée(s)`);
+      setSelectedReports(new Set());
+      await fetchData();
+    } catch (error) {
+      console.error('Error rejecting reports:', error);
+      toast.error('Erreur lors du rejet des signalements');
+    } finally {
+      setBulkActioning(false);
+    }
+  };
+  
   if (loading) {
     return (
       <AdminLayout>
@@ -312,6 +394,45 @@ export default function ContentModeration() {
                 <CardTitle>Signalements en attente</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Bulk Actions Bar */}
+                {selectedReports.size > 0 && (
+                  <div className="flex items-center justify-between p-4 mb-4 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckSquare className="h-5 w-5 text-primary" />
+                      <span className="font-medium">
+                        {selectedReports.size} signalement(s) sélectionné(s)
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkApprove}
+                        disabled={bulkActioning}
+                      >
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        Approuver tout
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleBulkReject}
+                        disabled={bulkActioning}
+                      >
+                        <XSquare className="mr-2 h-4 w-4" />
+                        Rejeter tout
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedReports(new Set())}
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Date Filters */}
                 <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b">
                   <Calendar className="h-4 w-4 text-muted-foreground self-center" />
@@ -359,6 +480,12 @@ export default function ContentModeration() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedReports.size === filteredReports.length && filteredReports.length > 0}
+                            onCheckedChange={toggleSelectAll}
+                          />
+                        </TableHead>
                         <TableHead>Contenu</TableHead>
                         <TableHead>Auteur</TableHead>
                         <TableHead>Signalé par</TableHead>
@@ -370,6 +497,12 @@ export default function ContentModeration() {
                     <TableBody>
                       {filteredReports.map((report) => (
                         <TableRow key={report.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedReports.has(report.id)}
+                              onCheckedChange={() => toggleSelectReport(report.id)}
+                            />
+                          </TableCell>
                           <TableCell className="max-w-xs">
                             {truncateText(report.posts?.content || 'Contenu supprimé')}
                           </TableCell>
