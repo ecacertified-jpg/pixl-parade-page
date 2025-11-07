@@ -37,6 +37,7 @@ import { ModeratePostDialog } from '@/components/admin/ModeratePostDialog';
 import { ModerateCommentDialog } from '@/components/admin/ModerateCommentDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { logModerationAction } from '@/utils/auditLogger';
 
 interface ReportedPost {
   id: string;
@@ -287,6 +288,15 @@ export default function ContentModeration() {
       
       if (error) throw error;
       
+      // Log bulk action
+      await logModerationAction(
+        'bulk_action',
+        'report',
+        null,
+        `${selectedArray.length} signalements approuvés en masse`,
+        { count: selectedArray.length, action: 'approve', report_ids: selectedArray }
+      );
+      
       toast.success(`${selectedArray.length} signalement(s) approuvé(s)`);
       setSelectedReports(new Set());
       await fetchData();
@@ -323,6 +333,15 @@ export default function ContentModeration() {
         .in('id', selectedArray);
       
       if (updateError) throw updateError;
+      
+      // Log bulk action
+      await logModerationAction(
+        'bulk_action',
+        'report',
+        null,
+        `${selectedArray.length} signalements rejetés et posts supprimés en masse`,
+        { count: selectedArray.length, action: 'reject', report_ids: selectedArray, post_ids: postIds }
+      );
       
       toast.success(`${selectedArray.length} signalement(s) rejeté(s) et publication(s) supprimée(s)`);
       setSelectedReports(new Set());

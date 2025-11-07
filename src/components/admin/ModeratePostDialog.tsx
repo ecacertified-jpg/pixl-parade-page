@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logModerationAction } from '@/utils/auditLogger';
 
 interface ModeratePostDialogProps {
   postId: string | null;
@@ -55,6 +56,21 @@ export function ModeratePostDialog({ postId, reportId, open, onOpenChange, onSuc
       }
       
       const actionText = action === 'approve' ? 'approuvé' : action === 'hide' ? 'masqué' : 'supprimé';
+      
+      // Log the moderation action
+      await logModerationAction(
+        action,
+        'post',
+        postId,
+        `Post ${actionText}${warnAuthor ? ' avec avertissement envoyé' : ''}`,
+        {
+          report_id: reportId,
+          action,
+          warn_author: warnAuthor,
+          warning_message: warningMessage,
+        }
+      );
+      
       toast.success(`Post ${actionText} avec succès`);
       onSuccess();
       onOpenChange(false);
