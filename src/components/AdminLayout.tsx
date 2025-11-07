@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useReportNotifications } from '@/hooks/useReportNotifications';
 import { 
   LayoutDashboard, 
   Users, 
@@ -49,6 +50,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const { isSuperAdmin, adminRole } = useAdmin();
   const [open, setOpen] = useState(false);
+  
+  // Activer les notifications en temps réel pour les nouveaux signalements
+  useReportNotifications();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
