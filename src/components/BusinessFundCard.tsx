@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Phone, Users, Target, Calendar, MapPin, Package } from "lucide-react";
+import { FundCommentsSection } from "./FundCommentsSection";
 
 interface BusinessFund {
   id: string;
@@ -173,6 +174,13 @@ export function BusinessFundCard({ fund, onContactBeneficiary }: BusinessFundCar
           </div>
         )}
       </div>
+
+      {/* Section commentaires */}
+      {fund.fund_id && (
+        <div className="border-t pt-4">
+          <FundCommentsSection fundId={fund.fund_id} />
+        </div>
+      )}
 
       {/* Actions */}
       {isCompleted && fund.beneficiary && (

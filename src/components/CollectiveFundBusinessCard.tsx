@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Users, Gift, Phone, MapPin, CreditCard } from "lucide-react";
+import { FundCommentsSection } from "./FundCommentsSection";
 
 interface Contributor {
   id: string;
@@ -137,6 +138,11 @@ export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardP
           </div>
         </div>
       )}
+
+      {/* Section commentaires */}
+      <div className="border-t pt-4">
+        <FundCommentsSection fundId={fund.id} />
+      </div>
 
       {/* Informations de contact et livraison */}
       <div className="border-t pt-4 space-y-3">

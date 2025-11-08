@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
+import { FundCommentsSection } from "./FundCommentsSection";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -373,6 +374,11 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
             </div>
           </div>
         )}
+
+        {/* Section commentaires */}
+        <div className="border-t pt-4">
+          <FundCommentsSection fundId={fund.id} />
+        </div>
         
         {!isCompleted && !isExpired && (
           <Button 
