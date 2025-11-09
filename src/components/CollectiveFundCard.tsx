@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock } from "lucide-react";
+import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock, Share2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
 import { FundCommentsSection } from "./FundCommentsSection";
+import { ShareFundModal } from "./ShareFundModal";
 import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +30,7 @@ interface CollectiveFundCardProps {
 
 export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, onDelete }: CollectiveFundCardProps) {
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [isPublic, setIsPublic] = useState(fund.isPublic || false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
   const { user } = useAuth();
@@ -223,16 +225,26 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
             >
               {isExpired ? "Expirée" : isCompleted ? "Terminé" : "En cours"}
             </Badge>
-            {isCreator && (
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleDelete}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setShowShareModal(true)}
+                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
               >
-                <Trash2 className="h-4 w-4" />
+                <Share2 className="h-4 w-4" />
               </Button>
-            )}
+              {isCreator && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -409,6 +421,14 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           onContributionSuccess={onContributionSuccess}
         />
       )}
+
+      <ShareFundModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        fundId={fund.id}
+        fundTitle={fund.title}
+        fundDescription={`${fund.beneficiaryName ? `Pour ${fund.beneficiaryName} - ` : ''}${fund.productName}`}
+      />
     </>
   );
 }

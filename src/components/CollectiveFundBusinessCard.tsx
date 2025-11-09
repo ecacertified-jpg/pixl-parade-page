@@ -2,8 +2,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Users, Gift, Phone, MapPin, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Gift, Phone, MapPin, CreditCard, Share2 } from "lucide-react";
 import { FundCommentsSection } from "./FundCommentsSection";
+import { ShareFundModal } from "./ShareFundModal";
+import { useState } from "react";
 
 interface Contributor {
   id: string;
@@ -48,6 +51,7 @@ interface CollectiveFundBusinessCardProps {
 }
 
 export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardProps) {
+  const [showShareModal, setShowShareModal] = useState(false);
   const progressPercentage = Math.min((fund.currentAmount / fund.targetAmount) * 100, 100);
   const isCompleted = fund.currentAmount >= fund.targetAmount;
   
@@ -59,12 +63,22 @@ export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardP
           <h3 className="font-semibold text-lg">{fund.title}</h3>
           <p className="text-sm text-muted-foreground">Pour: {fund.beneficiaryName}</p>
         </div>
-        <Badge 
-          variant={isCompleted ? "default" : "secondary"}
-          className={isCompleted ? "bg-green-500 hover:bg-green-600" : ""}
-        >
-          {isCompleted ? "Terminé" : "En cours"}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge 
+            variant={isCompleted ? "default" : "secondary"}
+            className={isCompleted ? "bg-green-500 hover:bg-green-600" : ""}
+          >
+            {isCompleted ? "Terminé" : "En cours"}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Produit avec image et nom */}
@@ -210,6 +224,14 @@ export function CollectiveFundBusinessCard({ fund }: CollectiveFundBusinessCardP
           </div>
         )}
       </div>
+
+      <ShareFundModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        fundId={fund.id}
+        fundTitle={fund.title}
+        fundDescription={`Pour ${fund.beneficiaryName} - ${fund.productName}`}
+      />
     </Card>
   );
 }

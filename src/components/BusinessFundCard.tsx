@@ -3,8 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Phone, Users, Target, Calendar, MapPin, Package } from "lucide-react";
+import { Phone, Users, Target, Calendar, MapPin, Package, Share2 } from "lucide-react";
 import { FundCommentsSection } from "./FundCommentsSection";
+import { ShareFundModal } from "./ShareFundModal";
+import { useState } from "react";
 
 interface BusinessFund {
   id: string;
@@ -47,6 +49,7 @@ interface BusinessFundCardProps {
 }
 
 export function BusinessFundCard({ fund, onContactBeneficiary }: BusinessFundCardProps) {
+  const [showShareModal, setShowShareModal] = useState(false);
   const progress = fund.fund ? (fund.fund.current_amount / fund.fund.target_amount) * 100 : 0;
   const isCompleted = progress >= 100;
   const beneficiaryName = fund.beneficiary 
@@ -97,7 +100,17 @@ export function BusinessFundCard({ fund, onContactBeneficiary }: BusinessFundCar
             </p>
           </div>
         </div>
-        {getStatusBadge()}
+        <div className="flex items-center gap-2">
+          {getStatusBadge()}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Product info */}
@@ -197,6 +210,14 @@ export function BusinessFundCard({ fund, onContactBeneficiary }: BusinessFundCar
           </p>
         </div>
       )}
+
+      <ShareFundModal
+        open={showShareModal}
+        onOpenChange={setShowShareModal}
+        fundId={fund.fund_id}
+        fundTitle={fund.fund?.title || fund.product?.name || 'Cagnotte'}
+        fundDescription={`Pour ${beneficiaryName} - ${fund.product?.name || ''}`}
+      />
     </Card>
   );
 }
