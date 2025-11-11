@@ -1,0 +1,268 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface UseAIChatProps {
+  initialContext?: {
+    page: string;
+    stage: string;
+  };
+}
+
+export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [sessionId] = useState(() => crypto.randomUUID());
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
+  
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Charger l'historique de conversation
+  useEffect(() => {
+    loadConversationHistory();
+  }, [user]);
+
+  // Mettre à jour les suggestions selon le contexte
+  useEffect(() => {
+    updateSuggestions(initialContext?.stage || 'discovery');
+  }, [initialContext]);
+
+  const loadConversationHistory = async () => {
+    if (!user) return;
+
+    try {
+      // Récupérer la dernière conversation active
+      const { data: conversation } = await supabase
+        .from('ai_conversations')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('last_message_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (conversation) {
+        setConversationId(conversation.id);
+
+        // Charger les messages
+        const { data: msgs } = await supabase
+          .from('ai_messages')
+          .select('id, role, content')
+          .eq('conversation_id', conversation.id)
+          .order('created_at', { ascending: true })
+          .limit(20);
+
+        if (msgs) {
+          setMessages(msgs.map(m => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant',
+            content: m.content
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const CHAT_URL = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-chat-assistant`;
+      
+      const response = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504`,
+        },
+        body: JSON.stringify({
+          message: content,
+          conversationId,
+          sessionId,
+          context: initialContext
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: 'Trop de demandes',
+            description: 'Veuillez patienter quelques instants avant de réessayer.',
+            variant: 'destructive'
+          });
+          setMessages(prev => prev.slice(0, -1));
+          return;
+        }
+        throw new Error('Failed to get response');
+      }
+
+      // Traiter le streaming SSE
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
+      let assistantMessageId = crypto.randomUUID();
+
+      // Ajouter un message assistant vide
+      setMessages(prev => [...prev, {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: ''
+      }]);
+
+      let textBuffer = '';
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const deltaContent = parsed.choices?.[0]?.delta?.content as string | undefined;
+            
+            if (deltaContent) {
+              assistantContent += deltaContent;
+              
+              // Mettre à jour le message en temps réel
+              setMessages(prev => prev.map(msg => 
+                msg.id === assistantMessageId
+                  ? { ...msg, content: assistantContent }
+                  : msg
+              ));
+            }
+          } catch {
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Sauvegarder le message de l'assistant
+      if (conversationId) {
+        await supabase
+          .from('ai_messages')
+          .insert({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: assistantContent
+          });
+      }
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'envoyer le message. Veuillez réessayer.',
+        variant: 'destructive'
+      });
+      // Retirer le message utilisateur en cas d'erreur
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const markAsHelpful = async (messageId: string, helpful: boolean) => {
+    try {
+      await supabase
+        .from('ai_messages')
+        .update({ was_helpful: helpful })
+        .eq('id', messageId);
+
+      toast({
+        title: helpful ? 'Merci pour votre retour ! 👍' : 'Désolé pour la gêne 😔',
+        description: helpful 
+          ? 'Nous sommes heureux de vous avoir aidé !' 
+          : 'Nous allons améliorer nos réponses.',
+      });
+    } catch (error) {
+      console.error('Error marking message as helpful:', error);
+    }
+  };
+
+  const updateSuggestions = (stage: string) => {
+    const suggestionsByStage: Record<string, string[]> = {
+      discovery: [
+        'Quels sont les services proposés ?',
+        'Comment fonctionne la plateforme ?',
+        'C\'est gratuit ?'
+      ],
+      onboarding: [
+        'Quelles informations dois-je fournir ?',
+        'Pourquoi ma date d\'anniversaire ?',
+        'Comment protégez-vous mes données ?'
+      ],
+      setup_profile: [
+        'Comment ajouter mes amis ?',
+        'Pourquoi configurer mes préférences ?',
+        'Comment recevoir des cadeaux ?'
+      ],
+      add_friends: [
+        'Mes amis verront-ils mes informations ?',
+        'Puis-je inviter des amis pas encore inscrits ?',
+        'Comment gérer ma liste d\'amis ?'
+      ],
+      preferences: [
+        'Pourquoi indiquer mes tailles ?',
+        'Dois-je tout remplir ?',
+        'Qui peut voir mes préférences ?'
+      ],
+      using_features: [
+        'Comment créer une cagnotte ?',
+        'Comment contribuer à une cagnotte ?',
+        'Comment commander un cadeau ?'
+      ],
+      advanced: [
+        'Comment faire une cagnotte surprise ?',
+        'Qu\'est-ce que le système de réciprocité ?',
+        'Comment devenir vendeur sur la plateforme ?'
+      ]
+    };
+
+    setSuggestedQuestions(suggestionsByStage[stage] || suggestionsByStage.discovery);
+  };
+
+  return {
+    messages,
+    isLoading,
+    sendMessage,
+    suggestedQuestions,
+    markAsHelpful
+  };
+};

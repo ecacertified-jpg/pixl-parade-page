@@ -36,6 +36,7 @@ import AdminManagement from "./pages/Admin/AdminManagement";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import Settings from "./pages/Admin/Settings";
 import { AdminRoute } from "./components/AdminRoute";
+import { AIChatWidget } from "./components/AIChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -189,6 +190,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <AIChatWidget />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

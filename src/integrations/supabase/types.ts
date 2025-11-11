@@ -159,6 +159,143 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_conversations: {
+        Row: {
+          conversation_stage: string | null
+          created_at: string | null
+          current_page: string | null
+          helpful_responses: number | null
+          id: string
+          last_message_at: string | null
+          last_topic: string | null
+          messages_count: number | null
+          session_id: string
+          updated_at: string | null
+          user_id: string | null
+          user_intent: string | null
+        }
+        Insert: {
+          conversation_stage?: string | null
+          created_at?: string | null
+          current_page?: string | null
+          helpful_responses?: number | null
+          id?: string
+          last_message_at?: string | null
+          last_topic?: string | null
+          messages_count?: number | null
+          session_id: string
+          updated_at?: string | null
+          user_id?: string | null
+          user_intent?: string | null
+        }
+        Update: {
+          conversation_stage?: string | null
+          created_at?: string | null
+          current_page?: string | null
+          helpful_responses?: number | null
+          id?: string
+          last_message_at?: string | null
+          last_topic?: string | null
+          messages_count?: number | null
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+          user_intent?: string | null
+        }
+        Relationships: []
+      }
+      ai_knowledge_base: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string | null
+          helpfulness_score: number | null
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          priority: number | null
+          question: string
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string | null
+          helpfulness_score?: number | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          question: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string | null
+          helpfulness_score?: number | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          question?: string
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string | null
+          created_at: string | null
+          feedback_text: string | null
+          id: string
+          page_context: string | null
+          response_time_ms: number | null
+          role: string
+          tokens_used: number | null
+          user_state: Json | null
+          was_helpful: boolean | null
+        }
+        Insert: {
+          content: string
+          conversation_id?: string | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: string
+          page_context?: string | null
+          response_time_ms?: number | null
+          role: string
+          tokens_used?: number | null
+          user_state?: Json | null
+          was_helpful?: boolean | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: string
+          page_context?: string | null
+          response_time_ms?: number | null
+          role?: string
+          tokens_used?: number | null
+          user_state?: Json | null
+          was_helpful?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_metrics: {
         Row: {
           calculated_at: string
