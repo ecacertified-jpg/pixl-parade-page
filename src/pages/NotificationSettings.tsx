@@ -13,6 +13,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ReciprocitySettings } from "@/components/ReciprocitySettings";
+import { ReciprocityNotificationSettings } from "@/components/ReciprocityNotificationSettings";
 import { Heart } from "lucide-react";
 
 export default function NotificationSettings() {
