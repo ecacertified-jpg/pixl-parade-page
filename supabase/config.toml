@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.ai-chat-assistant]
 verify_jwt = false
+
+[functions.birthday-wishes]
+verify_jwt = false

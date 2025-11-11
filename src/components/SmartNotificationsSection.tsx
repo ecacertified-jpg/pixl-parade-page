@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SmartNotificationCard } from "./SmartNotificationCard";
 import { NotificationCard } from "./NotificationCard";
+import { BirthdayNotificationCard } from "./BirthdayNotificationCard";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -134,6 +135,28 @@ export const SmartNotificationsSection = () => {
       {/* Notifications */}
       <div className="space-y-3">
         {notifications.map((notification) => {
+          // 🎂 Birthday notifications get special treatment - always first
+          if (notification.notification_type === 'birthday_wish_ai') {
+            return (
+              <BirthdayNotificationCard
+                key={notification.id}
+                notification={{
+                  id: notification.id,
+                  title: notification.title,
+                  message: notification.message,
+                  metadata: notification.metadata as any
+                }}
+                onAction={() => handleMarkAsRead(notification.id)}
+                onOpenChat={() => {
+                  // Trigger AI chat opening with custom event
+                  const event = new CustomEvent('openAIChat');
+                  window.dispatchEvent(event);
+                  handleMarkAsRead(notification.id);
+                }}
+              />
+            );
+          }
+
           // Use enhanced NotificationCard for reciprocity notifications
           if (notification.notification_type === 'reciprocity_reminder') {
             return (

@@ -9,6 +9,18 @@ export const AIChatWidget = () => {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
+  // Listen for custom events to open chat (from birthday notifications, etc.)
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true);
+      setHasNewMessage(false);
+      setShowWelcome(false);
+    };
+    
+    window.addEventListener('openAIChat', handleOpenChat);
+    return () => window.removeEventListener('openAIChat', handleOpenChat);
+  }, []);
+
   // Afficher le message de bienvenue après 3 secondes
   useEffect(() => {
     const timer = setTimeout(() => {

@@ -171,7 +171,8 @@ async function buildUserContext(supabase, user, context) {
       currentPage: context?.page || '/',
       hasProfile: false,
       hasFriends: false,
-      hasPreferences: false
+      hasPreferences: false,
+      isBirthdayToday: false
     };
   }
 
@@ -181,6 +182,16 @@ async function buildUserContext(supabase, user, context) {
     .select('first_name, city, birthday')
     .eq('user_id', user.id)
     .maybeSingle();
+
+  // Vérifier si c'est l'anniversaire de l'utilisateur
+  let isBirthdayToday = false;
+  if (profile?.birthday) {
+    const today = new Date();
+    const birthday = new Date(profile.birthday);
+    isBirthdayToday = 
+      today.getMonth() === birthday.getMonth() && 
+      today.getDate() === birthday.getDate();
+  }
 
   // Compter les amis
   const { count: friendsCount } = await supabase
@@ -210,13 +221,14 @@ async function buildUserContext(supabase, user, context) {
     friendsCount: friendsCount || 0,
     hasPreferences: !!preferences,
     hasFunds: (fundsCount || 0) > 0,
-    fundsCount: fundsCount || 0
+    fundsCount: fundsCount || 0,
+    isBirthdayToday
   };
 }
 
 // Fonction pour construire le prompt système
 function buildSystemPrompt(stage, userContext) {
-  const basePrompt = `Tu es l'assistant virtuel de JOIE DE VIVRE, une plateforme qui célèbre les moments de bonheur en Côte d'Ivoire.
+  let basePrompt = `Tu es l'assistant virtuel de JOIE DE VIVRE, une plateforme qui célèbre les moments de bonheur en Côte d'Ivoire.
 
 **Ta mission :**
 - Accueillir chaleureusement les visiteurs
@@ -239,6 +251,21 @@ function buildSystemPrompt(stage, userContext) {
 5. 🎉 **Occasions spéciales** : Anniversaires, promotions, mariages, etc.
 6. 🏪 **Espace Business** : Pour les commerçants qui souhaitent vendre sur la plateforme
 `;
+
+  // 🎂 PRIORITÉ ABSOLUE : ANNIVERSAIRE
+  if (userContext.isBirthdayToday) {
+    basePrompt += `
+
+🎉🎂 AUJOURD'HUI C'EST L'ANNIVERSAIRE DE L'UTILISATEUR ! 🎂🎉
+
+INSTRUCTION CRITIQUE :
+- Commence IMMÉDIATEMENT ta première réponse en lui souhaitant un JOYEUX ANNIVERSAIRE de manière très chaleureuse
+- Utilise son prénom si disponible : ${userContext.firstName || 'cher utilisateur'}
+- Sois festif, enthousiaste et joyeux dans TOUTES tes réponses
+- Rappelle-lui qu'il peut créer une cagnotte pour son anniversaire
+- Encourage-le à profiter de cette journée spéciale avec ses proches
+- Célèbre avec lui ce moment important`;
+  }
 
   const stageContext = {
     'discovery': `
