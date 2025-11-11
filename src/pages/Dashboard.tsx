@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -451,28 +452,69 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 gap-0.5">
-            <TabsTrigger value="amis" className="flex gap-1 text-xs px-2">
-              <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-              <span className="hidden sm:inline">Amis</span>
-            </TabsTrigger>
-            <TabsTrigger value="evenements" className="flex gap-1 text-xs px-2">
-              <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-              <span className="hidden sm:inline">Événements</span>
-            </TabsTrigger>
-            <TabsTrigger value="cotisations" className="flex gap-1 text-xs px-2">
-              <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-              <span className="hidden sm:inline">Cotisations</span>
-            </TabsTrigger>
-            <TabsTrigger value="cadeaux" className="flex gap-1 text-xs px-2">
-              <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-              <span className="hidden sm:inline">Cadeaux</span>
-            </TabsTrigger>
-            <TabsTrigger value="badges" className="flex gap-1 text-xs px-2">
-              <span className="text-base sm:text-sm">🏆</span>
-              <span className="hidden sm:inline">Badges</span>
-            </TabsTrigger>
-          </TabsList>
+          <TooltipProvider>
+            <TabsList className="grid grid-cols-5 gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="amis" className="flex gap-1 text-xs px-2">
+                    <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                    <span className="hidden sm:inline">Amis</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Amis</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="evenements" className="flex gap-1 text-xs px-2">
+                    <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                    <span className="hidden sm:inline">Événements</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Événements</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="cotisations" className="flex gap-1 text-xs px-2">
+                    <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                    <span className="hidden sm:inline">Cotisations</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Cotisations</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="cadeaux" className="flex gap-1 text-xs px-2">
+                    <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                    <span className="hidden sm:inline">Cadeaux</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Cadeaux</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="badges" className="flex gap-1 text-xs px-2">
+                    <span className="text-base sm:text-sm">🏆</span>
+                    <span className="hidden sm:inline">Badges</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Badges</p>
+                </TooltipContent>
+              </Tooltip>
+            </TabsList>
+          </TooltipProvider>
 
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
