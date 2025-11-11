@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, Gift, PartyPopper, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -93,6 +93,13 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-10 h-10">
+              {post.profiles?.avatar_url && (
+                <AvatarImage 
+                  src={post.profiles.avatar_url} 
+                  alt={authorName}
+                  className="object-cover"
+                />
+              )}
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
                 {initials}
               </AvatarFallback>

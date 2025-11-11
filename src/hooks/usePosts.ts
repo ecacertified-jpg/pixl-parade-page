@@ -16,6 +16,7 @@ export interface PostData {
   profiles?: {
     first_name?: string;
     last_name?: string;
+    avatar_url?: string;
   };
   reactions?: {
     love: number;
@@ -48,7 +49,7 @@ export function usePosts() {
       const userIds = [...new Set(postsData?.map((post) => post.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name')
+        .select('user_id, first_name, last_name, avatar_url')
         .in('user_id', userIds);
 
       // Create a map of user_id to profile
@@ -92,6 +93,7 @@ export function usePosts() {
             profiles: profile ? {
               first_name: profile.first_name,
               last_name: profile.last_name,
+              avatar_url: profile.avatar_url,
             } : undefined,
             reactions,
             user_reaction: (userReactionData?.reaction_type as 'love' | 'gift' | 'like') || null,
