@@ -28,6 +28,10 @@ import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotific
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
+import { BadgeProgressCard } from "@/components/BadgeProgressCard";
+import { AllBadgesCollection } from "@/components/AllBadgesCollection";
+import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -253,6 +257,9 @@ export default function Dashboard() {
               description: `${newFriend.name} a été ajouté à vos contacts`
             });
           }
+          
+          // Trigger badge check for community badges
+          triggerBadgeCheckAfterAction('add_friend', user.id);
         }
       } catch (error) {
         console.error('Erreur lors de la sauvegarde du contact:', error);
@@ -408,6 +415,12 @@ export default function Dashboard() {
           <ReciprocityNotificationsSection />
         )}
 
+        {/* Cartes de badges */}
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <BirthdayStatsCard />
+          <BadgeProgressCard />
+        </div>
+
         {/* CTA Business */}
         <Card className="p-4 mb-4 bg-green-100">
           <div className="flex items-center justify-between">
@@ -421,11 +434,12 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4">
+          <TabsList className="grid grid-cols-5">
             <TabsTrigger value="amis" className="flex gap-1 text-xs"><Users className="h-3 w-3" aria-hidden />Amis</TabsTrigger>
             <TabsTrigger value="evenements" className="flex gap-1 text-xs"><CalendarDays className="h-3 w-3" aria-hidden />Événements</TabsTrigger>
             <TabsTrigger value="cotisations" className="flex gap-1 text-xs"><PiggyBank className="h-3 w-3" aria-hidden />Cotisations</TabsTrigger>
             <TabsTrigger value="cadeaux" className="flex gap-1 text-xs"><Gift className="h-3 w-3" aria-hidden />Cadeaux</TabsTrigger>
+            <TabsTrigger value="badges" className="flex gap-1 text-xs">🏆 Badges</TabsTrigger>
           </TabsList>
 
           <TabsContent value="amis" className="mt-4">
@@ -561,6 +575,12 @@ export default function Dashboard() {
               </Button>
             </div>
             <GiftsSection onGiftCountChange={handleGiftCountChange} />
+          </TabsContent>
+
+          <TabsContent value="badges" className="mt-4">
+            <div className="space-y-4">
+              <AllBadgesCollection />
+            </div>
           </TabsContent>
 
         </Tabs>

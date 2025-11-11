@@ -4241,6 +4241,19 @@ export type Database = {
           surprise_song_prompt: string
         }[]
       }
+      get_user_badge_progress: {
+        Args: { p_user_id: string }
+        Returns: {
+          category: string
+          contribution_count: number
+          friends_count: number
+          funds_created: number
+          successful_funds: number
+          surprise_events: number
+          thanks_sent: number
+          total_amount_donated: number
+        }[]
+      }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
