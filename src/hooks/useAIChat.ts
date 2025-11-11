@@ -284,11 +284,18 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
     setSuggestedQuestions(suggestionsByStage[stage] || suggestionsByStage.discovery);
   };
 
+  const resetConversation = () => {
+    setMessages([]);
+    setConversationId(null);
+    updateSuggestions(initialContext?.stage || 'discovery');
+  };
+
   return {
     messages,
     isLoading,
     sendMessage,
     suggestedQuestions,
-    markAsHelpful
+    markAsHelpful,
+    resetConversation
   };
 };

@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Send, ThumbsUp, ThumbsDown, X } from 'lucide-react';
+import { Sparkles, Send, ThumbsUp, ThumbsDown, X, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useLocation } from 'react-router-dom';
@@ -22,7 +22,8 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
     isLoading, 
     sendMessage, 
     suggestedQuestions,
-    markAsHelpful 
+    markAsHelpful,
+    resetConversation
   } = useAIChat({
     initialContext: {
       page: location.pathname,
@@ -61,14 +62,25 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
             <p className="text-xs opacity-90">En ligne</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-white hover:bg-white/20"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={resetConversation}
+            className="text-white hover:bg-white/20 h-8 w-8"
+            title="Réinitialiser la conversation"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-white hover:bg-white/20 h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}
