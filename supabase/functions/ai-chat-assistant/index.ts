@@ -41,7 +41,10 @@ serve(async (req) => {
         .single();
       conversation = data;
       console.log('Loaded conversation:', conversation?.id);
-    } else {
+    }
+    
+    // Si pas de conversation trouvée ou pas de conversationId, créer une nouvelle
+    if (!conversation) {
       // Créer une nouvelle conversation
       const { data, error: convError } = await supabaseClient
         .from('ai_conversations')
@@ -62,6 +65,11 @@ serve(async (req) => {
       
       conversation = data;
       console.log('Created new conversation:', conversation?.id);
+    }
+    
+    // Vérifier que la conversation existe
+    if (!conversation || !conversation.id) {
+      throw new Error('Failed to create or load conversation');
     }
 
     // Récupérer l'historique des messages (limité aux 10 derniers)
