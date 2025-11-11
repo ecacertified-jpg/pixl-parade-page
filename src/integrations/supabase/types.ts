@@ -2073,6 +2073,7 @@ export type Database = {
           gift_notifications: boolean | null
           id: string
           in_app_enabled: boolean | null
+          post_notifications: boolean | null
           push_enabled: boolean | null
           quiet_hours_end: string | null
           quiet_hours_start: string | null
@@ -2095,6 +2096,7 @@ export type Database = {
           gift_notifications?: boolean | null
           id?: string
           in_app_enabled?: boolean | null
+          post_notifications?: boolean | null
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
@@ -2117,6 +2119,7 @@ export type Database = {
           gift_notifications?: boolean | null
           id?: string
           in_app_enabled?: boolean | null
+          post_notifications?: boolean | null
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
