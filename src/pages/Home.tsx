@@ -8,6 +8,7 @@ import { WhatDoYouWantCard } from "@/components/WhatDoYouWantCard";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
+import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
@@ -51,13 +52,16 @@ const Home = () => {
         {/* Section 1: What do you want card */}
         <WhatDoYouWantCard />
 
-        {/* Section 2: Public Funds Carousel */}
+        {/* Section 2: User Suggestions */}
+        <UserSuggestionsSection />
+
+        {/* Section 3: Public Funds Carousel */}
         <PublicFundsCarousel />
 
-        {/* Section 3: Featured Experiences Carousel */}
+        {/* Section 4: Featured Experiences Carousel */}
         <FeaturedExperiencesCarousel />
 
-        {/* Section 4: News Feed */}
+        {/* Section 5: News Feed */}
         <NewsFeed />
 
         {/* Bottom padding for navigation */}
