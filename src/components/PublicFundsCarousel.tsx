@@ -59,6 +59,8 @@ export function PublicFundsCarousel() {
     targetAmount: number;
     currentAmount: number;
     currency: string;
+    creatorId?: string;
+    occasion?: string;
   } | null>(null);
 
   // Filter and prioritize funds: friends' public funds first, then others, all active
@@ -80,7 +82,9 @@ export function PublicFundsCarousel() {
       beneficiaryName: fund.beneficiaryName,
       targetAmount: fund.targetAmount,
       currentAmount: fund.currentAmount,
-      currency: fund.currency
+      currency: fund.currency,
+      creatorId: fund.creatorId,
+      occasion: fund.occasion
     });
     setShowValueModal(true);
   };
@@ -213,6 +217,8 @@ export function PublicFundsCarousel() {
           currentAmount={selectedFund.currentAmount}
           currency={selectedFund.currency}
           isFromPublicFund={true}
+          fundCreatorId={selectedFund.creatorId}
+          occasion={selectedFund.occasion}
           onContributionSuccess={() => {
             refreshFunds();
             setShowContributionModal(false);

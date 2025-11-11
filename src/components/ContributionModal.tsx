@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AddGratitudeModal } from "@/components/AddGratitudeModal";
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
+import { SmartAmountSuggestions } from "@/components/SmartAmountSuggestions";
+import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
 
 interface ContributionModalProps {
   isOpen: boolean;
@@ -21,6 +23,8 @@ interface ContributionModalProps {
   currency: string;
   isFromPublicFund?: boolean;
   onContributionSuccess?: () => void;
+  fundCreatorId?: string;
+  occasion?: string;
 }
 
 export function ContributionModal({ 
@@ -32,7 +36,9 @@ export function ContributionModal({
   currentAmount, 
   currency,
   isFromPublicFund = false,
-  onContributionSuccess 
+  onContributionSuccess,
+  fundCreatorId = '',
+  occasion
 }: ContributionModalProps) {
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
@@ -43,6 +49,15 @@ export function ContributionModal({
   const [beneficiaryId, setBeneficiaryId] = useState<string>("");
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Hook pour les suggestions intelligentes
+  const smartSuggestions = useSmartAmountSuggestions(
+    fundId,
+    fundCreatorId,
+    targetAmount,
+    currentAmount,
+    occasion
+  );
 
   // Réinitialiser le retry count quand le modal s'ouvre/ferme
   useEffect(() => {
@@ -339,6 +354,18 @@ export function ContributionModal({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Suggestions intelligentes */}
+            {fundCreatorId && (
+              <SmartAmountSuggestions
+                suggestions={smartSuggestions.suggestions}
+                loading={smartSuggestions.loading}
+                hasHistory={smartSuggestions.hasHistory}
+                reciprocityScore={smartSuggestions.reciprocityScore}
+                onSelectAmount={(selectedAmount) => setAmount(selectedAmount.toString())}
+                currentAmount={amount}
+              />
+            )}
+
             <div>
               <Label htmlFor="amount">Montant de la contribution *</Label>
               <div className="relative">

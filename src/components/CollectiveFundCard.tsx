@@ -419,6 +419,8 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           currentAmount={fund.currentAmount}
           currency={fund.currency}
           onContributionSuccess={onContributionSuccess}
+          fundCreatorId={fund.creatorId}
+          occasion={fund.occasion}
         />
       )}
 
