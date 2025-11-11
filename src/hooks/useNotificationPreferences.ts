@@ -20,6 +20,7 @@ export interface NotificationPreferences {
   fund_deadline_notifications: boolean;
   post_notifications: boolean;
   comment_notifications: boolean;
+  reaction_notifications: boolean;
   ai_suggestions: boolean;
   
   // Fréquence
@@ -45,6 +46,7 @@ const defaultPreferences: Partial<NotificationPreferences> = {
   fund_deadline_notifications: true,
   post_notifications: true,
   comment_notifications: true,
+  reaction_notifications: true,
   ai_suggestions: true,
   digest_mode: false,
   digest_frequency: 'daily',
@@ -78,6 +80,7 @@ export const useNotificationPreferences = () => {
           ...data,
           post_notifications: (data as any).post_notifications ?? true,
           comment_notifications: (data as any).comment_notifications ?? true,
+          reaction_notifications: (data as any).reaction_notifications ?? true,
           digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       } else {
@@ -98,6 +101,7 @@ export const useNotificationPreferences = () => {
           ...created,
           post_notifications: (created as any).post_notifications ?? true,
           comment_notifications: (created as any).comment_notifications ?? true,
+          reaction_notifications: (created as any).reaction_notifications ?? true,
           digest_frequency: (created.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       }
@@ -127,6 +131,7 @@ export const useNotificationPreferences = () => {
         ...data,
         post_notifications: (data as any).post_notifications ?? true,
         comment_notifications: (data as any).comment_notifications ?? true,
+        reaction_notifications: (data as any).reaction_notifications ?? true,
         digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
       });
       toast.success('Préférences enregistrées');

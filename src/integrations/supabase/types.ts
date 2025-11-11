@@ -2078,6 +2078,7 @@ export type Database = {
           push_enabled: boolean | null
           quiet_hours_end: string | null
           quiet_hours_start: string | null
+          reaction_notifications: boolean | null
           sms_enabled: boolean | null
           sound_enabled: boolean | null
           updated_at: string | null
@@ -2102,6 +2103,7 @@ export type Database = {
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          reaction_notifications?: boolean | null
           sms_enabled?: boolean | null
           sound_enabled?: boolean | null
           updated_at?: string | null
@@ -2126,6 +2128,7 @@ export type Database = {
           push_enabled?: boolean | null
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
+          reaction_notifications?: boolean | null
           sms_enabled?: boolean | null
           sound_enabled?: boolean | null
           updated_at?: string | null

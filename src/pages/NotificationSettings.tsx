@@ -238,6 +238,10 @@ export default function NotificationSettings() {
             label: 'Commentaires',
             description: 'Commentaires sur mes publications'
           }, {
+            key: 'reaction_notifications',
+            label: 'Réactions',
+            description: 'Likes et réactions sur mes publications'
+          }, {
             key: 'ai_suggestions',
             label: 'Suggestions IA',
             description: 'Recommandations intelligentes'

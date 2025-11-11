@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings, Heart, UserPlus, FileText, MessageSquare } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings, Heart, UserPlus, FileText, MessageSquare, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -23,6 +23,8 @@ const getNotificationIcon = (type: string) => {
       return <UserPlus className="h-4 w-4 text-blue-500" />;
     case 'new_comment':
       return <MessageSquare className="h-4 w-4 text-green-500" />;
+    case 'post_reaction':
+      return <ThumbsUp className="h-4 w-4 text-red-500 fill-current" />;
     case 'reciprocity_reminder':
       return <Heart className="h-4 w-4 text-primary fill-current" />;
     case 'gift':
@@ -54,6 +56,11 @@ const getNotificationAction = (notification: Notification, navigate: any) => {
   
   // Handle new_comment notification
   if (notification.type === 'new_comment' && metadata.post_id) {
+    return () => navigate(`/community?post=${metadata.post_id}`);
+  }
+  
+  // Handle post_reaction notification
+  if (notification.type === 'post_reaction' && metadata.post_id) {
     return () => navigate(`/community?post=${metadata.post_id}`);
   }
   
@@ -203,7 +210,7 @@ export const NotificationPanel = () => {
       all: allNotifs.length,
       social: allNotifs.filter(n => {
         const type = n.type.toLowerCase();
-        return type.includes('follower') || type.includes('follow') || type.includes('contact') || type.includes('post') || type.includes('comment');
+        return type.includes('follower') || type.includes('follow') || type.includes('contact') || type.includes('post') || type.includes('comment') || type.includes('reaction');
       }).length,
       gift: allNotifs.filter(n => {
         const type = n.type.toLowerCase();
