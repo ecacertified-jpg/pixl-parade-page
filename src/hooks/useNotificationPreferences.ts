@@ -74,6 +74,7 @@ export const useNotificationPreferences = () => {
       if (data) {
         setPreferences({
           ...data,
+          post_notifications: (data as any).post_notifications ?? true,
           digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       } else {
@@ -92,6 +93,7 @@ export const useNotificationPreferences = () => {
         if (createError) throw createError;
         setPreferences({
           ...created,
+          post_notifications: (created as any).post_notifications ?? true,
           digest_frequency: (created.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       }
@@ -119,6 +121,7 @@ export const useNotificationPreferences = () => {
 
       setPreferences({
         ...data,
+        post_notifications: (data as any).post_notifications ?? true,
         digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
       });
       toast.success('Préférences enregistrées');
