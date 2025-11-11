@@ -166,7 +166,7 @@ export const EditAvatarModal = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md z-[200]">
           <DialogHeader>
             <DialogTitle>Modifier la photo de profil</DialogTitle>
           </DialogHeader>
