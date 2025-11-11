@@ -49,7 +49,7 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
   };
 
   return (
-    <Card className="w-[380px] h-[600px] flex flex-col shadow-2xl border-2 border-primary/20 overflow-hidden">
+    <Card className="w-full md:w-[380px] h-[500px] md:h-[600px] max-h-[calc(100vh-200px)] flex flex-col shadow-2xl border-2 border-primary/20 overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white flex items-center justify-between">
         <div className="flex items-center gap-2">
