@@ -3710,6 +3710,27 @@ export type Database = {
           },
         ]
       }
+      user_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       user_performance_settings: {
         Row: {
           auto_optimize: boolean | null
@@ -4283,6 +4304,8 @@ export type Database = {
           product_price: number
         }[]
       }
+      get_follower_count: { Args: { target_user_id: string }; Returns: number }
+      get_following_count: { Args: { target_user_id: string }; Returns: number }
       get_fund_activities_for_user: {
         Args: { p_fund_id: string }
         Returns: {
@@ -4367,6 +4390,10 @@ export type Database = {
       }
       is_first_payment_to_beneficiary: {
         Args: { p_beneficiary_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_following: {
+        Args: { follower: string; following: string }
         Returns: boolean
       }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }

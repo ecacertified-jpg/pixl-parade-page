@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Gift, TrendingUp } from "lucide-react";
+import { ArrowLeft, Users, Gift, TrendingUp, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { PostCard } from "@/components/PostCard";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { toast } from "sonner";
 
 interface UserProfileData {
   first_name: string | null;
@@ -26,6 +27,8 @@ interface UserStats {
   friends_count: number;
   gifts_given: number;
   community_points: number;
+  followers_count: number;
+  following_count: number;
 }
 
 export default function UserProfile() {
@@ -39,16 +42,21 @@ export default function UserProfile() {
   const [stats, setStats] = useState<UserStats>({
     friends_count: 0,
     gifts_given: 0,
-    community_points: 0
+    community_points: 0,
+    followers_count: 0,
+    following_count: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     if (userId) {
       loadUserProfile();
       loadUserStats();
+      checkFollowStatus();
     }
-  }, [userId]);
+  }, [userId, currentUser?.id]);
 
   const loadUserProfile = async () => {
     try {
@@ -95,10 +103,24 @@ export default function UserProfile() {
         ? (reciprocityData as any).total_score || (reciprocityData as any).score || 0 
         : 0;
 
+      // Count followers
+      const { count: followersCount } = await supabase
+        .from('user_follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userId);
+
+      // Count following
+      const { count: followingCount } = await supabase
+        .from('user_follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('follower_id', userId);
+
       setStats({
         friends_count: friendsCount || 0,
         gifts_given: giftsGiven || 0,
-        community_points: communityPoints
+        community_points: communityPoints,
+        followers_count: followersCount || 0,
+        following_count: followingCount || 0
       });
     } catch (error) {
       console.error('Error loading user stats:', error);
@@ -106,8 +128,75 @@ export default function UserProfile() {
       setStats({
         friends_count: 0,
         gifts_given: 0,
-        community_points: 0
+        community_points: 0,
+        followers_count: 0,
+        following_count: 0
       });
+    }
+  };
+
+  const checkFollowStatus = async () => {
+    if (!currentUser?.id || !userId || currentUser.id === userId) return;
+
+    try {
+      const { data } = await supabase
+        .from('user_follows')
+        .select('id')
+        .eq('follower_id', currentUser.id)
+        .eq('following_id', userId)
+        .maybeSingle();
+
+      setIsFollowing(!!data);
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!currentUser?.id || !userId) return;
+
+    try {
+      setFollowLoading(true);
+      
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('user_follows')
+          .delete()
+          .eq('follower_id', currentUser.id)
+          .eq('following_id', userId);
+
+        if (error) throw error;
+
+        setIsFollowing(false);
+        setStats(prev => ({
+          ...prev,
+          followers_count: Math.max(0, prev.followers_count - 1)
+        }));
+        toast.success('Abonnement retiré');
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('user_follows')
+          .insert({
+            follower_id: currentUser.id,
+            following_id: userId
+          });
+
+        if (error) throw error;
+
+        setIsFollowing(true);
+        setStats(prev => ({
+          ...prev,
+          followers_count: prev.followers_count + 1
+        }));
+        toast.success('Abonnement ajouté');
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast.error('Une erreur est survenue');
+    } finally {
+      setFollowLoading(false);
     }
   };
 
@@ -203,20 +292,45 @@ export default function UserProfile() {
             {profile.bio && (
               <p className="text-sm text-foreground mt-3 px-4">{profile.bio}</p>
             )}
+            
+            {/* Follow button (only show for other users) */}
+            {!isOwnProfile && currentUser && (
+              <div className="mt-4">
+                <Button
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  variant={isFollowing ? "outline" : "default"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  {isFollowing ? (
+                    <>
+                      <UserMinus className="h-4 w-4" />
+                      Ne plus suivre
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4" />
+                      Suivre
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </CardHeader>
         </Card>
 
         {/* Stats */}
         <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card">
           <CardContent className="p-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-5 gap-2">
               <div className="text-center">
                 <div className="flex justify-center mb-2">
                   <div className="bg-primary/10 p-2 rounded-full">
                     <Users className="h-5 w-5 text-primary" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-foreground">{stats.friends_count}</div>
+                <div className="text-xl font-bold text-foreground">{stats.friends_count}</div>
                 <div className="text-xs text-muted-foreground">Amis</div>
               </div>
               <div className="text-center">
@@ -225,7 +339,7 @@ export default function UserProfile() {
                     <Gift className="h-5 w-5 text-secondary" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-foreground">{stats.gifts_given}</div>
+                <div className="text-xl font-bold text-foreground">{stats.gifts_given}</div>
                 <div className="text-xs text-muted-foreground">Cadeaux</div>
               </div>
               <div className="text-center">
@@ -234,8 +348,26 @@ export default function UserProfile() {
                     <TrendingUp className="h-5 w-5 text-accent" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-foreground">{stats.community_points}</div>
+                <div className="text-xl font-bold text-foreground">{stats.community_points}</div>
                 <div className="text-xs text-muted-foreground">Points</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <div className="bg-blue-500/10 p-2 rounded-full">
+                    <UserPlus className="h-5 w-5 text-blue-500" />
+                  </div>
+                </div>
+                <div className="text-xl font-bold text-foreground">{stats.followers_count}</div>
+                <div className="text-xs text-muted-foreground">Abonnés</div>
+              </div>
+              <div className="text-center">
+                <div className="flex justify-center mb-2">
+                  <div className="bg-green-500/10 p-2 rounded-full">
+                    <Users className="h-5 w-5 text-green-500" />
+                  </div>
+                </div>
+                <div className="text-xl font-bold text-foreground">{stats.following_count}</div>
+                <div className="text-xs text-muted-foreground">Abonné</div>
               </div>
             </div>
           </CardContent>
