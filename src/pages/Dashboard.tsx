@@ -452,11 +452,26 @@ export default function Dashboard() {
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-5 gap-0.5">
-            <TabsTrigger value="amis" className="flex gap-1 text-xs"><Users className="h-3 w-3" aria-hidden />Amis</TabsTrigger>
-            <TabsTrigger value="evenements" className="flex gap-1 text-xs"><CalendarDays className="h-3 w-3" aria-hidden />Événements</TabsTrigger>
-            <TabsTrigger value="cotisations" className="flex gap-1 text-xs"><PiggyBank className="h-3 w-3" aria-hidden />Cotisations</TabsTrigger>
-            <TabsTrigger value="cadeaux" className="flex gap-1 text-xs"><Gift className="h-3 w-3" aria-hidden />Cadeaux</TabsTrigger>
-            <TabsTrigger value="badges" className="flex gap-1 text-xs">🏆 Badges</TabsTrigger>
+            <TabsTrigger value="amis" className="flex gap-1 text-xs px-2">
+              <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+              <span className="hidden sm:inline">Amis</span>
+            </TabsTrigger>
+            <TabsTrigger value="evenements" className="flex gap-1 text-xs px-2">
+              <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+              <span className="hidden sm:inline">Événements</span>
+            </TabsTrigger>
+            <TabsTrigger value="cotisations" className="flex gap-1 text-xs px-2">
+              <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+              <span className="hidden sm:inline">Cotisations</span>
+            </TabsTrigger>
+            <TabsTrigger value="cadeaux" className="flex gap-1 text-xs px-2">
+              <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+              <span className="hidden sm:inline">Cadeaux</span>
+            </TabsTrigger>
+            <TabsTrigger value="badges" className="flex gap-1 text-xs px-2">
+              <span className="text-base sm:text-sm">🏆</span>
+              <span className="hidden sm:inline">Badges</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="amis" className="mt-4">
