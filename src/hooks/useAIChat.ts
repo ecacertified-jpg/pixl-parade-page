@@ -28,8 +28,10 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
 
   // Charger l'historique de conversation
   useEffect(() => {
-    loadConversationHistory();
-  }, [user]);
+    if (user) {
+      loadConversationHistory();
+    }
+  }, [user?.id]);
 
   // Mettre à jour les suggestions selon le contexte
   useEffect(() => {
@@ -86,21 +88,45 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
     setIsLoading(true);
 
     try {
-      const CHAT_URL = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-chat-assistant`;
-      
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ai-chat-assistant', {
+        body: {
           message: content,
           conversationId,
           sessionId,
           context: initialContext
-        }),
+        }
       });
+
+      if (error) {
+        if (error.message?.includes('429')) {
+          toast({
+            title: 'Trop de demandes',
+            description: 'Veuillez patienter quelques instants avant de réessayer.',
+            variant: 'destructive'
+          });
+          setMessages(prev => prev.slice(0, -1));
+          return;
+        }
+        throw error;
+      }
+
+      // Pour le streaming, on utilise fetch direct
+      const response = await fetch(
+        `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-chat-assistant`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504`,
+          },
+          body: JSON.stringify({
+            message: content,
+            conversationId,
+            sessionId,
+            context: initialContext
+          }),
+        }
+      );
 
       if (!response.ok) {
         if (response.status === 429) {
