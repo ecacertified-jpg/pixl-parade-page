@@ -18,7 +18,7 @@ export interface Notification {
   scheduled_for?: string;
 }
 
-export type NotificationFilter = 'all' | 'gift' | 'fund' | 'birthday' | 'event' | 'ai';
+export type NotificationFilter = 'all' | 'gift' | 'fund' | 'birthday' | 'event' | 'ai' | 'social';
 
 export const useNotifications = (showArchived: boolean = false, filter: NotificationFilter = 'all') => {
   const { user } = useAuth();
@@ -106,6 +106,8 @@ export const useNotifications = (showArchived: boolean = false, filter: Notifica
               return type.includes('event') || type.includes('reminder');
             case 'ai':
               return type.includes('smart') || type.includes('ai') || type.includes('recommendation');
+            case 'social':
+              return type.includes('follower') || type.includes('follow') || type.includes('contact');
             default:
               return true;
           }

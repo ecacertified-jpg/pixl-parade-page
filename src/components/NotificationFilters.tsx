@@ -1,4 +1,4 @@
-import { Gift, Users, Calendar, Sparkles, Filter } from "lucide-react";
+import { Gift, Users, Calendar, Sparkles, Filter, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationFilter } from "@/hooks/useNotifications";
@@ -12,6 +12,7 @@ interface NotificationFiltersProps {
 
 const filterConfig = {
   all: { label: 'Tous', icon: Filter },
+  social: { label: 'Social', icon: UserPlus },
   gift: { label: 'Cadeaux', icon: Gift },
   fund: { label: 'Cagnottes', icon: Users },
   birthday: { label: 'Anniversaires', icon: Calendar },

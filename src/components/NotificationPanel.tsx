@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings, Heart } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Gift, Users, Calendar, Sparkles, AlertCircle, Archive, Settings, Heart, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,6 +17,8 @@ import { useState, useMemo } from "react";
 
 const getNotificationIcon = (type: string) => {
   switch (type) {
+    case 'new_follower':
+      return <UserPlus className="h-4 w-4 text-blue-500" />;
     case 'reciprocity_reminder':
       return <Heart className="h-4 w-4 text-primary fill-current" />;
     case 'gift':
@@ -41,6 +43,11 @@ const getNotificationIcon = (type: string) => {
 const getNotificationAction = (notification: Notification, navigate: any) => {
   const metadata = notification.metadata || {};
   
+  // Handle new_follower notification
+  if (notification.type === 'new_follower' && metadata.follower_id) {
+    return () => navigate(`/profile/${metadata.follower_id}`);
+  }
+  
   if (metadata.fund_id) {
     return () => navigate(`/gifts?fund=${metadata.fund_id}`);
   }
@@ -49,6 +56,11 @@ const getNotificationAction = (notification: Notification, navigate: any) => {
   }
   if (metadata.contact_id) {
     return () => navigate(`/dashboard`);
+  }
+  
+  // Check action_url in metadata
+  if (metadata.action_url) {
+    return () => navigate(metadata.action_url);
   }
   
   // Type-based navigation
@@ -175,6 +187,10 @@ export const NotificationPanel = () => {
     const allNotifs = notifications;
     return {
       all: allNotifs.length,
+      social: allNotifs.filter(n => {
+        const type = n.type.toLowerCase();
+        return type.includes('follower') || type.includes('follow') || type.includes('contact');
+      }).length,
       gift: allNotifs.filter(n => {
         const type = n.type.toLowerCase();
         return type.includes('gift') || type.includes('promise');
