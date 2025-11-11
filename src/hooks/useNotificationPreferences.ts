@@ -18,6 +18,7 @@ export interface NotificationPreferences {
   contribution_notifications: boolean;
   gift_notifications: boolean;
   fund_deadline_notifications: boolean;
+  post_notifications: boolean;
   ai_suggestions: boolean;
   
   // Fréquence
@@ -41,6 +42,7 @@ const defaultPreferences: Partial<NotificationPreferences> = {
   contribution_notifications: true,
   gift_notifications: true,
   fund_deadline_notifications: true,
+  post_notifications: true,
   ai_suggestions: true,
   digest_mode: false,
   digest_frequency: 'daily',

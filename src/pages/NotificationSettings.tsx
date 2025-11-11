@@ -230,6 +230,10 @@ export default function NotificationSettings() {
             label: 'Échéances',
             description: 'Alertes d\'échéance de cagnottes'
           }, {
+            key: 'post_notifications',
+            label: 'Publications',
+            description: 'Nouvelles publications des utilisateurs suivis'
+          }, {
             key: 'ai_suggestions',
             label: 'Suggestions IA',
             description: 'Recommandations intelligentes'
