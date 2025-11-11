@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AddGratitudeModal } from "@/components/AddGratitudeModal";
+import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 
 interface ContributionModalProps {
   isOpen: boolean;
@@ -275,6 +276,9 @@ export function ContributionModal({
         title: "Contribution ajoutée !",
         description: `Vous avez contribué ${contributionAmount.toLocaleString()} ${currency} à "${fundTitle}"`,
       });
+
+      // Trigger badge check after successful contribution
+      triggerBadgeCheckAfterAction('contribution', user.id);
 
       // Réinitialiser le formulaire
       setAmount("");

@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.birthday-wishes]
 verify_jwt = false
+
+[functions.award-badges]
+verify_jwt = false

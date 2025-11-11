@@ -329,6 +329,54 @@ export type Database = {
         }
         Relationships: []
       }
+      badge_definitions: {
+        Row: {
+          badge_key: string
+          category: string
+          color_primary: string
+          color_secondary: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean | null
+          level: number
+          name: string
+          requirement_threshold: number | null
+          requirement_type: string
+        }
+        Insert: {
+          badge_key: string
+          category: string
+          color_primary: string
+          color_secondary: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          is_active?: boolean | null
+          level?: number
+          name: string
+          requirement_threshold?: number | null
+          requirement_type: string
+        }
+        Update: {
+          badge_key?: string
+          category?: string
+          color_primary?: string
+          color_secondary?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean | null
+          level?: number
+          name?: string
+          requirement_threshold?: number | null
+          requirement_type?: string
+        }
+        Relationships: []
+      }
       birthday_celebrations: {
         Row: {
           age_at_celebration: number | null
@@ -3430,6 +3478,47 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          badge_key: string
+          created_at: string
+          earned_at: string
+          id: string
+          is_showcased: boolean | null
+          metadata: Json | null
+          progress_value: number | null
+          user_id: string
+        }
+        Insert: {
+          badge_key: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          is_showcased?: boolean | null
+          metadata?: Json | null
+          progress_value?: number | null
+          user_id: string
+        }
+        Update: {
+          badge_key?: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          is_showcased?: boolean | null
+          metadata?: Json | null
+          progress_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_key_fkey"
+            columns: ["badge_key"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_key"]
+          },
+        ]
+      }
       user_beneficiary_history: {
         Row: {
           beneficiary_contact_id: string
@@ -3857,6 +3946,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_badges_with_definitions: {
+        Row: {
+          badge_key: string | null
+          category: string | null
+          color_primary: string | null
+          color_secondary: string | null
+          description: string | null
+          earned_at: string | null
+          icon: string | null
+          id: string | null
+          is_showcased: boolean | null
+          level: number | null
+          metadata: Json | null
+          name: string | null
+          progress_value: number | null
+          requirement_threshold: number | null
+          requirement_type: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_key_fkey"
+            columns: ["badge_key"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["badge_key"]
           },
         ]
       }

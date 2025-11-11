@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SmartNotificationCard } from "./SmartNotificationCard";
 import { NotificationCard } from "./NotificationCard";
 import { BirthdayNotificationCard } from "./BirthdayNotificationCard";
+import { BadgeEarnedNotificationCard } from "./BadgeEarnedNotificationCard";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -148,9 +149,28 @@ export const SmartNotificationsSection = () => {
                 }}
                 onAction={() => handleMarkAsRead(notification.id)}
                 onOpenChat={() => {
-                  // Trigger AI chat opening with custom event
                   const event = new CustomEvent('openAIChat');
                   window.dispatchEvent(event);
+                  handleMarkAsRead(notification.id);
+                }}
+              />
+            );
+          }
+
+          // 🏆 Badge earned notifications
+          if (notification.notification_type === 'badge_earned') {
+            return (
+              <BadgeEarnedNotificationCard
+                key={notification.id}
+                notification={{
+                  id: notification.id,
+                  title: notification.title,
+                  message: notification.message,
+                  metadata: notification.metadata as any
+                }}
+                onAction={() => handleMarkAsRead(notification.id)}
+                onViewBadges={() => {
+                  navigate('/dashboard');
                   handleMarkAsRead(notification.id);
                 }}
               />
