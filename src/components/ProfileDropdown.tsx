@@ -13,8 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
+import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ModeSwitcher } from "@/components/ModeSwitcher";
 import { useUserStats } from "@/hooks/useUserStats";
+import { AvatarImage } from "@/components/ui/avatar";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
@@ -22,8 +24,9 @@ export const ProfileDropdown = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { stats, loading: statsLoading } = useUserStats();
-  const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; bio?: string }>({});
+  const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; bio?: string; avatar_url?: string }>({});
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
+  const [isEditAvatarModalOpen, setIsEditAvatarModalOpen] = useState(false);
 
   // Debug: Log user data and business account status
   console.log('ProfileDropdown - User:', user);
@@ -38,7 +41,7 @@ export const ProfileDropdown = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('first_name, last_name, bio')
+          .select('first_name, last_name, bio, avatar_url')
           .eq('user_id', user.id)
           .maybeSingle();
         
@@ -96,11 +99,22 @@ export const ProfileDropdown = () => {
         <div className="p-6 bg-muted/30">
           <div className="flex flex-col items-center text-center">
             {/* Avatar */}
-            <Avatar className="w-16 h-16 mb-4 bg-muted">
-              <AvatarFallback className="bg-muted text-muted-foreground">
-                <User className="h-8 w-8" />
-              </AvatarFallback>
-            </Avatar>
+            <div 
+              className="relative group cursor-pointer mb-4"
+              onClick={() => setIsEditAvatarModalOpen(true)}
+            >
+              <Avatar className="w-16 h-16 bg-muted">
+                {userProfile?.avatar_url && (
+                  <AvatarImage src={userProfile.avatar_url} alt={userName} />
+                )}
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Edit3 className="h-5 w-5 text-white" />
+              </div>
+            </div>
             
             {/* User Info */}
             <h3 className="font-semibold text-foreground text-lg mb-1">{userName}</h3>
@@ -202,6 +216,15 @@ export const ProfileDropdown = () => {
         currentBio={userProfile?.bio || ""}
         userId={user?.id || ""}
         onBioUpdate={(newBio) => setUserProfile({ ...userProfile, bio: newBio })}
+      />
+      
+      {/* Edit Avatar Modal */}
+      <EditAvatarModal
+        isOpen={isEditAvatarModalOpen}
+        onClose={() => setIsEditAvatarModalOpen(false)}
+        userId={user?.id || ""}
+        currentAvatarUrl={userProfile?.avatar_url}
+        onAvatarUpdate={(newAvatarUrl) => setUserProfile({ ...userProfile, avatar_url: newAvatarUrl })}
       />
     </DropdownMenu>
   );
