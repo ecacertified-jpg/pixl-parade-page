@@ -36,6 +36,7 @@ import AdminManagement from "./pages/Admin/AdminManagement";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import Settings from "./pages/Admin/Settings";
 import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
+import ReciprocityProfile from "./pages/ReciprocityProfile";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -139,6 +140,11 @@ const App = () => (
             <Route path="/community" element={
               <ProtectedRoute>
                 <Community />
+              </ProtectedRoute>
+            } />
+            <Route path="/reciprocity-profile" element={
+              <ProtectedRoute>
+                <ReciprocityProfile />
               </ProtectedRoute>
             } />
             {/* Admin routes */}

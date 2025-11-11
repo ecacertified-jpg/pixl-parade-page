@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -403,12 +403,27 @@ export default function Dashboard() {
         </Card>
 
         {reciprocityScore && (
-          <ReciprocityBadge
-            score={reciprocityScore.generosity_score}
-            showLabel
-            showScore
-            size="md"
-          />
+          <div className="mb-4 space-y-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <ReciprocityBadge
+                  score={reciprocityScore.generosity_score}
+                  showLabel
+                  showScore
+                  size="md"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/reciprocity-profile')}
+                  className="gap-2"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  Voir mon profil
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
 
         {reciprocityScore && (
