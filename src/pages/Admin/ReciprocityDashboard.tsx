@@ -7,6 +7,7 @@ import { ReciprocityNetworkChart } from '@/components/admin/ReciprocityNetworkCh
 import { BadgeDistributionChart } from '@/components/admin/BadgeDistributionChart';
 import { ReciprocityTrendsChart } from '@/components/admin/ReciprocityTrendsChart';
 import { OccasionBreakdownChart } from '@/components/admin/OccasionBreakdownChart';
+import { ImbalanceAlertsSection } from '@/components/admin/ImbalanceAlertsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -78,6 +79,9 @@ export default function ReciprocityDashboard() {
               <ReciprocityTrendsChart trends={data.trends} />
               <OccasionBreakdownChart occasionBreakdown={data.occasionBreakdown} />
             </div>
+
+            {/* Imbalance Alerts */}
+            <ImbalanceAlertsSection />
           </>
         ) : (
           <div className="text-center py-12 text-muted-foreground">

@@ -2863,6 +2863,69 @@ export type Database = {
         }
         Relationships: []
       }
+      reciprocity_imbalance_alerts: {
+        Row: {
+          admin_notes: string | null
+          alert_type: string
+          contributions_given_count: number
+          contributions_received_count: number
+          created_at: string
+          days_since_last_contribution: number | null
+          id: string
+          imbalance_ratio: number
+          metadata: Json | null
+          recommended_action: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          status: string
+          total_contributed: number
+          total_received: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          alert_type?: string
+          contributions_given_count?: number
+          contributions_received_count?: number
+          created_at?: string
+          days_since_last_contribution?: number | null
+          id?: string
+          imbalance_ratio?: number
+          metadata?: Json | null
+          recommended_action?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+          total_contributed?: number
+          total_received?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          alert_type?: string
+          contributions_given_count?: number
+          contributions_received_count?: number
+          created_at?: string
+          days_since_last_contribution?: number | null
+          id?: string
+          imbalance_ratio?: number
+          metadata?: Json | null
+          recommended_action?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+          total_contributed?: number
+          total_received?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reciprocity_scores: {
         Row: {
           academic_contributions: number | null
