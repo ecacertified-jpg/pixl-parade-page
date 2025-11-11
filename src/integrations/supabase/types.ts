@@ -2063,6 +2063,7 @@ export type Database = {
         Row: {
           ai_suggestions: boolean | null
           birthday_notifications: boolean | null
+          comment_notifications: boolean | null
           contribution_notifications: boolean | null
           created_at: string | null
           digest_frequency: string | null
@@ -2086,6 +2087,7 @@ export type Database = {
         Insert: {
           ai_suggestions?: boolean | null
           birthday_notifications?: boolean | null
+          comment_notifications?: boolean | null
           contribution_notifications?: boolean | null
           created_at?: string | null
           digest_frequency?: string | null
@@ -2109,6 +2111,7 @@ export type Database = {
         Update: {
           ai_suggestions?: boolean | null
           birthday_notifications?: boolean | null
+          comment_notifications?: boolean | null
           contribution_notifications?: boolean | null
           created_at?: string | null
           digest_frequency?: string | null

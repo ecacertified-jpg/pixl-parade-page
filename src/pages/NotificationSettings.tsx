@@ -234,6 +234,10 @@ export default function NotificationSettings() {
             label: 'Publications',
             description: 'Nouvelles publications des utilisateurs suivis'
           }, {
+            key: 'comment_notifications',
+            label: 'Commentaires',
+            description: 'Commentaires sur mes publications'
+          }, {
             key: 'ai_suggestions',
             label: 'Suggestions IA',
             description: 'Recommandations intelligentes'
