@@ -27,7 +27,7 @@ export interface PostData {
   comments_count?: number;
 }
 
-export function usePosts() {
+export function usePosts(filterFollowing: boolean = false) {
   const { user } = useAuth();
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,21 +36,58 @@ export function usePosts() {
     try {
       setLoading(true);
 
-      // Fetch published posts
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
+      let postsData;
+      
+      if (filterFollowing && user?.id) {
+        // Get list of followed users
+        const { data: followedUsers } = await supabase
+          .from('user_follows')
+          .select('following_id')
+          .eq('follower_id', user.id);
 
-      if (postsError) throw postsError;
+        const followedUserIds = followedUsers?.map(f => f.following_id) || [];
+        
+        // If not following anyone, return empty
+        if (followedUserIds.length === 0) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch posts only from followed users
+        const { data, error: postsError } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('is_published', true)
+          .in('user_id', followedUserIds)
+          .order('created_at', { ascending: false });
+
+        if (postsError) throw postsError;
+        postsData = data;
+      } else {
+        // Fetch all published posts
+        const { data, error: postsError } = await supabase
+          .from('posts')
+          .select('*')
+          .eq('is_published', true)
+          .order('created_at', { ascending: false });
+
+        if (postsError) throw postsError;
+        postsData = data;
+      }
 
       // Fetch profiles for all unique user IDs
       const userIds = [...new Set(postsData?.map((post) => post.user_id) || [])];
+      if (userIds.length === 0) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+      
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name, avatar_url')
-        .in('user_id', userIds);
+        .in('user_id', userIds as string[]);
 
       // Create a map of user_id to profile
       const profilesMap = new Map(
@@ -132,7 +169,7 @@ export function usePosts() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, filterFollowing]);
 
   const toggleReaction = async (postId: string, reactionType: 'love' | 'gift' | 'like') => {
     if (!user?.id) return;
