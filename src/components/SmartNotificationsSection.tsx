@@ -159,20 +159,13 @@ export const SmartNotificationsSection = () => {
 
           // 🏆 Badge earned notifications
           if (notification.notification_type === 'badge_earned') {
+            const metadata = notification.metadata as any;
             return (
               <BadgeEarnedNotificationCard
                 key={notification.id}
-                notification={{
-                  id: notification.id,
-                  title: notification.title,
-                  message: notification.message,
-                  metadata: notification.metadata as any
-                }}
-                onAction={() => handleMarkAsRead(notification.id)}
-                onViewBadges={() => {
-                  navigate('/dashboard');
-                  handleMarkAsRead(notification.id);
-                }}
+                newScore={metadata?.new_score || 0}
+                oldScore={metadata?.old_score || 0}
+                onDismiss={() => handleMarkAsRead(notification.id)}
               />
             );
           }

@@ -405,9 +405,9 @@ export default function Dashboard() {
         {reciprocityScore && (
           <ReciprocityBadge
             score={reciprocityScore.generosity_score}
-            badge={reciprocityScore.badge_level}
-            contributionsCount={reciprocityScore.total_contributions_count}
-            totalAmount={reciprocityScore.total_amount_given}
+            showLabel
+            showScore
+            size="md"
           />
         )}
 
@@ -418,7 +418,9 @@ export default function Dashboard() {
         {/* Cartes de badges */}
         <div className="grid grid-cols-1 gap-4 mb-4">
           <BirthdayStatsCard />
-          <BadgeProgressCard />
+          {reciprocityScore && (
+            <BadgeProgressCard currentScore={reciprocityScore.generosity_score} />
+          )}
         </div>
 
         {/* CTA Business */}
@@ -579,7 +581,9 @@ export default function Dashboard() {
 
           <TabsContent value="badges" className="mt-4">
             <div className="space-y-4">
-              <AllBadgesCollection />
+              {reciprocityScore && (
+                <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
+              )}
             </div>
           </TabsContent>
 

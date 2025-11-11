@@ -1,144 +1,165 @@
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { ReciprocityBadge, getBadgeByScore } from './ReciprocityBadge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { X, Share2, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 
 interface BadgeEarnedNotificationCardProps {
-  notification: {
-    id: string;
-    title: string;
-    message: string;
-    metadata?: {
-      badge_key: string;
-      badge_name: string;
-      badge_icon: string;
-    };
-  };
-  onAction?: () => void;
-  onViewBadges?: () => void;
+  newScore: number;
+  oldScore: number;
+  onDismiss: () => void;
+  onShare?: () => void;
 }
 
-export const BadgeEarnedNotificationCard = ({
-  notification,
-  onAction,
-  onViewBadges
-}: BadgeEarnedNotificationCardProps) => {
+export function BadgeEarnedNotificationCard({
+  newScore,
+  oldScore,
+  onDismiss,
+  onShare,
+}: BadgeEarnedNotificationCardProps) {
+  const oldBadge = getBadgeByScore(oldScore);
+  const newBadge = getBadgeByScore(newScore);
+
+  // Check if badge level actually changed
+  const badgeChanged = oldBadge.level !== newBadge.level;
+
   useEffect(() => {
-    // Trigger confetti
-    const duration = 2000;
-    const end = Date.now() + duration;
-    const colors = ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4'];
+    if (badgeChanged) {
+      // Trigger confetti celebration
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
 
-    (function frame() {
-      confetti({
-        particleCount: 2,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: colors
-      });
-      confetti({
-        particleCount: 2,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 },
-        colors: colors
-      });
+      const randomInRange = (min: number, max: number) => {
+        return Math.random() * (max - min) + min;
+      };
 
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    }());
-  }, []);
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          clearInterval(interval);
+          return;
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti({
+          particleCount,
+          startVelocity: 30,
+          spread: 360,
+          origin: {
+            x: randomInRange(0.1, 0.3),
+            y: Math.random() - 0.2,
+          },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#00CED1', '#9370DB'],
+        });
+
+        confetti({
+          particleCount,
+          startVelocity: 30,
+          spread: 360,
+          origin: {
+            x: randomInRange(0.7, 0.9),
+            y: Math.random() - 0.2,
+          },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#00CED1', '#9370DB'],
+        });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, [badgeChanged]);
+
+  if (!badgeChanged) return null;
 
   return (
     <motion.div
-      initial={{ scale: 0.9, opacity: 0, y: 20 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+      initial={{ opacity: 0, scale: 0.8, y: 50 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, y: 50 }}
+      transition={{ type: 'spring', damping: 15 }}
+      className="fixed bottom-6 right-6 z-50 max-w-md"
     >
-      <Card className="relative overflow-hidden bg-gradient-to-br from-amber-500/20 via-yellow-500/20 to-orange-500/20 border-2 border-amber-500/50 shadow-xl">
-        {/* Animated stars background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute text-3xl"
-              initial={{
-                x: Math.random() * 100 + '%',
-                y: Math.random() * 100 + '%',
-                opacity: 0
-              }}
-              animate={{
-                y: [null, '-20%'],
-                opacity: [0, 0.6, 0],
-                scale: [0.5, 1.2, 0.5]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: i * 0.3
-              }}
-            >
-              ✨
-            </motion.div>
-          ))}
-        </div>
+      <Card className="border-2 border-primary shadow-2xl bg-gradient-to-br from-background to-primary/5">
+        <CardContent className="p-6 space-y-4">
+          {/* Close Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2"
+            onClick={onDismiss}
+          >
+            <X className="h-4 w-4" />
+          </Button>
 
-        <div className="relative p-6 space-y-4">
-          {/* Header with icon */}
-          <div className="flex items-start gap-3">
-            <motion.div
-              animate={{
-                rotate: [0, -10, 10, -10, 0],
-                scale: [1, 1.1, 1.1, 1.1, 1]
-              }}
-              transition={{
-                duration: 0.6,
-                repeat: Infinity,
-                repeatDelay: 2
-              }}
-              className="p-3 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg"
-            >
-              <Trophy className="h-7 w-7 text-white" />
-            </motion.div>
-            <div className="flex-1">
-              <h3 className="font-bold text-xl text-foreground mb-1">
-                {notification.title}
-              </h3>
-              {notification.metadata?.badge_icon && (
-                <div className="text-4xl my-2">
-                  {notification.metadata.badge_icon}
-                </div>
-              )}
+          {/* Title */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-center space-y-2"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              <h3 className="text-xl font-bold">Nouveau Badge Débloqué !</h3>
+              <Sparkles className="h-5 w-5 text-yellow-500" />
             </div>
-          </div>
+            <p className="text-sm text-muted-foreground">
+              Félicitations pour votre progression !
+            </p>
+          </motion.div>
 
-          {/* Message */}
-          <p className="text-base leading-relaxed text-foreground">
-            {notification.message}
-          </p>
+          {/* Badge Display */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
+            transition={{ delay: 0.4, type: 'spring', damping: 10 }}
+            className="flex justify-center py-4"
+          >
+            <ReciprocityBadge score={newScore} size="xl" showLabel showScore animated />
+          </motion.div>
+
+          {/* Badge Info */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="bg-muted/50 rounded-lg p-4 space-y-2"
+          >
+            <p className="text-sm font-medium text-center">{newBadge.description}</p>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-center">Nouveaux avantages:</p>
+              {newBadge.perks.slice(0, 3).map((perk, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 + i * 0.1 }}
+                  className="flex items-start gap-2 text-xs"
+                >
+                  <span className="text-green-500 mt-0.5">✓</span>
+                  <span>{perk}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={onViewBadges}
-              className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-            >
-              Voir mes badges
-            </Button>
-            <Button
-              onClick={onAction}
-              variant="outline"
-              className="border-amber-500/40 hover:bg-amber-500/10"
-            >
-              OK
+          <div className="flex gap-2">
+            {onShare && (
+              <Button variant="outline" className="flex-1" onClick={onShare}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Partager
+              </Button>
+            )}
+            <Button className="flex-1" onClick={onDismiss}>
+              Super !
             </Button>
           </div>
-        </div>
+        </CardContent>
       </Card>
     </motion.div>
   );
-};
+}
