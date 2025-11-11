@@ -195,16 +195,6 @@ serve(async (req) => {
           }
         }
 
-        // Generate personalized AI message based on age
-        const firstName = user.full_name?.split(' ')[0] || 'cher utilisateur';
-        const messages = getBirthdayMessagesByAge(age, firstName);
-        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        const celebrationEmojis = getCelebrationEmojisByAge(age);
-        
-        // Déterminer si c'est un âge marquant
-        const milestoneAges = [18, 20, 21, 25, 30, 40, 50, 60, 70, 80];
-        const isMilestone = age ? milestoneAges.includes(age) : false;
-
         // Check if notification already exists for today
         const { data: existingNotif } = await supabase
           .from('scheduled_notifications')
@@ -218,6 +208,90 @@ serve(async (req) => {
           console.log(`Notification already exists for user ${user.id}`);
           continue;
         }
+
+        // Record birthday celebration in history
+        const currentYear = today.getFullYear();
+        const { error: celebrationError } = await supabase
+          .from('birthday_celebrations')
+          .insert({
+            user_id: user.id,
+            celebration_year: currentYear,
+            age_at_celebration: age,
+            milestone_age: age ? [18, 20, 21, 25, 30, 40, 50, 60, 70, 80].includes(age) : false
+          });
+
+        if (celebrationError && celebrationError.code !== '23505') { // Ignore duplicate key error
+          console.error(`Error recording celebration for user ${user.id}:`, celebrationError);
+        }
+
+        // Get user's celebration count and update profile
+        const { count: celebrationsCount } = await supabase
+          .from('birthday_celebrations')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        const totalCelebrations = celebrationsCount || 0;
+
+        // Get first birthday on platform
+        const { data: firstCelebration } = await supabase
+          .from('birthday_celebrations')
+          .select('celebrated_at')
+          .eq('user_id', user.id)
+          .order('celebrated_at', { ascending: true })
+          .limit(1)
+          .single();
+
+        // Calculate badge level (0-5)
+        let badgeLevel = 0;
+        let badgeName = '🎂 Nouveau';
+        if (totalCelebrations >= 10) {
+          badgeLevel = 5;
+          badgeName = '💎 Diamant';
+        } else if (totalCelebrations >= 5) {
+          badgeLevel = 4;
+          badgeName = '⭐ Platine';
+        } else if (totalCelebrations >= 3) {
+          badgeLevel = 3;
+          badgeName = '🏆 Or';
+        } else if (totalCelebrations >= 2) {
+          badgeLevel = 2;
+          badgeName = '🥈 Argent';
+        } else if (totalCelebrations >= 1) {
+          badgeLevel = 1;
+          badgeName = '🥉 Bronze';
+        }
+
+        // Update profile with badge info
+        await supabase
+          .from('profiles')
+          .update({
+            total_birthdays_celebrated: totalCelebrations,
+            birthday_badge_level: badgeLevel,
+            first_birthday_on_platform: firstCelebration?.celebrated_at 
+              ? new Date(firstCelebration.celebrated_at).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0]
+          })
+          .eq('user_id', user.id);
+
+        // Check if user earned a new badge
+        const earnedNewBadge = totalCelebrations === 1 || totalCelebrations === 2 || 
+                               totalCelebrations === 3 || totalCelebrations === 5 || 
+                               totalCelebrations === 10;
+
+        // Generate personalized AI message based on age
+        const firstName = user.birthday ? (await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('user_id', user.id)
+          .single()).data?.first_name || 'cher utilisateur' : 'cher utilisateur';
+          
+        const messages = getBirthdayMessagesByAge(age, firstName);
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        const celebrationEmojis = getCelebrationEmojisByAge(age);
+        
+        // Déterminer si c'est un âge marquant
+        const milestoneAges = [18, 20, 21, 25, 30, 40, 50, 60, 70, 80];
+        const isMilestone = age ? milestoneAges.includes(age) : false;
 
         // Create birthday notification
         const { error: notifError } = await supabase
@@ -236,14 +310,24 @@ serve(async (req) => {
               is_birthday: true,
               is_milestone: isMilestone,
               can_generate_music: true,
-              celebration_emojis: celebrationEmojis
+              celebration_emojis: celebrationEmojis,
+              // Badge information
+              loyalty_badge: {
+                level: badgeLevel,
+                name: badgeName,
+                total_celebrations: totalCelebrations,
+                earned_new_badge: earnedNewBadge,
+                first_birthday_year: firstCelebration?.celebrated_at 
+                  ? new Date(firstCelebration.celebrated_at).getFullYear()
+                  : currentYear
+              }
             }
           });
 
         if (notifError) {
           console.error(`Error creating notification for user ${user.id}:`, notifError);
         } else {
-          console.log(`Birthday notification created for ${firstName} (${user.id})`);
+          console.log(`Birthday notification created for ${firstName} (${user.id}) - Badge: ${badgeName} (${totalCelebrations} anniversaires)`);
         }
 
       } catch (userError) {

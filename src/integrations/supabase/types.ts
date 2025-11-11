@@ -329,6 +329,36 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_celebrations: {
+        Row: {
+          age_at_celebration: number | null
+          celebrated_at: string
+          celebration_year: number
+          created_at: string
+          id: string
+          milestone_age: boolean | null
+          user_id: string
+        }
+        Insert: {
+          age_at_celebration?: number | null
+          celebrated_at?: string
+          celebration_year: number
+          created_at?: string
+          id?: string
+          milestone_age?: boolean | null
+          user_id: string
+        }
+        Update: {
+          age_at_celebration?: number | null
+          celebrated_at?: string
+          celebration_year?: number
+          created_at?: string
+          id?: string
+          milestone_age?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_accounts: {
         Row: {
           address: string | null
@@ -801,6 +831,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "collective_funds_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
         ]
       }
       community_scores: {
@@ -1010,6 +1047,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
         ]
       }
       delivery_zones: {
@@ -1053,6 +1097,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "delivery_zones_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
           },
         ]
       }
@@ -1254,6 +1305,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fund_contributions_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
           },
           {
             foreignKeyName: "fund_contributions_fund_id_fkey"
@@ -1523,6 +1581,13 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
           {
+            foreignKeyName: "gifts_giver_id_fkey"
+            columns: ["giver_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
+          {
             foreignKeyName: "gifts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -1535,6 +1600,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "gifts_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
           },
         ]
       }
@@ -2467,6 +2539,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "fk_posts_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
         ]
       }
       product_ratings: {
@@ -2597,10 +2676,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          badges: Json | null
           bio: string | null
           birthday: string | null
+          birthday_badge_level: number | null
           city: string | null
           created_at: string
+          first_birthday_on_platform: string | null
           first_name: string | null
           id: string
           is_suspended: boolean | null
@@ -2609,14 +2691,18 @@ export type Database = {
           preferences: Json | null
           suspended_at: string | null
           suspension_reason: string | null
+          total_birthdays_celebrated: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          badges?: Json | null
           bio?: string | null
           birthday?: string | null
+          birthday_badge_level?: number | null
           city?: string | null
           created_at?: string
+          first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
           is_suspended?: boolean | null
@@ -2625,14 +2711,18 @@ export type Database = {
           preferences?: Json | null
           suspended_at?: string | null
           suspension_reason?: string | null
+          total_birthdays_celebrated?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          badges?: Json | null
           bio?: string | null
           birthday?: string | null
+          birthday_badge_level?: number | null
           city?: string | null
           created_at?: string
+          first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
           is_suspended?: boolean | null
@@ -2641,6 +2731,7 @@ export type Database = {
           preferences?: Json | null
           suspended_at?: string | null
           suspension_reason?: string | null
+          total_birthdays_celebrated?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -2974,6 +3065,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_reported_posts_reporter"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
           },
           {
             foreignKeyName: "fk_reported_posts_reviewed_by"
@@ -3732,6 +3830,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
           },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
         ]
       }
       product_rating_stats: {
@@ -3755,6 +3860,21 @@ export type Database = {
           },
         ]
       }
+      user_birthday_stats: {
+        Row: {
+          auth_user_id: string | null
+          badge_level: string | null
+          badge_name: string | null
+          birthday_badge_level: number | null
+          celebrations_count: number | null
+          first_birthday_on_platform: string | null
+          total_birthdays_celebrated: number | null
+          user_id: string | null
+          user_name: string | null
+          years_celebrated: number[] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_loyalty_points: {
@@ -3771,6 +3891,10 @@ export type Database = {
       are_users_connected: {
         Args: { p_user_a: string; p_user_b: string }
         Returns: boolean
+      }
+      calculate_birthday_badge_level: {
+        Args: { celebrations_count: number }
+        Returns: string
       }
       calculate_fund_deadline: {
         Args: { contact_birthday: string; created_year?: number }
@@ -3929,6 +4053,7 @@ export type Database = {
         }[]
       }
       generate_event_analytics: { Args: never; Returns: number }
+      get_badge_name: { Args: { badge_level: string }; Returns: string }
       get_business_account: {
         Args: { p_user_id: string }
         Returns: {

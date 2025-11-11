@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BirthdayLoyaltyBadge } from './BirthdayLoyaltyBadge';
 
 interface BirthdayNotificationCardProps {
   notification: {
@@ -17,6 +18,13 @@ interface BirthdayNotificationCardProps {
       is_milestone?: boolean;
       can_generate_music?: boolean;
       celebration_emojis?: string[];
+      loyalty_badge?: {
+        level: number;
+        name: string;
+        total_celebrations: number;
+        earned_new_badge: boolean;
+        first_birthday_year: number;
+      };
     };
   };
   onAction?: () => void;
@@ -102,6 +110,7 @@ export const BirthdayNotificationCard = ({
   const emojis = notification.metadata?.celebration_emojis || ['🎂', '🎉', '🎁'];
   const isMilestone = notification.metadata?.is_milestone || false;
   const age = notification.metadata?.age;
+  const loyaltyBadge = notification.metadata?.loyalty_badge;
 
   // Déterminer le gradient selon si c'est un âge marquant
   const gradientClass = isMilestone
@@ -141,6 +150,43 @@ export const BirthdayNotificationCard = ({
         </div>
 
         <div className="relative p-6 space-y-4">
+          {/* Loyalty Badge - Displayed prominently if exists */}
+          {loyaltyBadge && loyaltyBadge.level > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex justify-center pb-2"
+            >
+              <BirthdayLoyaltyBadge
+                level={loyaltyBadge.level}
+                name={loyaltyBadge.name}
+                totalCelebrations={loyaltyBadge.total_celebrations}
+                earnedNewBadge={loyaltyBadge.earned_new_badge}
+                size="lg"
+              />
+            </motion.div>
+          )}
+
+          {/* Loyalty milestone message */}
+          {loyaltyBadge && loyaltyBadge.total_celebrations > 1 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-center py-2 px-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg border border-primary/20"
+            >
+              <p className="text-sm font-semibold text-foreground">
+                🎊 C'est votre {loyaltyBadge.total_celebrations}
+                {loyaltyBadge.total_celebrations === 1 ? 'er' : 'e'} anniversaire célébré avec nous !
+              </p>
+              {loyaltyBadge.first_birthday_year && loyaltyBadge.total_celebrations > 1 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Membre fidèle depuis {loyaltyBadge.first_birthday_year} 💖
+                </p>
+              )}
+            </motion.div>
+          )}
           {/* Header */}
           <div className="flex items-start gap-3">
             <motion.div
