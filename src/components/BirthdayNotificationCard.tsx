@@ -14,6 +14,7 @@ interface BirthdayNotificationCardProps {
     message: string;
     metadata?: {
       age?: number;
+      is_milestone?: boolean;
       can_generate_music?: boolean;
       celebration_emojis?: string[];
     };
@@ -99,6 +100,13 @@ export const BirthdayNotificationCard = ({
   };
 
   const emojis = notification.metadata?.celebration_emojis || ['🎂', '🎉', '🎁'];
+  const isMilestone = notification.metadata?.is_milestone || false;
+  const age = notification.metadata?.age;
+
+  // Déterminer le gradient selon si c'est un âge marquant
+  const gradientClass = isMilestone
+    ? "bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/20 border-2 border-amber-500/50"
+    : "bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 border-2 border-primary/40";
 
   return (
     <motion.div
@@ -106,7 +114,7 @@ export const BirthdayNotificationCard = ({
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="relative overflow-hidden bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 border-2 border-primary/40 shadow-xl">
+      <Card className={`relative overflow-hidden ${gradientClass} shadow-xl`}>
         {/* Animated background emojis */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {emojis.map((emoji, i) => (
@@ -138,17 +146,28 @@ export const BirthdayNotificationCard = ({
             <motion.div
               animate={{ rotate: [0, 15, -15, 0] }}
               transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-              className="p-2 rounded-full bg-primary/20"
+              className={`p-2 rounded-full ${isMilestone ? 'bg-amber-500/30' : 'bg-primary/20'}`}
             >
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Sparkles className={`h-6 w-6 ${isMilestone ? 'text-amber-600' : 'text-primary'}`} />
             </motion.div>
             <div className="flex-1">
-              <h3 className="font-bold text-xl text-foreground mb-1">
-                {notification.title}
-              </h3>
-              {notification.metadata?.age && (
-                <p className="text-sm text-muted-foreground">
-                  🎂 {notification.metadata.age} ans aujourd'hui !
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-xl text-foreground">
+                  {notification.title}
+                </h3>
+                {isMilestone && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg"
+                  >
+                    ✨ Âge marquant
+                  </motion.span>
+                )}
+              </div>
+              {age && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  🎂 {age} ans aujourd'hui ! {isMilestone && '🌟 Un anniversaire spécial !'}
                 </p>
               )}
             </div>
