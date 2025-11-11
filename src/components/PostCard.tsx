@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2, Gift, PartyPopper, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,6 +24,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: PostCardProps) {
+  const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [giftWarningShown, setGiftWarningShown] = useState(false);
@@ -92,7 +94,10 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10">
+            <Avatar 
+              className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/profile/${post.user_id}`)}
+            >
               {post.profiles?.avatar_url && (
                 <AvatarImage 
                   src={post.profiles.avatar_url} 
@@ -105,7 +110,12 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
               </AvatarFallback>
             </Avatar>
             <div>
-              <h4 className="font-medium text-foreground text-sm">{authorName}</h4>
+              <h4 
+                className="font-medium text-foreground text-sm cursor-pointer hover:underline"
+                onClick={() => navigate(`/profile/${post.user_id}`)}
+              >
+                {authorName}
+              </h4>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground">{timestamp}</p>
                 {post.occasion && (
