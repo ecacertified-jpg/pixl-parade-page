@@ -7,6 +7,16 @@ import { Sparkles, Send, ThumbsUp, ThumbsDown, X, RotateCcw } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useLocation } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AIChatPanelProps {
   onClose: () => void;
@@ -14,6 +24,7 @@ interface AIChatPanelProps {
 
 export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
   const [inputValue, setInputValue] = useState('');
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   
@@ -49,6 +60,11 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
     await sendMessage(question);
   };
 
+  const handleResetConfirm = () => {
+    resetConversation();
+    setShowResetDialog(false);
+  };
+
   return (
     <Card className="w-full md:w-[380px] h-[500px] md:h-[600px] max-h-[calc(100vh-200px)] flex flex-col shadow-2xl border-2 border-primary/20 overflow-hidden">
       {/* Header */}
@@ -66,7 +82,7 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={resetConversation}
+            onClick={() => setShowResetDialog(true)}
             className="text-white hover:bg-white/20 h-8 w-8"
             title="Réinitialiser la conversation"
           >
@@ -187,6 +203,24 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
           </Button>
         </div>
       </div>
+
+      {/* Dialog de confirmation */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Réinitialiser la conversation ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action supprimera tout l'historique de la conversation actuelle. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetConfirm}>
+              Réinitialiser
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
