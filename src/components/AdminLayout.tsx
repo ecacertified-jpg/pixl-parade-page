@@ -12,7 +12,8 @@ import {
   Shield, 
   ClipboardList,
   LogOut,
-  Menu
+  Menu,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },
   { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },

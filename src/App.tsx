@@ -35,6 +35,7 @@ import Analytics from "./pages/Admin/Analytics";
 import AdminManagement from "./pages/Admin/AdminManagement";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import Settings from "./pages/Admin/Settings";
+import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -169,6 +170,11 @@ const App = () => (
             <Route path="/admin/analytics" element={
               <AdminRoute>
                 <Analytics />
+              </AdminRoute>
+            } />
+            <Route path="/admin/reciprocity" element={
+              <AdminRoute>
+                <ReciprocityDashboard />
               </AdminRoute>
             } />
             <Route path="/admin/settings" element={
