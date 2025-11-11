@@ -3736,6 +3736,9 @@ export type Database = {
           enable_for_promotions: boolean | null
           enable_for_weddings: boolean | null
           enable_reciprocity_system: boolean | null
+          min_reciprocity_score: number | null
+          notify_high_priority_only: boolean | null
+          notify_on_friend_fund: boolean | null
           show_generosity_badge: boolean | null
           updated_at: string | null
           user_id: string
@@ -3747,6 +3750,9 @@ export type Database = {
           enable_for_promotions?: boolean | null
           enable_for_weddings?: boolean | null
           enable_reciprocity_system?: boolean | null
+          min_reciprocity_score?: number | null
+          notify_high_priority_only?: boolean | null
+          notify_on_friend_fund?: boolean | null
           show_generosity_badge?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -3758,6 +3764,9 @@ export type Database = {
           enable_for_promotions?: boolean | null
           enable_for_weddings?: boolean | null
           enable_reciprocity_system?: boolean | null
+          min_reciprocity_score?: number | null
+          notify_high_priority_only?: boolean | null
+          notify_on_friend_fund?: boolean | null
           show_generosity_badge?: boolean | null
           updated_at?: string | null
           user_id?: string
