@@ -1871,6 +1871,45 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          expires_at: string
+          id: string
+          invitation_token: string
+          invited_at: string
+          invitee_email: string
+          invitee_phone: string | null
+          inviter_id: string
+          message: string | null
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          expires_at?: string
+          id?: string
+          invitation_token: string
+          invited_at?: string
+          invitee_email: string
+          invitee_phone?: string | null
+          inviter_id: string
+          message?: string | null
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          invited_at?: string
+          invitee_email?: string
+          invitee_phone?: string | null
+          inviter_id?: string
+          message?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       loyalty_points: {
         Row: {
           created_at: string
@@ -2743,10 +2782,13 @@ export type Database = {
           first_birthday_on_platform: string | null
           first_name: string | null
           id: string
+          invitations_accepted: number | null
+          invitations_sent: number | null
           is_suspended: boolean | null
           last_name: string | null
           phone: string | null
           preferences: Json | null
+          referred_by: string | null
           suspended_at: string | null
           suspension_reason: string | null
           total_birthdays_celebrated: number | null
@@ -2764,10 +2806,13 @@ export type Database = {
           first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
+          invitations_accepted?: number | null
+          invitations_sent?: number | null
           is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          referred_by?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null
@@ -2785,10 +2830,13 @@ export type Database = {
           first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
+          invitations_accepted?: number | null
+          invitations_sent?: number | null
           is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          referred_by?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null
