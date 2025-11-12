@@ -8,7 +8,7 @@ export interface UserSuggestion {
   last_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  common_friends_count: number;
+  mutual_follows_count: number;
   common_occasions: string[];
   total_gifts_given: number;
   reason: string;
@@ -42,24 +42,18 @@ export function useUserSuggestions(limit: number = 5) {
 
       const followedUserIds = followedUsers?.map(f => f.following_id) || [];
 
-      // Get current user's contacts (friends)
-      const { data: myContacts } = await supabase
-        .from('contacts')
-        .select('user_id')
-        .eq('user_id', user.id);
+      // Get users that my followed users are following (friends of friends)
+      const { data: friendsOfFriends } = await supabase
+        .from('user_follows')
+        .select('following_id')
+        .in('follower_id', followedUserIds)
+        .not('following_id', 'in', `(${[user.id, ...followedUserIds].join(',')})`);
 
-      // Get all other users' contacts to find common friends
-      const { data: allContacts } = await supabase
-        .from('contacts')
-        .select('user_id, name')
-        .neq('user_id', user.id)
-        .not('user_id', 'in', `(${[user.id, ...followedUserIds].join(',')})`);
-
-      // Count common friends
-      const userContactsMap = new Map<string, number>();
-      allContacts?.forEach(contact => {
-        const count = userContactsMap.get(contact.user_id) || 0;
-        userContactsMap.set(contact.user_id, count + 1);
+      // Count mutual follows
+      const mutualFollowsMap = new Map<string, number>();
+      friendsOfFriends?.forEach(follow => {
+        const count = mutualFollowsMap.get(follow.following_id) || 0;
+        mutualFollowsMap.set(follow.following_id, count + 1);
       });
 
       // Get users' occasions from posts
@@ -102,7 +96,7 @@ export function useUserSuggestions(limit: number = 5) {
 
       // Combine all user IDs
       const allUserIds = [
-        ...Array.from(userContactsMap.keys()),
+        ...Array.from(mutualFollowsMap.keys()),
         ...Array.from(userOccasionsMap.keys()),
         ...Array.from(giftCountMap.keys())
       ];
@@ -122,24 +116,27 @@ export function useUserSuggestions(limit: number = 5) {
 
       // Build suggestions with scoring
       const suggestionsWithScores = profiles?.map(profile => {
-        const commonFriendsCount = userContactsMap.get(profile.user_id) || 0;
+        const mutualFollowsCount = mutualFollowsMap.get(profile.user_id) || 0;
         const userOccasions = Array.from(userOccasionsMap.get(profile.user_id) || []);
         const commonOccasions = userOccasions.filter(o => myOccasions.includes(o));
         const giftsGiven = giftCountMap.get(profile.user_id) || 0;
+        const hasCompleteProfile = profile.avatar_url && profile.bio;
 
         // Calculate score for sorting
-        const score = (commonFriendsCount * 3) + (commonOccasions.length * 2) + (giftsGiven * 1);
+        const score = (mutualFollowsCount * 3) + (commonOccasions.length * 2) + (giftsGiven * 1) + (hasCompleteProfile ? 1 : 0);
 
         // Determine reason
         let reason = '';
-        if (commonFriendsCount > 0 && commonOccasions.length > 0) {
-          reason = `${commonFriendsCount} ami${commonFriendsCount > 1 ? 's' : ''} en commun • Intérêts similaires`;
-        } else if (commonFriendsCount > 0) {
-          reason = `${commonFriendsCount} ami${commonFriendsCount > 1 ? 's' : ''} en commun`;
+        if (mutualFollowsCount > 0 && commonOccasions.length > 0) {
+          reason = `Suivi par vos amis • Intérêts similaires`;
+        } else if (mutualFollowsCount > 0) {
+          reason = `Suivi par ${mutualFollowsCount} de vos ami${mutualFollowsCount > 1 ? 's' : ''}`;
         } else if (commonOccasions.length > 0) {
           reason = `Intérêts similaires : ${commonOccasions.join(', ')}`;
         } else if (giftsGiven > 0) {
           reason = `Membre actif de la communauté`;
+        } else if (hasCompleteProfile) {
+          reason = 'Profil complet';
         } else {
           reason = 'Suggéré pour vous';
         }
@@ -150,7 +147,7 @@ export function useUserSuggestions(limit: number = 5) {
           last_name: profile.last_name,
           avatar_url: profile.avatar_url,
           bio: profile.bio,
-          common_friends_count: commonFriendsCount,
+          mutual_follows_count: mutualFollowsCount,
           common_occasions: commonOccasions,
           total_gifts_given: giftsGiven,
           reason,

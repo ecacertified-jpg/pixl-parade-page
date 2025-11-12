@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserPlus, Users, X } from "lucide-react";
+import { UserPlus, Users, X, Share2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -81,8 +81,40 @@ export function UserSuggestionsSection() {
     );
   }
 
-  if (visibleSuggestions.length === 0) {
-    return null;
+  if (!loading && visibleSuggestions.length === 0) {
+    return (
+      <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/10">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">Aucune suggestion pour le moment</h3>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Nous n'avons pas encore trouvé d'utilisateurs à vous suggérer. Pour découvrir de nouvelles personnes :
+              </p>
+            </div>
+            <div className="space-y-2 text-left max-w-md mx-auto">
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                <UserPlus className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+                <span>Participez à la communauté en publiant et en réagissant aux posts</span>
+              </div>
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                <Users className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+                <span>Complétez votre profil avec une photo et une bio</span>
+              </div>
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                <Share2 className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+                <span>Invitez vos amis à rejoindre Joie de Vivre</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
