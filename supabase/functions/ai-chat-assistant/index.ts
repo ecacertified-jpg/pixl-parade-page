@@ -176,54 +176,85 @@ async function buildUserContext(supabase, user, context) {
     };
   }
 
-  // Récupérer le profil
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, city, birthday')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  try {
+    // Récupérer le profil avec gestion d'erreur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('first_name, city, birthday')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+    }
 
-  // Vérifier si c'est l'anniversaire de l'utilisateur
-  let isBirthdayToday = false;
-  if (profile?.birthday) {
-    const today = new Date();
-    const birthday = new Date(profile.birthday);
-    isBirthdayToday = 
-      today.getMonth() === birthday.getMonth() && 
-      today.getDate() === birthday.getDate();
+    // Vérifier si c'est l'anniversaire de l'utilisateur
+    let isBirthdayToday = false;
+    if (profile?.birthday) {
+      const today = new Date();
+      const birthday = new Date(profile.birthday);
+      isBirthdayToday = 
+        today.getMonth() === birthday.getMonth() && 
+        today.getDate() === birthday.getDate();
+    }
+
+    // Compter les amis avec gestion d'erreur
+    const { count: friendsCount, error: friendsError } = await supabase
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    
+    if (friendsError) {
+      console.error('Error counting friends:', friendsError);
+    }
+
+    // Vérifier les préférences avec gestion d'erreur
+    const { data: preferences, error: prefsError } = await supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (prefsError) {
+      console.error('Error fetching preferences:', prefsError);
+    }
+
+    // Compter les cagnottes avec gestion d'erreur
+    const { count: fundsCount, error: fundsError } = await supabase
+      .from('collective_funds')
+      .select('*', { count: 'exact', head: true })
+      .eq('creator_id', user.id);
+    
+    if (fundsError) {
+      console.error('Error counting funds:', fundsError);
+    }
+
+    return {
+      isAuthenticated: true,
+      currentPage: context?.page || '/',
+      firstName: profile?.first_name,
+      hasProfile: !!profile,
+      hasFriends: (friendsCount || 0) > 0,
+      friendsCount: friendsCount || 0,
+      hasPreferences: !!preferences,
+      hasFunds: (fundsCount || 0) > 0,
+      fundsCount: fundsCount || 0,
+      isBirthdayToday
+    };
+  } catch (error) {
+    console.error('Unexpected error in buildUserContext:', error);
+    return {
+      isAuthenticated: true,
+      currentPage: context?.page || '/',
+      hasProfile: false,
+      hasFriends: false,
+      friendsCount: 0,
+      hasPreferences: false,
+      hasFunds: false,
+      fundsCount: 0,
+      isBirthdayToday: false
+    };
   }
-
-  // Compter les amis
-  const { count: friendsCount } = await supabase
-    .from('contacts')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
-  // Vérifier les préférences
-  const { data: preferences } = await supabase
-    .from('user_preferences')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  // Compter les cagnottes
-  const { count: fundsCount } = await supabase
-    .from('collective_funds')
-    .select('*', { count: 'exact', head: true })
-    .eq('creator_id', user.id);
-
-  return {
-    isAuthenticated: true,
-    currentPage: context?.page || '/',
-    firstName: profile?.first_name,
-    hasProfile: !!profile,
-    hasFriends: (friendsCount || 0) > 0,
-    friendsCount: friendsCount || 0,
-    hasPreferences: !!preferences,
-    hasFunds: (fundsCount || 0) > 0,
-    fundsCount: fundsCount || 0,
-    isBirthdayToday
-  };
 }
 
 // Fonction pour construire le prompt système
@@ -251,6 +282,17 @@ function buildSystemPrompt(stage, userContext) {
 5. 🎉 **Occasions spéciales** : Anniversaires, promotions, mariages, etc.
 6. 🏪 **Espace Business** : Pour les commerçants qui souhaitent vendre sur la plateforme
 `;
+
+  // Contexte pour les nouveaux utilisateurs
+  if (userContext.isAuthenticated && !userContext.hasProfile) {
+    basePrompt += `
+
+⚠️ UTILISATEUR NOUVELLEMENT INSCRIT
+- L'utilisateur vient de s'inscrire mais n'a pas encore complété son profil
+- Encourage-le à remplir son profil (prénom, date d'anniversaire, ville)
+- Explique l'importance de compléter son profil pour profiter pleinement de la plateforme
+`;
+  }
 
   // 🎂 PRIORITÉ ABSOLUE : ANNIVERSAIRE
   if (userContext.isBirthdayToday) {

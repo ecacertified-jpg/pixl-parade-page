@@ -108,6 +108,16 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   };
 
   const handlePublish = async () => {
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast({
+        title: "Non connecté",
+        description: "Vous devez être connecté pour publier",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!content && !mediaFile) {
       toast({
         title: "Erreur",
@@ -146,11 +156,23 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
 
       resetForm();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error publishing post:', error);
+      
+      // More detailed error messages
+      let errorMessage = "Erreur lors de la publication";
+      
+      if (error.message?.includes('permission denied') || error.message?.includes('policy')) {
+        errorMessage = "Vous n'avez pas la permission de publier. Assurez-vous d'être connecté.";
+      } else if (error.message?.includes('user_id')) {
+        errorMessage = "Erreur d'authentification. Veuillez vous reconnecter.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur",
-        description: "Erreur lors de la publication",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
