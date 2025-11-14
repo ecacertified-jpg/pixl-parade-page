@@ -1,11 +1,11 @@
-import { Home, Users, ShoppingBag, Gift, Plus } from "lucide-react";
+import { Home, ShoppingBag, Plus, Gift as GiftIcon, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { CreatePostDrawer } from "@/components/CreatePostDrawer";
-import { ValueModal } from "@/components/ValueModal";
+import { CreateActionMenu } from "./CreateActionMenu";
+import { ValueModal } from "./ValueModal";
 
 export function RecentActivitySection() {
   return (
@@ -28,8 +28,8 @@ export function RecentActivitySection() {
 
 export function BottomNavigation() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [giftNotifications, setGiftNotifications] = useState(0);
-  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [showValueModal, setShowValueModal] = useState(false);
   const { user } = useAuth();
 
@@ -48,7 +48,6 @@ export function BottomNavigation() {
       if (!user) return;
       
       try {
-        // Count unread gift notifications
         const { count } = await supabase
           .from('notifications')
           .select('*', { count: 'exact', head: true })
@@ -64,7 +63,6 @@ export function BottomNavigation() {
 
     loadUnreadGifts();
 
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('gift-notifications')
       .on(
@@ -85,62 +83,93 @@ export function BottomNavigation() {
   }, [user]);
   
   const navItems = [
-    { icon: <Home className="h-5 w-5" />, label: "Accueil", active: true, path: "/" },
-    { icon: <ShoppingBag className="h-5 w-5" />, label: "Boutique", active: false, onClick: handleShopClick },
     { 
-      icon: <Plus className="h-4 w-4" />, 
-      label: "", 
-      active: false, 
-      isSpecial: true,
-      onClick: () => setIsCreateDrawerOpen(true)
+      icon: Home,
+      label: "Accueil", 
+      isActive: location.pathname === "/",
+      onClick: () => navigate("/")
     },
     { 
-      icon: <Gift className="h-5 w-5" />, 
+      icon: ShoppingBag,
+      label: "Boutique", 
+      isActive: location.pathname === "/shop",
+      onClick: handleShopClick
+    },
+    { 
+      icon: Plus,
+      label: "Créer", 
+      isActive: false,
+      onClick: () => {},
+      customRender: true
+    },
+    { 
+      icon: GiftIcon,
       label: "Cadeaux", 
-      active: false, 
-      path: "/gifts",
-      badge: giftNotifications > 0 ? giftNotifications.toString() : undefined,
-      isBlinking: giftNotifications > 0
+      isActive: location.pathname === "/gifts",
+      onClick: () => navigate("/gifts"),
+      badge: giftNotifications > 0 ? giftNotifications : null
     },
-    { icon: <Users className="h-5 w-5" />, label: "Communauté", active: false, path: "/community" }
+    { 
+      icon: Users,
+      label: "Communauté", 
+      isActive: location.pathname === "/community",
+      onClick: () => navigate("/community")
+    }
   ];
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 backdrop-blur-sm">
-        <div className="max-w-md mx-auto px-4 py-2">
-          <div className="flex items-center justify-around">
-            {navItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={() => item.onClick ? item.onClick() : navigate(item.path!)}
-                className="flex flex-col items-center gap-1 py-2 relative"
-              >
-                <div className="relative">
-                  <div className={`${item.isSpecial 
-                    ? 'w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white shadow-lg' 
-                    : `p-1 ${item.active ? 'text-orange-500' : 'text-muted-foreground'}`
-                  }`}>
-                    {item.icon}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border/50 backdrop-blur-sm z-50">
+        <div className="max-w-md mx-auto">
+          <nav className="flex items-center justify-around px-4 py-3">
+            {navItems.map((item, index) => {
+              // Special rendering for Create button with menu
+              if (item.customRender) {
+                return (
+                  <CreateActionMenu key={index}>
+                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200 hover:bg-primary/5 relative">
+                      <div className="relative bg-gradient-to-r from-primary to-secondary text-white rounded-full p-3 shadow-lg">
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                    </button>
+                  </CreateActionMenu>
+                );
+              }
+
+              // Default rendering for other buttons
+              return (
+                <button
+                  key={index}
+                  onClick={item.onClick}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200 hover:bg-primary/5 relative ${
+                    item.isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  <div className="relative">
+                    <item.icon
+                      className={`h-6 w-6 transition-all duration-200 ${
+                        item.isActive ? "scale-110" : ""
+                      }`}
+                    />
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
-                  {item.badge && (
-                    <div className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ${item.isBlinking ? 'animate-pulse' : ''}`}>
-                      {item.badge}
-                    </div>
-                  )}
-                </div>
-                {item.label && (
-                  <span className={`text-xs ${item.active ? 'text-orange-500 font-medium' : 'text-muted-foreground'}`}>
+                  <span
+                    className={`text-xs font-medium transition-all duration-200 ${
+                      item.isActive ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
                     {item.label}
                   </span>
-                )}
-              </button>
-            ))}
-          </div>
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
-
-      <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
       <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
     </>
   );
