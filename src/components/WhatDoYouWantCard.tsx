@@ -5,13 +5,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
-import { CreatePostDrawer } from "@/components/CreatePostDrawer";
 import { ValueModal } from "@/components/ValueModal";
+import { CelebrateMenu } from "@/components/CelebrateMenu";
 
 export function WhatDoYouWantCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [showValueModal, setShowValueModal] = useState(false);
   
   const handleOfferGift = () => {
@@ -22,10 +21,6 @@ export function WhatDoYouWantCard() {
     } else {
       setShowValueModal(true);
     }
-  };
-  
-  const handleCelebrate = () => {
-    setIsCreateDrawerOpen(true);
   };
   return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-sky-50">
       {/* Header with profile and question */}
@@ -50,13 +45,14 @@ export function WhatDoYouWantCard() {
         </Button>
 
         {/* Celebrate Button */}
-        <Button onClick={handleCelebrate} variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 border border-border rounded-2xl transition-all duration-200 hover:shadow-md bg-neutral-50">
-          <PartyPopper className="h-5 w-5 text-secondary" />
-          <span className="font-medium text-foreground">Célébrer</span>
-        </Button>
+        <CelebrateMenu>
+          <Button variant="outline" className="h-auto py-4 px-4 flex items-center justify-center gap-3 border border-border rounded-2xl transition-all duration-200 hover:shadow-md bg-neutral-50">
+            <PartyPopper className="h-5 w-5 text-secondary" />
+            <span className="font-medium text-foreground">Célébrer</span>
+          </Button>
+        </CelebrateMenu>
       </div>
 
-      <CreatePostDrawer open={isCreateDrawerOpen} onOpenChange={setIsCreateDrawerOpen} />
       <ValueModal isOpen={showValueModal} onClose={() => setShowValueModal(false)} />
     </Card>;
 }
