@@ -66,32 +66,24 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
   };
 
   return (
-    <Card className="w-full md:w-[400px] h-[550px] md:h-[650px] max-h-[calc(100vh-150px)] flex flex-col shadow-2xl border border-primary/10 overflow-hidden rounded-2xl backdrop-blur-sm">
+    <Card className="w-full md:w-[380px] h-[500px] md:h-[600px] max-h-[calc(100vh-200px)] flex flex-col shadow-2xl border-2 border-primary/20 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600 p-5 text-white flex items-center justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
-        <div className="flex items-center gap-3 relative z-10">
-          <motion.div 
-            className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg ring-2 ring-white/30"
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          >
-            <Sparkles className="h-5 w-5" />
-          </motion.div>
+      <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-4 text-white flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+            <Sparkles className="h-4 w-4" />
+          </div>
           <div>
-            <h3 className="font-bold text-base">Assistant JOIE DE VIVRE</h3>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="h-2 w-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
-              <p className="text-xs opacity-95 font-medium">En ligne</p>
-            </div>
+            <h3 className="font-semibold text-sm">Assistant JOIE DE VIVRE</h3>
+            <p className="text-xs opacity-90">En ligne</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 relative z-10">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowResetDialog(true)}
-            className="text-white hover:bg-white/20 h-9 w-9 rounded-lg transition-all hover:scale-105"
+            className="text-white hover:bg-white/20 h-8 w-8"
             title="Réinitialiser la conversation"
           >
             <RotateCcw className="h-4 w-4" />
@@ -100,7 +92,7 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-white hover:bg-white/20 h-9 w-9 rounded-lg transition-all hover:scale-105"
+            className="text-white hover:bg-white/20 h-8 w-8"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -108,56 +100,47 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4 bg-gradient-to-b from-background via-muted/5 to-background">
+      <ScrollArea ref={scrollRef} className="flex-1 p-4">
         <div className="space-y-4">
           {messages.length === 0 && (
             <WelcomeMessage onQuickAction={handleQuickAction} />
           )}
 
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {messages.map((msg, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
                     msg.role === 'user'
-                      ? 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
-                      : 'bg-muted/80 backdrop-blur-sm text-foreground border border-border/50'
+                      ? 'bg-violet-500 text-white'
+                      : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   
                   {/* Feedback buttons pour les messages de l'assistant */}
                   {msg.role === 'assistant' && index === messages.length - 1 && !isLoading && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-2 mt-3 pt-3 border-t border-border/50"
-                    >
+                    <div className="flex gap-2 mt-2 pt-2 border-t border-gray-200">
                       <button
                         onClick={() => markAsHelpful(msg.id, true)}
-                        className="text-muted-foreground hover:text-green-600 transition-all hover:scale-110"
-                        title="Utile"
+                        className="text-gray-500 hover:text-green-600 transition-colors"
                       >
-                        <ThumbsUp className="h-4 w-4" />
+                        <ThumbsUp className="h-3 w-3" />
                       </button>
                       <button
                         onClick={() => markAsHelpful(msg.id, false)}
-                        className="text-muted-foreground hover:text-red-600 transition-all hover:scale-110"
-                        title="Pas utile"
+                        className="text-gray-500 hover:text-red-600 transition-colors"
                       >
-                        <ThumbsDown className="h-4 w-4" />
+                        <ThumbsDown className="h-3 w-3" />
                       </button>
-                    </motion.div>
+                    </div>
                   )}
-                </motion.div>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -165,27 +148,15 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
           {/* Typing indicator */}
           {isLoading && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               className="flex justify-start"
             >
-              <div className="bg-muted/80 backdrop-blur-sm rounded-2xl p-4 border border-border/50 shadow-sm">
-                <div className="flex gap-1.5">
-                  <motion.span 
-                    className="h-2.5 w-2.5 bg-violet-500 rounded-full" 
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-                  />
-                  <motion.span 
-                    className="h-2.5 w-2.5 bg-purple-500 rounded-full" 
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-                  />
-                  <motion.span 
-                    className="h-2.5 w-2.5 bg-fuchsia-500 rounded-full" 
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-                  />
+              <div className="bg-gray-100 rounded-lg p-3">
+                <div className="flex gap-1">
+                  <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </motion.div>
@@ -193,36 +164,26 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
 
           {/* Suggested Questions */}
           {suggestedQuestions.length > 0 && !isLoading && messages.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-2 pt-2"
-            >
-              <p className="text-xs text-muted-foreground font-semibold">Questions suggérées :</p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500 font-medium">Questions suggérées :</p>
               {suggestedQuestions.map((q, i) => (
-                <motion.div
+                <Button
                   key={i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction(q)}
+                  className="w-full text-left justify-start text-xs h-auto py-2"
                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAction(q)}
-                    className="w-full text-left justify-start text-xs h-auto py-3 hover:bg-primary/5 hover:border-primary/30 transition-all hover:scale-[1.02] rounded-xl"
-                  >
-                    {q}
-                  </Button>
-                </motion.div>
+                  {q}
+                </Button>
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm">
+      <div className="p-4 border-t">
         <div className="flex gap-2">
           <Input
             value={inputValue}
@@ -230,18 +191,16 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Posez votre question..."
             disabled={isLoading}
-            className="flex-1 rounded-xl border-border/50 focus:border-primary/50 bg-background"
+            className="flex-1"
           />
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading}
-              size="icon"
-              className="bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 rounded-xl shadow-lg h-10 w-10"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </motion.div>
+          <Button
+            onClick={handleSend}
+            disabled={!inputValue.trim() || isLoading}
+            size="icon"
+            className="bg-violet-500 hover:bg-violet-600"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -276,54 +235,37 @@ const WelcomeMessage = ({ onQuickAction }: { onQuickAction: (q: string) => void 
   ];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-5"
-    >
-      <div className="bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-violet-950/20 dark:via-purple-950/20 dark:to-fuchsia-950/20 rounded-2xl p-5 border-2 border-violet-200/50 dark:border-violet-800/50 shadow-lg">
-        <div className="flex items-start gap-4">
-          <motion.div 
-            className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600 flex items-center justify-center flex-shrink-0 shadow-lg"
-            animate={{ rotate: [0, 360] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          >
-            <Sparkles className="h-6 w-6 text-white" />
-          </motion.div>
-          <div className="flex-1">
-            <h4 className="font-bold text-foreground mb-2 text-lg">
+    <div className="space-y-4">
+      <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-lg p-4 border border-violet-200">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-1">
               Bienvenue sur JOIE DE VIVRE ! 🎉
             </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-gray-600">
               Je suis votre assistant virtuel. Comment puis-je vous aider aujourd'hui ?
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {quickActions.map((action, i) => (
-          <motion.div
+          <Button
             key={i}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1, duration: 0.3 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            variant="outline"
+            onClick={() => onQuickAction(action.action)}
+            className="h-auto py-3 flex flex-col items-center gap-1 text-center"
           >
-            <Button
-              variant="outline"
-              onClick={() => onQuickAction(action.action)}
-              className="h-auto py-4 flex flex-col items-center gap-2 text-center rounded-xl border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all shadow-sm hover:shadow-md"
-            >
-              <span className="text-3xl">{action.emoji}</span>
-              <span className="text-xs font-medium leading-tight">{action.label}</span>
-            </Button>
-          </motion.div>
+            <span className="text-2xl">{action.emoji}</span>
+            <span className="text-xs">{action.label}</span>
+          </Button>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
