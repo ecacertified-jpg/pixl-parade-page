@@ -149,22 +149,22 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-0 gap-0 bg-gradient-background">
           {/* Header */}
-          <div className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50 p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Button variant="ghost" size="sm" onClick={onClose} className="p-2">
+          <div className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50 p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 sm:p-2">
                 <X className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold">Créer de la joie ensemble</h2>
+                <h2 className="text-lg sm:text-xl font-bold">Créer de la joie ensemble</h2>
                 <span className="text-sm">🎁</span>
               </div>
             </div>
             
             {/* Conseil */}
-            <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 sm:gap-3 bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mb-3 sm:mb-4">
+              <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm text-blue-800 font-medium">
+                <p className="text-xs sm:text-sm text-blue-800 font-medium leading-snug">
                   💡 Conseil : Choisissez un produit pour créer une cagnotte collective
                 </p>
               </div>
@@ -176,33 +176,34 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
               onChange={setSelectedLocation}
               label=""
               placeholder="Sélectionner un lieu de livraison"
+              showAddButton={false}
             />
           </div>
 
-          <div className="max-w-md mx-auto px-4 py-6">
+          <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6">
             {/* Tabs for Products vs Experiences */}
-            <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
+            <Tabs defaultValue="products" className="mb-4 sm:mb-6" onValueChange={(value) => {
               setActiveTab(value as "products" | "experiences");
               setSelectedCategory("Tous");
             }}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="products">🛍️ Produits</TabsTrigger>
-                <TabsTrigger value="experiences">✨ Expériences</TabsTrigger>
+                <TabsTrigger value="products" className="text-sm">🛍️ Produits</TabsTrigger>
+                <TabsTrigger value="experiences" className="text-sm">✨ Expériences</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="products" className="mt-4">
+              <TabsContent value="products" className="mt-3 sm:mt-4">
                 {/* Search Bar for Products */}
-                <div className="relative mb-4">
+                <div className="relative mb-3 sm:mb-4">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Rechercher des produits..." 
                     value={productSearchQuery} 
                     onChange={e => setProductSearchQuery(e.target.value)} 
-                    className="pl-10" 
+                    className="pl-10 text-sm" 
                   />
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                   {productCategories.map((category, index) => {
                     const Icon = category.icon;
                     const count = getCategoryCount(category.name, false);
@@ -211,10 +212,10 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                         key={index} 
                         variant={selectedCategory === category.name ? "default" : "outline"} 
                         size="sm" 
-                        className="whitespace-nowrap flex items-center gap-2"
+                        className="whitespace-nowrap flex items-center gap-1.5 text-xs sm:text-sm"
                         onClick={() => setSelectedCategory(category.name)}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {category.name} ({count})
                       </Button>
                     );
@@ -222,19 +223,19 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                 </div>
               </TabsContent>
 
-              <TabsContent value="experiences" className="mt-4">
+              <TabsContent value="experiences" className="mt-3 sm:mt-4">
                 {/* Search Bar for Experiences */}
-                <div className="relative mb-4">
+                <div className="relative mb-3 sm:mb-4">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Rechercher des expériences..." 
                     value={experienceSearchQuery} 
                     onChange={e => setExperienceSearchQuery(e.target.value)} 
-                    className="pl-10" 
+                    className="pl-10 text-sm" 
                   />
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                   {experienceCategories.map((category, index) => {
                     const Icon = category.icon;
                     const count = getCategoryCount(category.name, true);
@@ -243,10 +244,10 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                         key={index} 
                         variant={selectedCategory === category.name ? "default" : "outline"} 
                         size="sm" 
-                        className="whitespace-nowrap flex items-center gap-2"
+                        className="whitespace-nowrap flex items-center gap-1.5 text-xs sm:text-sm"
                         onClick={() => setSelectedCategory(category.name)}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {category.name} ({count})
                       </Button>
                     );
