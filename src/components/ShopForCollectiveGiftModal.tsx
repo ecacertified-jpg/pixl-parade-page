@@ -147,27 +147,24 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-0 gap-0 bg-gradient-background">
+        <DialogContent className="max-w-md max-h-[95vh] overflow-y-auto p-0 gap-0 bg-background">
           {/* Header */}
-          <div className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50 p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <Button variant="ghost" size="sm" onClick={onClose} className="p-1.5 sm:p-2">
+          <div className="bg-card sticky top-0 z-50 border-b p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 shrink-0">
                 <X className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold">Créer de la joie ensemble</h2>
-                <span className="text-sm">🎁</span>
+              <div className="flex items-center gap-2 flex-1">
+                <h2 className="text-lg font-semibold">Créer de la joie ensemble 🎁</h2>
               </div>
             </div>
             
             {/* Conseil */}
-            <div className="flex items-start gap-2 sm:gap-3 bg-blue-50 border border-blue-200 rounded-lg p-2.5 sm:p-3 mb-3 sm:mb-4">
-              <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm text-blue-800 font-medium leading-snug">
-                  💡 Conseil : Choisissez un produit pour créer une cagnotte collective
-                </p>
-              </div>
+            <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                Choisissez un produit pour créer une cagnotte collective
+              </p>
             </div>
 
             {/* Location Selector */}
@@ -175,35 +172,42 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
               value={selectedLocation} 
               onChange={setSelectedLocation}
               label=""
-              placeholder="Sélectionner un lieu de livraison"
+              placeholder="Lieu de livraison"
               showAddButton={false}
             />
           </div>
 
-          <div className="max-w-md mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="p-4 space-y-4">
             {/* Tabs for Products vs Experiences */}
-            <Tabs defaultValue="products" className="mb-4 sm:mb-6" onValueChange={(value) => {
+            <Tabs defaultValue="products" onValueChange={(value) => {
               setActiveTab(value as "products" | "experiences");
               setSelectedCategory("Tous");
             }}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="products" className="text-sm">🛍️ Produits</TabsTrigger>
-                <TabsTrigger value="experiences" className="text-sm">✨ Expériences</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-10">
+                <TabsTrigger value="products" className="text-sm gap-1.5">
+                  <ShoppingCart className="h-4 w-4" />
+                  <span>Produits</span>
+                </TabsTrigger>
+                <TabsTrigger value="experiences" className="text-sm gap-1.5">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Expériences</span>
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="products" className="mt-3 sm:mt-4">
+              <TabsContent value="products" className="mt-4 space-y-4">
                 {/* Search Bar for Products */}
-                <div className="relative mb-3 sm:mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Rechercher des produits..." 
                     value={productSearchQuery} 
                     onChange={e => setProductSearchQuery(e.target.value)} 
-                    className="pl-10 text-sm" 
+                    className="pl-9 h-10" 
                   />
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+                {/* Category filters */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
                   {productCategories.map((category, index) => {
                     const Icon = category.icon;
                     const count = getCategoryCount(category.name, false);
@@ -212,30 +216,32 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                         key={index} 
                         variant={selectedCategory === category.name ? "default" : "outline"} 
                         size="sm" 
-                        className="whitespace-nowrap flex items-center gap-1.5 text-xs sm:text-sm"
+                        className="shrink-0 h-8 gap-1.5 text-xs"
                         onClick={() => setSelectedCategory(category.name)}
                       >
-                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        {category.name} ({count})
+                        <Icon className="h-3.5 w-3.5" />
+                        <span>{category.name}</span>
+                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{count}</Badge>
                       </Button>
                     );
                   })}
                 </div>
               </TabsContent>
 
-              <TabsContent value="experiences" className="mt-3 sm:mt-4">
+              <TabsContent value="experiences" className="mt-4 space-y-4">
                 {/* Search Bar for Experiences */}
-                <div className="relative mb-3 sm:mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Rechercher des expériences..." 
                     value={experienceSearchQuery} 
                     onChange={e => setExperienceSearchQuery(e.target.value)} 
-                    className="pl-10 text-sm" 
+                    className="pl-9 h-10" 
                   />
                 </div>
                 
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+                {/* Category filters */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
                   {experienceCategories.map((category, index) => {
                     const Icon = category.icon;
                     const count = getCategoryCount(category.name, true);
@@ -244,11 +250,12 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                         key={index} 
                         variant={selectedCategory === category.name ? "default" : "outline"} 
                         size="sm" 
-                        className="whitespace-nowrap flex items-center gap-1.5 text-xs sm:text-sm"
+                        className="shrink-0 h-8 gap-1.5 text-xs"
                         onClick={() => setSelectedCategory(category.name)}
                       >
-                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        {category.name} ({count})
+                        <Icon className="h-3.5 w-3.5" />
+                        <span>{category.name}</span>
+                        <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{count}</Badge>
                       </Button>
                     );
                   })}
@@ -257,63 +264,81 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             </Tabs>
 
             {/* Products Grid */}
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-3">
               {filteredProducts.length === 0 ? (
-                <Card className="p-6 sm:p-8 text-center">
-                  <p className="text-sm sm:text-base text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
+                <Card className="p-8 text-center bg-muted/50">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="text-4xl opacity-50">🔍</div>
+                    <p className="text-sm text-muted-foreground">
+                      Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e)
+                    </p>
+                  </div>
                 </Card>
               ) : (
                 filteredProducts.map(product => (
-                  <Card key={product.id} className="overflow-hidden">
-                    <div className="relative">
-                      <img src={product.image} alt={product.name} className="w-full h-40 sm:h-48 object-cover" />
+                  <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative aspect-[4/3]">
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                       {product.isExperience && (
-                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
-                          ✨ EXPÉRIENCE
+                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          <span>Expérience</span>
                         </Badge>
                       )}
-                      <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-sm"
+                      >
                         <Heart className="h-4 w-4" />
                       </Button>
                     </div>
                     
-                    <div className="p-3 sm:p-4">
-                      <h3 className="font-semibold text-base sm:text-lg mb-1 line-clamp-1">{product.name}</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
-                      <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
-                        <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap">
-                          {product.isExperience && <span className="text-xs sm:text-sm font-normal">À partir de </span>}
-                          {product.price.toLocaleString()} {product.currency}
-                        </span>
-                        <Badge variant={product.inStock ? "default" : "secondary"} className="text-xs">
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-base line-clamp-1 mb-1">{product.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                          {product.isExperience && (
+                            <span className="text-[10px] text-muted-foreground">À partir de</span>
+                          )}
+                          <span className="text-xl font-bold text-primary">
+                            {product.price.toLocaleString()} {product.currency}
+                          </span>
+                        </div>
+                        <Badge variant={product.inStock ? "default" : "secondary"}>
                           {product.inStock ? (product.isExperience ? "Disponible" : "En stock") : "Épuisé"}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
                         <ProductRatingDisplay
                           productId={String(product.id)}
                           onWriteReview={() => {}}
                           compact
                         />
-                        <span className="text-xs sm:text-sm text-muted-foreground truncate">{product.vendor}</span>
+                        <span className="truncate max-w-[120px]">{product.vendor}</span>
                       </div>
 
                       <Button 
-                        className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-sm sm:text-base h-9 sm:h-10" 
+                        className="w-full h-10 gap-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" 
                         onClick={() => {
                           setSelectedProduct(product);
                           setIsCollaborativeModalOpen(true);
                         }}
                       >
-                        <Gift className="h-4 w-4 mr-2" />
-                        Organiser une cotisation
+                        <Gift className="h-4 w-4" />
+                        <span>Organiser une cotisation</span>
                       </Button>
                     </div>
                   </Card>
                 ))
               )}
             </div>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
