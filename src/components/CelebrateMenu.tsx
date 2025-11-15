@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { useUpcomingBirthdays } from '@/hooks/useUpcomingBirthdays';
 import { Badge } from '@/components/ui/badge';
+import { useUserContext } from '@/hooks/useUserContext';
 
 interface CelebrateMenuProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
   const { birthdays } = useUpcomingBirthdays(7);
+  const { context } = useUserContext();
 
   const handleAction = (action: () => void) => {
     setIsOpen(false);
@@ -49,6 +51,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       label: 'Créer une cagnotte collective',
       description: 'Pour un événement spécial',
       color: 'text-accent',
+      badge: !context.hasCreatedFund ? 'Nouveau' : undefined,
       action: () => handleAction(() => navigate('/gifts')),
     },
     {
@@ -56,6 +59,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       label: 'Envoyer un message de gratitude',
       description: 'Remerciez quelqu\'un publiquement',
       color: 'text-pink-500',
+      badge: context.hasUnthankededGifts ? `${context.recentGiftsCount} cadeau${context.recentGiftsCount > 1 ? 'x' : ''}` : undefined,
       action: () => handleAction(() => navigate('/community')),
     },
   ];
