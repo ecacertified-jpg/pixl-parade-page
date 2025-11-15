@@ -92,7 +92,7 @@ export const ProfileDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-72 sm:w-80 p-0 bg-background border shadow-lg rounded-xl overflow-hidden z-[100]"
+        className="w-72 sm:w-80 p-0 bg-background border shadow-lg rounded-xl overflow-y-auto max-h-[calc(100vh-100px)] z-[100]"
         sideOffset={5}
       >
         {/* Profile Header */}
