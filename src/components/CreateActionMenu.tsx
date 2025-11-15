@@ -26,6 +26,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
+  const [postDrawerInitialMode, setPostDrawerInitialMode] = useState<'text' | 'media'>('text');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
@@ -67,7 +68,10 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       description: 'Partagez vos pensées',
       color: 'text-primary',
       badge: !context.hasPostedRecently ? 'Partagez !' : undefined,
-      action: () => handleAction(() => setIsPostDrawerOpen(true)),
+      action: () => handleAction(() => {
+        setPostDrawerInitialMode('text');
+        setIsPostDrawerOpen(true);
+      }),
     },
     {
       icon: Gift,
@@ -82,7 +86,10 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       label: 'Partager un moment',
       description: 'Ajoutez une photo ou vidéo',
       color: 'text-secondary',
-      action: () => handleAction(() => setIsPostDrawerOpen(true)),
+      action: () => handleAction(() => {
+        setPostDrawerInitialMode('media');
+        setIsPostDrawerOpen(true);
+      }),
     },
     {
       icon: UserPlus,
@@ -144,7 +151,8 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
 
       <CreatePostDrawer 
         open={isPostDrawerOpen} 
-        onOpenChange={setIsPostDrawerOpen} 
+        onOpenChange={setIsPostDrawerOpen}
+        initialMode={postDrawerInitialMode}
       />
       <InviteFriendsModal 
         open={isInviteModalOpen}

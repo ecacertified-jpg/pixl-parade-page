@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Camera, Music, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,11 +18,12 @@ import { CameraCapture } from "@/components/CameraCapture";
 interface CreatePostDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialMode?: 'text' | 'media';
 }
 
 type PostType = 'text' | 'image' | 'video' | 'audio' | 'ai_song';
 
-export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) {
+export function CreatePostDrawer({ open, onOpenChange, initialMode = 'text' }: CreatePostDrawerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [postType, setPostType] = useState<PostType>('text');
@@ -36,6 +37,7 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
   const [aiSongPrompt, setAiSongPrompt] = useState('');
   const [isGeneratingAiSong, setIsGeneratingAiSong] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setPostType('text');
@@ -46,6 +48,16 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
     setAiSongPrompt('');
     setVisibility('public');
   };
+
+  // Déclencher automatiquement le sélecteur de fichiers si initialMode est 'media'
+  useEffect(() => {
+    if (open && initialMode === 'media') {
+      const timer = setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open, initialMode]);
 
 
   const uploadMedia = async (file: File): Promise<string> => {
@@ -182,22 +194,20 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
 
 
   const handleMediaImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,video/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        setMediaFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setMediaPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-        setPostType(file.type.startsWith('video') ? 'video' : 'image');
-      }
-    };
-    input.click();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMediaFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setPostType(file.type.startsWith('video') ? 'video' : 'image');
+    }
   };
 
   const handleCameraCapture = () => {
@@ -411,6 +421,15 @@ export function CreatePostDrawer({ open, onOpenChange }: CreatePostDrawerProps) 
         open={isCameraOpen}
         onOpenChange={setIsCameraOpen}
         onCapture={handleCaptureFromCamera}
+      />
+      
+      {/* Input caché pour la sélection de fichiers */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleFileChange}
+        className="hidden"
       />
     </Sheet>
   );
