@@ -189,6 +189,16 @@ export default function Dashboard() {
     }
   };
 
+  // Écouter les événements ajoutés depuis d'autres composants
+  useEffect(() => {
+    const handleEventAdded = () => {
+      loadEventsFromStorage();
+    };
+
+    window.addEventListener('eventAdded', handleEventAdded);
+    return () => window.removeEventListener('eventAdded', handleEventAdded);
+  }, []);
+
   // Fonction pour ajouter un ami
   const handleAddFriend = async (newFriend: Friend) => {
     const updatedFriends = [...friends, newFriend];
