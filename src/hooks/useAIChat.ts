@@ -88,47 +88,62 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat-assistant', {
-        body: {
-          message: content,
-          conversationId,
-          sessionId,
-          context: initialContext
+      console.log('📤 Envoi du message:', content);
+      
+      // Récupérer le conversationId si nécessaire
+      let currentConversationId = conversationId;
+      
+      if (!currentConversationId) {
+        const { data: conversations } = await supabase
+          .from('ai_conversations')
+          .select('id')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (conversations && conversations.length > 0) {
+          currentConversationId = conversations[0].id;
+          setConversationId(currentConversationId);
         }
-      });
-
-      if (error) {
-        if (error.message?.includes('429')) {
-          toast({
-            title: 'Trop de demandes',
-            description: 'Veuillez patienter quelques instants avant de réessayer.',
-            variant: 'destructive'
-          });
-          setMessages(prev => prev.slice(0, -1));
-          return;
-        }
-        throw error;
       }
 
-      // Pour le streaming, on utilise fetch direct
+      // Enregistrer le message utilisateur
+      await supabase.from('ai_messages').insert({
+        conversation_id: currentConversationId,
+        role: 'user',
+        content,
+        page_context: initialContext?.page
+      });
+
+      // Appel direct avec streaming - utiliser les variables d'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      console.log('📡 Appel de la fonction edge...');
+      
       const response = await fetch(
-        `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-chat-assistant`,
+        `${supabaseUrl}/functions/v1/ai-chat-assistant`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504`,
+            'Authorization': `Bearer ${supabaseKey}`,
           },
           body: JSON.stringify({
             message: content,
-            conversationId,
+            conversationId: currentConversationId,
             sessionId,
             context: initialContext
           }),
         }
       );
 
+      console.log('📥 Réponse reçue, status:', response.status);
+      
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+        console.error('❌ Erreur de la fonction edge:', errorData);
+        
         if (response.status === 429) {
           toast({
             title: 'Trop de demandes',
@@ -138,7 +153,7 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
           setMessages(prev => prev.slice(0, -1));
           return;
         }
-        throw new Error('Failed to get response');
+        throw new Error(errorData.error || 'Erreur lors de l\'appel à l\'assistant');
       }
 
       // Traiter le streaming SSE
