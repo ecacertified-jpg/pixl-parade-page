@@ -15,6 +15,8 @@ import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftMo
 import { AddEventModal } from '@/components/AddEventModal';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
+import { useToast } from '@/hooks/use-toast';
+import { Event } from '@/components/AddEventModal';
 
 interface CreateActionMenuProps {
   children: React.ReactNode;
@@ -28,10 +30,34 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const { context } = useUserContext();
+  const { toast } = useToast();
 
   const handleAction = (action: () => void) => {
     setIsOpen(false);
     action();
+  };
+
+  const handleAddEvent = (eventData: Omit<Event, 'id'>) => {
+    const newEvent = {
+      ...eventData,
+      id: Date.now().toString()
+    };
+    
+    // Charger les événements existants
+    const savedEvents = localStorage.getItem('events');
+    const events = savedEvents ? JSON.parse(savedEvents) : [];
+    
+    // Ajouter le nouvel événement
+    const updatedEvents = [...events, newEvent];
+    localStorage.setItem('events', JSON.stringify(updatedEvents));
+    
+    // Émettre un événement personnalisé pour notifier Dashboard
+    window.dispatchEvent(new CustomEvent('eventAdded', { detail: newEvent }));
+    
+    toast({
+      title: "Événement ajouté",
+      description: `${eventData.title} a été ajouté avec succès`,
+    });
   };
 
   const menuItems = [
@@ -131,7 +157,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       <AddEventModal 
         isOpen={isEventModalOpen}
         onClose={() => setIsEventModalOpen(false)}
-        onAddEvent={() => {}}
+        onAddEvent={handleAddEvent}
       />
     </>
   );
