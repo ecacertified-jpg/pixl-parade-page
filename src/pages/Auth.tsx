@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
-import { Store } from 'lucide-react';
+import { Store, Gift } from 'lucide-react';
 import { handleSmartRedirect, getRedirectPath } from '@/utils/authRedirect';
+import { useReferralTracking } from '@/hooks/useReferralTracking';
 
 const phoneRegex = /^(\+225)?[0-9]{8,10}$/;
 
@@ -47,9 +48,11 @@ const Auth = () => {
   const [currentPhone, setCurrentPhone] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -71,6 +74,33 @@ const Auth = () => {
       handleSmartRedirect(user, navigate);
     }
   }, [user, navigate]);
+
+  // Detect and validate referral code
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    
+    if (refParam) {
+      supabase
+        .from('referral_codes')
+        .select('code')
+        .eq('code', refParam)
+        .eq('is_active', true)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setReferralCode(refParam);
+            setActiveReferralCode(refParam);
+            trackReferralEvent(refParam, 'view');
+          }
+        });
+    } else {
+      const stored = getActiveReferralCode();
+      if (stored) {
+        setReferralCode(stored);
+      }
+    }
+  }, []);
 
   // Countdown timer for resending OTP
   useEffect(() => {
@@ -278,6 +308,16 @@ const Auth = () => {
           <CardDescription>
             Connectez-vous ou créez un compte pour commencer
           </CardDescription>
+          
+          {referralCode && (
+            <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-sm text-center flex items-center justify-center gap-2">
+                <Gift className="h-4 w-4 text-primary" />
+                <span>Invité via le code <strong className="text-primary">{referralCode}</strong></span>
+              </p>
+            </div>
+          )}
+          
           <Button
             variant="ghost"
             size="sm"

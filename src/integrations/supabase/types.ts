@@ -2822,6 +2822,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_referrals: number | null
           avatar_url: string | null
           badges: Json | null
           bio: string | null
@@ -2838,14 +2839,18 @@ export type Database = {
           last_name: string | null
           phone: string | null
           preferences: Json | null
+          primary_referral_code: string | null
+          referral_earnings: number | null
           referred_by: string | null
           suspended_at: string | null
           suspension_reason: string | null
           total_birthdays_celebrated: number | null
+          total_referrals: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_referrals?: number | null
           avatar_url?: string | null
           badges?: Json | null
           bio?: string | null
@@ -2862,14 +2867,18 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          primary_referral_code?: string | null
+          referral_earnings?: number | null
           referred_by?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null
+          total_referrals?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_referrals?: number | null
           avatar_url?: string | null
           badges?: Json | null
           bio?: string | null
@@ -2886,10 +2895,13 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           preferences?: Json | null
+          primary_referral_code?: string | null
+          referral_earnings?: number | null
           referred_by?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null
+          total_referrals?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -3115,6 +3127,146 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_codes: {
+        Row: {
+          clicks_count: number | null
+          code: string
+          code_type: string
+          conversions_count: number | null
+          created_at: string | null
+          current_uses: number | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          label: string | null
+          last_used_at: string | null
+          max_uses: number | null
+          metadata: Json | null
+          signups_count: number | null
+          updated_at: string | null
+          user_id: string
+          views_count: number | null
+        }
+        Insert: {
+          clicks_count?: number | null
+          code: string
+          code_type?: string
+          conversions_count?: number | null
+          created_at?: string | null
+          current_uses?: number | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          label?: string | null
+          last_used_at?: string | null
+          max_uses?: number | null
+          metadata?: Json | null
+          signups_count?: number | null
+          updated_at?: string | null
+          user_id: string
+          views_count?: number | null
+        }
+        Update: {
+          clicks_count?: number | null
+          code?: string
+          code_type?: string
+          conversions_count?: number | null
+          created_at?: string | null
+          current_uses?: number | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          label?: string | null
+          last_used_at?: string | null
+          max_uses?: number | null
+          metadata?: Json | null
+          signups_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+          views_count?: number | null
+        }
+        Relationships: []
+      }
+      referral_tracking: {
+        Row: {
+          city: string | null
+          conversion_value: number | null
+          country: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          landing_page: string | null
+          metadata: Json | null
+          referral_code_id: string
+          referred_user_id: string | null
+          referrer_id: string
+          referrer_url: string | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          city?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          landing_page?: string | null
+          metadata?: Json | null
+          referral_code_id: string
+          referred_user_id?: string | null
+          referrer_id: string
+          referrer_url?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          city?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          landing_page?: string | null
+          metadata?: Json | null
+          referral_code_id?: string
+          referred_user_id?: string | null
+          referrer_id?: string
+          referrer_url?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_tracking_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
             referencedColumns: ["id"]
           },
         ]
@@ -4374,6 +4526,10 @@ export type Database = {
         }[]
       }
       generate_event_analytics: { Args: never; Returns: number }
+      generate_unique_referral_code: {
+        Args: { code_format?: string; user_uuid: string }
+        Returns: string
+      }
       get_badge_name: { Args: { badge_level: string }; Returns: string }
       get_business_account: {
         Args: { p_user_id: string }
@@ -4437,6 +4593,7 @@ export type Database = {
           past_contribution_date: string
         }[]
       }
+      get_referral_code_stats: { Args: { code_id: string }; Returns: Json }
       get_surprises_to_reveal: {
         Args: never
         Returns: {
