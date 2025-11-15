@@ -2178,36 +2178,42 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_url: string | null
           archived_at: string | null
           created_at: string
           id: string
           is_archived: boolean | null
           is_read: boolean | null
           message: string
+          metadata: Json | null
           scheduled_for: string | null
           title: string
           type: string | null
           user_id: string
         }
         Insert: {
+          action_url?: string | null
           archived_at?: string | null
           created_at?: string
           id?: string
           is_archived?: boolean | null
           is_read?: boolean | null
           message: string
+          metadata?: Json | null
           scheduled_for?: string | null
           title: string
           type?: string | null
           user_id: string
         }
         Update: {
+          action_url?: string | null
           archived_at?: string | null
           created_at?: string
           id?: string
           is_archived?: boolean | null
           is_read?: boolean | null
           message?: string
+          metadata?: Json | null
           scheduled_for?: string | null
           title?: string
           type?: string | null

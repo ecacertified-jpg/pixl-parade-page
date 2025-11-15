@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { InviteFriendsModal } from '@/components/InviteFriendsModal';
+import { Badge } from '@/components/ui/badge';
+import { useUserContext } from '@/hooks/useUserContext';
 
 interface CreateActionMenuProps {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const { context } = useUserContext();
 
   const handleAction = (action: () => void) => {
     setIsOpen(false);
@@ -33,6 +36,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       label: 'Nouvelle publication',
       description: 'Partagez vos pensées',
       color: 'text-primary',
+      badge: !context.hasPostedRecently ? 'Partagez !' : undefined,
       action: () => handleAction(() => setIsPostDrawerOpen(true)),
     },
     {
@@ -40,6 +44,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       label: 'Créer une cagnotte',
       description: 'Organisez une collecte',
       color: 'text-accent',
+      badge: !context.hasCreatedFund ? 'Essayez' : undefined,
       action: () => handleAction(() => navigate('/gifts')),
     },
     {
@@ -54,6 +59,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       label: 'Inviter des amis',
       description: 'Développez votre réseau',
       color: 'text-green-500',
+      badge: context.contactsCount < 3 ? 'Recommandé' : undefined,
       action: () => handleAction(() => setIsInviteModalOpen(true)),
     },
     {
@@ -90,7 +96,14 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
                   <item.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1 text-left">
-                  <span className="font-medium text-foreground">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">{item.label}</span>
+                    {item.badge && (
+                      <Badge variant="secondary" className="text-xs">
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{item.description}</p>
                 </div>
               </Button>
