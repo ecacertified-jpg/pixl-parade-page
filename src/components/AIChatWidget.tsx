@@ -87,23 +87,24 @@ export const AIChatWidget = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="absolute bottom-16 right-0 bg-white rounded-lg shadow-xl p-3 max-w-xs mr-2"
+              className="absolute bottom-16 right-0 bg-background border-2 border-primary/20 rounded-2xl shadow-2xl p-4 max-w-[280px] mr-2"
             >
               <button
                 onClick={() => setShowWelcome(false)}
-                className="absolute -top-2 -right-2 bg-gray-200 rounded-full p-1 hover:bg-gray-300"
+                className="absolute -top-2 -right-2 bg-muted hover:bg-muted/80 rounded-full p-1.5 shadow-md transition-colors"
+                aria-label="Fermer"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5 text-foreground" />
               </button>
-              <div className="flex items-start gap-2">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
+                <div className="flex-1 pt-0.5">
+                  <p className="text-base font-semibold text-foreground mb-1.5">
                     Besoin d'aide ? 👋
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     Je suis là pour vous guider sur JOIE DE VIVRE !
                   </p>
                 </div>
