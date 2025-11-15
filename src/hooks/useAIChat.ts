@@ -210,13 +210,29 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
           });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      let errorMessage = "Une erreur est survenue. Veuillez réessayer.";
+      
+      if (error.message?.includes('Failed to fetch')) {
+        errorMessage = "Impossible de contacter le serveur. Vérifiez votre connexion.";
+      } else if (error.message?.includes('rate limit')) {
+        errorMessage = "Trop de demandes. Veuillez patienter quelques instants.";
+      } else if (error.status === 429) {
+        errorMessage = "Trop de demandes. Veuillez patienter quelques instants.";
+      } else if (error.status === 402) {
+        errorMessage = "Service temporairement indisponible.";
+      } else if (error.status === 504) {
+        errorMessage = "La requête a pris trop de temps. Veuillez réessayer.";
+      }
+      
       toast({
         title: 'Erreur',
-        description: 'Impossible d\'envoyer le message. Veuillez réessayer.',
+        description: errorMessage,
         variant: 'destructive'
       });
+      
       // Retirer le message utilisateur en cas d'erreur
       setMessages(prev => prev.slice(0, -1));
     } finally {
