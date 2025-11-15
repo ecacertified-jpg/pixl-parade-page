@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PartyPopper, Gift, MessageCircleHeart, Cake } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sheet,
   SheetContent,
@@ -30,8 +31,11 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
   const { context } = useUserContext();
 
   const handleAction = (action: () => void) => {
-    setIsOpen(false);
-    action();
+    // Delay to allow sheet close animation
+    setTimeout(() => {
+      setIsOpen(false);
+      setTimeout(() => action(), 150);
+    }, 100);
   };
 
   const menuItems = [
@@ -83,51 +87,82 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
           
           <div className="space-y-3 pb-6">
             {menuItems.map((item, index) => (
-              <Button
+              <motion.div
                 key={index}
-                variant="outline"
-                className="w-full h-auto py-4 px-4 justify-start gap-4 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
-                onClick={item.action}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.3, 
+                  delay: index * 0.1,
+                  ease: [0.23, 1, 0.32, 1]
+                }}
               >
-                <div className={`p-2 rounded-xl bg-background ${item.color}`}>
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground">{item.label}</span>
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
+                <Button
+                  variant="outline"
+                  className="w-full h-auto py-4 px-4 justify-start gap-4 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
+                  onClick={item.action}
+                >
+                  <motion.div 
+                    className={`p-2 rounded-xl bg-background ${item.color}`}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  >
+                    <item.icon className="h-5 w-5" />
+                  </motion.div>
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{item.label}</span>
+                      {item.badge && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </div>
-              </Button>
+                </Button>
+              </motion.div>
             ))}
           </div>
         </SheetContent>
       </Sheet>
 
-      <CreatePostDrawer 
-        open={isPostDrawerOpen} 
-        onOpenChange={setIsPostDrawerOpen} 
-      />
+      <AnimatePresence mode="wait">
+        {isPostDrawerOpen && (
+          <CreatePostDrawer 
+            open={isPostDrawerOpen} 
+            onOpenChange={setIsPostDrawerOpen} 
+          />
+        )}
+      </AnimatePresence>
 
-      <ShopForCollectiveGiftModal 
-        isOpen={isShopModalOpen}
-        onClose={() => setIsShopModalOpen(false)}
-      />
+      <AnimatePresence mode="wait">
+        {isShopModalOpen && (
+          <ShopForCollectiveGiftModal 
+            isOpen={isShopModalOpen}
+            onClose={() => setIsShopModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      <SendBirthdayMessageModal 
-        isOpen={isBirthdayModalOpen}
-        onClose={() => setIsBirthdayModalOpen(false)}
-      />
+      <AnimatePresence mode="wait">
+        {isBirthdayModalOpen && (
+          <SendBirthdayMessageModal 
+            isOpen={isBirthdayModalOpen}
+            onClose={() => setIsBirthdayModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      <SendGratitudeModal 
-        isOpen={isGratitudeModalOpen}
-        onClose={() => setIsGratitudeModalOpen(false)}
-      />
+      <AnimatePresence mode="wait">
+        {isGratitudeModalOpen && (
+          <SendGratitudeModal 
+            isOpen={isGratitudeModalOpen}
+            onClose={() => setIsGratitudeModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
