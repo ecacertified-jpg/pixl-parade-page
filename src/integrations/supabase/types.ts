@@ -1663,7 +1663,7 @@ export type Database = {
           beneficiary_id: string
           contributor_id: string
           created_at: string | null
-          fund_id: string
+          fund_id: string | null
           id: string
           is_public: boolean | null
           message_text: string
@@ -1675,7 +1675,7 @@ export type Database = {
           beneficiary_id: string
           contributor_id: string
           created_at?: string | null
-          fund_id: string
+          fund_id?: string | null
           id?: string
           is_public?: boolean | null
           message_text: string
@@ -1687,7 +1687,7 @@ export type Database = {
           beneficiary_id?: string
           contributor_id?: string
           created_at?: string | null
-          fund_id?: string
+          fund_id?: string | null
           id?: string
           is_public?: boolean | null
           message_text?: string
