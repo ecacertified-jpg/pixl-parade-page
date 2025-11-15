@@ -6,6 +6,7 @@ import { Heart, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { z } from "zod";
 
 interface AddGratitudeModalProps {
   isOpen: boolean;
@@ -22,6 +23,16 @@ const suggestionTemplates = [
   "Heureux(se) de faire partie de cette célébration ! 🌟",
 ];
 
+const gratitudeSchema = z.object({
+  message: z.string()
+    .trim()
+    .min(10, "Le message doit contenir au moins 10 caractères")
+    .max(500, "Le message ne peut pas dépasser 500 caractères")
+    .regex(/^[\w\s\p{P}\p{Emoji}]+$/u, "Le message contient des caractères non autorisés"),
+  fundId: z.string().uuid("Identifiant de cagnotte invalide"),
+  beneficiaryId: z.string().uuid("Identifiant du bénéficiaire invalide"),
+});
+
 export const AddGratitudeModal = ({ isOpen, onClose, fundId, beneficiaryId, fundTitle }: AddGratitudeModalProps) => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,7 +40,23 @@ export const AddGratitudeModal = ({ isOpen, onClose, fundId, beneficiaryId, fund
   const { user } = useAuth();
 
   const handleSubmit = async () => {
-    if (!message.trim() || !user) return;
+    if (!user) return;
+
+    // Validate input
+    const result = gratitudeSchema.safeParse({
+      message,
+      fundId,
+      beneficiaryId,
+    });
+
+    if (!result.success) {
+      toast({
+        title: "Validation échouée",
+        description: result.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
@@ -40,7 +67,7 @@ export const AddGratitudeModal = ({ isOpen, onClose, fundId, beneficiaryId, fund
           contributor_id: user.id,
           beneficiary_id: beneficiaryId,
           message_type: 'personal',
-          message_text: message.trim(),
+          message_text: result.data.message,
           is_public: true,
         });
 

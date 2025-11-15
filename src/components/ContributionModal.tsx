@@ -12,6 +12,7 @@ import { AddGratitudeModal } from "@/components/AddGratitudeModal";
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartAmountSuggestions } from "@/components/SmartAmountSuggestions";
 import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
+import { z } from "zod";
 
 interface ContributionModalProps {
   isOpen: boolean;
@@ -27,7 +28,17 @@ interface ContributionModalProps {
   occasion?: string;
 }
 
-export function ContributionModal({ 
+const contributionSchema = z.object({
+  amount: z.number()
+    .positive("Le montant doit être positif")
+    .max(500000, "Le montant ne peut pas dépasser 500,000 XOF"),
+  message: z.string()
+    .max(500, "Le message ne peut pas dépasser 500 caractères")
+    .optional(),
+  fundId: z.string().uuid("Identifiant de cagnotte invalide"),
+});
+
+export function ContributionModal({
   isOpen, 
   onClose, 
   fundId, 
@@ -152,9 +163,26 @@ export function ContributionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !amount) return;
+    if (!user) return;
 
     const contributionAmount = parseFloat(amount);
+    
+    // Validate input
+    const result = contributionSchema.safeParse({
+      amount: contributionAmount,
+      message: message.trim(),
+      fundId,
+    });
+
+    if (!result.success) {
+      toast({
+        title: "Validation échouée",
+        description: result.error.errors[0].message,
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('ContributionModal - Début contribution', {
       fundId,
       userId: user.id,
