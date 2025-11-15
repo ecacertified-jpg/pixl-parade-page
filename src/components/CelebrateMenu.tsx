@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { PartyPopper, Gift, MessageCircleHeart, Cake } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import {
   Sheet,
   SheetContent,
@@ -10,6 +9,9 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
+import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
+import { SendBirthdayMessageModal } from '@/components/SendBirthdayMessageModal';
+import { SendGratitudeModal } from '@/components/SendGratitudeModal';
 import { useUpcomingBirthdays } from '@/hooks/useUpcomingBirthdays';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -19,9 +21,11 @@ interface CelebrateMenuProps {
 }
 
 export function CelebrateMenu({ children }: CelebrateMenuProps) {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false);
+  const [isGratitudeModalOpen, setIsGratitudeModalOpen] = useState(false);
   const { birthdays } = useUpcomingBirthdays(7);
   const { context } = useUserContext();
 
@@ -41,10 +45,10 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
     {
       icon: Cake,
       label: 'Célébrer un anniversaire',
-      description: 'Créez une cagnotte ou envoyez un message',
+      description: 'Envoyez un message',
       color: 'text-primary',
       badge: birthdays.length > 0 ? `${birthdays.length} proche${birthdays.length > 1 ? 's' : ''}` : undefined,
-      action: () => handleAction(() => navigate('/shop')),
+      action: () => handleAction(() => setIsBirthdayModalOpen(true)),
     },
     {
       icon: Gift,
@@ -52,7 +56,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       description: 'Pour un événement spécial',
       color: 'text-accent',
       badge: !context.hasCreatedFund ? 'Nouveau' : undefined,
-      action: () => handleAction(() => navigate('/gifts')),
+      action: () => handleAction(() => setIsShopModalOpen(true)),
     },
     {
       icon: MessageCircleHeart,
@@ -60,7 +64,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       description: 'Remerciez quelqu\'un publiquement',
       color: 'text-pink-500',
       badge: context.hasUnthankededGifts ? `${context.recentGiftsCount} cadeau${context.recentGiftsCount > 1 ? 'x' : ''}` : undefined,
-      action: () => handleAction(() => navigate('/community')),
+      action: () => handleAction(() => setIsGratitudeModalOpen(true)),
     },
   ];
 
@@ -108,6 +112,21 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       <CreatePostDrawer 
         open={isPostDrawerOpen} 
         onOpenChange={setIsPostDrawerOpen} 
+      />
+
+      <ShopForCollectiveGiftModal 
+        isOpen={isShopModalOpen}
+        onClose={() => setIsShopModalOpen(false)}
+      />
+
+      <SendBirthdayMessageModal 
+        isOpen={isBirthdayModalOpen}
+        onClose={() => setIsBirthdayModalOpen(false)}
+      />
+
+      <SendGratitudeModal 
+        isOpen={isGratitudeModalOpen}
+        onClose={() => setIsGratitudeModalOpen(false)}
       />
     </>
   );
