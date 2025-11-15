@@ -124,24 +124,61 @@ serve(async (req) => {
     // Appeler Lovable AI avec streaming
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    console.log('Calling Lovable AI...');
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: messages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 1000
-      }),
-    });
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY not configured');
+      return new Response(JSON.stringify({ 
+        error: "Configuration serveur manquante" 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    console.log('Calling Lovable AI with', messages.length, 'messages...');
+    
+    // Ajouter un timeout de 30 secondes
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    let response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: messages,
+          stream: true
+          // Pas de temperature ni max_tokens pour Gemini
+        }),
+      });
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error('Request timeout');
+        return new Response(JSON.stringify({ 
+          error: "La requête a pris trop de temps. Veuillez réessayer." 
+        }), {
+          status: 504,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw error;
+    }
 
     if (!response.ok) {
-      console.error('Lovable AI error:', response.status);
+      const errorText = await response.text();
+      console.error('Lovable AI error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
       if (response.status === 429) {
         return new Response(JSON.stringify({ 
           error: "Trop de demandes, veuillez patienter quelques instants." 
@@ -152,13 +189,18 @@ serve(async (req) => {
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ 
-          error: "Service temporairement indisponible." 
+          error: "Crédits insuffisants. Veuillez contacter l'administrateur." 
         }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`Lovable AI error: ${response.status}`);
+      return new Response(JSON.stringify({ 
+        error: "Erreur du service IA. Veuillez réessayer." 
+      }), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log('Streaming response...');
