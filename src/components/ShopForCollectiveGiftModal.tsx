@@ -257,57 +257,57 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             </Tabs>
 
             {/* Products Grid */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredProducts.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
+                <Card className="p-6 sm:p-8 text-center">
+                  <p className="text-sm sm:text-base text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
                 </Card>
               ) : (
                 filteredProducts.map(product => (
                   <Card key={product.id} className="overflow-hidden">
                     <div className="relative">
-                      <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+                      <img src={product.image} alt={product.name} className="w-full h-40 sm:h-48 object-cover" />
                       {product.isExperience && (
-                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
+                        <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
                           ✨ EXPÉRIENCE
                         </Badge>
                       )}
-                      <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white">
+                      <Button variant="ghost" size="sm" className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8 p-0">
                         <Heart className="h-4 w-4" />
                       </Button>
                     </div>
                     
-                    <div className="p-4">
-                      <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xl font-bold text-primary">
-                          {product.isExperience && "À partir de "}
+                    <div className="p-3 sm:p-4">
+                      <h3 className="font-semibold text-base sm:text-lg mb-1 line-clamp-1">{product.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+                      <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+                        <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap">
+                          {product.isExperience && <span className="text-xs sm:text-sm font-normal">À partir de </span>}
                           {product.price.toLocaleString()} {product.currency}
                         </span>
-                        <Badge variant={product.inStock ? "default" : "secondary"}>
+                        <Badge variant={product.inStock ? "default" : "secondary"} className="text-xs">
                           {product.inStock ? (product.isExperience ? "Disponible" : "En stock") : "Épuisé"}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
                         <ProductRatingDisplay
                           productId={String(product.id)}
                           onWriteReview={() => {}}
                           compact
                         />
-                        <span className="text-sm text-muted-foreground">{product.vendor}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground truncate">{product.vendor}</span>
                       </div>
 
                       <Button 
-                        className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" 
+                        className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-sm sm:text-base h-9 sm:h-10" 
                         onClick={() => {
                           setSelectedProduct(product);
                           setIsCollaborativeModalOpen(true);
                         }}
                       >
                         <Gift className="h-4 w-4 mr-2" />
-                        {product.isExperience ? "Organiser une cotisation" : "Organiser une cotisation"}
+                        Organiser une cotisation
                       </Button>
                     </div>
                   </Card>
