@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { InviteFriendsModal } from '@/components/InviteFriendsModal';
+import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
+import { AddEventModal } from '@/components/AddEventModal';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
 
@@ -23,6 +25,8 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const { context } = useUserContext();
 
   const handleAction = (action: () => void) => {
@@ -45,7 +49,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       description: 'Organisez une collecte',
       color: 'text-accent',
       badge: !context.hasCreatedFund ? 'Essayez' : undefined,
-      action: () => handleAction(() => navigate('/gifts')),
+      action: () => handleAction(() => setIsShopModalOpen(true)),
     },
     {
       icon: Camera,
@@ -67,7 +71,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       label: 'Ajouter un événement',
       description: 'Enregistrez une date importante',
       color: 'text-orange-500',
-      action: () => handleAction(() => navigate('/dashboard')),
+      action: () => handleAction(() => setIsEventModalOpen(true)),
     },
   ];
 
@@ -119,6 +123,15 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       <InviteFriendsModal 
         open={isInviteModalOpen}
         onOpenChange={setIsInviteModalOpen}
+      />
+      <ShopForCollectiveGiftModal 
+        isOpen={isShopModalOpen}
+        onClose={() => setIsShopModalOpen(false)}
+      />
+      <AddEventModal 
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        onAddEvent={() => {}}
       />
     </>
   );
