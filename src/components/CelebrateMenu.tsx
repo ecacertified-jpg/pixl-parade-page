@@ -24,6 +24,7 @@ interface CelebrateMenuProps {
 export function CelebrateMenu({ children }: CelebrateMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
+  const [postDrawerInitialMode, setPostDrawerInitialMode] = useState<'text' | 'media'>('text');
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false);
   const [isGratitudeModalOpen, setIsGratitudeModalOpen] = useState(false);
@@ -44,7 +45,10 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       label: 'Publier une célébration',
       description: 'Partagez un moment joyeux',
       color: 'text-secondary',
-      action: () => handleAction(() => setIsPostDrawerOpen(true)),
+      action: () => handleAction(() => {
+        setPostDrawerInitialMode('media');
+        setIsPostDrawerOpen(true);
+      }),
     },
     {
       icon: Cake,
@@ -132,7 +136,8 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
         {isPostDrawerOpen && (
           <CreatePostDrawer 
             open={isPostDrawerOpen} 
-            onOpenChange={setIsPostDrawerOpen} 
+            onOpenChange={setIsPostDrawerOpen}
+            initialMode={postDrawerInitialMode}
           />
         )}
       </AnimatePresence>
