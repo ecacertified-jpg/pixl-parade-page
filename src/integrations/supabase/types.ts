@@ -1871,6 +1871,50 @@ export type Database = {
           },
         ]
       }
+      invitation_rewards: {
+        Row: {
+          claimed: boolean | null
+          claimed_at: string | null
+          created_at: string | null
+          earned_at: string | null
+          id: string
+          invitation_id: string
+          reward_type: string
+          reward_value: Json
+          user_id: string
+        }
+        Insert: {
+          claimed?: boolean | null
+          claimed_at?: string | null
+          created_at?: string | null
+          earned_at?: string | null
+          id?: string
+          invitation_id: string
+          reward_type: string
+          reward_value: Json
+          user_id: string
+        }
+        Update: {
+          claimed?: boolean | null
+          claimed_at?: string | null
+          created_at?: string | null
+          earned_at?: string | null
+          id?: string
+          invitation_id?: string
+          reward_type?: string
+          reward_value?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_rewards_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           accepted_at: string | null
@@ -4382,6 +4426,7 @@ export type Database = {
           metadata: Json
         }[]
       }
+      get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
       get_reciprocity_candidates: {
         Args: { fund_uuid: string }
         Returns: {
