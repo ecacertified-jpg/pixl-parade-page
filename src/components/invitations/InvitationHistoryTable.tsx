@@ -51,11 +51,11 @@ export function InvitationHistoryTable({
         <CardTitle className="text-lg">Historique des invitations</CardTitle>
         <div className="flex flex-col sm:flex-row gap-4 mt-4">
           <Tabs value={filter} onValueChange={(v) => setFilter(v as any)} className="w-full sm:w-auto">
-            <TabsList>
-              <TabsTrigger value="all">Toutes</TabsTrigger>
-              <TabsTrigger value="accepted">Acceptées</TabsTrigger>
-              <TabsTrigger value="pending">En attente</TabsTrigger>
-              <TabsTrigger value="expired">Expirées</TabsTrigger>
+            <TabsList className="w-full sm:w-auto grid grid-cols-4 sm:inline-flex">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">Toutes</TabsTrigger>
+              <TabsTrigger value="accepted" className="text-xs sm:text-sm">Acceptées</TabsTrigger>
+              <TabsTrigger value="pending" className="text-xs sm:text-sm">En attente</TabsTrigger>
+              <TabsTrigger value="expired" className="text-xs sm:text-sm">Expirées</TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="relative flex-1">
