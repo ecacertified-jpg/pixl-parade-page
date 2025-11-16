@@ -27,7 +27,10 @@ export default function BusinessAccount() {
   const {
     user
   } = useAuth();
-  const { selectedBusinessId, selectedBusiness: currentBusiness } = useSelectedBusiness();
+  const {
+    selectedBusinessId,
+    selectedBusiness: currentBusiness
+  } = useSelectedBusiness();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -89,14 +92,9 @@ export default function BusinessAccount() {
       const {
         data,
         error
-      } = await supabase
-        .from('products')
-        .select('*')
-        .eq('business_owner_id', user.id)
-        .eq('business_account_id', selectedBusinessId)
-        .order('created_at', {
-          ascending: false
-        });
+      } = await supabase.from('products').select('*').eq('business_owner_id', user.id).eq('business_account_id', selectedBusinessId).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error('❌ Error loading products:', error);
         toast.error('Erreur lors du chargement des produits');
@@ -449,7 +447,7 @@ export default function BusinessAccount() {
               <div className="min-w-0 flex-1">
                 <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Mon Espace Business</h1>
                 <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-                  <span>Gérez</span>
+                  
                   <BusinessSelector />
                   <span>et vos ventes</span>
                 </div>
