@@ -180,7 +180,7 @@ export default function BusinessDashboard() {
   }, [user]);
   
   // Enable real-time order notifications for this business
-  useBusinessOrderNotifications(businessAccount?.id);
+  useBusinessOrderNotifications(selectedBusinessId || businessAccount?.id);
 
   // Load business account data
   const loadBusinessAccount = async () => {
@@ -702,7 +702,7 @@ export default function BusinessDashboard() {
                 business_id
               )
             )
-          `).eq('order_items.products.business_id', businessAccount?.id).order('created_at', {
+          `).eq('order_items.products.business_id', selectedBusinessId || businessAccount?.id).order('created_at', {
           ascending: false
         }).limit(10);
         if (ordersError) {
@@ -782,7 +782,7 @@ export default function BusinessDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, selectedBusinessId, businessAccount?.id]);
 
   // Function to update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -943,7 +943,12 @@ export default function BusinessDashboard() {
 
                 {/* Liste des commandes */}
                 <div className="space-y-3">
-                  {recentOrders.length === 0 ? (
+                  {loadingOrders ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                      <p className="text-sm text-muted-foreground mt-2">Chargement des commandes...</p>
+                    </div>
+                  ) : recentOrders.length === 0 ? (
                     <div className="text-center py-6 md:py-8 px-4">
                       <ShoppingCart className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground/30 mx-auto mb-4" />
                       <p className="text-muted-foreground font-medium mb-2">Aucune commande récente</p>
