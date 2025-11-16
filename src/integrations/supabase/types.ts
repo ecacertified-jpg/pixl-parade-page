@@ -2744,6 +2744,7 @@ export type Database = {
       }
       products: {
         Row: {
+          business_account_id: string | null
           business_id: string
           business_owner_id: string | null
           category_id: string | null
@@ -2764,6 +2765,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_account_id?: string | null
           business_id: string
           business_owner_id?: string | null
           category_id?: string | null
@@ -2784,6 +2786,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_account_id?: string | null
           business_id?: string
           business_owner_id?: string | null
           category_id?: string | null
@@ -2804,6 +2807,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_business_id_fkey"
             columns: ["business_id"]

@@ -16,15 +16,18 @@ import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
 import { BusinessProductCard } from "@/components/BusinessProductCard";
 import { OrderDetailsModal } from "@/components/OrderDetailsModal";
+import { BusinessSelector } from "@/components/BusinessSelector";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedBusiness } from "@/hooks/useSelectedBusiness";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const {
     user
   } = useAuth();
+  const { selectedBusinessId, selectedBusiness: currentBusiness } = useSelectedBusiness();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -71,22 +74,29 @@ export default function BusinessAccount() {
   });
   useEffect(() => {
     document.title = "Compte Business | JOIE DE VIVRE";
-    loadProducts();
+    if (selectedBusinessId) {
+      loadProducts();
+      loadOrders();
+    }
     loadBusinesses();
-    loadOrders();
-  }, []);
+  }, [selectedBusinessId]);
   const loadProducts = async () => {
-    if (!user) return;
+    if (!user || !selectedBusinessId) return;
     setLoadingProducts(true);
-    console.log('🔄 Loading products for user:', user.id);
+    console.log('🔄 Loading products for user:', user.id, 'business:', selectedBusinessId);
     try {
-      // Load ALL products (active and inactive) to show complete list
+      // Load ALL products (active and inactive) filtered by business
       const {
         data,
         error
-      } = await supabase.from('products').select('*').eq('business_owner_id', user.id).order('created_at', {
-        ascending: false
-      });
+      } = await supabase
+        .from('products')
+        .select('*')
+        .eq('business_owner_id', user.id)
+        .eq('business_account_id', selectedBusinessId)
+        .order('created_at', {
+          ascending: false
+        });
       if (error) {
         console.error('❌ Error loading products:', error);
         toast.error('Erreur lors du chargement des produits');
@@ -437,19 +447,12 @@ export default function BusinessAccount() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h1 className="text-xl font-semibold">Mon Espace Business</h1>
-                  <Badge className="bg-green-500 flex-shrink-0">Actif</Badge>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Mon Espace Business</h1>
+                <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                  <span>Gérez</span>
+                  <BusinessSelector />
+                  <span>et vos ventes</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  <span className="block sm:inline">
-                    {businesses.length > 0 ? `Gérez ${businesses[0].business_name} et vos ventes` : 'Gérez votre business et vos ventes'}
-                  </span>
-                  <span className="hidden sm:inline"> - </span>
-                  <span className="block sm:inline text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-                    Connecté en tant que : {user?.email}
-                  </span>
-                </p>
               </div>
             </div>
           </div>

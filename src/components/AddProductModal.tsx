@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedBusiness } from "@/hooks/useSelectedBusiness";
 import { toast } from "sonner";
 
 interface AddProductModalProps {
@@ -19,6 +20,7 @@ interface AddProductModalProps {
 
 export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductModalProps) {
   const { user } = useAuth();
+  const { selectedBusinessId } = useSelectedBusiness();
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [formData, setFormData] = useState({
@@ -230,6 +232,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
           business_owner_id: user.id,
+          business_account_id: selectedBusinessId || formData.business_id, // Link to selected business
           business_id: formData.business_id,
           category_name: formData.category_name,
           is_experience: formData.is_experience,
