@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -10,16 +10,26 @@ interface Business {
   logo_url?: string;
 }
 
+interface SelectedBusinessContextType {
+  selectedBusinessId: string | null;
+  selectedBusiness: Business | undefined;
+  businesses: Business[];
+  loading: boolean;
+  selectBusiness: (businessId: string) => void;
+  refetch: () => Promise<void>;
+}
+
+const SelectedBusinessContext = createContext<SelectedBusinessContextType | undefined>(undefined);
+
 const SELECTED_BUSINESS_KEY = 'joie_de_vivre_selected_business_id';
 
-export const useSelectedBusiness = () => {
+export const SelectedBusinessProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Charger les business de l'utilisateur
-  useEffect(() => {
+  const loadBusinesses = async () => {
     if (!user) {
       setBusinesses([]);
       setSelectedBusinessId(null);
@@ -27,16 +37,12 @@ export const useSelectedBusiness = () => {
       return;
     }
 
-    loadBusinesses();
-  }, [user]);
-
-  const loadBusinesses = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, business_name, business_type, is_active, logo_url')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -44,19 +50,17 @@ export const useSelectedBusiness = () => {
         return;
       }
 
-      console.log('✅ Loaded businesses for user:', user?.id, '- Count:', data?.length || 0);
+      console.log('✅ [Context] Loaded businesses:', data?.length || 0);
       setBusinesses(data || []);
 
-      // PHASE 2: Nettoyage agressif du localStorage
+      // Nettoyage agressif du localStorage
       const savedBusinessId = localStorage.getItem(SELECTED_BUSINESS_KEY);
       const businessBelongsToUser = data?.some(b => b.id === savedBusinessId);
 
-      // Si l'ID sauvegardé n'appartient pas à l'utilisateur, nettoyer TOUT le localStorage lié
       if (savedBusinessId && !businessBelongsToUser) {
         console.warn('🧹 CRITICAL: Business ID does not belong to current user:', savedBusinessId);
         console.warn('🧹 Cleaning ALL business-related localStorage keys...');
         
-        // Supprimer toutes les clés liées à business ou joie_de_vivre
         Object.keys(localStorage).forEach(key => {
           if (key.includes('business') || key.includes('joie_de_vivre')) {
             console.log('🧹 Removing localStorage key:', key);
@@ -69,39 +73,55 @@ export const useSelectedBusiness = () => {
 
       // Sélectionner le business approprié
       if (savedBusinessId && businessBelongsToUser) {
-        console.log('✅ Restoring saved business:', savedBusinessId);
+        console.log('✅ [Context] Restoring saved business:', savedBusinessId);
         setSelectedBusinessId(savedBusinessId);
       } else if (data && data.length > 0) {
-        // Sélectionner automatiquement le premier business actif ou le premier de la liste
         const activeBusiness = data.find(b => b.is_active) || data[0];
-        console.log('✅ Auto-selecting business:', activeBusiness.id, '-', activeBusiness.business_name);
+        console.log('✅ [Context] Auto-selecting business:', activeBusiness.id, '-', activeBusiness.business_name);
         setSelectedBusinessId(activeBusiness.id);
         localStorage.setItem(SELECTED_BUSINESS_KEY, activeBusiness.id);
       } else {
-        console.log('ℹ️ No businesses found for user');
+        console.log('ℹ️ [Context] No businesses found for user');
         setSelectedBusinessId(null);
         localStorage.removeItem(SELECTED_BUSINESS_KEY);
       }
     } catch (error) {
-      console.error('❌ Error loading businesses:', error);
+      console.error('❌ [Context] Error loading businesses:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadBusinesses();
+  }, [user?.id]);
+
   const selectBusiness = (businessId: string) => {
+    console.log('✅ [Context] Selecting business:', businessId);
     setSelectedBusinessId(businessId);
     localStorage.setItem(SELECTED_BUSINESS_KEY, businessId);
   };
 
-  const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
-
-  return {
+  const value: SelectedBusinessContextType = {
     selectedBusinessId,
-    selectedBusiness,
+    selectedBusiness: businesses.find(b => b.id === selectedBusinessId),
     businesses,
     loading,
     selectBusiness,
     refetch: loadBusinesses,
   };
+
+  return (
+    <SelectedBusinessContext.Provider value={value}>
+      {children}
+    </SelectedBusinessContext.Provider>
+  );
+};
+
+export const useSelectedBusiness = () => {
+  const context = useContext(SelectedBusinessContext);
+  if (!context) {
+    throw new Error('useSelectedBusiness must be used within SelectedBusinessProvider');
+  }
+  return context;
 };
