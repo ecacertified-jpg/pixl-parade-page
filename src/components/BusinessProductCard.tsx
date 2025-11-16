@@ -106,7 +106,16 @@ export function BusinessProductCard({
           )}
           {!product.is_active && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Badge variant="destructive">Inactif</Badge>
+              <Badge variant="destructive">
+                {product.stock === 0 ? '⚠️ Rupture de stock' : 'Inactif'}
+              </Badge>
+            </div>
+          )}
+          {product.is_active && product.stock && product.stock <= 5 && product.stock > 0 && (
+            <div className="absolute top-2 right-2">
+              <Badge className="bg-orange-500 hover:bg-orange-600 text-white">
+                📦 Stock faible: {product.stock}
+              </Badge>
             </div>
           )}
         </div>
@@ -158,9 +167,25 @@ export function BusinessProductCard({
             </div>
 
             {product.stock !== undefined && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Package className="h-4 w-4" />
-                <span>Stock: {product.stock}</span>
+              <div className="flex items-center gap-1 text-sm">
+                <Package className={`h-4 w-4 ${
+                  product.stock === 0 
+                    ? 'text-destructive' 
+                    : product.stock <= 5 
+                      ? 'text-orange-500' 
+                      : 'text-muted-foreground'
+                }`} />
+                <span className={
+                  product.stock === 0 
+                    ? 'text-destructive font-semibold' 
+                    : product.stock <= 5 
+                      ? 'text-orange-500 font-semibold' 
+                      : 'text-muted-foreground'
+                }>
+                  Stock: {product.stock}
+                  {product.stock === 0 && ' - Rupture'}
+                  {product.stock > 0 && product.stock <= 5 && ' - Stock faible'}
+                </span>
               </div>
             )}
 
