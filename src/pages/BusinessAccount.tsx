@@ -35,11 +35,13 @@ export default function BusinessAccount() {
   const [products, setProducts] = useState<Array<{
     id: string;
     name: string;
+    description?: string;
     category: string;
     price: number;
     stock: number;
     sales: number;
     status: string;
+    image_url?: string;
   }>>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
@@ -141,12 +143,14 @@ export default function BusinessAccount() {
         const formattedProducts = data.map(product => ({
           id: product.id,
           name: product.name,
+          description: product.description,
           category: "Produit",
           price: product.price,
           stock: product.stock_quantity || 0,
           sales: 0,
           // This would need to be calculated from orders
-          status: product.is_active ? "active" : "inactive"
+          status: product.is_active ? "active" : "inactive",
+          image_url: product.image_url
         }));
         setProducts(formattedProducts);
         console.log('✅ Products formatted and set in state:', formattedProducts.length);
@@ -786,14 +790,14 @@ export default function BusinessAccount() {
                 const transformedProduct = {
                   id: product.id,
                   name: product.name,
-                  description: product.category,
-                  // Use category as description for now
+                  description: product.description || product.category,
                   price: product.price,
                   currency: 'XOF',
                   business_owner_id: user?.id || '',
                   category_name: product.category,
                   stock: product.stock,
-                  is_active: product.status === 'active'
+                  is_active: product.status === 'active',
+                  image_url: product.image_url
                 };
                 return <BusinessProductCard key={product.id} product={transformedProduct} businessId={user?.id} onEdit={product => handleEditProduct(product.id)} onDelete={productId => handleDeleteProduct(productId)} />;
               })}
