@@ -246,15 +246,15 @@ export function BusinessOrdersSection() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 whitespace-nowrap flex items-center"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
       case 'confirmed':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><CheckCircle className="h-3 w-3 mr-1" />Confirmée</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 whitespace-nowrap flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Confirmée</Badge>;
       case 'processed':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Traitée</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 whitespace-nowrap flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Traitée</Badge>;
       case 'delivered':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800"><Package className="h-3 w-3 mr-1" />Livrée</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 whitespace-nowrap flex items-center"><Package className="h-3 w-3 mr-1" />Livrée</Badge>;
       case 'cancelled':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Annulée</Badge>;
+        return <Badge variant="secondary" className="bg-red-100 text-red-800 whitespace-nowrap flex items-center"><XCircle className="h-3 w-3 mr-1" />Annulée</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
