@@ -86,8 +86,23 @@ export default function BusinessAccount() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
+    console.log('🔄 Business changed to:', selectedBusinessId);
     document.title = "Compte Business | JOIE DE VIVRE";
     if (selectedBusinessId) {
+      // CRITICAL: Reset states immediately to prevent showing old data
+      console.log('🧹 Resetting products, orders and stats...');
+      setProducts([]);
+      setOrders([]);
+      setStats({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        rating: 0,
+        commission: 0,
+        netRevenue: 0
+      });
+      
+      // Then load new data
       loadProducts();
       loadOrders();
     }
@@ -95,10 +110,20 @@ export default function BusinessAccount() {
   }, [selectedBusinessId]);
 
   useEffect(() => {
-    if (selectedBusinessId && products.length >= 0 && orders.length >= 0) {
+    console.log('📊 Stats calculation triggered', {
+      selectedBusinessId,
+      productsCount: products.length,
+      ordersCount: orders.length,
+      loadingProducts,
+      loadingOrders
+    });
+    
+    // Only calculate stats when we have a business selected
+    // and both loadings are complete
+    if (selectedBusinessId && !loadingProducts && !loadingOrders) {
       calculateStats();
     }
-  }, [products, orders, selectedBusinessId]);
+  }, [products, orders, selectedBusinessId, loadingProducts, loadingOrders]);
   const loadProducts = async () => {
     if (!user || !selectedBusinessId) return;
     setLoadingProducts(true);
@@ -381,23 +406,39 @@ export default function BusinessAccount() {
     });
   };
   const calculateStats = async () => {
-    if (!selectedBusinessId) return;
+    if (!selectedBusinessId) {
+      console.log('⚠️ No business selected, resetting stats to 0');
+      setStats({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        rating: 0,
+        commission: 0,
+        netRevenue: 0
+      });
+      setLoadingStats(false);
+      return;
+    }
     
+    console.log('📊 Calculating stats for business:', selectedBusinessId);
     setLoadingStats(true);
     try {
-      // 1. Compter les produits actifs du business sélectionné
+      // 1. Count active products for selected business (can be 0)
       const activeProducts = products.filter(p => p.status === 'active').length;
+      console.log('   - Active products:', activeProducts);
       
-      // 2. Calculer les revenus et commandes
+      // 2. Calculate revenue and orders (can be 0)
       const totalRevenue = orders.reduce((sum, order) => {
         return sum + parseFloat(order.total_amount?.toString() || '0');
       }, 0);
+      console.log('   - Total orders:', orders.length);
+      console.log('   - Total revenue:', totalRevenue);
       
       const totalOrders = orders.length;
-      const commission = totalRevenue * 0.08; // 8% de commission
+      const commission = totalRevenue * 0.08; // 8% commission
       const netRevenue = totalRevenue - commission;
       
-      // 3. Calculer la note moyenne des produits du business
+      // 3. Calculate average rating (can be 0)
       const { data: ratings } = await supabase
         .from('product_ratings')
         .select('rating, products!inner(business_account_id)')
@@ -406,17 +447,21 @@ export default function BusinessAccount() {
       const averageRating = ratings && ratings.length > 0
         ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
         : 0;
+      console.log('   - Average rating:', averageRating);
       
-      setStats({
+      const newStats = {
         totalProducts: activeProducts,
         totalOrders,
         totalRevenue,
         rating: parseFloat(averageRating.toFixed(1)),
         commission,
         netRevenue
-      });
+      };
+      
+      console.log('✅ Stats calculated:', newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error('Error calculating stats:', error);
+      console.error('❌ Error calculating stats:', error);
     } finally {
       setLoadingStats(false);
     }
