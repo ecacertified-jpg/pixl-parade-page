@@ -16,7 +16,7 @@ import { useBusinessProducts } from "@/hooks/useBusinessProducts";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotifications";
-import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
+import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
@@ -925,38 +925,133 @@ export default function BusinessDashboard() {
                     Notifications
                   </Button>
                 </div>
-              <div className="space-y-3">
-                {recentOrders.map(order => <div key={order.id} className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <div className="font-medium">{order.id}</div>
-                        <div className="text-sm text-muted-foreground">{order.product}</div>
-                      </div>
-                      <Badge className={getStatusColor(order.status)}>
-                        {getStatusText(order.status)}
-                      </Badge>
+                
+                {/* Compteur de nouvelles commandes */}
+                {recentOrders.filter(o => o.status === 'new').length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                      <span className="font-semibold text-blue-900 dark:text-blue-100">
+                        {recentOrders.filter(o => o.status === 'new').length} 
+                        {recentOrders.filter(o => o.status === 'new').length > 1 
+                          ? ' nouvelles commandes' 
+                          : ' nouvelle commande'} à traiter
+                      </span>
                     </div>
-                    <div className="text-sm space-y-1">
-                      <div><strong>Client:</strong> {order.customer}</div>
-                      <div><strong>Donateur:</strong> {order.donor}</div>
-                      <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
-                      <div className="flex items-center gap-2">
-                        <strong>Type:</strong> 
-                        {order.type === "pickup" ? <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            Retrait sur place
-                          </span> : <span className="flex items-center gap-1">
-                            <Truck className="h-3 w-3" />
-                            Livraison {order.amount > 25000 && "(Gratuite)"}
-                          </span>}
-                      </div>
+                  </div>
+                )}
+
+                {/* Liste des commandes */}
+                <div className="space-y-3">
+                  {recentOrders.length === 0 ? (
+                    <div className="text-center py-6 md:py-8 px-4">
+                      <ShoppingCart className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground font-medium mb-2">Aucune commande récente</p>
+                      <p className="text-sm text-muted-foreground/70">
+                        Les nouvelles commandes apparaîtront ici
+                      </p>
                     </div>
-                     {order.status === "new" && <Button size="sm" className="w-full mt-2" onClick={() => handleCallCustomer(order)}>
-                         <Phone className="h-4 w-4 mr-2" />
-                         Appeler le client ({order.customerPhone || 'Non disponible'})
-                       </Button>}
-                  </div>)}
-              </div>
+                  ) : (
+                    [...recentOrders]
+                      .sort((a, b) => {
+                        if (a.status === 'new' && b.status !== 'new') return -1;
+                        if (a.status !== 'new' && b.status === 'new') return 1;
+                        return 0;
+                      })
+                      .map(order => (
+                        <div 
+                          key={order.id} 
+                          className={`rounded-lg p-4 border-l-4 transition-all ${
+                            order.status === 'new' 
+                              ? 'bg-blue-50/50 dark:bg-blue-950/20 border-l-blue-500 shadow-md' 
+                              : order.status === 'confirmed'
+                              ? 'bg-card border-l-green-500'
+                              : 'bg-card border-l-orange-500'
+                          } hover:shadow-lg`}
+                        >
+                          {/* Header avec ID et Badge */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {order.status === 'new' && (
+                                <Badge className="bg-blue-600 text-white animate-pulse">
+                                  Nouveau
+                                </Badge>
+                              )}
+                              <h4 className="text-base md:text-lg font-bold">{order.id}</h4>
+                            </div>
+                            <Badge className={getStatusColor(order.status)}>
+                              {getStatusText(order.status)}
+                            </Badge>
+                          </div>
+
+                          {/* Produit */}
+                          <div className="mb-3">
+                            <p className="text-sm md:text-base font-medium text-foreground">{order.product}</p>
+                          </div>
+
+                          {/* Grid d'informations */}
+                          <div className="grid grid-cols-1 gap-2 mb-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Client:</span>
+                              <span className="font-medium">{order.customer}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Gift className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Donateur:</span>
+                              <span className="font-medium">{order.donor}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Montant:</span>
+                              <span className="font-bold text-base md:text-lg text-primary">
+                                {order.amount.toLocaleString()} F
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {order.type === "pickup" ? (
+                                <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  Retrait sur place
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800">
+                                  <Truck className="h-3 w-3 mr-1" />
+                                  Livraison {order.amount > 25000 && "(Gratuite)"}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          {order.status === "new" ? (
+                            <Button 
+                              size="default" 
+                              className="w-full bg-primary hover:bg-primary/90" 
+                              onClick={() => handleCallCustomer(order)}
+                            >
+                              <Phone className="h-5 w-5 mr-2" />
+                              Appeler le client
+                              {order.customerPhone && (
+                                <span className="ml-2 font-mono text-sm">({order.customerPhone})</span>
+                              )}
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="w-full"
+                            >
+                              Voir les détails
+                            </Button>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
               </Card>
 
               {/* Cagnottes en cours */}
