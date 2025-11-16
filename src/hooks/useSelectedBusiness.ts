@@ -44,28 +44,46 @@ export const useSelectedBusiness = () => {
         return;
       }
 
+      console.log('✅ Loaded businesses for user:', user?.id, '- Count:', data?.length || 0);
       setBusinesses(data || []);
 
-      // Restaurer le business sélectionné depuis localStorage ou sélectionner le premier
+      // PHASE 2: Nettoyage agressif du localStorage
       const savedBusinessId = localStorage.getItem(SELECTED_BUSINESS_KEY);
-      const businessExists = data?.some(b => b.id === savedBusinessId);
+      const businessBelongsToUser = data?.some(b => b.id === savedBusinessId);
 
-      // Nettoyer le localStorage si le business n'existe plus
-      if (savedBusinessId && !businessExists) {
-        console.warn('🧹 Cleaning invalid business ID from localStorage:', savedBusinessId);
-        localStorage.removeItem(SELECTED_BUSINESS_KEY);
+      // Si l'ID sauvegardé n'appartient pas à l'utilisateur, nettoyer TOUT le localStorage lié
+      if (savedBusinessId && !businessBelongsToUser) {
+        console.warn('🧹 CRITICAL: Business ID does not belong to current user:', savedBusinessId);
+        console.warn('🧹 Cleaning ALL business-related localStorage keys...');
+        
+        // Supprimer toutes les clés liées à business ou joie_de_vivre
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('business') || key.includes('joie_de_vivre')) {
+            console.log('🧹 Removing localStorage key:', key);
+            localStorage.removeItem(key);
+          }
+        });
+        
+        console.log('✅ localStorage cleaned successfully');
       }
 
-      if (savedBusinessId && businessExists) {
+      // Sélectionner le business approprié
+      if (savedBusinessId && businessBelongsToUser) {
+        console.log('✅ Restoring saved business:', savedBusinessId);
         setSelectedBusinessId(savedBusinessId);
       } else if (data && data.length > 0) {
         // Sélectionner automatiquement le premier business actif ou le premier de la liste
         const activeBusiness = data.find(b => b.is_active) || data[0];
+        console.log('✅ Auto-selecting business:', activeBusiness.id, '-', activeBusiness.business_name);
         setSelectedBusinessId(activeBusiness.id);
         localStorage.setItem(SELECTED_BUSINESS_KEY, activeBusiness.id);
+      } else {
+        console.log('ℹ️ No businesses found for user');
+        setSelectedBusinessId(null);
+        localStorage.removeItem(SELECTED_BUSINESS_KEY);
       }
     } catch (error) {
-      console.error('Error loading businesses:', error);
+      console.error('❌ Error loading businesses:', error);
     } finally {
       setLoading(false);
     }

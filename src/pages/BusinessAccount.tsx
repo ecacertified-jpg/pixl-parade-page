@@ -209,7 +209,16 @@ export default function BusinessAccount() {
     }
   };
   const loadOrders = async () => {
-    if (!user) return;
+    // CRITICAL: Validate both user AND selectedBusinessId before proceeding
+    if (!user || !selectedBusinessId) {
+      console.log('⚠️ Cannot load orders: missing user or business ID');
+      return;
+    }
+    
+    // Capture selectedBusinessId to avoid closure issues
+    const currentBusinessId = selectedBusinessId;
+    console.log('🔄 Loading orders for business:', currentBusinessId);
+    
     setLoadingOrders(true);
     try {
       // Load orders with their items for business owners
@@ -240,16 +249,19 @@ export default function BusinessAccount() {
         ascending: false
       });
       if (error) {
-        console.error('Error loading orders:', error);
+        console.error('❌ Error loading orders:', error);
         return;
       }
+
+      console.log('📦 Total orders fetched from database:', data?.length || 0);
+      console.log('🎯 Filtering for business:', currentBusinessId);
 
       // Filter orders that contain products from the selected business
       const businessOrders = (data || [])
         .filter(order => 
           order.order_items.some(item => 
             item.products && 
-            item.products.business_account_id === selectedBusinessId
+            item.products.business_account_id === currentBusinessId
           )
         )
         .map(order => ({
@@ -257,13 +269,15 @@ export default function BusinessAccount() {
           order_items: order.order_items
             .filter(item => 
               item.products && 
-              item.products.business_account_id === selectedBusinessId
+              item.products.business_account_id === currentBusinessId
             )
             .map(item => ({
               ...item,
               product_name: item.products?.name || 'Produit supprimé'
             }))
         }));
+      
+      console.log('✅ Orders filtered for business', currentBusinessId, ':', businessOrders.length);
       setOrders(businessOrders);
     } catch (error) {
       console.error('Error:', error);
