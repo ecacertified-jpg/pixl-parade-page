@@ -56,10 +56,7 @@ export const BusinessSelector = () => {
   return (
     <Select value={selectedBusinessId || undefined} onValueChange={selectBusiness}>
       <SelectTrigger className="w-auto min-w-[200px] border-primary/20 bg-background/50 hover:bg-background transition-colors">
-        <div className="flex items-center gap-2">
-          <Store className="h-4 w-4 text-primary" />
-          <SelectValue placeholder="Sélectionner un business" />
-        </div>
+        <SelectValue placeholder="Sélectionner un business" />
       </SelectTrigger>
       <SelectContent className="max-h-[300px]">
         {businesses.map(business => (
@@ -80,12 +77,7 @@ export const BusinessSelector = () => {
                   <Store className="h-3 w-3 text-primary" />
                 </div>
               )}
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm">{business.business_name}</span>
-                {business.business_type && (
-                  <span className="text-xs text-muted-foreground">{business.business_type}</span>
-                )}
-              </div>
+              <span className="font-medium text-sm">{business.business_name}</span>
               <div className="flex items-center gap-1 ml-auto">
                 {business.is_active && (
                   <Badge variant="secondary" className="h-5 text-xs">Actif</Badge>
