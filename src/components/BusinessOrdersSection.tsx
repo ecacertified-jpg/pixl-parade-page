@@ -270,11 +270,41 @@ export function BusinessOrdersSection() {
   const filteredCollectiveOrders = filterOrdersByStatus(collectiveOrders);
 
   const statusOptions = [
-    { value: 'all', label: 'Tous', count: individualOrders.length + collectiveOrders.length },
-    { value: 'pending', label: 'En attente', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'pending').length },
-    { value: 'confirmed', label: 'Confirmées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'confirmed').length },
-    { value: 'delivered', label: 'Livrées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'delivered').length },
-    { value: 'cancelled', label: 'Annulées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'cancelled').length },
+    { 
+      value: 'all', 
+      label: 'Tous', 
+      count: individualOrders.length + collectiveOrders.length,
+      icon: Target,
+      color: 'default'
+    },
+    { 
+      value: 'pending', 
+      label: 'En attente', 
+      count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'pending').length,
+      icon: Clock,
+      color: 'warning'
+    },
+    { 
+      value: 'confirmed', 
+      label: 'Confirmées', 
+      count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'confirmed').length,
+      icon: CheckCircle,
+      color: 'info'
+    },
+    { 
+      value: 'delivered', 
+      label: 'Livrées', 
+      count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'delivered').length,
+      icon: Package,
+      color: 'success'
+    },
+    { 
+      value: 'cancelled', 
+      label: 'Annulées', 
+      count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'cancelled').length,
+      icon: XCircle,
+      color: 'destructive'
+    },
   ];
 
   const formatDate = (dateString: string) => {
@@ -492,30 +522,54 @@ export function BusinessOrdersSection() {
   return (
     <div className="space-y-4">
       {/* Status Filter */}
-      <Card className="p-4">
-        <div className="flex items-center gap-4">
+      <Card className="p-6 shadow-sm border-border/50">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filtrer par statut:</span>
+            <Filter className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Filtrer les commandes</h3>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {statusOptions.map(option => (
-              <Button
-                key={option.value}
-                variant={statusFilter === option.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(option.value)}
-                className="gap-2"
-              >
-                {option.label}
-                <Badge 
-                  variant="secondary" 
-                  className={statusFilter === option.value ? "bg-white text-primary" : ""}
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {statusOptions.map(option => {
+              const Icon = option.icon;
+              const isActive = statusFilter === option.value;
+              
+              return (
+                <Button
+                  key={option.value}
+                  variant={isActive ? "default" : "outline"}
+                  size="lg"
+                  onClick={() => setStatusFilter(option.value)}
+                  className={`
+                    relative h-auto flex-col items-start gap-2 p-4 
+                    transition-all duration-200 hover:scale-105 hover:shadow-md
+                    ${isActive ? 'shadow-lg ring-2 ring-primary/20' : 'hover:border-primary/50'}
+                  `}
                 >
-                  {option.count}
-                </Badge>
-              </Button>
-            ))}
+                  <div className="flex items-center gap-2 w-full">
+                    <Icon className={`h-5 w-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                    <span className={`text-sm font-medium ${isActive ? 'text-primary-foreground' : 'text-foreground'}`}>
+                      {option.label}
+                    </span>
+                  </div>
+                  <div className={`
+                    flex items-center justify-center 
+                    w-8 h-8 rounded-full text-xs font-bold
+                    transition-colors duration-200
+                    ${isActive 
+                      ? 'bg-primary-foreground text-primary' 
+                      : option.color === 'warning' ? 'bg-yellow-100 text-yellow-700'
+                      : option.color === 'info' ? 'bg-blue-100 text-blue-700'
+                      : option.color === 'success' ? 'bg-green-100 text-green-700'
+                      : option.color === 'destructive' ? 'bg-red-100 text-red-700'
+                      : 'bg-muted text-muted-foreground'
+                    }
+                  `}>
+                    {option.count}
+                  </div>
+                </Button>
+              );
+            })}
           </div>
         </div>
       </Card>
