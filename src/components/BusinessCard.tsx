@@ -32,39 +32,64 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le business "${business.business_name}" ?`)) {
+    if (!confirm(
+      `⚠️ ATTENTION\n\n` +
+      `Êtes-vous sûr de vouloir supprimer "${business.business_name}" ?\n\n` +
+      `Cette action supprimera :\n` +
+      `- Le business de Config ET du sélecteur\n` +
+      `- Tous les produits associés (si aucune commande)\n` +
+      `- Cette action est IRRÉVERSIBLE\n\n` +
+      `Confirmez-vous la suppression ?`
+    )) {
       return;
     }
 
     setLoading(true);
+    const toastId = toast.loading("Vérification des produits et commandes...");
     
     try {
       // Check if business has associated products
       const { data: products, error: productsError } = await supabase
         .from('products')
         .select('id')
-        .eq('business_id', business.id)
+        .eq('business_account_id', business.id)
         .limit(1);
 
       if (productsError) throw productsError;
 
+      // Check if business has associated orders
+      const { data: orders, error: ordersError } = await supabase
+        .from('business_orders')
+        .select('id')
+        .eq('business_account_id', business.id)
+        .limit(1);
+
+      if (ordersError) throw ordersError;
+
       if (products && products.length > 0) {
-        toast.error("Impossible de supprimer ce business car il a des produits associés");
+        toast.error("Impossible de supprimer : ce business a des produits associés", { id: toastId });
         return;
       }
 
+      if (orders && orders.length > 0) {
+        toast.error("Impossible de supprimer : ce business a des commandes associées", { id: toastId });
+        return;
+      }
+
+      toast.loading("Suppression du business...", { id: toastId });
+
       const { error } = await supabase
-        .from('businesses')
+        .from('business_accounts')
         .delete()
         .eq('id', business.id);
 
       if (error) throw error;
 
-      toast.success("Business supprimé avec succès");
+      toast.success("✅ Business supprimé de Config et du sélecteur", { id: toastId });
       onDeleted();
     } catch (error) {
       console.error('Error deleting business:', error);
-      toast.error("Erreur lors de la suppression");
+      toast.error("Erreur lors de la suppression", { id: toastId });
     } finally {
       setLoading(false);
     }
