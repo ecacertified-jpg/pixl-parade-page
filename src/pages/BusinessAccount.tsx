@@ -449,7 +449,7 @@ export default function BusinessAccount() {
                 <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
                   
                   <BusinessSelector />
-                  <span>et vos ventes</span>
+                  
                 </div>
               </div>
             </div>
