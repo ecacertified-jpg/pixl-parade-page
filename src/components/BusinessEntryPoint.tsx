@@ -23,7 +23,7 @@ export const BusinessEntryPoint = () => {
         </div>
         <CardDescription>
           {hasBusinessAccount 
-            ? `Gérez ${businessAccount?.business_name || 'votre business'} et vos ventes`
+            ? 'Accédez à votre tableau de bord et gérez votre activité'
             : 'Vendez vos produits sur JOIE DE VIVRE et atteignez plus de clients'
           }
         </CardDescription>
