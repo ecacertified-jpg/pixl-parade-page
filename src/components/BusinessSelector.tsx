@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSelectedBusiness } from "@/hooks/useSelectedBusiness";
+import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 
 export const BusinessSelector = () => {
   const { selectedBusinessId, businesses, loading, selectBusiness } = useSelectedBusiness();

@@ -20,18 +20,12 @@ import { BusinessSelector } from "@/components/BusinessSelector";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSelectedBusiness } from "@/hooks/useSelectedBusiness";
+import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    selectedBusinessId,
-    selectedBusiness: currentBusiness,
-    refetch: refetchSelector
-  } = useSelectedBusiness();
+  const { user } = useAuth();
+  const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -294,9 +288,10 @@ export default function BusinessAccount() {
     setIsAddBusinessModalOpen(false);
     setEditingBusiness(null);
   };
+  // Recharger les données quand le business change
   const handleBusinessChanged = () => {
-    loadBusinesses(); // Recharge Config
-    refetchSelector(); // ⚡ Recharge le sélecteur
+    loadBusinesses(); // Recharge Config (liste locale)
+    refetch(); // ⚡ Recharge le Context global (met à jour le sélecteur automatiquement)
   };
   const handleEditProduct = (productId: string | number) => {
     // Find the product to edit

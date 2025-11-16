@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSelectedBusiness } from "@/hooks/useSelectedBusiness";
+import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { toast } from "sonner";
 
 interface AddProductModalProps {
