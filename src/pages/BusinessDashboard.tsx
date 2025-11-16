@@ -15,6 +15,7 @@ import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useBusinessProducts } from "@/hooks/useBusinessProducts";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
+import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotifications";
 import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
@@ -92,6 +93,9 @@ export default function BusinessDashboard() {
     funds: businessFunds,
     loading: businessFundsLoading
   } = useBusinessCollectiveFunds();
+  
+  // Enable real-time order notifications for this business
+  useBusinessOrderNotifications(businessAccount.id);
   
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({

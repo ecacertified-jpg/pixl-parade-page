@@ -150,15 +150,58 @@ export function BusinessInitiatedFundsSection() {
       </div>;
   }
   if (fundsWithDetails.length === 0) {
-    return;
+    return null;
   }
-  return <div className="space-y-6">
-      
-
+  
+  return (
+    <div className="space-y-6">
       {fundsWithDetails.map(fund => {
-      const progress = fund.current_amount / fund.target_amount * 100;
-      const isCompleted = progress >= 100;
-      return;
-    })}
-    </div>;
+        const progress = fund.current_amount / fund.target_amount * 100;
+        const isCompleted = progress >= 100;
+        
+        return (
+          <Card key={fund.id} className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">{fund.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Bénéficiaire: {fund.beneficiary_name}
+                </p>
+              </div>
+              {getStatusBadge(fund.status, fund.current_amount, fund.target_amount)}
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Progression</span>
+                  <span className="font-medium">
+                    {fund.current_amount} / {fund.target_amount} {fund.currency}
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2" />
+              </div>
+              
+              {fund.contributors.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Contributeurs ({fund.contributors.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {fund.contributors.map(contributor => (
+                      <div key={contributor.id} className="flex items-center justify-between text-sm">
+                        <span>{contributor.name}</span>
+                        <span className="font-medium">{contributor.amount} {fund.currency}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
 }
