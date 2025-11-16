@@ -94,9 +94,6 @@ export default function BusinessDashboard() {
     loading: businessFundsLoading
   } = useBusinessCollectiveFunds();
   
-  // Enable real-time order notifications for this business
-  useBusinessOrderNotifications(businessAccount.id);
-  
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -180,6 +177,9 @@ export default function BusinessDashboard() {
     loadBusinessAccount();
     loadBusinesses();
   }, [user]);
+  
+  // Enable real-time order notifications for this business
+  useBusinessOrderNotifications(businessAccount?.id);
 
   // Load business account data
   const loadBusinessAccount = async () => {
