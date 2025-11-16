@@ -17,6 +17,7 @@ export interface BusinessCategory {
 
 export const useBusinessCategories = () => {
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -24,6 +25,7 @@ export const useBusinessCategories = () => {
   const loadCategories = async () => {
     if (!user?.id) {
       setCategories([]);
+      setProductCounts({});
       setLoading(false);
       return;
     }
@@ -39,6 +41,19 @@ export const useBusinessCategories = () => {
 
       if (error) throw error;
       setCategories(data || []);
+
+      // Load product counts for each category
+      if (data && data.length > 0) {
+        const counts: Record<string, number> = {};
+        for (const category of data) {
+          const { count } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('business_category_id', category.id);
+          counts[category.id] = count || 0;
+        }
+        setProductCounts(counts);
+      }
     } catch (error) {
       console.error('Error loading business categories:', error);
       toast({
@@ -160,6 +175,7 @@ export const useBusinessCategories = () => {
 
   return {
     categories,
+    productCounts,
     loading,
     createCategory,
     updateCategory,
