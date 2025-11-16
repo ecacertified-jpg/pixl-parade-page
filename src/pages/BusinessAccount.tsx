@@ -75,6 +75,16 @@ export default function BusinessAccount() {
     category: "",
     stock: ""
   });
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    rating: 0,
+    commission: 0,
+    netRevenue: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
   useEffect(() => {
     document.title = "Compte Business | JOIE DE VIVRE";
     if (selectedBusinessId) {
@@ -83,6 +93,12 @@ export default function BusinessAccount() {
     }
     loadBusinesses();
   }, [selectedBusinessId]);
+
+  useEffect(() => {
+    if (selectedBusinessId && products.length >= 0 && orders.length >= 0) {
+      calculateStats();
+    }
+  }, [products, orders, selectedBusinessId]);
   const loadProducts = async () => {
     if (!user || !selectedBusinessId) return;
     setLoadingProducts(true);
@@ -191,7 +207,8 @@ export default function BusinessAccount() {
             total_price,
             products (
               name,
-              business_owner_id
+              business_owner_id,
+              business_account_id
             )
           )
         `).order('created_at', {
@@ -202,14 +219,26 @@ export default function BusinessAccount() {
         return;
       }
 
-      // Filter orders that contain products from this business owner
-      const businessOrders = (data || []).filter(order => order.order_items.some(item => item.products && item.products.business_owner_id === user.id)).map(order => ({
-        ...order,
-        order_items: order.order_items.filter(item => item.products && item.products.business_owner_id === user.id).map(item => ({
-          ...item,
-          product_name: item.products?.name || 'Produit supprimé'
-        }))
-      }));
+      // Filter orders that contain products from the selected business
+      const businessOrders = (data || [])
+        .filter(order => 
+          order.order_items.some(item => 
+            item.products && 
+            item.products.business_account_id === selectedBusinessId
+          )
+        )
+        .map(order => ({
+          ...order,
+          order_items: order.order_items
+            .filter(item => 
+              item.products && 
+              item.products.business_account_id === selectedBusinessId
+            )
+            .map(item => ({
+              ...item,
+              product_name: item.products?.name || 'Produit supprimé'
+            }))
+        }));
       setOrders(businessOrders);
     } catch (error) {
       console.error('Error:', error);
@@ -351,13 +380,46 @@ export default function BusinessAccount() {
       stock: ""
     });
   };
-  const stats = {
-    totalProducts: 12,
-    totalOrders: 8,
-    totalRevenue: 340000,
-    rating: 4.8,
-    commission: 27200,
-    netRevenue: 312800
+  const calculateStats = async () => {
+    if (!selectedBusinessId) return;
+    
+    setLoadingStats(true);
+    try {
+      // 1. Compter les produits actifs du business sélectionné
+      const activeProducts = products.filter(p => p.status === 'active').length;
+      
+      // 2. Calculer les revenus et commandes
+      const totalRevenue = orders.reduce((sum, order) => {
+        return sum + parseFloat(order.total_amount?.toString() || '0');
+      }, 0);
+      
+      const totalOrders = orders.length;
+      const commission = totalRevenue * 0.08; // 8% de commission
+      const netRevenue = totalRevenue - commission;
+      
+      // 3. Calculer la note moyenne des produits du business
+      const { data: ratings } = await supabase
+        .from('product_ratings')
+        .select('rating, products!inner(business_account_id)')
+        .eq('products.business_account_id', selectedBusinessId);
+      
+      const averageRating = ratings && ratings.length > 0
+        ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+        : 0;
+      
+      setStats({
+        totalProducts: activeProducts,
+        totalOrders,
+        totalRevenue,
+        rating: parseFloat(averageRating.toFixed(1)),
+        commission,
+        netRevenue
+      });
+    } catch (error) {
+      console.error('Error calculating stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
   };
   const recentOrders = [{
     id: "CMD-001",
@@ -462,19 +524,35 @@ export default function BusinessAccount() {
         <Card className="p-4 mb-6">
           <div className="grid grid-cols-4 gap-2 sm:gap-4">
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalProducts}</div>
+              {loadingStats ? (
+                <div className="animate-pulse h-6 bg-muted rounded w-12 mx-auto"></div>
+              ) : (
+                <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalProducts}</div>
+              )}
               <div className="text-xs sm:text-sm text-muted-foreground">Produits</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalOrders}</div>
+              {loadingStats ? (
+                <div className="animate-pulse h-6 bg-muted rounded w-12 mx-auto"></div>
+              ) : (
+                <div className="text-xl sm:text-2xl font-bold text-primary">{stats.totalOrders}</div>
+              )}
               <div className="text-xs sm:text-sm text-muted-foreground">Commandes</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-primary">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
+              {loadingStats ? (
+                <div className="animate-pulse h-6 bg-muted rounded w-16 mx-auto"></div>
+              ) : (
+                <div className="text-xl sm:text-2xl font-bold text-primary">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
+              )}
               <div className="text-xs sm:text-sm text-muted-foreground">Revenus (F)</div>
             </div>
             <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-primary">{stats.rating}</div>
+              {loadingStats ? (
+                <div className="animate-pulse h-6 bg-muted rounded w-10 mx-auto"></div>
+              ) : (
+                <div className="text-xl sm:text-2xl font-bold text-primary">{stats.rating || '—'}</div>
+              )}
               <div className="text-xs sm:text-sm text-muted-foreground">Note</div>
             </div>
           </div>
@@ -512,7 +590,11 @@ export default function BusinessAccount() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Revenus totaux</p>
-                    <p className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} F</p>
+                    {loadingStats ? (
+                      <div className="animate-pulse h-8 bg-muted rounded w-24 mt-1"></div>
+                    ) : (
+                      <p className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} F</p>
+                    )}
                   </div>
                   <DollarSign className="h-8 w-8 text-green-500" />
                 </div>
@@ -522,7 +604,11 @@ export default function BusinessAccount() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Commandes du mois</p>
-                    <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                    {loadingStats ? (
+                      <div className="animate-pulse h-8 bg-muted rounded w-16 mt-1"></div>
+                    ) : (
+                      <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                    )}
                   </div>
                   <ShoppingCart className="h-8 w-8 text-blue-500" />
                 </div>
@@ -532,7 +618,11 @@ export default function BusinessAccount() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Produits actifs</p>
-                    <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                    {loadingStats ? (
+                      <div className="animate-pulse h-8 bg-muted rounded w-16 mt-1"></div>
+                    ) : (
+                      <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                    )}
                   </div>
                   <Package className="h-8 w-8 text-purple-500" />
                 </div>
@@ -542,20 +632,28 @@ export default function BusinessAccount() {
             {/* Résumé financier */}
             <Card className="p-4 mb-6">
               <h3 className="font-semibold mb-4">Résumé financier</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Ventes brutes</span>
-                  <span className="font-medium text-sm">{stats.totalRevenue.toLocaleString()} F</span>
+              {loadingStats ? (
+                <div className="space-y-3">
+                  <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
+                  <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
+                  <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Commission JOIE DE VIVRE (8%)</span>
-                  <span className="text-red-600 font-normal text-xs">-{stats.commission.toLocaleString()} F</span>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Ventes brutes</span>
+                    <span className="font-medium text-sm">{stats.totalRevenue.toLocaleString()} F</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Commission JOIE DE VIVRE (8%)</span>
+                    <span className="text-red-600 font-normal text-xs">-{stats.commission.toLocaleString()} F</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between">
+                    <span className="font-medium">Revenus nets</span>
+                    <span className="font-medium text-green-600">{stats.netRevenue.toLocaleString()} F</span>
+                  </div>
                 </div>
-                <div className="border-t pt-2 flex justify-between">
-                  <span className="font-medium">Revenus nets</span>
-                  <span className="font-medium text-green-600">{stats.netRevenue.toLocaleString()} F</span>
-                </div>
-              </div>
+              )}
             </Card>
 
             {/* Commandes récentes */}
@@ -735,15 +833,27 @@ export default function BusinessAccount() {
               <h3 className="font-medium mb-4">Performance mensuelle</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{stats.totalOrders}</div>
+                  {loadingStats ? (
+                    <div className="animate-pulse h-8 bg-muted rounded w-12 mx-auto"></div>
+                  ) : (
+                    <div className="text-2xl font-bold text-green-600">{stats.totalOrders}</div>
+                  )}
                   <div className="text-sm text-muted-foreground">Commandes</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
+                  {loadingStats ? (
+                    <div className="animate-pulse h-8 bg-muted rounded w-16 mx-auto"></div>
+                  ) : (
+                    <div className="text-2xl font-bold text-blue-600">{(stats.totalRevenue / 1000).toFixed(0)}K</div>
+                  )}
                   <div className="text-sm text-muted-foreground">Revenus (F)</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{stats.rating}</div>
+                  {loadingStats ? (
+                    <div className="animate-pulse h-8 bg-muted rounded w-10 mx-auto"></div>
+                  ) : (
+                    <div className="text-2xl font-bold text-purple-600">{stats.rating || '—'}</div>
+                  )}
                   <div className="text-sm text-muted-foreground">Note moyenne</div>
                 </div>
                 <div className="text-center">
