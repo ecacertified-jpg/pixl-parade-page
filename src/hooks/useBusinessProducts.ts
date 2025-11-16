@@ -52,7 +52,8 @@ export function useBusinessProducts() {
         .from('products')
         .select(`
           *,
-          category_name:categories(name)
+          category_name:categories(name),
+          business_category:business_categories(name, color, icon)
         `)
         .eq('business_owner_id', user.id);
       
@@ -73,7 +74,7 @@ export function useBusinessProducts() {
       // Map the data to include category name
       const mappedProducts = (data || []).map(product => ({
         ...product,
-        category_name: product.category_name?.name || 'Sans catégorie'
+        category_name: product.business_category?.name || product.category_name?.name || 'Sans catégorie'
       }));
       
       console.log('✅ [useBusinessProducts] Mapped products:', mappedProducts);

@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload } from "lucide-react";
+import { Upload, Plus, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
+import { useBusinessCategories } from "@/hooks/useBusinessCategories";
 import { toast } from "sonner";
 
 interface AddProductModalProps {
@@ -21,13 +22,16 @@ interface AddProductModalProps {
 export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductModalProps) {
   const { user } = useAuth();
   const { selectedBusinessId } = useSelectedBusiness();
+  const { categories: businessCategories } = useBusinessCategories();
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     category_name: "",
+    business_category_id: "",
     stock_quantity: "",
     business_id: "",
     is_experience: false
@@ -151,8 +155,18 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       return;
     }
 
-    if (!formData.name || !formData.price || !formData.business_id || !formData.category_name) {
-      toast.error("Veuillez remplir tous les champs obligatoires (nom, prix, business et catégorie)");
+    if (!formData.name || !formData.price || !formData.business_id) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    if (!useCustomCategory && !formData.category_name) {
+      toast.error("Veuillez sélectionner une catégorie prédéfinie");
+      return;
+    }
+
+    if (useCustomCategory && !formData.business_category_id) {
+      toast.error("Veuillez sélectionner une catégorie personnalisée");
       return;
     }
 
@@ -232,9 +246,10 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
           business_owner_id: user.id,
-          business_account_id: selectedBusinessId || formData.business_id, // Link to selected business
+          business_account_id: selectedBusinessId || formData.business_id,
           business_id: formData.business_id,
-          category_name: formData.category_name,
+          category_name: useCustomCategory ? null : formData.category_name,
+          business_category_id: useCustomCategory ? formData.business_category_id : null,
           is_experience: formData.is_experience,
           is_active: true,
           location_name: locationName
@@ -256,11 +271,13 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         description: "",
         price: "",
         category_name: "",
+        business_category_id: "",
         stock_quantity: "",
         business_id: "",
         is_experience: false
       });
       setSelectedFiles(null);
+      setUseCustomCategory(false);
       
       onProductAdded();
       onClose();
@@ -320,20 +337,90 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="category">Catégorie *</Label>
-            <Select value={formData.category_name} onValueChange={(value) => handleInputChange('category_name', value)}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Sélectionner une catégorie" />
-              </SelectTrigger>
-              <SelectContent>
-                {allCategories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Type de catégorie</Label>
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseCustomCategory(false);
+                    setFormData({ ...formData, business_category_id: '', category_name: '' });
+                  }}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    !useCustomCategory 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  Prédéfinie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseCustomCategory(true);
+                    setFormData({ ...formData, category_name: '', business_category_id: '' });
+                  }}
+                  className={`px-3 py-1 rounded-md transition-colors ${
+                    useCustomCategory 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  <Tag className="h-3 w-3 mr-1 inline" />
+                  Personnalisée
+                </button>
+              </div>
+            </div>
+
+            {useCustomCategory ? (
+              <div>
+                <Label htmlFor="custom_category">Catégorie personnalisée *</Label>
+                {businessCategories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Aucune catégorie personnalisée. Créez-en une dans l'onglet Configuration.
+                  </p>
+                ) : (
+                  <Select 
+                    value={formData.business_category_id} 
+                    onValueChange={(value) => handleInputChange('business_category_id', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Sélectionner une catégorie personnalisée" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businessCategories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="h-3 w-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="category">Catégorie prédéfinie *</Label>
+                <Select value={formData.category_name} onValueChange={(value) => handleInputChange('category_name', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Sélectionner une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allCategories.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
