@@ -92,20 +92,24 @@ export function BusinessProductCard({
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         {/* Product Image */}
-        {product.image_url && (
-          <div className="aspect-video bg-muted relative overflow-hidden">
+        <div className="aspect-square bg-muted relative overflow-hidden border-b">
+          {product.image_url ? (
             <img
               src={product.image_url}
               alt={product.name}
               className="w-full h-full object-cover"
             />
-            {!product.is_active && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <Badge variant="destructive">Inactif</Badge>
-              </div>
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+              <Package className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
+          {!product.is_active && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Badge variant="destructive">Inactif</Badge>
+            </div>
+          )}
+        </div>
 
         <div className="p-4 space-y-4">
           {/* Product Info */}
