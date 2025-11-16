@@ -95,6 +95,7 @@ export default function BusinessDashboard() {
   } = useBusinessCollectiveFunds();
   
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -576,6 +577,76 @@ export default function BusinessDashboard() {
   const handleBusinessChanged = () => {
     loadBusinesses();
   };
+
+  // Handle product deletion
+  const handleDeleteProduct = async (productId: string) => {
+    if (!user?.id) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour supprimer un produit",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Confirm deletion
+    const confirmed = confirm(
+      "Êtes-vous sûr de vouloir supprimer ce produit ? Il sera retiré de l'onglet Produits et de la boutique."
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setDeletingProductId(productId);
+      
+      // Try to delete the product
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId)
+        .eq('business_owner_id', user.id);
+
+      if (error) {
+        // Check if error is due to foreign key constraint
+        if (error.code === '23503') {
+          // Product is referenced in orders, deactivate instead
+          const { error: updateError } = await supabase
+            .from('products')
+            .update({ is_active: false })
+            .eq('id', productId)
+            .eq('business_owner_id', user.id);
+
+          if (updateError) throw updateError;
+
+          toast({
+            title: "Produit désactivé",
+            description: "Le produit est masqué de la boutique mais conservé dans votre historique",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Produit supprimé",
+          description: "Le produit a été supprimé avec succès de vos produits et de la boutique",
+        });
+      }
+
+      // Refresh product list
+      refreshProducts();
+      
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le produit",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+  
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
@@ -1101,7 +1172,13 @@ export default function BusinessDashboard() {
                 const finalBusinessId = user?.id || '';
                 console.log('🎨 [BusinessDashboard] FORCED businessId (user.id):', finalBusinessId);
                 console.log('🎨 [BusinessDashboard] === END DEBUG ===');
-                return <BusinessProductCard key={product.id} product={product} businessId={finalBusinessId} onEdit={product => console.log('Edit product:', product)} onDelete={productId => console.log('Delete product:', productId)} />;
+                return <BusinessProductCard 
+                  key={product.id} 
+                  product={product} 
+                  businessId={finalBusinessId} 
+                  onEdit={product => console.log('Edit product:', product)} 
+                  onDelete={handleDeleteProduct}
+                />;
               })}
                 </div>}
             </div>
