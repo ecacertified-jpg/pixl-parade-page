@@ -50,6 +50,12 @@ export const useSelectedBusiness = () => {
       const savedBusinessId = localStorage.getItem(SELECTED_BUSINESS_KEY);
       const businessExists = data?.some(b => b.id === savedBusinessId);
 
+      // Nettoyer le localStorage si le business n'existe plus
+      if (savedBusinessId && !businessExists) {
+        console.warn('🧹 Cleaning invalid business ID from localStorage:', savedBusinessId);
+        localStorage.removeItem(SELECTED_BUSINESS_KEY);
+      }
+
       if (savedBusinessId && businessExists) {
         setSelectedBusinessId(savedBusinessId);
       } else if (data && data.length > 0) {
