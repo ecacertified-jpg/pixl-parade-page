@@ -54,7 +54,7 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
         .from('products')
         .select(`
           *,
-          business_accounts!inner(
+          business_accounts!business_account_id(
             business_name
           )
         `)

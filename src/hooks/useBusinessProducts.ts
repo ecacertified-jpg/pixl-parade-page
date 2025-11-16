@@ -25,9 +25,10 @@ export function useBusinessProducts() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
-  const loadProducts = async () => {
+  const loadProducts = async (businessAccountId?: string) => {
     console.log('🔍 [useBusinessProducts] loadProducts called');
     console.log('🔍 [useBusinessProducts] user:', user?.id);
+    console.log('🔍 [useBusinessProducts] businessAccountId:', businessAccountId);
     console.log('🔍 [useBusinessProducts] authLoading:', authLoading);
     
     // Don't load if still authenticating
@@ -47,14 +48,20 @@ export function useBusinessProducts() {
       setLoading(true);
       console.log('📡 [useBusinessProducts] Fetching products for user:', user.id);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
           category_name:categories(name)
         `)
-        .eq('business_owner_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('business_owner_id', user.id);
+      
+      // Filtrer par business_account_id si fourni
+      if (businessAccountId) {
+        query = query.eq('business_account_id', businessAccountId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       console.log('📊 [useBusinessProducts] Raw data from DB:', data);
       console.log('🚨 [useBusinessProducts] Error from DB:', error);
@@ -85,20 +92,14 @@ export function useBusinessProducts() {
     }
   };
 
-  const refreshProducts = () => {
-    loadProducts();
+  const refreshProducts = (businessAccountId?: string) => {
+    loadProducts(businessAccountId);
   };
-
-  useEffect(() => {
-    // Only load products when auth is ready and user is available
-    if (!authLoading) {
-      loadProducts();
-    }
-  }, [user, authLoading]);
 
   return {
     products,
     loading: loading || authLoading, // Include auth loading in overall loading state
-    refreshProducts
+    refreshProducts,
+    loadProducts, // Export loadProducts pour permettre le passage de businessAccountId
   };
 }

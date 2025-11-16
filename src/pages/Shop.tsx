@@ -65,7 +65,7 @@ export default function Shop() {
         .from('products')
         .select(`
           *,
-          business_accounts!inner(
+          business_accounts!business_account_id(
             business_name
           )
         `)
