@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +42,7 @@ export function BusinessOrdersSection() {
   const [collectiveOrders, setCollectiveOrders] = useState<CollectiveOrder[]>([]);
   const [individualOrders, setIndividualOrders] = useState<IndividualOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { user } = useAuth();
   const { toast } = useToast();
   const { funds: businessFunds, loading: loadingBusinessFunds } = useBusinessCollectiveFunds();
@@ -245,14 +247,35 @@ export function BusinessOrdersSection() {
     switch (status) {
       case 'pending':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800"><Clock className="h-3 w-3 mr-1" />En attente</Badge>;
+      case 'confirmed':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><CheckCircle className="h-3 w-3 mr-1" />Confirmée</Badge>;
       case 'processed':
         return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Traitée</Badge>;
       case 'delivered':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Package className="h-3 w-3 mr-1" />Livrée</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800"><Package className="h-3 w-3 mr-1" />Livrée</Badge>;
+      case 'cancelled':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Annulée</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
   };
+
+  // Filter orders by status
+  const filterOrdersByStatus = (orders: CollectiveOrder[] | IndividualOrder[]) => {
+    if (statusFilter === 'all') return orders;
+    return orders.filter(order => order.status === statusFilter);
+  };
+
+  const filteredIndividualOrders = filterOrdersByStatus(individualOrders);
+  const filteredCollectiveOrders = filterOrdersByStatus(collectiveOrders);
+
+  const statusOptions = [
+    { value: 'all', label: 'Tous', count: individualOrders.length + collectiveOrders.length },
+    { value: 'pending', label: 'En attente', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'pending').length },
+    { value: 'confirmed', label: 'Confirmées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'confirmed').length },
+    { value: 'delivered', label: 'Livrées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'delivered').length },
+    { value: 'cancelled', label: 'Annulées', count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'cancelled').length },
+  ];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -467,14 +490,48 @@ export function BusinessOrdersSection() {
   };
 
   return (
-    <Tabs defaultValue="individual" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="individual">Individuelles</TabsTrigger>
-        <TabsTrigger value="collective">Collectives</TabsTrigger>
-        <TabsTrigger value="business-funds">Initiées</TabsTrigger>
-      </TabsList>
+    <div className="space-y-4">
+      {/* Status Filter */}
+      <Card className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filtrer par statut:</span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {statusOptions.map(option => (
+              <Button
+                key={option.value}
+                variant={statusFilter === option.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(option.value)}
+                className="gap-2"
+              >
+                {option.label}
+                <Badge 
+                  variant="secondary" 
+                  className={statusFilter === option.value ? "bg-white text-primary" : ""}
+                >
+                  {option.count}
+                </Badge>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </Card>
 
-      <TabsContent value="individual" className="space-y-4">
+      <Tabs defaultValue="individual" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="individual">
+            Individuelles ({filteredIndividualOrders.length})
+          </TabsTrigger>
+          <TabsTrigger value="collective">
+            Collectives ({filteredCollectiveOrders.length})
+          </TabsTrigger>
+          <TabsTrigger value="business-funds">Initiées</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="individual" className="space-y-4">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
@@ -486,17 +543,19 @@ export function BusinessOrdersSection() {
               </Card>
             ))}
           </div>
-        ) : individualOrders.length === 0 ? (
+        ) : filteredIndividualOrders.length === 0 ? (
           <Card className="p-8 text-center">
             <Package className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Aucune commande individuelle</h3>
+            <h3 className="font-semibold mb-2">
+              {statusFilter === 'all' ? 'Aucune commande individuelle' : `Aucune commande ${statusOptions.find(o => o.value === statusFilter)?.label.toLowerCase()}`}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Les commandes individuelles apparaîtront ici
+              {statusFilter === 'all' ? 'Les commandes individuelles apparaîtront ici' : 'Aucune commande ne correspond à ce filtre'}
             </p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {individualOrders.map((order) => renderOrderCard(order, true))}
+            {filteredIndividualOrders.map((order) => renderOrderCard(order, true))}
           </div>
         )}
       </TabsContent>
@@ -513,17 +572,19 @@ export function BusinessOrdersSection() {
               </Card>
             ))}
           </div>
-        ) : collectiveOrders.length === 0 ? (
+        ) : filteredCollectiveOrders.length === 0 ? (
           <Card className="p-8 text-center">
             <Package className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Aucune commande collective</h3>
+            <h3 className="font-semibold mb-2">
+              {statusFilter === 'all' ? 'Aucune commande collective' : `Aucune commande ${statusOptions.find(o => o.value === statusFilter)?.label.toLowerCase()}`}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Les commandes de cotisations collectives apparaîtront ici
+              {statusFilter === 'all' ? 'Les commandes de cotisations collectives apparaîtront ici' : 'Aucune commande ne correspond à ce filtre'}
             </p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {collectiveOrders.map((order) => renderOrderCard(order, false))}
+            {filteredCollectiveOrders.map((order) => renderOrderCard(order, false))}
           </div>
         )}
       </TabsContent>
@@ -554,6 +615,7 @@ export function BusinessOrdersSection() {
           </div>
         )}
       </TabsContent>
-    </Tabs>
+      </Tabs>
+    </div>
   );
 }
