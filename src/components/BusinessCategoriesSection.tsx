@@ -68,46 +68,47 @@ export function BusinessCategoriesSection() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="flex items-center gap-2">
-            <Tag className="h-5 w-5" />
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0 space-y-0 p-4 md:p-6 pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-2xl w-full md:w-auto">
+            <Tag className="h-5 w-5 hidden md:block" />
             Mes catégories personnalisées
           </CardTitle>
-          <Button onClick={() => setShowModal(true)} size="sm">
+          <Button onClick={() => setShowModal(true)} size="sm" className="w-full md:w-auto">
             <Plus className="h-4 w-4 mr-2" />
-            Nouvelle catégorie
+            <span className="md:hidden">Créer</span>
+            <span className="hidden md:inline">Nouvelle catégorie</span>
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 md:p-6 pt-0">
           {categories.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground mb-4">
+            <div className="text-center py-6 md:py-8 px-4">
+              <Package className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm md:text-base text-muted-foreground mb-4">
                 Aucune catégorie personnalisée
               </p>
-              <Button onClick={() => setShowModal(true)} variant="outline">
+              <Button onClick={() => setShowModal(true)} variant="outline" className="w-full md:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Créer ma première catégorie
               </Button>
             </div>
           ) : (
             <TooltipProvider>
-              <div className="grid gap-4">
+              <div className="grid gap-3 md:gap-4">
                 {categories.map((category) => {
                   const productCount = productCounts[category.id] || 0;
                   return (
                     <div
                       key={category.id}
-                      className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      className="flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
                       {/* Icône colorée */}
                       <div className="flex-shrink-0">
                         <div
-                          className="h-12 w-12 rounded-lg flex items-center justify-center"
+                          className="h-10 w-10 md:h-12 md:w-12 rounded-lg flex items-center justify-center"
                           style={{ backgroundColor: category.color + '20' }}
                         >
                           <Package 
-                            className="h-6 w-6" 
+                            className="h-5 w-5 md:h-6 md:w-6" 
                             style={{ color: category.color }}
                           />
                         </div>
@@ -115,9 +116,9 @@ export function BusinessCategoriesSection() {
                       
                       {/* Contenu principal */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start justify-between gap-2 md:gap-3">
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-base mb-1">{category.name}</h4>
+                            <h4 className="font-semibold text-sm md:text-base mb-1">{category.name}</h4>
                             {category.description && (
                               <HoverCard>
                                 <HoverCardTrigger asChild>
