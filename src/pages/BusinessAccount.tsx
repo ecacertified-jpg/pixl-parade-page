@@ -11,6 +11,7 @@ import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, Ma
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
+import { BusinessCategoriesSection } from "@/components/BusinessCategoriesSection";
 import { AddProductModal } from "@/components/AddProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
@@ -925,8 +926,11 @@ export default function BusinessAccount() {
           </TabsContent>
 
           {/* Onglet Configuration */}
-          <TabsContent value="configuration" className="mt-6">
-            <div className="flex items-center justify-between mb-6">
+          <TabsContent value="configuration" className="mt-6 space-y-6">
+            {/* Section Catégories personnalisées */}
+            <BusinessCategoriesSection />
+
+            <div className="flex items-center justify-between">
               <h2 className="font-semibold text-base text-gray-500 mx-[17px]">Configuration des business</h2>
               <Button onClick={() => setIsAddBusinessModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]">
                 <Plus className="h-4 w-4" />

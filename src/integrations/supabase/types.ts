@@ -470,6 +470,42 @@ export type Database = {
         }
         Relationships: []
       }
+      business_categories: {
+        Row: {
+          business_owner_id: string
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          business_owner_id: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          business_owner_id?: string
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       business_collective_funds: {
         Row: {
           auto_notifications: boolean | null
@@ -2745,6 +2781,7 @@ export type Database = {
       products: {
         Row: {
           business_account_id: string | null
+          business_category_id: string | null
           business_id: string
           business_owner_id: string | null
           category_id: string | null
@@ -2766,6 +2803,7 @@ export type Database = {
         }
         Insert: {
           business_account_id?: string | null
+          business_category_id?: string | null
           business_id: string
           business_owner_id?: string | null
           category_id?: string | null
@@ -2787,6 +2825,7 @@ export type Database = {
         }
         Update: {
           business_account_id?: string | null
+          business_category_id?: string | null
           business_id?: string
           business_owner_id?: string | null
           category_id?: string | null
@@ -2812,6 +2851,13 @@ export type Database = {
             columns: ["business_account_id"]
             isOneToOne: false
             referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_business_category_id_fkey"
+            columns: ["business_category_id"]
+            isOneToOne: false
+            referencedRelation: "business_categories"
             referencedColumns: ["id"]
           },
           {
@@ -4593,6 +4639,10 @@ export type Database = {
         }[]
       }
       get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
+      get_product_category_name: {
+        Args: { p_product_id: string }
+        Returns: string
+      }
       get_reciprocity_candidates: {
         Args: { fund_uuid: string }
         Returns: {
