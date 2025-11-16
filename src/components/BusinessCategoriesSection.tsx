@@ -2,12 +2,29 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Tag, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, Package, MoreVertical } from 'lucide-react';
 import { useBusinessCategories } from '@/hooks/useBusinessCategories';
 import { AddBusinessCategoryModal } from './AddBusinessCategoryModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function BusinessCategoriesSection() {
-  const { categories, loading, createCategory, updateCategory, deleteCategory } = useBusinessCategories();
+  const { categories, productCounts, loading, createCategory, updateCategory, deleteCategory } = useBusinessCategories();
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
 
@@ -74,60 +91,86 @@ export function BusinessCategoriesSection() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-3">
-              {categories.map((category) => (
-                <div
-                  key={category.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1">
+            <TooltipProvider>
+              <div className="grid gap-4">
+                {categories.map((category) => {
+                  const productCount = productCounts[category.id] || 0;
+                  return (
                     <div
-                      className="h-10 w-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: category.color + '20' }}
+                      key={category.id}
+                      className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                     >
-                      <Package 
-                        className="h-5 w-5" 
-                        style={{ color: category.color }}
-                      />
+                      {/* Icône colorée */}
+                      <div className="flex-shrink-0">
+                        <div
+                          className="h-12 w-12 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: category.color + '20' }}
+                        >
+                          <Package 
+                            className="h-6 w-6" 
+                            style={{ color: category.color }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Contenu principal */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-base mb-1">{category.name}</h4>
+                            {category.description && (
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <p className="text-sm text-muted-foreground line-clamp-2 cursor-help">
+                                    {category.description}
+                                  </p>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <p className="text-sm">{category.description}</p>
+                                </HoverCardContent>
+                              </HoverCard>
+                            )}
+                          </div>
+                          
+                          {/* Menu actions */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="flex-shrink-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(category)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDelete(category.id, category.name)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
+                        {/* Compteur de produits */}
+                        <div className="flex items-center gap-2 mt-3">
+                          <Badge 
+                            variant="secondary" 
+                            className="text-xs"
+                          >
+                            <Package className="h-3 w-3 mr-1" />
+                            {productCount} produit{productCount !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{category.name}</p>
-                      {category.description && (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {category.description}
-                        </p>
-                      )}
-                    </div>
-                    <Badge 
-                      variant="outline" 
-                      style={{ 
-                        borderColor: category.color,
-                        color: category.color 
-                      }}
-                    >
-                      Actif
-                    </Badge>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(category)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(category.id, category.name)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>
