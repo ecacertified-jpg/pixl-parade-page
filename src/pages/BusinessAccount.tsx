@@ -29,7 +29,8 @@ export default function BusinessAccount() {
   } = useAuth();
   const {
     selectedBusinessId,
-    selectedBusiness: currentBusiness
+    selectedBusiness: currentBusiness,
+    refetch: refetchSelector
   } = useSelectedBusiness();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
@@ -173,7 +174,7 @@ export default function BusinessAccount() {
       const {
         data,
         error
-      } = await supabase.from('businesses').select('*').eq('user_id', user.id).order('created_at', {
+      } = await supabase.from('business_accounts').select('*').eq('user_id', user.id).order('created_at', {
         ascending: false
       });
       if (error) {
@@ -294,7 +295,8 @@ export default function BusinessAccount() {
     setEditingBusiness(null);
   };
   const handleBusinessChanged = () => {
-    loadBusinesses();
+    loadBusinesses(); // Recharge Config
+    refetchSelector(); // ⚡ Recharge le sélecteur
   };
   const handleEditProduct = (productId: string | number) => {
     // Find the product to edit

@@ -242,7 +242,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         delivery_settings: { free_delivery_threshold: 25000, standard_cost: 2000 }
       });
       
-      onBusinessAdded();
+      onBusinessAdded(); // Recharge Config ET le sélecteur via event
       onClose();
     } catch (error) {
       console.error('Error:', error);
