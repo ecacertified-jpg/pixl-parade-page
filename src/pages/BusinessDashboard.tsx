@@ -16,6 +16,7 @@ import { useBusinessProducts } from "@/hooks/useBusinessProducts";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotifications";
+import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
@@ -31,6 +32,7 @@ import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFun
 import { BusinessMetricsBar } from "@/components/BusinessMetricsBar";
 import { BusinessMetricCards } from "@/components/BusinessMetricCards";
 import { BusinessFinancialSummary } from "@/components/BusinessFinancialSummary";
+import { BusinessSelector } from "@/components/BusinessSelector";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -169,8 +171,8 @@ export default function BusinessDashboard() {
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   
-  // Load real analytics with multi-business support
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string | undefined>(undefined);
+  // Utiliser le contexte global pour le multi-business
+  const { selectedBusinessId, selectedBusiness } = useSelectedBusiness();
   const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId || businessAccount?.id);
   
   useEffect(() => {
@@ -178,6 +180,14 @@ export default function BusinessDashboard() {
     loadBusinessAccount();
     loadBusinesses();
   }, [user]);
+
+  // Synchroniser avec le business sélectionné du contexte
+  useEffect(() => {
+    if (selectedBusinessId && selectedBusiness) {
+      console.log('📊 [BusinessDashboard] Business sélectionné changé:', selectedBusiness.business_name);
+      // Les useEffect des commandes se déclencheront automatiquement grâce aux dépendances
+    }
+  }, [selectedBusinessId, selectedBusiness]);
   
   // Enable real-time order notifications for this business
   useBusinessOrderNotifications(selectedBusinessId || businessAccount?.id);
@@ -865,24 +875,10 @@ export default function BusinessDashboard() {
             <div className="flex items-center gap-4">
               <Store className="h-5 w-5 text-muted-foreground" />
               <div className="flex-1">
-                <Label htmlFor="business-selector" className="text-sm font-medium">
-                  Business actif
-                </Label>
-                <Select 
-                  value={selectedBusinessId || businessAccount?.id} 
-                  onValueChange={setSelectedBusinessId}
-                >
-                  <SelectTrigger id="business-selector" className="mt-1">
-                    <SelectValue placeholder="Sélectionner un business" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {analyticsBusinessAccounts.map((business) => (
-                      <SelectItem key={business.id} value={business.id}>
-                        {business.business_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm font-medium">Business actif</Label>
+                <div className="mt-2">
+                  <BusinessSelector />
+                </div>
               </div>
             </div>
           </Card>
