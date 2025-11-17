@@ -173,7 +173,7 @@ export default function BusinessDashboard() {
   
   // Utiliser le contexte global pour le multi-business
   const { selectedBusinessId, selectedBusiness } = useSelectedBusiness();
-  const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId || businessAccount?.id);
+  const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId);
   
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
@@ -181,32 +181,48 @@ export default function BusinessDashboard() {
     loadBusinesses();
   }, [user]);
 
-  // Synchroniser avec le business sélectionné du contexte
+  // Synchroniser businessAccount avec le business sélectionné
   useEffect(() => {
-    if (selectedBusinessId && selectedBusiness) {
-      console.log('📊 [BusinessDashboard] Business sélectionné changé:', selectedBusiness.business_name);
-      // Les useEffect des commandes se déclencheront automatiquement grâce aux dépendances
+    if (selectedBusinessId) {
+      console.log('🔄 [BusinessDashboard] Rechargement du business:', selectedBusinessId);
+      loadBusinessAccount();
     }
-  }, [selectedBusinessId, selectedBusiness]);
+  }, [selectedBusinessId]);
   
   // Enable real-time order notifications for this business
-  useBusinessOrderNotifications(selectedBusinessId || businessAccount?.id);
+  useBusinessOrderNotifications(selectedBusinessId);
 
   // Load business account data
   const loadBusinessAccount = async () => {
     if (!user?.id) return;
+    
+    // Utiliser selectedBusinessId si disponible
+    const businessIdToLoad = selectedBusinessId;
+    
+    if (!businessIdToLoad) {
+      console.log('ℹ️ [BusinessDashboard] Aucun business sélectionné');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
-      console.log('📋 [BusinessDashboard] Loading business account for user:', user.id);
+      console.log('📋 [BusinessDashboard] Loading business account:', businessIdToLoad);
+      
       const {
         data,
         error
-      } = await supabase.rpc('get_business_account', {
-        p_user_id: user.id
-      });
+      } = await supabase
+        .from('business_accounts')
+        .select('*')
+        .eq('id', businessIdToLoad)
+        .eq('user_id', user.id)
+        .single();
+      
       if (error) throw error;
-      if (data && data.length > 0) {
-        const businessData = data[0];
+      
+      if (data) {
+        const businessData = data;
         const businessAccount = {
           id: businessData.id || user.id,
           // Ensure we always have an ID
@@ -277,67 +293,11 @@ export default function BusinessDashboard() {
             standard_cost: 2000
           }
         };
-        console.log('✅ [BusinessDashboard] Business account loaded with ID:', businessAccount.id);
+        console.log('✅ [BusinessDashboard] Business loaded:', businessData.business_name);
         setBusinessAccount(businessAccount);
       } else {
-        console.log('⚠️ [BusinessDashboard] No business account found, using user ID as fallback');
-
-        // Use user.id directly as businessId - simpler approach
-        setBusinessAccount({
-          id: user.id,
-          business_name: 'Mon Commerce',
-          business_type: 'commerce',
-          phone: '',
-          address: '',
-          description: '',
-          logo_url: '',
-          website_url: '',
-          email: '',
-          opening_hours: {
-            lundi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            mardi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            mercredi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            jeudi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            vendredi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            samedi: {
-              open: "09:00",
-              close: "18:00"
-            },
-            dimanche: {
-              open: "09:00",
-              close: "18:00",
-              closed: true
-            }
-          },
-          delivery_zones: [{
-            name: "Zone standard",
-            radius: 15,
-            cost: 2000
-          }],
-          payment_info: {
-            mobile_money: "",
-            account_holder: ""
-          },
-          delivery_settings: {
-            free_delivery_threshold: 25000,
-            standard_cost: 2000
-          }
-        });
+        console.log('⚠️ [BusinessDashboard] Business not found');
+        setBusinessAccount(null);
       }
     } catch (error) {
       console.error('Error loading business account:', error);
@@ -712,7 +672,7 @@ export default function BusinessDashboard() {
                 business_id
               )
             )
-          `).eq('order_items.products.business_id', selectedBusinessId || businessAccount?.id).order('created_at', {
+          `).eq('order_items.products.business_id', selectedBusinessId).order('created_at', {
           ascending: false
         }).limit(10);
         if (ordersError) {
