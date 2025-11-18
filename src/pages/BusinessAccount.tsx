@@ -22,11 +22,13 @@ import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
+import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
+  const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -839,30 +841,35 @@ export default function BusinessAccount() {
                   <PieChart className="h-4 w-4" />
                   Ventes par produit
                 </h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Bracelet Doré Élégance</span>
-                      <span>24 ventes (67%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{
-                      width: '67%'
-                    }}></div>
-                    </div>
+                {loadingAnalytics ? (
+                  <div className="space-y-4">
+                    <div className="animate-pulse h-12 bg-muted rounded"></div>
+                    <div className="animate-pulse h-12 bg-muted rounded"></div>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Parfum Roses de Yamoussoukro</span>
-                      <span>12 ventes (33%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-secondary h-2 rounded-full" style={{
-                      width: '33%'
-                    }}></div>
-                    </div>
+                ) : analyticsStats.topProducts.length > 0 ? (
+                  <div className="space-y-4">
+                    {analyticsStats.topProducts.slice(0, 5).map((product, index) => {
+                      const totalSales = analyticsStats.topProducts.reduce((sum, p) => sum + p.sales, 0);
+                      const percentage = totalSales > 0 ? Math.round((product.sales / totalSales) * 100) : 0;
+                      return (
+                        <div key={product.id}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span>{product.name}</span>
+                            <span>{product.sales} ventes ({percentage}%)</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full transition-all" 
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Aucune vente enregistrée</p>
+                )}
               </Card>
 
               <Card className="p-4">
@@ -870,22 +877,35 @@ export default function BusinessAccount() {
                   <Target className="h-4 w-4" />
                   Modes de livraison
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm flex items-center gap-2">
-                      <MapPin className="h-3 w-3" />
-                      Retrait sur place
-                    </span>
-                    <span className="font-medium">70%</span>
+                {loadingAnalytics ? (
+                  <div className="space-y-3">
+                    <div className="animate-pulse h-8 bg-muted rounded"></div>
+                    <div className="animate-pulse h-8 bg-muted rounded"></div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm flex items-center gap-2">
-                      <Truck className="h-3 w-3" />
-                      Livraison
-                    </span>
-                    <span className="font-medium">30%</span>
+                ) : (analyticsStats.deliveryStats.pickup.count + analyticsStats.deliveryStats.delivery.count) > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm flex items-center gap-2">
+                        <MapPin className="h-3 w-3" />
+                        Retrait sur place
+                      </span>
+                      <span className="font-medium">
+                        {Math.round((analyticsStats.deliveryStats.pickup.count / (analyticsStats.deliveryStats.pickup.count + analyticsStats.deliveryStats.delivery.count)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm flex items-center gap-2">
+                        <Truck className="h-3 w-3" />
+                        Livraison
+                      </span>
+                      <span className="font-medium">
+                        {Math.round((analyticsStats.deliveryStats.delivery.count / (analyticsStats.deliveryStats.pickup.count + analyticsStats.deliveryStats.delivery.count)) * 100)}%
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Aucune commande enregistrée</p>
+                )}
               </Card>
             </div>
 
