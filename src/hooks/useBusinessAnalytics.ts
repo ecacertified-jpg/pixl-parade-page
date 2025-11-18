@@ -28,6 +28,10 @@ interface BusinessStats {
     sales: number;
     orders: number;
   }>;
+  deliveryStats: {
+    pickup: { count: number; revenue: number };
+    delivery: { count: number; revenue: number };
+  };
 }
 
 export const useBusinessAnalytics = (businessAccountId?: string) => {
@@ -45,6 +49,10 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     averageProductRating: 0,
     totalRatings: 0,
     conversionRate: 0,
+    deliveryStats: {
+      pickup: { count: 0, revenue: 0 },
+      delivery: { count: 0, revenue: 0 }
+    }
   });
   const [loading, setLoading] = useState(true);
   const [businessAccounts, setBusinessAccounts] = useState<Array<{ id: string; business_name: string }>>([]);
@@ -104,7 +112,7 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
       // Fetch total sales and order count
       const { data: ordersData, error: ordersError } = await supabase
         .from('business_orders')
-        .select('total_amount, created_at, status, order_summary')
+        .select('total_amount, created_at, status, order_summary, delivery_address')
         .eq('business_account_id', businessId);
 
       if (ordersError) throw ordersError;
@@ -225,6 +233,25 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         .map(([category, data]) => ({ category, ...data }))
         .sort((a, b) => b.revenue - a.revenue);
 
+      // Calculate delivery stats
+      const deliveryStats = {
+        pickup: { count: 0, revenue: 0 },
+        delivery: { count: 0, revenue: 0 }
+      };
+
+      ordersData?.forEach(order => {
+        const isDelivery = order.delivery_address && order.delivery_address.trim() !== '';
+        const amount = Number(order.total_amount || 0);
+        
+        if (isDelivery) {
+          deliveryStats.delivery.count += 1;
+          deliveryStats.delivery.revenue += amount;
+        } else {
+          deliveryStats.pickup.count += 1;
+          deliveryStats.pickup.revenue += amount;
+        }
+      });
+
       // Calculate daily sales for the last 30 days
       const last30Days = new Date();
       last30Days.setDate(last30Days.getDate() - 30);
@@ -272,7 +299,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         totalRatings,
         topProducts,
         salesByCategory,
-        dailySales
+        dailySales,
+        deliveryStats
       });
 
     } catch (error) {
