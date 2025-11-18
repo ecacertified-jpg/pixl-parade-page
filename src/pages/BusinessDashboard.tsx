@@ -669,10 +669,10 @@ export default function BusinessDashboard() {
               products!inner(
                 name, 
                 description,
-                business_id
+                business_account_id
               )
             )
-          `).eq('order_items.products.business_id', selectedBusinessId).order('created_at', {
+          `).eq('order_items.products.business_account_id', selectedBusinessId).order('created_at', {
           ascending: false
         }).limit(10);
         if (ordersError) {
@@ -752,7 +752,7 @@ export default function BusinessDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, selectedBusinessId, businessAccount?.id]);
+  }, [user?.id, selectedBusinessId]);
 
   // Function to update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
