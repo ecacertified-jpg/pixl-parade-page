@@ -639,20 +639,59 @@ export default function BusinessDashboard() {
   // Load real orders from database with customer info
   useEffect(() => {
     const loadOrders = async () => {
-      if (!user?.id) {
-        console.log('No user ID available, skipping orders load');
+      if (!user?.id || !selectedBusinessId) {
+        console.log('No user ID or business ID available, skipping orders load');
         return;
       }
       try {
         setLoadingOrders(true);
         setOrdersError(null);
-        console.log('Loading orders for business owner:', user.id);
+        console.log('Loading orders for business:', selectedBusinessId);
 
-        // First get orders for products owned by this business
-        const {
-          data: orders,
-          error: ordersError
-        } = await supabase.from('orders').select(`
+        // Step 1: Get all product IDs for this business
+        const { data: businessProducts, error: productsError } = await supabase
+          .from('products')
+          .select('id')
+          .eq('business_account_id', selectedBusinessId);
+
+        if (productsError) {
+          console.error('Error fetching business products:', productsError);
+          throw productsError;
+        }
+
+        const productIds = businessProducts?.map(p => p.id) || [];
+        console.log('Found products for this business:', productIds.length);
+
+        if (productIds.length === 0) {
+          console.log('No products found for this business, no orders to show');
+          setRecentOrders([]);
+          return;
+        }
+
+        // Step 2: Get orders that contain these products
+        const { data: orderItems, error: orderItemsError } = await supabase
+          .from('order_items')
+          .select('order_id')
+          .in('product_id', productIds);
+
+        if (orderItemsError) {
+          console.error('Error fetching order items:', orderItemsError);
+          throw orderItemsError;
+        }
+
+        const orderIds = [...new Set(orderItems?.map(oi => oi.order_id) || [])];
+        console.log('Found orders containing these products:', orderIds.length);
+
+        if (orderIds.length === 0) {
+          console.log('No orders found for this business');
+          setRecentOrders([]);
+          return;
+        }
+
+        // Step 3: Get full order details
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
             id,
             total_amount,
             currency,
@@ -661,20 +700,22 @@ export default function BusinessDashboard() {
             created_at,
             notes,
             user_id,
-            order_items!inner(
+            order_items(
               id,
               product_id,
               quantity,
               unit_price,
-              products!inner(
+              products(
                 name, 
                 description,
                 business_account_id
               )
             )
-          `).eq('order_items.products.business_account_id', selectedBusinessId).order('created_at', {
-          ascending: false
-        }).limit(10);
+          `)
+          .in('id', orderIds)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
         if (ordersError) {
           console.error('Error querying orders:', ordersError);
           throw ordersError;
