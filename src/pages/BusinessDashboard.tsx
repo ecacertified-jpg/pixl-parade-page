@@ -641,6 +641,7 @@ export default function BusinessDashboard() {
     const loadOrders = async () => {
       if (!user?.id || !selectedBusinessId) {
         console.log('No user ID or business ID available, skipping orders load');
+        setRecentOrders([]);
         return;
       }
       try {
@@ -648,126 +649,128 @@ export default function BusinessDashboard() {
         setOrdersError(null);
         console.log('Loading orders for business:', selectedBusinessId);
 
-        // Step 1: Get all product IDs for this business
-        const { data: businessProducts, error: productsError } = await supabase
+        let allOrders: OrderItem[] = [];
+
+        // Load individual business orders
+        const { data: individualOrders, error: individualError } = await supabase
+          .from('business_orders')
+          .select(`
+            id,
+            order_summary,
+            total_amount,
+            currency,
+            donor_phone,
+            beneficiary_phone,
+            delivery_address,
+            status,
+            created_at
+          `)
+          .eq('business_account_id', selectedBusinessId)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (individualError) {
+          console.error('Error fetching individual orders:', individualError);
+        } else if (individualOrders && individualOrders.length > 0) {
+          const formattedIndividual: OrderItem[] = individualOrders.map(order => {
+            const orderSummary = order.order_summary as any;
+            const items = orderSummary?.items || [];
+            const productNames = items.map((item: any) => item.name).join(', ') || 'Produits';
+            
+            return {
+              id: order.id,
+              orderId: order.id,
+              product: productNames,
+              customer: orderSummary?.beneficiary_name || 'Bénéficiaire',
+              customerPhone: order.beneficiary_phone,
+              donor: orderSummary?.donor_name || 'Donateur',
+              amount: Number(order.total_amount),
+              status: order.status,
+              type: 'delivery',
+              address: order.delivery_address,
+              date: new Date(order.created_at).toLocaleString('fr-FR'),
+              rawDate: order.created_at,
+              notes: ''
+            };
+          });
+          allOrders = [...allOrders, ...formattedIndividual];
+        }
+
+        // Load collective fund orders for this business
+        // First get products of this business
+        const { data: businessProducts } = await supabase
           .from('products')
           .select('id')
           .eq('business_account_id', selectedBusinessId);
 
-        if (productsError) {
-          console.error('Error fetching business products:', productsError);
-          throw productsError;
-        }
-
         const productIds = businessProducts?.map(p => p.id) || [];
-        console.log('Found products for this business:', productIds.length);
 
-        if (productIds.length === 0) {
-          console.log('No products found for this business, no orders to show');
-          setRecentOrders([]);
-          return;
-        }
+        if (productIds.length > 0) {
+          // Get collective funds linked to these products
+          const { data: businessFunds } = await supabase
+            .from('collective_funds')
+            .select('id')
+            .in('business_product_id', productIds);
 
-        // Step 2: Get orders that contain these products
-        const { data: orderItems, error: orderItemsError } = await supabase
-          .from('order_items')
-          .select('order_id')
-          .in('product_id', productIds);
+          const fundIds = businessFunds?.map(f => f.id) || [];
 
-        if (orderItemsError) {
-          console.error('Error fetching order items:', orderItemsError);
-          throw orderItemsError;
-        }
+          if (fundIds.length > 0) {
+            const { data: collectiveOrders, error: collectiveError } = await supabase
+              .from('collective_fund_orders')
+              .select(`
+                id,
+                order_summary,
+                total_amount,
+                currency,
+                donor_phone,
+                beneficiary_phone,
+                delivery_address,
+                status,
+                created_at
+              `)
+              .in('fund_id', fundIds)
+              .order('created_at', { ascending: false })
+              .limit(5);
 
-        const orderIds = [...new Set(orderItems?.map(oi => oi.order_id) || [])];
-        console.log('Found orders containing these products:', orderIds.length);
-
-        if (orderIds.length === 0) {
-          console.log('No orders found for this business');
-          setRecentOrders([]);
-          return;
-        }
-
-        // Step 3: Get full order details
-        const { data: orders, error: ordersError } = await supabase
-          .from('orders')
-          .select(`
-            id,
-            total_amount,
-            currency,
-            status,
-            delivery_address,
-            created_at,
-            notes,
-            user_id,
-            order_items(
-              id,
-              product_id,
-              quantity,
-              unit_price,
-              products(
-                name, 
-                description,
-                business_account_id
-              )
-            )
-          `)
-          .in('id', orderIds)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (ordersError) {
-          console.error('Error querying orders:', ordersError);
-          throw ordersError;
-        }
-        console.log('Found orders:', orders?.length || 0);
-        if (orders && orders.length > 0) {
-          // Get user profiles for all user_ids in the orders
-          const userIds = orders.map(order => order.user_id);
-          const {
-            data: profiles,
-            error: profilesError
-          } = await supabase.from('profiles').select('user_id, first_name, last_name, phone').in('user_id', userIds);
-          if (profilesError) {
-            console.error('Error loading profiles:', profilesError);
+            if (collectiveError) {
+              console.error('Error fetching collective orders:', collectiveError);
+            } else if (collectiveOrders && collectiveOrders.length > 0) {
+              const formattedCollective: OrderItem[] = collectiveOrders.map(order => {
+                const orderSummary = order.order_summary as any;
+                const items = orderSummary?.items || [];
+                const productNames = items.map((item: any) => item.name).join(', ') || 'Produits cagnotte';
+                
+                return {
+                  id: order.id,
+                  orderId: order.id,
+                  product: productNames,
+                  customer: orderSummary?.beneficiary_name || 'Bénéficiaire',
+                  customerPhone: order.beneficiary_phone,
+                  donor: 'Cagnotte collective',
+                  amount: Number(order.total_amount),
+                  status: order.status,
+                  type: 'delivery',
+                  address: order.delivery_address,
+                  date: new Date(order.created_at).toLocaleString('fr-FR'),
+                  rawDate: order.created_at,
+                  notes: ''
+                };
+              });
+              allOrders = [...allOrders, ...formattedCollective];
+            }
           }
-          const formattedOrders: OrderItem[] = orders.map(order => {
-            const deliveryInfo = order.delivery_address as any;
-            const userProfile = profiles?.find(p => p.user_id === order.user_id);
-            const customerName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 'Client';
-            const customerPhone = deliveryInfo?.phone || userProfile?.phone || '';
-            const products = order.order_items?.map(item => item.products?.name || `Produit #${item.product_id}`).join(', ') || 'Produits commandés';
-            return {
-              id: `CMD-${order.id.substring(0, 8)}`,
-              orderId: order.id,
-              product: products,
-              customer: customerName,
-              customerPhone: customerPhone,
-              donor: customerName,
-              // Same as customer for now
-              amount: order.total_amount,
-              status: order.status === "pending" ? "new" : order.status,
-              type: (deliveryInfo?.address ? "delivery" : "pickup") as "pickup" | "delivery",
-              address: deliveryInfo?.address || '',
-              date: new Date(order.created_at).toLocaleString('fr-FR'),
-              rawDate: order.created_at,
-              notes: order.notes || ''
-            };
-          });
-          setRecentOrders(formattedOrders);
-          console.log('Loaded orders successfully:', formattedOrders.length);
-        } else {
-          setRecentOrders([]);
-          console.log('No orders found for this business owner');
         }
+
+        // Sort all orders by date and limit to 10
+        allOrders.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
+        allOrders = allOrders.slice(0, 10);
+
+        setRecentOrders(allOrders);
+        console.log('Loaded orders successfully:', allOrders.length);
       } catch (error) {
         console.error('Error loading orders:', error);
         setOrdersError('Impossible de charger les commandes. Veuillez réessayer.');
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les commandes",
-          variant: "destructive"
-        });
+        setRecentOrders([]);
       } finally {
         setLoadingOrders(false);
       }
@@ -775,21 +778,40 @@ export default function BusinessDashboard() {
     loadOrders();
 
     // Subscribe to real-time updates for new orders
-    const channel = supabase.channel('orders-updates').on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'orders'
-    }, payload => {
-      console.log('Nouvelle commande reçue:', payload);
-      loadOrders(); // Reload to get complete data with joins
-    }).on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'orders'
-    }, payload => {
-      console.log('Commande mise à jour:', payload);
-      loadOrders(); // Reload to reflect status changes
-    }).subscribe();
+    const channel = supabase.channel('dashboard-orders-updates')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'business_orders'
+      }, payload => {
+        console.log('Nouvelle commande individuelle reçue:', payload);
+        loadOrders();
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'business_orders'
+      }, payload => {
+        console.log('Commande individuelle mise à jour:', payload);
+        loadOrders();
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'collective_fund_orders'
+      }, payload => {
+        console.log('Nouvelle commande collective reçue:', payload);
+        loadOrders();
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'collective_fund_orders'
+      }, payload => {
+        console.log('Commande collective mise à jour:', payload);
+        loadOrders();
+      })
+      .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -798,20 +820,38 @@ export default function BusinessDashboard() {
   // Function to update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const {
-        error
-      } = await supabase.from('orders').update({
-        status: newStatus
-      }).eq('id', orderId);
-      if (error) throw error;
+      // Try to update in business_orders first
+      const { error: businessError } = await supabase
+        .from('business_orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      // If not found in business_orders, try collective_fund_orders
+      if (businessError) {
+        const { error: collectiveError } = await supabase
+          .from('collective_fund_orders')
+          .update({ status: newStatus })
+          .eq('id', orderId);
+
+        if (collectiveError) throw collectiveError;
+      }
 
       // Update local state
-      setRecentOrders(prev => prev.map(order => order.orderId === orderId ? {
-        ...order,
-        status: newStatus
-      } : order));
+      setRecentOrders(prev => prev.map(order => 
+        order.orderId === orderId ? { ...order, status: newStatus } : order
+      ));
+
+      toast({
+        title: "Statut mis à jour",
+        description: "Le statut de la commande a été modifié avec succès"
+      });
     } catch (error) {
       console.error('Error updating order status:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la commande",
+        variant: "destructive"
+      });
     }
   };
 
