@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
@@ -44,14 +45,15 @@ export function BusinessOrdersSection() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { user } = useAuth();
+  const { selectedBusinessId } = useSelectedBusiness();
   const { toast } = useToast();
   const { funds: businessFunds, loading: loadingBusinessFunds } = useBusinessCollectiveFunds();
 
   useEffect(() => {
-    if (user) {
+    if (user && selectedBusinessId) {
       loadOrders();
     }
-  }, [user]);
+  }, [user, selectedBusinessId]);
 
   // Set up realtime listener for business_orders
   useEffect(() => {
@@ -108,40 +110,58 @@ export function BusinessOrdersSection() {
   };
 
   const loadOrders = async () => {
-    if (!user) return;
+    if (!user || !selectedBusinessId) {
+      console.log('⚠️ Missing user or selectedBusinessId');
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       
-      // Load collective fund orders
-      const { data: collectiveData, error: collectiveError } = await supabase
-        .from('collective_fund_orders')
-        .select(`
-          id,
-          fund_id,
-          order_summary,
-          total_amount,
-          currency,
-          donor_phone,
-          beneficiary_phone,
-          delivery_address,
-          payment_method,
-          status,
-          created_at,
-          collective_funds!inner (
-            business_product_id,
-            products!collective_funds_business_product_id_fkey (
-              business_owner_id
-            )
-          )
-        `)
-        .eq('collective_funds.products.business_owner_id', user.id)
-        .order('created_at', { ascending: false });
+      // First, get products for the selected business
+      const { data: businessProducts } = await supabase
+        .from('products')
+        .select('id')
+        .eq('business_account_id', selectedBusinessId);
 
-      if (collectiveError) throw collectiveError;
-      setCollectiveOrders(collectiveData || []);
+      const productIds = businessProducts?.map(p => p.id) || [];
 
-      // Load individual business orders with product information
+      // Then get collective funds linked to these products
+      const { data: businessFunds } = await supabase
+        .from('collective_funds')
+        .select('id')
+        .in('business_product_id', productIds);
+
+      const fundIds = businessFunds?.map(f => f.id) || [];
+
+      // Load collective fund orders for this business
+      if (fundIds.length > 0) {
+        const { data: collectiveData, error: collectiveError } = await supabase
+          .from('collective_fund_orders')
+          .select(`
+            id,
+            fund_id,
+            order_summary,
+            total_amount,
+            currency,
+            donor_phone,
+            beneficiary_phone,
+            delivery_address,
+            payment_method,
+            status,
+            created_at
+          `)
+          .in('fund_id', fundIds)
+          .order('created_at', { ascending: false });
+
+        if (collectiveError) throw collectiveError;
+        setCollectiveOrders(collectiveData || []);
+      } else {
+        setCollectiveOrders([]);
+      }
+
+      // Load individual business orders filtered by selected business
       const { data: individualData, error: individualError } = await supabase
         .from('business_orders')
         .select(`
@@ -155,12 +175,9 @@ export function BusinessOrdersSection() {
           delivery_address,
           payment_method,
           status,
-          created_at,
-          business_accounts!inner (
-            user_id
-          )
+          created_at
         `)
-        .eq('business_accounts.user_id', user.id)
+        .eq('business_account_id', selectedBusinessId)
         .order('created_at', { ascending: false });
 
       if (individualError) throw individualError;
@@ -178,6 +195,7 @@ export function BusinessOrdersSection() {
                   .from('products')
                   .select('image_url')
                   .eq('name', item.name)
+                  .eq('business_account_id', selectedBusinessId)
                   .limit(1)
                   .maybeSingle();
                 
