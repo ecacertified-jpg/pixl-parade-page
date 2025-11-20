@@ -84,6 +84,23 @@ export default function BusinessAccount() {
     netRevenue: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  
+  // Recent orders state
+  interface RecentOrderItem {
+    id: string;
+    product: string;
+    customer: string;
+    customerPhone: string;
+    donor: string;
+    amount: number;
+    status: string;
+    type: "pickup" | "delivery";
+    date: string;
+    rawDate: string;
+  }
+  
+  const [recentOrders, setRecentOrders] = useState<RecentOrderItem[]>([]);
+  const [loadingRecentOrders, setLoadingRecentOrders] = useState(false);
 
   useEffect(() => {
     console.log('🔄 Business changed to:', selectedBusinessId);
@@ -105,6 +122,7 @@ export default function BusinessAccount() {
       // Then load new data
       loadProducts();
       loadOrders();
+      loadRecentOrders();
     }
     loadBusinesses();
   }, [selectedBusinessId]);
@@ -484,25 +502,132 @@ export default function BusinessAccount() {
       setLoadingStats(false);
     }
   };
-  const recentOrders = [{
-    id: "CMD-001",
-    product: "Bracelet Doré Élégance",
-    customer: "Fatou Bamba",
-    donor: "Kofi Asante",
-    amount: 15000,
-    status: "new",
-    type: "pickup",
-    date: "2025-01-11 14:30"
-  }, {
-    id: "CMD-002",
-    product: "Parfum Roses de Yamoussoukro",
-    customer: "Aisha Traoré",
-    donor: "Mamadou Diallo",
-    amount: 35000,
-    status: "confirmed",
-    type: "delivery",
-    date: "2025-01-11 10:15"
-  }];
+
+  // Load recent orders from database
+  const loadRecentOrders = async () => {
+    if (!user?.id || !selectedBusinessId) {
+      setRecentOrders([]);
+      return;
+    }
+
+    try {
+      setLoadingRecentOrders(true);
+
+      // Load individual orders
+      const { data: individualOrders, error: individualError } = await supabase
+        .from('business_orders')
+        .select('id, order_summary, total_amount, currency, donor_phone, beneficiary_phone, delivery_address, status, created_at')
+        .eq('business_account_id', selectedBusinessId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (individualError) throw individualError;
+
+      // Load collective orders (3-step approach)
+      // Step 1: Get product IDs for this business
+      const { data: businessProducts, error: productsError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('business_account_id', selectedBusinessId);
+
+      if (productsError) throw productsError;
+
+      const productIds = businessProducts?.map(p => p.id) || [];
+
+      let collectiveOrders: any[] = [];
+      if (productIds.length > 0) {
+        // Step 2: Get fund IDs linked to these products
+        const { data: funds, error: fundsError } = await supabase
+          .from('collective_funds')
+          .select('id')
+          .in('business_product_id', productIds);
+
+        if (fundsError) throw fundsError;
+
+        const fundIds = funds?.map(f => f.id) || [];
+
+        if (fundIds.length > 0) {
+          // Step 3: Get collective fund orders
+          const { data: cfOrders, error: cfError } = await supabase
+            .from('collective_fund_orders')
+            .select('id, order_summary, total_amount, currency, donor_phone, beneficiary_phone, delivery_address, status, created_at')
+            .in('fund_id', fundIds)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          if (cfError) throw cfError;
+          collectiveOrders = cfOrders || [];
+        }
+      }
+
+      // Format and combine orders
+      const formattedIndividual = (individualOrders || []).map((order): RecentOrderItem => {
+        const summary = order.order_summary as any;
+        const productName = summary?.items?.[0]?.product_name || 'Produit';
+        const customerName = summary?.beneficiary_name || 'Client';
+        const donorName = summary?.donor_name || 'Donateur';
+        const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
+        
+        return {
+          id: order.id,
+          product: productName,
+          customer: customerName,
+          customerPhone: order.beneficiary_phone,
+          donor: donorName,
+          amount: order.total_amount,
+          status: order.status,
+          type: deliveryType,
+          date: new Date(order.created_at).toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          rawDate: order.created_at
+        };
+      });
+
+      const formattedCollective = collectiveOrders.map((order): RecentOrderItem => {
+        const summary = order.order_summary as any;
+        const productName = summary?.items?.[0]?.product_name || 'Produit';
+        const customerName = summary?.beneficiary_name || 'Client';
+        const donorName = summary?.donor_name || 'Donateur';
+        const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
+        
+        return {
+          id: order.id,
+          product: productName,
+          customer: customerName,
+          customerPhone: order.beneficiary_phone,
+          donor: donorName,
+          amount: order.total_amount,
+          status: order.status,
+          type: deliveryType,
+          date: new Date(order.created_at).toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          rawDate: order.created_at
+        };
+      });
+
+      // Combine and sort
+      const allOrders = [...formattedIndividual, ...formattedCollective];
+      allOrders.sort((a, b) => new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime());
+      
+      setRecentOrders(allOrders.slice(0, 5));
+    } catch (error) {
+      console.error('❌ Error loading recent orders:', error);
+      toast.error('Erreur lors du chargement des commandes récentes');
+    } finally {
+      setLoadingRecentOrders(false);
+    }
+  };
+
   const getStatusColor = (status: string, createdAt?: string) => {
     // Calculer si 72 heures se sont écoulées
     const isExpired = createdAt ? new Date().getTime() - new Date(createdAt).getTime() > 72 * 60 * 60 * 1000 : false;
@@ -729,36 +854,62 @@ export default function BusinessAccount() {
                 </Button>
               </div>
               <div className="space-y-3">
-                {recentOrders.map(order => <div key={order.id} className="border rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <div className="font-medium">{order.id}</div>
-                        <div className="text-sm text-muted-foreground">{order.product}</div>
+                {loadingRecentOrders ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-muted-foreground mt-2">Chargement des commandes...</p>
+                  </div>
+                ) : recentOrders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Aucune commande récente pour ce business</p>
+                  </div>
+                ) : (
+                  recentOrders.map(order => (
+                    <div key={order.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className="font-medium">{order.id}</div>
+                          <div className="text-sm text-muted-foreground">{order.product}</div>
+                        </div>
+                        <Badge className={getStatusColor(order.status)}>
+                          {getStatusText(order.status)}
+                        </Badge>
                       </div>
-                      <Badge className={getStatusColor(order.status)}>
-                        {getStatusText(order.status)}
-                      </Badge>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <div><strong>Client:</strong> {order.customer}</div>
-                      <div><strong>Donateur:</strong> {order.donor}</div>
-                      <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
-                      <div className="flex items-center gap-2">
-                        <strong>Type:</strong> 
-                        {order.type === "pickup" ? <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            Retrait sur place
-                          </span> : <span className="flex items-center gap-1">
-                            <Truck className="h-3 w-3" />
-                            Livraison {order.amount > 25000 && "(Gratuite)"}
-                          </span>}
+                      <div className="text-sm space-y-1">
+                        <div><strong>Client:</strong> {order.customer}</div>
+                        <div><strong>Donateur:</strong> {order.donor}</div>
+                        <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
+                        <div className="flex items-center gap-2">
+                          <strong>Type:</strong> 
+                          {order.type === "pickup" ? (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              Retrait sur place
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <Truck className="h-3 w-3" />
+                              Livraison {order.amount > 25000 && "(Gratuite)"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{order.date}</div>
                       </div>
+                      {order.status === "new" && (
+                        <Button 
+                          size="sm" 
+                          className="w-full mt-2"
+                          onClick={() => window.open(`tel:${order.customerPhone}`, '_self')}
+                          disabled={!order.customerPhone}
+                        >
+                          <Phone className="h-4 w-4 mr-2" />
+                          Appeler le client
+                        </Button>
+                      )}
                     </div>
-                    {order.status === "new" && <Button size="sm" className="w-full mt-2">
-                        <Phone className="h-4 w-4 mr-2" />
-                        Appeler le client
-                      </Button>}
-                  </div>)}
+                  ))
+                )}
               </div>
             </Card>
           </TabsContent>
