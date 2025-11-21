@@ -86,21 +86,29 @@ export default function BusinessAccount() {
   const [loadingStats, setLoadingStats] = useState(true);
   
   // Recent orders state
-  interface RecentOrderItem {
-    id: string;
-    product: string;
-    customer: string;
-    customerPhone: string;
-    donor: string;
-    amount: number;
-    status: string;
-    type: "pickup" | "delivery";
-    date: string;
-    rawDate: string;
-  }
+interface RecentOrderItem {
+  id: string;
+  product: string;
+  productImage?: string;
+  productPrice: number;
+  productQuantity: number;
+  customer: string;
+  customerPhone: string;
+  donor: string;
+  donorPhone: string;
+  amount: number;
+  status: string;
+  type: "pickup" | "delivery";
+  deliveryAddress?: string;
+  paymentMethod?: string;
+  orderType: "individual" | "collective";
+  date: string;
+  rawDate: string;
+}
   
   const [recentOrders, setRecentOrders] = useState<RecentOrderItem[]>([]);
   const [loadingRecentOrders, setLoadingRecentOrders] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
   useEffect(() => {
     console.log('🔄 Business changed to:', selectedBusinessId);
@@ -123,8 +131,45 @@ export default function BusinessAccount() {
       loadProducts();
       loadOrders();
       loadRecentOrders();
+      loadNewOrdersCount();
+    } else {
+      setRecentOrders([]);
+      setNewOrdersCount(0);
     }
     loadBusinesses();
+
+    // Real-time subscription for new orders
+    if (selectedBusinessId) {
+      const ordersChannel = supabase
+        .channel('business-new-orders')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'business_orders',
+          filter: `business_account_id=eq.${selectedBusinessId}`
+        }, () => {
+          loadRecentOrders();
+          loadNewOrdersCount();
+          toast.success('Nouvelle commande reçue !', {
+            icon: '🎉',
+            duration: 5000
+          });
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'business_orders',
+          filter: `business_account_id=eq.${selectedBusinessId}`
+        }, () => {
+          loadRecentOrders();
+          loadNewOrdersCount();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(ordersChannel);
+      };
+    }
   }, [selectedBusinessId]);
 
   useEffect(() => {
@@ -560,60 +605,108 @@ export default function BusinessAccount() {
         }
       }
 
-      // Format and combine orders
-      const formattedIndividual = (individualOrders || []).map((order): RecentOrderItem => {
-        const summary = order.order_summary as any;
-        const productName = summary?.items?.[0]?.product_name || 'Produit';
-        const customerName = summary?.beneficiary_name || 'Client';
-        const donorName = summary?.donor_name || 'Donateur';
-        const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
-        
-        return {
-          id: order.id,
-          product: productName,
-          customer: customerName,
-          customerPhone: order.beneficiary_phone,
-          donor: donorName,
-          amount: order.total_amount,
-          status: order.status,
-          type: deliveryType,
-          date: new Date(order.created_at).toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          rawDate: order.created_at
-        };
-      });
+      // Format and combine orders with product images
+      const formattedIndividual = await Promise.all(
+        (individualOrders || []).map(async (order): Promise<RecentOrderItem> => {
+          const summary = order.order_summary as any;
+          const productName = summary?.items?.[0]?.product_name || summary?.items?.[0]?.name || 'Produit';
+          const productPrice = summary?.items?.[0]?.price || 0;
+          const productQuantity = summary?.items?.[0]?.quantity || 1;
+          const customerName = summary?.beneficiary_name || 'Client';
+          const donorName = summary?.donor_name || 'Donateur';
+          const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
+          
+          // Get product image
+          let productImage = undefined;
+          const { data: productData } = await supabase
+            .from('products')
+            .select('image_url')
+            .eq('name', productName)
+            .eq('business_account_id', selectedBusinessId)
+            .single();
+          
+          if (productData?.image_url) {
+            productImage = productData.image_url;
+          }
+          
+          return {
+            id: order.id,
+            product: productName,
+            productImage,
+            productPrice,
+            productQuantity,
+            customer: customerName,
+            customerPhone: order.beneficiary_phone,
+            donor: donorName,
+            donorPhone: order.donor_phone,
+            amount: order.total_amount,
+            status: order.status,
+            type: deliveryType,
+            deliveryAddress: order.delivery_address || 'Retrait sur place',
+            paymentMethod: 'cash_on_delivery',
+            orderType: 'individual',
+            date: new Date(order.created_at).toLocaleString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            rawDate: order.created_at
+          };
+        })
+      );
 
-      const formattedCollective = collectiveOrders.map((order): RecentOrderItem => {
-        const summary = order.order_summary as any;
-        const productName = summary?.items?.[0]?.product_name || 'Produit';
-        const customerName = summary?.beneficiary_name || 'Client';
-        const donorName = summary?.donor_name || 'Donateur';
-        const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
-        
-        return {
-          id: order.id,
-          product: productName,
-          customer: customerName,
-          customerPhone: order.beneficiary_phone,
-          donor: donorName,
-          amount: order.total_amount,
-          status: order.status,
-          type: deliveryType,
-          date: new Date(order.created_at).toLocaleString('fr-FR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          rawDate: order.created_at
-        };
-      });
+      const formattedCollective = await Promise.all(
+        collectiveOrders.map(async (order): Promise<RecentOrderItem> => {
+          const summary = order.order_summary as any;
+          const productName = summary?.items?.[0]?.product_name || summary?.items?.[0]?.name || 'Produit';
+          const productPrice = summary?.items?.[0]?.price || 0;
+          const productQuantity = summary?.items?.[0]?.quantity || 1;
+          const customerName = summary?.beneficiary_name || 'Client';
+          const donorName = summary?.donor_name || 'Donateur';
+          const deliveryType = order.delivery_address ? 'delivery' : 'pickup';
+          
+          // Get product image
+          let productImage = undefined;
+          const { data: productData } = await supabase
+            .from('products')
+            .select('image_url')
+            .eq('name', productName)
+            .eq('business_account_id', selectedBusinessId)
+            .single();
+          
+          if (productData?.image_url) {
+            productImage = productData.image_url;
+          }
+          
+          return {
+            id: order.id,
+            product: productName,
+            productImage,
+            productPrice,
+            productQuantity,
+            customer: customerName,
+            customerPhone: order.beneficiary_phone,
+            donor: donorName,
+            donorPhone: order.donor_phone,
+            amount: order.total_amount,
+            status: order.status,
+            type: deliveryType,
+            deliveryAddress: order.delivery_address || 'Retrait sur place',
+            paymentMethod: 'cash_on_delivery',
+            orderType: 'collective',
+            date: new Date(order.created_at).toLocaleString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            rawDate: order.created_at
+          };
+        })
+      );
 
       // Combine and sort
       const allOrders = [...formattedIndividual, ...formattedCollective];
@@ -625,6 +718,54 @@ export default function BusinessAccount() {
       toast.error('Erreur lors du chargement des commandes récentes');
     } finally {
       setLoadingRecentOrders(false);
+    }
+  };
+
+  const loadNewOrdersCount = async () => {
+    if (!selectedBusinessId) {
+      setNewOrdersCount(0);
+      return;
+    }
+
+    try {
+      // Count pending individual orders
+      const { count: individualCount } = await supabase
+        .from('business_orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('business_account_id', selectedBusinessId)
+        .eq('status', 'pending');
+
+      // Count pending collective orders
+      const { data: businessProducts } = await supabase
+        .from('products')
+        .select('id')
+        .eq('business_account_id', selectedBusinessId);
+
+      const productIds = businessProducts?.map(p => p.id) || [];
+      let collectiveCount = 0;
+
+      if (productIds.length > 0) {
+        const { data: funds } = await supabase
+          .from('collective_funds')
+          .select('id')
+          .in('business_product_id', productIds);
+
+        const fundIds = funds?.map(f => f.id) || [];
+
+        if (fundIds.length > 0) {
+          const { count } = await supabase
+            .from('collective_fund_orders')
+            .select('*', { count: 'exact', head: true })
+            .in('fund_id', fundIds)
+            .eq('status', 'pending');
+
+          collectiveCount = count || 0;
+        }
+      }
+
+      setNewOrdersCount((individualCount || 0) + collectiveCount);
+    } catch (error) {
+      console.error('Error loading new orders count:', error);
     }
   };
 
@@ -848,10 +989,15 @@ export default function BusinessAccount() {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Commandes récentes</h3>
-                <Button size="sm" variant="outline">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Notifications
-                </Button>
+              <Button size="sm" variant="outline" className="relative">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+                {newOrdersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                    {newOrdersCount}
+                  </span>
+                )}
+              </Button>
               </div>
               <div className="space-y-3">
                 {loadingRecentOrders ? (
@@ -866,48 +1012,99 @@ export default function BusinessAccount() {
                   </div>
                 ) : (
                   recentOrders.map(order => (
-                    <div key={order.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
+                    <Card key={order.id} className="p-4 space-y-3">
+                      {/* En-tête */}
+                      <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium">{order.id}</div>
-                          <div className="text-sm text-muted-foreground">{order.product}</div>
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {order.orderType === 'individual' ? 'Commande individuelle' : 'Commande collective'}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm font-semibold text-primary">
+                              #{order.id.slice(0, 6)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{order.date}</span>
+                          </div>
                         </div>
-                        <Badge className={getStatusColor(order.status)}>
+                        <Badge 
+                          className={`${getStatusColor(order.status)} text-white`}
+                          variant="secondary"
+                        >
+                          <Clock className="h-3 w-3 mr-1" />
                           {getStatusText(order.status)}
                         </Badge>
                       </div>
-                      <div className="text-sm space-y-1">
-                        <div><strong>Client:</strong> {order.customer}</div>
-                        <div><strong>Donateur:</strong> {order.donor}</div>
-                        <div><strong>Montant:</strong> {order.amount.toLocaleString()} F</div>
-                        <div className="flex items-center gap-2">
-                          <strong>Type:</strong> 
-                          {order.type === "pickup" ? (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              Retrait sur place
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <Truck className="h-3 w-3" />
-                              Livraison {order.amount > 25000 && "(Gratuite)"}
-                            </span>
-                          )}
+
+                      {/* Produit avec image */}
+                      <div className="flex items-center gap-3 py-2 border-y">
+                        {order.productImage ? (
+                          <img 
+                            src={order.productImage} 
+                            alt={order.product}
+                            className="w-16 h-16 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
+                            <Package className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="font-medium">{order.product}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Quantité: {order.productQuantity} × {order.productPrice.toLocaleString()} XOF
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">{order.date}</div>
                       </div>
-                      {order.status === "new" && (
+
+                      {/* Total */}
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm font-medium">Total</span>
+                        <span className="text-2xl font-bold text-primary">
+                          {order.amount.toLocaleString()} XOF
+                        </span>
+                      </div>
+
+                      {/* Détails avec icônes */}
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground">Donateur:</span>
+                          <span className="font-medium">{order.donorPhone}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground">Bénéficiaire:</span>
+                          <span className="font-medium">{order.customerPhone}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground">Adresse:</span>
+                          <span className="font-medium">{order.deliveryAddress}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground">Paiement:</span>
+                          <span className="font-medium">
+                            {order.paymentMethod === 'cash_on_delivery' ? 'Cash à la livraison' : order.paymentMethod}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bouton d'action pour commandes en attente */}
+                      {order.status === 'pending' && (
                         <Button 
                           size="sm" 
-                          className="w-full mt-2"
+                          className="w-full mt-3"
                           onClick={() => window.open(`tel:${order.customerPhone}`, '_self')}
-                          disabled={!order.customerPhone}
                         >
                           <Phone className="h-4 w-4 mr-2" />
                           Appeler le client
                         </Button>
                       )}
-                    </div>
+                    </Card>
                   ))
                 )}
               </div>
