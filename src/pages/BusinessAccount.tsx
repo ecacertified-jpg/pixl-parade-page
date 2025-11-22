@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,6 +109,7 @@ interface RecentOrderItem {
   const [recentOrders, setRecentOrders] = useState<RecentOrderItem[]>([]);
   const [loadingRecentOrders, setLoadingRecentOrders] = useState(false);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const recentOrdersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('🔄 Business changed to:', selectedBusinessId);
@@ -989,7 +990,22 @@ interface RecentOrderItem {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Commandes récentes</h3>
-              <Button size="sm" variant="outline" className="relative">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="relative"
+                onClick={() => {
+                  recentOrdersRef.current?.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                  });
+                  if (newOrdersCount > 0) {
+                    toast.info(`Vous avez ${newOrdersCount} commande(s) en attente`, {
+                      duration: 3000
+                    });
+                  }
+                }}
+              >
                 <Bell className="h-4 w-4 mr-2" />
                 Notifications
                 {newOrdersCount > 0 && (
@@ -999,7 +1015,7 @@ interface RecentOrderItem {
                 )}
               </Button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3" ref={recentOrdersRef}>
                 {loadingRecentOrders ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
