@@ -8,6 +8,7 @@ import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
 import NotFound from "./pages/NotFound";
@@ -54,13 +55,9 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            } />
             <Route path="/home" element={
               <ProtectedRoute>
                 <Home />
