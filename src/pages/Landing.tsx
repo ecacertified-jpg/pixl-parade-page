@@ -54,19 +54,23 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <img src={logoJV} alt="JOIE DE VIVRE" className="h-10 w-10" />
-            <span className="text-xl font-bold text-foreground">JOIE DE VIVRE</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => navigate("/auth")}>
-              Connexion
-            </Button>
-            <Button variant="default" onClick={() => navigate("/auth")}>
-              S'inscrire
-            </Button>
+      <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-3">
+              <img src={logoJV} alt="Joie de Vivre" className="h-12 w-auto" />
+              <h1 className="text-xl font-poppins font-semibold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
+                Joie de Vivre
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={() => navigate("/auth")}>
+                Connexion
+              </Button>
+              <Button variant="default" onClick={() => navigate("/auth")}>
+                S'inscrire
+              </Button>
+            </div>
           </div>
         </div>
       </header>
