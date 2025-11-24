@@ -6,10 +6,11 @@ import celebrationHero from "@/assets/celebration-hero.jpg";
 import valueProposition from "@/assets/value-proposition.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
-
 const Landing = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
 
   // Redirect authenticated users to home
   useEffect(() => {
@@ -17,51 +18,39 @@ const Landing = () => {
       navigate("/home");
     }
   }, [user, navigate]);
-
-  const features = [
-    {
-      icon: Gift,
-      title: "Cadeaux Partagés",
-      description: "Créez des cagnottes collectives pour offrir ensemble des cadeaux inoubliables"
-    },
-    {
-      icon: Users,
-      title: "Réseau de Générosité",
-      description: "Construisez votre cercle de donneurs et recevez des cadeaux en retour"
-    },
-    {
-      icon: Calendar,
-      title: "Rappels Automatiques",
-      description: "Ne manquez plus jamais un anniversaire ou une occasion spéciale"
-    },
-    {
-      icon: Heart,
-      title: "Moments de Bonheur",
-      description: "Célébrez les réussites, promotions, mariages et toutes les joies de la vie"
-    },
-    {
-      icon: ShoppingBag,
-      title: "Boutique Locale",
-      description: "Découvrez des artisans et commerçants locaux de Côte d'Ivoire"
-    },
-    {
-      icon: Sparkles,
-      title: "Surprises Mémorables",
-      description: "Organisez des surprises avec révélation programmée et musique personnalisée"
-    }
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
+  const features = [{
+    icon: Gift,
+    title: "Cadeaux Partagés",
+    description: "Créez des cagnottes collectives pour offrir ensemble des cadeaux inoubliables"
+  }, {
+    icon: Users,
+    title: "Réseau de Générosité",
+    description: "Construisez votre cercle de donneurs et recevez des cadeaux en retour"
+  }, {
+    icon: Calendar,
+    title: "Rappels Automatiques",
+    description: "Ne manquez plus jamais un anniversaire ou une occasion spéciale"
+  }, {
+    icon: Heart,
+    title: "Moments de Bonheur",
+    description: "Célébrez les réussites, promotions, mariages et toutes les joies de la vie"
+  }, {
+    icon: ShoppingBag,
+    title: "Boutique Locale",
+    description: "Découvrez des artisans et commerçants locaux de Côte d'Ivoire"
+  }, {
+    icon: Sparkles,
+    title: "Surprises Mémorables",
+    description: "Organisez des surprises avec révélation programmée et musique personnalisée"
+  }];
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-3">
               <img src={logoJV} alt="Joie de Vivre" className="h-12 w-auto" />
-              <h1 className="text-xl font-poppins font-semibold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-                Joie de Vivre
-              </h1>
+              
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" onClick={() => navigate("/auth")}>
@@ -104,11 +93,7 @@ const Landing = () => {
             </div>
             <div className="relative">
               <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl">
-                <img
-                  src={celebrationHero}
-                  alt="Célébration"
-                  className="object-cover w-full h-full"
-                />
+                <img src={celebrationHero} alt="Célébration" className="object-cover w-full h-full" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
               </div>
               <div className="absolute -bottom-6 -right-6 bg-primary text-primary-foreground rounded-2xl p-6 shadow-xl">
@@ -132,11 +117,7 @@ const Landing = () => {
             </p>
           </div>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="group relative bg-card rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 border border-border"
-              >
+            {features.map((feature, index) => <div key={index} className="group relative bg-card rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 border border-border">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary/10 text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <feature.icon className="h-7 w-7" />
                 </div>
@@ -146,8 +127,7 @@ const Landing = () => {
                 <p className="text-muted-foreground">
                   {feature.description}
                 </p>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -157,11 +137,7 @@ const Landing = () => {
         <div className="container px-4">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             <div className="relative order-2 lg:order-1">
-              <img
-                src={valueProposition}
-                alt="Proposition de valeur"
-                className="rounded-3xl shadow-2xl w-full"
-              />
+              <img src={valueProposition} alt="Proposition de valeur" className="rounded-3xl shadow-2xl w-full" />
             </div>
             <div className="space-y-6 order-1 lg:order-2">
               <h2 className="text-3xl font-bold text-foreground">
@@ -282,8 +258,6 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
