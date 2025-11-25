@@ -23,14 +23,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
-import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
-  const { getSetting } = usePlatformSettings();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -519,8 +517,7 @@ interface RecentOrderItem {
       console.log('   - Total revenue:', totalRevenue);
       
       const totalOrders = orders.length;
-      const commissionRateValue = parseFloat(getSetting('commission_rate')?.value || '8') / 100;
-      const commission = totalRevenue * commissionRateValue;
+      const commission = totalRevenue * 0.08; // 8% commission
       const netRevenue = totalRevenue - commission;
       
       // 3. Calculate average rating (can be 0)
@@ -978,7 +975,7 @@ interface RecentOrderItem {
                     <span className="font-medium text-sm">{stats.totalRevenue.toLocaleString()} F</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Commission {getSetting('platform_name')?.value || 'JOIE DE VIVRE'} ({parseFloat(getSetting('commission_rate')?.value || '8')}%)</span>
+                    <span>Commission JOIE DE VIVRE (8%)</span>
                     <span className="text-red-600 font-normal text-xs">-{stats.commission.toLocaleString()} F</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between">
