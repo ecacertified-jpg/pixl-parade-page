@@ -952,11 +952,11 @@ export default function BusinessDashboard() {
             {/* New Metrics Display */}
             <BusinessMetricsBar stats={stats} />
             <BusinessMetricCards stats={stats} />
-            <BusinessFinancialSummary 
-              stats={stats} 
-              platformName={getSetting('platform_name') || 'JOIE DE VIVRE'}
-              commissionRate={parseFloat(getSetting('commission_rate') || '15')}
-            />
+          <BusinessFinancialSummary 
+            stats={stats}
+            platformName={getSetting('platform_name')?.value || 'JOIE DE VIVRE'}
+            commissionRate={parseFloat(getSetting('commission_rate')?.value || '15')}
+          />
 
             {/* Commandes et Cagnottes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
