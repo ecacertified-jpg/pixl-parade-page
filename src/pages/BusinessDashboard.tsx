@@ -175,7 +175,7 @@ export default function BusinessDashboard() {
   // Utiliser le contexte global pour le multi-business
   const { selectedBusinessId, selectedBusiness } = useSelectedBusiness();
   const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId);
-  const { getSettingValue } = usePlatformSettings();
+  const { settings, getSetting } = usePlatformSettings();
   
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
@@ -954,8 +954,8 @@ export default function BusinessDashboard() {
             <BusinessMetricCards stats={stats} />
             <BusinessFinancialSummary 
               stats={stats} 
-              platformName={getSettingValue('platform_name') || 'JOIE DE VIVRE'}
-              commissionRate={parseFloat(getSettingValue('commission_rate') || '15')}
+              platformName={getSetting('platform_name') || 'JOIE DE VIVRE'}
+              commissionRate={parseFloat(getSetting('commission_rate') || '15')}
             />
 
             {/* Commandes et Cagnottes */}
