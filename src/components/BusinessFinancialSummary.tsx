@@ -7,9 +7,15 @@ interface BusinessFinancialSummaryProps {
     commission: number;
     netRevenue: number;
   };
+  platformName?: string;
+  commissionRate?: number;
 }
 
-export const BusinessFinancialSummary = ({ stats }: BusinessFinancialSummaryProps) => {
+export const BusinessFinancialSummary = ({ 
+  stats, 
+  platformName = "JOIE DE VIVRE",
+  commissionRate = 15
+}: BusinessFinancialSummaryProps) => {
   return (
     <Card className="p-6 mb-6">
       <div className="flex items-center gap-2 mb-4">
@@ -28,7 +34,9 @@ export const BusinessFinancialSummary = ({ stats }: BusinessFinancialSummaryProp
 
         {/* Commission */}
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Commission JOIE DE VIVRE (15%)</span>
+          <span className="text-sm text-muted-foreground">
+            Commission {platformName} ({commissionRate}%)
+          </span>
           <span className="text-lg font-semibold text-destructive">
             -{stats.commission.toLocaleString()} F
           </span>

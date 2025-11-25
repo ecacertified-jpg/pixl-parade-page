@@ -69,6 +69,17 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
     try {
       setLoading(true);
 
+      // Fetch commission rate from platform_settings
+      const { data: settingsData } = await supabase
+        .from('platform_settings')
+        .select('setting_value')
+        .eq('setting_key', 'commission_rate')
+        .maybeSingle();
+
+      const commissionRate = settingsData?.setting_value 
+        ? parseFloat(String(settingsData.setting_value)) / 100 
+        : 0.15;
+
       // Récupérer tous les business_accounts actifs de l'utilisateur
       const { data: businessAccountsData, error: accountsError } = await supabase
         .from('business_accounts')
@@ -143,8 +154,8 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
 
       const activeProducts = activeProductsCount || 0;
 
-      // Calculate commission and net revenue (15% commission rate)
-      const commission = totalSales * 0.15;
+      // Calculate commission and net revenue using dynamic commission rate
+      const commission = totalSales * commissionRate;
       const netRevenue = totalSales - commission;
       
       // Debug logs

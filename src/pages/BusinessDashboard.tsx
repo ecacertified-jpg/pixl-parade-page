@@ -17,6 +17,7 @@ import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotifications";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
@@ -174,6 +175,7 @@ export default function BusinessDashboard() {
   // Utiliser le contexte global pour le multi-business
   const { selectedBusinessId, selectedBusiness } = useSelectedBusiness();
   const { stats, loading: analyticsLoading, businessAccounts: analyticsBusinessAccounts } = useBusinessAnalytics(selectedBusinessId);
+  const { settings, getSetting } = usePlatformSettings();
   
   useEffect(() => {
     document.title = "Dashboard Business | JOIE DE VIVRE";
@@ -950,7 +952,11 @@ export default function BusinessDashboard() {
             {/* New Metrics Display */}
             <BusinessMetricsBar stats={stats} />
             <BusinessMetricCards stats={stats} />
-            <BusinessFinancialSummary stats={stats} />
+            <BusinessFinancialSummary 
+              stats={stats} 
+              platformName={getSetting('platform_name') || 'JOIE DE VIVRE'}
+              commissionRate={parseFloat(getSetting('commission_rate') || '15')}
+            />
 
             {/* Commandes et Cagnottes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
