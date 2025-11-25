@@ -103,11 +103,25 @@ export const usePlatformSettings = (category?: string) => {
     return settings?.find(s => s.setting_key === key)?.setting_value;
   };
 
+  // Helper to get a primitive value from a setting (string or number)
+  const getSettingValue = (key: string): string => {
+    const setting = getSetting(key);
+    
+    // If the setting is an object with a 'value' property, extract it
+    if (setting && typeof setting === 'object' && 'value' in setting) {
+      return String(setting.value);
+    }
+    
+    // Otherwise return the setting as a string
+    return setting ? String(setting) : '';
+  };
+
   return {
     settings,
     isLoading,
     updateSetting: updateSetting.mutate,
     isUpdating: updateSetting.isPending,
     getSetting,
+    getSettingValue,
   };
 };
