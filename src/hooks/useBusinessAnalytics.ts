@@ -76,9 +76,16 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         .eq('setting_key', 'commission_rate')
         .maybeSingle();
 
-      const commissionRate = settingsData?.setting_value 
-        ? parseFloat(String(settingsData.setting_value)) / 100 
-        : 0.15;
+      // Extract value from JSONB object { value: 15, unit: "percent" }
+      let commissionRate = 0.15; // Default value
+      if (settingsData?.setting_value) {
+        const settingValue = settingsData.setting_value;
+        if (typeof settingValue === 'object' && 'value' in settingValue) {
+          commissionRate = parseFloat(String(settingValue.value)) / 100;
+        } else if (typeof settingValue === 'number') {
+          commissionRate = settingValue / 100;
+        }
+      }
 
       // Récupérer tous les business_accounts actifs de l'utilisateur
       const { data: businessAccountsData, error: accountsError } = await supabase
