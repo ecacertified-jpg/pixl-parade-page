@@ -954,8 +954,8 @@ export default function BusinessDashboard() {
             <BusinessMetricCards stats={stats} />
             <BusinessFinancialSummary 
               stats={stats} 
-              platformName={getSetting('platform_name') || 'JOIE DE VIVRE'}
-              commissionRate={parseFloat(getSetting('commission_rate') || '15')}
+              platformName={String(getSetting('platform_name') || 'JOIE DE VIVRE')}
+              commissionRate={Number(getSetting('commission_rate') || 15)}
             />
 
             {/* Commandes et Cagnottes */}
