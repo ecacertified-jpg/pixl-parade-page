@@ -23,12 +23,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
+  const { getSetting, isLoading: loadingSettings } = usePlatformSettings();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -517,7 +519,14 @@ interface RecentOrderItem {
       console.log('   - Total revenue:', totalRevenue);
       
       const totalOrders = orders.length;
-      const commission = totalRevenue * 0.08; // 8% commission
+      
+      // Get dynamic commission rate from platform settings
+      const commissionRateValue = getSetting('commission_rate');
+      const commissionRate = (typeof commissionRateValue === 'number' 
+        ? commissionRateValue 
+        : parseFloat(String(commissionRateValue || '15'))) / 100;
+      
+      const commission = totalRevenue * commissionRate;
       const netRevenue = totalRevenue - commission;
       
       // 3. Calculate average rating (can be 0)
@@ -975,7 +984,7 @@ interface RecentOrderItem {
                     <span className="font-medium text-sm">{stats.totalRevenue.toLocaleString()} F</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Commission JOIE DE VIVRE (8%)</span>
+                    <span>Commission {String(getSetting('platform_name') || 'JOIE DE VIVRE')} ({Number(getSetting('commission_rate') || 15)}%)</span>
                     <span className="text-red-600 font-normal text-xs">-{stats.commission.toLocaleString()} F</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between">
