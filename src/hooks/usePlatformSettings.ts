@@ -100,7 +100,12 @@ export const usePlatformSettings = (category?: string) => {
 
   // Helper to get a specific setting value
   const getSetting = (key: string) => {
-    return settings?.find(s => s.setting_key === key)?.setting_value;
+    const setting = settings?.find(s => s.setting_key === key)?.setting_value;
+    // Extract value from JSONB object format { value: ... }
+    if (setting && typeof setting === 'object' && 'value' in setting) {
+      return setting.value;
+    }
+    return setting;
   };
 
   return {
