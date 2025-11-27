@@ -181,15 +181,16 @@ interface RecentOrderItem {
       productsCount: products.length,
       ordersCount: orders.length,
       loadingProducts,
-      loadingOrders
+      loadingOrders,
+      loadingSettings
     });
     
     // Only calculate stats when we have a business selected
-    // and both loadings are complete
-    if (selectedBusinessId && !loadingProducts && !loadingOrders) {
+    // and all loadings are complete (products, orders, and settings)
+    if (selectedBusinessId && !loadingProducts && !loadingOrders && !loadingSettings) {
       calculateStats();
     }
-  }, [products, orders, selectedBusinessId, loadingProducts, loadingOrders]);
+  }, [products, orders, selectedBusinessId, loadingProducts, loadingOrders, loadingSettings]);
   const loadProducts = async () => {
     if (!user || !selectedBusinessId) return;
     setLoadingProducts(true);
@@ -971,7 +972,7 @@ interface RecentOrderItem {
             {/* Résumé financier */}
             <Card className="p-4 mb-6">
               <h3 className="font-semibold mb-4">Résumé financier</h3>
-              {loadingStats ? (
+              {loadingStats || loadingSettings ? (
                 <div className="space-y-3">
                   <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
                   <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
