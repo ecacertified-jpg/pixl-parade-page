@@ -30,7 +30,7 @@ export default function BusinessAccount() {
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
-  const { getSetting, isLoading: loadingSettings } = usePlatformSettings();
+  const { getSetting, settings, isLoading: loadingSettings } = usePlatformSettings();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -186,10 +186,10 @@ interface RecentOrderItem {
     
     // Only calculate stats when we have a business selected
     // and both loadings are complete
-    if (selectedBusinessId && !loadingProducts && !loadingOrders) {
+    if (selectedBusinessId && !loadingProducts && !loadingOrders && !loadingSettings) {
       calculateStats();
     }
-  }, [products, orders, selectedBusinessId, loadingProducts, loadingOrders]);
+  }, [products, orders, selectedBusinessId, loadingProducts, loadingOrders, settings, loadingSettings]);
   const loadProducts = async () => {
     if (!user || !selectedBusinessId) return;
     setLoadingProducts(true);
