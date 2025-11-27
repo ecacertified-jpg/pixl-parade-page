@@ -38,24 +38,24 @@ export default function Settings() {
   useEffect(() => {
     if (settings) {
       setGeneralSettings({
-        platform_name: getSetting('platform_name')?.value || 'JOIE DE VIVRE',
-        support_email: getSetting('support_email')?.value || '',
-        maintenance_mode: getSetting('maintenance_mode')?.enabled || false,
+        platform_name: getSetting('platform_name') || 'JOIE DE VIVRE',
+        support_email: getSetting('support_email') || '',
+        maintenance_mode: getSetting('maintenance_mode') ?? false,
       });
 
       setFinanceSettings({
-        commission_rate: getSetting('commission_rate')?.value || 8,
-        free_delivery_threshold: getSetting('free_delivery_threshold')?.value || 25000,
+        commission_rate: getSetting('commission_rate') || 8,
+        free_delivery_threshold: getSetting('free_delivery_threshold') || 25000,
       });
 
       setNotificationSettings({
-        email_notifications: getSetting('email_notifications')?.enabled || true,
-        push_notifications: getSetting('push_notifications')?.enabled || true,
+        email_notifications: getSetting('email_notifications') ?? true,
+        push_notifications: getSetting('push_notifications') ?? true,
       });
 
       setSecuritySettings({
-        require_2fa_admins: getSetting('require_2fa_admins')?.enabled || false,
-        session_timeout: getSetting('session_timeout')?.value || 240,
+        require_2fa_admins: getSetting('require_2fa_admins') ?? false,
+        session_timeout: getSetting('session_timeout') || 240,
       });
     }
   }, [settings]);
