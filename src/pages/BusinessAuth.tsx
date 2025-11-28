@@ -191,20 +191,30 @@ const BusinessAuth = () => {
           if (businessError) {
             console.error('Error creating business account:', businessError);
           } else {
-            // Create notification for admin
-            await supabase.from('scheduled_notifications').insert({
-              user_id: authData.user.id,
-              notification_type: 'business_registration',
-              title: 'Nouvelle inscription prestataire',
-              message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
-              scheduled_for: new Date().toISOString(),
-              delivery_methods: ['push', 'in_app'],
-              metadata: {
-                business_name: data.businessName,
-                business_type: data.businessType,
-                business_user_id: authData.user.id,
-              }
-            });
+            // Récupérer tous les admins actifs et leur envoyer une notification
+            const { data: admins } = await supabase
+              .from('admin_users')
+              .select('user_id')
+              .eq('is_active', true);
+
+            if (admins && admins.length > 0) {
+              const notifications = admins.map(admin => ({
+                user_id: admin.user_id,
+                notification_type: 'new_business_pending_approval',
+                title: '🏪 Nouveau prestataire en attente',
+                message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
+                scheduled_for: new Date().toISOString(),
+                delivery_methods: ['push', 'in_app'],
+                metadata: {
+                  business_name: data.businessName,
+                  business_type: data.businessType,
+                  business_user_id: authData.user.id,
+                  action_url: '/admin/businesses',
+                }
+              }));
+              
+              await supabase.from('scheduled_notifications').insert(notifications);
+            }
 
             setUserMode('business');
             await refreshSession();
