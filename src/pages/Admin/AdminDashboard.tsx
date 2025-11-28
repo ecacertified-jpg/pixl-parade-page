@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface DashboardStats {
   totalUsers: number;
@@ -13,6 +18,15 @@ interface DashboardStats {
   pendingReports: number;
   pendingValidations: number;
   pendingRefunds: number;
+}
+
+interface PendingBusiness {
+  id: string;
+  business_name: string;
+  business_type: string | null;
+  phone: string | null;
+  email: string | null;
+  created_at: string;
 }
 
 export default function AdminDashboard() {
@@ -25,7 +39,9 @@ export default function AdminDashboard() {
     pendingValidations: 0,
     pendingRefunds: 0,
   });
+  const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
   const [loading, setLoading] = useState(true);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -64,6 +80,14 @@ export default function AdminDashboard() {
         .eq('is_verified', false)
         .eq('is_active', true);
 
+      // Fetch recent pending businesses
+      const { data: recentPending } = await supabase
+        .from('business_accounts')
+        .select('id, business_name, business_type, phone, email, created_at')
+        .eq('is_active', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
       setStats({
         totalUsers: totalUsers || 0,
         activeClients: totalUsers || 0,
@@ -73,10 +97,59 @@ export default function AdminDashboard() {
         pendingValidations: (pendingApprovals || 0) + (pendingValidations || 0),
         pendingRefunds: 0, // À implémenter avec table refunds
       });
+
+      setPendingBusinesses(recentPending || []);
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuickApprove = async (businessId: string, businessName: string) => {
+    try {
+      setApprovingId(businessId);
+
+      // Update business account to active
+      const { error: updateError } = await supabase
+        .from('business_accounts')
+        .update({ is_active: true })
+        .eq('id', businessId);
+
+      if (updateError) throw updateError;
+
+      // Get business owner user_id
+      const { data: businessData } = await supabase
+        .from('business_accounts')
+        .select('user_id')
+        .eq('id', businessId)
+        .single();
+
+      if (businessData) {
+        // Send notification to business owner
+        await supabase.from('scheduled_notifications').insert({
+          user_id: businessData.user_id,
+          notification_type: 'business_approved',
+          title: '✅ Compte approuvé',
+          message: `Félicitations ! Votre compte prestataire "${businessName}" a été approuvé. Vous pouvez maintenant accéder à Mon Espace Business.`,
+          scheduled_for: new Date().toISOString(),
+          delivery_methods: ['push', 'in_app'],
+          metadata: {
+            business_id: businessId,
+            action_url: '/business-account',
+          },
+        });
+      }
+
+      toast.success(`Compte "${businessName}" approuvé avec succès`);
+      
+      // Refresh data
+      fetchDashboardStats();
+    } catch (error) {
+      console.error('Error approving business:', error);
+      toast.error('Erreur lors de l\'approbation du compte');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -190,6 +263,61 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Recent Business Requests */}
+        {pendingBusinesses.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Demandes récentes
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {pendingBusinesses.length} inscription(s) en attente d'approbation
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pendingBusinesses.map((business) => (
+                  <div
+                    key={business.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium truncate">{business.business_name}</p>
+                        <Badge variant="outline" className="text-xs">
+                          {business.business_type || 'Non spécifié'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        {business.phone && <span>📞 {business.phone}</span>}
+                        {business.email && <span>✉️ {business.email}</span>}
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(business.created_at), {
+                            addSuffix: true,
+                            locale: fr,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleQuickApprove(business.id, business.business_name)}
+                      disabled={approvingId === business.id}
+                      className="ml-4"
+                    >
+                      {approvingId === business.id ? 'Approbation...' : 'Approuver'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Activity */}
         <Card>
