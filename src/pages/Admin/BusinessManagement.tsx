@@ -85,7 +85,7 @@ export default function BusinessManagement() {
       // Get business info for notification
       const { data: business } = await supabase
         .from('business_accounts')
-        .select('user_id, business_name')
+        .select('user_id, business_name, email, business_type')
         .eq('id', businessId)
         .single();
 
@@ -110,6 +110,24 @@ export default function BusinessManagement() {
             approved_at: new Date().toISOString(),
           }
         });
+
+        // Send approval email
+        if (business.email) {
+          console.log(`Sending approval email to ${business.email}`);
+          const { error: emailError } = await supabase.functions.invoke('send-business-approval-email', {
+            body: {
+              business_email: business.email,
+              business_name: business.business_name,
+              business_type: business.business_type || 'Prestataire',
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending approval email:', emailError);
+          } else {
+            console.log('Approval email sent successfully');
+          }
+        }
       }
 
       toast.success(active ? 'Prestataire approuvé et notifié' : 'Prestataire désactivé');
