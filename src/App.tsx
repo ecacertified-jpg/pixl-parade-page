@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
+import BusinessPendingApproval from "./pages/BusinessPendingApproval";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Publications from "./pages/Publications";
@@ -58,6 +59,11 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
+            <Route path="/business-pending-approval" element={
+              <ProtectedRoute>
+                <BusinessPendingApproval />
+              </ProtectedRoute>
+            } />
             <Route path="/home" element={
               <ProtectedRoute>
                 <Home />

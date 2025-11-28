@@ -29,6 +29,25 @@ export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
+  
+  // Check if business account is approved
+  useEffect(() => {
+    const checkApprovalStatus = async () => {
+      if (!user || loadingSelector) return;
+
+      const { data: businessAccount } = await supabase
+        .from('business_accounts')
+        .select('is_active')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (businessAccount && !businessAccount.is_active) {
+        navigate('/business-pending-approval', { replace: true });
+      }
+    };
+
+    checkApprovalStatus();
+  }, [user, loadingSelector, navigate]);
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
   const { getSetting, settings, isLoading: loadingSettings } = usePlatformSettings();
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);

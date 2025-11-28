@@ -82,6 +82,13 @@ export default function BusinessManagement() {
 
   const handleToggleActive = async (businessId: string, active: boolean) => {
     try {
+      // Get business info for notification
+      const { data: business } = await supabase
+        .from('business_accounts')
+        .select('user_id, business_name')
+        .eq('id', businessId)
+        .single();
+
       const { error } = await supabase
         .from('business_accounts')
         .update({ is_active: active })
@@ -89,7 +96,23 @@ export default function BusinessManagement() {
 
       if (error) throw error;
 
-      toast.success(active ? 'Prestataire activé' : 'Prestataire désactivé');
+      // If activating (approving), send notification to business owner
+      if (active && business) {
+        await supabase.from('scheduled_notifications').insert({
+          user_id: business.user_id,
+          notification_type: 'business_approved',
+          title: 'Compte business approuvé !',
+          message: `Félicitations ! Votre compte business "${business.business_name}" a été approuvé. Vous pouvez maintenant accéder à Mon Espace Business et commencer à vendre vos produits.`,
+          scheduled_for: new Date().toISOString(),
+          delivery_methods: ['push', 'in_app'],
+          metadata: {
+            business_id: businessId,
+            approved_at: new Date().toISOString(),
+          }
+        });
+      }
+
+      toast.success(active ? 'Prestataire approuvé et notifié' : 'Prestataire désactivé');
       fetchBusinesses();
     } catch (error) {
       console.error('Error updating business:', error);
@@ -169,18 +192,24 @@ export default function BusinessManagement() {
                     <TableCell>{formatDate(business.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        {!business.is_active && !business.is_verified && (
+                          <Badge variant="default" className="bg-orange-500 hover:bg-orange-600">
+                            <Clock className="mr-1 h-3 w-3" />
+                            Approbation requise
+                          </Badge>
+                        )}
                         {business.is_verified ? (
                           <Badge variant="default">
                             <CheckCircle className="mr-1 h-3 w-3" />
                             Vérifié
                           </Badge>
-                        ) : (
+                        ) : business.is_active && (
                           <Badge variant="secondary">
                             <Clock className="mr-1 h-3 w-3" />
-                            En attente
+                            Non vérifié
                           </Badge>
                         )}
-                        {!business.is_active && (
+                        {!business.is_active && business.is_verified && (
                           <Badge variant="destructive">
                             <XCircle className="mr-1 h-3 w-3" />
                             Inactif
@@ -196,7 +225,16 @@ export default function BusinessManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {!business.is_verified && (
+                          {!business.is_active && (
+                            <DropdownMenuItem
+                              onClick={() => handleToggleActive(business.id, true)}
+                              className="text-green-600 font-medium"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Approuver le compte
+                            </DropdownMenuItem>
+                          )}
+                          {business.is_active && !business.is_verified && (
                             <DropdownMenuItem
                               onClick={() => handleVerifyBusiness(business.id, true)}
                             >
@@ -212,11 +250,15 @@ export default function BusinessManagement() {
                               Retirer la vérification
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => handleToggleActive(business.id, !business.is_active)}
-                          >
-                            {business.is_active ? 'Désactiver' : 'Activer'}
-                          </DropdownMenuItem>
+                          {business.is_active && (
+                            <DropdownMenuItem
+                              onClick={() => handleToggleActive(business.id, false)}
+                              className="text-destructive"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Désactiver le compte
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => {
                             setSelectedBusinessId(business.id);
                             setProfileModalOpen(true);
