@@ -660,6 +660,50 @@ export type Database = {
           },
         ]
       }
+      business_registration_logs: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          business_account_id: string | null
+          business_email: string | null
+          business_name: string
+          business_type: string | null
+          created_at: string | null
+          id: string
+          rejection_reason: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          business_account_id?: string | null
+          business_email?: string | null
+          business_name: string
+          business_type?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          business_account_id?: string | null
+          business_email?: string | null
+          business_name?: string
+          business_type?: string | null
+          created_at?: string | null
+          id?: string
+          rejection_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_registration_logs_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address: string | null

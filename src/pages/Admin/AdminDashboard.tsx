@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { BusinessRegistrationStats } from '@/components/admin/BusinessRegistrationStats';
 
 interface DashboardStats {
   totalUsers: number;
@@ -126,6 +127,17 @@ export default function AdminDashboard() {
         .single();
 
       if (businessData) {
+        // Log approval action
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('business_registration_logs').insert({
+          business_account_id: businessId,
+          business_name: businessName,
+          business_email: businessData.email,
+          business_type: businessData.business_type,
+          action: 'approved',
+          admin_user_id: user?.id,
+        });
+
         // Send notification to business owner
         await supabase.from('scheduled_notifications').insert({
           user_id: businessData.user_id,
@@ -336,6 +348,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Business Registration Stats */}
+        <BusinessRegistrationStats />
 
         {/* Recent Activity */}
         <Card>

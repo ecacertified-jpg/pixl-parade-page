@@ -101,6 +101,17 @@ export default function BusinessManagement() {
 
       // If activating (approving), send notification to business owner
       if (active && business) {
+        // Log approval action
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('business_registration_logs').insert({
+          business_account_id: businessId,
+          business_name: business.business_name,
+          business_email: business.email,
+          business_type: business.business_type,
+          action: 'approved',
+          admin_user_id: user?.id,
+        });
+
         await supabase.from('scheduled_notifications').insert({
           user_id: business.user_id,
           notification_type: 'business_approved',
@@ -145,6 +156,18 @@ export default function BusinessManagement() {
     if (!businessToReject) return;
 
     try {
+      // Log rejection action BEFORE deleting
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('business_registration_logs').insert({
+        business_account_id: businessToReject.id,
+        business_name: businessToReject.business_name,
+        business_email: businessToReject.email,
+        business_type: businessToReject.business_type,
+        action: 'rejected',
+        rejection_reason: reason,
+        admin_user_id: user?.id,
+      });
+
       // Delete the business account
       const { error: deleteError } = await supabase
         .from('business_accounts')
