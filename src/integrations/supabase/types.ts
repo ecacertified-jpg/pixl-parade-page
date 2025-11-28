@@ -412,6 +412,7 @@ export type Database = {
           address: string | null
           business_name: string
           business_type: string | null
+          corrections_message: string | null
           created_at: string
           delivery_settings: Json | null
           delivery_zones: Json | null
@@ -424,6 +425,10 @@ export type Database = {
           opening_hours: Json | null
           payment_info: Json | null
           phone: string | null
+          rejection_date: string | null
+          rejection_reason: string | null
+          resubmission_count: number | null
+          status: string | null
           updated_at: string
           user_id: string
           website_url: string | null
@@ -432,6 +437,7 @@ export type Database = {
           address?: string | null
           business_name: string
           business_type?: string | null
+          corrections_message?: string | null
           created_at?: string
           delivery_settings?: Json | null
           delivery_zones?: Json | null
@@ -444,6 +450,10 @@ export type Database = {
           opening_hours?: Json | null
           payment_info?: Json | null
           phone?: string | null
+          rejection_date?: string | null
+          rejection_reason?: string | null
+          resubmission_count?: number | null
+          status?: string | null
           updated_at?: string
           user_id: string
           website_url?: string | null
@@ -452,6 +462,7 @@ export type Database = {
           address?: string | null
           business_name?: string
           business_type?: string | null
+          corrections_message?: string | null
           created_at?: string
           delivery_settings?: Json | null
           delivery_zones?: Json | null
@@ -464,6 +475,10 @@ export type Database = {
           opening_hours?: Json | null
           payment_info?: Json | null
           phone?: string | null
+          rejection_date?: string | null
+          rejection_reason?: string | null
+          resubmission_count?: number | null
+          status?: string | null
           updated_at?: string
           user_id?: string
           website_url?: string | null

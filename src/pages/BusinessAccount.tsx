@@ -37,11 +37,12 @@ export default function BusinessAccount() {
 
       const { data: businessAccount } = await supabase
         .from('business_accounts')
-        .select('is_active')
+        .select('is_active, status')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (businessAccount && !businessAccount.is_active) {
+      // Redirect if not active or if rejected/pending/resubmitted
+      if (businessAccount && (!businessAccount.is_active || businessAccount.status !== 'active')) {
         navigate('/business-pending-approval', { replace: true });
       }
     };
