@@ -48,7 +48,7 @@ const BusinessAuth = () => {
 
   const businessType = watch('businessType');
 
-  // Redirect only if already has business account
+  // Redirect based on business account status
   useEffect(() => {
     if (user) {
       checkExistingBusinessAccount();
@@ -61,13 +61,17 @@ const BusinessAuth = () => {
     try {
       const { data: businessAccount } = await supabase
         .from('business_accounts')
-        .select('id')
+        .select('id, is_active')
         .eq('user_id', user.id)
         .single();
 
-      // Only redirect if user already has a business account
       if (businessAccount) {
-        navigate('/business-account', { replace: true });
+        // Redirect based on approval status
+        if (!businessAccount.is_active) {
+          navigate('/business-pending-approval', { replace: true });
+        } else {
+          navigate('/business-account', { replace: true });
+        }
       }
       // If no business account, let them access the form
     } catch (error) {
@@ -101,16 +105,28 @@ const BusinessAuth = () => {
         return;
       }
 
-      toast({
-        title: 'Connexion réussie',
-        description: 'Bienvenue dans votre espace business',
-      });
-      
-      // Mettre à jour le mode utilisateur
+      // Check if account is approved
+      const { data: businessAccount } = await supabase
+        .from('business_accounts')
+        .select('is_active')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
       setUserMode('business');
       
-      // Redirect to business account
-      navigate('/business-account', { replace: true });
+      if (!businessAccount?.is_active) {
+        toast({
+          title: 'Compte en attente',
+          description: 'Votre compte est en attente d\'approbation',
+        });
+        navigate('/business-pending-approval', { replace: true });
+      } else {
+        toast({
+          title: 'Connexion réussie',
+          description: 'Bienvenue dans votre espace business',
+        });
+        navigate('/business-account', { replace: true });
+      }
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -157,7 +173,7 @@ const BusinessAuth = () => {
         return;
       }
 
-      // If user is created, create business account
+      // If user is created, create business account with is_active=false
       if (authData.user) {
         try {
           const { error: businessError } = await supabase
@@ -169,14 +185,28 @@ const BusinessAuth = () => {
               phone: data.phone || '',
               address: data.address || '',
               description: data.description || '',
+              is_active: false, // Compte en attente d'approbation
             });
 
           if (businessError) {
             console.error('Error creating business account:', businessError);
           } else {
-            // Mettre à jour le mode utilisateur
+            // Create notification for admin
+            await supabase.from('scheduled_notifications').insert({
+              user_id: authData.user.id,
+              notification_type: 'business_registration',
+              title: 'Nouvelle inscription prestataire',
+              message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
+              scheduled_for: new Date().toISOString(),
+              delivery_methods: ['push', 'in_app'],
+              metadata: {
+                business_name: data.businessName,
+                business_type: data.businessType,
+                business_user_id: authData.user.id,
+              }
+            });
+
             setUserMode('business');
-            // Rafraîchir la session pour que AuthContext détecte le nouveau business_account
             await refreshSession();
           }
         } catch (businessCreationError) {
@@ -185,9 +215,12 @@ const BusinessAuth = () => {
       }
 
       toast({
-        title: 'Compte business créé',
-        description: 'Vérifiez votre email pour confirmer votre compte',
+        title: 'Inscription soumise',
+        description: 'Votre compte est en attente d\'approbation par l\'équipe JOIE DE VIVRE',
       });
+      
+      // Redirect to pending approval page
+      navigate('/business-pending-approval', { replace: true });
       reset();
     } catch (error) {
       toast({
