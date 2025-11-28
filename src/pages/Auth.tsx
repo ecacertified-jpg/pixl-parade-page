@@ -221,6 +221,27 @@ const Auth = () => {
         const isNewSignup = profileData && 
           (new Date().getTime() - new Date(profileData.created_at).getTime()) < 60000; // Less than 1 minute old
 
+        // Send welcome email for new signups
+        if (isNewSignup || authMode === 'signup') {
+          const userEmail = authData.user.email || authData.user.phone;
+          const userName = authData.user.user_metadata?.first_name || 'utilisateur';
+          
+          if (userEmail) {
+            try {
+              await supabase.functions.invoke('send-welcome-email', {
+                body: {
+                  user_email: userEmail,
+                  user_name: userName,
+                }
+              });
+              console.log('Welcome email sent successfully');
+            } catch (emailError) {
+              console.error('Error sending welcome email:', emailError);
+              // Don't block signup if email fails
+            }
+          }
+        }
+
         toast({
           title: authMode === 'signup' ? 'Compte créé' : 'Connexion réussie',
           description: authMode === 'signup' ? 'Votre compte a été créé avec succès' : 'Vous êtes maintenant connecté',
