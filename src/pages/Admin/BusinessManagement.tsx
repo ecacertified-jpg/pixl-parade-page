@@ -32,6 +32,9 @@ interface Business {
   phone: string | null;
   is_verified: boolean;
   is_active: boolean;
+  status: string;
+  rejection_reason: string | null;
+  corrections_message: string | null;
   created_at: string;
 }
 
@@ -53,7 +56,7 @@ export default function BusinessManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, email, phone, is_verified, is_active, created_at')
+        .select('id, business_name, business_type, email, phone, is_verified, is_active, status, rejection_reason, corrections_message, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -94,7 +97,10 @@ export default function BusinessManagement() {
 
       const { error } = await supabase
         .from('business_accounts')
-        .update({ is_active: active })
+        .update({ 
+          is_active: active,
+          status: active ? 'active' : 'pending',
+        })
         .eq('id', businessId);
 
       if (error) throw error;
@@ -156,7 +162,7 @@ export default function BusinessManagement() {
     if (!businessToReject) return;
 
     try {
-      // Log rejection action BEFORE deleting
+      // Log rejection action
       const { data: { user } } = await supabase.auth.getUser();
       await supabase.from('business_registration_logs').insert({
         business_account_id: businessToReject.id,
@@ -168,13 +174,18 @@ export default function BusinessManagement() {
         admin_user_id: user?.id,
       });
 
-      // Delete the business account
-      const { error: deleteError } = await supabase
+      // Mark business as rejected (don't delete, allow resubmission)
+      const { error: updateError } = await supabase
         .from('business_accounts')
-        .delete()
+        .update({
+          status: 'rejected',
+          rejection_reason: reason,
+          rejection_date: new Date().toISOString(),
+          is_active: false,
+        })
         .eq('id', businessToReject.id);
 
-      if (deleteError) throw deleteError;
+      if (updateError) throw updateError;
 
       // Send rejection email
       if (businessToReject.email) {
@@ -276,28 +287,35 @@ export default function BusinessManagement() {
                     </TableCell>
                     <TableCell>{formatDate(business.created_at)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        {!business.is_active && !business.is_verified && (
-                          <Badge variant="default" className="bg-orange-500 hover:bg-orange-600">
-                            <Clock className="mr-1 h-3 w-3" />
-                            Approbation requise
-                          </Badge>
-                        )}
-                        {business.is_verified ? (
-                          <Badge variant="default">
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            Vérifié
-                          </Badge>
-                        ) : business.is_active && (
-                          <Badge variant="secondary">
-                            <Clock className="mr-1 h-3 w-3" />
-                            Non vérifié
-                          </Badge>
-                        )}
-                        {!business.is_active && business.is_verified && (
+                      <div className="flex flex-wrap gap-2">
+                        {business.status === 'rejected' && (
                           <Badge variant="destructive">
                             <XCircle className="mr-1 h-3 w-3" />
-                            Inactif
+                            Rejeté
+                          </Badge>
+                        )}
+                        {business.status === 'resubmitted' && (
+                          <Badge className="bg-blue-500 hover:bg-blue-600">
+                            <Clock className="mr-1 h-3 w-3" />
+                            Réinscrit
+                          </Badge>
+                        )}
+                        {business.status === 'pending' && (
+                          <Badge variant="default" className="bg-orange-500 hover:bg-orange-600">
+                            <Clock className="mr-1 h-3 w-3" />
+                            En attente
+                          </Badge>
+                        )}
+                        {business.status === 'active' && business.is_verified && (
+                          <Badge variant="default">
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                            Actif & Vérifié
+                          </Badge>
+                        )}
+                        {business.status === 'active' && !business.is_verified && (
+                          <Badge variant="secondary">
+                            <Clock className="mr-1 h-3 w-3" />
+                            Actif (non vérifié)
                           </Badge>
                         )}
                       </div>
@@ -310,7 +328,35 @@ export default function BusinessManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {!business.is_active && (
+                          {business.status === 'resubmitted' && business.corrections_message && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast.info('Corrections apportées', {
+                                  description: business.corrections_message,
+                                  duration: 8000,
+                                });
+                              }}
+                              className="text-blue-600 font-medium"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Voir les corrections
+                            </DropdownMenuItem>
+                          )}
+                          {business.status === 'rejected' && business.rejection_reason && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                toast.info('Raison du rejet', {
+                                  description: business.rejection_reason,
+                                  duration: 8000,
+                                });
+                              }}
+                              className="text-red-600 font-medium"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Voir la raison du rejet
+                            </DropdownMenuItem>
+                          )}
+                          {(business.status === 'pending' || business.status === 'resubmitted') && !business.is_active && (
                             <>
                               <DropdownMenuItem
                                 onClick={() => handleToggleActive(business.id, true)}
@@ -331,7 +377,7 @@ export default function BusinessManagement() {
                               </DropdownMenuItem>
                             </>
                           )}
-                          {business.is_active && !business.is_verified && (
+                          {business.status === 'active' && !business.is_verified && (
                             <DropdownMenuItem
                               onClick={() => handleVerifyBusiness(business.id, true)}
                             >
@@ -347,7 +393,7 @@ export default function BusinessManagement() {
                               Retirer la vérification
                             </DropdownMenuItem>
                           )}
-                          {business.is_active && (
+                          {business.status === 'active' && business.is_active && (
                             <DropdownMenuItem
                               onClick={() => handleToggleActive(business.id, false)}
                               className="text-destructive"
