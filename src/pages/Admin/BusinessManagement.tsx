@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
+import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
 
 interface Business {
   id: string;
@@ -40,6 +41,8 @@ export default function BusinessManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [businessToReject, setBusinessToReject] = useState<Business | null>(null);
 
   useEffect(() => {
     fetchBusinesses();
@@ -135,6 +138,47 @@ export default function BusinessManagement() {
     } catch (error) {
       console.error('Error updating business:', error);
       toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleRejectBusiness = async (reason: string) => {
+    if (!businessToReject) return;
+
+    try {
+      // Delete the business account
+      const { error: deleteError } = await supabase
+        .from('business_accounts')
+        .delete()
+        .eq('id', businessToReject.id);
+
+      if (deleteError) throw deleteError;
+
+      // Send rejection email
+      if (businessToReject.email) {
+        console.log(`Sending rejection email to ${businessToReject.email}`);
+        const { error: emailError } = await supabase.functions.invoke('send-business-rejection-email', {
+          body: {
+            business_email: businessToReject.email,
+            business_name: businessToReject.business_name,
+            rejection_reason: reason,
+          }
+        });
+
+        if (emailError) {
+          console.error('Error sending rejection email:', emailError);
+          toast.error('Compte rejeté mais l\'email n\'a pas pu être envoyé');
+        } else {
+          console.log('Rejection email sent successfully');
+          toast.success('Demande rejetée et email envoyé au prestataire');
+        }
+      } else {
+        toast.success('Demande rejetée (pas d\'email disponible)');
+      }
+
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Error rejecting business:', error);
+      toast.error('Erreur lors du rejet de la demande');
     }
   };
 
@@ -244,13 +288,25 @@ export default function BusinessManagement() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {!business.is_active && (
-                            <DropdownMenuItem
-                              onClick={() => handleToggleActive(business.id, true)}
-                              className="text-green-600 font-medium"
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Approuver le compte
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleToggleActive(business.id, true)}
+                                className="text-green-600 font-medium"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Approuver le compte
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setBusinessToReject(business);
+                                  setRejectModalOpen(true);
+                                }}
+                                className="text-destructive font-medium"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Rejeter la demande
+                              </DropdownMenuItem>
+                            </>
                           )}
                           {business.is_active && !business.is_verified && (
                             <DropdownMenuItem
@@ -293,11 +349,18 @@ export default function BusinessManagement() {
           </CardContent>
         </Card>
         
-        {/* Modal */}
+        {/* Modals */}
         <BusinessProfileModal
           businessId={selectedBusinessId}
           open={profileModalOpen}
           onOpenChange={setProfileModalOpen}
+        />
+        
+        <RejectBusinessModal
+          open={rejectModalOpen}
+          onOpenChange={setRejectModalOpen}
+          businessName={businessToReject?.business_name || ''}
+          onConfirm={handleRejectBusiness}
         />
       </div>
     </AdminLayout>
