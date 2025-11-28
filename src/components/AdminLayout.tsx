@@ -20,8 +20,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -52,9 +53,44 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const { isSuperAdmin, adminRole } = useAdmin();
   const [open, setOpen] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
   
   // Activer les notifications en temps réel pour les nouveaux signalements
   useReportNotifications();
+
+  // Récupérer le nombre de comptes business en attente d'approbation
+  useEffect(() => {
+    const fetchPendingApprovals = async () => {
+      const { count } = await supabase
+        .from('business_accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', false);
+      
+      setPendingApprovalsCount(count || 0);
+    };
+
+    fetchPendingApprovals();
+
+    // S'abonner aux changements en temps réel
+    const channel = supabase
+      .channel('business_accounts_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'business_accounts'
+        },
+        () => {
+          fetchPendingApprovals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -92,7 +128,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 to={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -100,6 +136,14 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               >
                 <Icon className="h-5 w-5" />
                 {item.title}
+                {item.href === '/admin/businesses' && pendingApprovalsCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="ml-auto h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {pendingApprovalsCount}
+                  </Badge>
+                )}
               </Link>
             );
           })}
