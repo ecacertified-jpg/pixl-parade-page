@@ -118,10 +118,10 @@ export default function AdminDashboard() {
 
       if (updateError) throw updateError;
 
-      // Get business owner user_id
+      // Get business owner data including email
       const { data: businessData } = await supabase
         .from('business_accounts')
-        .select('user_id')
+        .select('user_id, email, business_type')
         .eq('id', businessId)
         .single();
 
@@ -139,6 +139,24 @@ export default function AdminDashboard() {
             action_url: '/business-account',
           },
         });
+
+        // Send approval email
+        if (businessData.email) {
+          console.log(`Sending approval email to ${businessData.email}`);
+          const { error: emailError } = await supabase.functions.invoke('send-business-approval-email', {
+            body: {
+              business_email: businessData.email,
+              business_name: businessName,
+              business_type: businessData.business_type || 'Prestataire',
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending approval email:', emailError);
+          } else {
+            console.log('Approval email sent successfully');
+          }
+        }
       }
 
       toast.success(`Compte "${businessName}" approuvé avec succès`);
