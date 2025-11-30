@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useComments } from '@/hooks/useComments';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,11 +77,14 @@ export function CommentsSection({ postId, onCommentAdded }: CommentsSectionProps
 
             return (
               <div key={comment.id} className="flex gap-2 group">
-                <Avatar className="w-8 h-8 flex-shrink-0">
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-xs">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <OptimizedAvatar
+                  userId={comment.user_id}
+                  avatarUrl={comment.profiles?.avatar_url}
+                  name={authorName}
+                  fallback={initials}
+                  size={32}
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="bg-muted/50 rounded-2xl px-3 py-2">
                     <div className="flex items-center justify-between gap-2 mb-1">
@@ -111,11 +114,13 @@ export function CommentsSection({ postId, onCommentAdded }: CommentsSectionProps
 
       {/* Comment Form */}
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <Avatar className="w-8 h-8 flex-shrink-0">
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-xs">
-            {user?.email?.[0]?.toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
+        <OptimizedAvatar
+          userId={user?.id}
+          name={user?.email || 'User'}
+          fallback={user?.email?.[0]?.toUpperCase() || 'U'}
+          size={32}
+          className="flex-shrink-0"
+        />
         <div className="flex-1 flex gap-2">
           <Textarea
             value={newComment}

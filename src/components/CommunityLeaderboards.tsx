@@ -3,7 +3,7 @@ import { Trophy, Award, Medal, Gift, Heart, TrendingUp } from "lucide-react";
 import { useCommunityLeaderboards } from "@/hooks/useCommunityLeaderboards";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { motion } from "framer-motion";
 
 const badgeConfig = {
@@ -90,11 +90,12 @@ export const CommunityLeaderboards = () => {
                   {rankEmoji}
                 </div>
                 
-                <Avatar className="w-12 h-12">
-                  <AvatarFallback className={`text-sm font-semibold ${badgeInfo.color} text-white`}>
-                    {entry.userName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <OptimizedAvatar
+                  userId={entry.userId}
+                  name={entry.userName}
+                  size={48}
+                  className={`w-12 h-12 ${badgeInfo.color} text-white`}
+                />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
