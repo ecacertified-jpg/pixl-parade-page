@@ -3,7 +3,7 @@ import { UserPlus, Users, X, Share2, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InviteFriendsModal } from "@/components/InviteFriendsModal";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSuggestions } from "@/hooks/useUserSuggestions";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,14 +169,21 @@ export function UserSuggestionsSection() {
               key={suggestion.user_id}
               className="flex items-start gap-3 group"
             >
-              <OptimizedAvatar
-                userId={suggestion.user_id}
-                avatarUrl={suggestion.avatar_url}
-                name={userName}
-                fallback={userInitials}
-                size={48}
+              <Avatar
+                className="w-12 h-12 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/profile/${suggestion.user_id}`)}
-              />
+              >
+                {suggestion.avatar_url && (
+                  <AvatarImage
+                    src={suggestion.avatar_url}
+                    alt={userName}
+                    className="object-cover"
+                  />
+                )}
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
+                  {userInitials}
+                </AvatarFallback>
+              </Avatar>
 
               <div className="flex-1 min-w-0">
                 <h4

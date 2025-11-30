@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -256,12 +256,12 @@ export function CreatePostDrawer({ open, onOpenChange, initialMode = 'text' }: C
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-              <OptimizedAvatar
-                userId={user?.id}
-                avatarUrl={avatarUrl}
-                name={userName || user?.email || 'User'}
-                size={32}
-              />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
+                  {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex gap-1">
                 <Button
                   variant={visibility === 'public' ? 'default' : 'ghost'}

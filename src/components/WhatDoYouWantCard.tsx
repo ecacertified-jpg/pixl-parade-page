@@ -1,8 +1,7 @@
 import { Gift, PartyPopper } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
-import { useUserProfile } from "@/hooks/useUserProfile";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -14,7 +13,26 @@ export function WhatDoYouWantCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showValueModal, setShowValueModal] = useState(false);
-  const { data: profile } = useUserProfile(user?.id);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('avatar_url, first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (data) {
+          setAvatarUrl(data.avatar_url);
+          setUserName(`${data.first_name || ''} ${data.last_name || ''}`.trim());
+        }
+      };
+      fetchProfile();
+    }
+  }, [user?.id]);
   
   const handleOfferGift = () => {
     const dontShow = localStorage.getItem('jdv_value_modal_dont_show');
@@ -28,12 +46,12 @@ export function WhatDoYouWantCard() {
   return <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-sky-50">
       {/* Header with profile and question */}
       <div className="flex items-center gap-3 mb-6">
-        <OptimizedAvatar
-          userId={user?.id}
-          avatarUrl={profile?.avatar_url}
-          name={profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : user?.email || 'User'}
-          size={36}
-        />
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+            {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
         <h2 className="text-lg font-medium text-gray-500">
           Que voulez-vous célébrer aujourd'hui ?
         </h2>

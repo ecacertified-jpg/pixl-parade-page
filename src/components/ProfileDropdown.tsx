@@ -8,14 +8,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { OptimizedAvatar } from "@/components/ui/optimized-avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditBioModal } from "@/components/EditBioModal";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ModeSwitcher } from "@/components/ModeSwitcher";
 import { useUserStats } from "@/hooks/useUserStats";
+import { AvatarImage } from "@/components/ui/avatar";
 
 export const ProfileDropdown = () => {
   // Force rebuild - ProfileDropdown component
@@ -102,13 +103,14 @@ export const ProfileDropdown = () => {
               className="relative group cursor-pointer mb-4"
               onClick={() => setIsEditAvatarModalOpen(true)}
             >
-              <OptimizedAvatar
-                userId={user?.id}
-                avatarUrl={userProfile?.avatar_url}
-                name={userName}
-                size={64}
-                className="w-16 h-16"
-              />
+              <Avatar className="w-16 h-16 bg-muted">
+                {userProfile?.avatar_url && (
+                  <AvatarImage src={userProfile.avatar_url} alt={userName} />
+                )}
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
               <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Edit3 className="h-5 w-5 text-white" />
               </div>
