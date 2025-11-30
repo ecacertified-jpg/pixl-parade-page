@@ -99,7 +99,7 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
               avatarUrl={post.profiles?.avatar_url}
               name={authorName}
               fallback={initials}
-              size={40}
+              size={36}
               onClick={() => navigate(`/profile/${post.user_id}`)}
             />
             <div>
