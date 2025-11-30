@@ -32,7 +32,7 @@ export function WhatDoYouWantCard() {
           userId={user?.id}
           avatarUrl={profile?.avatar_url}
           name={profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : user?.email || 'User'}
-          size={48}
+          size={36}
         />
         <h2 className="text-lg font-medium text-gray-500">
           Que voulez-vous célébrer aujourd'hui ?
