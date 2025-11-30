@@ -31,6 +31,7 @@ type BusinessAuthFormData = z.infer<typeof businessAuthSchema>;
 
 const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [businessNameError, setBusinessNameError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, setUserMode, refreshSession } = useAuth();
@@ -77,6 +78,38 @@ const BusinessAuth = () => {
     } catch (error) {
       // Error likely means no business account exists, which is fine
       console.log('No existing business account found, showing form');
+    }
+  };
+
+  const checkBusinessNameUniqueness = async (businessName: string) => {
+    if (!businessName || businessName.trim().length === 0) {
+      setBusinessNameError(null);
+      return true;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .ilike('business_name', businessName.trim())
+        .in('status', ['pending', 'active', 'resubmitted'])
+        .limit(1);
+
+      if (error) {
+        console.error('Error checking business name:', error);
+        return true; // Allow submission if check fails
+      }
+
+      if (data && data.length > 0) {
+        setBusinessNameError('Ce nom d\'entreprise est déjà utilisé. Veuillez en choisir un autre.');
+        return false;
+      }
+
+      setBusinessNameError(null);
+      return true;
+    } catch (error) {
+      console.error('Error checking business name:', error);
+      return true; // Allow submission if check fails
     }
   };
 
@@ -141,6 +174,19 @@ const BusinessAuth = () => {
   const signUp = async (data: BusinessAuthFormData) => {
     try {
       setIsLoading(true);
+
+      // Vérifier l'unicité du nom d'entreprise avant de créer le compte
+      const isUnique = await checkBusinessNameUniqueness(data.businessName || '');
+      if (!isUnique) {
+        setIsLoading(false);
+        toast({
+          title: 'Nom d\'entreprise déjà utilisé',
+          description: 'Ce nom d\'entreprise est déjà enregistré. Veuillez en choisir un autre.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/business-account`;
       
       const { data: authData, error } = await supabase.auth.signUp({
@@ -350,9 +396,13 @@ const BusinessAuth = () => {
                     id="businessName"
                     placeholder="Mon Enterprise SARL"
                     {...register('businessName')}
+                    onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
                   />
                   {errors.businessName && (
                     <p className="text-sm text-destructive">{errors.businessName.message}</p>
+                  )}
+                  {businessNameError && (
+                    <p className="text-sm text-destructive">{businessNameError}</p>
                   )}
                 </div>
 
