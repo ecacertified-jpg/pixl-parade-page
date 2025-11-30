@@ -366,7 +366,12 @@ export default function Shop() {
                 </div>
                 
                 <div className="p-4">
-                  <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                  <div className="flex items-start justify-between mb-2 gap-2">
+                    <h3 className="font-semibold text-lg flex-1">{product.name}</h3>
+                    <Badge variant="outline" className="text-xs font-normal whitespace-nowrap">
+                      {product.vendor}
+                    </Badge>
+                  </div>
                   <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xl font-bold text-primary">
@@ -378,7 +383,7 @@ export default function Shop() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center mb-4">
                     <ProductRatingDisplay
                       productId={String(product.id)}
                       onWriteReview={() => {
@@ -388,7 +393,6 @@ export default function Shop() {
                       }}
                       compact
                     />
-                    <span className="text-sm text-muted-foreground">{product.vendor}</span>
                   </div>
 
                   <Button 
