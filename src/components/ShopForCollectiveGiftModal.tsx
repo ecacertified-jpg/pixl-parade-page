@@ -278,7 +278,12 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                     </div>
                     
                     <div className="p-3 sm:p-4">
-                      <h3 className="font-semibold text-base sm:text-lg mb-1 line-clamp-1">{product.name}</h3>
+                      <div className="flex items-start justify-between mb-2 gap-2">
+                        <h3 className="font-semibold text-base sm:text-lg flex-1 line-clamp-1">{product.name}</h3>
+                        <Badge variant="outline" className="text-xs font-normal whitespace-nowrap">
+                          {product.vendor}
+                        </Badge>
+                      </div>
                       <p className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
                       <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
                         <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap">
@@ -290,13 +295,12 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
                         </Badge>
                       </div>
 
-                      <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+                      <div className="flex items-center mb-3 sm:mb-4">
                         <ProductRatingDisplay
                           productId={String(product.id)}
                           onWriteReview={() => {}}
                           compact
                         />
-                        <span className="text-xs sm:text-sm text-muted-foreground truncate">{product.vendor}</span>
                       </div>
 
                       <Button 
