@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +38,27 @@ export function CreatePostDrawer({ open, onOpenChange, initialMode = 'text' }: C
   const [aiSongPrompt, setAiSongPrompt] = useState('');
   const [isGeneratingAiSong, setIsGeneratingAiSong] = useState(false);
   const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('avatar_url, first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (data) {
+          setAvatarUrl(data.avatar_url);
+          setUserName(`${data.first_name || ''} ${data.last_name || ''}`.trim());
+        }
+      };
+      fetchProfile();
+    }
+  }, [user?.id]);
 
   const resetForm = () => {
     setPostType('text');
@@ -235,11 +256,12 @@ export function CreatePostDrawer({ open, onOpenChange, initialMode = 'text' }: C
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xs font-medium">
-                  {(user?.email?.[0] || 'U').toUpperCase()}
-                </span>
-              </div>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs">
+                  {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex gap-1">
                 <Button
                   variant={visibility === 'public' ? 'default' : 'ghost'}
