@@ -12,6 +12,7 @@ export interface Comment {
   profiles?: {
     first_name?: string;
     last_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -35,7 +36,7 @@ export function useComments(postId: string) {
       const userIds = [...new Set(commentsData?.map((comment) => comment.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name')
+        .select('user_id, first_name, last_name, avatar_url')
         .in('user_id', userIds);
 
       // Create a map of user_id to profile
@@ -51,6 +52,7 @@ export function useComments(postId: string) {
           profiles: profile ? {
             first_name: profile.first_name,
             last_name: profile.last_name,
+            avatar_url: profile.avatar_url,
           } : undefined,
         };
       });
