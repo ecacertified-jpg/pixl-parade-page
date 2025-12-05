@@ -34,26 +34,30 @@ export function BusinessRegistrationStats() {
     try {
       setLoading(true);
 
-      // Count approved and rejected from logs
-      const { data: logs } = await supabase
-        .from('business_registration_logs')
-        .select('action, created_at');
+      // Count directly from business_accounts table for accurate stats
+      const { count: total } = await supabase
+        .from('business_accounts')
+        .select('*', { count: 'exact', head: true });
 
-      const approved = logs?.filter(l => l.action === 'approved').length || 0;
-      const rejected = logs?.filter(l => l.action === 'rejected').length || 0;
+      const { count: approved } = await supabase
+        .from('business_accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
 
-      // Count pending (businesses that are not active yet)
+      const { count: rejected } = await supabase
+        .from('business_accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'rejected');
+
       const { count: pending } = await supabase
         .from('business_accounts')
         .select('*', { count: 'exact', head: true })
-        .eq('is_active', false);
-
-      const total = approved + rejected + (pending || 0);
+        .in('status', ['pending', 'resubmitted']);
 
       setStats({
-        total,
-        approved,
-        rejected,
+        total: total || 0,
+        approved: approved || 0,
+        rejected: rejected || 0,
         pending: pending || 0,
       });
 
