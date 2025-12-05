@@ -17,7 +17,8 @@ interface DashboardStats {
   activeBusinesses: number;
   totalTransactions: number;
   pendingReports: number;
-  pendingValidations: number;
+  pendingApprovals: number; // is_active = false
+  pendingVerifications: number; // is_active = true AND is_verified = false
   pendingRefunds: number;
 }
 
@@ -37,7 +38,8 @@ export default function AdminDashboard() {
     activeBusinesses: 0,
     totalTransactions: 0,
     pendingReports: 0,
-    pendingValidations: 0,
+    pendingApprovals: 0,
+    pendingVerifications: 0,
     pendingRefunds: 0,
   });
   const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
@@ -95,7 +97,8 @@ export default function AdminDashboard() {
         activeBusinesses: activeBusinesses || 0,
         totalTransactions: totalTransactions || 0,
         pendingReports: 0, // À implémenter avec table de signalements
-        pendingValidations: (pendingApprovals || 0) + (pendingValidations || 0),
+        pendingApprovals: pendingApprovals || 0,
+        pendingVerifications: pendingValidations || 0,
         pendingRefunds: 0, // À implémenter avec table refunds
       });
 
@@ -205,14 +208,27 @@ export default function AdminDashboard() {
 
         {/* Alerts */}
         <div className="grid gap-4">
-          {stats.pendingValidations > 0 && (
+          {stats.pendingApprovals > 0 && (
+            <Alert className="border-red-500 bg-red-50 dark:bg-red-950/30">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertTitle className="text-red-600">Approbation requise</AlertTitle>
+              <AlertDescription className="text-red-700 dark:text-red-400">
+                <strong>{stats.pendingApprovals}</strong> compte(s) prestataire(s) en attente d'<strong>approbation</strong>.{' '}
+                <a href="/admin/businesses" className="underline font-medium hover:text-red-800">
+                  Approuver →
+                </a>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {stats.pendingVerifications > 0 && (
             <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/30">
               <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertTitle className="text-orange-600">Action requise</AlertTitle>
+              <AlertTitle className="text-orange-600">Vérification requise</AlertTitle>
               <AlertDescription className="text-orange-700 dark:text-orange-400">
-                <strong>{stats.pendingValidations}</strong> compte(s) prestataire(s) en attente d'approbation ou de validation.{' '}
+                <strong>{stats.pendingVerifications}</strong> compte(s) prestataire(s) actif(s) en attente de <strong>vérification</strong>.{' '}
                 <a href="/admin/businesses" className="underline font-medium hover:text-orange-800">
-                  Voir les comptes →
+                  Vérifier →
                 </a>
               </AlertDescription>
             </Alert>
@@ -285,7 +301,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.pendingValidations + stats.pendingReports + stats.pendingRefunds}
+                {stats.pendingApprovals + stats.pendingVerifications + stats.pendingReports + stats.pendingRefunds}
               </div>
               <p className="text-xs text-muted-foreground">
                 Actions à traiter
