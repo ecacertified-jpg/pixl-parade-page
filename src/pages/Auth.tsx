@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
-import { Store, Gift } from 'lucide-react';
+import { Store, Gift, Shield } from 'lucide-react';
 import { handleSmartRedirect, getRedirectPath } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 
@@ -533,6 +533,18 @@ const Auth = () => {
               </div>
             </div>
           )}
+          
+          {/* Lien discret vers l'admin */}
+          <div className="mt-6 pt-4 border-t border-muted">
+            <button
+              type="button"
+              onClick={() => navigate('/admin-auth')}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 w-full opacity-60 hover:opacity-100"
+            >
+              <Shield className="h-3 w-3" />
+              Administration
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>
