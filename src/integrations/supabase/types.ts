@@ -4860,6 +4860,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
+      promote_to_super_admin: { Args: { admin_email: string }; Returns: string }
       request_contact_relationship: {
         Args: { p_message?: string; p_target_user_id: string }
         Returns: string
