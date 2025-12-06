@@ -4805,6 +4805,10 @@ export type Database = {
         Args: { p_beneficiary_user_id: string }
         Returns: boolean
       }
+      has_active_fund_for_contact: {
+        Args: { p_contact_id: string }
+        Returns: boolean
+      }
       has_contributed_to_fund: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
