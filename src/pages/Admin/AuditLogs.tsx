@@ -50,12 +50,12 @@ export default function AuditLogs() {
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={actionTypeFilter} onValueChange={setActionTypeFilter}>
+                <Select value={actionTypeFilter || "all"} onValueChange={(val) => setActionTypeFilter(val === "all" ? "" : val)}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Type d'action" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toutes les actions</SelectItem>
+                    <SelectItem value="all">Toutes les actions</SelectItem>
                     <SelectItem value="approve">Approuver</SelectItem>
                     <SelectItem value="hide">Masquer</SelectItem>
                     <SelectItem value="delete">Supprimer</SelectItem>
