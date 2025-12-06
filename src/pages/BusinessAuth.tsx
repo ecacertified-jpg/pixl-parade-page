@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft } from 'lucide-react';
+import { Store, ArrowLeft, Mail, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const businessAuthSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -32,6 +33,9 @@ type BusinessAuthFormData = z.infer<typeof businessAuthSchema>;
 const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [businessNameError, setBusinessNameError] = useState<string | null>(null);
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, setUserMode, refreshSession } = useAuth();
@@ -129,9 +133,11 @@ const BusinessAuth = () => {
             variant: 'destructive',
           });
         } else if (error.message.includes('Email not confirmed')) {
+          setShowResendButton(true);
+          setResendEmail(data.email);
           toast({
             title: 'Email non confirmé',
-            description: 'Veuillez confirmer votre email avant de vous connecter.',
+            description: 'Veuillez confirmer votre email. Vous pouvez demander un nouvel email de confirmation ci-dessous.',
             variant: 'destructive',
           });
         } else {
@@ -208,6 +214,43 @@ const BusinessAuth = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resendConfirmationEmail = async () => {
+    if (!resendEmail) return;
+    
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: resendEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/business-auth`
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Email envoyé',
+          description: 'Un nouvel email de confirmation a été envoyé. Vérifiez votre boîte de réception.',
+        });
+        setShowResendButton(false);
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'envoyer l\'email de confirmation',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -487,6 +530,33 @@ const BusinessAuth = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Connexion...' : 'Se connecter'}
                 </Button>
+
+                {showResendButton && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Mail className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-amber-800">
+                          Email non confirmé
+                        </p>
+                        <p className="text-sm text-amber-700">
+                          Votre email n'a pas encore été confirmé. Vérifiez votre boîte de réception ou demandez un nouvel email.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={resendConfirmationEmail}
+                      disabled={isResending}
+                      className="w-full border-amber-300 text-amber-700 hover:bg-amber-100"
+                    >
+                      <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
+                      {isResending ? 'Envoi en cours...' : 'Renvoyer l\'email de confirmation'}
+                    </Button>
+                  </div>
+                )}
               </form>
             </TabsContent>
             
