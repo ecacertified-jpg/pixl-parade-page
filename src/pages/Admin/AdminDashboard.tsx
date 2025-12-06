@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Users, Store, DollarSign, TrendingUp, AlertCircle, CheckCircle, Clock, CheckCheck, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [bulkVerifying, setBulkVerifying] = useState(false);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -186,6 +187,44 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleBulkVerify = async () => {
+    try {
+      setBulkVerifying(true);
+
+      // Get all unverified active businesses
+      const { data: unverifiedBusinesses, error: fetchError } = await supabase
+        .from('business_accounts')
+        .select('id, business_name')
+        .eq('is_active', true)
+        .eq('is_verified', false);
+
+      if (fetchError) throw fetchError;
+
+      if (!unverifiedBusinesses || unverifiedBusinesses.length === 0) {
+        toast.info('Aucun compte à vérifier');
+        return;
+      }
+
+      const ids = unverifiedBusinesses.map(b => b.id);
+
+      // Bulk update
+      const { error: updateError } = await supabase
+        .from('business_accounts')
+        .update({ is_verified: true })
+        .in('id', ids);
+
+      if (updateError) throw updateError;
+
+      toast.success(`${ids.length} compte(s) vérifié(s) avec succès`);
+      fetchDashboardStats();
+    } catch (error) {
+      console.error('Error bulk verifying:', error);
+      toast.error('Erreur lors de la vérification en masse');
+    } finally {
+      setBulkVerifying(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -225,11 +264,32 @@ export default function AdminDashboard() {
             <Alert className="border-orange-500 bg-orange-50 dark:bg-orange-950/30">
               <AlertCircle className="h-4 w-4 text-orange-600" />
               <AlertTitle className="text-orange-600">Vérification requise</AlertTitle>
-              <AlertDescription className="text-orange-700 dark:text-orange-400">
-                <strong>{stats.pendingVerifications}</strong> compte(s) prestataire(s) actif(s) en attente de <strong>vérification</strong>.{' '}
-                <a href="/admin/businesses" className="underline font-medium hover:text-orange-800">
-                  Vérifier →
-                </a>
+              <AlertDescription className="text-orange-700 dark:text-orange-400 flex items-center justify-between">
+                <span>
+                  <strong>{stats.pendingVerifications}</strong> compte(s) prestataire(s) actif(s) en attente de <strong>vérification</strong>.{' '}
+                  <a href="/admin/businesses" className="underline font-medium hover:text-orange-800">
+                    Vérifier →
+                  </a>
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleBulkVerify}
+                  disabled={bulkVerifying}
+                  className="ml-4 border-orange-500 text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/30"
+                >
+                  {bulkVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCheck className="mr-2 h-4 w-4" />
+                      Vérifier tous
+                    </>
+                  )}
+                </Button>
               </AlertDescription>
             </Alert>
           )}

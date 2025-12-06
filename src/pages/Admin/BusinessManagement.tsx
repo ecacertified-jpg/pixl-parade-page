@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -20,6 +21,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
@@ -46,6 +57,12 @@ export default function BusinessManagement() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [businessToReject, setBusinessToReject] = useState<Business | null>(null);
+  
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'verify' | 'approve' | 'deactivate' | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchBusinesses();
@@ -227,6 +244,144 @@ export default function BusinessManagement() {
     return new Date(date).toLocaleDateString('fr-FR');
   };
 
+  // Bulk selection helpers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredBusinesses.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredBusinesses.map(b => b.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  // Get counts for bulk actions
+  const getSelectedForVerification = () => 
+    filteredBusinesses.filter(b => selectedIds.has(b.id) && b.is_active && !b.is_verified);
+  const getSelectedForApproval = () => 
+    filteredBusinesses.filter(b => selectedIds.has(b.id) && !b.is_active && (b.status === 'pending' || b.status === 'resubmitted'));
+  const getSelectedForDeactivation = () => 
+    filteredBusinesses.filter(b => selectedIds.has(b.id) && b.is_active);
+
+  // Bulk action handlers
+  const handleBulkVerify = async () => {
+    const toVerify = getSelectedForVerification();
+    if (toVerify.length === 0) return;
+
+    try {
+      setBulkProcessing(true);
+      const ids = toVerify.map(b => b.id);
+
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ is_verified: true })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      toast.success(`${ids.length} compte(s) vérifié(s) avec succès`);
+      setSelectedIds(new Set());
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Bulk verify error:', error);
+      toast.error('Erreur lors de la vérification en masse');
+    } finally {
+      setBulkProcessing(false);
+      setConfirmDialogOpen(false);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    const toApprove = getSelectedForApproval();
+    if (toApprove.length === 0) return;
+
+    try {
+      setBulkProcessing(true);
+      const ids = toApprove.map(b => b.id);
+
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ is_active: true, status: 'active' })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      // Log approvals
+      const { data: { user } } = await supabase.auth.getUser();
+      const logs = toApprove.map(b => ({
+        business_account_id: b.id,
+        business_name: b.business_name,
+        business_email: b.email,
+        business_type: b.business_type,
+        action: 'approved' as const,
+        admin_user_id: user?.id,
+      }));
+      await supabase.from('business_registration_logs').insert(logs);
+
+      toast.success(`${ids.length} compte(s) approuvé(s) avec succès`);
+      setSelectedIds(new Set());
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Bulk approve error:', error);
+      toast.error('Erreur lors de l\'approbation en masse');
+    } finally {
+      setBulkProcessing(false);
+      setConfirmDialogOpen(false);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    const toDeactivate = getSelectedForDeactivation();
+    if (toDeactivate.length === 0) return;
+
+    try {
+      setBulkProcessing(true);
+      const ids = toDeactivate.map(b => b.id);
+
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ is_active: false, status: 'pending' })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      toast.success(`${ids.length} compte(s) désactivé(s)`);
+      setSelectedIds(new Set());
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Bulk deactivate error:', error);
+      toast.error('Erreur lors de la désactivation en masse');
+    } finally {
+      setBulkProcessing(false);
+      setConfirmDialogOpen(false);
+    }
+  };
+
+  const confirmBulkAction = () => {
+    if (bulkAction === 'verify') handleBulkVerify();
+    else if (bulkAction === 'approve') handleBulkApprove();
+    else if (bulkAction === 'deactivate') handleBulkDeactivate();
+  };
+
+  const getBulkActionDescription = () => {
+    if (bulkAction === 'verify') {
+      return `Vous êtes sur le point de vérifier ${getSelectedForVerification().length} compte(s) prestataire(s).`;
+    } else if (bulkAction === 'approve') {
+      return `Vous êtes sur le point d'approuver ${getSelectedForApproval().length} compte(s) prestataire(s).`;
+    } else if (bulkAction === 'deactivate') {
+      return `Vous êtes sur le point de désactiver ${getSelectedForDeactivation().length} compte(s) prestataire(s).`;
+    }
+    return '';
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -263,9 +418,70 @@ export default function BusinessManagement() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Bulk Actions Bar */}
+            {selectedIds.size > 0 && (
+              <div className="mb-4 p-3 bg-muted rounded-lg flex items-center justify-between">
+                <span className="font-medium">
+                  {selectedIds.size} prestataire(s) sélectionné(s)
+                </span>
+                <div className="flex gap-2">
+                  {getSelectedForVerification().length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setBulkAction('verify');
+                        setConfirmDialogOpen(true);
+                      }}
+                      disabled={bulkProcessing}
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      Vérifier ({getSelectedForVerification().length})
+                    </Button>
+                  )}
+                  {getSelectedForApproval().length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-green-500 text-green-600 hover:bg-green-50"
+                      onClick={() => {
+                        setBulkAction('approve');
+                        setConfirmDialogOpen(true);
+                      }}
+                      disabled={bulkProcessing}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Approuver ({getSelectedForApproval().length})
+                    </Button>
+                  )}
+                  {getSelectedForDeactivation().length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-500 text-red-600 hover:bg-red-50"
+                      onClick={() => {
+                        setBulkAction('deactivate');
+                        setConfirmDialogOpen(true);
+                      }}
+                      disabled={bulkProcessing}
+                    >
+                      <Power className="mr-2 h-4 w-4" />
+                      Désactiver ({getSelectedForDeactivation().length})
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredBusinesses.length && filteredBusinesses.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Nom du business</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Contact</TableHead>
@@ -276,7 +492,13 @@ export default function BusinessManagement() {
               </TableHeader>
               <TableBody>
                 {filteredBusinesses.map((business) => (
-                  <TableRow key={business.id}>
+                  <TableRow key={business.id} className={selectedIds.has(business.id) ? 'bg-muted/50' : ''}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(business.id)}
+                        onCheckedChange={() => toggleSelect(business.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{business.business_name}</TableCell>
                     <TableCell>{business.business_type || 'Non spécifié'}</TableCell>
                     <TableCell>
@@ -431,6 +653,33 @@ export default function BusinessManagement() {
           businessName={businessToReject?.business_name || ''}
           onConfirm={handleRejectBusiness}
         />
+
+        {/* Bulk Action Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmer l'action en masse</AlertDialogTitle>
+              <AlertDialogDescription>
+                {getBulkActionDescription()}
+                <br />
+                Cette action ne peut pas être annulée automatiquement.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={bulkProcessing}>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmBulkAction} disabled={bulkProcessing}>
+                {bulkProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Traitement...
+                  </>
+                ) : (
+                  'Confirmer'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
