@@ -41,7 +41,7 @@ const AdminAuth = () => {
           .single();
 
         if (adminData?.is_active) {
-          navigate('/admin/dashboard');
+          navigate('/admin');
         }
       }
     };
@@ -112,7 +112,7 @@ const AdminAuth = () => {
         description: `Bienvenue, vous êtes connecté en tant que ${adminData.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}`,
       });
 
-      navigate('/admin/dashboard');
+      navigate('/admin');
     } catch (error) {
       console.error('Admin login error:', error);
       toast({
