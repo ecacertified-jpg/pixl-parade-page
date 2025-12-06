@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import Install from "./pages/Install";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
@@ -54,11 +56,13 @@ const App = () => (
     <AuthProvider>
       <SelectedBusinessProvider>
         <TooltipProvider>
+          <OfflineIndicator />
           <Toaster />
           <Sonner />
           <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
             <Route path="/business-pending-approval" element={

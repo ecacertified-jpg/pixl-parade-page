@@ -1,25 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Joie de Vivre - Célébrez ensemble</title>
     <meta name="description" content="Célébrez et offrez des moments de bonheur à vos proches avec Joie de Vivre" />
     <meta name="author" content="Joie de Vivre" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#FF6B9D" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Joie de Vivre" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Joie de Vivre" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#FF6B9D" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    
+    <!-- PWA Links -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
 
     <!-- Google Fonts - Typographie Joie de Vivre -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+    <!-- Open Graph -->
     <meta property="og:title" content="Joie de Vivre - Célébrez ensemble" />
     <meta property="og:description" content="Célébrez et offrez des moments de bonheur à vos proches avec Joie de Vivre" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:locale" content="fr_FR" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Splash screens for iOS -->
+    <style>
+      /* Prevent flash of unstyled content */
+      html {
+        background-color: #FFF5F8;
+      }
+    </style>
   </head>
 
   <body>
