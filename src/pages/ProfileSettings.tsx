@@ -17,14 +17,38 @@ import { EditAvatarModal } from "@/components/EditAvatarModal";
 // Validation functions
 const validatePhone = (phone: string): string | null => {
   if (!phone || phone.trim() === "") return null; // Empty is valid
-  const phoneRegex = /^[\+]?[0-9\s\-\(\)]+$/;
-  if (!phoneRegex.test(phone)) {
-    return "Format invalide. Utilisez uniquement des chiffres, espaces, +, - ou parenthèses";
+  
+  // Remove all non-digit characters for validation
+  const digitsOnly = phone.replace(/\D/g, "");
+  
+  // Check for valid characters (digits, spaces, +, -, parentheses)
+  const validCharsRegex = /^[\+]?[0-9\s\-\(\)]+$/;
+  if (!validCharsRegex.test(phone)) {
+    return "Caractères non autorisés. Utilisez uniquement des chiffres, espaces, +, - ou parenthèses";
   }
-  if (phone.replace(/[\s\-\(\)\+]/g, "").length < 8) {
-    return "Le numéro doit contenir au moins 8 chiffres";
+  
+  // Ivory Coast format: 10 digits (e.g., 0707070707) or with country code (+225 0707070707 = 13 digits)
+  if (digitsOnly.length === 10) {
+    // Local format: should start with 0
+    if (!digitsOnly.startsWith("0")) {
+      return "Le numéro local doit commencer par 0 (ex: 07 07 07 07 07)";
+    }
+    return null; // Valid Ivory Coast local number
   }
-  return null;
+  
+  if (digitsOnly.length === 13 && digitsOnly.startsWith("225")) {
+    return null; // Valid with country code +225
+  }
+  
+  if (digitsOnly.length < 10) {
+    return "Le numéro doit contenir 10 chiffres (ex: 07 07 07 07 07)";
+  }
+  
+  if (digitsOnly.length > 13) {
+    return "Le numéro contient trop de chiffres";
+  }
+  
+  return "Format invalide. Exemples valides: 0707070707 ou +225 0707070707";
 };
 
 const validateBirthday = (birthday: string): string | null => {
