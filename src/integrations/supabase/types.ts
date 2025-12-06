@@ -2579,6 +2579,51 @@ export type Database = {
           },
         ]
       }
+      pending_business_registrations: {
+        Row: {
+          address: string | null
+          business_name: string
+          business_type: string | null
+          created_at: string
+          description: string | null
+          email: string
+          expires_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          business_type?: string | null
+          created_at?: string
+          description?: string | null
+          email: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          business_type?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       performance_metrics: {
         Row: {
           device_info: Json | null
@@ -4510,6 +4555,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_pending_registrations: { Args: never; Returns: number }
       create_business_collective_fund:
         | {
             Args: {
@@ -4806,6 +4852,10 @@ export type Database = {
         Returns: string
       }
       process_expired_funds: { Args: never; Returns: undefined }
+      process_pending_business_registration: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       request_contact_relationship: {
         Args: { p_message?: string; p_target_user_id: string }
         Returns: string

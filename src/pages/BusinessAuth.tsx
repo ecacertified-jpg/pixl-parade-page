@@ -128,6 +128,12 @@ const BusinessAuth = () => {
             description: 'Email ou mot de passe incorrect',
             variant: 'destructive',
           });
+        } else if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: 'Email non confirmé',
+            description: 'Veuillez confirmer votre email avant de vous connecter.',
+            variant: 'destructive',
+          });
         } else {
           toast({
             title: 'Erreur',
@@ -138,16 +144,50 @@ const BusinessAuth = () => {
         return;
       }
 
-      // Check if account is approved
-      const { data: businessAccount } = await supabase
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de récupérer les informations utilisateur',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Check if there's a pending registration to process (email just verified)
+      const newBusinessId = await processPendingRegistration(currentUser.id);
+      
+      if (newBusinessId) {
+        toast({
+          title: 'Compte créé avec succès',
+          description: 'Votre email a été vérifié. Votre compte est maintenant en attente d\'approbation.',
+        });
+        setUserMode('business');
+        navigate('/business-pending-approval', { replace: true });
+        return;
+      }
+
+      // Check if business account exists
+      const { data: businessAccount, error: businessError } = await supabase
         .from('business_accounts')
-        .select('is_active')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .select('is_active, status')
+        .eq('user_id', currentUser.id)
         .single();
+
+      if (businessError || !businessAccount) {
+        toast({
+          title: 'Aucun compte business',
+          description: 'Aucun compte prestataire trouvé. Veuillez vous inscrire.',
+          variant: 'destructive',
+        });
+        await supabase.auth.signOut();
+        return;
+      }
 
       setUserMode('business');
       
-      if (!businessAccount?.is_active) {
+      if (!businessAccount.is_active) {
         toast({
           title: 'Compte en attente',
           description: 'Votre compte est en attente d\'approbation',
@@ -171,6 +211,24 @@ const BusinessAuth = () => {
     }
   };
 
+  const processPendingRegistration = async (userId: string) => {
+    try {
+      const { data: businessId, error } = await supabase.rpc('process_pending_business_registration', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error('Error processing pending registration:', error);
+        return null;
+      }
+      
+      return businessId;
+    } catch (error) {
+      console.error('Error processing pending registration:', error);
+      return null;
+    }
+  };
+
   const signUp = async (data: BusinessAuthFormData) => {
     try {
       setIsLoading(true);
@@ -187,7 +245,7 @@ const BusinessAuth = () => {
         return;
       }
 
-      const redirectUrl = `${window.location.origin}/business-account`;
+      const redirectUrl = `${window.location.origin}/business-auth`;
       
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
@@ -198,6 +256,7 @@ const BusinessAuth = () => {
             first_name: data.firstName,
             last_name: data.lastName,
             is_business: true,
+            pending_business_name: data.businessName,
           },
         },
       });
@@ -221,24 +280,42 @@ const BusinessAuth = () => {
 
       // Si l'utilisateur est créé mais sans session (confirmation email requise)
       if (authData.user && !authData.session) {
+        // Store pending registration data for after email verification
+        const { error: pendingError } = await supabase
+          .from('pending_business_registrations')
+          .insert({
+            user_id: authData.user.id,
+            email: data.email,
+            business_name: data.businessName || '',
+            business_type: data.businessType || null,
+            phone: data.phone || null,
+            address: data.address || null,
+            description: data.description || null,
+            first_name: data.firstName || null,
+            last_name: data.lastName || null,
+          });
+
+        if (pendingError) {
+          console.error('Error storing pending registration:', pendingError);
+          // Still show success message since the auth account was created
+        }
+
         toast({
           title: 'Vérifiez votre email',
-          description: 'Un email de confirmation a été envoyé. Veuillez le confirmer pour activer votre compte.',
+          description: 'Un email de confirmation a été envoyé. Confirmez votre email pour finaliser votre inscription.',
         });
         navigate('/business-pending-approval', { replace: true });
         return;
       }
 
-      // Si une session est retournée, définir explicitement la session avant de créer le compte business
+      // Si une session est retournée (email confirmation disabled), créer directement le compte
       if (authData.user && authData.session) {
         try {
-          // Définir explicitement la nouvelle session pour que auth.uid() soit correct
           await supabase.auth.setSession({
             access_token: authData.session.access_token,
             refresh_token: authData.session.refresh_token,
           });
 
-          // Maintenant créer le compte business avec la bonne session
           const { error: businessError } = await supabase
             .from('business_accounts')
             .insert({
@@ -249,14 +326,13 @@ const BusinessAuth = () => {
               address: data.address || '',
               description: data.description || '',
               email: data.email,
-              is_active: false, // Compte en attente d'approbation
+              is_active: false,
               status: 'pending',
             });
 
           if (businessError) {
             console.error('Error creating business account:', businessError);
             
-            // Detect RLS policy violation
             if (businessError.code === '42501' || businessError.message?.includes('row-level security') || businessError.message?.includes('RLS')) {
               toast({
                 title: 'Erreur de sécurité',
@@ -285,7 +361,7 @@ const BusinessAuth = () => {
             return;
           }
 
-          // Récupérer tous les admins actifs et leur envoyer une notification
+          // Notify admins
           const { data: admins } = await supabase
             .from('admin_users')
             .select('user_id')
@@ -328,7 +404,6 @@ const BusinessAuth = () => {
         description: 'Votre compte est en attente d\'approbation par l\'équipe JOIE DE VIVRE',
       });
       
-      // Redirect to pending approval page
       navigate('/business-pending-approval', { replace: true });
       reset();
     } catch (error) {
