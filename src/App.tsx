@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import AdminAuth from "./pages/AdminAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
+            <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/business-pending-approval" element={
               <ProtectedRoute>
                 <BusinessPendingApproval />
