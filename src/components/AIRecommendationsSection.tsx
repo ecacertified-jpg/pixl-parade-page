@@ -1,0 +1,270 @@
+import { useState } from "react";
+import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAIRecommendations } from "@/hooks/useAIRecommendations";
+import { useContacts } from "@/hooks/useContacts";
+import { cn } from "@/lib/utils";
+
+const occasions = [
+  { value: "birthday", label: "Anniversaire" },
+  { value: "wedding", label: "Mariage" },
+  { value: "promotion", label: "Promotion" },
+  { value: "academic", label: "Réussite académique" },
+  { value: "christmas", label: "Noël" },
+  { value: "valentine", label: "Saint-Valentin" },
+  { value: "other", label: "Autre occasion" },
+];
+
+interface AIRecommendationsSectionProps {
+  onAddToCart?: (product: any) => void;
+  onAddToFavorites?: (productId: string) => void;
+}
+
+export function AIRecommendationsSection({ onAddToCart, onAddToFavorites }: AIRecommendationsSectionProps) {
+  const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
+  const { contacts } = useContacts();
+  
+  const [showFilters, setShowFilters] = useState(true);
+  const [selectedContact, setSelectedContact] = useState<string>("");
+  const [selectedOccasion, setSelectedOccasion] = useState<string>("");
+  const [budgetMin, setBudgetMin] = useState<string>("");
+  const [budgetMax, setBudgetMax] = useState<string>("");
+
+  const handleGetRecommendations = async () => {
+    await getRecommendations({
+      contactId: selectedContact || undefined,
+      occasion: selectedOccasion || undefined,
+      budgetMin: budgetMin ? parseInt(budgetMin) : undefined,
+      budgetMax: budgetMax ? parseInt(budgetMax) : undefined,
+    });
+    setShowFilters(false);
+  };
+
+  const handleReset = () => {
+    clearRecommendations();
+    setSelectedContact("");
+    setSelectedOccasion("");
+    setBudgetMin("");
+    setBudgetMax("");
+    setShowFilters(true);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600 bg-green-100";
+    if (score >= 60) return "text-amber-600 bg-amber-100";
+    return "text-gray-600 bg-gray-100";
+  };
+
+  return (
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Recommandations IA</CardTitle>
+              <CardDescription>Des suggestions personnalisées pour vous</CardDescription>
+            </div>
+          </div>
+          {recommendations.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleReset}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Nouvelle recherche
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        {showFilters && (
+          <div className="space-y-4 p-4 bg-background/50 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Critères de recherche</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Pour qui ?</Label>
+                <Select value={selectedContact} onValueChange={setSelectedContact}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir un proche" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Moi-même</SelectItem>
+                    {contacts.map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Occasion</Label>
+                <Select value={selectedOccasion} onValueChange={setSelectedOccasion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir une occasion" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {occasions.map((occasion) => (
+                      <SelectItem key={occasion.value} value={occasion.value}>
+                        {occasion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Budget min (XOF)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={budgetMin}
+                  onChange={(e) => setBudgetMin(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Budget max (XOF)</Label>
+                <Input
+                  type="number"
+                  placeholder="100000"
+                  value={budgetMax}
+                  onChange={(e) => setBudgetMax(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={handleGetRecommendations}
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Analyse en cours...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Obtenir des recommandations
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* General Advice */}
+        {generalAdvice && (
+          <div className="p-4 bg-primary/10 rounded-lg">
+            <p className="text-sm text-foreground/80 italic">
+              💡 {generalAdvice}
+            </p>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              {recommendations.length} suggestions pour vous
+            </h4>
+            
+            {recommendations.map((rec, index) => (
+              <div
+                key={index}
+                className="flex gap-4 p-4 bg-background rounded-lg border hover:border-primary/30 transition-colors"
+              >
+                {rec.product?.image_url && (
+                  <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                    <img
+                      src={rec.product.image_url}
+                      alt={rec.productName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h5 className="font-medium truncate">{rec.productName}</h5>
+                      {rec.product?.price && (
+                        <p className="text-sm text-primary font-semibold">
+                          {rec.product.price.toLocaleString()} {rec.product.currency || "XOF"}
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={cn("flex-shrink-0", getScoreColor(rec.matchScore))}>
+                      {rec.matchScore}% match
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {rec.reason}
+                  </p>
+
+                  {rec.product && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onAddToFavorites?.(rec.product!.id)}
+                      >
+                        <Heart className="h-3 w-3 mr-1" />
+                        Favoris
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => onAddToCart?.(rec.product)}
+                      >
+                        <ShoppingCart className="h-3 w-3 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && recommendations.length === 0 && !error && !showFilters && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Gift className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>Aucune recommandation pour le moment</p>
+            <Button variant="link" onClick={() => setShowFilters(true)}>
+              Modifier les critères
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

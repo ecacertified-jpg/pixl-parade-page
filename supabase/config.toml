@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-business-rejection-email]
 verify_jwt = true
+
+[functions.ai-gift-recommendations]
+verify_jwt = false
