@@ -9,16 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderModal } from "@/components/OrderModal";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
 import { RatingModal } from "@/components/RatingModal";
+import { AIRecommendationsSection } from "@/components/AIRecommendationsSection";
 import LocationSelector from "@/components/LocationSelector";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Shop() {
   const navigate = useNavigate();
-  const { itemCount } = useCart();
+  const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
+  const { toast } = useToast();
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -308,6 +311,32 @@ export default function Shop() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* AI Recommendations Section */}
+        <div className="mb-6">
+          <AIRecommendationsSection
+            onAddToCart={(product) => {
+              addItem({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                image: product.image_url,
+                quantity: 1
+              });
+              toast({
+                title: "Ajouté au panier",
+                description: `${product.name} a été ajouté à votre panier`,
+              });
+            }}
+            onAddToFavorites={async (productId) => {
+              await addFavorite(productId);
+              toast({
+                title: "Ajouté aux favoris",
+                description: "Le produit a été ajouté à vos favoris",
+              });
+            }}
+          />
+        </div>
 
         {/* Business CTA */}
         <Card className="mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30">
