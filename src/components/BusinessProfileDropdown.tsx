@@ -1,4 +1,4 @@
-import { User, Store, BarChart3, Package, LogOut, Edit3, Settings, TrendingUp } from "lucide-react";
+import { User, Store, BarChart3, Package, LogOut, Edit3, Settings, TrendingUp, Cog } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -146,6 +146,14 @@ export const BusinessProfileDropdown = () => {
           >
             <User className="h-4 w-4 mr-3 text-muted-foreground" />
             <span className="text-sm font-medium">Mode client</span>
+          </button>
+
+          <button 
+            onClick={() => navigate("/business-profile-settings")}
+            className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+          >
+            <Cog className="h-4 w-4 mr-3 text-muted-foreground" />
+            <span className="text-sm font-medium">Paramètres entreprise</span>
           </button>
 
           <DropdownMenuSeparator className="my-2" />

@@ -42,6 +42,8 @@ import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
 import ReferralCodes from "./pages/ReferralCodes";
+import ProfileSettings from "./pages/ProfileSettings";
+import BusinessProfileSettings from "./pages/BusinessProfileSettings";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -167,6 +169,16 @@ const App = () => (
             <Route path="/referral-codes" element={
               <ProtectedRoute>
                 <ReferralCodes />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile-settings" element={
+              <ProtectedRoute>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/business-profile-settings" element={
+              <ProtectedRoute>
+                <BusinessProfileSettings />
               </ProtectedRoute>
             } />
             {/* Admin routes */}

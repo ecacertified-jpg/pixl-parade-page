@@ -7,6 +7,12 @@ interface BusinessAccount {
   business_name: string;
   business_type?: string;
   is_active: boolean;
+  description?: string;
+  logo_url?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  website_url?: string;
 }
 
 export const useBusinessAccount = () => {
@@ -28,7 +34,7 @@ export const useBusinessAccount = () => {
     try {
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, is_active')
+        .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url')
         .eq('user_id', user?.id)
         .maybeSingle();
 
