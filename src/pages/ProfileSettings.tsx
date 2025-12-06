@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,41 @@ import { useToast } from "@/hooks/use-toast";
 import LocationSelector from "@/components/LocationSelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 
+// Validation functions
+const validatePhone = (phone: string): string | null => {
+  if (!phone || phone.trim() === "") return null; // Empty is valid
+  const phoneRegex = /^[\+]?[0-9\s\-\(\)]+$/;
+  if (!phoneRegex.test(phone)) {
+    return "Format invalide. Utilisez uniquement des chiffres, espaces, +, - ou parenthèses";
+  }
+  if (phone.replace(/[\s\-\(\)\+]/g, "").length < 8) {
+    return "Le numéro doit contenir au moins 8 chiffres";
+  }
+  return null;
+};
+
+const validateBirthday = (birthday: string): string | null => {
+  if (!birthday || birthday.trim() === "") return null; // Empty is valid
+  const date = new Date(birthday);
+  const now = new Date();
+  
+  if (isNaN(date.getTime())) {
+    return "Date invalide";
+  }
+  
+  if (date > now) {
+    return "La date de naissance ne peut pas être dans le futur";
+  }
+  
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 120);
+  if (date < minDate) {
+    return "Date de naissance invalide";
+  }
+  
+  return null;
+};
+
 const ProfileSettings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -21,6 +56,12 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  
+  // Validation errors state
+  const [errors, setErrors] = useState({
+    phone: null as string | null,
+    birthday: null as string | null,
+  });
   
   const [profile, setProfile] = useState({
     first_name: "",
@@ -66,8 +107,37 @@ const ProfileSettings = () => {
     fetchProfile();
   }, [user?.id]);
 
+  // Validate fields on change
+  const handlePhoneChange = (value: string) => {
+    setProfile({ ...profile, phone: value });
+    setErrors({ ...errors, phone: validatePhone(value) });
+  };
+
+  const handleBirthdayChange = (value: string) => {
+    setProfile({ ...profile, birthday: value });
+    setErrors({ ...errors, birthday: validateBirthday(value) });
+  };
+
   const handleSave = async () => {
     if (!user?.id) return;
+    
+    // Validate all fields before saving
+    const phoneError = validatePhone(profile.phone);
+    const birthdayError = validateBirthday(profile.birthday);
+    
+    setErrors({
+      phone: phoneError,
+      birthday: birthdayError,
+    });
+    
+    if (phoneError || birthdayError) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez corriger les erreurs avant d'enregistrer.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setSaving(true);
     try {
@@ -242,11 +312,17 @@ const ProfileSettings = () => {
                     <Input
                       id="phone"
                       value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       placeholder="+225 XX XX XX XX"
-                      className="pl-10"
+                      className={`pl-10 ${errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     />
                   </div>
+                  {errors.phone && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -257,13 +333,20 @@ const ProfileSettings = () => {
                       id="birthday"
                       type="date"
                       value={profile.birthday}
-                      onChange={(e) => setProfile({ ...profile, birthday: e.target.value })}
-                      className="pl-10"
+                      onChange={(e) => handleBirthdayChange(e.target.value)}
+                      className={`pl-10 ${errors.birthday ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Votre date d'anniversaire sera partagée avec vos proches
-                  </p>
+                  {errors.birthday ? (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.birthday}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Votre date d'anniversaire sera partagée avec vos proches
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
