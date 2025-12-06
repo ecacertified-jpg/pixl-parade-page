@@ -219,9 +219,26 @@ const BusinessAuth = () => {
         return;
       }
 
-      // If user is created, create business account with is_active=false
-      if (authData.user) {
+      // Si l'utilisateur est créé mais sans session (confirmation email requise)
+      if (authData.user && !authData.session) {
+        toast({
+          title: 'Vérifiez votre email',
+          description: 'Un email de confirmation a été envoyé. Veuillez le confirmer pour activer votre compte.',
+        });
+        navigate('/business-pending-approval', { replace: true });
+        return;
+      }
+
+      // Si une session est retournée, définir explicitement la session avant de créer le compte business
+      if (authData.user && authData.session) {
         try {
+          // Définir explicitement la nouvelle session pour que auth.uid() soit correct
+          await supabase.auth.setSession({
+            access_token: authData.session.access_token,
+            refresh_token: authData.session.refresh_token,
+          });
+
+          // Maintenant créer le compte business avec la bonne session
           const { error: businessError } = await supabase
             .from('business_accounts')
             .insert({
@@ -231,42 +248,56 @@ const BusinessAuth = () => {
               phone: data.phone || '',
               address: data.address || '',
               description: data.description || '',
+              email: data.email,
               is_active: false, // Compte en attente d'approbation
+              status: 'pending',
             });
 
           if (businessError) {
             console.error('Error creating business account:', businessError);
-          } else {
-            // Récupérer tous les admins actifs et leur envoyer une notification
-            const { data: admins } = await supabase
-              .from('admin_users')
-              .select('user_id')
-              .eq('is_active', true);
-
-            if (admins && admins.length > 0) {
-              const notifications = admins.map(admin => ({
-                user_id: admin.user_id,
-                notification_type: 'new_business_pending_approval',
-                title: '🏪 Nouveau prestataire en attente',
-                message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
-                scheduled_for: new Date().toISOString(),
-                delivery_methods: ['push', 'in_app'],
-                metadata: {
-                  business_name: data.businessName,
-                  business_type: data.businessType,
-                  business_user_id: authData.user.id,
-                  action_url: '/admin/businesses',
-                }
-              }));
-              
-              await supabase.from('scheduled_notifications').insert(notifications);
-            }
-
-            setUserMode('business');
-            await refreshSession();
+            toast({
+              title: 'Erreur',
+              description: 'Impossible de créer le compte prestataire. Veuillez réessayer.',
+              variant: 'destructive',
+            });
+            return;
           }
+
+          // Récupérer tous les admins actifs et leur envoyer une notification
+          const { data: admins } = await supabase
+            .from('admin_users')
+            .select('user_id')
+            .eq('is_active', true);
+
+          if (admins && admins.length > 0) {
+            const notifications = admins.map(admin => ({
+              user_id: admin.user_id,
+              notification_type: 'new_business_pending_approval',
+              title: '🏪 Nouveau prestataire en attente',
+              message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
+              scheduled_for: new Date().toISOString(),
+              delivery_methods: ['push', 'in_app'],
+              metadata: {
+                business_name: data.businessName,
+                business_type: data.businessType,
+                business_user_id: authData.user.id,
+                action_url: '/admin/businesses',
+              }
+            }));
+            
+            await supabase.from('scheduled_notifications').insert(notifications);
+          }
+
+          setUserMode('business');
+          await refreshSession();
         } catch (businessCreationError) {
           console.error('Error creating business account:', businessCreationError);
+          toast({
+            title: 'Erreur',
+            description: 'Une erreur s\'est produite lors de la création du compte.',
+            variant: 'destructive',
+          });
+          return;
         }
       }
 
