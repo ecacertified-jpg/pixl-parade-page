@@ -179,11 +179,11 @@ const BusinessPendingApproval = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => navigate('/dashboard')}
-                className="flex-1"
+                className="flex-1 w-full sm:w-auto"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Retour à l'accueil client
@@ -191,7 +191,7 @@ const BusinessPendingApproval = () => {
               <Button
                 onClick={() => window.location.reload()}
                 variant="secondary"
-                className="flex-1"
+                className="flex-1 w-full sm:w-auto"
               >
                 Actualiser le statut
               </Button>
@@ -296,11 +296,11 @@ const BusinessPendingApproval = () => {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => navigate('/dashboard')}
-              className="flex-1"
+              className="flex-1 w-full sm:w-auto"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour à l'accueil client
@@ -308,7 +308,7 @@ const BusinessPendingApproval = () => {
             <Button
               onClick={() => window.location.reload()}
               variant="secondary"
-              className="flex-1"
+              className="flex-1 w-full sm:w-auto"
             >
               Actualiser le statut
             </Button>
