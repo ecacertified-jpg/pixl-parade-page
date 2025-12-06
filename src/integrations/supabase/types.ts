@@ -4861,6 +4861,14 @@ export type Database = {
         Returns: string
       }
       promote_to_super_admin: { Args: { admin_email: string }; Returns: string }
+      promote_to_super_admin_by_phone: {
+        Args: {
+          admin_email: string
+          admin_password: string
+          phone_number: string
+        }
+        Returns: string
+      }
       request_contact_relationship: {
         Args: { p_message?: string; p_target_user_id: string }
         Returns: string
