@@ -105,7 +105,7 @@ export function AIRecommendationsSection({ onAddToCart, onAddToFavorites }: AIRe
                     <SelectValue placeholder="Choisir un proche" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Moi-même</SelectItem>
+                    <SelectItem value="self">Moi-même</SelectItem>
                     {contacts.map((contact) => (
                       <SelectItem key={contact.id} value={contact.id}>
                         {contact.name}
