@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -34,7 +34,23 @@ import {
 import { toast } from 'sonner';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 interface Business {
   id: string;
   business_name: string;
@@ -67,6 +83,15 @@ export default function BusinessManagement() {
   const [bulkAction, setBulkAction] = useState<'verify' | 'approve' | 'deactivate' | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
+  // Advanced filters state
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('all');
+
+  // Get unique business types for filter
+  const businessTypes = [...new Set(businesses.map(b => b.business_type).filter(Boolean))] as string[];
 
   useEffect(() => {
     fetchBusinesses();
@@ -238,11 +263,65 @@ export default function BusinessManagement() {
   };
 
   const filteredBusinesses = businesses.filter(business => {
+    // Text search filter
     const name = business.business_name?.toLowerCase() || '';
     const type = business.business_type?.toLowerCase() || '';
     const query = searchQuery.toLowerCase();
-    return name.includes(query) || type.includes(query);
+    const matchesSearch = name.includes(query) || type.includes(query);
+
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'pending') {
+        matchesStatus = business.status === 'pending' || business.status === 'resubmitted';
+      } else if (statusFilter === 'active') {
+        matchesStatus = business.status === 'active' && business.is_active;
+      } else if (statusFilter === 'rejected') {
+        matchesStatus = business.status === 'rejected';
+      } else if (statusFilter === 'verified') {
+        matchesStatus = business.is_verified === true;
+      } else if (statusFilter === 'unverified') {
+        matchesStatus = business.is_verified === false && business.is_active;
+      }
+    }
+
+    // Type filter
+    const matchesType = typeFilter === 'all' || business.business_type === typeFilter;
+
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const createdAt = new Date(business.created_at);
+      const now = new Date();
+      const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (dateFilter === 'today') {
+        matchesDate = daysDiff === 0;
+      } else if (dateFilter === 'week') {
+        matchesDate = daysDiff <= 7;
+      } else if (dateFilter === 'month') {
+        matchesDate = daysDiff <= 30;
+      } else if (dateFilter === '3months') {
+        matchesDate = daysDiff <= 90;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
+
+  // Count active filters
+  const activeFiltersCount = [
+    statusFilter !== 'all',
+    typeFilter !== 'all',
+    dateFilter !== 'all'
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setDateFilter('all');
+    setSearchQuery('');
+  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('fr-FR');
@@ -467,7 +546,25 @@ export default function BusinessManagement() {
         <Card>
           <CardHeader className="pb-4">
             <div className="flex flex-col gap-4">
-              <CardTitle>Tous les prestataires ({businesses.length})</CardTitle>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <CardTitle>
+                  Tous les prestataires ({filteredBusinesses.length}
+                  {filteredBusinesses.length !== businesses.length && ` / ${businesses.length}`})
+                </CardTitle>
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="text-muted-foreground hover:text-foreground self-start sm:self-auto"
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Effacer les filtres ({activeFiltersCount})
+                  </Button>
+                )}
+              </div>
+              
+              {/* Search and actions row */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div className="relative flex-1 sm:flex-none sm:w-64 order-1 sm:order-2">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -478,17 +575,95 @@ export default function BusinessManagement() {
                     className="pl-9 w-full"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportToCSV}
-                  disabled={filteredBusinesses.length === 0}
-                  className="order-2 sm:order-1 w-full sm:w-auto"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Exporter CSV
-                </Button>
+                <div className="flex gap-2 order-2 sm:order-1">
+                  <Button
+                    variant={showFilters ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filtres
+                    {activeFiltersCount > 0 && (
+                      <Badge variant="secondary" className="ml-2 bg-primary text-primary-foreground">
+                        {activeFiltersCount}
+                      </Badge>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportToCSV}
+                    disabled={filteredBusinesses.length === 0}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Exporter CSV</span>
+                    <span className="sm:hidden">CSV</span>
+                  </Button>
+                </div>
               </div>
+
+              {/* Advanced Filters Panel */}
+              <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+                <CollapsibleContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t">
+                    {/* Status Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Statut</label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Tous les statuts" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les statuts</SelectItem>
+                          <SelectItem value="pending">En attente</SelectItem>
+                          <SelectItem value="active">Actif</SelectItem>
+                          <SelectItem value="rejected">Rejeté</SelectItem>
+                          <SelectItem value="verified">Vérifié</SelectItem>
+                          <SelectItem value="unverified">Non vérifié</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Type Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Type de business</label>
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Tous les types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les types</SelectItem>
+                          {businessTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Date d'inscription</label>
+                      <Select value={dateFilter} onValueChange={setDateFilter}>
+                        <SelectTrigger className="w-full">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          <SelectValue placeholder="Toutes les dates" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Toutes les dates</SelectItem>
+                          <SelectItem value="today">Aujourd'hui</SelectItem>
+                          <SelectItem value="week">7 derniers jours</SelectItem>
+                          <SelectItem value="month">30 derniers jours</SelectItem>
+                          <SelectItem value="3months">3 derniers mois</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </CardHeader>
           <CardContent>
