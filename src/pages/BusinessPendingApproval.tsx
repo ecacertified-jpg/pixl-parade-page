@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle, ArrowLeft, Phone, Mail, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, ArrowLeft, Phone, Mail, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ResubmitBusinessForm } from '@/components/ResubmitBusinessForm';
+import { toast } from 'sonner';
 
 interface BusinessAccount {
   id: string;
@@ -27,11 +28,17 @@ const BusinessPendingApproval = () => {
   const { user } = useAuth();
   const [businessAccount, setBusinessAccount] = useState<BusinessAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [noAccountFound, setNoAccountFound] = useState(false);
 
   useEffect(() => {
+    if (!user) {
+      navigate('/business-auth', { replace: true });
+      return;
+    }
+    
     fetchBusinessAccount();
 
-    // Set up real-time subscription
+    // Set up real-time subscription only if user exists
     const channel = supabase
       .channel('business-approval')
       .on(
@@ -40,7 +47,7 @@ const BusinessPendingApproval = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'business_accounts',
-          filter: `user_id=eq.${user?.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           const newData = payload.new as BusinessAccount;
@@ -48,6 +55,7 @@ const BusinessPendingApproval = () => {
             navigate('/business-account', { replace: true });
           } else {
             setBusinessAccount(newData);
+            setNoAccountFound(false);
           }
         }
       )
@@ -59,7 +67,10 @@ const BusinessPendingApproval = () => {
   }, [user, navigate]);
 
   const fetchBusinessAccount = async () => {
-    if (!user) return;
+    if (!user) {
+      navigate('/business-auth', { replace: true });
+      return;
+    }
 
     try {
       setLoading(true);
@@ -67,11 +78,24 @@ const BusinessPendingApproval = () => {
         .from('business_accounts')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching business account:', error);
+        toast.error('Erreur lors de la récupération du compte');
+        navigate('/business-auth', { replace: true });
+        return;
+      }
 
-      if (data?.status === 'active' && data?.is_active) {
+      // If no business account exists for this user
+      if (!data) {
+        setNoAccountFound(true);
+        setLoading(false);
+        return;
+      }
+
+      // If the account is active and approved, redirect to dashboard
+      if (data.status === 'active' && data.is_active) {
         navigate('/business-account', { replace: true });
         return;
       }
@@ -79,6 +103,8 @@ const BusinessPendingApproval = () => {
       setBusinessAccount(data);
     } catch (error) {
       console.error('Error fetching business account:', error);
+      toast.error('Erreur lors de la récupération du compte');
+      navigate('/business-auth', { replace: true });
     } finally {
       setLoading(false);
     }
@@ -88,6 +114,46 @@ const BusinessPendingApproval = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If no business account found, show message with option to create one
+  if (noAccountFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <AlertCircle className="h-16 w-16 text-amber-500" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Aucun compte prestataire trouvé</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Vous n'avez pas encore de compte prestataire associé à ce profil.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Pour accéder à l'espace prestataire, vous devez d'abord créer un compte business.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={() => navigate('/business-auth')}
+                className="w-full"
+              >
+                Créer un compte prestataire
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
+                className="w-full"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Retour à l'accueil
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
