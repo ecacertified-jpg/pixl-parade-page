@@ -255,11 +255,33 @@ const BusinessAuth = () => {
 
           if (businessError) {
             console.error('Error creating business account:', businessError);
-            toast({
-              title: 'Erreur',
-              description: 'Impossible de créer le compte prestataire. Veuillez réessayer.',
-              variant: 'destructive',
-            });
+            
+            // Detect RLS policy violation
+            if (businessError.code === '42501' || businessError.message?.includes('row-level security') || businessError.message?.includes('RLS')) {
+              toast({
+                title: 'Erreur de sécurité',
+                description: 'Votre session n\'est pas correctement authentifiée. Veuillez vous déconnecter et réessayer.',
+                variant: 'destructive',
+              });
+            } else if (businessError.code === '23505' || businessError.message?.includes('duplicate')) {
+              toast({
+                title: 'Compte déjà existant',
+                description: 'Un compte prestataire existe déjà pour cet utilisateur.',
+                variant: 'destructive',
+              });
+            } else if (businessError.code === '23503') {
+              toast({
+                title: 'Erreur de référence',
+                description: 'Les données de référence sont invalides. Veuillez réessayer.',
+                variant: 'destructive',
+              });
+            } else {
+              toast({
+                title: 'Erreur de création',
+                description: `Impossible de créer le compte prestataire: ${businessError.message || 'Erreur inconnue'}`,
+                variant: 'destructive',
+              });
+            }
             return;
           }
 
