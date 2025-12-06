@@ -36,6 +36,9 @@ const BusinessAuth = () => {
   const [showResendButton, setShowResendButton] = useState(false);
   const [resendEmail, setResendEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
+  const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
+  const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
+  const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, setUserMode, refreshSession } = useAuth();
@@ -182,12 +185,14 @@ const BusinessAuth = () => {
         .single();
 
       if (businessError || !businessAccount) {
+        // Ne pas déconnecter, proposer de compléter l'inscription
+        setAuthenticatedUserId(currentUser.id);
+        setAuthenticatedEmail(currentUser.email || null);
+        setShowCompleteRegistration(true);
         toast({
-          title: 'Aucun compte business',
-          description: 'Aucun compte prestataire trouvé. Veuillez vous inscrire.',
-          variant: 'destructive',
+          title: 'Inscription incomplète',
+          description: 'Votre compte existe mais l\'inscription business n\'est pas terminée. Veuillez la compléter ci-dessous.',
         });
-        await supabase.auth.signOut();
         return;
       }
 
@@ -460,6 +465,84 @@ const BusinessAuth = () => {
     }
   };
 
+  const completeBusinessRegistration = async (formData: BusinessAuthFormData) => {
+    if (!authenticatedUserId) return;
+    
+    setIsLoading(true);
+    try {
+      // Vérifier l'unicité du nom d'entreprise
+      const isUnique = await checkBusinessNameUniqueness(formData.businessName || '');
+      if (!isUnique) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { error: businessError } = await supabase
+        .from('business_accounts')
+        .insert({
+          user_id: authenticatedUserId,
+          business_name: formData.businessName || '',
+          business_type: formData.businessType || '',
+          phone: formData.phone || '',
+          address: formData.address || '',
+          description: formData.description || '',
+          email: authenticatedEmail,
+          is_active: false,
+          status: 'pending',
+        });
+
+      if (businessError) {
+        console.error('Error creating business account:', businessError);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de créer le compte business: ' + businessError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Notify admins
+      const { data: admins } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('is_active', true);
+
+      if (admins && admins.length > 0) {
+        const notifications = admins.map(admin => ({
+          user_id: admin.user_id,
+          notification_type: 'new_business_pending_approval',
+          title: '🏪 Nouveau prestataire en attente',
+          message: `${formData.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
+          scheduled_for: new Date().toISOString(),
+          delivery_methods: ['push', 'in_app'],
+          metadata: {
+            business_name: formData.businessName,
+            business_type: formData.businessType,
+            business_user_id: authenticatedUserId,
+            action_url: '/admin/businesses',
+          }
+        }));
+        
+        await supabase.from('scheduled_notifications').insert(notifications);
+      }
+
+      setUserMode('business');
+      toast({
+        title: 'Inscription complétée',
+        description: 'Votre compte business est maintenant en attente d\'approbation',
+      });
+      navigate('/business-pending-approval', { replace: true });
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const businessTypes = [
     'Bijouterie',
     'Parfumerie',
@@ -555,6 +638,90 @@ const BusinessAuth = () => {
                       <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
                       {isResending ? 'Envoi en cours...' : 'Renvoyer l\'email de confirmation'}
                     </Button>
+                  </div>
+                )}
+
+                {showCompleteRegistration && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                    <div className="flex items-start gap-2">
+                      <Store className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-blue-800">
+                          Complétez votre inscription business
+                        </p>
+                        <p className="text-sm text-blue-700">
+                          Votre compte utilisateur existe ({authenticatedEmail}), mais l'inscription business n'est pas terminée.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="complete-businessName">Nom de l'entreprise *</Label>
+                        <Input
+                          id="complete-businessName"
+                          placeholder="Mon Enterprise SARL"
+                          {...register('businessName')}
+                          onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
+                        />
+                        {businessNameError && (
+                          <p className="text-sm text-destructive">{businessNameError}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="complete-businessType">Type d'activité</Label>
+                        <Select onValueChange={(value) => setValue('businessType', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez votre activité" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {businessTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="complete-phone">Téléphone</Label>
+                        <Input
+                          id="complete-phone"
+                          placeholder="+225 XX XX XX XX XX"
+                          {...register('phone')}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="complete-address">Adresse</Label>
+                        <Input
+                          id="complete-address"
+                          placeholder="Cocody, Abidjan"
+                          {...register('address')}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="complete-description">Description</Label>
+                        <Textarea
+                          id="complete-description"
+                          placeholder="Décrivez votre activité..."
+                          rows={2}
+                          {...register('description')}
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        className="w-full"
+                        onClick={handleSubmit(completeBusinessRegistration)}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Création...' : 'Compléter mon inscription'}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </form>
