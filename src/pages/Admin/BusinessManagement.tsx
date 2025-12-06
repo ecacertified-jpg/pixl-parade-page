@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -41,12 +41,16 @@ interface Business {
   business_type: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
+  description: string | null;
+  website_url: string | null;
   is_verified: boolean;
   is_active: boolean;
   status: string;
   rejection_reason: string | null;
   corrections_message: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export default function BusinessManagement() {
@@ -73,7 +77,7 @@ export default function BusinessManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, email, phone, is_verified, is_active, status, rejection_reason, corrections_message, created_at')
+        .select('id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -244,6 +248,64 @@ export default function BusinessManagement() {
     return new Date(date).toLocaleDateString('fr-FR');
   };
 
+  // Export CSV function
+  const exportToCSV = () => {
+    const headers = [
+      'ID',
+      'Nom du business',
+      'Type',
+      'Email',
+      'Téléphone',
+      'Adresse',
+      'Description',
+      'Site web',
+      'Vérifié',
+      'Actif',
+      'Statut',
+      'Raison du rejet',
+      'Message de correction',
+      'Date d\'inscription',
+      'Dernière mise à jour'
+    ];
+
+    const csvData = filteredBusinesses.map(business => [
+      business.id,
+      business.business_name || '',
+      business.business_type || '',
+      business.email || '',
+      business.phone || '',
+      business.address || '',
+      (business.description || '').replace(/[\n\r]/g, ' ').replace(/"/g, '""'),
+      business.website_url || '',
+      business.is_verified ? 'Oui' : 'Non',
+      business.is_active ? 'Oui' : 'Non',
+      business.status || '',
+      (business.rejection_reason || '').replace(/[\n\r]/g, ' ').replace(/"/g, '""'),
+      (business.corrections_message || '').replace(/[\n\r]/g, ' ').replace(/"/g, '""'),
+      business.created_at ? formatDate(business.created_at) : '',
+      business.updated_at ? formatDate(business.updated_at) : ''
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...csvData.map(row => row.map(cell => `"${cell}"`).join(';'))
+    ].join('\n');
+
+    // Add BOM for Excel compatibility with French characters
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `prestataires_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`${filteredBusinesses.length} prestataire(s) exporté(s)`);
+  };
+
   // Bulk selection helpers
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredBusinesses.length) {
@@ -404,16 +466,27 @@ export default function BusinessManagement() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <CardTitle>Tous les prestataires ({businesses.length})</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportToCSV}
+                  disabled={filteredBusinesses.length === 0}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Exporter CSV
+                </Button>
+                <div className="relative w-64">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
