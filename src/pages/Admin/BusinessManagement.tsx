@@ -465,28 +465,29 @@ export default function BusinessManagement() {
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-4">
               <CardTitle>Tous les prestataires ({businesses.length})</CardTitle>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1 sm:flex-none sm:w-64 order-1 sm:order-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full"
+                  />
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={exportToCSV}
                   disabled={filteredBusinesses.length === 0}
+                  className="order-2 sm:order-1 w-full sm:w-auto"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Exporter CSV
                 </Button>
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
               </div>
             </div>
           </CardHeader>
