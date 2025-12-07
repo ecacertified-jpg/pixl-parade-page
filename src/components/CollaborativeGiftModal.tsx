@@ -117,7 +117,7 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
-      // Add to cart
+      // Add to cart with product ID for business tracking
       const cartItem = {
         id: Date.now(),
         name: product.name,
@@ -128,7 +128,8 @@ export function CollaborativeGiftModal({
         quantity: 1,
         isCollaborativeGift: true,
         beneficiaryName: selectedContact.name,
-        beneficiaryContactId: selectedContact.id // Ajout de l'ID du contact
+        beneficiaryContactId: selectedContact.id,
+        productId: String(product.id) // ID du produit pour le lien business
       };
 
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
