@@ -22,8 +22,8 @@ interface CollectiveItem {
   isCollaborativeGift?: boolean;
   beneficiaryName?: string;
   beneficiaryId?: string;
-  beneficiaryContactId?: string; // Ajout de beneficiaryContactId
-  productId?: number;
+  beneficiaryContactId?: string;
+  productId?: string; // ID du produit business
 }
 
 export default function CollectiveCheckout() {
@@ -108,20 +108,52 @@ export default function CollectiveCheckout() {
       // Create collective fund for the first item (assuming one item per fund)
       const item = items[0];
       
+      // Récupérer les informations du produit business si productId existe
+      let businessProductId: string | null = null;
+      let createdByBusinessId: string | null = null;
+      
+      if (item.productId) {
+        const { data: productData } = await supabase
+          .from('products')
+          .select('id, business_owner_id')
+          .eq('id', item.productId)
+          .single();
+        
+        if (productData) {
+          businessProductId = productData.id;
+          // Récupérer le business_account_id depuis le business_owner_id
+          if (productData.business_owner_id) {
+            const { data: businessData } = await supabase
+              .from('business_accounts')
+              .select('id')
+              .eq('user_id', productData.business_owner_id)
+              .single();
+            
+            if (businessData) {
+              createdByBusinessId = businessData.id;
+            }
+          }
+        }
+      }
+      
       console.log('Creating collective fund with data:', {
         creator_id: user.id,
         title: `${item.name} pour ${item.beneficiaryName}`,
-        target_amount: item.price * item.quantity
+        target_amount: item.price * item.quantity,
+        business_product_id: businessProductId,
+        created_by_business_id: createdByBusinessId
       });
       
       const { data: fundData, error: fundError } = await supabase
         .from('collective_funds')
         .insert({
           creator_id: user.id,
-          beneficiary_contact_id: item.beneficiaryContactId || null, // Utiliser le contact_id du bénéficiaire
+          beneficiary_contact_id: item.beneficiaryContactId || null,
           title: `${item.name} pour ${item.beneficiaryName}`,
           description: item.description,
           target_amount: item.price * item.quantity,
+          business_product_id: businessProductId,
+          created_by_business_id: createdByBusinessId,
           occasion: 'cadeau',
           currency: 'XOF',
           status: 'active'
