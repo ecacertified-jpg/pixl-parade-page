@@ -15,8 +15,8 @@ interface CartItem {
   isCollaborativeGift?: boolean;
   beneficiaryName?: string;
   beneficiaryId?: string;
-  beneficiaryContactId?: string; // Ajout de beneficiaryContactId
-  productId?: number;
+  beneficiaryContactId?: string;
+  productId?: string;
 }
 export default function Cart() {
   const navigate = useNavigate();
