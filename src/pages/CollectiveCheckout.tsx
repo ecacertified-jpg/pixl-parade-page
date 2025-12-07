@@ -113,26 +113,22 @@ export default function CollectiveCheckout() {
       let createdByBusinessId: string | null = null;
       
       if (item.productId) {
-        const { data: productData } = await supabase
+        console.log('🔍 Looking up product:', item.productId);
+        
+        const { data: productData, error: productError } = await supabase
           .from('products')
-          .select('id, business_owner_id')
-          .eq('id', item.productId)
+          .select('id, business_account_id')
+          .eq('id', String(item.productId))
           .single();
         
+        if (productError) {
+          console.error('❌ Product lookup error:', productError);
+        }
+        
         if (productData) {
+          console.log('✅ Product found:', productData);
           businessProductId = productData.id;
-          // Récupérer le business_account_id depuis le business_owner_id
-          if (productData.business_owner_id) {
-            const { data: businessData } = await supabase
-              .from('business_accounts')
-              .select('id')
-              .eq('user_id', productData.business_owner_id)
-              .single();
-            
-            if (businessData) {
-              createdByBusinessId = businessData.id;
-            }
-          }
+          createdByBusinessId = productData.business_account_id;
         }
       }
       
