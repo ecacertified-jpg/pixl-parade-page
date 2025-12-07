@@ -669,55 +669,75 @@ export default function BusinessManagement() {
           <CardContent>
             {/* Bulk Actions Bar */}
             {selectedIds.size > 0 && (
-              <div className="mb-4 p-3 bg-muted rounded-lg flex items-center justify-between">
-                <span className="font-medium">
-                  {selectedIds.size} prestataire(s) sélectionné(s)
-                </span>
-                <div className="flex gap-2">
-                  {getSelectedForVerification().length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setBulkAction('verify');
-                        setConfirmDialogOpen(true);
-                      }}
-                      disabled={bulkProcessing}
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      Vérifier ({getSelectedForVerification().length})
-                    </Button>
-                  )}
-                  {getSelectedForApproval().length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-green-500 text-green-600 hover:bg-green-50"
-                      onClick={() => {
-                        setBulkAction('approve');
-                        setConfirmDialogOpen(true);
-                      }}
-                      disabled={bulkProcessing}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Approuver ({getSelectedForApproval().length})
-                    </Button>
-                  )}
-                  {getSelectedForDeactivation().length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-red-500 text-red-600 hover:bg-red-50"
-                      onClick={() => {
-                        setBulkAction('deactivate');
-                        setConfirmDialogOpen(true);
-                      }}
-                      disabled={bulkProcessing}
-                    >
-                      <Power className="mr-2 h-4 w-4" />
-                      Désactiver ({getSelectedForDeactivation().length})
-                    </Button>
-                  )}
+              <div className="mb-4 p-3 bg-muted/50 border border-border rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary">{selectedIds.size}</span>
+                    </div>
+                    <span className="font-medium text-sm">
+                      prestataire{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 overflow-x-auto">
+                    <div className="flex gap-2 min-w-max">
+                      {getSelectedForVerification().length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-background border-primary/30 text-primary hover:bg-primary/10 hover:border-primary whitespace-nowrap"
+                          onClick={() => {
+                            setBulkAction('verify');
+                            setConfirmDialogOpen(true);
+                          }}
+                          disabled={bulkProcessing}
+                        >
+                          <Shield className="mr-1.5 h-4 w-4" />
+                          Vérifier
+                          <Badge variant="secondary" className="ml-1.5 bg-primary/20 text-primary text-xs px-1.5 py-0">
+                            {getSelectedForVerification().length}
+                          </Badge>
+                        </Button>
+                      )}
+                      {getSelectedForApproval().length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-background border-green-500/30 text-green-600 hover:bg-green-50 hover:border-green-500 whitespace-nowrap dark:hover:bg-green-950"
+                          onClick={() => {
+                            setBulkAction('approve');
+                            setConfirmDialogOpen(true);
+                          }}
+                          disabled={bulkProcessing}
+                        >
+                          <CheckCircle className="mr-1.5 h-4 w-4" />
+                          Approuver
+                          <Badge variant="secondary" className="ml-1.5 bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400 text-xs px-1.5 py-0">
+                            {getSelectedForApproval().length}
+                          </Badge>
+                        </Button>
+                      )}
+                      {getSelectedForDeactivation().length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-background border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive whitespace-nowrap"
+                          onClick={() => {
+                            setBulkAction('deactivate');
+                            setConfirmDialogOpen(true);
+                          }}
+                          disabled={bulkProcessing}
+                        >
+                          <Power className="mr-1.5 h-4 w-4" />
+                          Désactiver
+                          <Badge variant="secondary" className="ml-1.5 bg-destructive/20 text-destructive text-xs px-1.5 py-0">
+                            {getSelectedForDeactivation().length}
+                          </Badge>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
