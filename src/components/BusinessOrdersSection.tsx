@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,14 @@ interface CollectiveOrder {
   payment_method: string;
   status: string;
   created_at: string;
+  collective_funds?: {
+    id: string;
+    title: string;
+    current_amount: number;
+    target_amount: number;
+    currency: string;
+    status: string;
+  };
 }
 
 interface IndividualOrder {
@@ -135,7 +144,7 @@ export function BusinessOrdersSection() {
 
       const fundIds = businessFunds?.map(f => f.id) || [];
 
-      // Load collective fund orders for this business
+      // Load collective fund orders for this business with fund progress data
       if (fundIds.length > 0) {
         const { data: collectiveData, error: collectiveError } = await supabase
           .from('collective_fund_orders')
@@ -150,7 +159,15 @@ export function BusinessOrdersSection() {
             delivery_address,
             payment_method,
             status,
-            created_at
+            created_at,
+            collective_funds (
+              id,
+              title,
+              current_amount,
+              target_amount,
+              currency,
+              status
+            )
           `)
           .in('fund_id', fundIds)
           .order('created_at', { ascending: false });
@@ -393,6 +410,25 @@ export function BusinessOrdersSection() {
             </div>
           ))}
         </div>
+
+        {/* Barre de progression de la cotisation - Seulement pour les commandes collectives */}
+        {!isIndividual && (order as CollectiveOrder).collective_funds && (
+          <div className="space-y-2 mb-4 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Progression</span>
+              <span className="font-medium">
+                {((order as CollectiveOrder).collective_funds!.current_amount || 0).toLocaleString()} / {((order as CollectiveOrder).collective_funds!.target_amount || 0).toLocaleString()} {(order as CollectiveOrder).collective_funds!.currency}
+              </span>
+            </div>
+            <Progress 
+              value={(((order as CollectiveOrder).collective_funds!.current_amount || 0) / ((order as CollectiveOrder).collective_funds!.target_amount || 1)) * 100} 
+              className="h-2 bg-orange-200 dark:bg-orange-900"
+            />
+            <p className="text-xs text-muted-foreground text-center">
+              {Math.round((((order as CollectiveOrder).collective_funds!.current_amount || 0) / ((order as CollectiveOrder).collective_funds!.target_amount || 1)) * 100)}% atteint
+            </p>
+          </div>
+        )}
 
         {/* Montant total */}
         <div className="border-t pt-3 mb-4">
