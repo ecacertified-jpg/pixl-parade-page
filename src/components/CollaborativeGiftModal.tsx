@@ -55,17 +55,38 @@ export function CollaborativeGiftModal({
   }, [isOpen, user]);
 
   const loadContacts = async () => {
-    if (!user) return;
-
     setIsLoading(true);
     try {
+      // Vérifier la session Supabase réelle
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter pour continuer.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .order('name');
 
       if (error) {
+        // Gérer les erreurs d'autorisation JWT
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+          toast({
+            title: "Session expirée",
+            description: "Veuillez vous reconnecter.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
+        }
         console.error('Erreur lors du chargement des contacts:', error);
         toast({
           title: "Erreur",
@@ -79,9 +100,8 @@ export function CollaborativeGiftModal({
       const formattedContacts: Contact[] = data
         .filter(contact => {
           // Exclude contacts that might represent the user themselves
-          // This is a safety check in case contacts contain self-references
-          return contact.name !== user.user_metadata?.first_name + ' ' + user.user_metadata?.last_name &&
-                 contact.email !== user.email;
+          return contact.name !== session.user.user_metadata?.first_name + ' ' + session.user.user_metadata?.last_name &&
+                 contact.email !== session.user.email;
         })
         .map(contact => ({
           id: contact.id,

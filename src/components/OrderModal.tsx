@@ -42,16 +42,37 @@ export function OrderModal({
   }, [showContactSelection]);
 
   const loadContacts = async () => {
-    if (!user) return;
-    
     try {
+      // Vérifier la session Supabase réelle
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter pour continuer.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .order('name');
 
       if (error) {
+        // Gérer les erreurs d'autorisation JWT
+        if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+          toast({
+            title: "Session expirée",
+            description: "Veuillez vous reconnecter.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
+        }
         console.error('Error loading contacts:', error);
         return;
       }
@@ -127,17 +148,30 @@ export function OrderModal({
   };
 
   const handleContactSelection = async () => {
-    // Verify user is logged in before showing contacts
-    if (!user) {
+    try {
+      // Vérifier la session Supabase réelle (pas juste l'état React)
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter pour continuer.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return;
+      }
+      
+      setShowContactSelection(true);
+    } catch (error) {
+      console.error('Erreur de vérification de session:', error);
       toast({
-        title: "Connexion requise",
-        description: "Veuillez vous connecter pour offrir un cadeau",
+        title: "Erreur",
+        description: "Une erreur est survenue. Veuillez réessayer.",
         variant: "destructive"
       });
       navigate('/auth');
-      return;
     }
-    setShowContactSelection(true);
   };
 
   const handleBackFromContacts = () => {
