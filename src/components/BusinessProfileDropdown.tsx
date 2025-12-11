@@ -53,7 +53,7 @@ export const BusinessProfileDropdown = () => {
         className="w-72 sm:w-80 p-0 bg-background border shadow-lg rounded-xl z-[100] flex flex-col max-h-[85vh]"
         sideOffset={5}
       >
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           {/* Business Profile Header */}
           <div className="p-6 bg-gradient-to-br from-primary/5 to-secondary/5">
             <div className="flex flex-col items-center text-center">
@@ -107,7 +107,7 @@ export const BusinessProfileDropdown = () => {
           </div>
 
           {/* Business Navigation Menu */}
-          <div className="p-2 bg-background">
+          <div className="p-2 pb-4 bg-background">
             <button 
               onClick={() => navigate("/business-account")}
               className="w-full flex items-center px-4 py-3 text-left text-foreground hover:bg-muted/50 rounded-lg transition-colors"
