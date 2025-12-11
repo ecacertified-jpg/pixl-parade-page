@@ -84,18 +84,24 @@ export const useReferralTracking = () => {
     const refParam = urlParams.get('ref');
     if (refParam) return refParam;
 
-    // Check localStorage
-    const stored = localStorage.getItem('referral_code');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed.expires > Date.now()) {
-          return parsed.code;
-        } else {
-          localStorage.removeItem('referral_code');
+    // Check sessionStorage first (more secure), then localStorage for persistence
+    const storages = [sessionStorage, localStorage];
+    
+    for (const storage of storages) {
+      const stored = storage.getItem('referral_code');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          // Validate expiry (max 7 days for security)
+          const maxExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+          if (parsed.expires > Date.now() && parsed.expires <= maxExpiry) {
+            return parsed.code;
+          } else {
+            storage.removeItem('referral_code');
+          }
+        } catch {
+          storage.removeItem('referral_code');
         }
-      } catch {
-        localStorage.removeItem('referral_code');
       }
     }
 
@@ -103,15 +109,23 @@ export const useReferralTracking = () => {
   };
 
   const setActiveReferralCode = (code: string) => {
+    // Validate code format (alphanumeric only)
+    if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
+      console.error('Invalid referral code format');
+      return;
+    }
+    
     const data = {
-      code,
+      code: code.substring(0, 50), // Limit code length
       timestamp: Date.now(),
-      expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days (reduced from 30)
     };
-    localStorage.setItem('referral_code', JSON.stringify(data));
+    // Use sessionStorage for better security
+    sessionStorage.setItem('referral_code', JSON.stringify(data));
   };
 
   const clearActiveReferralCode = () => {
+    sessionStorage.removeItem('referral_code');
     localStorage.removeItem('referral_code');
   };
 

@@ -52,8 +52,17 @@ export function ContributeModal({ isOpen, onClose }: ContributeModalProps) {
 
   const handleContactSelect = (contact: Contact) => {
     setSelectedContact(contact);
-    // Store selected contact for the shop
-    localStorage.setItem('contributionTarget', JSON.stringify(contact));
+    // Store selected contact for the shop with expiry (use sessionStorage for security)
+    const data = {
+      contact: {
+        id: contact.id,
+        name: contact.name,
+        relationship: contact.relationship,
+        // Don't store sensitive data like full birthday
+      },
+      expiresAt: Date.now() + 30 * 60 * 1000 // 30 minutes expiry
+    };
+    sessionStorage.setItem('contributionTarget', JSON.stringify(data));
     onClose();
     navigate('/shop');
   };
