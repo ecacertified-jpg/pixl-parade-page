@@ -277,6 +277,7 @@ export default function Checkout() {
           const businessTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
           
           const businessOrderData = {
+            customer_id: currentUserId, // Track who placed the order
             fund_id: null, // NULL for individual orders
             business_account_id: businessAccountId,
             order_summary: {
@@ -326,8 +327,18 @@ export default function Checkout() {
             console.error('🔍 Error hint:', businessOrderError.hint);
             
             // Provide more specific error messages based on the error type
-            if (businessOrderError.code === '42501' || businessOrderError.message.includes('permission')) {
-              throw new Error('Erreur d\'autorisation: Votre session a expiré. Veuillez vous reconnecter.');
+            if (businessOrderError.code === '42501' || businessOrderError.message.includes('permission') || businessOrderError.message.includes('row-level security')) {
+              // Vérifier si c'est vraiment une session expirée ou juste une erreur RLS
+              console.log('🔍 RLS error detected, verifying if session is actually expired...');
+              const { valid: sessionStillValid } = await ensureValidSession();
+              
+              if (!sessionStillValid) {
+                throw new Error('Session expirée. Veuillez vous reconnecter.');
+              } else {
+                // Session valide mais erreur RLS - c'est un bug de permission
+                console.error('❌ Session valid but RLS error - permission configuration issue');
+                throw new Error('Erreur de permission. Veuillez contacter le support technique.');
+              }
             } else if (businessOrderError.code === '23503') {
               throw new Error('Référence invalide dans la commande. Veuillez contacter le support.');
             } else {

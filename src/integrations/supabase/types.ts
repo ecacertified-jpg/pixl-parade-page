@@ -615,6 +615,7 @@ export type Database = {
           business_account_id: string
           created_at: string
           currency: string
+          customer_id: string | null
           delivery_address: string
           donor_phone: string
           fund_id: string | null
@@ -631,6 +632,7 @@ export type Database = {
           business_account_id: string
           created_at?: string
           currency?: string
+          customer_id?: string | null
           delivery_address: string
           donor_phone: string
           fund_id?: string | null
@@ -647,6 +649,7 @@ export type Database = {
           business_account_id?: string
           created_at?: string
           currency?: string
+          customer_id?: string | null
           delivery_address?: string
           donor_phone?: string
           fund_id?: string | null
