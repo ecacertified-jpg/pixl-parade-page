@@ -4559,19 +4559,6 @@ export type Database = {
       create_business_collective_fund:
         | {
             Args: {
-              p_beneficiary_user_id: string
-              p_business_id: string
-              p_currency?: string
-              p_description?: string
-              p_occasion?: string
-              p_product_id: string
-              p_target_amount?: number
-              p_title: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
               p_auto_notifications?: boolean
               p_beneficiary_user_id: string
               p_business_id: string
@@ -4580,6 +4567,19 @@ export type Database = {
               p_product_id: string
               p_target_amount: number
               p_title?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_beneficiary_user_id: string
+              p_business_id: string
+              p_currency?: string
+              p_description?: string
+              p_occasion?: string
+              p_product_id: string
+              p_target_amount?: number
+              p_title: string
             }
             Returns: string
           }
