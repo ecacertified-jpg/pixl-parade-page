@@ -981,6 +981,13 @@ export type Database = {
             foreignKeyName: "collective_funds_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "collective_funds_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
           },
@@ -1197,6 +1204,13 @@ export type Database = {
             foreignKeyName: "contacts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
           },
@@ -1242,6 +1256,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "delivery_zones_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -1450,6 +1471,13 @@ export type Database = {
             columns: ["contributor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fund_contributions_contributor_id_fkey"
+            columns: ["contributor_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -1730,6 +1758,13 @@ export type Database = {
             foreignKeyName: "gifts_giver_id_fkey"
             columns: ["giver_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "gifts_giver_id_fkey"
+            columns: ["giver_id"]
+            isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
           },
@@ -1745,6 +1780,13 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "gifts_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -2832,6 +2874,13 @@ export type Database = {
             foreignKeyName: "fk_posts_user"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_posts_user"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
           },
@@ -3600,6 +3649,13 @@ export type Database = {
             columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "fk_reported_posts_reporter"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
             referencedColumns: ["user_id"]
           },
           {
@@ -4441,6 +4497,13 @@ export type Database = {
             foreignKeyName: "contacts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
           },
@@ -4466,6 +4529,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          badges: Json | null
+          created_at: string | null
+          first_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          badges?: Json | null
+          created_at?: string | null
+          first_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          badges?: Json | null
+          created_at?: string | null
+          first_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       user_badges_with_definitions: {
         Row: {
@@ -4524,6 +4611,10 @@ export type Database = {
         Returns: undefined
       }
       archive_old_notifications: { Args: never; Returns: undefined }
+      are_friends: {
+        Args: { user_a_id: string; user_b_id: string }
+        Returns: boolean
+      }
       are_users_connected: {
         Args: { p_user_a: string; p_user_b: string }
         Returns: boolean
