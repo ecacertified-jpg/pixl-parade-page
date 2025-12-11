@@ -3,6 +3,11 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface SessionValidationResult {
+  valid: boolean;
+  session: Session | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -10,7 +15,8 @@ interface AuthContextType {
   userMode: 'client' | 'business';
   setUserMode: (mode: 'client' | 'business') => void;
   hasBusinessAccount: boolean;
-  refreshSession: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
+  ensureValidSession: () => Promise<SessionValidationResult>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -20,7 +26,8 @@ const AuthContext = createContext<AuthContextType>({
   userMode: 'client',
   setUserMode: () => {},
   hasBusinessAccount: false,
-  refreshSession: async () => {},
+  refreshSession: async () => false,
+  ensureValidSession: async () => ({ valid: false, session: null }),
 });
 
 export const useAuth = () => {
@@ -46,17 +53,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserModeState(mode);
   };
 
-  const refreshSession = async () => {
+  const refreshSession = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
       if (error) throw error;
       
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      return !!data.session;
     } catch (error) {
       console.error('Error refreshing session:', error);
       setSession(null);
       setUser(null);
+      return false;
+    }
+  };
+
+  const ensureValidSession = async (): Promise<SessionValidationResult> => {
+    try {
+      // D'abord, vérifier la session existante
+      const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
+      
+      if (getError) {
+        console.error('Error getting session:', getError);
+        return { valid: false, session: null };
+      }
+      
+      if (currentSession) {
+        // Session existe, vérifier si elle n'est pas expirée
+        const expiresAt = currentSession.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        
+        // Si la session expire dans moins de 5 minutes, la rafraîchir
+        if (expiresAt && expiresAt - now < 300) {
+          console.log('Session expiring soon, refreshing...');
+          const refreshSuccess = await refreshSession();
+          if (!refreshSuccess) {
+            return { valid: false, session: null };
+          }
+          // Récupérer la nouvelle session après rafraîchissement
+          const { data: { session: newSession } } = await supabase.auth.getSession();
+          return { valid: !!newSession, session: newSession };
+        }
+        
+        return { valid: true, session: currentSession };
+      }
+      
+      // Pas de session, essayer de rafraîchir
+      console.log('No session found, attempting refresh...');
+      const refreshSuccess = await refreshSession();
+      if (!refreshSuccess) {
+        return { valid: false, session: null };
+      }
+      
+      const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+      return { valid: !!refreshedSession, session: refreshedSession };
+    } catch (error) {
+      console.error('Session validation error:', error);
+      return { valid: false, session: null };
     }
   };
 
@@ -111,7 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, userMode, setUserMode, hasBusinessAccount, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, loading, userMode, setUserMode, hasBusinessAccount, refreshSession, ensureValidSession }}>
       {children}
     </AuthContext.Provider>
   );

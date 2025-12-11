@@ -23,7 +23,7 @@ interface CheckoutItem {
 export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, refreshSession } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
   const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
@@ -31,6 +31,31 @@ export default function Checkout() {
   const [orderItems, setOrderItems] = useState<CheckoutItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [businessAccounts, setBusinessAccounts] = useState<any[]>([]);
+  const [isValidatingSession, setIsValidatingSession] = useState(true);
+
+  // Validation de session préventive au chargement de la page
+  useEffect(() => {
+    const validateSessionOnLoad = async () => {
+      console.log('🔐 Validating session on Checkout page load...');
+      const { valid, session } = await ensureValidSession();
+      
+      if (!valid || !session) {
+        console.log('❌ Invalid session on Checkout load, redirecting...');
+        toast({
+          title: "Session expirée",
+          description: "Veuillez vous reconnecter pour continuer.",
+          variant: "destructive"
+        });
+        navigate('/auth');
+        return;
+      }
+      
+      console.log('✅ Session valid on Checkout load');
+      setIsValidatingSession(false);
+    };
+    
+    validateSessionOnLoad();
+  }, [ensureValidSession, navigate, toast]);
 
   useEffect(() => {
     // Load checkout items from localStorage
@@ -50,15 +75,40 @@ export default function Checkout() {
   }, []);
 
   useEffect(() => {
+    // Skip loading if session is still being validated
+    if (isValidatingSession) return;
+    
     // Load all business accounts to map business_owner_id to business_account_id
     const loadBusinessAccounts = async () => {
       console.log('Loading business accounts...');
+      
+      // Vérifier la session avant la requête
+      const { valid, session } = await ensureValidSession();
+      if (!valid || !session) {
+        console.log('❌ Session invalid when loading business accounts');
+        navigate('/auth');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, user_id');
       
       if (error) {
         console.error('Error loading business accounts:', error);
+        // Distinguer les erreurs RLS des erreurs de session
+        if (error.code === '42501' || error.message?.includes('JWT') || error.code === 'PGRST301') {
+          console.log('🔒 RLS/Auth error detected, checking if session is truly expired...');
+          const { valid: stillValid } = await ensureValidSession();
+          if (!stillValid) {
+            toast({
+              title: "Session expirée",
+              description: "Veuillez vous reconnecter.",
+              variant: "destructive"
+            });
+            navigate('/auth');
+          }
+        }
       } else {
         console.log('Business accounts loaded:', data);
         setBusinessAccounts(data || []);
@@ -66,7 +116,7 @@ export default function Checkout() {
     };
     
     loadBusinessAccounts();
-  }, []);
+  }, [isValidatingSession, ensureValidSession, navigate, toast]);
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = subtotal >= 25000 ? 0 : 2500;
@@ -76,54 +126,35 @@ export default function Checkout() {
   const isFormValid = donorPhoneNumber.trim() !== "" && beneficiaryPhoneNumber.trim() !== "" && address.trim() !== "";
 
   const handleConfirmOrder = async () => {
-    if (!user) {
-      toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour passer commande",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsProcessing(true);
     try {
-      // Force session refresh to ensure we have a valid, fresh session
-      console.log('🔄 Refreshing session...');
-      await refreshSession();
+      // Validation robuste de la session AVANT tout
+      console.log('🔐 Ensuring valid session before order...');
+      const { valid, session: validSession } = await ensureValidSession();
       
-      // DEBUG: Check authentication state in detail
-      console.log('🔍 Starting order creation process...');
-      console.log('👤 User from React context:', user?.id, user?.email);
-      
-      // Verify the refreshed session
-      console.log('🔄 Verifying refreshed session...');
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('❌ Session error:', sessionError);
-        throw new Error('Erreur de session. Veuillez vous reconnecter.');
-      }
-      
-      if (!sessionData.session?.user) {
-        console.error('❌ No valid session found despite React user state');
+      if (!valid || !validSession) {
+        console.error('❌ No valid session for order creation');
         toast({
           title: "Session expirée",
-          description: "Veuillez vous reconnecter pour continuer",
+          description: "Veuillez vous reconnecter pour continuer.",
           variant: "destructive"
         });
         navigate('/auth');
         return;
       }
       
-      console.log('✅ Valid session found:', sessionData.session.user.id);
-      console.log('🔑 Session access token exists:', !!sessionData.session.access_token);
+      console.log('✅ Valid session confirmed:', validSession.user.id);
+      console.log('🔑 Session access token exists:', !!validSession.access_token);
+      
+      // Utiliser l'ID de la session validée, pas l'état React potentiellement obsolète
+      const currentUserId = validSession.user.id;
       
       // Verify auth.uid() works by testing a simple query
       console.log('🧪 Testing auth.uid() with a simple query...');
       const { data: testAuth, error: testAuthError } = await supabase
         .from('orders')
         .select('id')
-        .eq('user_id', sessionData.session.user.id)
+        .eq('user_id', currentUserId)
         .limit(1);
       
       if (testAuthError) {
@@ -157,11 +188,11 @@ export default function Checkout() {
         businessAccounts = accounts || [];
       }
 
-      // Create order in database
+      // Create order in database - utiliser currentUserId au lieu de user.id
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
-          user_id: user.id,
+          user_id: currentUserId,
           total_amount: total,
           currency: "XOF",
           status: "pending",
@@ -274,11 +305,13 @@ export default function Checkout() {
           
           console.log('📤 Inserting business order data:', businessOrderData);
           
-          // Refresh session again right before business order creation
-          console.log('🔄 Refreshing session before business order insert...');
-          await refreshSession();
-          const { data: preInsertSession } = await supabase.auth.getSession();
-          console.log('🔐 Pre-insert session check:', !!preInsertSession.session?.user);
+          // Vérifier la session avant l'insertion de la commande business
+          console.log('🔄 Validating session before business order insert...');
+          const { valid: stillValid } = await ensureValidSession();
+          if (!stillValid) {
+            throw new Error('Session expirée pendant le traitement. Veuillez vous reconnecter.');
+          }
+          console.log('🔐 Pre-insert session check: valid');
           
           const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
@@ -328,7 +361,7 @@ export default function Checkout() {
       const { data: businessAccount } = await supabase
         .from('business_accounts')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUserId)
         .maybeSingle();
       
       if (businessAccount) {
