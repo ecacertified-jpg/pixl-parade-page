@@ -56,12 +56,38 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
   });
   const [loading, setLoading] = useState(true);
   const [businessAccounts, setBusinessAccounts] = useState<Array<{ id: string; business_name: string }>>([]);
+  const [currentBusinessId, setCurrentBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.id) {
       loadAnalytics();
     }
   }, [user?.id, businessAccountId]);
+
+  // Real-time listener for order changes to auto-refresh analytics
+  useEffect(() => {
+    if (!currentBusinessId) return;
+
+    console.log('📊 [Analytics] Setting up real-time listener for business:', currentBusinessId);
+
+    const channel = supabase
+      .channel('business-analytics-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'business_orders',
+        filter: `business_account_id=eq.${currentBusinessId}`
+      }, (payload) => {
+        console.log('📊 [Analytics] Order change detected, refreshing stats...', payload.eventType);
+        loadAnalytics();
+      })
+      .subscribe();
+
+    return () => {
+      console.log('📊 [Analytics] Cleaning up real-time listener');
+      supabase.removeChannel(channel);
+    };
+  }, [currentBusinessId]);
 
   const loadAnalytics = async () => {
     if (!user?.id) return;
@@ -126,6 +152,9 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
         setLoading(false);
         return;
       }
+
+      // Store current business ID for real-time listener
+      setCurrentBusinessId(businessId);
 
       // Fetch total sales and order count
       const { data: ordersData, error: ordersError } = await supabase
