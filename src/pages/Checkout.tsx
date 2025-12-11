@@ -304,15 +304,8 @@ export default function Checkout() {
             status: "pending"
           };
           
-          console.log('📤 Inserting business order data:', businessOrderData);
-          
-          // Vérifier la session avant l'insertion de la commande business
-          console.log('🔄 Validating session before business order insert...');
-          const { valid: stillValid } = await ensureValidSession();
-          if (!stillValid) {
-            throw new Error('Session expirée pendant le traitement. Veuillez vous reconnecter.');
-          }
-          console.log('🔐 Pre-insert session check: valid');
+          console.log('📤 Inserting business order with customer_id:', currentUserId);
+          console.log('📤 Full business order data:', JSON.stringify(businessOrderData, null, 2));
           
           const { data: businessOrderResult, error: businessOrderError } = await supabase
             .from("business_orders")
@@ -405,17 +398,17 @@ export default function Checkout() {
           // Redirect to auth after showing the toast
           setTimeout(() => navigate('/auth'), 2000);
         } else if (error.message.includes('autorisation') || error.message.includes('permission')) {
-          errorTitle = "Problème d'authentification";
-          errorDescription = "Erreur d'autorisation. Veuillez vous reconnecter.";
+          errorTitle = "Erreur technique";
+          errorDescription = "Une erreur de configuration s'est produite. Veuillez réessayer ou contacter le support.";
         } else if (error.message.includes('business_orders')) {
-          errorTitle = "Erreur commande business";
-          errorDescription = "Erreur lors de la création de la commande business. Veuillez réessayer.";
+          errorTitle = "Erreur commande";
+          errorDescription = "Une erreur technique est survenue. Veuillez réessayer.";
         } else if (error.message.includes('uuid')) {
           errorTitle = "Erreur de données";
           errorDescription = "Erreur de format des données. Veuillez contacter le support.";
         } else if (error.message.includes('RLS') || error.message.includes('policy')) {
-          errorTitle = "Problème de sécurité";
-          errorDescription = "Erreur de politique de sécurité. Veuillez vous reconnecter.";
+          errorTitle = "Erreur technique";
+          errorDescription = "Une erreur de configuration s'est produite. Veuillez réessayer.";
         } else {
           errorDescription = `Erreur technique: ${error.message}`;
         }
