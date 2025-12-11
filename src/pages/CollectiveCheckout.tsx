@@ -29,7 +29,7 @@ interface CollectiveItem {
 export default function CollectiveCheckout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const [items, setItems] = useState<CollectiveItem[]>([]);
   const [donorPhone, setDonorPhone] = useState("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
@@ -90,20 +90,23 @@ export default function CollectiveCheckout() {
     setProcessing(true);
 
     try {
-      // Verify authentication session is active
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Verify authentication session is active using ensureValidSession
+      console.log('🔐 Validating session before collective fund creation...');
+      const { valid, session } = await ensureValidSession();
       
-      if (sessionError || !session) {
-        console.error('Session error:', sessionError);
+      if (!valid || !session) {
+        console.error('❌ Session validation failed');
         toast({
           title: "Session expirée",
           description: "Votre session a expiré. Veuillez vous reconnecter.",
           variant: "destructive"
         });
+        navigate('/auth');
         return;
       }
 
-      console.log('User authenticated:', { userId: user.id, sessionUserId: session.user.id });
+      const currentUserId = session.user.id;
+      console.log('✅ User authenticated:', { userId: user.id, sessionUserId: currentUserId });
 
       // Create collective fund for the first item (assuming one item per fund)
       const item = items[0];
@@ -143,7 +146,7 @@ export default function CollectiveCheckout() {
       const { data: fundData, error: fundError } = await supabase
         .from('collective_funds')
         .insert({
-          creator_id: user.id,
+          creator_id: currentUserId, // Use validated session user ID
           beneficiary_contact_id: item.beneficiaryContactId || null,
           title: `${item.name} pour ${item.beneficiaryName}`,
           description: item.description,
@@ -161,11 +164,22 @@ export default function CollectiveCheckout() {
         console.error('Fund creation error:', fundError);
         
         if (fundError.code === '42501' || fundError.message.includes('row-level security')) {
-          toast({
-            title: "Erreur d'authentification",
-            description: "Problème d'autorisation. Veuillez vous reconnecter.",
-            variant: "destructive"
-          });
+          // Vérifier si c'est vraiment une session expirée
+          const { valid: sessionStillValid } = await ensureValidSession();
+          if (!sessionStillValid) {
+            toast({
+              title: "Session expirée",
+              description: "Votre session a expiré. Veuillez vous reconnecter.",
+              variant: "destructive"
+            });
+            navigate('/auth');
+          } else {
+            toast({
+              title: "Erreur de permission",
+              description: "Erreur d'autorisation. Veuillez contacter le support.",
+              variant: "destructive"
+            });
+          }
         } else if (fundError.code === 'PGRST301') {
           toast({
             title: "Erreur de validation",
@@ -215,7 +229,7 @@ export default function CollectiveCheckout() {
         .from('collective_fund_orders')
         .insert({
           fund_id: fundData.id,
-          creator_id: user.id,
+          creator_id: currentUserId, // Use validated session user ID
           donor_phone: donorPhone,
           beneficiary_phone: beneficiaryPhone,
           delivery_address: deliveryAddress,
