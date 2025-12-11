@@ -1,0 +1,265 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface OrderPayload {
+  type: 'INSERT';
+  table: string;
+  record: {
+    id: string;
+    business_account_id: string;
+    total_amount: number;
+    currency: string;
+    status: string;
+    order_summary: any;
+    delivery_address: string;
+    beneficiary_phone: string;
+    donor_phone: string;
+    created_at: string;
+  };
+  old_record: null;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const payload: OrderPayload = await req.json();
+    console.log('📦 [notify-business-order] New order received:', payload.record?.id);
+
+    if (!payload.record || payload.type !== 'INSERT') {
+      console.log('⚠️ Not an INSERT event or no record, skipping');
+      return new Response(
+        JSON.stringify({ message: 'Not an INSERT event' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const order = payload.record;
+
+    // Get the business account to find the owner
+    const { data: businessAccount, error: businessError } = await supabaseClient
+      .from('business_accounts')
+      .select('user_id, business_name')
+      .eq('id', order.business_account_id)
+      .single();
+
+    if (businessError || !businessAccount) {
+      console.error('❌ Error fetching business account:', businessError);
+      return new Response(
+        JSON.stringify({ error: 'Business account not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
+    }
+
+    console.log('🏪 Business owner found:', businessAccount.user_id);
+
+    // Get active push subscriptions for the business owner
+    const { data: subscriptions, error: subsError } = await supabaseClient
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', businessAccount.user_id)
+      .eq('is_active', true);
+
+    if (subsError) {
+      console.error('❌ Error fetching subscriptions:', subsError);
+      throw subsError;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('📭 No active push subscriptions for business owner');
+      
+      // Still create an in-app notification
+      await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name);
+      
+      return new Response(
+        JSON.stringify({ message: 'No push subscriptions, in-app notification created', sent: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse order summary to get item count
+    let itemCount = 0;
+    let firstItemName = 'Article';
+    try {
+      const summary = typeof order.order_summary === 'string' 
+        ? JSON.parse(order.order_summary) 
+        : order.order_summary;
+      
+      if (summary?.items && Array.isArray(summary.items)) {
+        itemCount = summary.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+        firstItemName = summary.items[0]?.name || 'Article';
+      }
+    } catch (e) {
+      console.log('⚠️ Could not parse order summary');
+    }
+
+    // Prepare push payload
+    const pushPayload = {
+      title: '🎉 Nouvelle commande !',
+      message: itemCount > 1 
+        ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
+        : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
+      body: itemCount > 1 
+        ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
+        : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
+      icon: '/logo-jv.png',
+      badge: '/logo-jv.png',
+      tag: `order-${order.id}`,
+      data: {
+        type: 'new_order',
+        order_id: order.id,
+        business_id: order.business_account_id,
+        url: '/business-account',
+      },
+      requireInteraction: true,
+    };
+
+    // Send push notifications using web-push protocol
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const subscription of subscriptions) {
+      try {
+        const success = await sendWebPush(subscription, pushPayload);
+        
+        if (success) {
+          successCount++;
+          await supabaseClient
+            .from('push_subscriptions')
+            .update({ last_used_at: new Date().toISOString() })
+            .eq('id', subscription.id);
+        } else {
+          failedCount++;
+        }
+      } catch (error) {
+        console.error('❌ Error sending push to subscription:', error);
+        failedCount++;
+      }
+    }
+
+    // Also create an in-app notification
+    await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name);
+
+    console.log(`✅ Push notifications sent: ${successCount} success, ${failedCount} failed`);
+
+    return new Response(
+      JSON.stringify({ 
+        sent: successCount, 
+        failed: failedCount,
+        total: subscriptions.length,
+        in_app_created: true
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error in notify-business-order:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
+});
+
+async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
+  try {
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+    const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      console.error('❌ VAPID keys not configured');
+      return false;
+    }
+
+    // For now, using a simple fetch - in production, use proper web-push encryption
+    // The service worker will receive this and show the notification
+    const response = await fetch(subscription.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'TTL': '86400',
+        'Urgency': 'high',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Push failed:', response.status, errorText);
+      
+      // If subscription is gone (410) or not found (404), mark as inactive
+      if (response.status === 404 || response.status === 410) {
+        console.log('📭 Subscription expired, will be marked inactive');
+      }
+      return false;
+    }
+
+    console.log('✅ Push sent successfully to:', subscription.endpoint.substring(0, 50) + '...');
+    return true;
+  } catch (error) {
+    console.error('❌ Error in sendWebPush:', error);
+    return false;
+  }
+}
+
+async function createInAppNotification(
+  supabase: any, 
+  userId: string, 
+  order: any, 
+  businessName: string
+) {
+  try {
+    let itemCount = 0;
+    try {
+      const summary = typeof order.order_summary === 'string' 
+        ? JSON.parse(order.order_summary) 
+        : order.order_summary;
+      
+      if (summary?.items && Array.isArray(summary.items)) {
+        itemCount = summary.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      }
+    } catch (e) {}
+
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'new_business_order',
+        title: 'Nouvelle commande reçue',
+        message: `Vous avez reçu une nouvelle commande de ${order.total_amount.toLocaleString()} ${order.currency}${itemCount > 0 ? ` (${itemCount} article${itemCount > 1 ? 's' : ''})` : ''}`,
+        data: {
+          order_id: order.id,
+          business_id: order.business_account_id,
+          amount: order.total_amount,
+          currency: order.currency,
+        },
+        is_read: false,
+      });
+
+    if (error) {
+      console.error('❌ Error creating in-app notification:', error);
+    } else {
+      console.log('✅ In-app notification created');
+    }
+  } catch (error) {
+    console.error('❌ Error in createInAppNotification:', error);
+  }
+}

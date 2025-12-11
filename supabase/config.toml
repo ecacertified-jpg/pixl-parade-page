@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.ai-gift-recommendations]
 verify_jwt = false
+
+[functions.notify-business-order]
+verify_jwt = false
