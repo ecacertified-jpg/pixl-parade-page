@@ -7,6 +7,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting configuration
+const RATE_LIMITS = {
+  authenticated: { requests: 20, windowMs: 60000 }, // 20 req/min
+  anonymous: { requests: 5, windowMs: 60000 }       // 5 req/min
+};
+
+// In-memory rate limit store (resets on function cold start)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Check rate limit for a given identifier
+function checkRateLimit(identifier: string, isAuthenticated: boolean): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const limit = isAuthenticated ? RATE_LIMITS.authenticated : RATE_LIMITS.anonymous;
+  
+  const existing = rateLimitStore.get(identifier);
+  
+  if (!existing || now > existing.resetTime) {
+    // Reset window
+    rateLimitStore.set(identifier, { count: 1, resetTime: now + limit.windowMs });
+    return { allowed: true, remaining: limit.requests - 1 };
+  }
+  
+  if (existing.count >= limit.requests) {
+    return { allowed: false, remaining: 0 };
+  }
+  
+  existing.count++;
+  return { allowed: true, remaining: limit.requests - existing.count };
+}
+
+// Get client identifier for rate limiting
+function getClientIdentifier(req: Request, userId: string | null): string {
+  if (userId) return `user:${userId}`;
+  
+  const forwarded = req.headers.get('x-forwarded-for');
+  const realIp = req.headers.get('x-real-ip');
+  const ip = forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
+  
+  return `ip:${ip}`;
+}
+
 // Input validation constants
 const MAX_MESSAGE_LENGTH = 1000;
 const INJECTION_PATTERNS = [
@@ -119,6 +160,17 @@ serve(async (req) => {
     // Récupérer l'utilisateur (peut être null pour visiteurs non connectés)
     const { data: { user } } = await supabaseClient.auth.getUser();
     console.log('User:', user?.id || 'Anonymous');
+
+    // Check rate limit
+    const clientId = getClientIdentifier(req, user?.id || null);
+    const rateCheck = checkRateLimit(clientId, !!user);
+    
+    if (!rateCheck.allowed) {
+      console.warn('Rate limit exceeded for:', clientId);
+      return handleError('rate_limit', new Error('Rate limit exceeded'));
+    }
+    
+    console.log('Rate limit remaining:', rateCheck.remaining);
 
     // Récupérer ou créer la conversation
     let conversation;
