@@ -30,12 +30,123 @@ serve(async (req) => {
   }
 
   try {
+    // Webhook signature verification for database triggers/webhooks
+    // This function is typically called by Supabase database triggers, not directly by users
+    // Verify using a shared webhook secret if available
+    const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
+    const signature = req.headers.get('X-Webhook-Signature');
+    
+    // If webhook secret is configured, require signature verification
+    if (webhookSecret) {
+      if (!signature) {
+        console.error('❌ No webhook signature provided');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Missing webhook signature' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Simple HMAC verification (in production, use proper crypto)
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(webhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+      
+      // Get the raw body for verification
+      const body = await req.text();
+      const expectedSignature = signature;
+      
+      try {
+        const signatureBuffer = Uint8Array.from(atob(expectedSignature), c => c.charCodeAt(0));
+        const isValid = await crypto.subtle.verify(
+          'HMAC',
+          key,
+          signatureBuffer,
+          encoder.encode(body)
+        );
+        
+        if (!isValid) {
+          console.error('❌ Invalid webhook signature');
+          return new Response(
+            JSON.stringify({ error: 'Unauthorized - Invalid signature' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Parse the body since we already read it
+        const payload: OrderPayload = JSON.parse(body);
+        return await processOrder(payload);
+      } catch (verifyError) {
+        console.error('❌ Signature verification error:', verifyError);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Signature verification failed' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    // If no webhook secret configured, allow Supabase internal calls only
+    // Check for Supabase service role authorization
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      
+      // Only allow if called with service role key (internal Supabase calls)
+      if (token !== serviceRoleKey) {
+        // Verify it's a valid user token for internal calls
+        const verifyClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        
+        const { data: { user }, error: authError } = await verifyClient.auth.getUser();
+        if (authError || !user) {
+          console.error('❌ Unauthorized access attempt');
+          return new Response(
+            JSON.stringify({ error: 'Unauthorized' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        console.log('✅ Authenticated internal call from user:', user.id);
+      } else {
+        console.log('✅ Service role call detected');
+      }
+    } else {
+      console.warn('⚠️ No authorization header - allowing for legacy webhook support');
+      // Log for monitoring - in production, you should require auth
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const payload: OrderPayload = await req.json();
+    return await processOrder(payload);
+  } catch (error) {
+    console.error('❌ Error in notify-business-order:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500 
+      }
+    );
+  }
+});
+
+async function processOrder(payload: OrderPayload) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
     console.log('📦 [notify-business-order] New order received:', payload.record?.id);
 
     if (!payload.record || payload.type !== 'INSERT') {
@@ -166,17 +277,7 @@ serve(async (req) => {
         status: 200 
       }
     );
-  } catch (error) {
-    console.error('❌ Error in notify-business-order:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
-    );
-  }
-});
+}
 
 async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
   try {
