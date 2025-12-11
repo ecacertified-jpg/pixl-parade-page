@@ -47,6 +47,7 @@ import Invitations from "./pages/Invitations";
 import ReferralCodes from "./pages/ReferralCodes";
 import ProfileSettings from "./pages/ProfileSettings";
 import BusinessProfileSettings from "./pages/BusinessProfileSettings";
+import Orders from "./pages/Orders";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -185,6 +186,11 @@ const App = () => (
             <Route path="/business-profile-settings" element={
               <ProtectedRoute>
                 <BusinessProfileSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders" element={
+              <ProtectedRoute>
+                <Orders />
               </ProtectedRoute>
             } />
             {/* Admin routes */}
