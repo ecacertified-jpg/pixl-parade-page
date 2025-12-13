@@ -84,65 +84,40 @@ export function useCollectiveFunds() {
         )
       `;
 
-      // Récupérer les IDs des amis pour calculer les priorités
-      const { data: friendsData } = await supabase
-        .from('contact_relationships')
-        .select('user_a, user_b')
-        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
+      // Execute all initial queries in parallel for better performance
+      const [friendsResult, allFundsResult] = await Promise.all([
+        // Get friends data
+        supabase
+          .from('contact_relationships')
+          .select('user_a, user_b')
+          .or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
+        // Get all funds
+        supabase
+          .from('collective_funds')
+          .select(selectQuery)
+          .order('created_at', { ascending: false })
+      ]);
 
-      const friendIds = friendsData?.map(rel => 
-        rel.user_a === user.id ? rel.user_b : rel.user_a
-      ) || [];
-
-      // Récupérer les contacts des amis pour identifier les bénéficiaires
-      const { data: friendContactsData } = friendIds.length > 0 ? await supabase
-        .from('contacts')
-        .select('id, user_id')
-        .in('user_id', friendIds)
-        : { data: [] };
-
-      const friendContactIds = friendContactsData?.map(c => c.id) || [];
-
-      // Récupérer toutes les cagnottes accessibles (la RLS fait le filtrage)
-      const { data: allFundsData, error } = await supabase
-        .from('collective_funds')
-        .select(selectQuery)
-        .order('created_at', { ascending: false });
+      const friendsData = friendsResult.data;
+      const allFundsData = allFundsResult.data;
+      const error = allFundsResult.error;
 
       if (error) {
         console.error('Erreur lors du chargement des cagnottes:', error);
         throw error;
       }
 
-      // Étape 2: Récupérer les contacts liés aux cagnottes (requête séparée pour profiter de la RLS)
+      const friendIds = friendsData?.map(rel => 
+        rel.user_a === user.id ? rel.user_b : rel.user_a
+      ) || [];
+
+      // Get contacts and products data in parallel
       const contactIds = allFundsData
         ?.map(f => f.beneficiary_contact_id)
         .filter(Boolean) || [];
 
-      console.log('🔍 [DEBUG] Contact IDs à récupérer:', contactIds);
-
-      const { data: contactsData, error: contactsError } = contactIds.length > 0 
-        ? await supabase
-            .from('contacts')
-            .select('id, name, birthday, user_id')
-            .in('id', contactIds)
-        : { data: [], error: null };
-
-      if (contactsError) {
-        console.warn('⚠️ Erreur lors du chargement des contacts:', contactsError);
-      }
-
-      console.log('✅ [DEBUG] Contacts récupérés:', contactsData);
-
-      // Créer un Map pour accès rapide aux contacts
-      const contactsMap = new Map<string, ContactData>(
-        contactsData?.map(c => [c.id, c] as [string, ContactData]) || []
-      );
-
-      // Étape 3: Récupérer les produits liés aux business_collective_funds (requête séparée)
       const productIds: string[] = [];
       allFundsData?.forEach(f => {
-        // business_collective_funds est un TABLEAU retourné par Supabase
         const bcfArray = f.business_collective_funds;
         if (Array.isArray(bcfArray) && bcfArray.length > 0) {
           const bcf = bcfArray[0];
@@ -152,20 +127,33 @@ export function useCollectiveFunds() {
         }
       });
 
-      console.log('🔍 [DEBUG] Product IDs à récupérer:', productIds);
+      // Parallel queries for contacts and products
+      const [friendContactsResult, contactsResult, productsResult] = await Promise.all([
+        // Friend contacts
+        friendIds.length > 0 ? supabase
+          .from('contacts')
+          .select('id, user_id')
+          .in('user_id', friendIds) : Promise.resolve({ data: [] }),
+        // Beneficiary contacts
+        contactIds.length > 0 ? supabase
+          .from('contacts')
+          .select('id, name, birthday, user_id')
+          .in('id', contactIds) : Promise.resolve({ data: [], error: null }),
+        // Products
+        productIds.length > 0 ? supabase
+          .from('products')
+          .select('id, name, image_url, price')
+          .in('id', productIds) : Promise.resolve({ data: [], error: null })
+      ]);
 
-      const { data: productsData, error: productsError } = productIds.length > 0
-        ? await supabase
-            .from('products')
-            .select('id, name, image_url, price')
-            .in('id', productIds)
-        : { data: [], error: null };
+      const friendContactIds = friendContactsResult.data?.map(c => c.id) || [];
+      const contactsData = contactsResult.data;
+      const productsData = productsResult.data;
 
-      if (productsError) {
-        console.warn('⚠️ Erreur lors du chargement des produits:', productsError);
-      }
-
-      console.log('✅ [DEBUG] Produits récupérés:', productsData);
+      // Créer un Map pour accès rapide aux contacts
+      const contactsMap = new Map<string, ContactData>(
+        contactsData?.map(c => [c.id, c] as [string, ContactData]) || []
+      );
 
       // Créer un Map pour accès rapide aux produits
       const productsMap = new Map<string, { id: string; name: string; image_url: string | null; price: number }>();

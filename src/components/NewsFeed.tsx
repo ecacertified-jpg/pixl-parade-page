@@ -1,5 +1,5 @@
 import { Heart, Users } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,12 +10,23 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export function NewsFeed() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
+  const [followingLoaded, setFollowingLoaded] = useState(false);
   
+  // Load "all" posts initially
   const { posts: allPosts, loading: allLoading, toggleReaction: toggleAllReaction, refreshPosts: refreshAllPosts } = usePosts(false);
-  const { posts: followingPosts, loading: followingLoading, toggleReaction: toggleFollowingReaction, refreshPosts: refreshFollowingPosts } = usePosts(true);
+  
+  // Lazy load "following" posts only when tab is selected
+  const { posts: followingPosts, loading: followingLoading, toggleReaction: toggleFollowingReaction, refreshPosts: refreshFollowingPosts } = usePosts(activeTab === "following" || followingLoaded);
+
+  // Mark following as loaded once user switches to that tab
+  useEffect(() => {
+    if (activeTab === "following" && !followingLoaded) {
+      setFollowingLoaded(true);
+    }
+  }, [activeTab, followingLoaded]);
 
   const posts = activeTab === "all" ? allPosts : followingPosts;
-  const loading = activeTab === "all" ? allLoading : followingLoading;
+  const loading = activeTab === "all" ? allLoading : (activeTab === "following" && followingLoading);
   const toggleReaction = activeTab === "all" ? toggleAllReaction : toggleFollowingReaction;
   const refreshPosts = activeTab === "all" ? refreshAllPosts : refreshFollowingPosts;
 
