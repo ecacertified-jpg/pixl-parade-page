@@ -6,35 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Verify service role authorization for background tasks
-function verifyServiceAuth(req: Request): boolean {
-  const authHeader = req.headers.get('authorization');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!authHeader || !serviceKey) {
-    return false;
-  }
-  
-  // Check for Bearer token with service role key
-  const token = authHeader.replace('Bearer ', '');
-  return token === serviceKey;
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify service role authentication - only allow internal/cron calls
-  if (!verifyServiceAuth(req)) {
-    console.error('Unauthorized access attempt to notify-reciprocity');
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
   try {
+    // Use service role key for database operations
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
