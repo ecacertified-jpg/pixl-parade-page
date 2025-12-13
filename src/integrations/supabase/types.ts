@@ -4632,6 +4632,10 @@ export type Database = {
         Returns: number
       }
       can_contribute_to_fund: { Args: { fund_uuid: string }; Returns: boolean }
+      can_see_business_fund_for_friend: {
+        Args: { fund_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
       can_see_fund_for_friend: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
