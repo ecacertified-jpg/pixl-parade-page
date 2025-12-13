@@ -79,7 +79,9 @@ export function useCollectiveFunds() {
         ),
         business_collective_funds(
           business_id,
-          business_accounts:business_id(business_name)
+          product_id,
+          business_accounts:business_id(business_name),
+          products:product_id(id, name, image_url, price)
         )
       `;
 
@@ -211,19 +213,29 @@ export function useCollectiveFunds() {
           });
         }
 
-        // Extraire les informations du produit depuis la commande
+        // Extraire les informations du produit
         const orderData = fund.collective_fund_orders?.[0];
         const orderSummary = orderData?.order_summary as any;
         const firstItem = orderSummary?.items?.[0];
         
-        let productName = 'Cadeau';
-        let productImage = undefined;
+        // Récupérer le produit depuis business_collective_funds si disponible
+        const businessFundProduct = fund.business_collective_funds?.[0]?.products;
         
-        if (firstItem) {
+        let productName = 'Cadeau';
+        let productImage: string | undefined = undefined;
+        
+        // Priorité 1: Produit lié via business_collective_funds
+        if (businessFundProduct) {
+          productName = businessFundProduct.name || 'Cadeau';
+          productImage = businessFundProduct.image_url;
+        } 
+        // Priorité 2: Données de la commande
+        else if (firstItem) {
           productName = firstItem.name || 'Cadeau';
           productImage = firstItem.image;
-        } else {
-          // Fallback: extraire du titre
+        } 
+        // Priorité 3: Extraction depuis le titre
+        else {
           const titleParts = fund.title.split(' pour ');
           if (titleParts.length > 1) {
             productName = titleParts[0];
