@@ -154,6 +154,33 @@ export function BusinessCollaborativeGiftModal({
           // Ne pas bloquer le flux si la notification échoue
           console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
         }
+
+        // Notifier les amis du bénéficiaire
+        try {
+          console.log('📧 Invoking notify-business-fund-friends for beneficiary:', selectedUser.user_id);
+          
+          // Get business name
+          const { data: businessData } = await supabase
+            .from('business_accounts')
+            .select('business_name')
+            .eq('id', businessId)
+            .single();
+
+          await supabase.functions.invoke('notify-business-fund-friends', {
+            body: { 
+              fund_id: fundId,
+              beneficiary_user_id: selectedUser.user_id,
+              business_name: businessData?.business_name || 'Un commerce',
+              product_name: product.name,
+              target_amount: product.price,
+              currency: product.currency || 'XOF'
+            }
+          });
+          console.log('✅ Notify-business-fund-friends invoked successfully');
+        } catch (friendsNotifyError) {
+          // Ne pas bloquer le flux si la notification échoue
+          console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
+        }
       }
 
       toast({
