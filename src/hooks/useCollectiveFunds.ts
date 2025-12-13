@@ -142,9 +142,13 @@ export function useCollectiveFunds() {
       // Étape 3: Récupérer les produits liés aux business_collective_funds (requête séparée)
       const productIds: string[] = [];
       allFundsData?.forEach(f => {
-        const bcf = f.business_collective_funds;
-        if (bcf && typeof bcf === 'object' && 'product_id' in bcf && bcf.product_id) {
-          productIds.push(bcf.product_id as string);
+        // business_collective_funds est un TABLEAU retourné par Supabase
+        const bcfArray = f.business_collective_funds;
+        if (Array.isArray(bcfArray) && bcfArray.length > 0) {
+          const bcf = bcfArray[0];
+          if (bcf?.product_id) {
+            productIds.push(bcf.product_id as string);
+          }
         }
       });
 
