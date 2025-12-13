@@ -34,6 +34,8 @@ export interface CollectiveFund {
   creatorId?: string;
   isPublic?: boolean;
   priority?: number; // 1: friends' public funds, 2: own funds, 3: contributed funds, 4: general public funds
+  isBusinessInitiated?: boolean;
+  businessName?: string;
 }
 
 export function useCollectiveFunds() {
@@ -60,6 +62,7 @@ export function useCollectiveFunds() {
         creator_id,
         is_public,
         beneficiary_contact_id,
+        created_by_business_id,
         fund_contributions(
           id,
           amount,
@@ -73,6 +76,10 @@ export function useCollectiveFunds() {
           beneficiary_phone,
           delivery_address,
           payment_method
+        ),
+        business_collective_funds(
+          business_id,
+          business_accounts:business_id(business_name)
         )
       `;
 
@@ -223,6 +230,11 @@ export function useCollectiveFunds() {
           }
         }
 
+        // Déterminer si c'est une cotisation initiée par un commerce
+        const businessFundData = fund.business_collective_funds?.[0];
+        const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
+        const businessName = businessFundData?.business_accounts?.business_name;
+
         return {
           id: fund.id,
           title: fund.title,
@@ -241,7 +253,9 @@ export function useCollectiveFunds() {
           orderData: orderData || null,
           creatorId: fund.creator_id,
           isPublic: fund.is_public || false,
-          priority: fund.priority || 4
+          priority: fund.priority || 4,
+          isBusinessInitiated,
+          businessName
         };
       });
 
