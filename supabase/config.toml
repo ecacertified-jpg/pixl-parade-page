@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.notify-business-fund-contributors]
 verify_jwt = false
 
+[functions.notify-business-fund-friends]
+verify_jwt = false
+
 [functions.notify-reciprocity]
 verify_jwt = false
 
