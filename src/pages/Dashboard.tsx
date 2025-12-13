@@ -91,9 +91,13 @@ export default function Dashboard() {
     setGivenGiftsCount(given);
   };
 
-  // Charger les données depuis le localStorage et Supabase
+  // Nettoyer l'ancien localStorage partagé (bug d'isolation)
   useEffect(() => {
-    loadFriendsFromStorage();
+    localStorage.removeItem('friends');
+  }, []);
+
+  // Charger les données depuis Supabase uniquement
+  useEffect(() => {
     loadFriendsFromSupabase();
     loadEventsFromStorage();
     loadUserProfile();
@@ -114,16 +118,6 @@ export default function Dashboard() {
       }
     }
   }, [searchParams, setSearchParams]);
-  const loadFriendsFromStorage = () => {
-    const savedFriends = localStorage.getItem('friends');
-    if (savedFriends) {
-      const parsedFriends = JSON.parse(savedFriends).map((friend: any) => ({
-        ...friend,
-        birthday: friend.birthday ? new Date(friend.birthday) : new Date()
-      }));
-      setFriends(parsedFriends);
-    }
-  };
   const loadUserProfile = async () => {
     if (!user) return;
     try {
@@ -141,39 +135,33 @@ export default function Dashboard() {
     }
   };
   const loadFriendsFromSupabase = async () => {
-    if (!user) return;
+    if (!user) {
+      setFriends([]); // Nettoyer si pas d'utilisateur connecté
+      return;
+    }
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('contacts').select('*').eq('user_id', user.id).order('name');
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name');
+        
       if (error) {
         console.error('Erreur lors du chargement des contacts:', error);
         return;
       }
 
-      // Convertir les contacts Supabase vers le format Friend local
-      const supabaseContacts: Friend[] = data.map(contact => ({
+      // Convertir uniquement les contacts Supabase (source unique de vérité)
+      const contacts: Friend[] = data.map(contact => ({
         id: contact.id,
         name: contact.name,
         phone: contact.phone || '',
         relation: contact.relationship || '',
         location: contact.notes || '',
-        // Utiliser notes pour la localisation
         birthday: contact.birthday ? new Date(contact.birthday) : new Date()
       }));
 
-      // Fusionner avec les amis locaux en évitant les doublons
-      const existingFriends = JSON.parse(localStorage.getItem('friends') || '[]');
-      const combinedFriends = [...existingFriends];
-      supabaseContacts.forEach(supabaseContact => {
-        const exists = combinedFriends.find(f => f.name === supabaseContact.name && f.phone === supabaseContact.phone);
-        if (!exists) {
-          combinedFriends.push(supabaseContact);
-        }
-      });
-      setFriends(combinedFriends);
-      localStorage.setItem('friends', JSON.stringify(combinedFriends));
+      setFriends(contacts);
     } catch (error) {
       console.error('Erreur lors du chargement des contacts:', error);
     }
@@ -201,102 +189,103 @@ export default function Dashboard() {
 
   // Fonction pour ajouter un ami
   const handleAddFriend = async (newFriend: Friend) => {
-    const updatedFriends = [...friends, newFriend];
-    setFriends(updatedFriends);
-    localStorage.setItem('friends', JSON.stringify(updatedFriends));
+    if (!user) return;
+    
+    try {
+      // 1. Rechercher si un utilisateur existe avec ce numéro
+      const { data: existingUser, error: searchError } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('phone', newFriend.phone)
+        .maybeSingle();
 
-    // Synchroniser avec Supabase
-    if (user) {
-      try {
-        // 1. Rechercher si un utilisateur existe avec ce numéro
-        const { data: existingUser, error: searchError } = await supabase
-          .from('profiles')
-          .select('user_id')
-          .eq('phone', newFriend.phone)
-          .maybeSingle();
-
-        if (searchError && searchError.code !== 'PGRST116') {
-          console.error('Erreur lors de la recherche de l\'utilisateur:', searchError);
-        }
-
-        // 2. Si l'utilisateur existe, créer une relation d'amitié
-        if (existingUser?.user_id && existingUser.user_id !== user.id) {
-          const { error: relationError } = await supabase
-            .from('contact_relationships')
-            .insert({
-              user_a: user.id,
-              user_b: existingUser.user_id,
-              can_see_funds: true,
-              relationship_type: 'friend'
-            });
-
-          if (relationError) {
-            console.error('Erreur lors de la création de la relation:', relationError);
-          } else {
-            console.log('Relation d\'amitié créée avec succès');
-          }
-        }
-
-        // 3. Créer le contact dans la table contacts
-        const {
-          error
-        } = await supabase.from('contacts').insert({
-          user_id: user.id,
-          name: newFriend.name,
-          phone: newFriend.phone,
-          relationship: newFriend.relation,
-          notes: newFriend.location,
-          birthday: newFriend.birthday.toISOString().split('T')[0]
-        });
-
-        if (error) {
-          console.error('Erreur lors de la sauvegarde du contact:', error);
-          toast({
-            title: "Attention",
-            description: "Contact ajouté localement mais pas synchronisé en ligne",
-            variant: "destructive"
-          });
-        } else {
-          if (existingUser?.user_id) {
-            toast({
-              title: "Contact ajouté et connecté",
-              description: `${newFriend.name} est maintenant dans votre cercle d'amis. Vous pouvez voir ses cotisations.`
-            });
-          } else {
-            toast({
-              title: "Contact ajouté",
-              description: `${newFriend.name} a été ajouté à vos contacts`
-            });
-          }
-          
-          // Trigger badge check for community badges
-          triggerBadgeCheckAfterAction('add_friend', user.id);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la sauvegarde du contact:', error);
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Erreur lors de la recherche de l\'utilisateur:', searchError);
       }
+
+      // 2. Si l'utilisateur existe, créer une relation d'amitié
+      if (existingUser?.user_id && existingUser.user_id !== user.id) {
+        const { error: relationError } = await supabase
+          .from('contact_relationships')
+          .insert({
+            user_a: user.id,
+            user_b: existingUser.user_id,
+            can_see_funds: true,
+            relationship_type: 'friend'
+          });
+
+        if (relationError) {
+          console.error('Erreur lors de la création de la relation:', relationError);
+        }
+      }
+
+      // 3. Créer le contact dans la table contacts
+      const { error } = await supabase.from('contacts').insert({
+        user_id: user.id,
+        name: newFriend.name,
+        phone: newFriend.phone,
+        relationship: newFriend.relation,
+        notes: newFriend.location,
+        birthday: newFriend.birthday.toISOString().split('T')[0]
+      });
+
+      if (error) {
+        console.error('Erreur lors de la sauvegarde du contact:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter le contact",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Recharger les contacts depuis Supabase
+      await loadFriendsFromSupabase();
+      
+      if (existingUser?.user_id) {
+        toast({
+          title: "Contact ajouté et connecté",
+          description: `${newFriend.name} est maintenant dans votre cercle d'amis.`
+        });
+      } else {
+        toast({
+          title: "Contact ajouté",
+          description: `${newFriend.name} a été ajouté à vos contacts`
+        });
+      }
+      
+      // Trigger badge check for community badges
+      triggerBadgeCheckAfterAction('add_friend', user.id);
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du contact:', error);
     }
   };
 
   // Fonction pour supprimer un ami
   const handleDeleteFriend = async (friendId: string) => {
-    const friendToDelete = friends.find(f => f.id === friendId);
-    const updatedFriends = friends.filter(friend => friend.id !== friendId);
-    setFriends(updatedFriends);
-    localStorage.setItem('friends', JSON.stringify(updatedFriends));
-
-    // Synchroniser avec Supabase
-    if (user && friendToDelete) {
-      try {
-        const {
-          error
-        } = await supabase.from('contacts').delete().eq('user_id', user.id).eq('name', friendToDelete.name).eq('phone', friendToDelete.phone);
-        if (error) {
-          console.error('Erreur lors de la suppression du contact:', error);
-        }
-      } catch (error) {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', friendId)
+        .eq('user_id', user.id);
+        
+      if (error) {
         console.error('Erreur lors de la suppression du contact:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer le contact",
+          variant: "destructive"
+        });
+        return;
       }
+      
+      // Recharger les contacts depuis Supabase
+      await loadFriendsFromSupabase();
+    } catch (error) {
+      console.error('Erreur lors de la suppression du contact:', error);
     }
   };
 
