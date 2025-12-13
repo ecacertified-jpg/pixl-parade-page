@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sparkles, Send, ThumbsUp, ThumbsDown, X, RotateCcw } from 'lucide-react';
+import { Sparkles, Send, ThumbsUp, ThumbsDown, X, RotateCcw, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useLocation } from 'react-router-dom';
@@ -22,15 +21,28 @@ interface AIChatPanelProps {
   onClose: () => void;
 }
 
+// Déterminer l'étape selon l'URL
+function determineStage(pathname: string): string {
+  if (pathname === '/auth') return 'onboarding';
+  if (pathname === '/dashboard') return 'setup_profile';
+  if (pathname.includes('preferences')) return 'preferences';
+  if (pathname.includes('gifts') || pathname.includes('shop')) return 'using_features';
+  return 'discovery';
+}
+
 export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
   const [inputValue, setInputValue] = useState('');
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  
+  // Mémoriser le stage pour éviter les recalculs
+  const stage = useMemo(() => determineStage(location.pathname), [location.pathname]);
   
   const { 
     messages, 
     isLoading, 
+    isInitializing,
     sendMessage, 
     suggestedQuestions,
     markAsHelpful,
@@ -38,14 +50,14 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
   } = useAIChat({
     initialContext: {
       page: location.pathname,
-      stage: determineStage(location.pathname)
+      stage
     }
   });
 
   // Auto-scroll vers le bas
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -100,11 +112,19 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.length === 0 && (
-            <WelcomeMessage onQuickAction={handleQuickAction} />
-          )}
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto p-4"
+      >
+        {isInitializing ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.length === 0 && (
+              <WelcomeMessage onQuickAction={handleQuickAction} />
+            )}
 
           <AnimatePresence>
             {messages.map((msg, index) => (
@@ -162,25 +182,26 @@ export const AIChatPanel = ({ onClose }: AIChatPanelProps) => {
             </motion.div>
           )}
 
-          {/* Suggested Questions */}
-          {suggestedQuestions.length > 0 && !isLoading && messages.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 font-medium">Questions suggérées :</p>
-              {suggestedQuestions.map((q, i) => (
-                <Button
-                  key={i}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAction(q)}
-                  className="w-full text-left justify-start text-xs h-auto py-2"
-                >
-                  {q}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
+            {/* Suggested Questions */}
+            {suggestedQuestions.length > 0 && !isLoading && messages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Questions suggérées :</p>
+                {suggestedQuestions.map((q, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAction(q)}
+                    className="w-full text-left justify-start text-xs h-auto py-2"
+                  >
+                    {q}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Input */}
       <div className="p-4 border-t">
@@ -269,11 +290,3 @@ const WelcomeMessage = ({ onQuickAction }: { onQuickAction: (q: string) => void 
   );
 };
 
-// Déterminer l'étape selon l'URL
-function determineStage(pathname: string): string {
-  if (pathname === '/auth') return 'onboarding';
-  if (pathname === '/dashboard') return 'setup_profile';
-  if (pathname.includes('preferences')) return 'preferences';
-  if (pathname.includes('gifts') || pathname.includes('shop')) return 'using_features';
-  return 'discovery';
-}

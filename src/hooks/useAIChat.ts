@@ -19,6 +19,7 @@ interface UseAIChatProps {
 export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
@@ -30,6 +31,8 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
   useEffect(() => {
     if (user) {
       loadConversationHistory();
+    } else {
+      setIsInitializing(false);
     }
   }, [user?.id]);
 
@@ -39,11 +42,14 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
   }, [initialContext]);
 
   const loadConversationHistory = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsInitializing(false);
+      return;
+    }
 
     try {
       // Récupérer la dernière conversation active
-      const { data: conversation } = await supabase
+      const { data: conversation, error: convError } = await supabase
         .from('ai_conversations')
         .select('id')
         .eq('user_id', user.id)
@@ -51,18 +57,26 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
         .limit(1)
         .maybeSingle();
 
+      if (convError) {
+        console.error('Error fetching conversation:', convError);
+        setIsInitializing(false);
+        return;
+      }
+
       if (conversation) {
         setConversationId(conversation.id);
 
         // Charger les messages
-        const { data: msgs } = await supabase
+        const { data: msgs, error: msgsError } = await supabase
           .from('ai_messages')
           .select('id, role, content')
           .eq('conversation_id', conversation.id)
           .order('created_at', { ascending: true })
           .limit(20);
 
-        if (msgs) {
+        if (msgsError) {
+          console.error('Error fetching messages:', msgsError);
+        } else if (msgs) {
           setMessages(msgs.map(m => ({
             id: m.id,
             role: m.role as 'user' | 'assistant',
@@ -72,6 +86,8 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
       }
     } catch (error) {
       console.error('Error loading conversation:', error);
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -324,6 +340,7 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
   return {
     messages,
     isLoading,
+    isInitializing,
     sendMessage,
     suggestedQuestions,
     markAsHelpful,
