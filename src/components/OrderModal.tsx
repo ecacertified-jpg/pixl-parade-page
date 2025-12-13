@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, User, Gift, Users, Search, ArrowLeft } from "lucide-react";
+import { User, Gift, Users, Search, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollaborativeGiftModal } from "./CollaborativeGiftModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 interface Product {
   id: string | number;
   name: string;
@@ -35,6 +36,7 @@ export function OrderModal({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { addItem } = useCart();
   useEffect(() => {
     if (showContactSelection) {
       loadContacts();
@@ -87,7 +89,7 @@ export function OrderModal({
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const addToCart = (forSelf = true, recipient = null) => {
+  const addToCartHandler = (forSelf = true, recipient: any = null) => {
     // Validate that product has a valid UUID
     if (!product.id || typeof product.id === 'number') {
       toast({
@@ -98,22 +100,12 @@ export function OrderModal({
       return;
     }
 
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const newItem = {
-      id: Date.now(),
-      productId: product.id,
+    addItem({
+      id: product.id,
       name: product.name,
       price: product.price,
-      currency: product.currency,
       image: product.image,
-      quantity: 1,
-      isGift: !forSelf,
-      recipient: recipient
-    };
-    
-    const updatedCart = [...existingCart, newItem];
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    window.dispatchEvent(new Event('cartUpdated'));
+    });
     
     toast({
       title: forSelf ? "Ajouté au panier" : "Cadeau ajouté au panier",
@@ -186,7 +178,7 @@ export function OrderModal({
   const handleGiftToContact = () => {
     if (selectedContact) {
       // Ajouter le cadeau au panier
-      addToCart(false, selectedContact);
+      addToCartHandler(false, selectedContact);
       
       // Naviguer vers le panier
       navigate("/cart");
@@ -284,7 +276,7 @@ export function OrderModal({
         // Main Options
         <>
                <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={() => {
-                addToCart(true);
+                addToCartHandler(true);
                 navigate("/cart");
                 handleClose();
               }}>

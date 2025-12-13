@@ -1,36 +1,14 @@
-import { useState, useEffect } from "react";
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-interface CartItem {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  image: string;
-  quantity: number;
-  isCollaborativeGift?: boolean;
-  beneficiaryName?: string;
-  beneficiaryId?: string;
-  beneficiaryContactId?: string;
-  productId?: string;
-}
+import { useCart } from "@/hooks/useCart";
+
 export default function Cart() {
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
+  const { toast } = useToast();
+  const { items: cartItems, updateQuantity: updateCartQuantity, removeItem } = useCart();
   const FREE_SHIPPING_THRESHOLD = 25000;
   const SHIPPING_COST = 2500;
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -38,27 +16,23 @@ export default function Cart() {
   const total = subtotal + shippingCost;
   const progressToFreeShipping = Math.min(subtotal / FREE_SHIPPING_THRESHOLD * 100, 100);
   const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
-  const updateQuantity = (id: number, newQuantity: number) => {
-    const updatedItems = newQuantity === 0 ? cartItems.filter(item => item.id !== id) : cartItems.map(item => item.id === id ? {
-      ...item,
-      quantity: newQuantity
-    } : item);
-    setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
-    window.dispatchEvent(new Event('cartUpdated'));
+  const handleQuantityChange = (id: string | number, newQuantity: number) => {
     if (newQuantity === 0) {
+      removeItem(id);
       toast({
         title: "Article supprimé",
         description: "L'article a été retiré de votre panier"
       });
+    } else {
+      updateCartQuantity(id, newQuantity);
     }
   };
   const proceedToCheckout = () => {
     // Check if there are collaborative gifts
-    const hasCollaborativeGifts = cartItems.some(item => item.isCollaborativeGift);
+    const hasCollaborativeGifts = cartItems.some(item => (item as any).isCollaborativeGift);
     
-    // Store cart items for checkout
-    localStorage.setItem('checkoutItems', JSON.stringify(cartItems));
+    // Store cart items for checkout (using sessionStorage for consistency)
+    sessionStorage.setItem('checkoutItems', JSON.stringify(cartItems));
     
     if (hasCollaborativeGifts) {
       navigate("/collective-checkout");
@@ -141,34 +115,34 @@ export default function Cart() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="font-medium text-sm">{item.name}</h3>
-                      {item.isCollaborativeGift && <div className="flex items-center gap-1 text-xs text-primary mb-1">
+                      {(item as any).isCollaborativeGift && <div className="flex items-center gap-1 text-xs text-primary mb-1">
                           <span>🎁</span>
-                          <span>Cadeau pour {item.beneficiaryName}</span>
+                          <span>Cadeau pour {(item as any).beneficiaryName}</span>
                         </div>}
-                      <p className="text-xs text-muted-foreground mb-1">
-                        {item.description}
-                      </p>
+                      {(item as any).description && <p className="text-xs text-muted-foreground mb-1">
+                        {(item as any).description}
+                      </p>}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>📍</span>
                         <span>Bijouterie Précieuse • Plateau, Abidjan</span>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => updateQuantity(item.id, 0)} className="p-1 h-auto text-destructive">
+                    <Button variant="ghost" size="sm" onClick={() => handleQuantityChange(item.id, 0)} className="p-1 h-auto text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    {!item.isCollaborativeGift ? <div className="flex items-center border rounded-lg">
-                        <Button variant="ghost" size="sm" onClick={() => updateQuantity(item.id, item.quantity - 1)} className="h-8 w-8 p-0">
+                    {!(item as any).isCollaborativeGift ? <div className="flex items-center border rounded-lg">
+                        <Button variant="ghost" size="sm" onClick={() => handleQuantityChange(item.id, item.quantity - 1)} className="h-8 w-8 p-0">
                           <Minus className="h-3 w-3" />
                         </Button>
                         <span className="px-3 py-1 text-sm">{item.quantity}</span>
-                        <Button variant="ghost" size="sm" onClick={() => updateQuantity(item.id, item.quantity + 1)} className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="sm" onClick={() => handleQuantityChange(item.id, item.quantity + 1)} className="h-8 w-8 p-0">
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div> : <span className="text-xs text-muted-foreground">Cotisation groupée</span>}
-                    <p className="font-bold">{(item.price * item.quantity).toLocaleString()} {item.currency}</p>
+                    <p className="font-bold">{(item.price * item.quantity).toLocaleString()} {(item as any).currency || 'F'}</p>
                   </div>
                 </div>
               </div>
