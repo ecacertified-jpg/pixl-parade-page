@@ -81,7 +81,7 @@ export function useCollectiveFunds() {
           business_id,
           product_id,
           business_accounts:business_id(business_name),
-          products(id, name, image_url, price)
+          products!business_collective_funds_product_id_fkey(id, name, image_url, price)
         )
       `;
 
