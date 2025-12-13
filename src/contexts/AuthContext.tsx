@@ -43,13 +43,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasBusinessAccount, setHasBusinessAccount] = useState(false);
-  const [userMode, setUserModeState] = useState<'client' | 'business'>(() => {
-    const savedMode = localStorage.getItem('userMode');
-    return (savedMode === 'business' || savedMode === 'client') ? savedMode : 'client';
-  });
+  const [userMode, setUserModeState] = useState<'client' | 'business'>('client');
+
+  // Load userMode when user changes
+  useEffect(() => {
+    if (user?.id) {
+      const savedMode = localStorage.getItem(`userMode_${user.id}`);
+      if (savedMode === 'business' || savedMode === 'client') {
+        setUserModeState(savedMode);
+      } else {
+        setUserModeState('client');
+      }
+    } else {
+      setUserModeState('client');
+    }
+  }, [user?.id]);
 
   const setUserMode = (mode: 'client' | 'business') => {
-    localStorage.setItem('userMode', mode);
+    if (user?.id) {
+      localStorage.setItem(`userMode_${user.id}`, mode);
+    }
     setUserModeState(mode);
   };
 
