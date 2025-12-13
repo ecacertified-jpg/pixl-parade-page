@@ -80,8 +80,7 @@ export function useCollectiveFunds() {
         business_collective_funds(
           business_id,
           product_id,
-          business_accounts:business_id(business_name),
-          products!business_collective_funds_product_id_fkey(id, name, image_url, price)
+          business_accounts:business_id(business_name)
         )
       `;
 
@@ -139,6 +138,36 @@ export function useCollectiveFunds() {
       const contactsMap = new Map<string, ContactData>(
         contactsData?.map(c => [c.id, c] as [string, ContactData]) || []
       );
+
+      // Étape 3: Récupérer les produits liés aux business_collective_funds (requête séparée)
+      const productIds: string[] = [];
+      allFundsData?.forEach(f => {
+        const bcf = f.business_collective_funds;
+        if (bcf && typeof bcf === 'object' && 'product_id' in bcf && bcf.product_id) {
+          productIds.push(bcf.product_id as string);
+        }
+      });
+
+      console.log('🔍 [DEBUG] Product IDs à récupérer:', productIds);
+
+      const { data: productsData, error: productsError } = productIds.length > 0
+        ? await supabase
+            .from('products')
+            .select('id, name, image_url, price')
+            .in('id', productIds)
+        : { data: [], error: null };
+
+      if (productsError) {
+        console.warn('⚠️ Erreur lors du chargement des produits:', productsError);
+      }
+
+      console.log('✅ [DEBUG] Produits récupérés:', productsData);
+
+      // Créer un Map pour accès rapide aux produits
+      const productsMap = new Map<string, { id: string; name: string; image_url: string | null; price: number }>();
+      productsData?.forEach(p => {
+        productsMap.set(p.id, p);
+      });
 
       // Calculer la priorité pour chaque cagnotte
       const allFunds = (allFundsData || []).map(fund => {
@@ -218,16 +247,19 @@ export function useCollectiveFunds() {
         const orderSummary = orderData?.order_summary as any;
         const firstItem = orderSummary?.items?.[0];
         
-        // Récupérer le produit depuis business_collective_funds si disponible
-        const businessFundProduct = fund.business_collective_funds?.[0]?.products;
+        // Récupérer le produit depuis le Map (requête séparée)
+        const businessFundData = fund.business_collective_funds?.[0];
+        const productId = businessFundData?.product_id;
+        const productFromMap = productId ? productsMap.get(productId) : null;
         
         let productName = 'Cadeau';
         let productImage: string | undefined = undefined;
         
-        // Priorité 1: Produit lié via business_collective_funds
-        if (businessFundProduct) {
-          productName = businessFundProduct.name || 'Cadeau';
-          productImage = businessFundProduct.image_url;
+        // Priorité 1: Produit lié via business_collective_funds (depuis le Map)
+        if (productFromMap) {
+          productName = productFromMap.name || 'Cadeau';
+          productImage = productFromMap.image_url || undefined;
+          console.log('🎁 [DEBUG] Produit trouvé dans le Map:', { fundId: fund.id, productName, productImage });
         } 
         // Priorité 2: Données de la commande
         else if (firstItem) {
@@ -243,7 +275,6 @@ export function useCollectiveFunds() {
         }
 
         // Déterminer si c'est une cotisation initiée par un commerce
-        const businessFundData = fund.business_collective_funds?.[0];
         const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
         const businessName = businessFundData?.business_accounts?.business_name;
 
