@@ -36,10 +36,10 @@ export const useAIChat = ({ initialContext }: UseAIChatProps = {}) => {
     }
   }, [user?.id]);
 
-  // Mettre à jour les suggestions selon le contexte
+  // Mettre à jour les suggestions selon le contexte - utiliser stage directement pour éviter une boucle infinie
   useEffect(() => {
     updateSuggestions(initialContext?.stage || 'discovery');
-  }, [initialContext]);
+  }, [initialContext?.stage]);
 
   const loadConversationHistory = async () => {
     if (!user) {
