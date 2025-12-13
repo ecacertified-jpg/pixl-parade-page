@@ -94,12 +94,13 @@ export default function Dashboard() {
   // Nettoyer l'ancien localStorage partagé (bug d'isolation)
   useEffect(() => {
     localStorage.removeItem('friends');
+    localStorage.removeItem('events');
   }, []);
 
   // Charger les données depuis Supabase uniquement
   useEffect(() => {
     loadFriendsFromSupabase();
-    loadEventsFromStorage();
+    loadEventsFromSupabase();
     loadUserProfile();
   }, [user]);
 
@@ -166,26 +167,45 @@ export default function Dashboard() {
       console.error('Erreur lors du chargement des contacts:', error);
     }
   };
-  const loadEventsFromStorage = () => {
-    const savedEvents = localStorage.getItem('events');
-    if (savedEvents) {
-      const parsedEvents = JSON.parse(savedEvents).map((event: any) => ({
-        ...event,
-        date: new Date(event.date)
+  const loadEventsFromSupabase = async () => {
+    if (!user) {
+      setEvents([]);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('event_date', { ascending: true });
+        
+      if (error) {
+        console.error('Erreur lors du chargement des événements:', error);
+        return;
+      }
+
+      const userEvents: Event[] = data.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.event_date),
+        type: event.event_type
       }));
-      setEvents(parsedEvents);
+
+      setEvents(userEvents);
+    } catch (error) {
+      console.error('Erreur lors du chargement des événements:', error);
     }
   };
 
   // Écouter les événements ajoutés depuis d'autres composants
   useEffect(() => {
     const handleEventAdded = () => {
-      loadEventsFromStorage();
+      loadEventsFromSupabase();
     };
 
     window.addEventListener('eventAdded', handleEventAdded);
     return () => window.removeEventListener('eventAdded', handleEventAdded);
-  }, []);
+  }, [user]);
 
   // Fonction pour ajouter un ami
   const handleAddFriend = async (newFriend: Friend) => {
@@ -290,32 +310,94 @@ export default function Dashboard() {
   };
 
   // Fonction pour ajouter un événement
-  const handleAddEvent = (eventData: Omit<Event, 'id'>) => {
-    const newEvent: Event = {
-      ...eventData,
-      id: Date.now().toString()
-    };
-    const updatedEvents = [...events, newEvent];
-    setEvents(updatedEvents);
-    localStorage.setItem('events', JSON.stringify(updatedEvents));
+  const handleAddEvent = async (eventData: Omit<Event, 'id'>) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase.from('user_events').insert({
+        user_id: user.id,
+        title: eventData.title,
+        event_date: eventData.date.toISOString().split('T')[0],
+        event_type: eventData.type
+      });
+
+      if (error) {
+        console.error('Erreur lors de l\'ajout de l\'événement:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible d'ajouter l'événement",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await loadEventsFromSupabase();
+      toast({
+        title: "Événement ajouté",
+        description: `${eventData.title} a été ajouté`
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'événement:', error);
+    }
   };
 
   // Fonction pour modifier un événement
-  const handleEditEvent = (eventId: string, eventData: Omit<Event, 'id'>) => {
-    const updatedEvents = events.map(event => event.id === eventId ? {
-      ...eventData,
-      id: eventId
-    } : event);
-    setEvents(updatedEvents);
-    localStorage.setItem('events', JSON.stringify(updatedEvents));
-    setEditingEvent(null);
+  const handleEditEvent = async (eventId: string, eventData: Omit<Event, 'id'>) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_events')
+        .update({
+          title: eventData.title,
+          event_date: eventData.date.toISOString().split('T')[0],
+          event_type: eventData.type
+        })
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Erreur lors de la modification de l\'événement:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de modifier l'événement",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await loadEventsFromSupabase();
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Erreur lors de la modification de l\'événement:', error);
+    }
   };
 
   // Fonction pour supprimer un événement
-  const handleDeleteEvent = (eventId: string) => {
-    const updatedEvents = events.filter(event => event.id !== eventId);
-    setEvents(updatedEvents);
-    localStorage.setItem('events', JSON.stringify(updatedEvents));
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_events')
+        .delete()
+        .eq('id', eventId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Erreur lors de la suppression de l\'événement:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer l'événement",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await loadEventsFromSupabase();
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+    }
   };
 
   // Fonction pour ouvrir le modal d'édition
