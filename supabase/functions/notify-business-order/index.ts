@@ -89,43 +89,41 @@ serve(async (req) => {
       }
     }
     
-    // If no webhook secret configured, allow Supabase internal calls only
-    // Check for Supabase service role authorization
+    // If no webhook secret configured, require proper authentication
+    // Only allow Supabase service role or verified user tokens
     const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      // Only allow if called with service role key (internal Supabase calls)
-      if (token !== serviceRoleKey) {
-        // Verify it's a valid user token for internal calls
-        const verifyClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { global: { headers: { Authorization: authHeader } } }
-        );
-        
-        const { data: { user }, error: authError } = await verifyClient.auth.getUser();
-        if (authError || !user) {
-          console.error('❌ Unauthorized access attempt');
-          return new Response(
-            JSON.stringify({ error: 'Unauthorized' }),
-            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        console.log('✅ Authenticated internal call from user:', user.id);
-      } else {
-        console.log('✅ Service role call detected');
-      }
-    } else {
-      console.warn('⚠️ No authorization header - allowing for legacy webhook support');
-      // Log for monitoring - in production, you should require auth
+    if (!authHeader) {
+      console.error('❌ No authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    
+    const token = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // Only allow if called with service role key (internal Supabase calls/database triggers)
+    if (token !== serviceRoleKey) {
+      // Verify it's a valid user token for internal calls
+      const verifyClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      
+      const { data: { user }, error: authError } = await verifyClient.auth.getUser();
+      if (authError || !user) {
+        console.error('❌ Unauthorized access attempt - invalid token');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      console.log('✅ Authenticated internal call from user:', user.id);
+    } else {
+      console.log('✅ Service role call detected');
+    }
 
     const payload: OrderPayload = await req.json();
     return await processOrder(payload);
