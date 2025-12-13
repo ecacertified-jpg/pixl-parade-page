@@ -84,60 +84,86 @@ export function usePosts(filterFollowing: boolean = false) {
         return;
       }
       
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url')
-        .in('user_id', userIds as string[]);
+      const postIds = postsData?.map((post) => post.id) || [];
+      
+      // Batch all queries in parallel for better performance
+      const [profilesResult, reactionsResult, userReactionsResult, commentsResult] = await Promise.all([
+        // Profiles
+        supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, avatar_url')
+          .in('user_id', userIds as string[]),
+        // All reactions for all posts
+        supabase
+          .from('post_reactions')
+          .select('post_id, reaction_type')
+          .in('post_id', postIds),
+        // User's reactions
+        user?.id ? supabase
+          .from('post_reactions')
+          .select('post_id, reaction_type')
+          .in('post_id', postIds)
+          .eq('user_id', user.id) : Promise.resolve({ data: [] }),
+        // Comments count - use a single query with grouping
+        supabase
+          .from('post_comments')
+          .select('post_id')
+          .in('post_id', postIds)
+      ]);
 
-      // Create a map of user_id to profile
+      const profilesData = profilesResult.data;
+      const allReactionsData = reactionsResult.data || [];
+      const userReactionsData = userReactionsResult.data || [];
+      const commentsData = commentsResult.data || [];
+
+      // Create maps for quick lookups
       const profilesMap = new Map(
         profilesData?.map((profile) => [profile.user_id, profile]) || []
       );
-
-      // Fetch reactions counts for each post
-      const postsWithReactions = await Promise.all(
-        (postsData || []).map(async (post) => {
-          const { data: reactionsData } = await supabase
-            .from('post_reactions')
-            .select('reaction_type')
-            .eq('post_id', post.id);
-
-          const reactions = {
-            love: reactionsData?.filter((r) => r.reaction_type === 'love').length || 0,
-            gift: reactionsData?.filter((r) => r.reaction_type === 'gift').length || 0,
-            like: reactionsData?.filter((r) => r.reaction_type === 'like').length || 0,
-          };
-
-          // Check user's reaction
-          const { data: userReactionData } = await supabase
-            .from('post_reactions')
-            .select('reaction_type')
-            .eq('post_id', post.id)
-            .eq('user_id', user?.id || '')
-            .maybeSingle();
-
-          // Fetch comments count
-          const { count: commentsCount } = await supabase
-            .from('post_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('post_id', post.id);
-
-          const profile = profilesMap.get(post.user_id);
-
-          return {
-            ...post,
-            type: post.type as 'text' | 'image' | 'video' | 'audio' | 'ai_song',
-            profiles: profile ? {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              avatar_url: profile.avatar_url,
-            } : undefined,
-            reactions,
-            user_reaction: (userReactionData?.reaction_type as 'love' | 'gift' | 'like') || null,
-            comments_count: commentsCount || 0,
-          };
-        })
+      
+      // Group reactions by post_id
+      const reactionsMap = new Map<string, { love: number; gift: number; like: number }>();
+      allReactionsData.forEach((r) => {
+        if (!reactionsMap.has(r.post_id)) {
+          reactionsMap.set(r.post_id, { love: 0, gift: 0, like: 0 });
+        }
+        const counts = reactionsMap.get(r.post_id)!;
+        if (r.reaction_type === 'love') counts.love++;
+        else if (r.reaction_type === 'gift') counts.gift++;
+        else if (r.reaction_type === 'like') counts.like++;
+      });
+      
+      // User reactions map
+      const userReactionsMap = new Map<string, 'love' | 'gift' | 'like'>(
+        userReactionsData.map((r) => [r.post_id, r.reaction_type as 'love' | 'gift' | 'like'])
       );
+      
+      // Comments count map
+      const commentsCountMap = new Map<string, number>();
+      commentsData.forEach((c) => {
+        commentsCountMap.set(c.post_id, (commentsCountMap.get(c.post_id) || 0) + 1);
+      });
+
+      // Transform posts with all data from maps
+      const postsWithReactions = (postsData || []).map((post) => {
+        const profile = profilesMap.get(post.user_id);
+        const reactions = reactionsMap.get(post.id) || { love: 0, gift: 0, like: 0 };
+        const userReaction = userReactionsMap.get(post.id) || null;
+        const commentsCount = commentsCountMap.get(post.id) || 0;
+
+        return {
+          ...post,
+          type: post.type as 'text' | 'image' | 'video' | 'audio' | 'ai_song',
+          profiles: profile ? {
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            avatar_url: profile.avatar_url,
+          } : undefined,
+          reactions,
+          user_reaction: userReaction,
+          comments_count: commentsCount,
+        };
+      });
 
       setPosts(postsWithReactions);
     } catch (error) {
