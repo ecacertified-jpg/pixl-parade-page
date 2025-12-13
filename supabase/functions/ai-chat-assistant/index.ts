@@ -357,16 +357,15 @@ async function buildUserContext(supabase: any, user: any, context: any) {
       .select('*', { count: 'exact', head: true })
       .eq('creator_id', user.id);
 
+    // Return boolean flags only - no exact counts to prevent information disclosure
     return {
       isAuthenticated: true,
       currentPage: context?.page || '/',
       firstName: profile?.first_name,
       hasProfile: !!profile,
       hasFriends: (friendsCount || 0) > 0,
-      friendsCount: friendsCount || 0,
       hasPreferences: !!preferences,
       hasFunds: (fundsCount || 0) > 0,
-      fundsCount: fundsCount || 0,
       isBirthdayToday
     };
   } catch (error) {
@@ -376,10 +375,8 @@ async function buildUserContext(supabase: any, user: any, context: any) {
       currentPage: context?.page || '/',
       hasProfile: false,
       hasFriends: false,
-      friendsCount: 0,
       hasPreferences: false,
       hasFunds: false,
-      fundsCount: 0,
       isBirthdayToday: false
     };
   }
@@ -476,7 +473,7 @@ Partage des astuces avancées.`
 - Connecté : ${userContext.isAuthenticated ? 'Oui' : 'Non'}
 ${userContext.firstName ? `- Prénom : ${userContext.firstName}` : ''}
 - Page : ${userContext.currentPage}
-- Amis : ${userContext.hasFriends ? userContext.friendsCount : '0'}
+- A des amis : ${userContext.hasFriends ? 'Oui' : 'Non'}
 `;
 
   return basePrompt + (stageContext[stage] || '') + userContextStr;
