@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
-import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock, Share2 } from "lucide-react";
+import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock, Share2, Store } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
 import { FundCommentsSection } from "./FundCommentsSection";
@@ -207,6 +207,16 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
   return (
     <>
       <Card className="p-4 space-y-4">
+        {/* Badge cotisation business */}
+        {fund.isBusinessInitiated && (
+          <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200 dark:border-violet-800 rounded-lg">
+            <Store className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
+              Initié par {fund.businessName || 'commerce'}
+            </span>
+          </div>
+        )}
+
         {/* Header avec nom du bénéficiaire et statut */}
         <div className="flex items-center justify-between">
           <div className="flex-1">
