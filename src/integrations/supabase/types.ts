@@ -564,6 +564,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "business_collective_funds_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_collective_funds_fund_id_fkey"
             columns: ["fund_id"]
             isOneToOne: true
@@ -667,6 +674,13 @@ export type Database = {
             columns: ["business_account_id"]
             isOneToOne: false
             referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_orders_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -968,6 +982,13 @@ export type Database = {
             columns: ["created_by_business_id"]
             isOneToOne: false
             referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_funds_created_by_business_id_fkey"
+            columns: ["created_by_business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -3010,6 +3031,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "products_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "products_business_category_id_fkey"
             columns: ["business_category_id"]
             isOneToOne: false
@@ -3021,6 +3049,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -4502,6 +4537,51 @@ export type Database = {
       }
     }
     Views: {
+      business_public_info: {
+        Row: {
+          business_name: string | null
+          business_type: string | null
+          created_at: string | null
+          delivery_settings: Json | null
+          delivery_zones: Json | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          logo_url: string | null
+          opening_hours: Json | null
+          status: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          status?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string | null
+          delivery_settings?: Json | null
+          delivery_zones?: Json | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          logo_url?: string | null
+          opening_hours?: Json | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       contacts_limited: {
         Row: {
           birthday: string | null
