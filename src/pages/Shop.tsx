@@ -91,7 +91,7 @@ export default function Shop() {
         .from('products')
         .select(`
           *,
-          business_accounts!business_account_id(
+          business_public_info!business_account_id(
             business_name
           )
         `)
@@ -113,7 +113,7 @@ export default function Shop() {
           currency: product.currency || "F",
           image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
           category: product.category_name || "Produit",
-          vendor: product.business_accounts?.business_name || "Boutique",
+          vendor: product.business_public_info?.business_name || "Boutique",
           distance: "2.3 km",
           rating: 4.8,
           reviews: 45,
