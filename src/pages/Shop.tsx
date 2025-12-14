@@ -87,43 +87,70 @@ export default function Shop() {
 
   const loadProducts = async () => {
     try {
-      let query = supabase
+      // Étape 1: Récupérer les produits
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select(`
-          *,
-          business_public_info!business_account_id(
-            business_name
-          )
-        `)
-        .eq('is_active', true);
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading products:', error);
+      if (productsError) {
+        console.error('Error loading products:', productsError);
         return;
       }
 
-      if (data && data.length > 0) {
-        const formattedProducts = data.map(product => ({
-          id: product.id,
-          name: product.name,
-          description: product.description || "Description non disponible",
-          price: product.price,
-          currency: product.currency || "F",
-          image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-          category: product.category_name || "Produit",
-          vendor: product.business_public_info?.business_name || "Boutique",
-          distance: "2.3 km",
-          rating: 4.8,
-          reviews: 45,
-          inStock: (product.stock_quantity || 0) > 0,
-          isExperience: product.is_experience || false,
-          categoryName: product.category_name,
-          locationName: product.location_name || "Non spécifié"
-        }));
-        setProducts(formattedProducts);
+      if (!productsData || productsData.length === 0) {
+        setProducts([]);
+        return;
       }
+
+      // Étape 2: Extraire les business_account_id uniques
+      const businessIds = [...new Set(
+        productsData
+          .map(p => p.business_account_id)
+          .filter(Boolean)
+      )] as string[];
+
+      // Étape 3: Récupérer les noms des boutiques
+      let businessMap: Record<string, string> = {};
+      if (businessIds.length > 0) {
+        const { data: businessData, error: businessError } = await supabase
+          .from('business_public_info')
+          .select('id, business_name')
+          .in('id', businessIds);
+        
+        if (businessError) {
+          console.error('Error loading business names:', businessError);
+        }
+        
+        if (businessData) {
+          businessMap = businessData.reduce((acc, b) => {
+            acc[b.id] = b.business_name;
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
+
+      // Étape 4: Formater les produits avec les noms de boutiques
+      const formattedProducts = productsData.map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || "Description non disponible",
+        price: product.price,
+        currency: product.currency || "F",
+        image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+        category: product.category_name || "Produit",
+        vendor: product.business_account_id ? (businessMap[product.business_account_id] || "Boutique") : "Boutique",
+        distance: "2.3 km",
+        rating: 4.8,
+        reviews: 45,
+        inStock: (product.stock_quantity || 0) > 0,
+        isExperience: product.is_experience || false,
+        categoryName: product.category_name,
+        locationName: product.location_name || "Non spécifié"
+      }));
+      
+      setProducts(formattedProducts);
     } catch (error) {
       console.error('Error:', error);
     }
