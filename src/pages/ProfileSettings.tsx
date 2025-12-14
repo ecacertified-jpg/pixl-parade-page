@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle, Settings } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import LocationSelector from "@/components/LocationSelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
+import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
 
 // Validation functions
 const validatePhone = (phone: string): string | null => {
@@ -231,15 +232,21 @@ const ProfileSettings = () => {
       {/* Content */}
       <div className="container max-w-2xl mx-auto px-4 py-6">
         <Tabs defaultValue="personal" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsList className="grid w-full grid-cols-4 bg-muted">
             <TabsTrigger value="personal" className="text-xs sm:text-sm">
               <User className="h-4 w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Informations</span>
+              <span className="hidden sm:inline">Infos</span>
               <span className="sm:hidden">Infos</span>
             </TabsTrigger>
             <TabsTrigger value="contact" className="text-xs sm:text-sm">
               <Phone className="h-4 w-4 mr-1 sm:mr-2" />
-              Contact
+              <span className="hidden sm:inline">Contact</span>
+              <span className="sm:hidden">Tel</span>
+            </TabsTrigger>
+            <TabsTrigger value="privacy" className="text-xs sm:text-sm">
+              <Lock className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Confidentialité</span>
+              <span className="sm:hidden">Privé</span>
             </TabsTrigger>
             <TabsTrigger value="preferences" className="text-xs sm:text-sm">
               <Gift className="h-4 w-4 mr-1 sm:mr-2" />
@@ -384,6 +391,11 @@ const ProfileSettings = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Privacy Tab */}
+          <TabsContent value="privacy" className="space-y-6">
+            <ProfilePrivacySettings />
           </TabsContent>
 
           {/* Preferences Tab */}

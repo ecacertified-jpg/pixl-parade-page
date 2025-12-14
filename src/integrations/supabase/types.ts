@@ -3087,6 +3087,7 @@ export type Database = {
           phone: string | null
           preferences: Json | null
           primary_referral_code: string | null
+          privacy_setting: string
           referral_earnings: number | null
           referred_by: string | null
           suspended_at: string | null
@@ -3115,6 +3116,7 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
+          privacy_setting?: string
           referral_earnings?: number | null
           referred_by?: string | null
           suspended_at?: string | null
@@ -3143,6 +3145,7 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
+          privacy_setting?: string
           referral_earnings?: number | null
           referred_by?: string | null
           suspended_at?: string | null
@@ -4735,6 +4738,10 @@ export type Database = {
         Args: { p_user_a: string; p_user_b: string }
         Returns: boolean
       }
+      are_users_friends: {
+        Args: { user_a_id: string; user_b_id: string }
+        Returns: boolean
+      }
       calculate_birthday_badge_level: {
         Args: { celebrations_count: number }
         Returns: string
@@ -4966,6 +4973,7 @@ export type Database = {
         Args: { p_product_id: string }
         Returns: string
       }
+      get_profile_privacy: { Args: { target_user_id: string }; Returns: string }
       get_reciprocity_candidates: {
         Args: { fund_uuid: string }
         Returns: {
