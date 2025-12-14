@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle, Settings } from "lucide-react";
+import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -404,6 +405,23 @@ const ProfileSettings = () => {
                   <Gift className="h-4 w-4 mr-2" />
                   Gérer mes préférences cadeaux
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Application Update Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Application
+                </CardTitle>
+                <CardDescription>Gérer les mises à jour de l'application</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  Si vous ne voyez pas les dernières modifications, utilisez ce bouton pour forcer la mise à jour.
+                </p>
+                <ForceUpdateButton />
               </CardContent>
             </Card>
           </TabsContent>
