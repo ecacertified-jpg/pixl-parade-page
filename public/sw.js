@@ -1,13 +1,40 @@
 // Service Worker pour les notifications push JOIE DE VIVRE
+const CACHE_VERSION = 'v2';
+const API_CACHE_NAMES = [
+  'favorites-cache',
+  'funds-cache', 
+  'products-cache',
+  'images-cache',
+  'favorites-cache-v2',
+  'funds-cache-v2',
+  'products-cache-v2',
+  'images-cache-v2'
+];
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Service Worker installé');
+  console.log('[SW] Service Worker installé - version', CACHE_VERSION);
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service Worker activé');
-  event.waitUntil(clients.claim());
+  console.log('[SW] Service Worker activé - nettoyage des anciens caches');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          // Supprimer les anciens caches API (sans -v2)
+          if (cacheName.includes('-cache') && !cacheName.includes('-v2')) {
+            console.log('[SW] Suppression du cache obsolète:', cacheName);
+            return caches.delete(cacheName);
+          }
+          return null;
+        })
+      );
+    }).then(() => {
+      console.log('[SW] Nettoyage terminé, prise de contrôle des clients');
+      return clients.claim();
+    })
+  );
 });
 
 self.addEventListener('push', (event) => {
