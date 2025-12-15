@@ -20,7 +20,7 @@ import { memo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { ValueModal } from "@/components/ValueModal";
-import logoJV from "@/assets/logo-jv.png";
+import logoJV from "@/assets/logo-jv.svg";
 const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();

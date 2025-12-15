@@ -12,7 +12,7 @@ import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
-import logoJV from "@/assets/logo-jv.png";
+import logoJV from "@/assets/logo-jv.svg";
 
 const Home = () => {
   // Force rebuild - Home component 

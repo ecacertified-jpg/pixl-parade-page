@@ -14,7 +14,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
-import logoJV from "@/assets/logo-jv.png";
+import logoJV from "@/assets/logo-jv.svg";
 
 const Community = () => {
   const navigate = useNavigate();
