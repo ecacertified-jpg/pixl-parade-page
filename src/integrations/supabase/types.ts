@@ -4652,23 +4652,29 @@ export type Database = {
       public_profiles: {
         Row: {
           avatar_url: string | null
-          badges: Json | null
+          bio: string | null
           created_at: string | null
           first_name: string | null
+          last_name: string | null
+          privacy_setting: string | null
           user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
-          badges?: Json | null
+          bio?: string | null
           created_at?: string | null
           first_name?: string | null
+          last_name?: string | null
+          privacy_setting?: string | null
           user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
-          badges?: Json | null
+          bio?: string | null
           created_at?: string | null
           first_name?: string | null
+          last_name?: string | null
+          privacy_setting?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -4765,6 +4771,10 @@ export type Database = {
       }
       can_see_fund_for_friend: {
         Args: { fund_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      can_view_profile: {
+        Args: { target_user_id: string; viewer_id: string }
         Returns: boolean
       }
       check_admin_permission: {
@@ -4974,6 +4984,18 @@ export type Database = {
         Returns: string
       }
       get_profile_privacy: { Args: { target_user_id: string }; Returns: string }
+      get_public_profile_data: {
+        Args: { target_user_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          city: string
+          created_at: string
+          first_name: string
+          last_name: string
+          user_id: string
+        }[]
+      }
       get_reciprocity_candidates: {
         Args: { fund_uuid: string }
         Returns: {
