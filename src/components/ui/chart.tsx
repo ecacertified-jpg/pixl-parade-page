@@ -65,6 +65,32 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// Validate color values to prevent CSS injection
+function isValidCSSColor(color: string): boolean {
+  // Allow hex colors (3, 4, 6, or 8 digits)
+  if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(color)) {
+    return true
+  }
+  // Allow rgb/rgba
+  if (/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*(0|1|0?\.\d+))?\s*\)$/.test(color)) {
+    return true
+  }
+  // Allow hsl/hsla
+  if (/^hsla?\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*(,\s*(0|1|0?\.\d+))?\s*\)$/.test(color)) {
+    return true
+  }
+  // Allow CSS variables
+  if (/^var\(--[a-zA-Z0-9-]+\)$/.test(color)) {
+    return true
+  }
+  return false
+}
+
+// Sanitize CSS key names to prevent injection
+function sanitizeCSSKey(key: string): string {
+  return key.replace(/[^a-zA-Z0-9-_]/g, '')
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -74,28 +100,36 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
-  )
+  // Build CSS string safely without dangerouslySetInnerHTML
+  const cssRules = React.useMemo(() => {
+    return Object.entries(THEMES)
+      .map(([theme, prefix]) => {
+        const safeId = id.replace(/[^a-zA-Z0-9-_]/g, '')
+        const selector = `${prefix} [data-chart="${safeId}"]`
+        const properties = colorConfig
+          .map(([key, itemConfig]) => {
+            const color =
+              itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+              itemConfig.color
+            if (color && isValidCSSColor(color)) {
+              const safeKey = sanitizeCSSKey(key)
+              return `--color-${safeKey}: ${color};`
+            }
+            return null
+          })
+          .filter(Boolean)
+          .join(' ')
+        return properties ? `${selector} { ${properties} }` : ''
+      })
+      .filter(Boolean)
+      .join(' ')
+  }, [id, colorConfig])
+
+  if (!cssRules) {
+    return null
+  }
+
+  return <style>{cssRules}</style>
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
