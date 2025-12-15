@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Gift, Users, Heart, Sparkles, ShoppingBag, Calendar } from "lucide-react";
-import logoJV from "@/assets/logo-jv.png";
+import logoJV from "@/assets/logo-jv.svg";
 import celebrationHero from "@/assets/cadeaux-echanges.png";
 import valueProposition from "@/assets/value-proposition.jpg";
 import { useAuth } from "@/contexts/AuthContext";
