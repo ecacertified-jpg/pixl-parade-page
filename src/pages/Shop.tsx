@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
 import { RatingModal } from "@/components/RatingModal";
 import { AIRecommendationsSection } from "@/components/AIRecommendationsSection";
 import LocationSelector from "@/components/LocationSelector";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Shop() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
   const { toast } = useToast();
@@ -50,6 +51,25 @@ export default function Shop() {
   const [ratingProductId, setRatingProductId] = useState<string>("");
   const [ratingProductName, setRatingProductName] = useState<string>("");
   const [contributionTarget, setContributionTarget] = useState<any>(null);
+  
+  // Pre-selected recipient from URL params (when coming from friend card gift button)
+  const [preSelectedRecipient, setPreSelectedRecipient] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Check for pre-selected recipient from URL params
+  useEffect(() => {
+    const giftForId = searchParams.get('giftFor');
+    const giftForName = searchParams.get('friendName');
+    
+    if (giftForId && giftForName) {
+      setPreSelectedRecipient({
+        id: giftForId,
+        name: decodeURIComponent(giftForName)
+      });
+    }
+  }, [searchParams]);
   useEffect(() => {
     // Check if user came from contribution flow
     const target = localStorage.getItem('contributionTarget');
@@ -264,6 +284,30 @@ export default function Shop() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        {/* Pre-selected recipient banner */}
+        {preSelectedRecipient && (
+          <Card className="mb-4 bg-pink-50 border-pink-200">
+            <div className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-pink-500" />
+                <span className="text-sm">
+                  Choisissez un cadeau pour <strong>{preSelectedRecipient.name}</strong>
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setPreSelectedRecipient(null);
+                  navigate('/shop', { replace: true });
+                }}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        )}
         {/* Tabs for Products vs Experiences */}
         <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
           setActiveTab(value as "products" | "experiences");
@@ -469,7 +513,12 @@ export default function Shop() {
         <div className="pb-20" />
       </main>
 
-      <OrderModal isOpen={isOrderModalOpen} onClose={() => setIsOrderModalOpen(false)} product={selectedProduct} />
+      <OrderModal 
+        isOpen={isOrderModalOpen} 
+        onClose={() => setIsOrderModalOpen(false)} 
+        product={selectedProduct}
+        preSelectedRecipient={preSelectedRecipient}
+      />
       
       <RatingModal
         isOpen={isRatingModalOpen}
