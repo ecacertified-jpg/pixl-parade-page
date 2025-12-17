@@ -5045,6 +5045,19 @@ export type Database = {
           product_price: number
         }[]
       }
+      get_user_profile_with_privacy: {
+        Args: { p_target_user_id: string; p_viewer_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          city: string
+          first_name: string
+          is_visible: boolean
+          last_name: string
+          privacy_setting: string
+          user_id: string
+        }[]
+      }
       get_visible_profiles_for_posts: {
         Args: { p_user_ids: string[]; p_viewer_id: string }
         Returns: {
