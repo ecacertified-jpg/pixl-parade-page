@@ -232,7 +232,7 @@ serve(async (req) => {
           message,
           scheduled_for: new Date().toISOString(),
           delivery_methods: ['push', 'in_app', 'email'],
-          priority: matchingSchedule.priority,
+          priority_score: matchingSchedule.priority,
           metadata: {
             contact_id: contact.id,
             contact_name: contact.name,
