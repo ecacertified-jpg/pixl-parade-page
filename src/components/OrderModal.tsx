@@ -21,11 +21,13 @@ interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
+  preSelectedRecipient?: { id: string; name: string } | null;
 }
 export function OrderModal({
   isOpen,
   onClose,
-  product
+  product,
+  preSelectedRecipient
 }: OrderModalProps) {
   const [showGiftOptions, setShowGiftOptions] = useState(false);
   const [showCollaborativeModal, setShowCollaborativeModal] = useState(false);
@@ -37,6 +39,14 @@ export function OrderModal({
   const { toast } = useToast();
   const { user } = useAuth();
   const { addItem } = useCart();
+
+  // When modal opens with pre-selected recipient, go directly to gift options
+  useEffect(() => {
+    if (isOpen && preSelectedRecipient) {
+      setShowGiftOptions(true);
+    }
+  }, [isOpen, preSelectedRecipient]);
+
   useEffect(() => {
     if (showContactSelection) {
       loadContacts();
@@ -176,11 +186,21 @@ export function OrderModal({
   };
 
   const handleGiftToContact = () => {
-    if (selectedContact) {
+    const recipient = selectedContact || (preSelectedRecipient ? { id: preSelectedRecipient.id, name: preSelectedRecipient.name } : null);
+    if (recipient) {
       // Ajouter le cadeau au panier
-      addToCartHandler(false, selectedContact);
+      addToCartHandler(false, recipient);
       
       // Naviguer vers le panier
+      navigate("/cart");
+      handleClose();
+    }
+  };
+
+  // Handle direct gift to pre-selected recipient
+  const handleDirectGiftToPreSelected = () => {
+    if (preSelectedRecipient) {
+      addToCartHandler(false, { id: preSelectedRecipient.id, name: preSelectedRecipient.name });
       navigate("/cart");
       handleClose();
     }
@@ -322,39 +342,87 @@ export function OrderModal({
         <>
               <p className="text-sm font-medium">Choisissez une option :</p>
               
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleContactSelection}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Gift className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Offrir à quelqu'un</p>
-                    <p className="text-sm text-muted-foreground">
-                      Choisir un destinataire
+              {preSelectedRecipient ? (
+                // Pre-selected recipient: show direct options
+                <>
+                  <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 mb-2">
+                    <p className="text-sm text-pink-800">
+                      🎁 Cadeau pour <strong>{preSelectedRecipient.name}</strong>
                     </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">💖</span>
-                </div>
-              </Button>
 
-              <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleCollaborativeGift}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Users className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Cotisation groupée</p>
-                    <p className="text-sm text-muted-foreground">
-                      Organiser une collecte
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🤝</span>
-                </div>
-              </Button>
+                  <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2 border-pink-200 bg-pink-50/50" onClick={handleDirectGiftToPreSelected}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-pink-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Offrir à {preSelectedRecipient.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Ajouter au panier pour offrir
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💖</span>
+                    </div>
+                  </Button>
+
+                  <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleCollaborativeGift}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Users className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Cotisation groupée</p>
+                        <p className="text-sm text-muted-foreground">
+                          Organiser une collecte pour {preSelectedRecipient.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🤝</span>
+                    </div>
+                  </Button>
+                </>
+              ) : (
+                // No pre-selected recipient: show normal options
+                <>
+                  <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleContactSelection}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Offrir à quelqu'un</p>
+                        <p className="text-sm text-muted-foreground">
+                          Choisir un destinataire
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">💖</span>
+                    </div>
+                  </Button>
+
+                  <Button variant="outline" className="w-full flex items-center justify-between p-4 h-auto border-2" onClick={handleCollaborativeGift}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Users className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">Cotisation groupée</p>
+                        <p className="text-sm text-muted-foreground">
+                          Organiser une collecte
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🤝</span>
+                    </div>
+                  </Button>
+                </>
+              )}
 
               <Button variant="ghost" onClick={handleBackToMain} className="w-full text-sm text-muted-foreground">
                 ← Retour aux options principales

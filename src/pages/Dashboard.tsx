@@ -626,6 +626,15 @@ export default function Dashboard() {
                         <Badge variant="secondary" className="capitalize">
                           {friend.relation}
                         </Badge>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
+                          className="h-8 w-8 p-0 text-pink-500 hover:text-pink-600 hover:bg-pink-50"
+                          title="Offrir un cadeau"
+                        >
+                          <Gift className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteFriend(friend.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
