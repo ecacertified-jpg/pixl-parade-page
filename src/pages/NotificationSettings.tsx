@@ -244,7 +244,7 @@ export default function NotificationSettings() {
           }, {
             key: 'ai_suggestions',
             label: 'Suggestions IA',
-            description: 'Recommandations intelligentes'
+            description: 'Suggestions de cadeaux personnalisées avec l\'IA'
           }].map((item, index) => <div key={item.key}>
                 {index > 0 && <Separator />}
                 <div className="flex items-center justify-between">
