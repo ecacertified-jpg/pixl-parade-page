@@ -23,6 +23,9 @@ export interface NotificationPreferences {
   reaction_notifications: boolean;
   ai_suggestions: boolean;
   
+  // Timing des rappels d'anniversaire
+  birthday_reminder_days: number[];
+  
   // Fréquence
   digest_mode: boolean;
   digest_frequency: 'daily' | 'weekly';
@@ -48,6 +51,7 @@ const defaultPreferences: Partial<NotificationPreferences> = {
   comment_notifications: true,
   reaction_notifications: true,
   ai_suggestions: true,
+  birthday_reminder_days: [14, 7, 3, 1],
   digest_mode: false,
   digest_frequency: 'daily',
   sound_enabled: true,
@@ -81,6 +85,7 @@ export const useNotificationPreferences = () => {
           post_notifications: (data as any).post_notifications ?? true,
           comment_notifications: (data as any).comment_notifications ?? true,
           reaction_notifications: (data as any).reaction_notifications ?? true,
+          birthday_reminder_days: (data as any).birthday_reminder_days ?? [14, 7, 3, 1],
           digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       } else {
@@ -102,6 +107,7 @@ export const useNotificationPreferences = () => {
           post_notifications: (created as any).post_notifications ?? true,
           comment_notifications: (created as any).comment_notifications ?? true,
           reaction_notifications: (created as any).reaction_notifications ?? true,
+          birthday_reminder_days: (created as any).birthday_reminder_days ?? [14, 7, 3, 1],
           digest_frequency: (created.digest_frequency as 'daily' | 'weekly') || 'daily'
         });
       }
@@ -132,6 +138,7 @@ export const useNotificationPreferences = () => {
         post_notifications: (data as any).post_notifications ?? true,
         comment_notifications: (data as any).comment_notifications ?? true,
         reaction_notifications: (data as any).reaction_notifications ?? true,
+        birthday_reminder_days: (data as any).birthday_reminder_days ?? [14, 7, 3, 1],
         digest_frequency: (data.digest_frequency as 'daily' | 'weekly') || 'daily'
       });
       toast.success('Préférences enregistrées');
