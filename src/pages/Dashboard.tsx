@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp } from "lucide-react";
+import { AnimatedGiftButton } from "@/components/AnimatedGiftButton";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -626,29 +627,12 @@ export default function Dashboard() {
                         <Badge variant="secondary" className="capitalize">
                           {friend.relation}
                         </Badge>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
-                                className="h-8 w-8 p-0 text-pink-500 hover:text-pink-600 hover:bg-pink-50"
-                              >
-                                <Gift className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent 
-                              side="top" 
-                              className="bg-pink-500 text-white border-pink-500"
-                            >
-                              <p className="flex items-center gap-1">
-                                <Gift className="h-3 w-3" />
-                                Offrir un cadeau à {friend.name}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <AnimatedGiftButton
+                          friendId={friend.id}
+                          friendName={friend.name}
+                          daysUntilBirthday={getDaysUntilBirthday(friend.birthday)}
+                          onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
+                        />
                         <Button variant="ghost" size="sm" onClick={() => handleDeleteFriend(friend.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
