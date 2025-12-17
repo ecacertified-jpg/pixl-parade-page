@@ -3896,6 +3896,80 @@ export type Database = {
         }
         Relationships: []
       }
+      suggestion_feedback: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          feedback_reason: string | null
+          feedback_type: string
+          id: string
+          match_score: number | null
+          occasion: string | null
+          price_at_feedback: number | null
+          product_id: string | null
+          recommendation_id: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          feedback_reason?: string | null
+          feedback_type: string
+          id?: string
+          match_score?: number | null
+          occasion?: string | null
+          price_at_feedback?: number | null
+          product_id?: string | null
+          recommendation_id?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          feedback_reason?: string | null
+          feedback_type?: string
+          id?: string
+          match_score?: number | null
+          occasion?: string | null
+          price_at_feedback?: number | null
+          product_id?: string | null
+          recommendation_id?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_feedback_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_feedback_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_feedback_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suggestion_feedback_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "gift_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       surprise_contributors: {
         Row: {
           contributor_id: string
@@ -5046,6 +5120,17 @@ export type Database = {
           product_image_url: string
           product_name: string
           product_price: number
+        }[]
+      }
+      get_user_feedback_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          accepted_count: number
+          preferred_categories: Json
+          purchased_count: number
+          rejected_count: number
+          saved_count: number
+          top_rejection_reasons: Json
         }[]
       }
       get_user_profile_with_privacy: {

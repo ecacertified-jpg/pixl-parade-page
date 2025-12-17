@@ -13,6 +13,12 @@ interface UserContext {
   contactInfo?: any;
   occasion?: string;
   budget?: { min: number; max: number };
+  feedbackHistory?: {
+    acceptedProducts: string[];
+    rejectedProducts: string[];
+    preferredCategories: string[];
+    topRejectionReasons: string[];
+  };
 }
 
 serve(async (req) => {
@@ -85,7 +91,59 @@ serve(async (req) => {
       contactInfo = contact;
     }
 
-    // Fetch available products within budget
+    // Fetch suggestion feedback history for AI learning
+    const { data: feedbackData } = await supabase
+      .from("suggestion_feedback")
+      .select("product_id, feedback_type, feedback_reason, occasion")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    // Process feedback history
+    const acceptedProducts: string[] = [];
+    const rejectedProducts: string[] = [];
+    const rejectionReasons: Record<string, number> = {};
+
+    feedbackData?.forEach((f: any) => {
+      if (f.feedback_type === "accepted" || f.feedback_type === "purchased") {
+        if (f.product_id) acceptedProducts.push(f.product_id);
+      } else if (f.feedback_type === "rejected") {
+        if (f.product_id) rejectedProducts.push(f.product_id);
+        if (f.feedback_reason) {
+          rejectionReasons[f.feedback_reason] = (rejectionReasons[f.feedback_reason] || 0) + 1;
+        }
+      }
+    });
+
+    const topRejectionReasons = Object.entries(rejectionReasons)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([reason]) => reason);
+
+    // Get preferred categories from accepted products
+    const preferredCategories: string[] = [];
+    if (acceptedProducts.length > 0) {
+      const { data: acceptedProductsData } = await supabase
+        .from("products")
+        .select("category_id, categories(name)")
+        .in("id", acceptedProducts.slice(0, 20));
+
+      const categoryCount: Record<string, number> = {};
+      acceptedProductsData?.forEach((p: any) => {
+        if (p.categories?.name) {
+          categoryCount[p.categories.name] = (categoryCount[p.categories.name] || 0) + 1;
+        }
+      });
+
+      Object.entries(categoryCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([cat]) => preferredCategories.push(cat));
+    }
+
+    console.log(`[AI Recommendations] Feedback history: ${acceptedProducts.length} accepted, ${rejectedProducts.length} rejected`);
+
+    // Fetch available products within budget, excluding rejected ones
     let productsQuery = supabase
       .from("products")
       .select("id, name, description, price, currency, category_id, image_url, location_name, business_owner_id, categories(name, name_fr), business_accounts!products_business_owner_id_fkey(business_name)")
@@ -98,6 +156,11 @@ serve(async (req) => {
     }
     if (budgetMax) {
       productsQuery = productsQuery.lte("price", budgetMax);
+    }
+
+    // Exclude rejected products
+    if (rejectedProducts.length > 0) {
+      productsQuery = productsQuery.not("id", "in", `(${rejectedProducts.join(",")})`);
     }
 
     const { data: availableProducts } = await productsQuery;
@@ -122,10 +185,30 @@ serve(async (req) => {
         birthday: contactInfo.birthday
       } : null,
       occasion,
-      budget: budgetMin || budgetMax ? { min: budgetMin || 0, max: budgetMax || 1000000 } : undefined
+      budget: budgetMin || budgetMax ? { min: budgetMin || 0, max: budgetMax || 1000000 } : undefined,
+      feedbackHistory: {
+        acceptedProducts: acceptedProducts.slice(0, 10),
+        rejectedProducts: rejectedProducts.slice(0, 10),
+        preferredCategories,
+        topRejectionReasons,
+      }
     };
 
-    // Create AI prompt
+    // Create AI prompt with feedback learning
+    const feedbackInstructions = userContext.feedbackHistory ? `
+IMPORTANT - Apprentissage basé sur les préférences utilisateur:
+${preferredCategories.length > 0 ? `- Catégories préférées (à privilégier): ${preferredCategories.join(", ")}` : ""}
+${topRejectionReasons.length > 0 ? `- Raisons de refus fréquentes (à éviter): ${topRejectionReasons.map(r => {
+  if (r === "too_expensive") return "prix trop élevé";
+  if (r === "not_their_style") return "pas leur style";
+  if (r === "already_gifted") return "déjà offert";
+  return r;
+}).join(", ")}` : ""}
+${rejectedProducts.length > 0 ? `- ${rejectedProducts.length} produits ont été rejetés par l'utilisateur et sont exclus` : ""}
+${acceptedProducts.length > 0 ? `- ${acceptedProducts.length} produits ont été appréciés, utilise des produits similaires` : ""}
+
+Adapte tes suggestions en tenant compte de ces préférences pour améliorer la pertinence.` : "";
+
     const systemPrompt = `Tu es un expert en recommandations de cadeaux pour l'application Joie de Vivre en Côte d'Ivoire.
 Tu dois suggérer des cadeaux personnalisés basés sur les préférences de l'utilisateur, son historique d'achats, et les informations sur le destinataire.
 
@@ -136,6 +219,7 @@ Contexte utilisateur:
 ${userContext.contactInfo ? `- Destinataire: ${JSON.stringify(userContext.contactInfo)}` : ''}
 ${userContext.occasion ? `- Occasion: ${userContext.occasion}` : ''}
 ${userContext.budget ? `- Budget: ${userContext.budget.min} - ${userContext.budget.max} XOF` : ''}
+${feedbackInstructions}
 
 Produits disponibles:
 ${JSON.stringify(availableProducts?.slice(0, 30) || [])}
@@ -143,7 +227,7 @@ ${JSON.stringify(availableProducts?.slice(0, 30) || [])}
 Réponds en JSON avec exactement cette structure, sans texte supplémentaire.`;
 
     const userPrompt = `Suggère 5 cadeaux personnalisés pour ${userContext.contactInfo?.name || "cette personne"}${userContext.occasion ? ` pour ${userContext.occasion}` : ""}. 
-Pour chaque suggestion, explique pourquoi ce cadeau est adapté.`;
+Pour chaque suggestion, explique pourquoi ce cadeau est adapté en tenant compte des préférences de l'utilisateur.`;
 
     console.log("[AI Recommendations] Calling Lovable AI...");
 
@@ -270,7 +354,14 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté.`;
       recommendation_type: "ai_personalized",
       recommended_products: enrichedRecommendations,
       confidence_score: enrichedRecommendations.reduce((acc: number, r: any) => acc + (r.matchScore || 0), 0) / Math.max(enrichedRecommendations.length, 1),
-      ai_analysis_summary: { generalAdvice: recommendations.generalAdvice }
+      ai_analysis_summary: { 
+        generalAdvice: recommendations.generalAdvice,
+        feedbackUsed: {
+          acceptedCount: acceptedProducts.length,
+          rejectedCount: rejectedProducts.length,
+          preferredCategories,
+        }
+      }
     });
 
     return new Response(
@@ -281,7 +372,11 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté.`;
         context: {
           occasion,
           contactName: userContext.contactInfo?.name,
-          budget: userContext.budget
+          budget: userContext.budget,
+          learningStats: {
+            acceptedCount: acceptedProducts.length,
+            rejectedCount: rejectedProducts.length,
+          }
         }
       }),
       {
