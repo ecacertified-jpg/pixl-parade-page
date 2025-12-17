@@ -15,6 +15,9 @@ interface PushNotificationPayload {
   tag?: string;
   data?: Record<string, any>;
   requireInteraction?: boolean;
+  type?: 'birthday' | 'birthday_reminder' | 'gift' | 'fund' | 'celebration' | 'default';
+  isUrgent?: boolean;
+  playSound?: boolean;
 }
 
 async function sendPushToSubscription(
@@ -119,16 +122,29 @@ serve(async (req) => {
       email: Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app',
     };
 
+    const notificationType = payload.type || 'default';
+    const isBirthday = notificationType.includes('birthday');
+    
     const pushPayload = {
       title: payload.title,
       message: payload.message,
       body: payload.message,
-      icon: payload.icon || '/logo-jv.png',
-      badge: payload.badge || '/logo-jv.png',
-      tag: payload.tag || 'joie-de-vivre-notification',
-      data: payload.data || {},
-      requireInteraction: payload.requireInteraction || false,
+      icon: payload.icon || '/pwa-192x192.png',
+      badge: payload.badge || '/pwa-192x192.png',
+      tag: payload.tag || `joie-de-vivre-${notificationType}`,
+      type: notificationType,
+      isUrgent: payload.isUrgent || false,
+      data: {
+        ...payload.data,
+        type: notificationType,
+        isUrgent: payload.isUrgent || false,
+        playSound: payload.playSound !== false,
+        soundType: isBirthday ? (payload.isUrgent ? 'tada' : 'chime') : 'pop'
+      },
+      requireInteraction: payload.requireInteraction || isBirthday,
     };
+    
+    console.log('Push payload with sound config:', { type: notificationType, isUrgent: payload.isUrgent });
 
     let successCount = 0;
     let failedCount = 0;

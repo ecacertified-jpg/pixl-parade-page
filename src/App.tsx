@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { NotificationSoundProvider } from "@/components/NotificationSoundProvider";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Install from "./pages/Install";
@@ -57,12 +58,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <SelectedBusinessProvider>
-        <TooltipProvider>
-          <OfflineIndicator />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <Routes>
+        <NotificationSoundProvider>
+          <TooltipProvider>
+            <OfflineIndicator />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+            <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
@@ -249,8 +251,9 @@ const App = () => (
           </Routes>
           <AIChatWidget />
         </BrowserRouter>
-      </TooltipProvider>
-    </SelectedBusinessProvider>
+        </TooltipProvider>
+        </NotificationSoundProvider>
+      </SelectedBusinessProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
