@@ -79,7 +79,7 @@ export function BusinessInitiatedFundsSection() {
         for (const contrib of contributions || []) {
           const {
             data: profile
-          } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', contrib.contributor_id).single();
+          } = await supabase.from('public_profiles').select('first_name, last_name').eq('user_id', contrib.contributor_id).single();
           contributors.push({
             id: contrib.contributor_id,
             name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Anonyme' : 'Anonyme',
@@ -99,7 +99,7 @@ export function BusinessInitiatedFundsSection() {
             if (!contributorIds.includes(friendId)) {
               const {
                 data: friendProfile
-              } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', friendId).single();
+              } = await supabase.from('public_profiles').select('first_name, last_name').eq('user_id', friendId).single();
               nonContributors.push({
                 id: friendId,
                 name: friendProfile ? `${friendProfile.first_name || ''} ${friendProfile.last_name || ''}`.trim() || 'Ami' : 'Ami'
