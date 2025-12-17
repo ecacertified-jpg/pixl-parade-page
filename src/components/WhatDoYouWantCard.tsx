@@ -11,6 +11,7 @@ import { ValueModal } from "@/components/ValueModal";
 import { CelebrateMenu } from "@/components/CelebrateMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpcomingBirthdays } from "@/hooks/useUpcomingBirthdays";
+import { useCelebrationFeedback } from "@/hooks/useCelebrationFeedback";
 import confetti from "canvas-confetti";
 
 export function WhatDoYouWantCard() {
@@ -22,10 +23,12 @@ export function WhatDoYouWantCard() {
   const { birthdays } = useUpcomingBirthdays(7);
   const giftButtonRef = useRef<HTMLButtonElement>(null);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  const { triggerFeedback } = useCelebrationFeedback();
 
   const hasUpcomingBirthdays = birthdays.length > 0;
   const closestBirthday = birthdays[0];
   const isVeryUrgent = closestBirthday && closestBirthday.daysUntil <= 3;
+  const isToday = closestBirthday && closestBirthday.daysUntil === 0;
 
   useEffect(() => {
     if (user?.id) {
@@ -45,7 +48,7 @@ export function WhatDoYouWantCard() {
     }
   }, [user?.id]);
 
-  // Trigger confetti when there are upcoming birthdays
+  // Trigger confetti and sound/vibration when there are upcoming birthdays
   useEffect(() => {
     if (hasUpcomingBirthdays && !hasTriggeredConfetti && giftButtonRef.current) {
       const rect = giftButtonRef.current.getBoundingClientRect();
@@ -61,14 +64,20 @@ export function WhatDoYouWantCard() {
           scalar: 0.8,
           gravity: 1.2,
         });
+
+        // Trigger sound and vibration based on urgency
+        triggerFeedback({
+          sound: isToday ? 'tada' : isVeryUrgent ? 'chime' : 'pop',
+          vibration: isToday ? 'birthday' : isVeryUrgent ? 'urgent' : 'gentle',
+        });
       }, 800);
 
       setHasTriggeredConfetti(true);
     }
-  }, [hasUpcomingBirthdays, hasTriggeredConfetti, isVeryUrgent]);
+  }, [hasUpcomingBirthdays, hasTriggeredConfetti, isVeryUrgent, isToday, triggerFeedback]);
   
   const handleOfferGift = () => {
-    // Trigger confetti on click if there are upcoming birthdays
+    // Trigger confetti and celebration feedback on click if there are upcoming birthdays
     if (hasUpcomingBirthdays && giftButtonRef.current) {
       const rect = giftButtonRef.current.getBoundingClientRect();
       const x = (rect.left + rect.width / 2) / window.innerWidth;
@@ -79,6 +88,12 @@ export function WhatDoYouWantCard() {
         spread: 100,
         origin: { x, y },
         colors: ['#8b5cf6', '#ec4899', '#fbbf24', '#34d399', '#f472b6'],
+      });
+
+      // Trigger celebration sound and vibration
+      triggerFeedback({
+        sound: 'tada',
+        vibration: 'celebration',
       });
     }
 

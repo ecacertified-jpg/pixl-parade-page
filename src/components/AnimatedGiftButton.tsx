@@ -3,6 +3,7 @@ import { Gift, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCelebrationFeedback } from '@/hooks/useCelebrationFeedback';
 import confetti from 'canvas-confetti';
 
 interface AnimatedGiftButtonProps {
@@ -20,11 +21,12 @@ export function AnimatedGiftButton({
 }: AnimatedGiftButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
+  const { triggerFeedback } = useCelebrationFeedback();
   const isUrgent = daysUntilBirthday <= 7 && daysUntilBirthday >= 0;
   const isVeryUrgent = daysUntilBirthday <= 3 && daysUntilBirthday >= 0;
   const isToday = daysUntilBirthday === 0;
 
-  // Trigger confetti once when component mounts and birthday is within 7 days
+  // Trigger confetti and sound/vibration once when component mounts and birthday is within 7 days
   useEffect(() => {
     if (isUrgent && !hasTriggeredConfetti && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -43,11 +45,17 @@ export function AnimatedGiftButton({
           drift: 0,
           ticks: 100,
         });
+
+        // Trigger sound and vibration based on urgency
+        triggerFeedback({
+          sound: isToday ? 'tada' : isVeryUrgent ? 'chime' : 'pop',
+          vibration: isToday ? 'birthday' : isVeryUrgent ? 'urgent' : 'gentle',
+        });
       }, 500);
 
       setHasTriggeredConfetti(true);
     }
-  }, [isUrgent, isVeryUrgent, isToday, hasTriggeredConfetti]);
+  }, [isUrgent, isVeryUrgent, isToday, hasTriggeredConfetti, triggerFeedback]);
 
   const handleClick = () => {
     if (isUrgent && buttonRef.current) {
@@ -61,6 +69,12 @@ export function AnimatedGiftButton({
         spread: 100,
         origin: { x, y },
         colors: ['#ec4899', '#f472b6', '#8b5cf6', '#fbbf24', '#34d399'],
+      });
+
+      // Trigger celebration sound and vibration
+      triggerFeedback({
+        sound: 'tada',
+        vibration: 'celebration',
       });
     }
     onClick();
