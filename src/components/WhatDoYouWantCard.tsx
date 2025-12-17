@@ -128,7 +128,8 @@ export function WhatDoYouWantCard() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="mb-4 p-3 bg-gradient-to-r from-pink-100 to-purple-100 rounded-xl border border-pink-200"
+            className="mb-4 p-3 bg-gradient-to-r from-pink-100 to-purple-100 rounded-xl border border-pink-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(`/gift-ideas/${closestBirthday.contactId}`)}
           >
             <div className="flex items-center gap-2">
               <motion.span
@@ -138,14 +139,17 @@ export function WhatDoYouWantCard() {
               >
                 🎂
               </motion.span>
-              <span className="text-sm font-medium text-pink-700">
-                {closestBirthday.daysUntil === 0 
-                  ? `C'est l'anniversaire de ${closestBirthday.name} !`
-                  : closestBirthday.daysUntil === 1
-                    ? `Anniversaire de ${closestBirthday.name} demain !`
-                    : `Anniversaire de ${closestBirthday.name} dans ${closestBirthday.daysUntil}j`
-                }
-              </span>
+              <div className="flex-1">
+                <span className="text-sm font-medium text-pink-700">
+                  {closestBirthday.daysUntil === 0 
+                    ? `C'est l'anniversaire de ${closestBirthday.name} !`
+                    : closestBirthday.daysUntil === 1
+                      ? `Anniversaire de ${closestBirthday.name} demain !`
+                      : `Anniversaire de ${closestBirthday.name} dans ${closestBirthday.daysUntil}j`
+                  }
+                </span>
+                <p className="text-xs text-pink-600 mt-0.5">Trouver des idées cadeaux →</p>
+              </div>
               {birthdays.length > 1 && (
                 <Badge variant="secondary" className="ml-auto text-xs bg-pink-200 text-pink-700">
                   +{birthdays.length - 1}
