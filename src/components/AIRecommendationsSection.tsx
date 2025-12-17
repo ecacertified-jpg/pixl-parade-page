@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAIRecommendations } from "@/hooks/useAIRecommendations";
 import { useContacts } from "@/hooks/useContacts";
+import { useSuggestionFeedback } from "@/hooks/useSuggestionFeedback";
+import { SuggestionFeedbackButtons } from "@/components/SuggestionFeedbackButtons";
 import { cn } from "@/lib/utils";
 
 const occasions = [
@@ -35,6 +37,7 @@ export function AIRecommendationsSection({
 }: AIRecommendationsSectionProps) {
   const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
   const { contacts } = useContacts();
+  const { getProductFeedback, stats } = useSuggestionFeedback();
   
   const [showFilters, setShowFilters] = useState(!defaultContactId);
   const [selectedContact, setSelectedContact] = useState<string>(defaultContactId || "");
@@ -62,10 +65,19 @@ export function AIRecommendationsSection({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600 bg-green-100";
-    if (score >= 60) return "text-amber-600 bg-amber-100";
-    return "text-gray-600 bg-gray-100";
+    if (score >= 80) return "text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400";
+    if (score >= 60) return "text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400";
+    return "text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400";
   };
+
+  // Filtrer les produits déjà rejetés
+  const filteredRecommendations = recommendations.filter(rec => {
+    if (rec.product?.id) {
+      const feedback = getProductFeedback(rec.product.id);
+      return feedback !== 'rejected';
+    }
+    return true;
+  });
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -86,12 +98,19 @@ export function AIRecommendationsSection({
               </CardDescription>
             </div>
           </div>
-          {recommendations.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={handleReset}>
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Nouvelle recherche
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {stats && (stats.accepted_count + stats.rejected_count) > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {stats.accepted_count + stats.rejected_count} feedbacks
+              </Badge>
+            )}
+            {recommendations.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleReset}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Nouvelle recherche
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
@@ -202,73 +221,98 @@ export function AIRecommendationsSection({
         )}
 
         {/* Recommendations */}
-        {recommendations.length > 0 && (
+        {filteredRecommendations.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-muted-foreground">
-              {recommendations.length} suggestions pour vous
+              {filteredRecommendations.length} suggestions pour vous
             </h4>
             
-            {recommendations.map((rec, index) => (
-              <div
-                key={index}
-                className="flex gap-4 p-4 bg-background rounded-lg border hover:border-primary/30 transition-colors"
-              >
-                {rec.product?.image_url && (
-                  <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                    <img
-                      src={rec.product.image_url}
-                      alt={rec.productName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h5 className="font-medium truncate">{rec.productName}</h5>
-                      {rec.product?.price && (
-                        <p className="text-sm text-primary font-semibold">
-                          {rec.product.price.toLocaleString()} {rec.product.currency || "XOF"}
-                        </p>
-                      )}
-                    </div>
-                    <Badge className={cn("flex-shrink-0", getScoreColor(rec.matchScore))}>
-                      {rec.matchScore}% match
-                    </Badge>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {rec.reason}
-                  </p>
-
-                  {rec.product && (
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onAddToFavorites?.(rec.product!.id)}
-                      >
-                        <Heart className="h-3 w-3 mr-1" />
-                        Favoris
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => onAddToCart?.(rec.product)}
-                      >
-                        <ShoppingCart className="h-3 w-3 mr-1" />
-                        Ajouter
-                      </Button>
+            {filteredRecommendations.map((rec, index) => {
+              const existingFeedback = rec.product?.id ? getProductFeedback(rec.product.id) : null;
+              
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex gap-4 p-4 bg-background rounded-lg border transition-colors",
+                    existingFeedback === 'accepted' && "border-green-200 bg-green-50/50 dark:bg-green-900/10",
+                    existingFeedback === 'saved' && "border-amber-200 bg-amber-50/50 dark:bg-amber-900/10",
+                    !existingFeedback && "hover:border-primary/30"
+                  )}
+                >
+                  {rec.product?.image_url && (
+                    <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                      <img
+                        src={rec.product.image_url}
+                        alt={rec.productName}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h5 className="font-medium truncate">{rec.productName}</h5>
+                        {rec.product?.price && (
+                          <p className="text-sm text-primary font-semibold">
+                            {rec.product.price.toLocaleString()} {rec.product.currency || "XOF"}
+                          </p>
+                        )}
+                      </div>
+                      <Badge className={cn("flex-shrink-0", getScoreColor(rec.matchScore))}>
+                        {rec.matchScore}% match
+                      </Badge>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {rec.reason}
+                    </p>
+
+                    {/* Feedback Buttons */}
+                    {rec.product?.id && (
+                      <div className="mt-3">
+                        <SuggestionFeedbackButtons
+                          productId={rec.product.id}
+                          contactId={selectedContact || undefined}
+                          occasion={selectedOccasion || undefined}
+                          matchScore={rec.matchScore}
+                          price={rec.product.price}
+                          source="recommendation"
+                          size="sm"
+                        />
+                      </div>
+                    )}
+
+                    {/* Action buttons if no feedback yet */}
+                    {rec.product && !existingFeedback && (
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAddToFavorites?.(rec.product!.id)}
+                        >
+                          <Heart className="h-3 w-3 mr-1" />
+                          Favoris
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => onAddToCart?.(rec.product)}
+                        >
+                          <ShoppingCart className="h-3 w-3 mr-1" />
+                          Ajouter
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* Empty State */}
-        {!loading && recommendations.length === 0 && !error && !showFilters && (
+        {!loading && filteredRecommendations.length === 0 && !error && !showFilters && (
           <div className="text-center py-8 text-muted-foreground">
             <Gift className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>Aucune recommandation pour le moment</p>
