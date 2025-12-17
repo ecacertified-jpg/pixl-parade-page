@@ -392,6 +392,9 @@ export default function Shop() {
                 name: product.name,
                 price: product.price,
                 image: product.image_url,
+                vendor: product.vendor || "Boutique",
+                locationName: product.location_name || "Non spécifié",
+                currency: product.currency || "XOF",
                 quantity: 1
               });
               toast({

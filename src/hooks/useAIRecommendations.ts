@@ -15,6 +15,8 @@ interface Recommendation {
     price: number;
     currency: string;
     image_url: string;
+    vendor?: string;
+    location_name?: string;
     categories?: {
       name: string;
       name_fr: string;
