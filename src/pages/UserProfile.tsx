@@ -21,6 +21,8 @@ interface UserProfileData {
   bio: string | null;
   avatar_url: string | null;
   city: string | null;
+  is_visible: boolean;
+  privacy_setting: string | null;
 }
 
 interface UserStats {
@@ -39,6 +41,7 @@ export default function UserProfile() {
   const { posts, loading: postsLoading, toggleReaction, refreshPosts } = usePosts();
   
   const [profile, setProfile] = useState<UserProfileData | null>(null);
+  const [profileExists, setProfileExists] = useState(true);
   const [stats, setStats] = useState<UserStats>({
     friends_count: 0,
     gifts_given: 0,
@@ -61,16 +64,26 @@ export default function UserProfile() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
+      
+      // Utiliser la fonction RPC qui respecte la confidentialité
       const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, bio, avatar_url, city')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .rpc('get_user_profile_with_privacy', {
+          p_viewer_id: currentUser?.id || null,
+          p_target_user_id: userId
+        });
 
       if (error) throw error;
-      setProfile(data);
+      
+      if (data && data.length > 0) {
+        setProfile(data[0]);
+        setProfileExists(true);
+      } else {
+        setProfile(null);
+        setProfileExists(false);
+      }
     } catch (error) {
       console.error('Error loading user profile:', error);
+      setProfileExists(false);
     } finally {
       setLoading(false);
     }
@@ -233,7 +246,8 @@ export default function UserProfile() {
     );
   }
 
-  if (!profile) {
+  // Profil non trouvé
+  if (!profileExists) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
@@ -247,6 +261,56 @@ export default function UserProfile() {
         </div>
         <div className="p-4 text-center">
           <p className="text-muted-foreground">Profil non trouvé</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Profil privé (existe mais non visible)
+  if (profile && !profile.is_visible) {
+    const privacyMessage = profile.privacy_setting === 'friends_only' 
+      ? 'Ce profil est réservé aux amis uniquement'
+      : 'Ce profil est privé';
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
+          <div className="flex items-center justify-between p-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold text-foreground">Profil</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="p-8 text-center space-y-4">
+          <div className="mx-auto w-20 h-20 bg-muted rounded-full flex items-center justify-center">
+            <Users className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-1">Profil restreint</h2>
+            <p className="text-muted-foreground text-sm">{privacyMessage}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Profil visible mais sans données (fallback)
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
+          <div className="flex items-center justify-between p-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold text-foreground">Profil</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="p-4 text-center">
+          <p className="text-muted-foreground">Profil non disponible</p>
         </div>
       </div>
     );
