@@ -88,9 +88,9 @@ export function usePosts(filterFollowing: boolean = false) {
       
       // Batch all queries in parallel for better performance
       const [profilesResult, reactionsResult, userReactionsResult, commentsResult] = await Promise.all([
-        // Profiles
+        // Profiles - use public_profiles view to access other users' public data
         supabase
-          .from('profiles')
+          .from('public_profiles')
           .select('user_id, first_name, last_name, avatar_url')
           .in('user_id', userIds as string[]),
         // All reactions for all posts
