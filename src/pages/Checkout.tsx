@@ -12,12 +12,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface CheckoutItem {
-  id: number;
+  id: number | string;
   name: string;
   description?: string;
   price: number;
   quantity: number;
   productId?: number;
+  vendor?: string;
+  locationName?: string;
+  image?: string;
+  currency?: string;
 }
 
 export default function Checkout() {
@@ -446,16 +450,22 @@ export default function Checkout() {
           <div className="space-y-3">
             {orderItems.map((item, index) => (
               <div key={index} className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-muted rounded-lg"></div>
+                {item.image ? (
+                  <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-lg" />
+                ) : (
+                  <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🎁</span>
+                  </div>
+                )}
                 <div className="flex-1">
                   <h4 className="font-medium text-sm">{item.name}</h4>
                   {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                     <span>📍</span>
-                    <span>Bijouterie Précieuse • Plateau, Abidjan</span>
+                    <span>{item.vendor || 'Boutique'} • {item.locationName || 'Non spécifié'}</span>
                   </div>
                   <p className="text-sm font-medium text-primary mt-1">
-                    Qté: {item.quantity} • {item.price.toLocaleString()} F
+                    Qté: {item.quantity} • {item.price.toLocaleString()} {item.currency || 'F'}
                   </p>
                 </div>
               </div>

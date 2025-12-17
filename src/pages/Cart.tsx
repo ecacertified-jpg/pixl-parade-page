@@ -31,8 +31,8 @@ export default function Cart() {
     // Check if there are collaborative gifts
     const hasCollaborativeGifts = cartItems.some(item => (item as any).isCollaborativeGift);
     
-    // Store cart items for checkout (using sessionStorage for consistency)
-    sessionStorage.setItem('checkoutItems', JSON.stringify(cartItems));
+    // Store cart items for checkout
+    localStorage.setItem('checkoutItems', JSON.stringify(cartItems));
     
     if (hasCollaborativeGifts) {
       navigate("/collective-checkout");
