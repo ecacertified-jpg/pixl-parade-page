@@ -88,7 +88,7 @@ serve(async (req) => {
     // Fetch available products within budget
     let productsQuery = supabase
       .from("products")
-      .select("id, name, description, price, currency, category_id, image_url, categories(name, name_fr)")
+      .select("id, name, description, price, currency, category_id, image_url, location_name, business_owner_id, categories(name, name_fr), business_accounts!products_business_owner_id_fkey(business_name)")
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -234,11 +234,17 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté.`;
         if (rec.productId) {
           const { data: product } = await supabase
             .from("products")
-            .select("*, categories(name, name_fr)")
+            .select("*, categories(name, name_fr), business_accounts!products_business_owner_id_fkey(business_name)")
             .eq("id", rec.productId)
             .maybeSingle();
           
-          return { ...rec, product };
+          // Add vendor from business_accounts
+          const enrichedProduct = product ? {
+            ...product,
+            vendor: product.business_accounts?.business_name || "Boutique"
+          } : null;
+          
+          return { ...rec, product: enrichedProduct };
         }
         
         // Try to match by name if no ID
@@ -246,7 +252,13 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté.`;
           p => p.name.toLowerCase().includes(rec.productName?.toLowerCase() || "")
         );
         
-        return { ...rec, product: matchedProduct || null };
+        // Add vendor from business_accounts
+        const enrichedMatchedProduct = matchedProduct ? {
+          ...matchedProduct,
+          vendor: (matchedProduct as any).business_accounts?.business_name || "Boutique"
+        } : null;
+        
+        return { ...rec, product: enrichedMatchedProduct };
       })
     );
 
