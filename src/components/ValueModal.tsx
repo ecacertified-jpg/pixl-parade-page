@@ -49,7 +49,7 @@ export function ValueModal({ isOpen, onClose }: ValueModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl p-0 gap-0 bg-transparent border-0 overflow-hidden">
+      <DialogContent className="max-w-2xl p-0 gap-0 bg-transparent border-0 max-h-[90vh] overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -73,15 +73,15 @@ export function ValueModal({ isOpen, onClose }: ValueModalProps) {
             <img 
               src={valueImage} 
               alt="Crée de la joie - Générosité récompensée" 
-              className="w-full h-auto rounded-lg shadow-2xl transition-transform duration-300 group-hover:scale-[1.02]"
+              className="w-full h-auto rounded-t-lg shadow-2xl transition-transform duration-300 group-hover:scale-[1.02]"
             />
             
             {/* Overlay hover pour indiquer que c'est cliquable */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 rounded-lg" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 rounded-t-lg" />
           </div>
 
           {/* Checkbox "Ne plus afficher" */}
-          <div className="bg-white rounded-b-lg px-6 py-4 flex items-center gap-3">
+          <div className="bg-white rounded-b-lg px-6 py-4 flex items-center gap-3 sticky bottom-0">
             <Checkbox
               id="dont-show-again"
               checked={dontShowAgain}
