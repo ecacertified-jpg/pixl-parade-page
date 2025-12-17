@@ -34,6 +34,7 @@ import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
 import { BadgeProgressCard } from "@/components/BadgeProgressCard";
 import { AllBadgesCollection } from "@/components/AllBadgesCollection";
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
+import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -512,6 +513,11 @@ export default function Dashboard() {
         {reciprocityScore && (
           <ReciprocityNotificationsSection />
         )}
+
+        {/* Section Rappels d'anniversaires intelligents */}
+        <div className="mb-4">
+          <SmartBirthdayReminders />
+        </div>
 
         {/* Cartes de badges */}
         <div className="grid grid-cols-1 gap-4 mb-4">

@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.notify-business-order]
 verify_jwt = false
+
+[functions.birthday-reminder-with-suggestions]
+verify_jwt = false
