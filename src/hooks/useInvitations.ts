@@ -168,10 +168,63 @@ export function useInvitations() {
     }
   };
 
+  const sendBulkInvitations = async (
+    contacts: Array<{ name: string; email?: string; phone?: string }>
+  ) => {
+    if (!user?.id) {
+      toast.error('Vous devez être connecté pour envoyer des invitations');
+      return { success: false, sent: 0, failed: 0 };
+    }
+
+    const contactsWithEmail = contacts.filter((c) => c.email);
+    if (contactsWithEmail.length === 0) {
+      toast.error('Aucun contact avec une adresse email');
+      return { success: false, sent: 0, failed: 0 };
+    }
+
+    setLoading(true);
+    let sent = 0;
+    let failed = 0;
+
+    for (const contact of contactsWithEmail) {
+      try {
+        const { data, error } = await supabase.functions.invoke('send-invitation', {
+          body: {
+            invitee_email: contact.email,
+            invitee_phone: contact.phone,
+            message: `Bonjour ${contact.name}, rejoignez-moi sur Joie de Vivre !`,
+          },
+        });
+
+        if (error) {
+          failed++;
+        } else {
+          sent++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    setLoading(false);
+
+    if (sent > 0) {
+      toast.success(`${sent} invitation${sent > 1 ? 's' : ''} envoyée${sent > 1 ? 's' : ''} avec succès ! 🎉`);
+      await fetchInvitations();
+    }
+
+    if (failed > 0) {
+      toast.error(`${failed} invitation${failed > 1 ? 's' : ''} n'ont pas pu être envoyées`);
+    }
+
+    return { success: sent > 0, sent, failed };
+  };
+
   return {
     loading,
     invitations,
     sendInvitation,
+    sendBulkInvitations,
     fetchInvitations,
     resendInvitation,
     deleteInvitation,
