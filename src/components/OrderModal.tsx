@@ -24,6 +24,8 @@ interface Product {
   price: number;
   currency: string;
   image: string;
+  vendor?: string;
+  locationName?: string;
 }
 
 interface OrderModalProps {
@@ -123,6 +125,9 @@ export function OrderModal({
       name: product.name,
       price: product.price,
       image: product.image,
+      vendor: product.vendor,
+      locationName: product.locationName,
+      currency: product.currency,
     });
     
     toast({

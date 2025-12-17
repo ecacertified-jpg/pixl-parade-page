@@ -6,6 +6,9 @@ interface CartItem {
   price: number;
   image?: string;
   quantity: number;
+  vendor?: string;
+  locationName?: string;
+  currency?: string;
 }
 
 interface StoredCartData {

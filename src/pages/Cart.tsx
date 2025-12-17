@@ -89,10 +89,14 @@ export default function Cart() {
               <p className="text-xs text-blue-700">
                 Choisissez des produits dans le même quartier pour réduire les délais de livraison
               </p>
-              <p className="text-xs text-blue-600 mt-1">
-                Produits de vos commandes :<br />
-                📍 Bijouterie Précieuse • Plateau, Abidjan
-              </p>
+              {cartItems.length > 0 && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Produits de vos commandes :<br />
+                  {[...new Set(cartItems.map(item => 
+                    `📍 ${item.vendor || 'Boutique'} • ${item.locationName || 'Non spécifié'}`
+                  ))].join(', ')}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -124,7 +128,7 @@ export default function Cart() {
                       </p>}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>📍</span>
-                        <span>Bijouterie Précieuse • Plateau, Abidjan</span>
+                        <span>{item.vendor || 'Boutique'} • {item.locationName || 'Non spécifié'}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleQuantityChange(item.id, 0)} className="p-1 h-auto text-destructive">
