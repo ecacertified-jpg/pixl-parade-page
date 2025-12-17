@@ -206,7 +206,7 @@ export function OrderModal({
     }
   };
   return <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-auto">
+      <DialogContent className="max-w-md mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader className="relative">
           
           <DialogTitle className="text-left">
