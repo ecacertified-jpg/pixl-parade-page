@@ -17,6 +17,7 @@ export interface PostData {
     first_name?: string;
     last_name?: string;
     avatar_url?: string;
+    is_visible?: boolean;
   };
   reactions?: {
     love: number;
@@ -88,11 +89,12 @@ export function usePosts(filterFollowing: boolean = false) {
       
       // Batch all queries in parallel for better performance
       const [profilesResult, reactionsResult, userReactionsResult, commentsResult] = await Promise.all([
-        // Profiles - use public_profiles view to access other users' public data
+        // Profiles - use RPC function to respect privacy settings
         supabase
-          .from('public_profiles')
-          .select('user_id, first_name, last_name, avatar_url')
-          .in('user_id', userIds as string[]),
+          .rpc('get_visible_profiles_for_posts', {
+            p_viewer_id: user?.id || null,
+            p_user_ids: userIds as string[]
+          }),
         // All reactions for all posts
         supabase
           .from('post_reactions')
@@ -158,6 +160,7 @@ export function usePosts(filterFollowing: boolean = false) {
             first_name: profile.first_name,
             last_name: profile.last_name,
             avatar_url: profile.avatar_url,
+            is_visible: profile.is_visible,
           } : undefined,
           reactions,
           user_reaction: userReaction,

@@ -5045,6 +5045,16 @@ export type Database = {
           product_price: number
         }[]
       }
+      get_visible_profiles_for_posts: {
+        Args: { p_user_ids: string[]; p_viewer_id: string }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          is_visible: boolean
+          last_name: string
+          user_id: string
+        }[]
+      }
       handle_failed_verification: {
         Args: { p_verification_id: string }
         Returns: undefined

@@ -32,14 +32,15 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
   const [showGiftPromise, setShowGiftPromise] = useState(false);
   const [giftPromisePost, setGiftPromisePost] = useState<{ postId: string; authorName: string } | null>(null);
 
-  const authorName = post.profiles?.first_name
+  // Vérifier si le profil est visible selon les paramètres de confidentialité
+  const isProfileVisible = post.profiles?.is_visible !== false;
+  const authorName = isProfileVisible && post.profiles?.first_name
     ? `${post.profiles.first_name} ${post.profiles.last_name || ''}`
     : 'Utilisateur';
-  const initials = authorName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
+  const initials = isProfileVisible && post.profiles?.first_name
+    ? authorName.split(' ').map((n) => n[0]).join('').toUpperCase()
+    : 'U';
+  const avatarUrl = isProfileVisible ? post.profiles?.avatar_url : undefined;
   const timestamp = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
     locale: fr,
@@ -95,24 +96,37 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <Avatar 
-              className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate(`/profile/${post.user_id}`)}
+              className={cn(
+                "w-10 h-10 transition-opacity",
+                isProfileVisible && "cursor-pointer hover:opacity-80"
+              )}
+              onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
             >
-              {post.profiles?.avatar_url && (
+              {avatarUrl && (
                 <AvatarImage 
-                  src={post.profiles.avatar_url} 
+                  src={avatarUrl} 
                   alt={authorName}
                   className="object-cover"
                 />
               )}
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
+              <AvatarFallback className={cn(
+                "font-medium",
+                isProfileVisible 
+                  ? "bg-gradient-to-br from-primary/20 to-secondary/20 text-primary"
+                  : "bg-muted text-muted-foreground"
+              )}>
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div>
               <h4 
-                className="font-medium text-foreground text-sm cursor-pointer hover:underline"
-                onClick={() => navigate(`/profile/${post.user_id}`)}
+                className={cn(
+                  "font-medium text-sm",
+                  isProfileVisible 
+                    ? "text-foreground cursor-pointer hover:underline" 
+                    : "text-muted-foreground italic"
+                )}
+                onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
               >
                 {authorName}
               </h4>
