@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles, Cake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ReciprocitySettings } from "@/components/ReciprocitySettings";
 import { ReciprocityNotificationSettings } from "@/components/ReciprocityNotificationSettings";
 import { CelebrationTestSection } from "@/components/CelebrationTestSection";
+import { BirthdayReminderTimingSettings } from "@/components/BirthdayReminderTimingSettings";
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -200,6 +201,67 @@ export default function NotificationSettings() {
           </CardContent>
         </Card>
 
+        {/* Rappels d'anniversaire */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cake className="h-5 w-5 text-pink-500" />
+              Rappels d'anniversaire
+            </CardTitle>
+            <CardDescription>
+              Configurez quand et comment recevoir les rappels
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Activer les rappels</Label>
+                <p className="text-sm text-muted-foreground">
+                  Recevoir des rappels avant les anniversaires
+                </p>
+              </div>
+              <Switch 
+                checked={preferences.birthday_notifications} 
+                onCheckedChange={checked => updatePreferences({
+                  birthday_notifications: checked
+                })} 
+              />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <Label>Quand recevoir les rappels</Label>
+              <BirthdayReminderTimingSettings
+                selectedDays={preferences.birthday_reminder_days || [14, 7, 3, 1]}
+                onDaysChange={(days) => updatePreferences({ birthday_reminder_days: days })}
+                disabled={!preferences.birthday_notifications}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                <div>
+                  <Label>Suggestions de cadeaux IA</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Recevoir des idées cadeaux personnalisées
+                  </p>
+                </div>
+              </div>
+              <Switch 
+                checked={preferences.ai_suggestions} 
+                onCheckedChange={checked => updatePreferences({
+                  ai_suggestions: checked
+                })}
+                disabled={!preferences.birthday_notifications}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Types de notifications */}
         <Card>
           <CardHeader>
@@ -210,10 +272,6 @@ export default function NotificationSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             {[{
-            key: 'birthday_notifications',
-            label: 'Anniversaires',
-            description: 'Rappels d\'anniversaires'
-          }, {
             key: 'event_notifications',
             label: 'Événements',
             description: 'Rappels d\'événements importants'
@@ -241,10 +299,6 @@ export default function NotificationSettings() {
             key: 'reaction_notifications',
             label: 'Réactions',
             description: 'Likes et réactions sur mes publications'
-          }, {
-            key: 'ai_suggestions',
-            label: 'Suggestions IA',
-            description: 'Suggestions de cadeaux personnalisées avec l\'IA'
           }].map((item, index) => <div key={item.key}>
                 {index > 0 && <Separator />}
                 <div className="flex items-center justify-between">
