@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ReciprocitySettings } from "@/components/ReciprocitySettings";
 import { ReciprocityNotificationSettings } from "@/components/ReciprocityNotificationSettings";
-import { Heart } from "lucide-react";
+import { CelebrationTestSection } from "@/components/CelebrationTestSection";
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -307,9 +307,12 @@ export default function NotificationSettings() {
         {/* Sons et vibrations */}
         <Card>
           <CardHeader>
-            <CardTitle>Sons et vibrations</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-pink-500" />
+              Sons et vibrations de célébration
+            </CardTitle>
             <CardDescription>
-              Personnalisez les alertes
+              Testez et personnalisez les alertes festives
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -319,7 +322,7 @@ export default function NotificationSettings() {
                 <div>
                   <Label>Sons</Label>
                   <p className="text-sm text-muted-foreground">
-                    Activer les sons de notification
+                    Activer les sons de célébration
                   </p>
                 </div>
               </div>
@@ -336,7 +339,7 @@ export default function NotificationSettings() {
                 <div>
                   <Label>Vibrations</Label>
                   <p className="text-sm text-muted-foreground">
-                    Activer les vibrations
+                    Activer les vibrations mobiles
                   </p>
                 </div>
               </div>
@@ -344,6 +347,12 @@ export default function NotificationSettings() {
               vibration_enabled: checked
             })} />
             </div>
+
+            {/* Section de test */}
+            <CelebrationTestSection 
+              soundEnabled={preferences.sound_enabled} 
+              vibrationEnabled={preferences.vibration_enabled} 
+            />
           </CardContent>
         </Card>
 
