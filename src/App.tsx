@@ -49,6 +49,7 @@ import ReferralCodes from "./pages/ReferralCodes";
 import ProfileSettings from "./pages/ProfileSettings";
 import BusinessProfileSettings from "./pages/BusinessProfileSettings";
 import Orders from "./pages/Orders";
+import GiftIdeas from "./pages/GiftIdeas";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -193,6 +194,11 @@ const App = () => (
             <Route path="/orders" element={
               <ProtectedRoute>
                 <Orders />
+              </ProtectedRoute>
+            } />
+            <Route path="/gift-ideas/:contactId" element={
+              <ProtectedRoute>
+                <GiftIdeas />
               </ProtectedRoute>
             } />
             {/* Admin routes */}

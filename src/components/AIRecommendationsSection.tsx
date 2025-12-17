@@ -23,14 +23,21 @@ const occasions = [
 interface AIRecommendationsSectionProps {
   onAddToCart?: (product: any) => void;
   onAddToFavorites?: (productId: string) => void;
+  defaultContactId?: string;
+  contactName?: string;
 }
 
-export function AIRecommendationsSection({ onAddToCart, onAddToFavorites }: AIRecommendationsSectionProps) {
+export function AIRecommendationsSection({ 
+  onAddToCart, 
+  onAddToFavorites, 
+  defaultContactId,
+  contactName 
+}: AIRecommendationsSectionProps) {
   const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
   const { contacts } = useContacts();
   
-  const [showFilters, setShowFilters] = useState(true);
-  const [selectedContact, setSelectedContact] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(!defaultContactId);
+  const [selectedContact, setSelectedContact] = useState<string>(defaultContactId || "");
   const [selectedOccasion, setSelectedOccasion] = useState<string>("");
   const [budgetMin, setBudgetMin] = useState<string>("");
   const [budgetMax, setBudgetMax] = useState<string>("");
@@ -69,8 +76,14 @@ export function AIRecommendationsSection({ onAddToCart, onAddToFavorites }: AIRe
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Recommandations IA</CardTitle>
-              <CardDescription>Des suggestions personnalisées pour vous</CardDescription>
+              <CardTitle className="text-lg">
+                {contactName ? `Suggestions pour ${contactName}` : "Recommandations IA"}
+              </CardTitle>
+              <CardDescription>
+                {contactName 
+                  ? "Basées sur son profil et votre historique" 
+                  : "Des suggestions personnalisées pour vous"}
+              </CardDescription>
             </div>
           </div>
           {recommendations.length > 0 && (

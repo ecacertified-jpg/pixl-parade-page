@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface UpcomingBirthday {
   id: string;
+  contactId: string;
   name: string;
   birthday: string;
   daysUntil: number;
@@ -58,6 +59,7 @@ export function useUpcomingBirthdays(daysAhead: number = 7) {
         if (daysUntil <= daysAhead && daysUntil >= 0) {
           upcoming.push({
             id: contact.id,
+            contactId: contact.id,
             name: contact.name,
             birthday: contact.birthday,
             daysUntil,
