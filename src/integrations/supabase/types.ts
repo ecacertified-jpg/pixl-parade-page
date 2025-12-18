@@ -4794,6 +4794,70 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_verifications_safe: {
+        Row: {
+          beneficiary_contact_id: string | null
+          blocked_until: string | null
+          created_at: string | null
+          expires_at: string | null
+          fund_id: string | null
+          id: string | null
+          is_verified: boolean | null
+          user_id: string | null
+          verification_attempts: number | null
+          verification_type: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          beneficiary_contact_id?: string | null
+          blocked_until?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          fund_id?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          user_id?: string | null
+          verification_attempts?: number | null
+          verification_type?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          beneficiary_contact_id?: string | null
+          blocked_until?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          fund_id?: string | null
+          id?: string | null
+          is_verified?: boolean | null
+          user_id?: string | null
+          verification_attempts?: number | null
+          verification_type?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_transaction_verifications_contact"
+            columns: ["beneficiary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_verifications_contact"
+            columns: ["beneficiary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_verifications_fund"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges_with_definitions: {
         Row: {
           badge_key: string | null
