@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.birthday-reminder-with-suggestions]
 verify_jwt = false
+
+[functions.admin-approve-business]
+verify_jwt = true
+
+[functions.admin-manage-users]
+verify_jwt = true
