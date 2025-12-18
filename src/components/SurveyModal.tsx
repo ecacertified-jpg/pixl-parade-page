@@ -11,7 +11,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "joiedevivre_survey_dismissed";
-const GOOGLE_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdTrnLZUMtyM6REBXX6/viewform?embedded=true";
+const GOOGLE_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeKv-cQJvIfGQhy977xoREIlRHFMsjBncjZSn8CkFtCFUtkPw/viewform?embedded=true";
 
 export const SurveyModal = () => {
   const [isOpen, setIsOpen] = useState(false);
