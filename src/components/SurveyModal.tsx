@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "joiedevivre_survey_dismissed";
@@ -16,11 +16,11 @@ const GOOGLE_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeKv-cQJ
 export const SurveyModal = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const isDismissed = localStorage.getItem(STORAGE_KEY);
     if (!isDismissed) {
-      // Slight delay for better UX
       const timer = setTimeout(() => setIsOpen(true), 1000);
       return () => clearTimeout(timer);
     }
@@ -31,6 +31,10 @@ export const SurveyModal = () => {
       localStorage.setItem(STORAGE_KEY, "true");
     }
     setIsOpen(false);
+  };
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
   };
 
   return (
@@ -52,7 +56,15 @@ export const SurveyModal = () => {
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-hidden h-full">
+        <div className="flex-1 overflow-hidden h-full relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Chargement du formulaire...</p>
+              </div>
+            </div>
+          )}
           <iframe
             src={GOOGLE_FORM_EMBED_URL}
             width="100%"
@@ -62,6 +74,7 @@ export const SurveyModal = () => {
             marginWidth={0}
             title="Formulaire de sondage JOIE DE VIVRE"
             className="min-h-[400px] h-[calc(85vh-120px)]"
+            onLoad={handleIframeLoad}
           >
             Chargement…
           </iframe>
