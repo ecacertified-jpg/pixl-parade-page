@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BusinessRegistrationStats } from '@/components/admin/BusinessRegistrationStats';
+import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 
 interface DashboardStats {
   totalUsers: number;
@@ -44,8 +45,10 @@ export default function AdminDashboard() {
   });
   const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
   const [loading, setLoading] = useState(true);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [bulkVerifying, setBulkVerifying] = useState(false);
+
+  // Use secure admin actions hook
+  const { approveBusiness } = useSecureAdminActions();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -111,80 +114,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleQuickApprove = async (businessId: string, businessName: string) => {
-    try {
-      setApprovingId(businessId);
-
-      // Update business account to active
-      const { error: updateError } = await supabase
-        .from('business_accounts')
-        .update({ is_active: true })
-        .eq('id', businessId);
-
-      if (updateError) throw updateError;
-
-      // Get business owner data including email
-      const { data: businessData } = await supabase
-        .from('business_accounts')
-        .select('user_id, email, business_type')
-        .eq('id', businessId)
-        .single();
-
-      if (businessData) {
-        // Log approval action
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('business_registration_logs').insert({
-          business_account_id: businessId,
-          business_name: businessName,
-          business_email: businessData.email,
-          business_type: businessData.business_type,
-          action: 'approved',
-          admin_user_id: user?.id,
-        });
-
-        // Send notification to business owner
-        await supabase.from('scheduled_notifications').insert({
-          user_id: businessData.user_id,
-          notification_type: 'business_approved',
-          title: '✅ Compte approuvé',
-          message: `Félicitations ! Votre compte prestataire "${businessName}" a été approuvé. Vous pouvez maintenant accéder à Mon Espace Business.`,
-          scheduled_for: new Date().toISOString(),
-          delivery_methods: ['push', 'in_app'],
-          metadata: {
-            business_id: businessId,
-            action_url: '/business-account',
-          },
-        });
-
-        // Send approval email
-        if (businessData.email) {
-          console.log(`Sending approval email to ${businessData.email}`);
-          const { error: emailError } = await supabase.functions.invoke('send-business-approval-email', {
-            body: {
-              business_email: businessData.email,
-              business_name: businessName,
-              business_type: businessData.business_type || 'Prestataire',
-            }
-          });
-
-          if (emailError) {
-            console.error('Error sending approval email:', emailError);
-          } else {
-            console.log('Approval email sent successfully');
-          }
+  const handleQuickApprove = (businessId: string) => {
+    approveBusiness.mutate(
+      {
+        business_id: businessId,
+        action: 'approve',
+      },
+      {
+        onSuccess: () => {
+          fetchDashboardStats();
         }
       }
-
-      toast.success(`Compte "${businessName}" approuvé avec succès`);
-      
-      // Refresh data
-      fetchDashboardStats();
-    } catch (error) {
-      console.error('Error approving business:', error);
-      toast.error('Erreur lors de l\'approbation du compte');
-    } finally {
-      setApprovingId(null);
-    }
+    );
   };
 
   const handleBulkVerify = async () => {
@@ -412,11 +353,11 @@ export default function AdminDashboard() {
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => handleQuickApprove(business.id, business.business_name)}
-                      disabled={approvingId === business.id}
+                      onClick={() => handleQuickApprove(business.id)}
+                      disabled={approveBusiness.isPending}
                       className="ml-4"
                     >
-                      {approvingId === business.id ? 'Approbation...' : 'Approuver'}
+                      {approveBusiness.isPending ? 'Approbation...' : 'Approuver'}
                     </Button>
                   </div>
                 ))}
