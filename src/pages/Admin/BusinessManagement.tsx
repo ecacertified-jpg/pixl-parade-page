@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar } from 'lucide-react';
+import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 import {
   Table,
   TableBody,
@@ -90,6 +91,9 @@ export default function BusinessManagement() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
 
+  // Use secure admin actions hook
+  const { approveBusiness } = useSecureAdminActions();
+
   // Get unique business types for filter
   const businessTypes = [...new Set(businesses.map(b => b.business_type).filter(Boolean))] as string[];
 
@@ -133,133 +137,58 @@ export default function BusinessManagement() {
   };
 
   const handleToggleActive = async (businessId: string, active: boolean) => {
-    try {
-      // Get business info for notification
-      const { data: business } = await supabase
-        .from('business_accounts')
-        .select('user_id, business_name, email, business_type')
-        .eq('id', businessId)
-        .single();
-
-      const { error } = await supabase
-        .from('business_accounts')
-        .update({ 
-          is_active: active,
-          status: active ? 'active' : 'pending',
-        })
-        .eq('id', businessId);
-
-      if (error) throw error;
-
-      // If activating (approving), send notification to business owner
-      if (active && business) {
-        // Log approval action
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('business_registration_logs').insert({
-          business_account_id: businessId,
-          business_name: business.business_name,
-          business_email: business.email,
-          business_type: business.business_type,
-          action: 'approved',
-          admin_user_id: user?.id,
-        });
-
-        await supabase.from('scheduled_notifications').insert({
-          user_id: business.user_id,
-          notification_type: 'business_approved',
-          title: 'Compte business approuvé !',
-          message: `Félicitations ! Votre compte business "${business.business_name}" a été approuvé. Vous pouvez maintenant accéder à Mon Espace Business et commencer à vendre vos produits.`,
-          scheduled_for: new Date().toISOString(),
-          delivery_methods: ['push', 'in_app'],
-          metadata: {
-            business_id: businessId,
-            approved_at: new Date().toISOString(),
-          }
-        });
-
-        // Send approval email
-        if (business.email) {
-          console.log(`Sending approval email to ${business.email}`);
-          const { error: emailError } = await supabase.functions.invoke('send-business-approval-email', {
-            body: {
-              business_email: business.email,
-              business_name: business.business_name,
-              business_type: business.business_type || 'Prestataire',
-            }
-          });
-
-          if (emailError) {
-            console.error('Error sending approval email:', emailError);
-          } else {
-            console.log('Approval email sent successfully');
+    if (active) {
+      // Use secure Edge Function for approval
+      approveBusiness.mutate(
+        {
+          business_id: businessId,
+          action: 'approve',
+        },
+        {
+          onSuccess: () => {
+            fetchBusinesses();
           }
         }
-      }
+      );
+    } else {
+      // For deactivation, use direct update (not a security-critical action)
+      try {
+        const { error } = await supabase
+          .from('business_accounts')
+          .update({ 
+            is_active: false,
+            status: 'pending',
+          })
+          .eq('id', businessId);
 
-      toast.success(active ? 'Prestataire approuvé et notifié' : 'Prestataire désactivé');
-      fetchBusinesses();
-    } catch (error) {
-      console.error('Error updating business:', error);
-      toast.error('Erreur lors de la mise à jour');
+        if (error) throw error;
+        toast.success('Prestataire désactivé');
+        fetchBusinesses();
+      } catch (error) {
+        console.error('Error deactivating business:', error);
+        toast.error('Erreur lors de la désactivation');
+      }
     }
   };
 
   const handleRejectBusiness = async (reason: string) => {
     if (!businessToReject) return;
 
-    try {
-      // Log rejection action
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('business_registration_logs').insert({
-        business_account_id: businessToReject.id,
-        business_name: businessToReject.business_name,
-        business_email: businessToReject.email,
-        business_type: businessToReject.business_type,
-        action: 'rejected',
+    // Use secure Edge Function for rejection
+    approveBusiness.mutate(
+      {
+        business_id: businessToReject.id,
+        action: 'reject',
         rejection_reason: reason,
-        admin_user_id: user?.id,
-      });
-
-      // Mark business as rejected (don't delete, allow resubmission)
-      const { error: updateError } = await supabase
-        .from('business_accounts')
-        .update({
-          status: 'rejected',
-          rejection_reason: reason,
-          rejection_date: new Date().toISOString(),
-          is_active: false,
-        })
-        .eq('id', businessToReject.id);
-
-      if (updateError) throw updateError;
-
-      // Send rejection email
-      if (businessToReject.email) {
-        console.log(`Sending rejection email to ${businessToReject.email}`);
-        const { error: emailError } = await supabase.functions.invoke('send-business-rejection-email', {
-          body: {
-            business_email: businessToReject.email,
-            business_name: businessToReject.business_name,
-            rejection_reason: reason,
-          }
-        });
-
-        if (emailError) {
-          console.error('Error sending rejection email:', emailError);
-          toast.error('Compte rejeté mais l\'email n\'a pas pu être envoyé');
-        } else {
-          console.log('Rejection email sent successfully');
-          toast.success('Demande rejetée et email envoyé au prestataire');
+      },
+      {
+        onSuccess: () => {
+          setBusinessToReject(null);
+          setRejectModalOpen(false);
+          fetchBusinesses();
         }
-      } else {
-        toast.success('Demande rejetée (pas d\'email disponible)');
       }
-
-      fetchBusinesses();
-    } catch (error) {
-      console.error('Error rejecting business:', error);
-      toast.error('Erreur lors du rejet de la demande');
-    }
+    );
   };
 
   const filteredBusinesses = businesses.filter(business => {

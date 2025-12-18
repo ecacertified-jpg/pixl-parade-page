@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useSecureAdminActions } from "@/hooks/useSecureAdminActions";
 
 interface SuspendUserDialogProps {
   userId: string | null;
@@ -24,44 +23,29 @@ export function SuspendUserDialog({
   onSuccess 
 }: SuspendUserDialogProps) {
   const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { manageUser } = useSecureAdminActions();
 
   const handleSubmit = async () => {
     if (!userId) return;
 
     if (!isSuspended && !reason.trim()) {
-      toast.error("Veuillez indiquer une raison de suspension");
       return;
     }
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          is_suspended: !isSuspended,
-          suspended_at: !isSuspended ? new Date().toISOString() : null,
-          suspension_reason: !isSuspended ? reason : null,
-        })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      toast.success(
-        isSuspended 
-          ? `Le compte de ${userName} a été réactivé`
-          : `Le compte de ${userName} a été suspendu`
-      );
-      
-      onSuccess();
-      onOpenChange(false);
-      setReason("");
-    } catch (error) {
-      console.error('Error updating suspension:', error);
-      toast.error("Erreur lors de la mise à jour du compte");
-    } finally {
-      setLoading(false);
-    }
+    manageUser.mutate(
+      {
+        user_id: userId,
+        action: isSuspended ? 'unsuspend' : 'suspend',
+        reason: reason || undefined,
+      },
+      {
+        onSuccess: () => {
+          onSuccess();
+          onOpenChange(false);
+          setReason("");
+        }
+      }
+    );
   };
 
   return (
@@ -96,16 +80,16 @@ export function SuspendUserDialog({
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}
-            disabled={loading}
+            disabled={manageUser.isPending}
           >
             Annuler
           </Button>
           <Button 
             variant={isSuspended ? "default" : "destructive"}
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={manageUser.isPending || (!isSuspended && !reason.trim())}
           >
-            {loading ? "En cours..." : isSuspended ? "Réactiver" : "Suspendre"}
+            {manageUser.isPending ? "En cours..." : isSuspended ? "Réactiver" : "Suspendre"}
           </Button>
         </DialogFooter>
       </DialogContent>
