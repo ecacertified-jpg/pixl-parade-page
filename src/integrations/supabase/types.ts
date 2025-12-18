@@ -578,6 +578,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "business_collective_funds_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: true
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_collective_funds_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -688,6 +695,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_orders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -878,6 +892,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_fund_orders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1418,6 +1439,13 @@ export type Database = {
             referencedRelation: "collective_funds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fund_activities_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fund_comments: {
@@ -1451,6 +1479,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_comments_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1513,6 +1548,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_contributions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1671,6 +1713,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gift_thanks_collective_fund_id_fkey"
+            columns: ["collective_fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "gift_thanks_gift_id_fkey"
             columns: ["gift_id"]
             isOneToOne: false
@@ -1769,6 +1818,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gifts_collective_fund_id_fkey"
+            columns: ["collective_fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "gifts_giver_id_fkey"
             columns: ["giver_id"]
             isOneToOne: false
@@ -1862,6 +1918,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gratitude_wall_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2640,6 +2703,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_transactions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payment_transactions_payment_method_code_fkey"
             columns: ["payment_method_code"]
             isOneToOne: false
@@ -3382,6 +3452,13 @@ export type Database = {
             referencedRelation: "collective_funds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reciprocity_tracking_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       referral_codes: {
@@ -3573,6 +3650,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
           {
@@ -4006,6 +4090,13 @@ export type Database = {
             referencedRelation: "collective_funds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "surprise_contributors_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       suspicious_activities: {
@@ -4133,6 +4224,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_verifications_fund"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4700,6 +4798,51 @@ export type Database = {
         }
         Relationships: []
       }
+      collective_funds_public: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          current_amount: number | null
+          deadline_date: string | null
+          description: string | null
+          id: string | null
+          is_public: boolean | null
+          occasion: string | null
+          share_token: string | null
+          status: string | null
+          target_amount: number | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          current_amount?: number | null
+          deadline_date?: string | null
+          description?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          occasion?: string | null
+          share_token?: string | null
+          status?: string | null
+          target_amount?: number | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          current_amount?: number | null
+          deadline_date?: string | null
+          description?: string | null
+          id?: string | null
+          is_public?: boolean | null
+          occasion?: string | null
+          share_token?: string | null
+          status?: string | null
+          target_amount?: number | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       contacts_limited: {
         Row: {
           birthday: string | null
@@ -4780,6 +4923,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_contributions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
@@ -4895,6 +5045,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transaction_verifications_fund"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
             referencedColumns: ["id"]
           },
         ]
