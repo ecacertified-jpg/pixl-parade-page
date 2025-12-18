@@ -10,24 +10,21 @@ const getTimeBasedGreeting = () => {
   
   if (hour >= 5 && hour < 12) {
     return {
-      line1: "Bon",
-      line2: "matin",
+      greeting: "Bonjour",
       emoji: "☀️",
       message: "Trouvez le cadeau idéal !",
       subEmoji: "🌅"
     };
   } else if (hour >= 12 && hour < 18) {
     return {
-      line1: "Bon",
-      line2: "après-midi",
+      greeting: "Bon après-midi",
       emoji: "🌤️",
       message: "Besoin d'une idée cadeau ?",
       subEmoji: "🎁"
     };
   } else {
     return {
-      line1: "Bonne",
-      line2: "soirée",
+      greeting: "Bonsoir",
       emoji: "🌙",
       message: "Explorez nos idées cadeaux !",
       subEmoji: "✨"
@@ -213,14 +210,9 @@ export const AIChatWidget = () => {
                     >
                       {greeting.emoji}
                     </motion.span>
-                    <div className="flex flex-col leading-tight">
-                      <span className="font-bold text-lg bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
-                        {greeting.line1}
-                      </span>
-                      <span className="font-bold text-lg bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
-                        {greeting.line2} !
-                      </span>
-                    </div>
+                    <h3 className="font-bold text-lg bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
+                      {greeting.greeting} !
+                    </h3>
                   </div>
 
                   {/* Avatar and message */}
