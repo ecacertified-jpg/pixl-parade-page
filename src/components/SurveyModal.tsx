@@ -13,18 +13,35 @@ import { Button } from "@/components/ui/button";
 const STORAGE_KEY = "joiedevivre_survey_dismissed";
 const GOOGLE_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLSeKv-cQJvIfGQhy977xoREIlRHFMsjBncjZSn8CkFtCFUtkPw/viewform?embedded=true";
 
-export const SurveyModal = () => {
-  const [isOpen, setIsOpen] = useState(false);
+interface SurveyModalProps {
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
+}
+
+export const SurveyModal = ({ externalOpen, onExternalOpenChange }: SurveyModalProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isControlled = externalOpen !== undefined;
+  const isOpen = isControlled ? externalOpen : internalOpen;
+  
+  const setIsOpen = (open: boolean) => {
+    if (isControlled && onExternalOpenChange) {
+      onExternalOpenChange(open);
+    } else {
+      setInternalOpen(open);
+    }
+  };
+
   useEffect(() => {
+    if (isControlled) return;
     const isDismissed = localStorage.getItem(STORAGE_KEY);
     if (!isDismissed) {
-      const timer = setTimeout(() => setIsOpen(true), 1000);
+      const timer = setTimeout(() => setInternalOpen(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isControlled]);
 
   const handleClose = () => {
     if (dontShowAgain) {
