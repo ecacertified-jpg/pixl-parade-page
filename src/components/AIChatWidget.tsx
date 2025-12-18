@@ -264,7 +264,7 @@ export const AIChatWidget = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleStartChat}
-                    className="w-full mt-4 py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-600 hover:to-pink-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25 transition-all duration-200"
+                    className="w-full mt-4 py-2.5 px-4 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-600 hover:to-pink-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25 transition-all duration-200 whitespace-nowrap"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Discutons !
