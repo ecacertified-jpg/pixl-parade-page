@@ -6,6 +6,7 @@ import celebrationHero from "@/assets/cadeaux-echanges.png";
 import valueProposition from "@/assets/value-proposition.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { SurveyModal } from "@/components/SurveyModal";
 const Landing = () => {
   const navigate = useNavigate();
   const {
@@ -43,7 +44,9 @@ const Landing = () => {
     title: "Surprises Mémorables",
     description: "Organisez des surprises avec révélation programmée et musique personnalisée"
   }];
-  return <div className="min-h-screen bg-background">
+  return <>
+    <SurveyModal />
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -258,6 +261,7 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  </>;
 };
 export default Landing;
