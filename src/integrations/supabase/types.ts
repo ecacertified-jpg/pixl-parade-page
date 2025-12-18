@@ -4617,6 +4617,44 @@ export type Database = {
       }
     }
     Views: {
+      admin_sessions_safe: {
+        Row: {
+          admin_user_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          ip_address_display: string | null
+          revoked_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          admin_user_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          ip_address_display?: never
+          revoked_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          admin_user_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          ip_address_display?: never
+          revoked_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_sessions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_public_info: {
         Row: {
           business_name: string | null
@@ -5205,6 +5243,7 @@ export type Database = {
         Returns: undefined
       }
       is_active_admin: { Args: { user_uuid: string }; Returns: boolean }
+      is_admin: { Args: { check_user_id: string }; Returns: boolean }
       is_beneficiary_of_surprise: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
