@@ -4825,6 +4825,15 @@ export type Database = {
         Args: { user_a_id: string; user_b_id: string }
         Returns: boolean
       }
+      award_user_badge: {
+        Args: {
+          p_awarded_for?: string
+          p_badge_key: string
+          p_metadata?: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
       calculate_birthday_badge_level: {
         Args: { celebrations_count: number }
         Returns: string
@@ -4868,6 +4877,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_expired_pending_registrations: { Args: never; Returns: number }
+      create_birthday_celebration: {
+        Args: {
+          p_age_at_celebration?: number
+          p_celebration_year: number
+          p_milestone_age?: boolean
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_business_collective_fund:
         | {
             Args: {
@@ -4903,6 +4921,16 @@ export type Database = {
           p_fund_id: string
           p_message?: string
           p_metadata?: Json
+        }
+        Returns: string
+      }
+      create_imbalance_alert: {
+        Args: {
+          p_alert_type: string
+          p_details?: Json
+          p_imbalance_score: number
+          p_severity: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -5196,11 +5224,10 @@ export type Database = {
       }
       log_security_event: {
         Args: {
-          p_admin_user_id?: string
-          p_event_data?: Json
           p_event_type: string
-          p_ip_address?: unknown
-          p_severity?: string
+          p_ip_address?: string
+          p_metadata?: Json
+          p_risk_level?: string
           p_user_agent?: string
           p_user_id?: string
         }
@@ -5254,6 +5281,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      track_referral: {
+        Args: {
+          p_conversion_type?: string
+          p_referral_code_id: string
+          p_referred_user_id: string
+        }
+        Returns: string
       }
       update_community_rankings: { Args: never; Returns: undefined }
       update_community_score: {
