@@ -12,21 +12,21 @@ const getTimeBasedGreeting = () => {
     return {
       greeting: "Bonjour",
       emoji: "☀️",
-      message: "Commencez bien votre journée avec le cadeau parfait !",
+      message: "Trouvez le cadeau idéal !",
       subEmoji: "🌅"
     };
   } else if (hour >= 12 && hour < 18) {
     return {
       greeting: "Bon après-midi",
       emoji: "🌤️",
-      message: "Trouvez une idée cadeau pour faire plaisir !",
+      message: "Besoin d'une idée cadeau ?",
       subEmoji: "🎁"
     };
   } else {
     return {
       greeting: "Bonsoir",
       emoji: "🌙",
-      message: "Détendez-vous et explorez nos suggestions !",
+      message: "Explorez nos idées cadeaux !",
       subEmoji: "✨"
     };
   }
@@ -58,9 +58,9 @@ export const AIChatWidget = () => {
       let fullText: string;
       
       if (isLoggedIn && userName) {
-        fullText = `${userName}, je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+        fullText = `${userName}, ${greeting.message}`;
       } else {
-        fullText = `Bienvenue ! Je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+        fullText = greeting.message;
       }
       
       setDisplayedText('');
