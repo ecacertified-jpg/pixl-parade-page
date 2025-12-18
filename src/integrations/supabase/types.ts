@@ -5383,6 +5383,7 @@ export type Database = {
           metadata: Json
         }[]
       }
+      get_fund_creator_id: { Args: { p_fund_id: string }; Returns: string }
       get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
       get_product_category_name: {
         Args: { p_product_id: string }
@@ -5625,8 +5626,16 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_access_fund: {
+        Args: { p_fund_id: string; p_user_id: string }
+        Returns: boolean
+      }
       user_can_see_fund: {
         Args: { fund_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      user_has_contributed_to_fund: {
+        Args: { p_fund_id: string; p_user_id: string }
         Returns: boolean
       }
     }
