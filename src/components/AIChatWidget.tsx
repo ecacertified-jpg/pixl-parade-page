@@ -4,10 +4,43 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIChatPanel } from './AIChatPanel';
 
+const getTimeBasedGreeting = () => {
+  const hour = new Date().getHours();
+  
+  if (hour >= 5 && hour < 12) {
+    return {
+      greeting: "Bonjour",
+      emoji: "☀️",
+      message: "Commencez bien votre journée avec le cadeau parfait !",
+      subEmoji: "🌅"
+    };
+  } else if (hour >= 12 && hour < 18) {
+    return {
+      greeting: "Bon après-midi",
+      emoji: "🌤️",
+      message: "Trouvez une idée cadeau pour faire plaisir !",
+      subEmoji: "🎁"
+    };
+  } else {
+    return {
+      greeting: "Bonsoir",
+      emoji: "🌙",
+      message: "Détendez-vous et explorez nos suggestions !",
+      subEmoji: "✨"
+    };
+  }
+};
+
 export const AIChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [greeting, setGreeting] = useState(getTimeBasedGreeting());
+
+  // Update greeting when component mounts or becomes visible
+  useEffect(() => {
+    setGreeting(getTimeBasedGreeting());
+  }, [showWelcome]);
 
   // Listen for custom events to open chat (from birthday notifications, etc.)
   useEffect(() => {
@@ -136,10 +169,10 @@ export const AIChatWidget = () => {
                       }}
                       className="text-xl"
                     >
-                      👋
+                      {greeting.emoji}
                     </motion.span>
                     <h3 className="font-bold text-lg bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
-                      Besoin d'aide ?
+                      {greeting.greeting} !
                     </h3>
                     <motion.div
                       animate={{ 
@@ -186,11 +219,11 @@ export const AIChatWidget = () => {
                     {/* Message text */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground leading-relaxed">
-                        Salut ! Je suis votre assistant 
+                        Je suis votre assistant 
                         <span className="text-violet-600 dark:text-violet-400 font-semibold"> JOIE DE VIVRE</span>.
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Je peux vous aider à trouver le cadeau parfait ! 🎁
+                        {greeting.message} {greeting.subEmoji}
                       </p>
                     </div>
                   </div>
