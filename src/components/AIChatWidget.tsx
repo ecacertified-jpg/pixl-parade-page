@@ -36,11 +36,35 @@ export const AIChatWidget = () => {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
 
   // Update greeting when component mounts or becomes visible
   useEffect(() => {
     setGreeting(getTimeBasedGreeting());
   }, [showWelcome]);
+
+  // Typing animation effect
+  useEffect(() => {
+    if (showWelcome && !isOpen) {
+      const fullText = `Je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+      setDisplayedText('');
+      setIsTypingComplete(false);
+      
+      let currentIndex = 0;
+      const typingInterval = setInterval(() => {
+        if (currentIndex < fullText.length) {
+          setDisplayedText(fullText.slice(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          setIsTypingComplete(true);
+          clearInterval(typingInterval);
+        }
+      }, 30);
+
+      return () => clearInterval(typingInterval);
+    }
+  }, [showWelcome, isOpen, greeting.message]);
 
   // Listen for custom events to open chat (from birthday notifications, etc.)
   useEffect(() => {
@@ -216,14 +240,18 @@ export const AIChatWidget = () => {
                       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-violet-400 to-pink-400 blur-md opacity-40 -z-10" />
                     </div>
 
-                    {/* Message text */}
+                    {/* Message text with typing animation */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground leading-relaxed">
-                        Je suis votre assistant 
-                        <span className="text-violet-600 dark:text-violet-400 font-semibold"> JOIE DE VIVRE</span>.
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {greeting.message} {greeting.subEmoji}
+                        {displayedText}
+                        {!isTypingComplete && (
+                          <motion.span
+                            animate={{ opacity: [1, 0] }}
+                            transition={{ duration: 0.5, repeat: Infinity }}
+                            className="inline-block w-0.5 h-4 bg-violet-500 ml-0.5 align-middle"
+                          />
+                        )}
+                        {isTypingComplete && <span className="ml-1">{greeting.subEmoji}</span>}
                       </p>
                     </div>
                   </div>
