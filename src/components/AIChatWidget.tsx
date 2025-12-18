@@ -213,18 +213,6 @@ export const AIChatWidget = () => {
                     <h3 className="font-bold text-lg bg-gradient-to-r from-violet-600 to-pink-500 bg-clip-text text-transparent">
                       {greeting.greeting} !
                     </h3>
-                    <motion.div
-                      animate={{ 
-                        rotate: 360,
-                        scale: [1, 1.2, 1]
-                      }}
-                      transition={{ 
-                        rotate: { duration: 3, repeat: Infinity, ease: "linear" },
-                        scale: { duration: 1.5, repeat: Infinity }
-                      }}
-                    >
-                      <Sparkles className="h-4 w-4 text-amber-400" />
-                    </motion.div>
                   </div>
 
                   {/* Avatar and message */}
