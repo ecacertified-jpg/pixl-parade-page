@@ -4743,6 +4743,47 @@ export type Database = {
           },
         ]
       }
+      fund_contributions_safe: {
+        Row: {
+          amount: number | null
+          contributor_id: string | null
+          created_at: string | null
+          currency: string | null
+          fund_id: string | null
+          id: string | null
+          is_anonymous: boolean | null
+          message: string | null
+        }
+        Insert: {
+          amount?: number | null
+          contributor_id?: never
+          created_at?: string | null
+          currency?: string | null
+          fund_id?: string | null
+          id?: string | null
+          is_anonymous?: boolean | null
+          message?: string | null
+        }
+        Update: {
+          amount?: number | null
+          contributor_id?: never
+          created_at?: string | null
+          currency?: string | null
+          fund_id?: string | null
+          id?: string | null
+          is_anonymous?: boolean | null
+          message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_contributions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_rating_stats: {
         Row: {
           average_rating: number | null
