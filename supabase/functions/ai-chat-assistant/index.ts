@@ -186,10 +186,14 @@ serve(async (req) => {
     
     // Si pas de conversation trouvée ou pas de conversationId, créer une nouvelle
     if (!conversation) {
+      // Explicitement utiliser null si pas d'utilisateur (pas undefined)
+      const userId = user?.id ?? null;
+      console.log('Creating conversation with userId:', userId);
+      
       const { data, error: convError } = await supabaseClient
         .from('ai_conversations')
         .insert({
-          user_id: user?.id,
+          user_id: userId,
           session_id: sessionId,
           conversation_stage: context?.stage || 'discovery',
           current_page: context?.page || '/',
@@ -199,7 +203,7 @@ serve(async (req) => {
         .single();
       
       if (convError) {
-        console.error('Error creating conversation:', convError.code);
+        console.error('Error creating conversation:', convError.code, convError.message);
         return handleError('db', convError);
       }
       
