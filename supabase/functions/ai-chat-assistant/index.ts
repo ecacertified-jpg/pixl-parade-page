@@ -147,14 +147,28 @@ serve(async (req) => {
     console.log('AI Chat Request:', { messageLength: sanitizedMessage.length, conversationId, sessionId });
     
     // Initialisation Supabase
+    // IMPORTANT: ne pas forcer un token "Authorization" s'il ne s'agit pas d'un vrai token utilisateur.
+    const authHeader = req.headers.get('Authorization') || '';
+
+    const jwtHasSub = (() => {
+      try {
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+        const parts = token.split('.');
+        if (parts.length < 2) return false;
+        const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadJson);
+        return typeof payload?.sub === 'string' && payload.sub.length > 0;
+      } catch {
+        return false;
+      }
+    })();
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        global: { 
-          headers: { Authorization: req.headers.get('Authorization')! } 
-        } 
-      }
+      jwtHasSub
+        ? { global: { headers: { Authorization: authHeader } } }
+        : undefined
     );
 
     // Récupérer l'utilisateur (peut être null pour visiteurs non connectés)
