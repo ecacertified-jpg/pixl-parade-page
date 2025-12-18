@@ -5,13 +5,13 @@ import logoJV from "@/assets/logo-jv.svg";
 import celebrationHero from "@/assets/cadeaux-echanges.png";
 import valueProposition from "@/assets/value-proposition.jpg";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SurveyModal } from "@/components/SurveyModal";
+import { MessageSquare } from "lucide-react";
 const Landing = () => {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const [surveyOpen, setSurveyOpen] = useState(false);
 
   // Redirect authenticated users to home
   useEffect(() => {
@@ -46,6 +46,7 @@ const Landing = () => {
   }];
   return <>
     <SurveyModal />
+    <SurveyModal externalOpen={surveyOpen} onExternalOpenChange={setSurveyOpen} />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -253,6 +254,15 @@ const Landing = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Contact</li>
                 <li>Aide</li>
+                <li>
+                  <button 
+                    onClick={() => setSurveyOpen(true)}
+                    className="hover:text-foreground transition-colors flex items-center gap-1"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Donnez votre avis
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
