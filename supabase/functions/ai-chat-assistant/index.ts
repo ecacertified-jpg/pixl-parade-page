@@ -135,17 +135,24 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationId, sessionId, context } = await req.json();
-    
+    const body = await req.json();
+    const { message, conversationId, sessionId: rawSessionId, context } = body;
+
     // Validate input message
     const validation = validateMessage(message);
     if (!validation.isValid) {
       return handleError('validation', new Error(validation.reason));
     }
-    
+
     const sanitizedMessage = validation.sanitized;
+
+    // Ensure we always have a session id (required for anon conversation inserts by RLS)
+    const sessionId = (typeof rawSessionId === 'string' && rawSessionId.trim().length > 0)
+      ? rawSessionId.trim()
+      : crypto.randomUUID();
+
     console.log('AI Chat Request:', { messageLength: sanitizedMessage.length, conversationId, sessionId });
-    
+
     // Initialisation Supabase
     // IMPORTANT: ne pas forcer un token "Authorization" s'il ne s'agit pas d'un vrai token utilisateur.
     const authHeader = req.headers.get('Authorization') || '';
@@ -178,12 +185,12 @@ serve(async (req) => {
     // Check rate limit
     const clientId = getClientIdentifier(req, user?.id || null);
     const rateCheck = checkRateLimit(clientId, !!user);
-    
+
     if (!rateCheck.allowed) {
       console.warn('Rate limit exceeded for:', clientId);
       return handleError('rate_limit', new Error('Rate limit exceeded'));
     }
-    
+
     console.log('Rate limit remaining:', rateCheck.remaining);
 
     // Récupérer ou créer la conversation
@@ -197,13 +204,13 @@ serve(async (req) => {
       conversation = data;
       console.log('Loaded conversation:', conversation?.id);
     }
-    
+
     // Si pas de conversation trouvée ou pas de conversationId, créer une nouvelle
     if (!conversation) {
       // Explicitement utiliser null si pas d'utilisateur (pas undefined)
       const userId = user?.id ?? null;
-      console.log('Creating conversation with userId:', userId);
-      
+      console.log('Creating conversation with userId:', userId, 'sessionId:', sessionId);
+
       const { data, error: convError } = await supabaseClient
         .from('ai_conversations')
         .insert({
