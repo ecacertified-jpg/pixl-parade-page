@@ -5511,6 +5511,14 @@ export type Database = {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      is_business_owner_of_fund: {
+        Args: { p_fund_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_business_owner_of_fund_order: {
+        Args: { p_order_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_first_payment_to_beneficiary: {
         Args: { p_beneficiary_id: string; p_user_id: string }
         Returns: boolean
