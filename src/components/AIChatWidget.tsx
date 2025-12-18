@@ -3,6 +3,7 @@ import { MessageCircle, X, Sparkles, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIChatPanel } from './AIChatPanel';
+import { useAuth } from '@/contexts/AuthContext';
 
 const getTimeBasedGreeting = () => {
   const hour = new Date().getHours();
@@ -32,6 +33,7 @@ const getTimeBasedGreeting = () => {
 };
 
 export const AIChatWidget = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -39,15 +41,28 @@ export const AIChatWidget = () => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTypingComplete, setIsTypingComplete] = useState(false);
 
+  // Get user's first name if logged in
+  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 
+                   user?.user_metadata?.name?.split(' ')[0] || 
+                   user?.email?.split('@')[0];
+  const isLoggedIn = !!user;
+
   // Update greeting when component mounts or becomes visible
   useEffect(() => {
     setGreeting(getTimeBasedGreeting());
   }, [showWelcome]);
 
-  // Typing animation effect
+  // Typing animation effect with personalized message
   useEffect(() => {
     if (showWelcome && !isOpen) {
-      const fullText = `Je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+      let fullText: string;
+      
+      if (isLoggedIn && userName) {
+        fullText = `${userName}, je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+      } else {
+        fullText = `Bienvenue ! Je suis votre assistant JOIE DE VIVRE. ${greeting.message}`;
+      }
+      
       setDisplayedText('');
       setIsTypingComplete(false);
       
@@ -64,7 +79,7 @@ export const AIChatWidget = () => {
 
       return () => clearInterval(typingInterval);
     }
-  }, [showWelcome, isOpen, greeting.message]);
+  }, [showWelcome, isOpen, greeting.message, isLoggedIn, userName]);
 
   // Listen for custom events to open chat (from birthday notifications, etc.)
   useEffect(() => {
