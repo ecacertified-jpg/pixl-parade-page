@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export default function Shop() {
     image: string;
     category: string;
     vendor: string;
+    vendorId: string | null;
     distance: string;
     rating: number;
     reviews: number;
@@ -161,6 +162,7 @@ export default function Shop() {
         image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
         category: product.category_name || "Produit",
         vendor: product.business_account_id ? (businessMap[product.business_account_id] || "Boutique") : "Boutique",
+        vendorId: product.business_account_id || null,
         distance: "2.3 km",
         rating: 4.8,
         reviews: 45,
@@ -471,8 +473,21 @@ export default function Shop() {
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2 gap-2">
                     <h3 className="font-semibold text-lg flex-1">{product.name}</h3>
-                    <Badge variant="outline" className="text-xs font-normal whitespace-nowrap">
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-xs font-normal whitespace-nowrap",
+                        product.vendorId && "cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
+                      )}
+                      onClick={(e) => {
+                        if (product.vendorId) {
+                          e.stopPropagation();
+                          navigate(`/boutique/${product.vendorId}`);
+                        }
+                      }}
+                    >
                       {product.vendor}
+                      {product.vendorId && <Store className="h-3 w-3 ml-1 inline" />}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
