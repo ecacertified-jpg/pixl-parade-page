@@ -1,0 +1,122 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface VendorProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  image: string;
+  category: string;
+  vendor: string;
+  businessAccountId: string;
+  inStock: boolean;
+  isExperience: boolean;
+  categoryName: string;
+  locationName: string;
+}
+
+interface VendorInfo {
+  id: string;
+  businessName: string;
+  description: string | null;
+  logoUrl: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  businessType: string | null;
+  deliveryZones: any;
+  openingHours: any;
+}
+
+export function useVendorProducts(businessId: string | undefined) {
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [vendor, setVendor] = useState<VendorInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadVendorData = useCallback(async () => {
+    if (!businessId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Charger les infos du prestataire
+      const { data: businessData, error: businessError } = await supabase
+        .from('business_accounts')
+        .select('*')
+        .eq('id', businessId)
+        .eq('status', 'approved')
+        .single();
+
+      if (businessError) {
+        throw new Error('Prestataire non trouvé');
+      }
+
+      setVendor({
+        id: businessData.id,
+        businessName: businessData.business_name,
+        description: businessData.description,
+        logoUrl: businessData.logo_url,
+        email: businessData.email,
+        phone: businessData.phone,
+        address: businessData.address,
+        businessType: businessData.business_type,
+        deliveryZones: businessData.delivery_zones,
+        openingHours: businessData.opening_hours,
+      });
+
+      // Charger les produits du prestataire
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('business_account_id', businessId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (productsError) {
+        throw productsError;
+      }
+
+      const formattedProducts: VendorProduct[] = (productsData || []).map(product => ({
+        id: product.id,
+        name: product.name,
+        description: product.description || "Description non disponible",
+        price: product.price,
+        currency: product.currency || "F",
+        image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+        category: product.category_name || "Produit",
+        vendor: businessData.business_name,
+        businessAccountId: businessId,
+        inStock: (product.stock_quantity || 0) > 0,
+        isExperience: product.is_experience || false,
+        categoryName: product.category_name || "",
+        locationName: product.location_name || "Non spécifié"
+      }));
+
+      setProducts(formattedProducts);
+    } catch (err) {
+      console.error('Error loading vendor data:', err);
+      setError(err instanceof Error ? err : new Error('Erreur inconnue'));
+    } finally {
+      setLoading(false);
+    }
+  }, [businessId]);
+
+  useEffect(() => {
+    loadVendorData();
+  }, [loadVendorData]);
+
+  return {
+    products,
+    vendor,
+    loading,
+    error,
+    refetch: loadVendorData
+  };
+}

@@ -22,6 +22,7 @@ import Publications from "./pages/Publications";
 import BusinessAccount from "./pages/BusinessAccount";
 import BusinessDashboard from "./pages/BusinessDashboard";
 import Shop from "./pages/Shop";
+import VendorShop from "./pages/VendorShop";
 import Favorites from "./pages/Favorites";
 import Gifts from "./pages/Gifts";
 import Cart from "./pages/Cart";
@@ -109,6 +110,11 @@ const App = () => (
             <Route path="/shop" element={
               <ProtectedRoute>
                 <Shop />
+              </ProtectedRoute>
+            } />
+            <Route path="/boutique/:businessId" element={
+              <ProtectedRoute>
+                <VendorShop />
               </ProtectedRoute>
             } />
             <Route path="/favorites" element={
