@@ -51,7 +51,7 @@ export function useVendorProducts(businessId: string | undefined) {
         .from('business_accounts')
         .select('*')
         .eq('id', businessId)
-        .eq('status', 'approved')
+        .eq('is_active', true)
         .single();
 
       if (businessError) {
