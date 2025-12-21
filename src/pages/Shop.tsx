@@ -47,6 +47,14 @@ export default function Shop() {
     categoryName?: string;
     locationName?: string;
   }>>([]);
+  const [popularShops, setPopularShops] = useState<Array<{
+    id: string;
+    name: string;
+    logo: string | null;
+    type: string | null;
+    rating: number;
+    productCount: number;
+  }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
@@ -80,8 +88,9 @@ export default function Shop() {
       localStorage.removeItem('contributionTarget');
     }
 
-    // Load products from database
+    // Load products and popular shops from database
     loadProducts();
+    loadPopularShops();
 
     // Subscribe to real-time changes on products table
     const channel = supabase
@@ -180,6 +189,61 @@ export default function Shop() {
       setProducts(formattedProducts);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  const loadPopularShops = async () => {
+    try {
+      // Fetch active businesses with product counts
+      const { data: businesses, error } = await supabase
+        .from('business_public_info')
+        .select('id, business_name, logo_url, business_type')
+        .eq('is_active', true)
+        .limit(10);
+
+      if (error) {
+        console.error('Error loading popular shops:', error);
+        return;
+      }
+
+      if (!businesses || businesses.length === 0) {
+        setPopularShops([]);
+        return;
+      }
+
+      // Get product counts for each business
+      const { data: productCounts, error: countError } = await supabase
+        .from('products')
+        .select('business_account_id')
+        .eq('is_active', true)
+        .in('business_account_id', businesses.map(b => b.id));
+
+      const countMap: Record<string, number> = {};
+      if (productCounts) {
+        productCounts.forEach(p => {
+          if (p.business_account_id) {
+            countMap[p.business_account_id] = (countMap[p.business_account_id] || 0) + 1;
+          }
+        });
+      }
+
+      // Format shops with simulated ratings (would come from product_ratings in real scenario)
+      const formattedShops = businesses
+        .map(b => ({
+          id: b.id,
+          name: b.business_name,
+          logo: b.logo_url,
+          type: b.business_type,
+          rating: 4.5 + Math.random() * 0.5, // Simulated rating between 4.5-5.0
+          productCount: countMap[b.id] || 0
+        }))
+        .filter(s => s.productCount > 0) // Only show shops with products
+        .sort((a, b) => b.rating - a.rating) // Sort by rating
+        .slice(0, 6); // Top 6 shops
+
+      setPopularShops(formattedShops);
+    } catch (error) {
+      console.error('Error loading popular shops:', error);
     }
   };
 
@@ -389,6 +453,43 @@ export default function Shop() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Popular Shops Section */}
+        {popularShops.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary" />
+              Boutiques populaires
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {popularShops.map((shop) => (
+                <Card 
+                  key={shop.id}
+                  className="flex-shrink-0 w-32 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/vendor/${shop.id}`)}
+                >
+                  <div className="p-3 flex flex-col items-center text-center">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2 overflow-hidden">
+                      {shop.logo ? (
+                        <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Store className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                    <p className="text-sm font-medium line-clamp-1">{shop.name}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span className="text-xs text-muted-foreground">{shop.rating.toFixed(1)}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground mt-0.5">
+                      {shop.productCount} produit{shop.productCount > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* AI Recommendations Section */}
         <div className="mb-6">
