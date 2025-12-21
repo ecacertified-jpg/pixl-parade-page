@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,24 @@ const getStatusBadge = (status: string) => {
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
+};
+
+// Composant pour afficher les étoiles de notation
+const RatingStars = ({ rating }: { rating: number }) => {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`h-3.5 w-3.5 ${
+            star <= rating
+              ? 'fill-yellow-400 text-yellow-400'
+              : 'fill-muted text-muted-foreground/30'
+          }`}
+        />
+      ))}
+    </div>
+  );
 };
 
 interface OrderCardProps {
@@ -91,17 +109,27 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
               </Button>
             )}
             
-            {/* État confirmé - bouton désactivé vert */}
+            {/* État confirmé - bouton désactivé vert + étoiles */}
             {isConfirmed && !isRefundRequested && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="w-full sm:w-auto bg-green-50 text-green-700 border-green-200 cursor-default dark:bg-green-950 dark:text-green-300 dark:border-green-800"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                Réception confirmée
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="bg-green-50 text-green-700 border-green-200 cursor-default dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Réception confirmée
+                </Button>
+                {order.customerRating && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-950/50 rounded-md border border-yellow-200 dark:border-yellow-800">
+                    <RatingStars rating={order.customerRating} />
+                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300 ml-1">
+                      {order.customerRating}/5
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
             
             {/* État remboursement demandé - bouton désactivé orange */}
