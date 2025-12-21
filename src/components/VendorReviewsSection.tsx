@@ -118,12 +118,10 @@ function StarProgressRow({ label, count, total }: { label: number; count: number
 }
 
 function ReviewCard({ review }: { review: VendorRating }) {
-  const userName = review.user 
-    ? `${review.user.first_name} ${review.user.last_name.charAt(0) || ''}.`
-    : 'Anonyme';
+  const userName = review.user?.first_name || 'Anonyme';
   
   const initials = review.user 
-    ? `${review.user.first_name.charAt(0)}${review.user.last_name.charAt(0) || ''}`
+    ? review.user.first_name.charAt(0).toUpperCase()
     : 'A';
 
   const timeAgo = formatDistanceToNow(new Date(review.created_at), {

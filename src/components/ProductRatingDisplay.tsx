@@ -80,7 +80,7 @@ export const ProductRatingDisplay = ({
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="font-medium">
-                  {rating.user?.first_name || 'Utilisateur'} {rating.user?.last_name?.[0] ? `${rating.user.last_name[0]}.` : ''}
+                  {rating.user?.first_name || 'Utilisateur'}
                 </div>
                 <StarRating rating={rating.rating} size="sm" />
               </div>
@@ -184,7 +184,7 @@ export const ProductRatingDisplay = ({
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <div className="font-medium">
-                    {rating.user?.first_name} {rating.user?.last_name?.[0]}.
+                    {rating.user?.first_name || 'Utilisateur'}
                   </div>
                   <StarRating rating={rating.rating} size="sm" />
                 </div>

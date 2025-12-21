@@ -8,7 +8,6 @@ export interface VendorRating {
   created_at: string;
   user: {
     first_name: string;
-    last_name: string;
   } | null;
   product: {
     id: string;
@@ -80,20 +79,19 @@ export const useVendorRatings = (businessId: string | undefined) => {
 
       if (ratingsError) throw ratingsError;
 
-      // Get unique user IDs and fetch profiles separately
+      // Get unique user IDs and fetch profiles from public_profiles view
       const userIds = [...new Set((ratingsData || []).map((r: any) => r.user_id))];
 
-      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+      let profilesMap: Record<string, { first_name: string }> = {};
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name')
+          .from('public_profiles')
+          .select('user_id, first_name')
           .in('user_id', userIds);
 
         profilesData?.forEach(p => {
           profilesMap[p.user_id] = {
             first_name: p.first_name || 'Utilisateur',
-            last_name: p.last_name || '',
           };
         });
       }
