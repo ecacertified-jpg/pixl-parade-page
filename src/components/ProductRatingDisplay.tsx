@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,6 +12,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 interface ProductRatingDisplayProps {
   productId: string;
@@ -26,6 +31,7 @@ export const ProductRatingDisplay = ({
 }: ProductRatingDisplayProps) => {
   const { ratings, stats, loading } = useProductRatings(productId);
   const [showReviewsDrawer, setShowReviewsDrawer] = useState(false);
+  const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
   if (loading) {
     return (
@@ -175,32 +181,46 @@ export const ProductRatingDisplay = ({
         Écrire un avis
       </Button>
 
-      {/* Reviews List */}
+      {/* Reviews List - Collapsible */}
       {ratings.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="font-semibold">Avis des clients</h3>
-          {ratings.slice(0, 5).map((rating: ProductRating) => (
-            <Card key={rating.id} className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <div className="font-medium">
-                    {rating.user?.first_name || 'Utilisateur'}
+        <Collapsible open={isReviewsOpen} onOpenChange={setIsReviewsOpen}>
+          <CollapsibleTrigger className="w-full flex items-center justify-between py-3 border-t border-border/50 hover:bg-muted/50 rounded-lg px-2 transition-colors cursor-pointer">
+            <span className="text-sm font-medium text-muted-foreground">
+              {isReviewsOpen ? "Masquer les avis" : `Voir les ${Math.min(ratings.length, 5)} avis`}
+            </span>
+            <ChevronDown 
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                isReviewsOpen ? "rotate-180" : ""
+              }`}
+            />
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <div className="space-y-4 pt-4">
+              {ratings.slice(0, 5).map((rating: ProductRating) => (
+                <Card key={rating.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="font-medium">
+                        {rating.user?.first_name || 'Utilisateur'}
+                      </div>
+                      <StarRating rating={rating.rating} size="sm" />
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(rating.created_at), {
+                        addSuffix: true,
+                        locale: fr,
+                      })}
+                    </span>
                   </div>
-                  <StarRating rating={rating.rating} size="sm" />
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(rating.created_at), {
-                    addSuffix: true,
-                    locale: fr,
-                  })}
-                </span>
-              </div>
-              {rating.review_text && (
-                <p className="text-sm text-muted-foreground mt-2">{rating.review_text}</p>
-              )}
-            </Card>
-          ))}
-        </div>
+                  {rating.review_text && (
+                    <p className="text-sm text-muted-foreground mt-2">{rating.review_text}</p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   );
