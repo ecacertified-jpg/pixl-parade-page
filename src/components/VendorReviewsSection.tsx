@@ -1,8 +1,10 @@
-import { MessageSquare, Star, User } from "lucide-react";
+import { useState } from "react";
+import { MessageSquare, Star, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useVendorRatings, VendorRating } from "@/hooks/useVendorRatings";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -13,7 +15,7 @@ interface VendorReviewsSectionProps {
 
 export function VendorReviewsSection({ businessId }: VendorReviewsSectionProps) {
   const { ratings, stats, loading } = useVendorRatings(businessId);
-
+  const [isOpen, setIsOpen] = useState(true);
   if (loading) {
     return (
       <Card className="p-6">
@@ -91,15 +93,27 @@ export function VendorReviewsSection({ businessId }: VendorReviewsSectionProps) 
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-border/50 mb-4" />
-
-      {/* Reviews List */}
-      <div className="space-y-4">
-        {recentRatings.map((review) => (
-          <ReviewCard key={review.id} review={review} />
-        ))}
-      </div>
+      {/* Collapsible Reviews Section */}
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger className="w-full flex items-center justify-between py-3 border-t border-border/50 hover:bg-muted/50 rounded-lg px-2 transition-colors cursor-pointer">
+          <span className="text-sm font-medium text-muted-foreground">
+            {isOpen ? "Masquer les avis" : `Voir les ${recentRatings.length} avis`}
+          </span>
+          <ChevronDown 
+            className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          />
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <div className="space-y-4 pt-4">
+            {recentRatings.map((review) => (
+              <ReviewCard key={review.id} review={review} />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
