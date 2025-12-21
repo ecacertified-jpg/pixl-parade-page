@@ -10,6 +10,12 @@ interface CartItem {
   vendor?: string;
   locationName?: string;
   currency?: string;
+  // Champs pour les cadeaux collaboratifs
+  description?: string;
+  isCollaborativeGift?: boolean;
+  beneficiaryName?: string;
+  beneficiaryId?: string;
+  beneficiaryContactId?: string;
 }
 
 interface StoredCartData {
