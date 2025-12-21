@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, Package, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Star, Package, AlertTriangle, CheckCircle2, Loader2, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -105,6 +105,17 @@ export const ConfirmDeliveryModal = ({
             <h4 className="font-medium text-sm text-foreground">
               Comment évaluez-vous votre commande ?
             </h4>
+            
+            {/* Note informative */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-800">
+                Votre note nous aide à garantir la qualité des produits.
+                <strong> 3 étoiles ou plus</strong> confirme votre satisfaction.
+                <strong> Moins de 3 étoiles</strong> déclenchera une demande de remboursement.
+              </p>
+            </div>
+            
             <div className="flex justify-center gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
