@@ -172,6 +172,47 @@ export const useCart = () => {
     }
   }, []);
 
+  // Valide et nettoie le panier en supprimant les articles sans productId valide
+  const validateAndCleanCart = useCallback((): { validItems: CartItem[]; removedCount: number } => {
+    try {
+      const storage = getStorage();
+      const savedCart = storage.getItem(STORAGE_KEY);
+      if (!savedCart) return { validItems: [], removedCount: 0 };
+
+      const parsed: StoredCartData = JSON.parse(savedCart);
+      if (parsed.expiresAt && isExpired(parsed.expiresAt)) {
+        storage.removeItem(STORAGE_KEY);
+        setItems([]);
+        setItemCount(0);
+        return { validItems: [], removedCount: 0 };
+      }
+
+      const cartItems = parsed.items || [];
+      const validItems = cartItems.filter(item => {
+        // Un article est valide s'il a un productId OU un id valide (non généré par Date.now())
+        const hasValidProductId = item.productId !== undefined && item.productId !== null && item.productId !== '';
+        const hasValidId = item.id !== undefined && item.id !== null && item.id !== '';
+        // Exclure les IDs qui ressemblent à des timestamps (13+ chiffres)
+        const idIsNotTimestamp = typeof item.id !== 'number' || item.id < 1000000000000;
+        
+        return hasValidProductId || (hasValidId && idIsNotTimestamp);
+      });
+
+      const removedCount = cartItems.length - validItems.length;
+
+      if (removedCount > 0) {
+        // Sauvegarder le panier nettoyé
+        saveCart(validItems);
+        console.log(`🧹 Panier nettoyé: ${removedCount} article(s) invalide(s) supprimé(s)`);
+      }
+
+      return { validItems, removedCount };
+    } catch (error) {
+      console.error('Error validating cart');
+      return { validItems: [], removedCount: 0 };
+    }
+  }, [saveCart]);
+
   useEffect(() => {
     loadCart();
 
@@ -200,6 +241,7 @@ export const useCart = () => {
     addItem, 
     removeItem, 
     updateQuantity, 
-    clearCart 
+    clearCart,
+    validateAndCleanCart
   };
 };
