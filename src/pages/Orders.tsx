@@ -43,6 +43,8 @@ interface OrderCardProps {
 const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) => {
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0) || 1;
   const canConfirmDelivery = order.status === 'delivered' && !order.customerConfirmedAt;
+  const isConfirmed = order.status === 'receipt_confirmed' || (order.customerConfirmedAt && order.status !== 'refund_requested');
+  const isRefundRequested = order.status === 'refund_requested';
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -76,6 +78,7 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
             </span>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
+            {/* Bouton cliquable pour confirmer */}
             {canConfirmDelivery && (
               <Button
                 variant="default"
@@ -87,6 +90,33 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
                 Confirmer réception
               </Button>
             )}
+            
+            {/* État confirmé - bouton désactivé vert */}
+            {isConfirmed && !isRefundRequested && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="w-full sm:w-auto bg-green-50 text-green-700 border-green-200 cursor-default dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Réception confirmée
+              </Button>
+            )}
+            
+            {/* État remboursement demandé - bouton désactivé orange */}
+            {isRefundRequested && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled
+                className="w-full sm:w-auto bg-amber-50 text-amber-700 border-amber-200 cursor-default dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                Remboursement demandé
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"
