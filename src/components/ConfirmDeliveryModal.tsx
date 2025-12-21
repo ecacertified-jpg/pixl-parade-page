@@ -53,7 +53,11 @@ export const ConfirmDeliveryModal = ({
       handleClose();
     } catch (error) {
       console.error("Error confirming delivery:", error);
-      toast.error("Erreur lors de la confirmation. Veuillez réessayer.");
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
+      toast.error(`Erreur: ${errorMessage}`, {
+        description: "La confirmation n'a pas pu être enregistrée. Veuillez réessayer.",
+        duration: 5000,
+      });
       setIsSubmitting(false);
     }
   };
