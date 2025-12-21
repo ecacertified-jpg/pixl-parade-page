@@ -52,7 +52,8 @@ export default function Shop() {
     name: string;
     logo: string | null;
     type: string | null;
-    rating: number;
+    rating: number | null;
+    ratingCount: number;
     productCount: number;
   }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
@@ -194,7 +195,7 @@ export default function Shop() {
 
   const loadPopularShops = async () => {
     try {
-      // Fetch active businesses with product counts
+      // Fetch active businesses
       const { data: businesses, error } = await supabase
         .from('business_public_info')
         .select('id, business_name, logo_url, business_type')
@@ -211,34 +212,76 @@ export default function Shop() {
         return;
       }
 
-      // Get product counts for each business
-      const { data: productCounts, error: countError } = await supabase
-        .from('products')
-        .select('business_account_id')
-        .eq('is_active', true)
-        .in('business_account_id', businesses.map(b => b.id));
+      const businessIds = businesses.map(b => b.id);
 
-      const countMap: Record<string, number> = {};
-      if (productCounts) {
-        productCounts.forEach(p => {
+      // Get products for these businesses
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('id, business_account_id')
+        .eq('is_active', true)
+        .in('business_account_id', businessIds);
+
+      const productCountMap: Record<string, number> = {};
+      const productIdToBusinessMap: Record<string, string> = {};
+      
+      if (productsData) {
+        productsData.forEach(p => {
           if (p.business_account_id) {
-            countMap[p.business_account_id] = (countMap[p.business_account_id] || 0) + 1;
+            productCountMap[p.business_account_id] = (productCountMap[p.business_account_id] || 0) + 1;
+            productIdToBusinessMap[p.id] = p.business_account_id;
           }
         });
       }
 
-      // Format shops with simulated ratings (would come from product_ratings in real scenario)
+      // Get ratings for all products of these businesses
+      const productIds = productsData?.map(p => p.id) || [];
+      const ratingMap: Record<string, { sum: number; count: number }> = {};
+
+      if (productIds.length > 0) {
+        const { data: ratingsData } = await supabase
+          .from('product_ratings')
+          .select('product_id, rating')
+          .in('product_id', productIds);
+
+        if (ratingsData) {
+          ratingsData.forEach(r => {
+            const businessId = productIdToBusinessMap[r.product_id];
+            if (businessId) {
+              if (!ratingMap[businessId]) {
+                ratingMap[businessId] = { sum: 0, count: 0 };
+              }
+              ratingMap[businessId].sum += r.rating;
+              ratingMap[businessId].count += 1;
+            }
+          });
+        }
+      }
+
+      // Format shops with real ratings
       const formattedShops = businesses
-        .map(b => ({
-          id: b.id,
-          name: b.business_name,
-          logo: b.logo_url,
-          type: b.business_type,
-          rating: 4.5 + Math.random() * 0.5, // Simulated rating between 4.5-5.0
-          productCount: countMap[b.id] || 0
-        }))
+        .map(b => {
+          const ratingInfo = ratingMap[b.id];
+          const avgRating = ratingInfo && ratingInfo.count > 0 
+            ? ratingInfo.sum / ratingInfo.count 
+            : null;
+          
+          return {
+            id: b.id,
+            name: b.business_name,
+            logo: b.logo_url,
+            type: b.business_type,
+            rating: avgRating,
+            ratingCount: ratingInfo?.count || 0,
+            productCount: productCountMap[b.id] || 0
+          };
+        })
         .filter(s => s.productCount > 0) // Only show shops with products
-        .sort((a, b) => b.rating - a.rating) // Sort by rating
+        .sort((a, b) => {
+          // Sort by popularity score: rating weight + rating count + product count
+          const scoreA = (a.rating || 0) * 10 + a.ratingCount * 2 + a.productCount;
+          const scoreB = (b.rating || 0) * 10 + b.ratingCount * 2 + b.productCount;
+          return scoreB - scoreA;
+        })
         .slice(0, 6); // Top 6 shops
 
       setPopularShops(formattedShops);
@@ -478,8 +521,15 @@ export default function Shop() {
                     </div>
                     <p className="text-sm font-medium line-clamp-1">{shop.name}</p>
                     <div className="flex items-center gap-1 mt-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs text-muted-foreground">{shop.rating.toFixed(1)}</span>
+                      {shop.rating !== null ? (
+                        <>
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs text-muted-foreground">{shop.rating.toFixed(1)}</span>
+                          <span className="text-xs text-muted-foreground">({shop.ratingCount})</span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-primary">✨ Nouveau</span>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground mt-0.5">
                       {shop.productCount} produit{shop.productCount > 1 ? 's' : ''}
