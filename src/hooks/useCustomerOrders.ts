@@ -7,6 +7,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   image_url?: string;
+  product_id?: string;
 }
 
 export interface CustomerOrder {

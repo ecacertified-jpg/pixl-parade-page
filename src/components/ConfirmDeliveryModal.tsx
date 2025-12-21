@@ -30,11 +30,13 @@ export const ConfirmDeliveryModal = ({
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleClose = () => {
     setRating(0);
     setHoveredRating(0);
     setReviewText("");
+    setShowSuccess(false);
     onClose();
   };
 
@@ -43,16 +45,15 @@ export const ConfirmDeliveryModal = ({
 
     setIsSubmitting(true);
     try {
-      // Délai minimum pour voir le spinner + exécution de l'action
-      await Promise.all([
-        onConfirm(order.id, rating, reviewText),
-        new Promise(resolve => setTimeout(resolve, 500))
-      ]);
+      await onConfirm(order.id, rating, reviewText);
+      
+      // Show success state for 1.2 seconds before closing
+      setShowSuccess(true);
+      await new Promise(resolve => setTimeout(resolve, 1200));
       handleClose();
     } catch (error) {
       console.error("Error confirming delivery:", error);
       toast.error("Erreur lors de la confirmation. Veuillez réessayer.");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -61,6 +62,29 @@ export const ConfirmDeliveryModal = ({
   const displayRating = hoveredRating || rating;
 
   if (!order) return null;
+
+  // Success state display
+  if (showSuccess) {
+    return (
+      <Dialog open={isOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground">
+              {isSatisfied ? "Merci pour votre avis !" : "Demande envoyée"}
+            </h3>
+            <p className="text-muted-foreground text-center">
+              {isSatisfied 
+                ? "Votre évaluation a été enregistrée avec succès."
+                : "Votre demande de remboursement a été transmise."}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

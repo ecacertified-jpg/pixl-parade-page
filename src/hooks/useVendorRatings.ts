@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface VendorRating {
@@ -27,18 +27,10 @@ export interface VendorRatingStats {
 }
 
 export const useVendorRatings = (businessId: string | undefined) => {
-  const [ratings, setRatings] = useState<VendorRating[]>([]);
-  const [stats, setStats] = useState<VendorRatingStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadRatings = useCallback(async () => {
-    if (!businessId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['vendor-ratings', businessId],
+    queryFn: async () => {
+      if (!businessId) return { ratings: [], stats: null };
 
       // Get all products for this business
       const { data: productsData, error: productsError } = await supabase
@@ -50,15 +42,12 @@ export const useVendorRatings = (businessId: string | undefined) => {
       if (productsError) throw productsError;
 
       if (!productsData || productsData.length === 0) {
-        setRatings([]);
-        setStats(null);
-        setLoading(false);
-        return;
+        return { ratings: [], stats: null };
       }
 
       const productIds = productsData.map(p => p.id);
 
-      // Get ratings for these products with product info only (no join on profiles)
+      // Get ratings for these products with product info
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('product_ratings')
         .select(`
@@ -110,11 +99,10 @@ export const useVendorRatings = (businessId: string | undefined) => {
         } : { id: '', name: 'Produit', image_url: null },
       }));
 
-      setRatings(formattedRatings);
-
       // Calculate stats
+      let stats: VendorRatingStats | null = null;
       if (formattedRatings.length > 0) {
-        const calculatedStats: VendorRatingStats = {
+        stats = {
           totalRatings: formattedRatings.length,
           averageRating: parseFloat(
             (formattedRatings.reduce((sum, r) => sum + r.rating, 0) / formattedRatings.length).toFixed(1)
@@ -125,27 +113,17 @@ export const useVendorRatings = (businessId: string | undefined) => {
           twoStarCount: formattedRatings.filter(r => r.rating === 2).length,
           oneStarCount: formattedRatings.filter(r => r.rating === 1).length,
         };
-        setStats(calculatedStats);
-      } else {
-        setStats(null);
       }
-    } catch (error) {
-      console.error('Error loading vendor ratings:', error);
-      setRatings([]);
-      setStats(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [businessId]);
 
-  useEffect(() => {
-    loadRatings();
-  }, [loadRatings]);
+      return { ratings: formattedRatings, stats };
+    },
+    enabled: !!businessId,
+  });
 
   return {
-    ratings,
-    stats,
-    loading,
-    refetch: loadRatings,
+    ratings: data?.ratings || [],
+    stats: data?.stats || null,
+    loading: isLoading,
+    refetch,
   };
 };
