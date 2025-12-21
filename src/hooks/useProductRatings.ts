@@ -12,7 +12,6 @@ export interface ProductRating {
   updated_at: string;
   user?: {
     first_name: string;
-    last_name: string;
   };
 }
 
@@ -52,18 +51,17 @@ export const useProductRatings = (productId: string) => {
       // Get unique user IDs
       const userIds = [...new Set((ratingsData || []).map(r => r.user_id))];
 
-      // Fetch user profiles separately
-      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+      // Fetch user profiles from public_profiles view (accessible to all)
+      let profilesMap: Record<string, { first_name: string }> = {};
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name')
+          .from('public_profiles')
+          .select('user_id, first_name')
           .in('user_id', userIds);
 
         profilesData?.forEach(p => {
           profilesMap[p.user_id] = {
-            first_name: p.first_name || '',
-            last_name: p.last_name || '',
+            first_name: p.first_name || 'Utilisateur',
           };
         });
       }
