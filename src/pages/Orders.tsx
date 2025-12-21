@@ -65,8 +65,8 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
           </p>
         )}
 
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-          <div className="flex items-center gap-2">
+        <div className="mt-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-2 mb-3">
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
               {itemCount} article{itemCount > 1 ? 's' : ''}
@@ -75,26 +75,26 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
               {order.totalAmount.toLocaleString()} {order.currency}
             </span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {canConfirmDelivery && (
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => onConfirmDelivery(order)}
-                className="bg-primary hover:bg-primary/90"
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90"
               >
                 <CheckCircle2 className="h-4 w-4 mr-1" />
-                Confirmer
+                Confirmer réception
               </Button>
             )}
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => onViewInvoice(order)}
-              className="text-primary hover:text-primary/80"
+              className="w-full sm:w-auto"
             >
               <Eye className="h-4 w-4 mr-1" />
-              Facture
+              Voir la facture
             </Button>
           </div>
         </div>
