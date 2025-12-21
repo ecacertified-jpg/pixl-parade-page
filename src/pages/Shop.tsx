@@ -509,7 +509,7 @@ export default function Shop() {
                 <Card 
                   key={shop.id}
                   className="flex-shrink-0 w-32 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/vendor/${shop.id}`)}
+                  onClick={() => navigate(`/boutique/${shop.id}`)}
                 >
                   <div className="p-3 flex flex-col items-center text-center">
                     <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2 overflow-hidden">
