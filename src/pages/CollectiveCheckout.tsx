@@ -213,6 +213,7 @@ export default function CollectiveCheckout() {
       // Create collective fund order with all the details
       const orderSummary = {
         items: items.map(item => ({
+          product_id: item.productId?.toString(), // Pour les ratings
           name: item.name,
           description: item.description,
           price: item.price,

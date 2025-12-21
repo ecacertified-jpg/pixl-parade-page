@@ -292,6 +292,7 @@ export default function Checkout() {
             business_account_id: businessAccountId,
             order_summary: {
               items: items.map(item => ({
+                product_id: (item.productId || item.id)?.toString(), // Pour les ratings
                 name: item.name,
                 description: item.description || '',
                 price: item.price,

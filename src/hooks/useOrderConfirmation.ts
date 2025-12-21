@@ -66,6 +66,9 @@ export const useOrderConfirmation = () => {
         .map((item) => item.product_id)
         .filter((id): id is string => !!id);
 
+      console.log('📊 Order items for ratings:', items);
+      console.log('🆔 Product IDs found:', productIds);
+
       // Create ratings for each unique product
       if (productIds.length > 0) {
         const uniqueProductIds = [...new Set(productIds)];
@@ -103,6 +106,9 @@ export const useOrderConfirmation = () => {
               });
           }
         }
+        console.log('✅ Product ratings created successfully');
+      } else {
+        console.warn('⚠️ No product_id found in order items - ratings cannot be created. Items:', items);
       }
 
       // 4. Send notification to business via edge function
@@ -121,8 +127,12 @@ export const useOrderConfirmation = () => {
         // Don't fail the whole operation for notification failure
       }
 
-      // 5. Refresh orders list
+      // 5. Refresh orders list and ratings cache
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["product-ratings"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-ratings"] });
+      
+      console.log('✅ Order confirmation complete, caches invalidated');
 
       // 6. Show success message
       if (isSatisfied) {
