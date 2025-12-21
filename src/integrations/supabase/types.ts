@@ -632,6 +632,7 @@ export type Database = {
           customer_confirmed_at: string | null
           customer_id: string | null
           customer_rating: number | null
+          customer_review_text: string | null
           delivery_address: string
           donor_phone: string
           fund_id: string | null
@@ -653,6 +654,7 @@ export type Database = {
           customer_confirmed_at?: string | null
           customer_id?: string | null
           customer_rating?: number | null
+          customer_review_text?: string | null
           delivery_address: string
           donor_phone: string
           fund_id?: string | null
@@ -674,6 +676,7 @@ export type Database = {
           customer_confirmed_at?: string | null
           customer_id?: string | null
           customer_rating?: number | null
+          customer_review_text?: string | null
           delivery_address?: string
           donor_phone?: string
           fund_id?: string | null
