@@ -59,7 +59,7 @@ export const useVendorRatings = (businessId: string | undefined) => {
 
       const productIds = productsData.map(p => p.id);
 
-      // Get ratings for these products with user and product info
+      // Get ratings for these products with product info only (no join on profiles)
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('product_ratings')
         .select(`
@@ -69,10 +69,6 @@ export const useVendorRatings = (businessId: string | undefined) => {
           created_at,
           product_id,
           user_id,
-          profiles:user_id (
-            first_name,
-            last_name
-          ),
           products:product_id (
             id,
             name,
@@ -84,15 +80,31 @@ export const useVendorRatings = (businessId: string | undefined) => {
 
       if (ratingsError) throw ratingsError;
 
+      // Get unique user IDs and fetch profiles separately
+      const userIds = [...new Set((ratingsData || []).map((r: any) => r.user_id))];
+
+      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        profilesData?.forEach(p => {
+          profilesMap[p.user_id] = {
+            first_name: p.first_name || 'Utilisateur',
+            last_name: p.last_name || '',
+          };
+        });
+      }
+
+      // Combine data
       const formattedRatings: VendorRating[] = (ratingsData || []).map((r: any) => ({
         id: r.id,
         rating: r.rating,
         review_text: r.review_text,
         created_at: r.created_at,
-        user: r.profiles ? {
-          first_name: r.profiles.first_name || 'Utilisateur',
-          last_name: r.profiles.last_name || '',
-        } : null,
+        user: profilesMap[r.user_id] || null,
         product: r.products ? {
           id: r.products.id,
           name: r.products.name,

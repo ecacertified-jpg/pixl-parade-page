@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Star, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -5,6 +6,12 @@ import { Progress } from '@/components/ui/progress';
 import { useProductRatings, ProductRating } from '@/hooks/useProductRatings';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 
 interface ProductRatingDisplayProps {
   productId: string;
@@ -18,6 +25,7 @@ export const ProductRatingDisplay = ({
   compact = false,
 }: ProductRatingDisplayProps) => {
   const { ratings, stats, loading } = useProductRatings(productId);
+  const [showReviewsDrawer, setShowReviewsDrawer] = useState(false);
 
   if (loading) {
     return (
@@ -62,15 +70,66 @@ export const ProductRatingDisplay = ({
     );
   };
 
+  const ReviewsDrawerContent = () => (
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto p-4">
+      {ratings.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">Aucun avis pour le moment</p>
+      ) : (
+        ratings.map((rating: ProductRating) => (
+          <Card key={rating.id} className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <div className="font-medium">
+                  {rating.user?.first_name || 'Utilisateur'} {rating.user?.last_name?.[0] ? `${rating.user.last_name[0]}.` : ''}
+                </div>
+                <StarRating rating={rating.rating} size="sm" />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(rating.created_at), {
+                  addSuffix: true,
+                  locale: fr,
+                })}
+              </span>
+            </div>
+            {rating.review_text && (
+              <p className="text-sm text-muted-foreground mt-2">{rating.review_text}</p>
+            )}
+          </Card>
+        ))
+      )}
+      <Button onClick={onWriteReview} variant="outline" className="w-full mt-4">
+        <MessageSquare className="h-4 w-4 mr-2" />
+        Écrire un avis
+      </Button>
+    </div>
+  );
+
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
-        <StarRating rating={stats.average_rating} />
-        <span className="text-sm font-medium">{stats.average_rating}</span>
-        <span className="text-xs text-muted-foreground">
-          ({stats.rating_count} {stats.rating_count === 1 ? 'avis' : 'avis'})
-        </span>
-      </div>
+      <>
+        <div className="flex items-center gap-2">
+          <StarRating rating={stats.average_rating} />
+          <span className="text-sm font-medium">{stats.average_rating}</span>
+          <button
+            onClick={() => setShowReviewsDrawer(true)}
+            className="text-xs text-muted-foreground hover:text-primary hover:underline cursor-pointer"
+          >
+            ({stats.rating_count} {stats.rating_count === 1 ? 'avis' : 'avis'})
+          </button>
+        </div>
+
+        <Drawer open={showReviewsDrawer} onOpenChange={setShowReviewsDrawer}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                Avis clients ({stats.rating_count})
+              </DrawerTitle>
+            </DrawerHeader>
+            <ReviewsDrawerContent />
+          </DrawerContent>
+        </Drawer>
+      </>
     );
   }
 
