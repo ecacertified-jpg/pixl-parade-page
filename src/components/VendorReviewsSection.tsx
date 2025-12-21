@@ -1,7 +1,7 @@
 import { MessageSquare, Star, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVendorRatings, VendorRating } from "@/hooks/useVendorRatings";
 import { formatDistanceToNow } from "date-fns";
@@ -119,6 +119,7 @@ function StarProgressRow({ label, count, total }: { label: number; count: number
 
 function ReviewCard({ review }: { review: VendorRating }) {
   const userName = review.user?.first_name || 'Anonyme';
+  const avatarUrl = review.user?.avatar_url;
   
   const initials = review.user 
     ? review.user.first_name.charAt(0).toUpperCase()
@@ -132,6 +133,7 @@ function ReviewCard({ review }: { review: VendorRating }) {
   return (
     <div className="flex gap-3">
       <Avatar className="h-10 w-10 flex-shrink-0">
+        {avatarUrl && <AvatarImage src={avatarUrl} alt={userName} />}
         <AvatarFallback className="bg-primary/10 text-primary text-sm">
           {initials.toUpperCase()}
         </AvatarFallback>
