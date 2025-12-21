@@ -168,9 +168,10 @@ export default function Checkout() {
       
       console.log('✅ Authentication test passed, proceeding with order...');
       // Get product details to identify business products
+      // Utiliser productId si disponible, sinon fallback sur id
       const productIds = orderItems
-        .filter(item => item.productId)
-        .map(item => item.productId.toString());
+        .filter(item => item.productId || item.id)
+        .map(item => (item.productId || item.id).toString());
       const { data: products, error: productsError } = await supabase
         .from("products")
         .select("id, business_id, business_owner_id")
@@ -210,7 +211,10 @@ export default function Checkout() {
 
       // Create order items
       for (const item of orderItems) {
-        if (!item.productId) {
+        // Utiliser productId si disponible, sinon fallback sur id pour rétrocompatibilité
+        const effectiveProductId = item.productId || item.id;
+        
+        if (!effectiveProductId) {
           console.error('Missing productId for item:', item);
           throw new Error(`Le produit "${item.name}" n'a pas d'identifiant valide`);
         }
@@ -219,7 +223,7 @@ export default function Checkout() {
           .from("order_items")
           .insert({
             order_id: orderData.id,
-            product_id: item.productId.toString(),
+            product_id: effectiveProductId.toString(),
             quantity: item.quantity,
             unit_price: item.price,
             total_price: item.price * item.quantity
@@ -228,8 +232,9 @@ export default function Checkout() {
 
       // Create business orders for products that belong to businesses
       const businessItems = orderItems.filter(item => {
-        if (!item.productId) return false;
-        const product = products?.find(p => p.id === item.productId.toString());
+        const effectiveProductId = item.productId || item.id;
+        if (!effectiveProductId) return false;
+        const product = products?.find(p => p.id === effectiveProductId.toString());
         return product && (product.business_id || product.business_owner_id);
       });
 
@@ -242,7 +247,8 @@ export default function Checkout() {
         
         // Group items by business account using business_owner_id mapping
         const itemsByBusinessAccount = businessItems.reduce((acc, item) => {
-          const product = products?.find(p => p.id === item.productId?.toString());
+          const effectiveProductId = item.productId || item.id;
+          const product = products?.find(p => p.id === effectiveProductId?.toString());
           
           console.log('📝 Processing item:', item.name, 'Product found:', product);
           
