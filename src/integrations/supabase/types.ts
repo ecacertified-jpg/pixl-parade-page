@@ -4961,7 +4961,6 @@ export type Database = {
           bio: string | null
           created_at: string | null
           first_name: string | null
-          last_name: string | null
           privacy_setting: string | null
           user_id: string | null
         }
@@ -4970,7 +4969,6 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           first_name?: string | null
-          last_name?: string | null
           privacy_setting?: string | null
           user_id?: string | null
         }
@@ -4979,7 +4977,6 @@ export type Database = {
           bio?: string | null
           created_at?: string | null
           first_name?: string | null
-          last_name?: string | null
           privacy_setting?: string | null
           user_id?: string | null
         }
