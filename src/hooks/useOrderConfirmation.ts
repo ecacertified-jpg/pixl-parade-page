@@ -42,6 +42,7 @@ export const useOrderConfirmation = () => {
         status: newStatus,
         customer_confirmed_at: new Date().toISOString(),
         customer_rating: rating,
+        customer_review_text: reviewText || null,
       };
 
       if (!isSatisfied) {
