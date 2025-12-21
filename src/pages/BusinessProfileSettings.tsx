@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Store, Phone, MapPin, Clock, Save, Camera, Globe, Mail, Truck } from "lucide-react";
+import { ArrowLeft, Store, Phone, MapPin, Clock, Save, Camera, Globe, Mail, Truck, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,12 +25,17 @@ const BUSINESS_TYPES = [
   { value: "autre", label: "Autre" },
 ];
 
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
 const BusinessProfileSettings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const { businessAccount, loading: businessLoading, refetch } = useBusinessAccount();
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [business, setBusiness] = useState({
     business_name: "",
@@ -57,6 +62,121 @@ const BusinessProfileSettings = () => {
       });
     }
   }, [businessAccount]);
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id || !businessAccount?.id) return;
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast({
+        title: "Format non supporté",
+        description: "Utilisez une image JPG, PNG, WebP ou GIF.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "La taille maximale est de 2 Mo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/logo.${fileExt}`;
+      
+      // Delete existing logo if present
+      if (business.logo_url) {
+        const oldPath = business.logo_url.split('/business-logos/')[1];
+        if (oldPath) {
+          await supabase.storage.from('business-logos').remove([oldPath]);
+        }
+      }
+
+      // Upload new logo
+      const { error: uploadError } = await supabase.storage
+        .from('business-logos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('business-logos')
+        .getPublicUrl(fileName);
+
+      // Update business account
+      const { error: updateError } = await supabase
+        .from('business_accounts')
+        .update({ logo_url: publicUrl })
+        .eq('id', businessAccount.id);
+
+      if (updateError) throw updateError;
+
+      setBusiness({ ...business, logo_url: publicUrl });
+      toast({
+        title: "Logo mis à jour",
+        description: "Votre logo a été enregistré avec succès.",
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le logo.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!businessAccount?.id || !business.logo_url) return;
+
+    setUploadingLogo(true);
+    try {
+      // Remove from storage
+      const path = business.logo_url.split('/business-logos/')[1];
+      if (path) {
+        await supabase.storage.from('business-logos').remove([path]);
+      }
+
+      // Update business account
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ logo_url: null })
+        .eq('id', businessAccount.id);
+
+      if (error) throw error;
+
+      setBusiness({ ...business, logo_url: '' });
+      toast({
+        title: "Logo supprimé",
+        description: "Votre logo a été supprimé.",
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le logo.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user?.id || !businessAccount?.id) return;
@@ -170,17 +290,45 @@ const BusinessProfileSettings = () => {
                 <CardDescription>Votre logo sera affiché sur vos produits</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center">
+                <div className="w-20 h-20 bg-primary/10 rounded-xl flex items-center justify-center overflow-hidden">
                   {business.logo_url ? (
-                    <img src={business.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+                    <img src={business.logo_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
                     <Store className="h-10 w-10 text-primary" />
                   )}
                 </div>
-                <Button variant="outline" disabled>
-                  <Camera className="h-4 w-4 mr-2" />
-                  Changer le logo (bientôt)
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4 mr-2" />
+                    )}
+                    {business.logo_url ? "Changer" : "Ajouter"}
+                  </Button>
+                  {business.logo_url && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={handleRemoveLogo}
+                      disabled={uploadingLogo}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
