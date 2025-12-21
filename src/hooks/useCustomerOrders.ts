@@ -24,6 +24,7 @@ export interface CustomerOrder {
   businessName?: string;
   customerConfirmedAt?: string;
   customerRating?: number;
+  customerReviewText?: string;
 }
 
 export const useCustomerOrders = () => {
@@ -38,7 +39,19 @@ export const useCustomerOrders = () => {
       const { data: businessOrders, error: businessError } = await supabase
         .from('business_orders')
         .select(`
-          *,
+          id,
+          created_at,
+          status,
+          total_amount,
+          currency,
+          order_summary,
+          delivery_address,
+          donor_phone,
+          beneficiary_phone,
+          payment_method,
+          customer_confirmed_at,
+          customer_rating,
+          customer_review_text,
           business_accounts (
             business_name
           )
@@ -71,6 +84,7 @@ export const useCustomerOrders = () => {
           businessName: order.business_accounts?.business_name,
           customerConfirmedAt: order.customer_confirmed_at || undefined,
           customerRating: order.customer_rating || undefined,
+          customerReviewText: order.customer_review_text || undefined,
         };
       });
 

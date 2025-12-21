@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,9 @@ import { fr } from "date-fns/locale";
 import { useCustomerOrders, type CustomerOrder } from "@/hooks/useCustomerOrders";
 import { OrderInvoiceModal } from "@/components/OrderInvoiceModal";
 import { ConfirmDeliveryModal } from "@/components/ConfirmDeliveryModal";
+import { EditRatingModal } from "@/components/EditRatingModal";
 import { useOrderConfirmation } from "@/hooks/useOrderConfirmation";
+import { useEditRating } from "@/hooks/useEditRating";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -56,13 +58,17 @@ interface OrderCardProps {
   order: CustomerOrder;
   onViewInvoice: (order: CustomerOrder) => void;
   onConfirmDelivery: (order: CustomerOrder) => void;
+  onEditRating: (order: CustomerOrder) => void;
 }
 
-const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) => {
+const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: OrderCardProps) => {
+  const { canEditReview, getRemainingDays } = useEditRating();
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0) || 1;
   const canConfirmDelivery = order.status === 'delivered' && !order.customerConfirmedAt;
   const isConfirmed = order.status === 'receipt_confirmed' || (order.customerConfirmedAt && order.status !== 'refund_requested');
   const isRefundRequested = order.status === 'refund_requested';
+  const canEdit = isConfirmed && !isRefundRequested && order.customerConfirmedAt && canEditReview(order.customerConfirmedAt);
+  const remainingDays = order.customerConfirmedAt ? getRemainingDays(order.customerConfirmedAt) : 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -109,7 +115,7 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
               </Button>
             )}
             
-            {/* État confirmé - bouton désactivé vert + étoiles */}
+            {/* État confirmé - bouton désactivé vert + étoiles + bouton modifier */}
             {isConfirmed && !isRefundRequested && (
               <div className="flex items-center gap-2 flex-wrap">
                 <Button
@@ -128,6 +134,17 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) 
                       {order.customerRating}/5
                     </span>
                   </div>
+                )}
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditRating(order)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    <span className="text-xs">Modifier ({remainingDays}j)</span>
+                  </Button>
                 )}
               </div>
             )}
@@ -186,6 +203,7 @@ const Orders = () => {
   const { confirmReceipt } = useOrderConfirmation();
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
   const [orderToConfirm, setOrderToConfirm] = useState<CustomerOrder | null>(null);
+  const [orderToEdit, setOrderToEdit] = useState<CustomerOrder | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
   const filteredOrders = orders?.filter(order => {
@@ -267,6 +285,7 @@ const Orders = () => {
                 order={order}
                 onViewInvoice={setSelectedOrder}
                 onConfirmDelivery={setOrderToConfirm}
+                onEditRating={setOrderToEdit}
               />
             ))}
           </div>
@@ -286,6 +305,13 @@ const Orders = () => {
         isOpen={!!orderToConfirm}
         onClose={() => setOrderToConfirm(null)}
         onConfirm={handleConfirmDelivery}
+      />
+
+      {/* Edit Rating Modal */}
+      <EditRatingModal
+        order={orderToEdit}
+        isOpen={!!orderToEdit}
+        onClose={() => setOrderToEdit(null)}
       />
     </div>
   );
