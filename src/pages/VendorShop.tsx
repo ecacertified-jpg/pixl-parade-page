@@ -181,8 +181,11 @@ export default function VendorShop() {
           </div>
         </Card>
 
+        {/* Customer Reviews Section */}
+        <VendorReviewsSection businessId={businessId!} />
+
         {/* Products/Experiences Tabs */}
-        <Tabs 
+        <Tabs
           defaultValue="products" 
           onValueChange={(v) => setActiveTab(v as "products" | "experiences")}
         >
@@ -269,9 +272,6 @@ export default function VendorShop() {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* Customer Reviews Section */}
-        <VendorReviewsSection businessId={businessId!} />
 
         <div className="pb-20" />
       </main>
