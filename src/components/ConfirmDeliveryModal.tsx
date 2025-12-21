@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { type CustomerOrder } from "@/hooks/useCustomerOrders";
 
@@ -42,10 +43,15 @@ export const ConfirmDeliveryModal = ({
 
     setIsSubmitting(true);
     try {
-      await onConfirm(order.id, rating, reviewText);
+      // Délai minimum pour voir le spinner + exécution de l'action
+      await Promise.all([
+        onConfirm(order.id, rating, reviewText),
+        new Promise(resolve => setTimeout(resolve, 500))
+      ]);
       handleClose();
     } catch (error) {
       console.error("Error confirming delivery:", error);
+      toast.error("Erreur lors de la confirmation. Veuillez réessayer.");
     } finally {
       setIsSubmitting(false);
     }
@@ -121,10 +127,14 @@ export const ConfirmDeliveryModal = ({
                 <button
                   key={star}
                   type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  className="focus:outline-none transition-transform hover:scale-110"
+                  onClick={() => !isSubmitting && setRating(star)}
+                  onMouseEnter={() => !isSubmitting && setHoveredRating(star)}
+                  onMouseLeave={() => !isSubmitting && setHoveredRating(0)}
+                  disabled={isSubmitting}
+                  className={cn(
+                    "focus:outline-none transition-transform hover:scale-110",
+                    isSubmitting && "opacity-50 cursor-not-allowed"
+                  )}
                 >
                   <Star
                     className={cn(
@@ -159,6 +169,7 @@ export const ConfirmDeliveryModal = ({
               onChange={(e) => setReviewText(e.target.value)}
               rows={3}
               className="resize-none"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -216,9 +227,13 @@ export const ConfirmDeliveryModal = ({
             )}
           >
             {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : null}
-            {rating > 0 && !isSatisfied ? "Demander remboursement" : "Confirmer"}
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Envoi en cours...
+              </>
+            ) : (
+              rating > 0 && !isSatisfied ? "Demander remboursement" : "Confirmer"
+            )}
           </Button>
         </div>
       </DialogContent>
