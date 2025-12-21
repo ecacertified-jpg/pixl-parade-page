@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 interface CartItem {
   id: string | number;
+  productId?: string | number;
   name: string;
   price: number;
   image?: string;
