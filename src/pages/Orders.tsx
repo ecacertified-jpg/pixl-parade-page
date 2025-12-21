@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCustomerOrders, type CustomerOrder } from "@/hooks/useCustomerOrders";
 import { OrderInvoiceModal } from "@/components/OrderInvoiceModal";
+import { ConfirmDeliveryModal } from "@/components/ConfirmDeliveryModal";
+import { useOrderConfirmation } from "@/hooks/useOrderConfirmation";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -19,6 +21,12 @@ const getStatusBadge = (status: string) => {
       return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><Package className="h-3 w-3 mr-1" />En cours</Badge>;
     case 'delivered':
       return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Livrée</Badge>;
+    case 'receipt_confirmed':
+      return <Badge variant="secondary" className="bg-emerald-100 text-emerald-800"><CheckCircle2 className="h-3 w-3 mr-1" />Confirmée</Badge>;
+    case 'refund_requested':
+      return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><AlertTriangle className="h-3 w-3 mr-1" />Remboursement demandé</Badge>;
+    case 'refunded':
+      return <Badge variant="secondary" className="bg-slate-100 text-slate-800"><RefreshCw className="h-3 w-3 mr-1" />Remboursée</Badge>;
     case 'cancelled':
       return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Annulée</Badge>;
     default:
@@ -26,8 +34,15 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-const OrderCard = ({ order, onViewInvoice }: { order: CustomerOrder; onViewInvoice: (order: CustomerOrder) => void }) => {
+interface OrderCardProps {
+  order: CustomerOrder;
+  onViewInvoice: (order: CustomerOrder) => void;
+  onConfirmDelivery: (order: CustomerOrder) => void;
+}
+
+const OrderCard = ({ order, onViewInvoice, onConfirmDelivery }: OrderCardProps) => {
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0) || 1;
+  const canConfirmDelivery = order.status === 'delivered' && !order.customerConfirmedAt;
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -60,15 +75,28 @@ const OrderCard = ({ order, onViewInvoice }: { order: CustomerOrder; onViewInvoi
               {order.totalAmount.toLocaleString()} {order.currency}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onViewInvoice(order)}
-            className="text-primary hover:text-primary/80"
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            Facture
-          </Button>
+          <div className="flex gap-2">
+            {canConfirmDelivery && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onConfirmDelivery(order)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Confirmer
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewInvoice(order)}
+              className="text-primary hover:text-primary/80"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              Facture
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -97,22 +125,28 @@ const OrdersSkeleton = () => (
 const Orders = () => {
   const navigate = useNavigate();
   const { data: orders, isLoading } = useCustomerOrders();
+  const { confirmReceipt } = useOrderConfirmation();
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
+  const [orderToConfirm, setOrderToConfirm] = useState<CustomerOrder | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
   const filteredOrders = orders?.filter(order => {
     if (activeTab === "all") return true;
     if (activeTab === "pending") return order.status === "pending" || order.status === "processing";
-    if (activeTab === "delivered") return order.status === "delivered";
-    if (activeTab === "cancelled") return order.status === "cancelled";
+    if (activeTab === "delivered") return order.status === "delivered" || order.status === "receipt_confirmed";
+    if (activeTab === "cancelled") return order.status === "cancelled" || order.status === "refund_requested" || order.status === "refunded";
     return true;
   }) || [];
 
   const orderCounts = {
     all: orders?.length || 0,
     pending: orders?.filter(o => o.status === "pending" || o.status === "processing").length || 0,
-    delivered: orders?.filter(o => o.status === "delivered").length || 0,
-    cancelled: orders?.filter(o => o.status === "cancelled").length || 0,
+    delivered: orders?.filter(o => o.status === "delivered" || o.status === "receipt_confirmed").length || 0,
+    cancelled: orders?.filter(o => o.status === "cancelled" || o.status === "refund_requested" || o.status === "refunded").length || 0,
+  };
+
+  const handleConfirmDelivery = async (orderId: string, rating: number, reviewText: string) => {
+    await confirmReceipt(orderId, rating, reviewText);
   };
 
   return (
@@ -174,6 +208,7 @@ const Orders = () => {
                 key={order.id}
                 order={order}
                 onViewInvoice={setSelectedOrder}
+                onConfirmDelivery={setOrderToConfirm}
               />
             ))}
           </div>
@@ -185,6 +220,14 @@ const Orders = () => {
         order={selectedOrder}
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
+      />
+
+      {/* Confirm Delivery Modal */}
+      <ConfirmDeliveryModal
+        order={orderToConfirm}
+        isOpen={!!orderToConfirm}
+        onClose={() => setOrderToConfirm(null)}
+        onConfirm={handleConfirmDelivery}
       />
     </div>
   );
