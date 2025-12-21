@@ -7,6 +7,7 @@ import { Search, Users, ArrowLeft, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/hooks/useCart";
 
 interface Contact {
   id: string;
@@ -45,6 +46,7 @@ export function CollaborativeGiftModal({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { addItem } = useCart();
   const navigate = useNavigate();
 
   // Fetch contacts from Supabase when modal opens
@@ -137,24 +139,19 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
-      // Add to cart with product ID for business tracking
-      const cartItem = {
-        id: Date.now(),
+      // Utiliser useCart.addItem() au lieu d'écrire directement dans localStorage
+      addItem({
+        id: product.id,
+        productId: product.id,
         name: product.name,
         description: product.description,
         price: product.price,
         currency: product.currency,
         image: product.image,
-        quantity: 1,
         isCollaborativeGift: true,
         beneficiaryName: selectedContact.name,
-        beneficiaryContactId: selectedContact.id,
-        productId: String(product.id) // ID du produit pour le lien business
-      };
-
-      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      localStorage.setItem('cart', JSON.stringify([...existingCart, cartItem]));
-      window.dispatchEvent(new Event('cartUpdated'));
+        beneficiaryContactId: selectedContact.id
+      });
 
       toast({
         title: "Article ajouté ! 🎉",
