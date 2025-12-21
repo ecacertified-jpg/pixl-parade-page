@@ -38,6 +38,7 @@ export default function Shop() {
     category: string;
     vendor: string;
     vendorId: string | null;
+    vendorLogo: string | null;
     distance: string;
     rating: number;
     reviews: number;
@@ -132,12 +133,12 @@ export default function Shop() {
           .filter(Boolean)
       )] as string[];
 
-      // Étape 3: Récupérer les noms des boutiques
-      let businessMap: Record<string, string> = {};
+      // Étape 3: Récupérer les noms et logos des boutiques
+      let businessMap: Record<string, { name: string; logo: string | null }> = {};
       if (businessIds.length > 0) {
         const { data: businessData, error: businessError } = await supabase
           .from('business_public_info')
-          .select('id, business_name')
+          .select('id, business_name, logo_url')
           .in('id', businessIds);
         
         if (businessError) {
@@ -146,31 +147,35 @@ export default function Shop() {
         
         if (businessData) {
           businessMap = businessData.reduce((acc, b) => {
-            acc[b.id] = b.business_name;
+            acc[b.id] = { name: b.business_name, logo: b.logo_url };
             return acc;
-          }, {} as Record<string, string>);
+          }, {} as Record<string, { name: string; logo: string | null }>);
         }
       }
 
-      // Étape 4: Formater les produits avec les noms de boutiques
-      const formattedProducts = productsData.map(product => ({
-        id: product.id,
-        name: product.name,
-        description: product.description || "Description non disponible",
-        price: product.price,
-        currency: product.currency || "F",
-        image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-        category: product.category_name || "Produit",
-        vendor: product.business_account_id ? (businessMap[product.business_account_id] || "Boutique") : "Boutique",
-        vendorId: product.business_account_id || null,
-        distance: "2.3 km",
-        rating: 4.8,
-        reviews: 45,
-        inStock: (product.stock_quantity || 0) > 0,
-        isExperience: product.is_experience || false,
-        categoryName: product.category_name,
-        locationName: product.location_name || "Non spécifié"
-      }));
+      // Étape 4: Formater les produits avec les noms et logos de boutiques
+      const formattedProducts = productsData.map(product => {
+        const businessInfo = product.business_account_id ? businessMap[product.business_account_id] : null;
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description || "Description non disponible",
+          price: product.price,
+          currency: product.currency || "F",
+          image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+          category: product.category_name || "Produit",
+          vendor: businessInfo?.name || "Boutique",
+          vendorId: product.business_account_id || null,
+          vendorLogo: businessInfo?.logo || null,
+          distance: "2.3 km",
+          rating: 4.8,
+          reviews: 45,
+          inStock: (product.stock_quantity || 0) > 0,
+          isExperience: product.is_experience || false,
+          categoryName: product.category_name,
+          locationName: product.location_name || "Non spécifié"
+        };
+      });
       
       setProducts(formattedProducts);
     } catch (error) {
@@ -476,7 +481,7 @@ export default function Shop() {
                     <Badge 
                       variant="outline" 
                       className={cn(
-                        "text-xs font-normal whitespace-nowrap",
+                        "text-xs font-normal whitespace-nowrap flex items-center gap-1.5 py-1 px-2",
                         product.vendorId && "cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
                       )}
                       onClick={(e) => {
@@ -486,8 +491,16 @@ export default function Shop() {
                         }
                       }}
                     >
-                      {product.vendor}
-                      {product.vendorId && <Store className="h-3 w-3 ml-1 inline" />}
+                      {product.vendorLogo ? (
+                        <img 
+                          src={product.vendorLogo} 
+                          alt={product.vendor} 
+                          className="w-4 h-4 rounded-full object-cover"
+                        />
+                      ) : (
+                        <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <span>{product.vendor}</span>
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
