@@ -50,12 +50,18 @@ export const useOrderConfirmation = () => {
         updateData.refund_requested_at = new Date().toISOString();
       }
 
-      const { error: updateError } = await supabase
+      const { data: updateResult, error: updateError } = await supabase
         .from("business_orders")
         .update(updateData)
-        .eq("id", orderId);
+        .eq("id", orderId)
+        .select();
 
       if (updateError) throw updateError;
+
+      // Vérifier si la mise à jour a réellement affecté une ligne (RLS peut bloquer silencieusement)
+      if (!updateResult || updateResult.length === 0) {
+        throw new Error("Impossible de mettre à jour la commande. Vérifiez que vous êtes bien le client de cette commande.");
+      }
 
       // 3. Create product ratings for each item in the order
       const orderSummary = order.order_summary as { items?: Array<{ product_id?: string; name: string }> } | null;
