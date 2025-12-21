@@ -22,6 +22,8 @@ export const useOrderConfirmation = () => {
     setIsConfirming(true);
 
     try {
+      console.log('🔄 Starting order confirmation:', { orderId, userId: user.id, rating });
+
       // 1. Fetch the order to get product info
       const { data: order, error: orderError } = await supabase
         .from("business_orders")
@@ -30,8 +32,17 @@ export const useOrderConfirmation = () => {
         .eq("customer_id", user.id)
         .single();
 
+      console.log('📦 Order fetch result:', { order, orderError });
+
       if (orderError || !order) {
+        console.error('❌ Order not found or fetch error:', orderError);
         throw new Error("Commande non trouvée");
+      }
+
+      // Vérifier que l'utilisateur connecté est bien le client de cette commande
+      if (order.customer_id !== user.id) {
+        console.error('❌ Customer ID mismatch:', { orderCustomerId: order.customer_id, userId: user.id });
+        throw new Error("Vous n'êtes pas le client de cette commande.");
       }
 
       const isSatisfied = rating >= 3;
@@ -50,18 +61,28 @@ export const useOrderConfirmation = () => {
         updateData.refund_requested_at = new Date().toISOString();
       }
 
+      console.log('🔄 Attempting to update order:', { orderId, userId: user.id, rating, newStatus, updateData });
+
       const { data: updateResult, error: updateError } = await supabase
         .from("business_orders")
         .update(updateData)
         .eq("id", orderId)
         .select();
 
-      if (updateError) throw updateError;
+      console.log('📊 Update result:', { updateResult, updateError });
+
+      if (updateError) {
+        console.error('❌ Update error:', updateError);
+        throw updateError;
+      }
 
       // Vérifier si la mise à jour a réellement affecté une ligne (RLS peut bloquer silencieusement)
       if (!updateResult || updateResult.length === 0) {
+        console.error('❌ No rows updated - RLS may have blocked the update');
         throw new Error("Impossible de mettre à jour la commande. Vérifiez que vous êtes bien le client de cette commande.");
       }
+
+      console.log('✅ Order updated successfully:', updateResult[0]);
 
       // 3. Create product ratings for each item in the order
       const orderSummary = order.order_summary as { items?: Array<{ product_id?: string; name: string }> } | null;
