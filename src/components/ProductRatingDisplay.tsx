@@ -76,39 +76,60 @@ export const ProductRatingDisplay = ({
     );
   };
 
-  const ReviewsDrawerContent = () => (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto p-4">
-      {ratings.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">Aucun avis pour le moment</p>
-      ) : (
-        ratings.map((rating: ProductRating) => (
-          <Card key={rating.id} className="p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <div className="font-medium">
-                  {rating.user?.first_name || 'Utilisateur'}
-                </div>
-                <StarRating rating={rating.rating} size="sm" />
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(rating.created_at), {
-                  addSuffix: true,
-                  locale: fr,
-                })}
+  const ReviewsDrawerContent = () => {
+    const [isDrawerReviewsOpen, setIsDrawerReviewsOpen] = useState(false);
+    
+    return (
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto p-4">
+        {ratings.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Aucun avis pour le moment</p>
+        ) : (
+          <Collapsible open={isDrawerReviewsOpen} onOpenChange={setIsDrawerReviewsOpen}>
+            <CollapsibleTrigger className="w-full flex items-center justify-between py-3 border-b border-border/50 hover:bg-muted/50 rounded-lg px-2 transition-colors cursor-pointer">
+              <span className="text-sm font-medium text-muted-foreground">
+                {isDrawerReviewsOpen ? "Masquer les avis" : `Voir les ${ratings.length} avis`}
               </span>
-            </div>
-            {rating.review_text && (
-              <p className="text-sm text-muted-foreground mt-2">{rating.review_text}</p>
-            )}
-          </Card>
-        ))
-      )}
-      <Button onClick={onWriteReview} variant="outline" className="w-full mt-4">
-        <MessageSquare className="h-4 w-4 mr-2" />
-        Écrire un avis
-      </Button>
-    </div>
-  );
+              <ChevronDown 
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                  isDrawerReviewsOpen ? "rotate-180" : ""
+                }`}
+              />
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="space-y-4 pt-4">
+                {ratings.map((rating: ProductRating) => (
+                  <Card key={rating.id} className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="font-medium">
+                          {rating.user?.first_name || 'Utilisateur'}
+                        </div>
+                        <StarRating rating={rating.rating} size="sm" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(rating.created_at), {
+                          addSuffix: true,
+                          locale: fr,
+                        })}
+                      </span>
+                    </div>
+                    {rating.review_text && (
+                      <p className="text-sm text-muted-foreground mt-2">{rating.review_text}</p>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+        <Button onClick={onWriteReview} variant="outline" className="w-full mt-4">
+          <MessageSquare className="h-4 w-4 mr-2" />
+          Écrire un avis
+        </Button>
+      </div>
+    );
+  };
 
   if (compact) {
     return (
