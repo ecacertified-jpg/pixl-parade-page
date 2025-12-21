@@ -15,7 +15,7 @@ interface VendorReviewsSectionProps {
 
 export function VendorReviewsSection({ businessId }: VendorReviewsSectionProps) {
   const { ratings, stats, loading } = useVendorRatings(businessId);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   if (loading) {
     return (
       <Card className="p-6">
