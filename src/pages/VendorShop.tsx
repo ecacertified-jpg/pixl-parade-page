@@ -13,6 +13,7 @@ import { RatingModal } from "@/components/RatingModal";
 import { useVendorProducts } from "@/hooks/useVendorProducts";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
+import { VendorReviewsSection } from "@/components/VendorReviewsSection";
 import { cn } from "@/lib/utils";
 
 export default function VendorShop() {
@@ -268,6 +269,9 @@ export default function VendorShop() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Customer Reviews Section */}
+        <VendorReviewsSection businessId={businessId!} />
 
         <div className="pb-20" />
       </main>
