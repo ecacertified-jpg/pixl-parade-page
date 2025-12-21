@@ -40,22 +40,36 @@ export const useProductRatings = (productId: string) => {
     try {
       setLoading(true);
 
-      // Load all ratings with user info
+      // Load all ratings WITHOUT the problematic join
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('product_ratings')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .eq('product_id', productId)
         .order('created_at', { ascending: false });
 
       if (ratingsError) throw ratingsError;
 
-      const formattedRatings: ProductRating[] = (ratingsData || []).map((r: any) => ({
+      // Get unique user IDs
+      const userIds = [...new Set((ratingsData || []).map(r => r.user_id))];
+
+      // Fetch user profiles separately
+      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', userIds);
+
+        profilesData?.forEach(p => {
+          profilesMap[p.user_id] = {
+            first_name: p.first_name || '',
+            last_name: p.last_name || '',
+          };
+        });
+      }
+
+      // Combine data
+      const formattedRatings: ProductRating[] = (ratingsData || []).map((r) => ({
         id: r.id,
         product_id: r.product_id,
         user_id: r.user_id,
@@ -63,10 +77,7 @@ export const useProductRatings = (productId: string) => {
         review_text: r.review_text,
         created_at: r.created_at,
         updated_at: r.updated_at,
-        user: r.profiles ? {
-          first_name: r.profiles.first_name,
-          last_name: r.profiles.last_name,
-        } : undefined,
+        user: profilesMap[r.user_id] || undefined,
       }));
 
       setRatings(formattedRatings);
