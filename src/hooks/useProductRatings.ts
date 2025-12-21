@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -28,18 +28,14 @@ export interface RatingStats {
 
 export const useProductRatings = (productId: string) => {
   const { user } = useAuth();
-  const [ratings, setRatings] = useState<ProductRating[]>([]);
-  const [stats, setStats] = useState<RatingStats | null>(null);
-  const [userRating, setUserRating] = useState<ProductRating | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadRatings = async () => {
-    if (!productId) return;
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['product-ratings', productId],
+    queryFn: async () => {
+      if (!productId) return { ratings: [], stats: null, userRating: null };
 
-    try {
-      setLoading(true);
-
-      // Load all ratings WITHOUT the problematic join
+      // Load all ratings
       const { data: ratingsData, error: ratingsError } = await supabase
         .from('product_ratings')
         .select('*')
@@ -51,7 +47,7 @@ export const useProductRatings = (productId: string) => {
       // Get unique user IDs
       const userIds = [...new Set((ratingsData || []).map(r => r.user_id))];
 
-      // Fetch user profiles from public_profiles view (accessible to all)
+      // Fetch user profiles from public_profiles view
       let profilesMap: Record<string, { first_name: string }> = {};
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
@@ -78,11 +74,10 @@ export const useProductRatings = (productId: string) => {
         user: profilesMap[r.user_id] || undefined,
       }));
 
-      setRatings(formattedRatings);
-
       // Calculate stats
+      let stats: RatingStats | null = null;
       if (formattedRatings.length > 0) {
-        const stats: RatingStats = {
+        stats = {
           product_id: productId,
           rating_count: formattedRatings.length,
           average_rating: parseFloat(
@@ -94,22 +89,15 @@ export const useProductRatings = (productId: string) => {
           two_star_count: formattedRatings.filter(r => r.rating === 2).length,
           one_star_count: formattedRatings.filter(r => r.rating === 1).length,
         };
-        setStats(stats);
-      } else {
-        setStats(null);
       }
 
-      // Check if user has already rated
-      if (user) {
-        const userRatingData = formattedRatings.find(r => r.user_id === user.id);
-        setUserRating(userRatingData || null);
-      }
-    } catch (error) {
-      console.error('Error loading ratings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Find user's rating
+      const userRating = user ? formattedRatings.find(r => r.user_id === user.id) || null : null;
+
+      return { ratings: formattedRatings, stats, userRating };
+    },
+    enabled: !!productId,
+  });
 
   const submitRating = async (rating: number, reviewText?: string) => {
     if (!user) throw new Error('User must be authenticated');
@@ -127,34 +115,32 @@ export const useProductRatings = (productId: string) => {
 
     if (error) throw error;
 
-    await loadRatings();
+    // Invalidate cache to refetch
+    queryClient.invalidateQueries({ queryKey: ['product-ratings', productId] });
     return data;
   };
 
   const deleteRating = async () => {
-    if (!user || !userRating) return;
+    if (!user || !data?.userRating) return;
 
     const { error } = await supabase
       .from('product_ratings')
       .delete()
-      .eq('id', userRating.id);
+      .eq('id', data.userRating.id);
 
     if (error) throw error;
 
-    await loadRatings();
+    // Invalidate cache to refetch
+    queryClient.invalidateQueries({ queryKey: ['product-ratings', productId] });
   };
 
-  useEffect(() => {
-    loadRatings();
-  }, [productId, user]);
-
   return {
-    ratings,
-    stats,
-    userRating,
-    loading,
+    ratings: data?.ratings || [],
+    stats: data?.stats || null,
+    userRating: data?.userRating || null,
+    loading: isLoading,
     submitRating,
     deleteRating,
-    refreshRatings: loadRatings,
+    refreshRatings: refetch,
   };
 };
