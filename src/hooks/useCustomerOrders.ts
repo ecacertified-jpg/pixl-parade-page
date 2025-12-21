@@ -13,7 +13,7 @@ export interface CustomerOrder {
   id: string;
   orderNumber: string;
   date: Date;
-  status: 'pending' | 'processing' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'delivered' | 'receipt_confirmed' | 'refund_requested' | 'refunded' | 'cancelled';
   totalAmount: number;
   currency: string;
   items: OrderItem[];
@@ -22,6 +22,8 @@ export interface CustomerOrder {
   beneficiaryPhone: string;
   paymentMethod: string;
   businessName?: string;
+  customerConfirmedAt?: string;
+  customerRating?: number;
 }
 
 export const useCustomerOrders = () => {
@@ -67,6 +69,8 @@ export const useCustomerOrders = () => {
           beneficiaryPhone: order.beneficiary_phone,
           paymentMethod: order.payment_method,
           businessName: order.business_accounts?.business_name,
+          customerConfirmedAt: order.customer_confirmed_at || undefined,
+          customerRating: order.customer_rating || undefined,
         };
       });
 

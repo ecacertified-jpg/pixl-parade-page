@@ -629,7 +629,9 @@ export type Database = {
           business_account_id: string
           created_at: string
           currency: string
+          customer_confirmed_at: string | null
           customer_id: string | null
+          customer_rating: number | null
           delivery_address: string
           donor_phone: string
           fund_id: string | null
@@ -637,6 +639,8 @@ export type Database = {
           order_summary: Json
           payment_method: string
           processed_at: string | null
+          refund_reason: string | null
+          refund_requested_at: string | null
           status: string
           total_amount: number
           updated_at: string
@@ -646,7 +650,9 @@ export type Database = {
           business_account_id: string
           created_at?: string
           currency?: string
+          customer_confirmed_at?: string | null
           customer_id?: string | null
+          customer_rating?: number | null
           delivery_address: string
           donor_phone: string
           fund_id?: string | null
@@ -654,6 +660,8 @@ export type Database = {
           order_summary?: Json
           payment_method?: string
           processed_at?: string | null
+          refund_reason?: string | null
+          refund_requested_at?: string | null
           status?: string
           total_amount: number
           updated_at?: string
@@ -663,7 +671,9 @@ export type Database = {
           business_account_id?: string
           created_at?: string
           currency?: string
+          customer_confirmed_at?: string | null
           customer_id?: string | null
+          customer_rating?: number | null
           delivery_address?: string
           donor_phone?: string
           fund_id?: string | null
@@ -671,6 +681,8 @@ export type Database = {
           order_summary?: Json
           payment_method?: string
           processed_at?: string | null
+          refund_reason?: string | null
+          refund_requested_at?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
