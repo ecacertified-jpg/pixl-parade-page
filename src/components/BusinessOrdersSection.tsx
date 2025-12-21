@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle, AlertTriangle, Star } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
@@ -46,6 +46,11 @@ interface IndividualOrder {
   payment_method: string;
   status: string;
   created_at: string;
+  customer_rating?: number | null;
+  customer_review_text?: string | null;
+  refund_requested_at?: string | null;
+  refund_reason?: string | null;
+  customer_confirmed_at?: string | null;
 }
 
 export function BusinessOrdersSection() {
@@ -192,7 +197,12 @@ export function BusinessOrdersSection() {
           delivery_address,
           payment_method,
           status,
-          created_at
+          created_at,
+          customer_rating,
+          customer_review_text,
+          refund_requested_at,
+          refund_reason,
+          customer_confirmed_at
         `)
         .eq('business_account_id', selectedBusinessId)
         .order('created_at', { ascending: false });
@@ -288,6 +298,14 @@ export function BusinessOrdersSection() {
         return <Badge variant="secondary" className="bg-green-100 text-green-800 whitespace-nowrap flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Traitée</Badge>;
       case 'delivered':
         return <Badge variant="secondary" className="bg-green-100 text-green-800 whitespace-nowrap flex items-center"><Package className="h-3 w-3 mr-1" />Livrée</Badge>;
+      case 'receipt_confirmed':
+        return <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 whitespace-nowrap flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Réception confirmée</Badge>;
+      case 'refund_requested':
+        return <Badge variant="secondary" className="bg-red-100 text-red-800 whitespace-nowrap flex items-center"><AlertTriangle className="h-3 w-3 mr-1" />À rembourser</Badge>;
+      case 'refunded':
+        return <Badge variant="secondary" className="bg-purple-100 text-purple-800 whitespace-nowrap flex items-center"><CheckCircle className="h-3 w-3 mr-1" />Remboursée</Badge>;
+      case 'refund_rejected':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800 whitespace-nowrap flex items-center"><XCircle className="h-3 w-3 mr-1" />Remboursement refusé</Badge>;
       case 'cancelled':
         return <Badge variant="secondary" className="bg-red-100 text-red-800 whitespace-nowrap flex items-center"><XCircle className="h-3 w-3 mr-1" />Annulée</Badge>;
       default:
@@ -332,6 +350,13 @@ export function BusinessOrdersSection() {
       count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'delivered').length,
       icon: Package,
       color: 'success'
+    },
+    { 
+      value: 'refund_requested', 
+      label: 'À rembourser', 
+      count: [...individualOrders, ...collectiveOrders].filter(o => o.status === 'refund_requested').length,
+      icon: AlertTriangle,
+      color: 'refund'
     },
     { 
       value: 'cancelled', 
@@ -389,7 +414,15 @@ export function BusinessOrdersSection() {
         {/* Articles commandés */}
         <div className="space-y-2 mb-4">
           {items.map((item: any, index: number) => (
-            <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded">
+            <div key={index} className="flex items-center gap-3 p-2 bg-muted/30 rounded relative">
+              {/* Badge À rembourser sur l'image */}
+              {order.status === 'refund_requested' && (
+                <div className="absolute -top-1 -left-1 z-10">
+                  <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0.5">
+                    À rembourser
+                  </Badge>
+                </div>
+              )}
               <div className="w-12 h-12 bg-muted rounded overflow-hidden flex items-center justify-center">
                 {item.image ? (
                   <img 
@@ -464,6 +497,41 @@ export function BusinessOrdersSection() {
           </div>
         </div>
 
+        {/* Section note et commentaire client pour remboursement */}
+        {order.status === 'refund_requested' && isIndividual && (order as IndividualOrder).customer_rating !== undefined && (
+          <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                Demande de remboursement
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-sm text-muted-foreground">Note client :</span>
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= ((order as IndividualOrder).customer_rating || 0)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-medium ml-1">
+                {(order as IndividualOrder).customer_rating}/5
+              </span>
+            </div>
+            {((order as IndividualOrder).refund_reason || (order as IndividualOrder).customer_review_text) && (
+              <p className="text-sm text-red-600 dark:text-red-400 italic">
+                "{(order as IndividualOrder).refund_reason || (order as IndividualOrder).customer_review_text}"
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         {order.status === 'pending' && (
           <div className="flex gap-2">
@@ -486,6 +554,29 @@ export function BusinessOrdersSection() {
               className="flex-1"
             >
               Marquer comme livrée
+            </Button>
+          </div>
+        )}
+
+        {order.status === 'refund_requested' && isIndividual && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateOrderStatus(order.id, 'refunded', isIndividual)}
+              className="flex-1 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/30"
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Remboursé
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateOrderStatus(order.id, 'refund_rejected', isIndividual)}
+              className="flex-1 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Refuser
             </Button>
           </div>
         )}
@@ -615,6 +706,7 @@ export function BusinessOrdersSection() {
                       : option.color === 'warning' ? 'bg-yellow-100 text-yellow-700'
                       : option.color === 'info' ? 'bg-blue-100 text-blue-700'
                       : option.color === 'success' ? 'bg-green-100 text-green-700'
+                      : option.color === 'refund' ? 'bg-red-100 text-red-700'
                       : option.color === 'destructive' ? 'bg-red-100 text-red-700'
                       : 'bg-muted text-muted-foreground'
                     }
