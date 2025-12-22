@@ -516,7 +516,7 @@ export default function Dashboard() {
 
         {/* Section Rappels d'anniversaires intelligents */}
         <div className="mb-4">
-          <SmartBirthdayReminders />
+          <SmartBirthdayReminders hideViewAllButton />
         </div>
 
         {/* Cartes de badges */}
