@@ -106,24 +106,35 @@ const BusinessAuth = () => {
     if (!user) return;
     
     try {
-      const { data: businessAccount } = await supabase
+      // Récupérer TOUS les comptes business de l'utilisateur
+      const { data: businessAccounts, error } = await supabase
         .from('business_accounts')
-        .select('id, is_active')
+        .select('id, is_active, status')
         .eq('user_id', user.id)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (businessAccount) {
-        // Redirect based on approval status
-        if (!businessAccount.is_active) {
+      if (error) {
+        console.error('Error checking business account:', error);
+        return;
+      }
+
+      if (businessAccounts && businessAccounts.length > 0) {
+        // Trouver le compte actif ou le plus récent en attente
+        const activeAccount = businessAccounts.find(acc => acc.is_active);
+        const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
+        
+        if (activeAccount) {
+          navigate('/business-account', { replace: true });
+        } else if (pendingAccount) {
           navigate('/business-pending-approval', { replace: true });
         } else {
+          // Tous les comptes sont rejetés/inactifs, rediriger vers le dashboard business
           navigate('/business-account', { replace: true });
         }
       }
-      // If no business account, let them access the form
+      // Si aucun compte, laisser afficher le formulaire
     } catch (error) {
-      // Error likely means no business account exists, which is fine
-      console.log('No existing business account found, showing form');
+      console.error('Error checking business account:', error);
     }
   };
 
@@ -216,15 +227,15 @@ const BusinessAuth = () => {
         return;
       }
 
-      // Check if business account exists
-      const { data: businessAccount, error: businessError } = await supabase
+      // Check if business account exists - gérer plusieurs comptes
+      const { data: businessAccounts, error: businessError } = await supabase
         .from('business_accounts')
         .select('is_active, status')
         .eq('user_id', currentUser.id)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (businessError || !businessAccount) {
-        // Ne pas déconnecter, proposer de compléter l'inscription
+      if (businessError || !businessAccounts || businessAccounts.length === 0) {
+        // Pas de compte business - proposer d'en créer un
         setAuthenticatedUserId(currentUser.id);
         setAuthenticatedEmail(currentUser.email || null);
         setShowCompleteRegistration(true);
@@ -235,19 +246,26 @@ const BusinessAuth = () => {
         return;
       }
 
+      // L'utilisateur a au moins un compte business - trouver le bon
+      const activeAccount = businessAccounts.find(acc => acc.is_active);
+      const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
+
       setUserMode('business');
       
-      if (!businessAccount.is_active) {
+      if (activeAccount) {
+        toast({
+          title: 'Connexion réussie',
+          description: 'Bienvenue dans votre espace business',
+        });
+        navigate('/business-account', { replace: true });
+      } else if (pendingAccount) {
         toast({
           title: 'Compte en attente',
           description: 'Votre compte est en attente d\'approbation',
         });
         navigate('/business-pending-approval', { replace: true });
       } else {
-        toast({
-          title: 'Connexion réussie',
-          description: 'Bienvenue dans votre espace business',
-        });
+        // Comptes rejetés/inactifs - aller au dashboard pour voir le statut
         navigate('/business-account', { replace: true });
       }
     } catch (error) {
