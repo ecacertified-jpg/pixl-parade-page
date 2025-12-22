@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Store, ArrowLeft, Mail, RefreshCw, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const businessAuthSchema = z.object({
@@ -43,8 +43,13 @@ const BusinessAuth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, setUserMode, refreshSession } = useAuth();
 
   const {
@@ -60,12 +65,29 @@ const BusinessAuth = () => {
 
   const businessType = watch('businessType');
 
-  // Redirect based on business account status
+  // Detect PASSWORD_RECOVERY event for password reset
   useEffect(() => {
-    if (user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResetMode(true);
+      }
+    });
+
+    // Check if coming from reset link with reset=true param
+    const resetParam = searchParams.get('reset');
+    if (resetParam === 'true') {
+      setIsResetMode(true);
+    }
+
+    return () => subscription.unsubscribe();
+  }, [searchParams]);
+
+  // Redirect based on business account status (only if not in reset mode)
+  useEffect(() => {
+    if (user && !isResetMode) {
       checkExistingBusinessAccount();
     }
-  }, [user, navigate]);
+  }, [user, navigate, isResetMode]);
 
   const checkExistingBusinessAccount = async () => {
     if (!user) return;
@@ -301,6 +323,66 @@ const BusinessAuth = () => {
       });
     } finally {
       setIsSendingReset(false);
+    }
+  };
+
+  const updatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: 'Champs requis',
+        description: 'Veuillez remplir les deux champs de mot de passe.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Mots de passe différents',
+        description: 'Les deux mots de passe ne correspondent pas.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Mot de passe trop court',
+        description: 'Le mot de passe doit contenir au moins 6 caractères.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Mot de passe modifié',
+          description: 'Votre mot de passe a été mis à jour avec succès.',
+        });
+        setIsResetMode(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        // Clear the reset param from URL
+        navigate('/business-auth', { replace: true });
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de modifier le mot de passe.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -598,6 +680,84 @@ const BusinessAuth = () => {
     'Services',
     'Autre'
   ];
+
+  // If in reset mode, show the password reset form
+  if (isResetMode) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
+        <Card className="w-full max-w-md shadow-lg border-primary/20">
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <KeyRound className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl font-poppins font-bold text-primary">
+                Nouveau mot de passe
+              </CardTitle>
+            </div>
+            <CardDescription>
+              Choisissez un nouveau mot de passe pour votre compte business
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <Button
+              onClick={updatePassword}
+              disabled={isUpdatingPassword}
+              className="w-full"
+            >
+              {isUpdatingPassword ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsResetMode(false);
+                setNewPassword('');
+                setConfirmPassword('');
+                navigate('/business-auth', { replace: true });
+              }}
+              className="w-full text-sm"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour à la connexion
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
