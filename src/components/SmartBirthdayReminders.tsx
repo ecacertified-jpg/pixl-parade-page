@@ -20,7 +20,11 @@ interface BirthdayReminder {
   gift_suggestions: any[];
 }
 
-export function SmartBirthdayReminders() {
+interface SmartBirthdayRemindersProps {
+  hideViewAllButton?: boolean;
+}
+
+export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirthdayRemindersProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reminders, setReminders] = useState<BirthdayReminder[]>([]);
@@ -220,7 +224,7 @@ export function SmartBirthdayReminders() {
         ))}
       </div>
 
-      {reminders.length > 0 && (
+      {reminders.length > 0 && !hideViewAllButton && (
         <Button 
           variant="outline" 
           className="w-full"
