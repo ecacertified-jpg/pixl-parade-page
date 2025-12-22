@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Mail, RefreshCw } from 'lucide-react';
+import { Store, ArrowLeft, Mail, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const businessAuthSchema = z.object({
@@ -39,6 +39,10 @@ const BusinessAuth = () => {
   const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
   const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
   const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, setUserMode, refreshSession } = useAuth();
@@ -256,6 +260,47 @@ const BusinessAuth = () => {
       });
     } finally {
       setIsResending(false);
+    }
+  };
+
+  const sendPasswordResetEmail = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      toast({
+        title: 'Email requis',
+        description: 'Veuillez entrer votre email pour réinitialiser votre mot de passe.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+        redirectTo: `${window.location.origin}/business-auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Email envoyé',
+          description: 'Un email de réinitialisation vous a été envoyé. Vérifiez votre boîte de réception.',
+        });
+        setShowForgotPassword(false);
+        setForgotPasswordEmail('');
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'envoyer l\'email de réinitialisation.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -599,16 +644,70 @@ const BusinessAuth = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...register('password')}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-sm text-destructive">{errors.password.message}</p>
                   )}
                 </div>
+
+                {/* Mot de passe oublié */}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(!showForgotPassword)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Mot de passe oublié ?
+                  </button>
+                </div>
+
+                {showForgotPassword && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-blue-800">
+                          Réinitialiser votre mot de passe
+                        </p>
+                        <p className="text-sm text-blue-700">
+                          Entrez votre email et nous vous enverrons un lien de réinitialisation.
+                        </p>
+                      </div>
+                    </div>
+                    <Input
+                      type="email"
+                      placeholder="votre@business-email.com"
+                      value={forgotPasswordEmail}
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      className="bg-white"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={sendPasswordResetEmail}
+                      disabled={isSendingReset}
+                      className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
+                    >
+                      <Mail className={cn("h-4 w-4 mr-2", isSendingReset && "animate-pulse")} />
+                      {isSendingReset ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}
+                    </Button>
+                  </div>
+                )}
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Connexion...' : 'Se connecter'}
