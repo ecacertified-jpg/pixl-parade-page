@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,7 @@ const BusinessAuth = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [recoverySession, setRecoverySession] = useState<Session | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -68,15 +70,26 @@ const BusinessAuth = () => {
   // Detect PASSWORD_RECOVERY event for password reset
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event, 'Has session:', !!session);
+      
       if (event === 'PASSWORD_RECOVERY') {
+        console.log('PASSWORD_RECOVERY event detected');
         setIsResetMode(true);
+        setRecoverySession(session);
       }
     });
 
     // Check if coming from reset link with reset=true param
     const resetParam = searchParams.get('reset');
     if (resetParam === 'true') {
-      setIsResetMode(true);
+      // Vérifier si on a déjà une session active
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('Reset param detected, current session:', !!session);
+        if (session) {
+          setIsResetMode(true);
+          setRecoverySession(session);
+        }
+      });
     }
 
     return () => subscription.unsubscribe();
@@ -356,29 +369,58 @@ const BusinessAuth = () => {
 
     setIsUpdatingPassword(true);
     try {
+      // Vérifier qu'on a une session active
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session && !recoverySession) {
+        toast({
+          title: 'Session expirée',
+          description: 'Le lien de réinitialisation a expiré. Veuillez en demander un nouveau.',
+          variant: 'destructive',
+        });
+        setIsResetMode(false);
+        setRecoverySession(null);
+        setShowForgotPassword(true);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       
       if (error) {
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
+        console.error('Password update error:', error);
+        
+        if (error.message.includes('session') || error.message.includes('Auth') || error.message.includes('missing')) {
+          toast({
+            title: 'Session expirée',
+            description: 'Le lien a expiré. Veuillez demander un nouveau lien de réinitialisation.',
+            variant: 'destructive',
+          });
+          setIsResetMode(false);
+          setRecoverySession(null);
+          setShowForgotPassword(true);
+        } else {
+          toast({
+            title: 'Erreur',
+            description: error.message,
+            variant: 'destructive',
+          });
+        }
       } else {
         toast({
-          title: 'Mot de passe modifié',
-          description: 'Votre mot de passe a été mis à jour avec succès.',
+          title: 'Mot de passe modifié ✓',
+          description: 'Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.',
         });
         setIsResetMode(false);
         setNewPassword('');
         setConfirmPassword('');
-        // Clear the reset param from URL
+        setRecoverySession(null);
         navigate('/business-auth', { replace: true });
       }
     } catch (error) {
+      console.error('Password update exception:', error);
       toast({
         title: 'Erreur',
-        description: 'Impossible de modifier le mot de passe.',
+        description: 'Impossible de modifier le mot de passe. Veuillez réessayer.',
         variant: 'destructive',
       });
     } finally {
@@ -731,6 +773,28 @@ const BusinessAuth = () => {
               </div>
             </div>
             
+            {!recoverySession && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                <p className="font-medium">⚠️ Session de récupération non détectée</p>
+                <p className="mt-1">Si vous rencontrez une erreur, demandez un nouveau lien de réinitialisation.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  onClick={() => {
+                    setIsResetMode(false);
+                    setRecoverySession(null);
+                    setShowForgotPassword(true);
+                    navigate('/business-auth', { replace: true });
+                  }}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Demander un nouveau lien
+                </Button>
+              </div>
+            )}
+
             <Button
               onClick={updatePassword}
               disabled={isUpdatingPassword}
@@ -746,6 +810,7 @@ const BusinessAuth = () => {
                 setIsResetMode(false);
                 setNewPassword('');
                 setConfirmPassword('');
+                setRecoverySession(null);
                 navigate('/business-auth', { replace: true });
               }}
               className="w-full text-sm"
