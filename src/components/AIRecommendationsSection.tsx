@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye, Loader2 } from "lucide-react";
+import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye, Loader2, RotateCcw } from "lucide-react";
 import { useGenerateProductImage } from "@/hooks/useGenerateProductImage";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -43,7 +43,7 @@ export function AIRecommendationsSection({
   const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
   const { contacts } = useContacts();
   const { getProductFeedback, stats } = useSuggestionFeedback();
-  const { generatedImages, loadingImages, generateImage } = useGenerateProductImage();
+  const { generatedImages, loadingImages, generateImage, regenerateImage } = useGenerateProductImage();
 
   // Générer automatiquement les images pour les produits sans image
   useEffect(() => {
@@ -336,6 +336,22 @@ export function AIRecommendationsSection({
                         <Sparkles className="h-3 w-3 mr-1" />
                         IA
                       </Badge>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute bottom-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 hover:bg-background"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          regenerateImage(imageKey, {
+                            productName: rec.productName,
+                            description: rec.reason,
+                            category: rec.product?.categories?.name,
+                          });
+                        }}
+                        title="Régénérer l'image"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   ) : isGeneratingImage ? (
                     <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex flex-col items-center justify-center gap-2">
