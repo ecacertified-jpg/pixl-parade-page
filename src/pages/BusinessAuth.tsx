@@ -17,12 +17,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Store, ArrowLeft, Mail, RefreshCw, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Schéma de base pour la connexion (email + password uniquement)
 const businessAuthSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  firstName: z.string().min(1, 'Le prénom est requis').optional(),
-  lastName: z.string().min(1, 'Le nom est requis').optional(),
-  businessName: z.string().min(1, 'Le nom de l\'entreprise est requis').optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  businessName: z.string().optional(),
   businessType: z.string().optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -30,6 +31,20 @@ const businessAuthSchema = z.object({
 });
 
 type BusinessAuthFormData = z.infer<typeof businessAuthSchema>;
+
+// Fonction de validation pour l'inscription (prénom, nom, entreprise obligatoires)
+const validateSignupData = (data: BusinessAuthFormData): { field: string; message: string } | null => {
+  if (!data.firstName?.trim() || data.firstName.trim().length < 2) {
+    return { field: 'firstName', message: 'Le prénom est requis (minimum 2 caractères)' };
+  }
+  if (!data.lastName?.trim() || data.lastName.trim().length < 2) {
+    return { field: 'lastName', message: 'Le nom est requis (minimum 2 caractères)' };
+  }
+  if (!data.businessName?.trim() || data.businessName.trim().length < 2) {
+    return { field: 'businessName', message: 'Le nom de l\'entreprise est requis (minimum 2 caractères)' };
+  }
+  return null;
+};
 
 const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -468,6 +483,18 @@ const BusinessAuth = () => {
     try {
       setIsLoading(true);
 
+      // Valider les champs obligatoires (prénom, nom, entreprise)
+      const validationError = validateSignupData(data);
+      if (validationError) {
+        setIsLoading(false);
+        toast({
+          title: 'Champs obligatoires manquants',
+          description: validationError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Vérifier l'unicité du nom d'entreprise avant de créer le compte
       const isUnique = await checkBusinessNameUniqueness(data.businessName || '');
       if (!isUnique) {
@@ -657,6 +684,17 @@ const BusinessAuth = () => {
     
     setIsLoading(true);
     try {
+      // Valider le nom d'entreprise obligatoire
+      if (!formData.businessName?.trim() || formData.businessName.trim().length < 2) {
+        setIsLoading(false);
+        toast({
+          title: 'Champ obligatoire manquant',
+          description: 'Le nom de l\'entreprise est requis (minimum 2 caractères)',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Vérifier l'unicité du nom d'entreprise
       const isUnique = await checkBusinessNameUniqueness(formData.businessName || '');
       if (!isUnique) {
@@ -1073,11 +1111,14 @@ const BusinessAuth = () => {
               <form onSubmit={handleSubmit(signUp)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
+                    <Label htmlFor="firstName" className="flex items-center gap-1">
+                      Prénom <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="firstName"
-                      placeholder="Prénom"
+                      placeholder="Votre prénom"
                       {...register('firstName')}
+                      className={cn(errors.firstName && "border-destructive")}
                     />
                     {errors.firstName && (
                       <p className="text-sm text-destructive">{errors.firstName.message}</p>
@@ -1085,11 +1126,14 @@ const BusinessAuth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Nom</Label>
+                    <Label htmlFor="lastName" className="flex items-center gap-1">
+                      Nom <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="lastName"
-                      placeholder="Nom"
+                      placeholder="Votre nom"
                       {...register('lastName')}
+                      className={cn(errors.lastName && "border-destructive")}
                     />
                     {errors.lastName && (
                       <p className="text-sm text-destructive">{errors.lastName.message}</p>
@@ -1098,12 +1142,15 @@ const BusinessAuth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="businessName">Nom de l'entreprise *</Label>
+                  <Label htmlFor="businessName" className="flex items-center gap-1">
+                    Nom de l'entreprise <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="businessName"
                     placeholder="Mon Enterprise SARL"
                     {...register('businessName')}
                     onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
+                    className={cn((errors.businessName || businessNameError) && "border-destructive")}
                   />
                   {errors.businessName && (
                     <p className="text-sm text-destructive">{errors.businessName.message}</p>
