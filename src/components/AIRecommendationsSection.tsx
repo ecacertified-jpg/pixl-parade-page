@@ -215,16 +215,47 @@ export function AIRecommendationsSection({
           </div>
         )}
 
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border border-primary/10">
+              <div className="flex gap-3 items-center">
+                <div className="w-8 h-8 rounded-full bg-primary/20 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-primary/10 rounded-full w-3/4 animate-pulse" />
+                  <div className="h-3 bg-primary/10 rounded-full w-1/2 animate-pulse" style={{ animationDelay: '0.1s' }} />
+                </div>
+              </div>
+            </div>
+            
+            {[1, 2, 3].map((i) => (
+              <div 
+                key={i} 
+                className="flex gap-4 p-5 bg-background rounded-xl border shadow-sm animate-pulse"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              >
+                <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-muted" />
+                <div className="flex-1 space-y-3">
+                  <div className="h-5 bg-muted rounded w-3/4" />
+                  <div className="h-4 bg-muted rounded w-1/4" />
+                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Error */}
         {error && (
-          <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm">
+          <div className="p-4 bg-destructive/10 text-destructive rounded-lg text-sm animate-fade-in">
             {error}
           </div>
         )}
 
         {/* General Advice */}
-        {generalAdvice && (
-          <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
+        {generalAdvice && !loading && (
+          <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20 animate-fade-in">
             <div className="flex gap-3">
               <span className="text-xl flex-shrink-0">💡</span>
               <p className="font-nunito text-sm text-foreground/90 leading-relaxed">
@@ -235,8 +266,8 @@ export function AIRecommendationsSection({
         )}
 
         {/* Recommendations */}
-        {filteredRecommendations.length > 0 && (
-          <div className="space-y-3">
+        {filteredRecommendations.length > 0 && !loading && (
+          <div className="space-y-3 animate-fade-in">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="h-4 w-4 text-primary/60" />
               <span className="font-medium font-nunito">
@@ -251,11 +282,15 @@ export function AIRecommendationsSection({
                 <div
                   key={index}
                   className={cn(
-                    "flex gap-4 p-5 bg-background rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md",
+                    "flex gap-4 p-5 bg-background rounded-xl border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5",
                     existingFeedback === 'accepted' && "border-green-200 bg-green-50/50 dark:bg-green-900/10",
                     existingFeedback === 'saved' && "border-amber-200 bg-amber-50/50 dark:bg-amber-900/10",
                     !existingFeedback && "hover:border-primary/30"
                   )}
+                  style={{ 
+                    animationDelay: `${index * 0.1}s`,
+                    animation: 'fade-in 0.4s ease-out forwards'
+                  }}
                 >
                   {rec.product?.image_url && (
                     <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
