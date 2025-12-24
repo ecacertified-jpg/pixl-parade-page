@@ -35,17 +35,18 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
     if (!confirm(
       `⚠️ ATTENTION\n\n` +
       `Êtes-vous sûr de vouloir supprimer "${business.business_name}" ?\n\n` +
-      `Cette action supprimera :\n` +
-      `- Le business de Config ET du sélecteur\n` +
-      `- Tous les produits associés (si aucune commande)\n` +
-      `- Cette action est IRRÉVERSIBLE\n\n` +
+      `Cette action sera bloquée si le business a :\n` +
+      `- Des produits associés\n` +
+      `- Des commandes associées\n` +
+      `- Des cagnettes collectives associées\n\n` +
+      `Cette action est IRRÉVERSIBLE.\n\n` +
       `Confirmez-vous la suppression ?`
     )) {
       return;
     }
 
     setLoading(true);
-    const toastId = toast.loading("Vérification des produits et commandes...");
+    const toastId = toast.loading("Vérification des dépendances...");
     
     try {
       // Check if business has associated products
@@ -66,6 +67,15 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
 
       if (ordersError) throw ordersError;
 
+      // Check if business has associated collective funds
+      const { data: funds, error: fundsError } = await supabase
+        .from('collective_funds')
+        .select('id')
+        .eq('created_by_business_id', business.id)
+        .limit(1);
+
+      if (fundsError) throw fundsError;
+
       if (products && products.length > 0) {
         toast.error("Impossible de supprimer : ce business a des produits associés", { id: toastId });
         return;
@@ -73,6 +83,11 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
 
       if (orders && orders.length > 0) {
         toast.error("Impossible de supprimer : ce business a des commandes associées", { id: toastId });
+        return;
+      }
+
+      if (funds && funds.length > 0) {
+        toast.error("Impossible de supprimer : ce business a des cagnettes collectives associées. Supprimez d'abord les cagnettes.", { id: toastId });
         return;
       }
 
