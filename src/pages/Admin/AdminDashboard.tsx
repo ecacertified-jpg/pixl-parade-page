@@ -12,6 +12,7 @@ import { fr } from 'date-fns/locale';
 import { BusinessRegistrationStats } from '@/components/admin/BusinessRegistrationStats';
 import { UserBusinessStatsSection } from '@/components/admin/UserBusinessStatsSection';
 import { UserBusinessTable } from '@/components/admin/UserBusinessTable';
+import { RegistrationTrendsChart } from '@/components/admin/RegistrationTrendsChart';
 import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
 
@@ -255,6 +256,9 @@ export default function AdminDashboard() {
         {/* User & Business Stats Section */}
         <UserBusinessStatsSection stats={userBusinessStats} loading={statsLoading} />
 
+        {/* Registration Trends Chart */}
+        <RegistrationTrendsChart />
+
         {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -380,7 +384,6 @@ export default function AdminDashboard() {
 
         {/* User Business Table */}
         <UserBusinessTable users={usersWithBusiness} loading={statsLoading} />
-        <BusinessRegistrationStats />
 
         {/* Recent Activity */}
         <Card>
