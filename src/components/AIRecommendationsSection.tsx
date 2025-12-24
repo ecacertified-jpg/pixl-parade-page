@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart } from "lucide-react";
+import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAIRecommendations } from "@/hooks/useAIRecommendations";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAIRecommendations, Recommendation } from "@/hooks/useAIRecommendations";
 import { useContacts } from "@/hooks/useContacts";
 import { useSuggestionFeedback } from "@/hooks/useSuggestionFeedback";
 import { SuggestionFeedbackButtons } from "@/components/SuggestionFeedbackButtons";
@@ -44,6 +45,7 @@ export function AIRecommendationsSection({
   const [selectedOccasion, setSelectedOccasion] = useState<string>("");
   const [budgetMin, setBudgetMin] = useState<string>("");
   const [budgetMax, setBudgetMax] = useState<string>("");
+  const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null);
 
   const handleGetRecommendations = async () => {
     await getRecommendations({
@@ -271,9 +273,19 @@ export function AIRecommendationsSection({
                       </Badge>
                     </div>
                     
-                    <p className="font-nunito text-sm text-muted-foreground mt-2 line-clamp-3 leading-relaxed">
+                    <p className="font-nunito text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
                       {rec.reason}
                     </p>
+                    
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="p-0 h-auto text-primary font-medium mt-1"
+                      onClick={() => setSelectedRecommendation(rec)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Voir plus
+                    </Button>
 
                     {/* Feedback Buttons */}
                     {rec.product?.id && (
@@ -328,6 +340,82 @@ export function AIRecommendationsSection({
           </div>
         )}
       </CardContent>
+
+      {/* Detail Modal */}
+      <Dialog open={!!selectedRecommendation} onOpenChange={(open) => !open && setSelectedRecommendation(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-poppins text-lg leading-tight">
+              {selectedRecommendation?.productName}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedRecommendation && (
+            <div className="space-y-4">
+              {selectedRecommendation.product?.image_url && (
+                <div className="w-full h-48 rounded-xl overflow-hidden bg-muted">
+                  <img
+                    src={selectedRecommendation.product.image_url}
+                    alt={selectedRecommendation.productName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                {selectedRecommendation.product?.price && (
+                  <p className="font-poppins text-xl text-primary font-bold">
+                    {selectedRecommendation.product.price.toLocaleString()} {selectedRecommendation.product.currency || "XOF"}
+                  </p>
+                )}
+                <Badge className={cn("flex-shrink-0", getScoreColor(selectedRecommendation.matchScore))}>
+                  {selectedRecommendation.matchScore}% match
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="font-poppins font-semibold text-sm text-foreground">Pourquoi ce cadeau ?</h4>
+                <p className="font-nunito text-sm text-muted-foreground leading-relaxed">
+                  {selectedRecommendation.reason}
+                </p>
+              </div>
+
+              {selectedRecommendation.product?.description && (
+                <div className="space-y-2">
+                  <h4 className="font-poppins font-semibold text-sm text-foreground">Description</h4>
+                  <p className="font-nunito text-sm text-muted-foreground leading-relaxed">
+                    {selectedRecommendation.product.description}
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    onAddToFavorites?.(selectedRecommendation.product!.id);
+                    setSelectedRecommendation(null);
+                  }}
+                >
+                  <Heart className="h-4 w-4 mr-2" />
+                  Favoris
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    onAddToCart?.(selectedRecommendation.product);
+                    setSelectedRecommendation(null);
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Ajouter au panier
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
