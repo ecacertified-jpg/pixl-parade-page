@@ -12,11 +12,12 @@ export function useGenerateProductImage() {
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
   const [errorImages, setErrorImages] = useState<Record<string, boolean>>({});
 
-  const generateImage = useCallback(async (key: string, params: GenerateImageParams) => {
-    // Éviter les doublons ou si déjà en erreur
-    if (generatedImages[key] || loadingImages[key] || errorImages[key]) return;
+  const generateImage = useCallback(async (key: string, params: GenerateImageParams, force = false) => {
+    // Éviter les doublons sauf si force = true
+    if (!force && (generatedImages[key] || loadingImages[key] || errorImages[key])) return;
 
     setLoadingImages(prev => ({ ...prev, [key]: true }));
+    setErrorImages(prev => ({ ...prev, [key]: false }));
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-product-image', {
@@ -39,5 +40,9 @@ export function useGenerateProductImage() {
     }
   }, [generatedImages, loadingImages, errorImages]);
 
-  return { generatedImages, loadingImages, errorImages, generateImage };
+  const regenerateImage = useCallback((key: string, params: GenerateImageParams) => {
+    return generateImage(key, params, true);
+  }, [generateImage]);
+
+  return { generatedImages, loadingImages, errorImages, generateImage, regenerateImage };
 }
