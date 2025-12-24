@@ -1,15 +1,21 @@
+import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useBusinessDetailedStats } from '@/hooks/useBusinessDetailedStats';
+import { useBusinessReportPDF } from '@/hooks/useBusinessReportPDF';
 import { BusinessKPICards } from '@/components/admin/BusinessKPICards';
 import { RevenueByTypeChart } from '@/components/admin/RevenueByTypeChart';
 import { BusinessTrendsChart } from '@/components/admin/BusinessTrendsChart';
 import { BusinessPerformanceTable } from '@/components/admin/BusinessPerformanceTable';
 import { ProductCategoryChart } from '@/components/admin/ProductCategoryChart';
+import { BusinessReportPreview } from '@/components/admin/BusinessReportPreview';
+import { ExportReportModal } from '@/components/admin/ExportReportModal';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, FileText } from 'lucide-react';
 
 export default function BusinessAnalytics() {
   const { stats, loading, refresh } = useBusinessDetailedStats();
+  const { generateReport, generating, progress } = useBusinessReportPDF(stats);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   return (
     <AdminLayout>
@@ -22,15 +28,24 @@ export default function BusinessAnalytics() {
               Analyse détaillée des comptes business, produits et revenus
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={refresh}
-            disabled={loading}
-            className="shrink-0"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setExportModalOpen(true)}
+              disabled={loading || !stats}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Exporter PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={refresh}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -63,6 +78,23 @@ export default function BusinessAnalytics() {
           loading={loading} 
         />
       </div>
+
+      {/* Hidden charts for PDF capture */}
+      {stats && (
+        <BusinessReportPreview 
+          stats={stats} 
+          visible={exportModalOpen || generating} 
+        />
+      )}
+
+      {/* Export Modal */}
+      <ExportReportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        onGenerate={generateReport}
+        generating={generating}
+        progress={progress}
+      />
     </AdminLayout>
   );
 }
