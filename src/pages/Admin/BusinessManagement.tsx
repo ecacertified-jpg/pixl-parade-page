@@ -35,6 +35,7 @@ import {
 import { toast } from 'sonner';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
+import { BusinessPerformanceAlertsBanner } from '@/components/admin/BusinessPerformanceAlertsBanner';
 import {
   Select,
   SelectContent,
@@ -471,6 +472,9 @@ export default function BusinessManagement() {
             Gérer et valider les comptes business
           </p>
         </div>
+
+        {/* Performance Alerts Banner */}
+        <BusinessPerformanceAlertsBanner />
 
         <Card>
           <CardHeader className="pb-4">

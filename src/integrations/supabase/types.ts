@@ -538,6 +538,51 @@ export type Database = {
         }
         Relationships: []
       }
+      business_alert_thresholds: {
+        Row: {
+          comparison_period: string
+          created_at: string
+          critical_threshold: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          metric_type: string
+          notify_admin: boolean | null
+          notify_business: boolean | null
+          threshold_type: string
+          updated_at: string
+          warning_threshold: number
+        }
+        Insert: {
+          comparison_period?: string
+          created_at?: string
+          critical_threshold: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type: string
+          notify_admin?: boolean | null
+          notify_business?: boolean | null
+          threshold_type?: string
+          updated_at?: string
+          warning_threshold: number
+        }
+        Update: {
+          comparison_period?: string
+          created_at?: string
+          critical_threshold?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type?: string
+          notify_admin?: boolean | null
+          notify_business?: boolean | null
+          threshold_type?: string
+          updated_at?: string
+          warning_threshold?: number
+        }
+        Relationships: []
+      }
       business_categories: {
         Row: {
           business_owner_id: string
@@ -770,6 +815,87 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_performance_alerts: {
+        Row: {
+          alert_type: string
+          business_id: string
+          change_percentage: number | null
+          created_at: string
+          current_value: number
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          is_resolved: boolean | null
+          message: string
+          metadata: Json | null
+          metric_type: string
+          period_end: string | null
+          period_start: string | null
+          previous_value: number | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+        }
+        Insert: {
+          alert_type: string
+          business_id: string
+          change_percentage?: number | null
+          created_at?: string
+          current_value?: number
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          message: string
+          metadata?: Json | null
+          metric_type: string
+          period_end?: string | null
+          period_start?: string | null
+          previous_value?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Update: {
+          alert_type?: string
+          business_id?: string
+          change_percentage?: number | null
+          created_at?: string
+          current_value?: number
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          is_resolved?: boolean | null
+          message?: string
+          metadata?: Json | null
+          metric_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          previous_value?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_performance_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_performance_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
             referencedColumns: ["id"]
           },
         ]

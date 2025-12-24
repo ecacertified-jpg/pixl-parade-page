@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
+import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -104,10 +105,11 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="general">Général</TabsTrigger>
             <TabsTrigger value="objectives">Objectifs</TabsTrigger>
-            <TabsTrigger value="alerts">Alertes</TabsTrigger>
+            <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
+            <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
@@ -119,6 +121,20 @@ export default function Settings() {
 
           <TabsContent value="alerts">
             <GrowthAlertsSettings />
+          </TabsContent>
+
+          <TabsContent value="business-alerts">
+            <Card>
+              <CardHeader>
+                <CardTitle>Alertes de performance business</CardTitle>
+                <CardDescription>
+                  Configurez les seuils qui déclenchent des alertes automatiques pour les baisses de performance des prestataires
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BusinessAlertThresholdsSettings />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="general">
