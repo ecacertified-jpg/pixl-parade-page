@@ -189,7 +189,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Cake className="h-5 w-5 text-pink-500 flex-shrink-0" />
+          <Cake className="h-5 w-5 text-pink-500 flex-shrink-0 animate-pulse" />
           <h2 className="font-semibold text-sm sm:text-base whitespace-nowrap">Anniversaires à venir</h2>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
