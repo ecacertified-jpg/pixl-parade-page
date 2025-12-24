@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMonthlyComparison } from '@/hooks/useMonthlyComparison';
+import { useMonthlyComparison, MonthlyMetrics } from '@/hooks/useMonthlyComparison';
 import { VariationBadge, ObjectiveAttainmentBadge } from './VariationBadge';
+import { SparklineChart } from './SparklineChart';
 import { Download, Users, Building2, DollarSign, ShoppingCart, Gift, Loader2 } from 'lucide-react';
 
 const currentYear = new Date().getFullYear();
@@ -17,6 +18,14 @@ const formatNumber = (num: number): string => {
 
 const formatCurrency = (num: number): string => {
   return new Intl.NumberFormat('fr-FR', { style: 'decimal' }).format(num) + ' XOF';
+};
+
+const colorMap: Record<string, string> = {
+  users: 'hsl(var(--primary))',
+  businesses: 'hsl(259, 58%, 59%)',
+  revenue: 'hsl(142, 76%, 36%)',
+  orders: 'hsl(45, 88%, 50%)',
+  funds: 'hsl(330, 70%, 60%)'
 };
 
 export function MonthlyComparisonTable() {
@@ -171,14 +180,20 @@ export function MonthlyComparisonTable() {
 }
 
 interface MetricTableProps {
-  metrics: any[];
+  metrics: MonthlyMetrics[];
   totals: any;
-  metricKey: string;
+  metricKey: 'users' | 'businesses' | 'revenue' | 'orders' | 'funds';
   formatValue: (n: number) => string;
 }
 
 function MetricTable({ metrics, totals, metricKey, formatValue }: MetricTableProps) {
   const getValue = (m: any, suffix: string) => m[`${metricKey}${suffix}`];
+  const color = colorMap[metricKey];
+
+  // Build sparkline data for each row showing cumulative progression
+  const getSparklineData = (upToIndex: number) => {
+    return metrics.slice(0, upToIndex + 1).map(m => getValue(m, '') as number);
+  };
 
   return (
     <div className="rounded-md border overflow-x-auto">
@@ -189,12 +204,13 @@ function MetricTable({ metrics, totals, metricKey, formatValue }: MetricTablePro
             <TableHead className="text-right">Réel</TableHead>
             <TableHead className="text-right">Δ M-1</TableHead>
             <TableHead className="text-right">Δ Y-1</TableHead>
+            <TableHead className="w-[100px]">Tendance</TableHead>
             <TableHead className="text-right">Objectif</TableHead>
             <TableHead className="text-right">Atteinte</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {metrics.map((m) => (
+          {metrics.map((m, index) => (
             <TableRow key={m.month}>
               <TableCell className="font-medium capitalize">{m.label}</TableCell>
               <TableCell className="text-right font-semibold">
@@ -205,6 +221,15 @@ function MetricTable({ metrics, totals, metricKey, formatValue }: MetricTablePro
               </TableCell>
               <TableCell className="text-right">
                 <VariationBadge value={getValue(m, 'VariationY1')} />
+              </TableCell>
+              <TableCell>
+                <SparklineChart
+                  data={getSparklineData(index)}
+                  color={color}
+                  height={24}
+                  showArea={false}
+                  showDot={false}
+                />
               </TableCell>
               <TableCell className="text-right text-muted-foreground">
                 {getValue(m, 'Objective') ? formatValue(getValue(m, 'Objective')) : '—'}
@@ -222,6 +247,15 @@ function MetricTable({ metrics, totals, metricKey, formatValue }: MetricTablePro
               </TableCell>
               <TableCell className="text-right">—</TableCell>
               <TableCell className="text-right">—</TableCell>
+              <TableCell>
+                <SparklineChart
+                  data={metrics.map(m => getValue(m, '') as number)}
+                  color={color}
+                  height={24}
+                  showArea={true}
+                  showDot={true}
+                />
+              </TableCell>
               <TableCell className="text-right text-muted-foreground">
                 {totals[`${metricKey}Objective`] ? formatValue(totals[`${metricKey}Objective`]) : '—'}
               </TableCell>
