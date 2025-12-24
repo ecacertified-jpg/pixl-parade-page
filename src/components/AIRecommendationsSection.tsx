@@ -282,7 +282,7 @@ export function AIRecommendationsSection({
                 <div
                   key={index}
                   className={cn(
-                    "flex gap-4 p-5 bg-background rounded-xl border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5",
+                    "flex flex-col sm:flex-row gap-4 p-4 sm:p-5 bg-background rounded-xl border shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
                     existingFeedback === 'accepted' && "border-green-200 bg-green-50/50 dark:bg-green-900/10",
                     existingFeedback === 'saved' && "border-amber-200 bg-amber-50/50 dark:bg-amber-900/10",
                     !existingFeedback && "hover:border-primary/30"
@@ -292,48 +292,59 @@ export function AIRecommendationsSection({
                     animation: 'fade-in 0.4s ease-out forwards'
                   }}
                 >
-                  {rec.product?.image_url && (
-                    <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                  {/* Image Section - Plus grande et responsive */}
+                  {rec.product?.image_url ? (
+                    <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-muted group cursor-pointer" onClick={() => setSelectedRecommendation(rec)}>
                       <img
                         src={rec.product.image_url}
                         alt={rec.productName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
+                    </div>
+                  ) : (
+                    <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                      <Gift className="h-10 w-10 text-primary/40" />
                     </div>
                   )}
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h5 className="font-poppins font-semibold text-base leading-tight line-clamp-2">{rec.productName}</h5>
+                  {/* Content Section */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    {/* Header: Titre, Prix et Badge */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-poppins font-semibold text-base sm:text-lg leading-tight line-clamp-2 text-foreground">
+                          {rec.productName}
+                        </h5>
                         {rec.product?.price && (
-                          <p className="font-poppins text-base text-primary font-bold mt-1">
-                            {rec.product.price.toLocaleString()} {rec.product.currency || "XOF"}
+                          <p className="font-poppins text-lg sm:text-xl text-primary font-bold mt-1">
+                            {rec.product.price.toLocaleString()} <span className="text-sm font-medium text-muted-foreground">{rec.product.currency || "XOF"}</span>
                           </p>
                         )}
                       </div>
-                      <Badge className={cn("flex-shrink-0", getScoreColor(rec.matchScore))}>
+                      <Badge className={cn("flex-shrink-0 text-xs font-medium px-2.5 py-1", getScoreColor(rec.matchScore))}>
                         {rec.matchScore}% match
                       </Badge>
                     </div>
                     
-                    <p className="font-nunito text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
+                    {/* Reason - Mieux formatée */}
+                    <p className="font-nunito text-sm text-muted-foreground line-clamp-2 leading-relaxed flex-1">
                       {rec.reason}
                     </p>
                     
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="p-0 h-auto text-primary font-medium mt-1"
-                      onClick={() => setSelectedRecommendation(rec)}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      Voir plus
-                    </Button>
+                    {/* Actions Row */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2"
+                        onClick={() => setSelectedRecommendation(rec)}
+                      >
+                        <Eye className="h-4 w-4 mr-1.5" />
+                        <span className="text-xs font-medium">Détails</span>
+                      </Button>
 
-                    {/* Feedback Buttons */}
-                    {rec.product?.id && (
-                      <div className="mt-3">
+                      {/* Feedback Buttons */}
+                      {rec.product?.id && (
                         <SuggestionFeedbackButtons
                           productId={rec.product.id}
                           contactId={selectedContact || undefined}
@@ -343,29 +354,31 @@ export function AIRecommendationsSection({
                           source="recommendation"
                           size="sm"
                         />
-                      </div>
-                    )}
+                      )}
 
-                    {/* Action buttons if no feedback yet */}
-                    {rec.product && !existingFeedback && (
-                      <div className="flex gap-2 mt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onAddToFavorites?.(rec.product!.id)}
-                        >
-                          <Heart className="h-3 w-3 mr-1" />
-                          Favoris
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => onAddToCart?.(rec.product)}
-                        >
-                          <ShoppingCart className="h-3 w-3 mr-1" />
-                          Ajouter
-                        </Button>
-                      </div>
-                    )}
+                      {/* Action buttons if no feedback yet */}
+                      {rec.product && !existingFeedback && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-3 text-xs"
+                            onClick={() => onAddToFavorites?.(rec.product!.id)}
+                          >
+                            <Heart className="h-3.5 w-3.5 mr-1" />
+                            Favoris
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 px-3 text-xs bg-primary hover:bg-primary/90"
+                            onClick={() => onAddToCart?.(rec.product)}
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                            Ajouter
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
