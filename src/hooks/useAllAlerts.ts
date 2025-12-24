@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useGrowthAlerts } from './useGrowthAlerts';
 import { useBusinessPerformanceAlerts } from './useBusinessPerformanceAlerts';
 
@@ -12,7 +11,10 @@ export interface UnifiedAlert {
   current_value: number;
   previous_value: number | null;
   growth_percentage: number | null;
-  severity?: string;
+  severity: 'info' | 'warning' | 'critical';
+  original_severity: string | null;
+  escalation_count: number;
+  last_escalated_at: string | null;
   is_read: boolean;
   is_dismissed: boolean;
   triggered_at: string;
@@ -52,6 +54,10 @@ export function useAllAlerts() {
         current_value: alert.current_value,
         previous_value: alert.previous_value,
         growth_percentage: alert.growth_percentage,
+        severity: alert.severity || 'info',
+        original_severity: alert.original_severity,
+        escalation_count: alert.escalation_count || 0,
+        last_escalated_at: alert.last_escalated_at,
         is_read: alert.is_read || false,
         is_dismissed: alert.is_dismissed || false,
         triggered_at: alert.triggered_at,
@@ -70,12 +76,15 @@ export function useAllAlerts() {
         current_value: alert.current_value,
         previous_value: alert.previous_value,
         growth_percentage: alert.change_percentage,
-        severity: alert.severity,
+        severity: alert.severity || 'warning',
+        original_severity: alert.original_severity,
+        escalation_count: alert.escalation_count || 0,
+        last_escalated_at: alert.last_escalated_at,
         is_read: alert.is_read || false,
         is_dismissed: alert.is_dismissed || false,
         triggered_at: alert.created_at,
         metadata: alert.metadata as Record<string, any>,
-        business_name: (alert as any).business_accounts?.business_name,
+        business_name: alert.business_name,
       });
     }
 
@@ -106,7 +115,10 @@ export function useAllAlerts() {
 
   const unreadCount = unifiedAlerts.filter(a => !a.is_read).length;
   const criticalCount = unifiedAlerts.filter(a => 
-    !a.is_read && (a.severity === 'critical' || a.alert_type === 'decline')
+    !a.is_read && a.severity === 'critical'
+  ).length;
+  const escalatedCount = unifiedAlerts.filter(a => 
+    !a.is_read && a.escalation_count > 0
   ).length;
 
   return {
@@ -114,6 +126,7 @@ export function useAllAlerts() {
     loading,
     unreadCount,
     criticalCount,
+    escalatedCount,
     markAsRead,
     dismissAlert,
   };
