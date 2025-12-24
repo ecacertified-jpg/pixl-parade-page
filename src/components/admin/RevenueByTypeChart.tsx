@@ -3,6 +3,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RevenueByType } from '@/hooks/useBusinessDetailedStats';
+import { ExportButton } from './ExportButton';
+import { exportToCSV, formatNumberFr, type ExportColumn } from '@/utils/exportUtils';
 
 interface RevenueByTypeChartProps {
   data: RevenueByType[];
@@ -61,12 +63,24 @@ export function RevenueByTypeChart({ data, loading }: RevenueByTypeChartProps) {
     return value.toString();
   };
 
+  const handleExportCSV = () => {
+    const columns: ExportColumn<RevenueByType>[] = [
+      { key: 'type', header: 'Type de Business' },
+      { key: 'revenue', header: 'Revenus (XOF)', format: (v) => formatNumberFr(v) },
+      { key: 'orders', header: 'Commandes' },
+      { key: 'businessCount', header: 'Nombre de Business' },
+      { key: 'percentage', header: 'Pourcentage (%)', format: (v) => v.toFixed(1) },
+    ];
+    exportToCSV(data, columns, 'revenus_par_type');
+  };
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           📊 Revenus par Type de Business
         </CardTitle>
+        <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 gap-8">

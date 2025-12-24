@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { BarChart3, Grid3X3 } from 'lucide-react';
 import type { ProductCategoryStat } from '@/hooks/useBusinessDetailedStats';
+import { ExportButton } from './ExportButton';
+import { exportToCSV, formatNumberFr, type ExportColumn } from '@/utils/exportUtils';
 
 interface ProductCategoryChartProps {
   data: ProductCategoryStat[];
@@ -112,20 +114,33 @@ export function ProductCategoryChart({ data, loading }: ProductCategoryChartProp
     );
   };
 
+  const handleExportCSV = () => {
+    const columns: ExportColumn<ProductCategoryStat>[] = [
+      { key: 'category', header: 'Catégorie' },
+      { key: 'productCount', header: 'Nombre de Produits' },
+      { key: 'avgPrice', header: 'Prix Moyen (XOF)', format: (v) => formatNumberFr(v) },
+      { key: 'totalRevenue', header: 'Revenus Totaux (XOF)', format: (v) => formatNumberFr(v) },
+    ];
+    exportToCSV(data, columns, 'produits_par_categorie');
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           📦 Produits par Catégorie
         </CardTitle>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
-          <ToggleGroupItem value="bar" aria-label="Vue barres">
-            <BarChart3 className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="treemap" aria-label="Vue treemap">
-            <Grid3X3 className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
+            <ToggleGroupItem value="bar" aria-label="Vue barres">
+              <BarChart3 className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="treemap" aria-label="Vue treemap">
+              <Grid3X3 className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+        </div>
       </CardHeader>
       <CardContent>
         {/* Summary */}

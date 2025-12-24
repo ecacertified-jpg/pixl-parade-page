@@ -5,8 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ArrowUpDown, CheckCircle, XCircle, Star } from 'lucide-react';
+import { Search, ArrowUpDown, CheckCircle, Star } from 'lucide-react';
 import type { BusinessPerformance } from '@/hooks/useBusinessDetailedStats';
+import { ExportButton } from './ExportButton';
+import { exportToCSV, formatNumberFr, type ExportColumn } from '@/utils/exportUtils';
 
 interface BusinessPerformanceTableProps {
   data: BusinessPerformance[];
@@ -87,6 +89,20 @@ export function BusinessPerformanceTable({ data, loading }: BusinessPerformanceT
     return value.toString();
   };
 
+  const handleExportCSV = () => {
+    const columns: ExportColumn<BusinessPerformance>[] = [
+      { key: 'name', header: 'Nom du Business' },
+      { key: 'type', header: 'Type' },
+      { key: 'isActive', header: 'Statut', format: (v) => v ? 'Actif' : 'Inactif' },
+      { key: 'isVerified', header: 'Vérifié', format: (v) => v ? 'Oui' : 'Non' },
+      { key: 'products', header: 'Produits' },
+      { key: 'orders', header: 'Commandes' },
+      { key: 'revenue', header: 'Revenus (XOF)', format: (v) => formatNumberFr(v) },
+      { key: 'rating', header: 'Note', format: (v) => v.toFixed(1) },
+    ];
+    exportToCSV(filteredData, columns, 'performance_business');
+  };
+
   if (loading) {
     return (
       <Card>
@@ -118,10 +134,11 @@ export function BusinessPerformanceTable({ data, loading }: BusinessPerformanceT
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           📋 Performance des Business
         </CardTitle>
+        <ExportButton onExportCSV={handleExportCSV} disabled={filteredData.length === 0} />
       </CardHeader>
       <CardContent>
         {/* Filters */}
