@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -104,10 +105,15 @@ export default function Settings() {
         <Tabs defaultValue="general" className="w-full">
           <TabsList>
             <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="alerts">Alertes</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="alerts">
+            <GrowthAlertsSettings />
+          </TabsContent>
 
           <TabsContent value="general">
             <Card>
