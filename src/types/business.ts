@@ -1,5 +1,6 @@
 export interface Business {
   id?: string;
+  user_id?: string;
   business_name: string;
   business_type?: string;
   phone?: string;

@@ -2,12 +2,19 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Store, MapPin, Phone, Clock, Users } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Edit, Trash2, Store, MapPin, Phone, Clock, Users, Link2Off, AlertTriangle, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Business } from "@/types/business";
 import { ManageFundsBeforeDeleteModal, type AssociatedFund } from "./ManageFundsBeforeDeleteModal";
-
+import { CascadeDeleteBusinessModal } from "./CascadeDeleteBusinessModal";
 interface BusinessCardProps {
   business: Business;
   onEdit: (business: Business) => void;
@@ -17,6 +24,7 @@ interface BusinessCardProps {
 export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps) {
   const [loading, setLoading] = useState(false);
   const [showFundsModal, setShowFundsModal] = useState(false);
+  const [showCascadeModal, setShowCascadeModal] = useState(false);
   const [associatedFunds, setAssociatedFunds] = useState<AssociatedFund[]>([]);
 
   const getTodaySchedule = () => {
@@ -215,15 +223,34 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
           <Edit className="h-4 w-4 mr-2" />
           Modifier
         </Button>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleDelete}
-          disabled={loading}
-          className="text-red-600 hover:text-red-700"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={loading}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDelete}>
+              <Link2Off className="h-4 w-4 mr-2" />
+              Suppression sécurisée
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => setShowCascadeModal(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Supprimer TOUT en cascade
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <ManageFundsBeforeDeleteModal
@@ -233,6 +260,13 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
         businessName={business.business_name}
         funds={associatedFunds}
         onComplete={handleFundsManaged}
+      />
+
+      <CascadeDeleteBusinessModal
+        open={showCascadeModal}
+        onOpenChange={setShowCascadeModal}
+        business={business}
+        onDeleted={onDeleted}
       />
     </Card>
   );
