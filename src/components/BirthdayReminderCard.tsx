@@ -121,33 +121,30 @@ export function BirthdayReminderCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <CardHeader className="pb-3 pt-4 px-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Avatar className="h-11 w-11 border-2 border-primary/20 flex-shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12 border-2 border-primary/20">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {notification.contact_name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold text-sm sm:text-base truncate">{notification.contact_name}</h3>
-                <Badge 
-                  variant={getBadgeVariant()} 
-                  className="text-[10px] sm:text-xs px-2 py-0.5 whitespace-nowrap flex-shrink-0"
-                >
+            <div>
+              <h3 className="font-semibold text-base">{notification.contact_name}</h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                {notification.contact_relationship && (
+                  <span className="text-xs text-muted-foreground">
+                    {notification.contact_relationship}
+                  </span>
+                )}
+                <Badge variant={getBadgeVariant()} className="text-xs">
                   {notification.days_until === 0 
                     ? "Aujourd'hui ! 🎉" 
                     : notification.days_until === 1 
                       ? "Demain !" 
-                      : `Dans ${notification.days_until} j`}
+                      : `Dans ${notification.days_until} jours`}
                 </Badge>
               </div>
-              {notification.contact_relationship && (
-                <span className="text-xs text-muted-foreground capitalize">
-                  {notification.contact_relationship}
-                </span>
-              )}
             </div>
           </div>
           
@@ -155,10 +152,10 @@ export function BirthdayReminderCard({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-7 w-7 text-muted-foreground hover:text-foreground flex-shrink-0 -mt-1 -mr-1"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={() => onDismiss(notification.id)}
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </Button>
           )}
         </div>
