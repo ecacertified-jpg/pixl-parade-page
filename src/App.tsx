@@ -45,6 +45,7 @@ import Settings from "./pages/Admin/Settings";
 import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
 import BusinessAnalytics from "./pages/Admin/BusinessAnalytics";
 import RealtimeDashboard from "./pages/Admin/RealtimeDashboard";
+import AlertsHistory from "./pages/Admin/AlertsHistory";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -224,6 +225,11 @@ const App = () => (
             <Route path="/admin/realtime" element={
               <AdminRoute>
                 <RealtimeDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/alerts" element={
+              <AdminRoute>
+                <AlertsHistory />
               </AdminRoute>
             } />
             <Route path="/admin/users" element={

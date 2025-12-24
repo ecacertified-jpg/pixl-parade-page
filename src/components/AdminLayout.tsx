@@ -15,7 +15,8 @@ import {
   Menu,
   Heart,
   TrendingUp,
-  Radio
+  Radio,
+  Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { AlertsCenter } from '@/components/admin/AlertsCenter';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -40,6 +42,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'Temps réel', href: '/admin/realtime', icon: Radio },
+  { title: 'Alertes KPI', href: '/admin/alerts', icon: Bell },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
@@ -111,7 +114,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const NavContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-6 border-b">
-        <h2 className="text-2xl font-bold text-primary">JOIE DE VIVRE</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-primary">JOIE DE VIVRE</h2>
+          <AlertsCenter />
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Panneau d'administration
         </p>
