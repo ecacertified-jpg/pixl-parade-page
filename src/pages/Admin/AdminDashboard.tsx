@@ -10,7 +10,10 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { BusinessRegistrationStats } from '@/components/admin/BusinessRegistrationStats';
+import { UserBusinessStatsSection } from '@/components/admin/UserBusinessStatsSection';
+import { UserBusinessTable } from '@/components/admin/UserBusinessTable';
 import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
+import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
 
 interface DashboardStats {
   totalUsers: number;
@@ -49,6 +52,9 @@ export default function AdminDashboard() {
 
   // Use secure admin actions hook
   const { approveBusiness } = useSecureAdminActions();
+  
+  // User & Business stats hook
+  const { stats: userBusinessStats, users: usersWithBusiness, loading: statsLoading } = useUserBusinessStats();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -246,6 +252,9 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* User & Business Stats Section */}
+        <UserBusinessStatsSection stats={userBusinessStats} loading={statsLoading} />
+
         {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -367,6 +376,10 @@ export default function AdminDashboard() {
         )}
 
         {/* Business Registration Stats */}
+        <BusinessRegistrationStats />
+
+        {/* User Business Table */}
+        <UserBusinessTable users={usersWithBusiness} loading={statsLoading} />
         <BusinessRegistrationStats />
 
         {/* Recent Activity */}
