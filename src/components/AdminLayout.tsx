@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu,
   Heart,
-  TrendingUp
+  TrendingUp,
+  Radio
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,6 +39,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { title: 'Temps réel', href: '/admin/realtime', icon: Radio },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
