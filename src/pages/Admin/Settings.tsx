@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
+import { AdminReportSettings } from '@/components/admin/AdminReportSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -110,6 +111,7 @@ export default function Settings() {
             <TabsTrigger value="objectives">Objectifs</TabsTrigger>
             <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
             <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
+            <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
@@ -133,6 +135,20 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <BusinessAlertThresholdsSettings />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <Card>
+              <CardHeader>
+                <CardTitle>Rapports automatiques par email</CardTitle>
+                <CardDescription>
+                  Configurez les rapports périodiques envoyés aux administrateurs
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AdminReportSettings />
               </CardContent>
             </Card>
           </TabsContent>

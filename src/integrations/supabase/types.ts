@@ -114,6 +114,89 @@ export type Database = {
           },
         ]
       }
+      admin_report_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipients_count: number
+          report_type: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipients_count?: number
+          report_type: string
+          sent_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipients_count?: number
+          report_type?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      admin_report_preferences: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          email_override: string | null
+          id: string
+          include_alerts: boolean
+          include_charts_summary: boolean
+          include_kpis: boolean
+          include_top_performers: boolean
+          is_active: boolean
+          report_types: string[]
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          email_override?: string | null
+          id?: string
+          include_alerts?: boolean
+          include_charts_summary?: boolean
+          include_kpis?: boolean
+          include_top_performers?: boolean
+          is_active?: boolean
+          report_types?: string[]
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          email_override?: string | null
+          id?: string
+          include_alerts?: boolean
+          include_charts_summary?: boolean
+          include_kpis?: boolean
+          include_top_performers?: boolean
+          is_active?: boolean
+          report_types?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_report_preferences_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       admin_sessions: {
         Row: {
           admin_user_id: string
