@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye, Loader2 } from "lucide-react";
+import { useGenerateProductImage } from "@/hooks/useGenerateProductImage";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,23 @@ export function AIRecommendationsSection({
   const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
   const { contacts } = useContacts();
   const { getProductFeedback, stats } = useSuggestionFeedback();
+  const { generatedImages, loadingImages, generateImage } = useGenerateProductImage();
+
+  // Générer automatiquement les images pour les produits sans image
+  useEffect(() => {
+    if (recommendations.length > 0 && !loading) {
+      recommendations.forEach((rec, index) => {
+        if (!rec.product?.image_url) {
+          const key = `rec-${index}-${rec.productName}`;
+          generateImage(key, {
+            productName: rec.productName,
+            description: rec.reason,
+            category: rec.product?.categories?.name,
+          });
+        }
+      });
+    }
+  }, [recommendations, loading]);
   
   const [showFilters, setShowFilters] = useState(!defaultContactId);
   const [selectedContact, setSelectedContact] = useState<string>(defaultContactId || "");
@@ -280,6 +298,9 @@ export function AIRecommendationsSection({
             
             {filteredRecommendations.map((rec, index) => {
               const existingFeedback = rec.product?.id ? getProductFeedback(rec.product.id) : null;
+              const imageKey = `rec-${index}-${rec.productName}`;
+              const generatedImage = generatedImages[imageKey];
+              const isGeneratingImage = loadingImages[imageKey];
               
               return (
                 <div
@@ -303,6 +324,23 @@ export function AIRecommendationsSection({
                         alt={rec.productName}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
+                    </div>
+                  ) : generatedImage ? (
+                    <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-muted group cursor-pointer relative" onClick={() => setSelectedRecommendation(rec)}>
+                      <img
+                        src={generatedImage}
+                        alt={rec.productName}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <Badge className="absolute top-2 right-2 text-xs bg-primary/80 text-primary-foreground">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        IA
+                      </Badge>
+                    </div>
+                  ) : isGeneratingImage ? (
+                    <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                      <span className="text-xs text-muted-foreground font-nunito">Génération...</span>
                     </div>
                   ) : (
                     <div className="w-full sm:w-32 h-40 sm:h-32 flex-shrink-0 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
@@ -412,15 +450,29 @@ export function AIRecommendationsSection({
           
           {selectedRecommendation && (
             <div className="space-y-4">
-              {selectedRecommendation.product?.image_url && (
-                <div className="w-full h-48 rounded-xl overflow-hidden bg-muted">
-                  <img
-                    src={selectedRecommendation.product.image_url}
-                    alt={selectedRecommendation.productName}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+              {(() => {
+                // Trouver l'index pour récupérer l'image générée
+                const recIndex = filteredRecommendations.findIndex(r => r.productName === selectedRecommendation.productName);
+                const imageKey = `rec-${recIndex}-${selectedRecommendation.productName}`;
+                const generatedImage = generatedImages[imageKey];
+                const imageUrl = selectedRecommendation.product?.image_url || generatedImage;
+                
+                return imageUrl ? (
+                  <div className="w-full h-48 rounded-xl overflow-hidden bg-muted relative">
+                    <img
+                      src={imageUrl}
+                      alt={selectedRecommendation.productName}
+                      className="w-full h-full object-cover"
+                    />
+                    {!selectedRecommendation.product?.image_url && generatedImage && (
+                      <Badge className="absolute top-2 right-2 text-xs bg-primary/80 text-primary-foreground">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        IA
+                      </Badge>
+                    )}
+                  </div>
+                ) : null;
+              })()}
               
               <div className="flex items-center justify-between">
                 {selectedRecommendation.product?.price && (

@@ -3,6 +3,9 @@ project_id = "vaimfeurvzokepqqqrsl"
 [functions.generate-ai-music]
 verify_jwt = true
 
+[functions.generate-product-image]
+verify_jwt = false
+
 [functions.enhance-gratitude-message]
 verify_jwt = true
 
