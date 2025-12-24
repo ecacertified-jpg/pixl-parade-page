@@ -10,10 +10,10 @@ import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCar
 import { NewsFeed } from "@/components/NewsFeed";
 import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { BottomNavigation } from "@/components/RecentActivitySection";
+import { InstallBanner } from "@/components/InstallBanner";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
 import logoJV from "@/assets/logo-jv.svg";
-
 const Home = () => {
   // Force rebuild - Home component 
   const navigate = useNavigate();
@@ -49,6 +49,9 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* Install Banner */}
+        <InstallBanner />
+
         {/* Section 1: What do you want card */}
         <WhatDoYouWantCard />
 
