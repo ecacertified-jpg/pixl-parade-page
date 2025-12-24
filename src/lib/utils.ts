@@ -14,3 +14,7 @@ export function formatCompactNumber(value: number): string {
   }
   return value.toString();
 }
+
+export function isValidImageUrl(url: string | null | undefined): boolean {
+  return !!(url && url.trim() !== '' && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:')));
+}

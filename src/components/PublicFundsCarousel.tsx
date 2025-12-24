@@ -9,6 +9,7 @@ import { useState } from "react";
 import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
+import { isValidImageUrl } from "@/lib/utils";
 
 // Fonction pour calculer les jours avant l'anniversaire
 const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
@@ -141,7 +142,7 @@ export function PublicFundsCarousel() {
         return <Card key={fund.id} className="flex-shrink-0 w-44 bg-white rounded-xl shadow-md border-0 overflow-hidden hover:shadow-lg transition-all duration-300">
               {/* Product Image */}
               <div className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
-                {fund.productImage ? <img src={fund.productImage} alt={fund.productName} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">
+                {isValidImageUrl(fund.productImage) ? <img src={fund.productImage} alt={fund.productName} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center">
                     <Gift className="h-6 w-6 text-pink-300" />
                   </div>}
               </div>
