@@ -6,6 +6,7 @@ import { Edit, Trash2, Store, MapPin, Phone, Clock, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Business } from "@/types/business";
+import { ManageFundsBeforeDeleteModal, type AssociatedFund } from "./ManageFundsBeforeDeleteModal";
 
 interface BusinessCardProps {
   business: Business;
@@ -15,6 +16,8 @@ interface BusinessCardProps {
 
 export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps) {
   const [loading, setLoading] = useState(false);
+  const [showFundsModal, setShowFundsModal] = useState(false);
+  const [associatedFunds, setAssociatedFunds] = useState<AssociatedFund[]>([]);
 
   const getTodaySchedule = () => {
     const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase();
@@ -67,12 +70,18 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
 
       if (ordersError) throw ordersError;
 
-      // Check if business has associated collective funds
+      // Check if business has associated collective funds with contribution counts
       const { data: funds, error: fundsError } = await supabase
         .from('collective_funds')
-        .select('id')
-        .eq('created_by_business_id', business.id)
-        .limit(1);
+        .select(`
+          id,
+          title,
+          current_amount,
+          target_amount,
+          status,
+          fund_contributions(id)
+        `)
+        .eq('created_by_business_id', business.id);
 
       if (fundsError) throw fundsError;
 
@@ -87,7 +96,19 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
       }
 
       if (funds && funds.length > 0) {
-        toast.error("Impossible de supprimer : ce business a des cagnettes collectives associées. Supprimez d'abord les cagnettes.", { id: toastId });
+        // Map funds with contribution counts and open modal
+        const mappedFunds: AssociatedFund[] = funds.map((f) => ({
+          id: f.id,
+          title: f.title,
+          current_amount: f.current_amount || 0,
+          target_amount: f.target_amount,
+          status: f.status || 'active',
+          contributions_count: Array.isArray(f.fund_contributions) ? f.fund_contributions.length : 0,
+        }));
+        setAssociatedFunds(mappedFunds);
+        setShowFundsModal(true);
+        toast.dismiss(toastId);
+        setLoading(false);
         return;
       }
 
@@ -101,6 +122,29 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
       if (error) throw error;
 
       toast.success("✅ Business supprimé de Config et du sélecteur", { id: toastId });
+      onDeleted();
+    } catch (error) {
+      console.error('Error deleting business:', error);
+      toast.error("Erreur lors de la suppression", { id: toastId });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFundsManaged = async () => {
+    // After funds are managed, proceed to delete the business
+    setLoading(true);
+    const toastId = toast.loading("Suppression du business...");
+
+    try {
+      const { error } = await supabase
+        .from('business_accounts')
+        .delete()
+        .eq('id', business.id);
+
+      if (error) throw error;
+
+      toast.success("✅ Business supprimé avec succès", { id: toastId });
       onDeleted();
     } catch (error) {
       console.error('Error deleting business:', error);
@@ -181,6 +225,15 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+
+      <ManageFundsBeforeDeleteModal
+        open={showFundsModal}
+        onOpenChange={setShowFundsModal}
+        businessId={business.id}
+        businessName={business.business_name}
+        funds={associatedFunds}
+        onComplete={handleFundsManaged}
+      />
     </Card>
   );
 }
