@@ -51,6 +51,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import BusinessProfileSettings from "./pages/BusinessProfileSettings";
 import Orders from "./pages/Orders";
 import GiftIdeas from "./pages/GiftIdeas";
+import BusinessCollectiveFundsManagement from "./pages/BusinessCollectiveFundsManagement";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
 
@@ -200,6 +201,11 @@ const App = () => (
             <Route path="/orders" element={
               <ProtectedRoute>
                 <Orders />
+              </ProtectedRoute>
+            } />
+            <Route path="/business-collective-funds" element={
+              <ProtectedRoute>
+                <BusinessCollectiveFundsManagement />
               </ProtectedRoute>
             } />
             <Route path="/gift-ideas/:contactId" element={

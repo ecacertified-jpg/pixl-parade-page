@@ -1103,7 +1103,16 @@ export default function BusinessDashboard() {
               </Card>
 
               {/* Cagnottes en cours */}
-              <BusinessInitiatedFundsSection />
+              <Card className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Cagnottes en cours</h3>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/business-collective-funds')}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    Tout gérer
+                  </Button>
+                </div>
+                <BusinessInitiatedFundsSection />
+              </Card>
             </div>
           </TabsContent>
 
