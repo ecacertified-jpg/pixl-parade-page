@@ -9,6 +9,7 @@ import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
+import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -105,11 +106,16 @@ export default function Settings() {
         <Tabs defaultValue="general" className="w-full">
           <TabsList>
             <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="objectives">Objectifs</TabsTrigger>
             <TabsTrigger value="alerts">Alertes</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="objectives">
+            <ObjectivesEditor />
+          </TabsContent>
 
           <TabsContent value="alerts">
             <GrowthAlertsSettings />

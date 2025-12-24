@@ -2470,6 +2470,42 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_objectives: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          metric_type: string
+          month: number
+          notes: string | null
+          target_value: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          metric_type: string
+          month: number
+          notes?: string | null
+          target_value: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          metric_type?: string
+          month?: number
+          notes?: string | null
+          target_value?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           ai_suggestions: boolean | null

@@ -7,6 +7,7 @@ import { BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, X
 import { useAdminAnalytics, Period } from '@/hooks/useAdminAnalytics';
 import { Download, Calendar, TrendingUp, Users, DollarSign, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { MonthlyComparisonTable } from '@/components/admin/MonthlyComparisonTable';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -267,6 +268,9 @@ export default function Analytics() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* Tableau comparatif mensuel */}
+        <MonthlyComparisonTable />
       </div>
     </AdminLayout>
   );
