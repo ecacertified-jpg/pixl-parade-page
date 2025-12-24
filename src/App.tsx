@@ -43,6 +43,7 @@ import AdminManagement from "./pages/Admin/AdminManagement";
 import AuditLogs from "./pages/Admin/AuditLogs";
 import Settings from "./pages/Admin/Settings";
 import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
+import BusinessAnalytics from "./pages/Admin/BusinessAnalytics";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -227,6 +228,11 @@ const App = () => (
             <Route path="/admin/businesses" element={
               <AdminRoute>
                 <BusinessManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/business-analytics" element={
+              <AdminRoute>
+                <BusinessAnalytics />
               </AdminRoute>
             } />
             <Route path="/admin/content" element={
