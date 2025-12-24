@@ -8,6 +8,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Button } from '@/components/ui/button';
 import { PeriodSelector } from './PeriodSelector';
 import { useRegistrationTrends, Granularity, getPresetDateRange, getRecommendedGranularity } from '@/hooks/useRegistrationTrends';
+import { ExportButton } from './ExportButton';
+import { exportToCSV, type ExportColumn } from '@/utils/exportUtils';
 
 export function RegistrationTrendsChart() {
   const [startDate, setStartDate] = useState(() => getPresetDateRange('30d').startDate);
@@ -34,6 +36,15 @@ export function RegistrationTrendsChart() {
 
   const ChartComponent = showCumulative ? AreaChart : LineChart;
 
+  const handleExportCSV = () => {
+    const columns: ExportColumn<typeof chartData[0]>[] = [
+      { key: 'label', header: 'Période' },
+      { key: 'displayUsers', header: showCumulative ? 'Utilisateurs (cumul)' : 'Nouveaux utilisateurs' },
+      { key: 'displayBusinesses', header: showCumulative ? 'Business (cumul)' : 'Nouveaux business' },
+    ];
+    exportToCSV(chartData, columns, 'inscriptions');
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -42,14 +53,17 @@ export function RegistrationTrendsChart() {
             <TrendingUp className="h-5 w-5 text-primary" />
             Évolution des inscriptions
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refetch}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportButton onExportCSV={handleExportCSV} disabled={loading || data.length === 0} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refetch}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

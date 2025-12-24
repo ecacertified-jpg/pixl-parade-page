@@ -6,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { TrendingUp, Building2 } from 'lucide-react';
 import type { MonthlyTrend } from '@/hooks/useBusinessDetailedStats';
+import { ExportButton } from './ExportButton';
+import { exportToCSV, formatNumberFr, type ExportColumn } from '@/utils/exportUtils';
 
 interface BusinessTrendsChartProps {
   data: MonthlyTrend[];
@@ -56,22 +58,35 @@ export function BusinessTrendsChart({ data, loading }: BusinessTrendsChartProps)
   const totalOrders = data.reduce((sum, d) => sum + d.orders, 0);
   const totalNewBusinesses = data.reduce((sum, d) => sum + d.newBusinesses, 0);
 
+  const handleExportCSV = () => {
+    const columns: ExportColumn<MonthlyTrend>[] = [
+      { key: 'label', header: 'Mois' },
+      { key: 'revenue', header: 'Revenus (XOF)', format: (v) => formatNumberFr(v) },
+      { key: 'orders', header: 'Commandes' },
+      { key: 'newBusinesses', header: 'Nouveaux Business' },
+    ];
+    exportToCSV(data, columns, 'tendances_business');
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           📈 Tendances Mensuelles (12 mois)
         </CardTitle>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
-          <ToggleGroupItem value="revenue" aria-label="Voir revenus">
-            <TrendingUp className="h-4 w-4 mr-1" />
-            Revenus
-          </ToggleGroupItem>
-          <ToggleGroupItem value="businesses" aria-label="Voir business">
-            <Building2 className="h-4 w-4 mr-1" />
-            Business
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
+            <ToggleGroupItem value="revenue" aria-label="Voir revenus">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              Revenus
+            </ToggleGroupItem>
+            <ToggleGroupItem value="businesses" aria-label="Voir business">
+              <Building2 className="h-4 w-4 mr-1" />
+              Business
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+        </div>
       </CardHeader>
       <CardContent>
         {/* Summary KPIs */}
