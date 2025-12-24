@@ -216,92 +216,117 @@ export const CreateSurpriseFundModal = ({
                 Suggestions pour {beneficiaryName || "ce contact"}
               </Label>
               
-              {loadingRecs ? (
-                <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
-                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Recherche de suggestions...</span>
-                </div>
-              ) : recommendations.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
-                    {recommendations.slice(0, 6).map((rec) => {
-                      const isSelected = selectedProduct?.id === rec.product?.id;
-                      return (
-                        <div
-                          key={rec.product?.id || rec.productName}
-                          onClick={() => handleSelectProduct(rec)}
-                          className={cn(
-                            "relative p-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md",
-                            isSelected
-                              ? "border-primary bg-primary/10 shadow-sm"
-                              : "border-muted hover:border-primary/50"
-                          )}
-                        >
-                          {isSelected && (
-                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
-                              <Check className="h-3 w-3" />
-                            </div>
-                          )}
-                          {rec.product?.image_url ? (
-                            <img 
-                              src={rec.product.image_url} 
-                              alt={rec.productName}
-                              className="w-full h-20 object-cover rounded mb-2" 
-                            />
-                          ) : (
-                            <div className="w-full h-20 bg-muted/50 rounded mb-2 flex items-center justify-center">
-                              <Package className="h-8 w-8 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="text-xs font-medium truncate">{rec.productName}</p>
-                          {rec.product?.price && (
-                            <p className="text-xs font-semibold text-primary">
-                              {rec.product.price.toLocaleString()} XOF
-                            </p>
-                          )}
-                          {rec.product?.vendor && (
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {rec.product.vendor}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Affichage du produit sélectionné */}
-                  {selectedProduct && (
-                    <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
-                      <Package className="h-5 w-5 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          Produit sélectionné : {selectedProduct.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Le montant cible a été pré-rempli avec le prix du produit
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedProduct(null);
-                          setTargetAmount("");
-                        }}
-                      >
-                        Retirer
-                      </Button>
+              {(() => {
+                // Filtrer pour n'afficher que les recommandations avec de vrais produits
+                const realProductRecs = recommendations.filter(rec => rec.product !== null);
+                
+                if (loadingRecs) {
+                  return (
+                    <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
+                      <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Recherche de suggestions personnalisées...</span>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="p-4 bg-muted/30 rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Aucune suggestion disponible pour le moment
-                  </p>
-                </div>
-              )}
+                  );
+                }
+                
+                if (realProductRecs.length > 0) {
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+                        {realProductRecs.slice(0, 6).map((rec) => {
+                          const isSelected = selectedProduct?.id === rec.product?.id;
+                          return (
+                            <div
+                              key={rec.product?.id || rec.productName}
+                              onClick={() => handleSelectProduct(rec)}
+                              className={cn(
+                                "relative p-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md",
+                                isSelected
+                                  ? "border-primary bg-primary/10 shadow-sm"
+                                  : "border-muted hover:border-primary/50"
+                              )}
+                            >
+                              {isSelected && (
+                                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
+                                  <Check className="h-3 w-3" />
+                                </div>
+                              )}
+                              {rec.product?.image_url ? (
+                                <img 
+                                  src={rec.product.image_url} 
+                                  alt={rec.productName}
+                                  className="w-full h-20 object-cover rounded mb-2" 
+                                />
+                              ) : (
+                                <div className="w-full h-20 bg-muted/50 rounded mb-2 flex items-center justify-center">
+                                  <Package className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                              )}
+                              <p className="text-xs font-medium truncate">{rec.productName}</p>
+                              {rec.product?.price && (
+                                <p className="text-xs font-semibold text-primary">
+                                  {rec.product.price.toLocaleString()} XOF
+                                </p>
+                              )}
+                              {rec.product?.vendor && (
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {rec.product.vendor}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Affichage du produit sélectionné */}
+                      {selectedProduct && (
+                        <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                          <Package className="h-5 w-5 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              Produit sélectionné : {selectedProduct.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Le montant cible a été pré-rempli avec le prix du produit
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedProduct(null);
+                              setTargetAmount("");
+                            }}
+                          >
+                            Retirer
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                
+                // L'IA a répondu mais aucun produit réel ne correspond
+                if (recommendations.length > 0 && realProductRecs.length === 0) {
+                  return (
+                    <div className="p-4 bg-muted/30 rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Aucun produit correspondant trouvé. Définissez votre propre montant ci-dessous.
+                      </p>
+                    </div>
+                  );
+                }
+                
+                // Aucune recommandation
+                return (
+                  <div className="p-4 bg-muted/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Aucune suggestion disponible pour le moment
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

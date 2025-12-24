@@ -209,8 +209,27 @@ ${acceptedProducts.length > 0 ? `- ${acceptedProducts.length} produits ont été
 
 Adapte tes suggestions en tenant compte de ces préférences pour améliorer la pertinence.` : "";
 
+    // Format products for AI with explicit IDs
+    const formattedProducts = availableProducts?.slice(0, 30).map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      category: (p.categories as any)?.name_fr || (p.categories as any)?.name,
+      vendor: (p.business_accounts as any)?.business_name
+    })) || [];
+
     const systemPrompt = `Tu es un expert en recommandations de cadeaux pour l'application Joie de Vivre en Côte d'Ivoire.
-Tu dois suggérer des cadeaux personnalisés basés sur les préférences de l'utilisateur, son historique d'achats, et les informations sur le destinataire.
+
+INSTRUCTION CRITIQUE - SÉLECTION DE PRODUITS:
+- Tu DOIS choisir UNIQUEMENT parmi les produits listés ci-dessous
+- Tu DOIS utiliser le champ "productId" avec l'ID exact du produit (format UUID)
+- Tu DOIS utiliser le champ "productName" avec le nom EXACT du produit
+- N'invente JAMAIS de nouveaux produits ou noms
+- Si aucun produit ne convient, explique-le dans generalAdvice
+
+PRODUITS DISPONIBLES (utilise ces IDs et noms exacts):
+${JSON.stringify(formattedProducts, null, 2)}
 
 Contexte utilisateur:
 - Préférences: ${JSON.stringify(userContext.preferences)}
@@ -221,10 +240,7 @@ ${userContext.occasion ? `- Occasion: ${userContext.occasion}` : ''}
 ${userContext.budget ? `- Budget: ${userContext.budget.min} - ${userContext.budget.max} XOF` : ''}
 ${feedbackInstructions}
 
-Produits disponibles:
-${JSON.stringify(availableProducts?.slice(0, 30) || [])}
-
-Réponds en JSON avec exactement cette structure, sans texte supplémentaire.`;
+Sélectionne les ${Math.min(5, formattedProducts.length)} meilleurs produits parmi la liste ci-dessus.`;
 
     const userPrompt = `Suggère 5 cadeaux personnalisés pour ${userContext.contactInfo?.name || "cette personne"}${userContext.occasion ? ` pour ${userContext.occasion}` : ""}. 
 Pour chaque suggestion, explique pourquoi ce cadeau est adapté en tenant compte des préférences de l'utilisateur.`;
@@ -315,6 +331,9 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté en tenant compte
     // Enrich recommendations with full product data
     const enrichedRecommendations = await Promise.all(
       (recommendations.recommendations || []).map(async (rec: any) => {
+        let matchedProduct = null;
+        
+        // 1. Try exact ID match first
         if (rec.productId) {
           const { data: product } = await supabase
             .from("products")
@@ -322,27 +341,52 @@ Pour chaque suggestion, explique pourquoi ce cadeau est adapté en tenant compte
             .eq("id", rec.productId)
             .maybeSingle();
           
-          // Add vendor from business_accounts
-          const enrichedProduct = product ? {
-            ...product,
-            vendor: product.business_accounts?.business_name || "Boutique"
-          } : null;
-          
-          return { ...rec, product: enrichedProduct };
+          if (product) {
+            matchedProduct = {
+              ...product,
+              vendor: product.business_accounts?.business_name || "Boutique"
+            };
+          }
         }
         
-        // Try to match by name if no ID
-        const matchedProduct = availableProducts?.find(
-          p => p.name.toLowerCase().includes(rec.productName?.toLowerCase() || "")
-        );
+        // 2. Fallback: flexible name matching (bidirectional)
+        if (!matchedProduct && rec.productName) {
+          const recNameLower = rec.productName.toLowerCase().trim();
+          const found = availableProducts?.find(p => {
+            const pNameLower = p.name.toLowerCase().trim();
+            // Bidirectional matching: either contains the other
+            return pNameLower.includes(recNameLower) || recNameLower.includes(pNameLower);
+          });
+          
+          if (found) {
+            matchedProduct = {
+              ...found,
+              vendor: (found as any).business_accounts?.business_name || "Boutique"
+            };
+          }
+        }
         
-        // Add vendor from business_accounts
-        const enrichedMatchedProduct = matchedProduct ? {
-          ...matchedProduct,
-          vendor: (matchedProduct as any).business_accounts?.business_name || "Boutique"
-        } : null;
+        // 3. Fallback: match by first significant words
+        if (!matchedProduct && rec.productName) {
+          const recWords = rec.productName.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3);
+          if (recWords.length > 0) {
+            const found = availableProducts?.find(p => {
+              const pWords = p.name.toLowerCase().split(/\s+/);
+              return recWords.some((rw: string) => pWords.some(pw => pw.includes(rw) || rw.includes(pw)));
+            });
+            
+            if (found) {
+              matchedProduct = {
+                ...found,
+                vendor: (found as any).business_accounts?.business_name || "Boutique"
+              };
+            }
+          }
+        }
         
-        return { ...rec, product: enrichedMatchedProduct };
+        console.log(`[AI Recommendations] Product match for "${rec.productName}": ${matchedProduct ? matchedProduct.name : 'NOT FOUND'}`);
+        
+        return { ...rec, product: matchedProduct };
       })
     );
 
