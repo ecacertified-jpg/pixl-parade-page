@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { findCityCoordinates } from '@/utils/ivoryCoastCities';
 
 export type RealtimeEventType = 'user' | 'business' | 'order' | 'fund' | 'contribution';
 
@@ -11,6 +12,8 @@ export interface RealtimeEvent {
   timestamp: Date;
   title: string;
   description: string;
+  location?: string;
+  coordinates?: [number, number];
 }
 
 export interface LiveStats {
@@ -107,12 +110,46 @@ export function useRealtimeDashboard() {
     });
   }, []);
 
+  // Extract location from event data
+  const extractLocation = useCallback((type: RealtimeEventType, data: any): { location?: string; coordinates?: [number, number] } => {
+    let locationStr: string | undefined;
+    
+    switch (type) {
+      case 'user':
+        locationStr = data?.city;
+        break;
+      case 'business':
+        locationStr = data?.address;
+        break;
+      case 'order':
+        locationStr = data?.delivery_address;
+        break;
+      default:
+        locationStr = undefined;
+    }
+    
+    if (!locationStr) return {};
+    
+    const cityData = findCityCoordinates(locationStr);
+    if (cityData) {
+      return {
+        location: cityData.name,
+        coordinates: [cityData.lng, cityData.lat],
+      };
+    }
+    
+    return { location: locationStr };
+  }, []);
+
   // Add new event
-  const addEvent = useCallback((event: Omit<RealtimeEvent, 'id' | 'timestamp'>) => {
+  const addEvent = useCallback((event: Omit<RealtimeEvent, 'id' | 'timestamp' | 'location' | 'coordinates'>) => {
     if (isPaused) return;
+
+    const locationData = extractLocation(event.type, event.data);
 
     const newEvent: RealtimeEvent = {
       ...event,
+      ...locationData,
       id: crypto.randomUUID(),
       timestamp: new Date(),
     };
@@ -144,7 +181,7 @@ export function useRealtimeDashboard() {
       }
       return { ...prev, ...updates };
     });
-  }, [isPaused, updateChartData]);
+  }, [isPaused, updateChartData, extractLocation]);
 
   // Fetch initial stats for today
   const fetchTodayStats = useCallback(async () => {
