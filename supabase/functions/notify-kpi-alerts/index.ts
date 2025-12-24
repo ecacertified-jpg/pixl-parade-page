@@ -192,7 +192,7 @@ serve(async (req) => {
     const resend = new Resend(resendApiKey);
 
     const emailResponse = await resend.emails.send({
-      from: 'JOIE DE VIVRE <onboarding@resend.dev>',
+      from: 'JOIE DE VIVRE <noreply@joiedevivre-africa.com>',
       to: adminEmails,
       subject: isCritical 
         ? `⚠️ [CRITIQUE] ${alerts.length} alerte(s) KPI - JOIE DE VIVRE`

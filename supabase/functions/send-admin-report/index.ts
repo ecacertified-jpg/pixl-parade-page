@@ -439,7 +439,7 @@ const handler = async (req: Request): Promise<Response> => {
         const html = generateEmailHTML(metrics, report_type, recipient.prefs);
         
         const { error } = await resend.emails.send({
-          from: "JOIE DE VIVRE <onboarding@resend.dev>",
+          from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
           to: [recipient.email],
           subject: `🎁 ${getReportTitle(report_type)} - JOIE DE VIVRE`,
           html
