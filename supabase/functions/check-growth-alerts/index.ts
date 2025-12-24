@@ -48,14 +48,20 @@ serve(async (req) => {
 
     console.log(`📊 Found ${thresholds?.length || 0} active thresholds`);
 
-    // Calculate metrics
+    // Calculate date ranges
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
+    const twoDaysAgo = new Date(now);
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
     const lastWeek = new Date(now);
     lastWeek.setDate(lastWeek.getDate() - 7);
     const twoWeeksAgo = new Date(now);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const lastMonth = new Date(now);
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const twoMonthsAgo = new Date(now);
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
 
     // Users metrics
     const { count: totalUsers } = await supabase
@@ -67,6 +73,12 @@ serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .lt('created_at', now.toISOString())
       .gte('created_at', yesterday.toISOString());
+
+    const { count: usersTwoDaysAgo } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .lt('created_at', yesterday.toISOString())
+      .gte('created_at', twoDaysAgo.toISOString());
 
     const { count: usersLastWeek } = await supabase
       .from('profiles')
@@ -105,18 +117,115 @@ serve(async (req) => {
       .lt('created_at', lastWeek.toISOString())
       .gte('created_at', twoWeeksAgo.toISOString());
 
+    // Revenue metrics (from orders)
+    const { data: ordersToday } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .gte('created_at', yesterday.toISOString())
+      .eq('status', 'delivered');
+
+    const { data: ordersYesterday } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .lt('created_at', yesterday.toISOString())
+      .gte('created_at', twoDaysAgo.toISOString())
+      .eq('status', 'delivered');
+
+    const { data: ordersLastWeek } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .gte('created_at', lastWeek.toISOString())
+      .eq('status', 'delivered');
+
+    const { data: ordersPreviousWeek } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .lt('created_at', lastWeek.toISOString())
+      .gte('created_at', twoWeeksAgo.toISOString())
+      .eq('status', 'delivered');
+
+    const { data: ordersLastMonth } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .gte('created_at', lastMonth.toISOString())
+      .eq('status', 'delivered');
+
+    const { data: ordersPreviousMonth } = await supabase
+      .from('business_orders')
+      .select('total_amount')
+      .lt('created_at', lastMonth.toISOString())
+      .gte('created_at', twoMonthsAgo.toISOString())
+      .eq('status', 'delivered');
+
+    // Contributions metrics
+    const { data: contributionsToday } = await supabase
+      .from('fund_contributions')
+      .select('amount')
+      .gte('created_at', yesterday.toISOString());
+
+    const { data: contributionsYesterday } = await supabase
+      .from('fund_contributions')
+      .select('amount')
+      .lt('created_at', yesterday.toISOString())
+      .gte('created_at', twoDaysAgo.toISOString());
+
+    const { data: contributionsLastWeek } = await supabase
+      .from('fund_contributions')
+      .select('amount')
+      .gte('created_at', lastWeek.toISOString());
+
+    const { data: contributionsPreviousWeek } = await supabase
+      .from('fund_contributions')
+      .select('amount')
+      .lt('created_at', lastWeek.toISOString())
+      .gte('created_at', twoWeeksAgo.toISOString());
+
+    // Calculate sums
+    const sumAmount = (data: any[] | null) => 
+      (data || []).reduce((acc, item) => acc + (item.total_amount || item.amount || 0), 0);
+
+    const revenueToday = sumAmount(ordersToday);
+    const revenueYesterday = sumAmount(ordersYesterday);
+    const revenueLastWeek = sumAmount(ordersLastWeek);
+    const revenuePreviousWeek = sumAmount(ordersPreviousWeek);
+    const revenueLastMonth = sumAmount(ordersLastMonth);
+    const revenuePreviousMonth = sumAmount(ordersPreviousMonth);
+
+    const contributionsTodaySum = sumAmount(contributionsToday);
+    const contributionsYesterdaySum = sumAmount(contributionsYesterday);
+    const contributionsLastWeekSum = sumAmount(contributionsLastWeek);
+    const contributionsPreviousWeekSum = sumAmount(contributionsPreviousWeek);
+
     const metrics: Record<string, MetricData> = {
       users: {
         current: totalUsers || 0,
         previous: (totalUsers || 0) - (usersLastWeek || 0),
         daily: usersYesterday || 0,
-        dailyPrevious: 0, // Would need more complex query for daily record
+        dailyPrevious: usersTwoDaysAgo || 0,
       },
       businesses: {
         current: totalBusinesses || 0,
         previous: (totalBusinesses || 0) - (businessesLastWeek || 0),
         daily: businessesYesterday || 0,
         dailyPrevious: 0,
+      },
+      revenue: {
+        current: revenueLastMonth,
+        previous: revenuePreviousMonth,
+        daily: revenueToday,
+        dailyPrevious: revenueYesterday,
+      },
+      orders: {
+        current: ordersLastWeek?.length || 0,
+        previous: ordersPreviousWeek?.length || 0,
+        daily: ordersToday?.length || 0,
+        dailyPrevious: ordersYesterday?.length || 0,
+      },
+      contributions: {
+        current: contributionsLastWeekSum,
+        previous: contributionsPreviousWeekSum,
+        daily: contributionsTodaySum,
+        dailyPrevious: contributionsYesterdaySum,
       },
     };
 
@@ -135,11 +244,20 @@ serve(async (req) => {
       let growthPercentage = null;
       let previousValue = null;
 
+      const metricLabels: Record<string, { singular: string; plural: string; unit?: string }> = {
+        users: { singular: 'utilisateur', plural: 'utilisateurs' },
+        businesses: { singular: 'entreprise', plural: 'entreprises' },
+        revenue: { singular: 'revenu', plural: 'revenus', unit: ' XOF' },
+        orders: { singular: 'commande', plural: 'commandes' },
+        contributions: { singular: 'contribution', plural: 'contributions', unit: ' XOF' },
+      };
+
+      const label = metricLabels[threshold.metric_type] || { singular: threshold.metric_type, plural: threshold.metric_type };
+
       switch (threshold.threshold_type) {
         case 'absolute':
           // Check if we've crossed this milestone
           if (metric.current >= threshold.threshold_value) {
-            // Check if alert already exists for this milestone
             const { data: existingAlert } = await supabase
               .from('admin_growth_alerts')
               .select('id')
@@ -150,7 +268,7 @@ serve(async (req) => {
             if (!existingAlert) {
               shouldAlert = true;
               alertType = 'milestone';
-              message = `🎉 Milestone atteint : ${threshold.threshold_value} ${threshold.metric_type === 'users' ? 'utilisateurs' : 'entreprises'} !`;
+              message = `🎉 Milestone atteint : ${threshold.threshold_value.toLocaleString('fr-FR')}${label.unit || ''} ${label.plural} !`;
             }
           }
           break;
@@ -159,46 +277,66 @@ serve(async (req) => {
           if (metric.daily >= threshold.threshold_value) {
             shouldAlert = true;
             alertType = 'daily_record';
-            message = `📈 Record quotidien : ${metric.daily} ${threshold.metric_type === 'users' ? 'inscriptions' : 'nouveaux business'} hier !`;
             previousValue = metric.dailyPrevious;
+            message = `📈 Record quotidien : ${metric.daily.toLocaleString('fr-FR')}${label.unit || ''} ${label.plural} hier !`;
           }
           break;
 
         case 'percentage':
-          const weeklyGrowth = threshold.comparison_period === 'week' ? usersLastWeek : usersYesterday;
-          const previousWeekly = threshold.comparison_period === 'week' ? usersPreviousWeek : 0;
-          
-          if (threshold.metric_type === 'businesses') {
-            const bWeekly = threshold.comparison_period === 'week' ? businessesLastWeek : businessesYesterday;
-            const bPrevious = threshold.comparison_period === 'week' ? businessesPreviousWeek : 0;
-            
-            if ((bPrevious || 0) > 0) {
-              const growth = (((bWeekly || 0) - (bPrevious || 0)) / (bPrevious || 1)) * 100;
-              if (growth >= threshold.threshold_value) {
-                shouldAlert = true;
-                alertType = 'growth_spike';
-                growthPercentage = Math.round(growth);
-                previousValue = bPrevious;
-                message = `🚀 Croissance exceptionnelle : +${Math.round(growth)}% de business cette semaine !`;
-              }
+          let currentPeriod = 0;
+          let previousPeriod = 0;
+
+          if (threshold.comparison_period === 'week') {
+            if (threshold.metric_type === 'users') {
+              currentPeriod = usersLastWeek || 0;
+              previousPeriod = usersPreviousWeek || 0;
+            } else if (threshold.metric_type === 'businesses') {
+              currentPeriod = businessesLastWeek || 0;
+              previousPeriod = businessesPreviousWeek || 0;
+            } else if (threshold.metric_type === 'revenue') {
+              currentPeriod = revenueLastWeek;
+              previousPeriod = revenuePreviousWeek;
+            } else if (threshold.metric_type === 'orders') {
+              currentPeriod = ordersLastWeek?.length || 0;
+              previousPeriod = ordersPreviousWeek?.length || 0;
+            } else if (threshold.metric_type === 'contributions') {
+              currentPeriod = contributionsLastWeekSum;
+              previousPeriod = contributionsPreviousWeekSum;
             }
-          } else {
-            if ((previousWeekly || 0) > 0) {
-              const growth = (((weeklyGrowth || 0) - (previousWeekly || 0)) / (previousWeekly || 1)) * 100;
-              if (growth >= threshold.threshold_value) {
-                shouldAlert = true;
-                alertType = 'growth_spike';
-                growthPercentage = Math.round(growth);
-                previousValue = previousWeekly;
-                message = `🚀 Croissance exceptionnelle : +${Math.round(growth)}% d'inscriptions cette semaine !`;
-              }
+          } else if (threshold.comparison_period === 'day') {
+            currentPeriod = metric.daily;
+            previousPeriod = metric.dailyPrevious;
+          } else if (threshold.comparison_period === 'month') {
+            currentPeriod = metric.current;
+            previousPeriod = metric.previous;
+          }
+
+          if (previousPeriod > 0) {
+            const growth = ((currentPeriod - previousPeriod) / previousPeriod) * 100;
+            
+            // Check for growth spike (positive threshold)
+            if (growth >= threshold.threshold_value && threshold.threshold_value > 0) {
+              shouldAlert = true;
+              alertType = 'growth_spike';
+              growthPercentage = Math.round(growth);
+              previousValue = previousPeriod;
+              message = `🚀 Croissance : +${Math.round(growth)}% de ${label.plural} cette ${threshold.comparison_period === 'week' ? 'semaine' : threshold.comparison_period === 'day' ? 'journée' : 'période'} !`;
+            }
+            
+            // Check for decline (negative threshold value means drop detection)
+            if (growth <= threshold.threshold_value && threshold.threshold_value < 0) {
+              shouldAlert = true;
+              alertType = 'decline';
+              growthPercentage = Math.round(growth);
+              previousValue = previousPeriod;
+              message = `⚠️ Baisse : ${Math.round(growth)}% de ${label.plural} (${previousPeriod.toLocaleString('fr-FR')} → ${currentPeriod.toLocaleString('fr-FR')})`;
             }
           }
           break;
       }
 
       if (shouldAlert) {
-        // Check if similar alert was created recently (avoid duplicates)
+        // Check if similar alert was created recently
         const oneHourAgo = new Date();
         oneHourAgo.setHours(oneHourAgo.getHours() - 1);
         
@@ -211,6 +349,9 @@ serve(async (req) => {
           .single();
 
         if (!recentAlert) {
+          const isCritical = alertType === 'decline' || 
+            (growthPercentage && Math.abs(growthPercentage) >= 50);
+
           alertsToCreate.push({
             threshold_id: threshold.id,
             alert_type: alertType,
@@ -222,6 +363,7 @@ serve(async (req) => {
             metadata: {
               threshold_value: threshold.threshold_value,
               comparison_period: threshold.comparison_period,
+              is_critical: isCritical,
             },
           });
         }
@@ -240,6 +382,20 @@ serve(async (req) => {
       }
 
       console.log(`✅ Created ${alertsToCreate.length} growth alert(s)`);
+
+      // Trigger notification for critical alerts
+      const criticalAlerts = alertsToCreate.filter(a => a.metadata?.is_critical);
+      if (criticalAlerts.length > 0) {
+        console.log(`🔔 ${criticalAlerts.length} critical alert(s) - triggering notifications...`);
+        
+        try {
+          await supabase.functions.invoke('notify-kpi-alerts', {
+            body: { alerts: criticalAlerts }
+          });
+        } catch (notifyError) {
+          console.error('Error sending notifications:', notifyError);
+        }
+      }
     } else {
       console.log('ℹ️ No new alerts to create');
     }

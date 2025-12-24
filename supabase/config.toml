@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.send-admin-report]
 verify_jwt = false
+
+[functions.notify-kpi-alerts]
+verify_jwt = false
