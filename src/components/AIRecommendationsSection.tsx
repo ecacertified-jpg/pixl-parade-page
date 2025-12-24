@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Sparkles, Gift, RefreshCw, ChevronDown, ChevronUp, ShoppingCart, Heart, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ export function AIRecommendationsSection({
   defaultContactId,
   contactName 
 }: AIRecommendationsSectionProps) {
+  const navigate = useNavigate();
   const { recommendations, generalAdvice, loading, error, getRecommendations, clearRecommendations } = useAIRecommendations();
   const { contacts } = useContacts();
   const { getProductFeedback, stats } = useSuggestionFeedback();
@@ -450,9 +453,17 @@ export function AIRecommendationsSection({
                 <Button
                   variant="outline"
                   className="flex-1"
+                  disabled={!selectedRecommendation.product?.id}
                   onClick={() => {
-                    onAddToFavorites?.(selectedRecommendation.product!.id);
-                    setSelectedRecommendation(null);
+                    if (selectedRecommendation.product?.id) {
+                      onAddToFavorites?.(selectedRecommendation.product.id);
+                      toast.success("Ajouté aux favoris ❤️", {
+                        description: `${selectedRecommendation.productName} a été ajouté à vos favoris`,
+                      });
+                      setSelectedRecommendation(null);
+                    } else {
+                      toast.error("Produit non disponible");
+                    }
                   }}
                 >
                   <Heart className="h-4 w-4 mr-2" />
@@ -460,9 +471,21 @@ export function AIRecommendationsSection({
                 </Button>
                 <Button
                   className="flex-1"
+                  disabled={!selectedRecommendation.product}
                   onClick={() => {
-                    onAddToCart?.(selectedRecommendation.product);
-                    setSelectedRecommendation(null);
+                    if (selectedRecommendation.product) {
+                      onAddToCart?.(selectedRecommendation.product);
+                      toast.success("Ajouté au panier 🛒", {
+                        description: `${selectedRecommendation.productName} a été ajouté`,
+                        action: {
+                          label: "Voir le panier",
+                          onClick: () => navigate('/cart'),
+                        },
+                      });
+                      setSelectedRecommendation(null);
+                    } else {
+                      toast.error("Produit non disponible");
+                    }
                   }}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
