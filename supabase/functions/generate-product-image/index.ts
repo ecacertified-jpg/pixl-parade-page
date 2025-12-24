@@ -22,14 +22,22 @@ serve(async (req) => {
     console.log("Generating image for product:", productName);
 
     // Créer un prompt optimisé pour la génération d'image produit
-    const imagePrompt = `Create a beautiful, high-quality product photo for an e-commerce gift shop. 
-Product: ${productName}
-${category ? `Category: ${category}` : ""}
-${description ? `Description: ${description}` : ""}
+    const imagePrompt = `Generate an image now. Do not describe, just create the image.
 
-Style: Professional product photography, clean white or soft gradient background, 
-excellent lighting, centered composition, no text or watermarks.
-Make it look premium, gift-worthy, and appealing. Square format, 1:1 aspect ratio.`;
+Create a beautiful product photo of: ${productName}
+${category ? `Category: ${category}` : ""}
+${description ? `Context: ${description}` : ""}
+
+Requirements:
+- Professional product photography style
+- Clean white or soft gradient background
+- Excellent studio lighting
+- Centered composition
+- No text, no watermarks, no labels
+- Premium, gift-worthy appearance
+- Square 1:1 aspect ratio
+
+IMPORTANT: Output only the generated image, no text description.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
