@@ -26,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending approval email to ${business_email} for ${business_name}`);
 
     const emailResponse = await resend.emails.send({
-      from: "JOIE DE VIVRE <onboarding@resend.dev>",
+      from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
       to: [business_email],
       subject: `✨ Félicitations ${business_name} ! Votre compte est approuvé`,
       html: `

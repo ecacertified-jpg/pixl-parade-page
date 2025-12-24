@@ -210,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const { error: emailError } = await resend.emails.send({
-      from: "Joie de Vivre <onboarding@resend.dev>",
+      from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
       to: [invitee_email],
       subject: `${inviterName} vous invite à rejoindre Joie de Vivre 🎉`,
       html: emailHtml,
