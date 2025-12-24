@@ -213,19 +213,25 @@ export function AIRecommendationsSection({
 
         {/* General Advice */}
         {generalAdvice && (
-          <div className="p-4 bg-primary/10 rounded-lg">
-            <p className="text-sm text-foreground/80 italic">
-              💡 {generalAdvice}
-            </p>
+          <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl border border-primary/20">
+            <div className="flex gap-3">
+              <span className="text-xl flex-shrink-0">💡</span>
+              <p className="font-nunito text-sm text-foreground/90 leading-relaxed">
+                <span className="font-semibold text-primary">Conseil :</span> {generalAdvice}
+              </p>
+            </div>
           </div>
         )}
 
         {/* Recommendations */}
         {filteredRecommendations.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">
-              {filteredRecommendations.length} suggestions pour vous
-            </h4>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-primary/60" />
+              <span className="font-medium font-nunito">
+                {filteredRecommendations.length} suggestions pour vous
+              </span>
+            </div>
             
             {filteredRecommendations.map((rec, index) => {
               const existingFeedback = rec.product?.id ? getProductFeedback(rec.product.id) : null;
@@ -234,7 +240,7 @@ export function AIRecommendationsSection({
                 <div
                   key={index}
                   className={cn(
-                    "flex gap-4 p-4 bg-background rounded-lg border transition-colors",
+                    "flex gap-4 p-5 bg-background rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md",
                     existingFeedback === 'accepted' && "border-green-200 bg-green-50/50 dark:bg-green-900/10",
                     existingFeedback === 'saved' && "border-amber-200 bg-amber-50/50 dark:bg-amber-900/10",
                     !existingFeedback && "hover:border-primary/30"
@@ -253,9 +259,9 @@ export function AIRecommendationsSection({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h5 className="font-medium truncate">{rec.productName}</h5>
+                        <h5 className="font-poppins font-semibold text-base leading-tight line-clamp-2">{rec.productName}</h5>
                         {rec.product?.price && (
-                          <p className="text-sm text-primary font-semibold">
+                          <p className="font-poppins text-base text-primary font-bold mt-1">
                             {rec.product.price.toLocaleString()} {rec.product.currency || "XOF"}
                           </p>
                         )}
@@ -265,7 +271,7 @@ export function AIRecommendationsSection({
                       </Badge>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="font-nunito text-sm text-muted-foreground mt-2 line-clamp-3 leading-relaxed">
                       {rec.reason}
                     </p>
 
