@@ -187,12 +187,12 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Cake className="h-5 w-5 text-pink-500" />
-          <h2 className="font-semibold">Anniversaires à venir</h2>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Cake className="h-5 w-5 text-pink-500 flex-shrink-0" />
+          <h2 className="font-semibold text-sm sm:text-base whitespace-nowrap">Anniversaires à venir</h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 flex-shrink-0">
           <Button 
             variant="ghost" 
             size="icon"
@@ -205,10 +205,11 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
           <Button 
             variant="ghost" 
             size="sm"
+            className="h-8 px-2"
             onClick={() => navigate('/notification-settings')}
           >
-            <Bell className="h-4 w-4 mr-1" />
-            Paramétrer
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Paramétrer</span>
           </Button>
         </div>
       </div>
