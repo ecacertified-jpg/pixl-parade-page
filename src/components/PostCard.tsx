@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, isValidImageUrl } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -163,7 +163,7 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
         )}
 
         {/* Media */}
-        {post.media_url && (
+        {isValidImageUrl(post.media_url) && (
           <div className="mb-3 rounded-xl overflow-hidden">
             {post.type === 'image' && (
               <img

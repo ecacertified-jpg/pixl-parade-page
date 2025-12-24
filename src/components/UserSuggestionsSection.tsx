@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InviteFriendsModal } from "@/components/InviteFriendsModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { isValidImageUrl } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserSuggestions } from "@/hooks/useUserSuggestions";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,7 +174,7 @@ export function UserSuggestionsSection() {
                 className="w-12 h-12 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/profile/${suggestion.user_id}`)}
               >
-                {suggestion.avatar_url && (
+                {isValidImageUrl(suggestion.avatar_url) && (
                   <AvatarImage
                     src={suggestion.avatar_url}
                     alt={userName}
