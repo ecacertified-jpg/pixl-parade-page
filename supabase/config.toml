@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.check-business-performance]
 verify_jwt = false
+
+[functions.send-admin-report]
+verify_jwt = false
