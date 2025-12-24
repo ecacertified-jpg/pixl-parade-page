@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Sparkles, Music } from "lucide-react";
+import { CalendarIcon, Sparkles, Music, RefreshCw, Package, Check } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAIRecommendations, Recommendation } from "@/hooks/useAIRecommendations";
+import { cn } from "@/lib/utils";
 
 interface CreateSurpriseFundModalProps {
   isOpen: boolean;
@@ -40,6 +42,34 @@ export const CreateSurpriseFundModal = ({
   const [surpriseMessage, setSurpriseMessage] = useState("");
   const [songPrompt, setSongPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<{
+    id: string;
+    name: string;
+    price: number;
+    image_url: string;
+    vendor?: string;
+  } | null>(null);
+
+  // Hook pour les recommandations IA
+  const { 
+    recommendations, 
+    loading: loadingRecs, 
+    getRecommendations, 
+    clearRecommendations 
+  } = useAIRecommendations();
+
+  // Charger les recommandations quand la modale s'ouvre
+  useEffect(() => {
+    if (isOpen && beneficiaryContactId) {
+      getRecommendations({
+        contactId: beneficiaryContactId,
+        occasion: occasion,
+      });
+    }
+    return () => {
+      if (!isOpen) clearRecommendations();
+    };
+  }, [isOpen, beneficiaryContactId, occasion]);
 
   // Pré-remplir le titre quand la modale s'ouvre avec un bénéficiaire
   useEffect(() => {
@@ -67,8 +97,30 @@ export const CreateSurpriseFundModal = ({
       setSurpriseMessage("");
       setSongPrompt("");
       setIsSurprise(false);
+      setSelectedProduct(null);
     }
   }, [isOpen]);
+
+  // Gérer la sélection d'un produit
+  const handleSelectProduct = (rec: Recommendation) => {
+    if (!rec.product) return;
+    
+    if (selectedProduct?.id === rec.product.id) {
+      // Désélectionner
+      setSelectedProduct(null);
+      setTargetAmount("");
+    } else {
+      // Sélectionner et pré-remplir le montant
+      setSelectedProduct({
+        id: rec.product.id,
+        name: rec.product.name,
+        price: rec.product.price,
+        image_url: rec.product.image_url,
+        vendor: rec.product.vendor
+      });
+      setTargetAmount(rec.product.price.toString());
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +136,7 @@ export const CreateSurpriseFundModal = ({
           title,
           description,
           target_amount: parseFloat(targetAmount),
+          business_product_id: selectedProduct?.id || null,
           is_surprise: isSurprise,
           surprise_reveal_date: isSurprise && revealDate ? revealDate.toISOString() : null,
           surprise_message: isSurprise ? surpriseMessage : null,
@@ -154,6 +207,103 @@ export const CreateSurpriseFundModal = ({
               onCheckedChange={setIsSurprise}
             />
           </div>
+
+          {/* Section Suggestions IA */}
+          {beneficiaryContactId && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Suggestions pour {beneficiaryName || "ce contact"}
+              </Label>
+              
+              {loadingRecs ? (
+                <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
+                  <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Recherche de suggestions...</span>
+                </div>
+              ) : recommendations.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+                    {recommendations.slice(0, 6).map((rec) => {
+                      const isSelected = selectedProduct?.id === rec.product?.id;
+                      return (
+                        <div
+                          key={rec.product?.id || rec.productName}
+                          onClick={() => handleSelectProduct(rec)}
+                          className={cn(
+                            "relative p-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md",
+                            isSelected
+                              ? "border-primary bg-primary/10 shadow-sm"
+                              : "border-muted hover:border-primary/50"
+                          )}
+                        >
+                          {isSelected && (
+                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
+                              <Check className="h-3 w-3" />
+                            </div>
+                          )}
+                          {rec.product?.image_url ? (
+                            <img 
+                              src={rec.product.image_url} 
+                              alt={rec.productName}
+                              className="w-full h-20 object-cover rounded mb-2" 
+                            />
+                          ) : (
+                            <div className="w-full h-20 bg-muted/50 rounded mb-2 flex items-center justify-center">
+                              <Package className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="text-xs font-medium truncate">{rec.productName}</p>
+                          {rec.product?.price && (
+                            <p className="text-xs font-semibold text-primary">
+                              {rec.product.price.toLocaleString()} XOF
+                            </p>
+                          )}
+                          {rec.product?.vendor && (
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {rec.product.vendor}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Affichage du produit sélectionné */}
+                  {selectedProduct && (
+                    <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                      <Package className="h-5 w-5 text-primary" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          Produit sélectionné : {selectedProduct.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Le montant cible a été pré-rempli avec le prix du produit
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedProduct(null);
+                          setTargetAmount("");
+                        }}
+                      >
+                        Retirer
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-muted/30 rounded-lg text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Aucune suggestion disponible pour le moment
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Titre */}
           <div className="space-y-2">
