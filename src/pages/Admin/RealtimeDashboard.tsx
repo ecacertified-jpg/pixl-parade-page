@@ -5,6 +5,7 @@ import { RealtimeConnectionStatus } from '@/components/admin/RealtimeConnectionS
 import { RealtimeStatsCards } from '@/components/admin/RealtimeStatsCards';
 import { RealtimeActivityFeed } from '@/components/admin/RealtimeActivityFeed';
 import { RealtimeChart } from '@/components/admin/RealtimeChart';
+import { RealtimeMapCard } from '@/components/admin/RealtimeMapCard';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +21,17 @@ export default function RealtimeDashboard() {
     clearEvents,
     refetchStats,
   } = useRealtimeDashboard();
+
+  // Transform events for map (ensure correct interface)
+  const mapEvents = events.map(e => ({
+    id: e.id,
+    type: e.type,
+    title: e.title,
+    subtitle: e.description,
+    timestamp: e.timestamp,
+    location: e.location,
+    coordinates: e.coordinates,
+  }));
 
   return (
     <AdminLayout>
@@ -87,6 +99,9 @@ export default function RealtimeDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Map */}
+        <RealtimeMapCard events={mapEvents} isConnected={isConnected} />
       </div>
     </AdminLayout>
   );
