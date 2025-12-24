@@ -5,6 +5,72 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function generateImageWithRetry(
+  productName: string,
+  description?: string,
+  category?: string,
+  attempt = 1
+): Promise<string | null> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const maxAttempts = 2;
+
+  // Prompt plus direct pour forcer la génération d'image
+  const prompts = [
+    // Premier essai : prompt détaillé
+    `[IMAGE GENERATION REQUEST]
+Generate a realistic product photograph of: "${productName}"
+${category ? `Product category: ${category}` : ""}
+
+Photo specifications:
+- Studio product photography
+- Clean white background
+- Professional lighting
+- Centered composition
+- High resolution, sharp details
+- No text overlays
+
+Generate the image now.`,
+    // Deuxième essai : prompt très simple
+    `Create a product photo of ${productName}. White background, centered, professional lighting.`
+  ];
+
+  const imagePrompt = prompts[Math.min(attempt - 1, prompts.length - 1)];
+
+  console.log(`Attempt ${attempt}: Generating image for: ${productName}`);
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-image-preview",
+      messages: [{ role: "user", content: imagePrompt }],
+      modalities: ["image", "text"],
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Attempt ${attempt} - API error:`, response.status, errorText);
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+  const imageTokens = result.usage?.completion_tokens_details?.image_tokens || 0;
+
+  console.log(`Attempt ${attempt} - Image tokens: ${imageTokens}, Has image URL: ${!!imageUrl}`);
+
+  if (!imageUrl && attempt < maxAttempts) {
+    console.log(`No image generated, retrying with simpler prompt...`);
+    return generateImageWithRetry(productName, description, category, attempt + 1);
+  }
+
+  return imageUrl || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,64 +85,24 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    console.log("Generating image for product:", productName);
-
-    // Créer un prompt optimisé pour la génération d'image produit
-    const imagePrompt = `Generate an image now. Do not describe, just create the image.
-
-Create a beautiful product photo of: ${productName}
-${category ? `Category: ${category}` : ""}
-${description ? `Context: ${description}` : ""}
-
-Requirements:
-- Professional product photography style
-- Clean white or soft gradient background
-- Excellent studio lighting
-- Centered composition
-- No text, no watermarks, no labels
-- Premium, gift-worthy appearance
-- Square 1:1 aspect ratio
-
-IMPORTANT: Output only the generated image, no text description.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [{ role: "user", content: imagePrompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Image generation error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`Image generation failed: ${response.status}`);
+    if (!productName) {
+      throw new Error("productName is required");
     }
 
-    const result = await response.json();
-    const imageUrl = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log("Starting image generation for product:", productName);
+
+    const imageUrl = await generateImageWithRetry(productName, description, category);
 
     if (!imageUrl) {
-      console.error("No image in response:", JSON.stringify(result));
-      throw new Error("No image in response");
+      console.error("Failed to generate image after all attempts for:", productName);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Image generation failed - model did not produce an image",
+          canRetry: true 
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log("Image generated successfully for:", productName);
@@ -87,9 +113,13 @@ IMPORTANT: Output only the generated image, no text description.`;
     );
   } catch (error) {
     console.error("Error generating product image:", error);
+    
+    const status = error.message?.includes("429") ? 429 : 
+                   error.message?.includes("402") ? 402 : 500;
+    
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message || "Unknown error", canRetry: status === 500 }),
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
