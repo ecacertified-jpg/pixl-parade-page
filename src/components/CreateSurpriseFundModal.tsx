@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ interface CreateSurpriseFundModalProps {
   isOpen: boolean;
   onClose: () => void;
   beneficiaryContactId?: string;
+  beneficiaryName?: string;
+  occasion?: 'birthday' | 'wedding' | 'promotion' | 'other';
   onSuccess?: () => void;
 }
 
@@ -25,6 +27,8 @@ export const CreateSurpriseFundModal = ({
   isOpen,
   onClose,
   beneficiaryContactId,
+  beneficiaryName,
+  occasion,
   onSuccess
 }: CreateSurpriseFundModalProps) => {
   const { user } = useAuth();
@@ -36,6 +40,35 @@ export const CreateSurpriseFundModal = ({
   const [surpriseMessage, setSurpriseMessage] = useState("");
   const [songPrompt, setSongPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Pré-remplir le titre quand la modale s'ouvre avec un bénéficiaire
+  useEffect(() => {
+    if (isOpen && beneficiaryName) {
+      if (occasion === 'birthday') {
+        setTitle(`Cadeau d'anniversaire pour ${beneficiaryName}`);
+        setDescription(`Contribuez au cadeau d'anniversaire de ${beneficiaryName} !`);
+      } else if (occasion === 'wedding') {
+        setTitle(`Cadeau de mariage pour ${beneficiaryName}`);
+      } else if (occasion === 'promotion') {
+        setTitle(`Cadeau pour la promotion de ${beneficiaryName}`);
+      } else if (beneficiaryName) {
+        setTitle(`Cadeau pour ${beneficiaryName}`);
+      }
+    }
+  }, [isOpen, beneficiaryName, occasion]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTitle("");
+      setDescription("");
+      setTargetAmount("");
+      setRevealDate(undefined);
+      setSurpriseMessage("");
+      setSongPrompt("");
+      setIsSurprise(false);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +131,9 @@ export const CreateSurpriseFundModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isSurprise && <Sparkles className="h-5 w-5 text-primary animate-pulse" />}
-            Créer une {isSurprise ? "Cagnotte Surprise" : "Cagnotte"}
+            {beneficiaryName 
+              ? `Cagnotte pour ${beneficiaryName}` 
+              : `Créer une ${isSurprise ? "Cagnotte Surprise" : "Cagnotte"}`}
           </DialogTitle>
         </DialogHeader>
 

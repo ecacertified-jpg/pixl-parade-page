@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useToast } from "@/hooks/use-toast";
+import { CreateSurpriseFundModal } from "@/components/CreateSurpriseFundModal";
 
 interface GiftSuggestion {
   id: string;
@@ -56,6 +57,7 @@ export function BirthdayReminderCard({
   const { addFavorite } = useFavorites();
   const { toast } = useToast();
   const [isHovered, setIsHovered] = useState(false);
+  const [showCreateFundModal, setShowCreateFundModal] = useState(false);
 
   const getUrgencyColor = () => {
     if (notification.days_until <= 1) return "border-l-destructive bg-destructive/5";
@@ -102,7 +104,15 @@ export function BirthdayReminderCard({
 
   const handleCreateFund = () => {
     if (onMarkAsRead) onMarkAsRead(notification.id);
-    navigate(`/gifts?action=create-fund&contactId=${notification.contact_id}`);
+    setShowCreateFundModal(true);
+  };
+
+  const handleFundCreated = () => {
+    setShowCreateFundModal(false);
+    toast({
+      title: "Cagnotte créée !",
+      description: `La cagnotte pour ${notification.contact_name} a été créée avec succès.`
+    });
   };
 
   return (
@@ -245,6 +255,16 @@ export function BirthdayReminderCard({
             </Button>
           )}
         </div>
+
+        {/* Modal de création de cagnotte */}
+        <CreateSurpriseFundModal
+          isOpen={showCreateFundModal}
+          onClose={() => setShowCreateFundModal(false)}
+          beneficiaryContactId={notification.contact_id}
+          beneficiaryName={notification.contact_name}
+          occasion="birthday"
+          onSuccess={handleFundCreated}
+        />
       </CardContent>
     </Card>
   );
