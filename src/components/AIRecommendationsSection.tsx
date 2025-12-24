@@ -83,33 +83,42 @@ export function AIRecommendationsSection({
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Section titre et icône */}
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl shadow-sm shrink-0">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <CardTitle className="text-lg">
+            <div className="space-y-0.5">
+              <CardTitle className="font-poppins text-lg sm:text-xl whitespace-nowrap">
                 {contactName ? `Suggestions pour ${contactName}` : "Recommandations IA"}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="font-nunito text-muted-foreground/80">
                 {contactName 
                   ? "Basées sur son profil et votre historique" 
                   : "Des suggestions personnalisées pour vous"}
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {/* Section boutons */}
+          <div className="flex items-center gap-2 shrink-0">
             {stats && (stats.accepted_count + stats.rejected_count) > 0 && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs font-nunito">
                 {stats.accepted_count + stats.rejected_count} feedbacks
               </Badge>
             )}
             {recommendations.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleReset}>
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Nouvelle recherche
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReset}
+                className="text-primary border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200"
+              >
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+                <span className="hidden sm:inline">Nouvelle recherche</span>
+                <span className="sm:hidden">Refresh</span>
               </Button>
             )}
           </div>
