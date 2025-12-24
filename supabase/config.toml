@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.notify-kpi-alerts]
 verify_jwt = false
+
+[functions.escalate-unhandled-alerts]
+verify_jwt = false

@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAllAlerts, UnifiedAlert } from '@/hooks/useAllAlerts';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Bell, 
@@ -16,14 +17,15 @@ import {
   X, 
   Download, 
   Search, 
-  Filter,
   TrendingUp,
   TrendingDown,
   Target,
   Flame,
   AlertTriangle,
   Store,
-  RefreshCw
+  RefreshCw,
+  ArrowUpCircle,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -64,8 +66,52 @@ const severityColors: Record<string, string> = {
   info: 'bg-blue-500 text-white',
 };
 
+function EscalationBadge({ alert }: { alert: UnifiedAlert }) {
+  if (alert.escalation_count === 0) return null;
+
+  const escalationHistory = (alert.metadata as any)?.escalation_history || [];
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="outline" className="ml-1 gap-1 border-orange-300 text-orange-600 bg-orange-50 dark:bg-orange-950/30">
+            <ArrowUpCircle className="h-3 w-3" />
+            {alert.escalation_count}x
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <div className="space-y-1">
+            <p className="font-medium">Escaladée {alert.escalation_count} fois</p>
+            {alert.original_severity && (
+              <p className="text-xs text-muted-foreground">
+                Sévérité initiale : {alert.original_severity}
+              </p>
+            )}
+            {alert.last_escalated_at && (
+              <p className="text-xs text-muted-foreground">
+                Dernière escalade : {formatDistanceToNow(new Date(alert.last_escalated_at), { addSuffix: true, locale: fr })}
+              </p>
+            )}
+            {escalationHistory.length > 0 && (
+              <div className="mt-2 pt-2 border-t text-xs">
+                <p className="font-medium mb-1">Historique :</p>
+                {escalationHistory.slice(-3).map((h: any, i: number) => (
+                  <p key={i} className="text-muted-foreground">
+                    {h.from} → {h.to} ({format(new Date(h.at), 'dd/MM HH:mm')})
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export default function AlertsHistory() {
-  const { alerts, loading, markAsRead, dismissAlert } = useAllAlerts();
+  const { alerts, loading, unreadCount, criticalCount, escalatedCount, markAsRead, dismissAlert } = useAllAlerts();
   
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -91,6 +137,7 @@ export default function AlertsHistory() {
       if (statusFilter === 'unread' && alert.is_read) return false;
       if (statusFilter === 'read' && !alert.is_read) return false;
       if (statusFilter === 'dismissed' && !alert.is_dismissed) return false;
+      if (statusFilter === 'escalated' && alert.escalation_count === 0) return false;
       if (statusFilter !== 'dismissed' && alert.is_dismissed) return false;
       
       return true;
@@ -133,7 +180,7 @@ export default function AlertsHistory() {
   };
 
   const exportCSV = () => {
-    const headers = ['Date', 'Type', 'Source', 'Métrique', 'Message', 'Valeur', 'Variation', 'Statut'];
+    const headers = ['Date', 'Type', 'Source', 'Métrique', 'Message', 'Valeur', 'Variation', 'Sévérité', 'Escalades', 'Statut'];
     const rows = filteredAlerts.map(alert => [
       format(new Date(alert.triggered_at), 'dd/MM/yyyy HH:mm'),
       alertTypeLabels[alert.alert_type] || alert.alert_type,
@@ -142,6 +189,8 @@ export default function AlertsHistory() {
       alert.message,
       alert.current_value?.toString() || '',
       alert.growth_percentage ? `${alert.growth_percentage}%` : '',
+      alert.severity,
+      alert.escalation_count.toString(),
       alert.is_read ? 'Lu' : 'Non lu',
     ]);
 
@@ -152,9 +201,6 @@ export default function AlertsHistory() {
     link.download = `alertes-kpi-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     link.click();
   };
-
-  const unreadCount = alerts.filter(a => !a.is_read && !a.is_dismissed).length;
-  const criticalCount = alerts.filter(a => !a.is_read && (a.severity === 'critical' || a.alert_type === 'decline')).length;
 
   return (
     <AdminLayout>
@@ -167,7 +213,7 @@ export default function AlertsHistory() {
               Historique des Alertes
             </h1>
             <p className="text-muted-foreground mt-1">
-              {unreadCount} non lue(s) • {criticalCount} critique(s) • {alerts.length} total
+              {unreadCount} non lue(s) • {criticalCount} critique(s) • {escalatedCount} escaladée(s) • {alerts.length} total
             </p>
           </div>
           <Button variant="outline" onClick={exportCSV}>
@@ -177,7 +223,7 @@ export default function AlertsHistory() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">{alerts.length}</div>
@@ -194,6 +240,15 @@ export default function AlertsHistory() {
             <CardContent className="pt-4">
               <div className="text-2xl font-bold text-destructive">{criticalCount}</div>
               <p className="text-sm text-muted-foreground">Critiques</p>
+            </CardContent>
+          </Card>
+          <Card className="border-orange-200 dark:border-orange-800">
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-orange-600 flex items-center gap-2">
+                <ArrowUpCircle className="h-5 w-5" />
+                {escalatedCount}
+              </div>
+              <p className="text-sm text-muted-foreground">Escaladées</p>
             </CardContent>
           </Card>
           <Card>
@@ -257,6 +312,7 @@ export default function AlertsHistory() {
                   <SelectItem value="all">Actives</SelectItem>
                   <SelectItem value="unread">Non lues</SelectItem>
                   <SelectItem value="read">Lues</SelectItem>
+                  <SelectItem value="escalated">Escaladées</SelectItem>
                   <SelectItem value="dismissed">Masquées</SelectItem>
                 </SelectContent>
               </Select>
@@ -307,7 +363,7 @@ export default function AlertsHistory() {
                     <TableHead>Message</TableHead>
                     <TableHead className="text-right">Valeur</TableHead>
                     <TableHead className="text-right">Variation</TableHead>
-                    <TableHead>Statut</TableHead>
+                    <TableHead>Sévérité</TableHead>
                     <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -315,7 +371,10 @@ export default function AlertsHistory() {
                   {filteredAlerts.map((alert) => (
                     <TableRow 
                       key={`${alert.type}-${alert.id}`}
-                      className={cn(!alert.is_read && 'bg-primary/5')}
+                      className={cn(
+                        !alert.is_read && 'bg-primary/5',
+                        alert.escalation_count > 0 && !alert.is_read && 'bg-orange-50 dark:bg-orange-950/20'
+                      )}
                     >
                       <TableCell>
                         <Checkbox
@@ -324,7 +383,21 @@ export default function AlertsHistory() {
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">
-                        {format(new Date(alert.triggered_at), 'dd/MM/yy HH:mm', { locale: fr })}
+                        <div className="flex items-center gap-1">
+                          {format(new Date(alert.triggered_at), 'dd/MM/yy HH:mm', { locale: fr })}
+                          {alert.escalation_count > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Clock className="h-3 w-3 text-orange-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Non traitée depuis {formatDistanceToNow(new Date(alert.triggered_at), { locale: fr })}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -365,15 +438,12 @@ export default function AlertsHistory() {
                         ) : '-'}
                       </TableCell>
                       <TableCell>
-                        {alert.severity ? (
+                        <div className="flex items-center gap-1">
                           <Badge className={cn('text-xs', severityColors[alert.severity])}>
                             {alert.severity}
                           </Badge>
-                        ) : (
-                          <Badge variant={alert.is_read ? 'secondary' : 'default'} className="text-xs">
-                            {alert.is_read ? 'Lu' : 'Non lu'}
-                          </Badge>
-                        )}
+                          <EscalationBadge alert={alert} />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">

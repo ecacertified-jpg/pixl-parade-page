@@ -65,42 +65,54 @@ export type Database = {
         Row: {
           alert_type: string
           current_value: number
+          escalation_count: number | null
           growth_percentage: number | null
           id: string
           is_dismissed: boolean | null
           is_read: boolean | null
+          last_escalated_at: string | null
           message: string
           metadata: Json | null
           metric_type: string
+          original_severity: string | null
           previous_value: number | null
+          severity: string | null
           threshold_id: string | null
           triggered_at: string | null
         }
         Insert: {
           alert_type: string
           current_value: number
+          escalation_count?: number | null
           growth_percentage?: number | null
           id?: string
           is_dismissed?: boolean | null
           is_read?: boolean | null
+          last_escalated_at?: string | null
           message: string
           metadata?: Json | null
           metric_type: string
+          original_severity?: string | null
           previous_value?: number | null
+          severity?: string | null
           threshold_id?: string | null
           triggered_at?: string | null
         }
         Update: {
           alert_type?: string
           current_value?: number
+          escalation_count?: number | null
           growth_percentage?: number | null
           id?: string
           is_dismissed?: boolean | null
           is_read?: boolean | null
+          last_escalated_at?: string | null
           message?: string
           metadata?: Json | null
           metric_type?: string
+          original_severity?: string | null
           previous_value?: number | null
+          severity?: string | null
           threshold_id?: string | null
           triggered_at?: string | null
         }
@@ -909,13 +921,16 @@ export type Database = {
           change_percentage: number | null
           created_at: string
           current_value: number
+          escalation_count: number | null
           id: string
           is_dismissed: boolean | null
           is_read: boolean | null
           is_resolved: boolean | null
+          last_escalated_at: string | null
           message: string
           metadata: Json | null
           metric_type: string
+          original_severity: string | null
           period_end: string | null
           period_start: string | null
           previous_value: number | null
@@ -930,13 +945,16 @@ export type Database = {
           change_percentage?: number | null
           created_at?: string
           current_value?: number
+          escalation_count?: number | null
           id?: string
           is_dismissed?: boolean | null
           is_read?: boolean | null
           is_resolved?: boolean | null
+          last_escalated_at?: string | null
           message: string
           metadata?: Json | null
           metric_type: string
+          original_severity?: string | null
           period_end?: string | null
           period_start?: string | null
           previous_value?: number | null
@@ -951,13 +969,16 @@ export type Database = {
           change_percentage?: number | null
           created_at?: string
           current_value?: number
+          escalation_count?: number | null
           id?: string
           is_dismissed?: boolean | null
           is_read?: boolean | null
           is_resolved?: boolean | null
+          last_escalated_at?: string | null
           message?: string
           metadata?: Json | null
           metric_type?: string
+          original_severity?: string | null
           period_end?: string | null
           period_start?: string | null
           previous_value?: number | null

@@ -8,7 +8,10 @@ export interface BusinessPerformanceAlert {
   business_name?: string;
   alert_type: 'revenue_drop' | 'orders_drop' | 'inactivity' | 'rating_drop' | 'conversion_drop';
   metric_type: string;
-  severity: 'warning' | 'critical';
+  severity: 'info' | 'warning' | 'critical';
+  original_severity: string | null;
+  escalation_count: number;
+  last_escalated_at: string | null;
   current_value: number;
   previous_value: number | null;
   change_percentage: number | null;
@@ -71,6 +74,8 @@ export function useBusinessPerformanceAlerts(options: UseBusinessPerformanceAler
       const alertsWithBusinessName = (data || []).map((alert: any) => ({
         ...alert,
         business_name: alert.business_accounts?.business_name,
+        severity: alert.severity || 'warning',
+        escalation_count: alert.escalation_count || 0,
       }));
 
       setAlerts(alertsWithBusinessName);
@@ -86,6 +91,22 @@ export function useBusinessPerformanceAlerts(options: UseBusinessPerformanceAler
 
   useEffect(() => {
     fetchAlerts();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('business-alerts-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'business_performance_alerts' },
+        () => {
+          fetchAlerts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchAlerts]);
 
   const markAsRead = async (alertId: string) => {

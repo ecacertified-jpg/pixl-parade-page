@@ -351,6 +351,10 @@ serve(async (req) => {
         if (!recentAlert) {
           const isCritical = alertType === 'decline' || 
             (growthPercentage && Math.abs(growthPercentage) >= 50);
+          
+          // Determine initial severity
+          const initialSeverity = isCritical ? 'critical' : 
+            (alertType === 'decline' ? 'warning' : 'info');
 
           alertsToCreate.push({
             threshold_id: threshold.id,
@@ -360,6 +364,9 @@ serve(async (req) => {
             previous_value: previousValue,
             growth_percentage: growthPercentage,
             message,
+            severity: initialSeverity,
+            original_severity: initialSeverity,
+            escalation_count: 0,
             metadata: {
               threshold_value: threshold.threshold_value,
               comparison_period: threshold.comparison_period,

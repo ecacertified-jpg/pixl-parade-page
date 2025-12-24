@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Bell, X, CheckCheck, ExternalLink, TrendingUp, TrendingDown, Target, Flame, AlertTriangle, Store } from 'lucide-react';
+import { Bell, X, CheckCheck, ExternalLink, TrendingUp, TrendingDown, Target, Flame, AlertTriangle, Store, ArrowUpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAllAlerts, UnifiedAlert } from '@/hooks/useAllAlerts';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,29 +44,50 @@ function AlertItem({ alert, onMarkRead, onDismiss }: {
 }) {
   const colors = alertTypeColors[alert.alert_type] || alertTypeColors.milestone;
   const icon = alertIcons[alert.alert_type] || <Bell className="h-4 w-4" />;
+  const isEscalated = alert.escalation_count > 0;
 
   return (
     <div className={cn(
       'p-3 border rounded-lg transition-colors',
-      colors.bg,
-      colors.border,
+      isEscalated ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-300' : colors.bg,
+      !isEscalated && colors.border,
       !alert.is_read && 'ring-2 ring-primary/20'
     )}>
       <div className="flex items-start gap-3">
-        <span className={cn('mt-0.5', colors.text)}>
+        <span className={cn('mt-0.5', isEscalated ? 'text-orange-600' : colors.text)}>
           {alert.type === 'business' ? <Store className="h-4 w-4" /> : icon}
         </span>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className={cn('text-sm font-medium leading-snug', colors.text)}>
+            <p className={cn('text-sm font-medium leading-snug', isEscalated ? 'text-orange-700 dark:text-orange-400' : colors.text)}>
               {alert.message}
             </p>
-            {alert.severity && (
-              <Badge className={cn('text-[10px] shrink-0', severityColors[alert.severity])}>
+            <div className="flex items-center gap-1 shrink-0">
+              {isEscalated && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="gap-1 text-[10px] border-orange-400 text-orange-600 bg-orange-100 dark:bg-orange-900/50">
+                        <ArrowUpCircle className="h-3 w-3" />
+                        {alert.escalation_count}x
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Escaladée {alert.escalation_count} fois</p>
+                      {alert.original_severity && (
+                        <p className="text-xs text-muted-foreground">
+                          Sévérité initiale : {alert.original_severity}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Badge className={cn('text-[10px]', severityColors[alert.severity])}>
                 {alert.severity}
               </Badge>
-            )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
@@ -106,9 +128,10 @@ function AlertItem({ alert, onMarkRead, onDismiss }: {
 
 export function AlertsCenter() {
   const [open, setOpen] = useState(false);
-  const { alerts, loading, unreadCount, criticalCount, markAsRead, dismissAlert } = useAllAlerts();
+  const { alerts, loading, unreadCount, criticalCount, escalatedCount, markAsRead, dismissAlert } = useAllAlerts();
 
   const recentAlerts = alerts.filter(a => !a.is_dismissed).slice(0, 10);
+  const hasUrgent = criticalCount > 0 || escalatedCount > 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -116,13 +139,13 @@ export function AlertsCenter() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className={cn(
             "h-5 w-5 transition-colors",
-            criticalCount > 0 && "text-destructive animate-pulse"
+            hasUrgent && "text-destructive animate-pulse"
           )} />
           {unreadCount > 0 && (
             <Badge 
               className={cn(
                 "absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]",
-                criticalCount > 0 ? "bg-destructive" : "bg-primary"
+                hasUrgent ? "bg-destructive" : "bg-primary"
               )}
             >
               {unreadCount > 99 ? '99+' : unreadCount}
@@ -136,7 +159,9 @@ export function AlertsCenter() {
           <div>
             <h3 className="font-semibold">Alertes KPI</h3>
             <p className="text-xs text-muted-foreground">
-              {unreadCount} non lue(s){criticalCount > 0 && `, ${criticalCount} critique(s)`}
+              {unreadCount} non lue(s)
+              {criticalCount > 0 && <span className="text-destructive"> • {criticalCount} critique(s)</span>}
+              {escalatedCount > 0 && <span className="text-orange-600"> • {escalatedCount} escaladée(s)</span>}
             </p>
           </div>
           <Link to="/admin/alerts" onClick={() => setOpen(false)}>
