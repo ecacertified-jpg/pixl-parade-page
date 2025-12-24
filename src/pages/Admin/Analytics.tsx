@@ -8,6 +8,7 @@ import { useAdminAnalytics, Period } from '@/hooks/useAdminAnalytics';
 import { Download, Calendar, TrendingUp, Users, DollarSign, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyComparisonTable } from '@/components/admin/MonthlyComparisonTable';
+import { MetricsSparklineDashboard } from '@/components/admin/MetricsSparklineDashboard';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -142,6 +143,16 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Dashboard Sparklines */}
+        <Card>
+          <CardHeader>
+            <CardTitle>📈 Dashboard des métriques</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricsSparklineDashboard />
+          </CardContent>
+        </Card>
         
         {/* Graphique 1 : Évolution des utilisateurs */}
         <Card>
