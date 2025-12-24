@@ -15,6 +15,7 @@ import { UserBusinessTable } from '@/components/admin/UserBusinessTable';
 import { RegistrationTrendsChart } from '@/components/admin/RegistrationTrendsChart';
 import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
+import { GrowthAlertsBanner } from '@/components/admin/GrowthAlertsBanner';
 
 interface DashboardStats {
   totalUsers: number;
@@ -192,6 +193,9 @@ export default function AdminDashboard() {
             Vue d'ensemble de la plateforme JOIE DE VIVRE
           </p>
         </div>
+
+        {/* Growth Alerts Banner */}
+        <GrowthAlertsBanner />
 
         {/* Alerts */}
         <div className="grid gap-4">

@@ -61,6 +61,59 @@ export type Database = {
           },
         ]
       }
+      admin_growth_alerts: {
+        Row: {
+          alert_type: string
+          current_value: number
+          growth_percentage: number | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          metric_type: string
+          previous_value: number | null
+          threshold_id: string | null
+          triggered_at: string | null
+        }
+        Insert: {
+          alert_type: string
+          current_value: number
+          growth_percentage?: number | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          metric_type: string
+          previous_value?: number | null
+          threshold_id?: string | null
+          triggered_at?: string | null
+        }
+        Update: {
+          alert_type?: string
+          current_value?: number
+          growth_percentage?: number | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          metric_type?: string
+          previous_value?: number | null
+          threshold_id?: string | null
+          triggered_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_growth_alerts_threshold_id_fkey"
+            columns: ["threshold_id"]
+            isOneToOne: false
+            referencedRelation: "growth_alert_thresholds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_sessions: {
         Row: {
           admin_user_id: string
@@ -1943,6 +1996,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      growth_alert_thresholds: {
+        Row: {
+          comparison_period: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          metric_type: string
+          notify_methods: Json | null
+          threshold_type: string
+          threshold_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          comparison_period?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type: string
+          notify_methods?: Json | null
+          threshold_type: string
+          threshold_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          comparison_period?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type?: string
+          notify_methods?: Json | null
+          threshold_type?: string
+          threshold_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       hidden_posts: {
         Row: {

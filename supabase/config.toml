@@ -65,3 +65,6 @@ verify_jwt = true
 
 [functions.notify-order-confirmation]
 verify_jwt = false
+
+[functions.check-growth-alerts]
+verify_jwt = false
