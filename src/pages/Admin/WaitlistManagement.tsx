@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,8 @@ import {
   MoreVertical,
   Send,
   Eye,
-  Building2
+  Building2,
+  ArrowLeft
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -53,6 +55,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 export default function WaitlistManagement() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,11 +245,21 @@ export default function WaitlistManagement() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Liste d'attente prestataires</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gérez les demandes d'inscription des prestataires
-          </p>
+        <div className="flex items-start gap-3">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate('/admin')}
+            className="flex-shrink-0 -ml-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold">Liste d'attente prestataires</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gérez les demandes d'inscription des prestataires
+            </p>
+          </div>
         </div>
         <Button variant="outline" onClick={fetchEntries} disabled={loading} className="self-start sm:self-auto">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
