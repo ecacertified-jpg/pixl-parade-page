@@ -678,6 +678,99 @@ export type Database = {
         }
         Relationships: []
       }
+      business_birthday_alerts: {
+        Row: {
+          birthday_date: string | null
+          business_id: string
+          created_at: string
+          days_until_birthday: number
+          expires_at: string | null
+          fund_id: string | null
+          id: string
+          notified_at: string | null
+          priority: string
+          product_id: string | null
+          status: string
+          target_user_avatar: string | null
+          target_user_id: string
+          target_user_name: string | null
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          birthday_date?: string | null
+          business_id: string
+          created_at?: string
+          days_until_birthday: number
+          expires_at?: string | null
+          fund_id?: string | null
+          id?: string
+          notified_at?: string | null
+          priority?: string
+          product_id?: string | null
+          status?: string
+          target_user_avatar?: string | null
+          target_user_id: string
+          target_user_name?: string | null
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          birthday_date?: string | null
+          business_id?: string
+          created_at?: string
+          days_until_birthday?: number
+          expires_at?: string | null
+          fund_id?: string | null
+          id?: string
+          notified_at?: string | null
+          priority?: string
+          product_id?: string | null
+          status?: string
+          target_user_avatar?: string | null
+          target_user_id?: string
+          target_user_name?: string | null
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_birthday_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_birthday_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_birthday_alerts_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_birthday_alerts_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_birthday_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_categories: {
         Row: {
           business_owner_id: string
