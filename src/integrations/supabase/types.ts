@@ -1141,6 +1141,87 @@ export type Database = {
           },
         ]
       }
+      business_waitlist: {
+        Row: {
+          business_name: string
+          business_type: string | null
+          city: string | null
+          contact_first_name: string
+          contact_last_name: string
+          converted_to_business_id: string | null
+          created_at: string | null
+          email: string
+          id: string
+          invitation_expires_at: string | null
+          invitation_token: string | null
+          invited_at: string | null
+          motivation: string | null
+          phone: string | null
+          position: number
+          processed_by: string | null
+          rejection_reason: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_name: string
+          business_type?: string | null
+          city?: string | null
+          contact_first_name: string
+          contact_last_name: string
+          converted_to_business_id?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          invitation_expires_at?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          motivation?: string | null
+          phone?: string | null
+          position?: number
+          processed_by?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_name?: string
+          business_type?: string | null
+          city?: string | null
+          contact_first_name?: string
+          contact_last_name?: string
+          converted_to_business_id?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          invitation_expires_at?: string | null
+          invitation_token?: string | null
+          invited_at?: string | null
+          motivation?: string | null
+          phone?: string | null
+          position?: number
+          processed_by?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_waitlist_converted_to_business_id_fkey"
+            columns: ["converted_to_business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_waitlist_converted_to_business_id_fkey"
+            columns: ["converted_to_business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address: string | null

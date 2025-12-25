@@ -45,6 +45,7 @@ const navItems: NavItem[] = [
   { title: 'Alertes KPI', href: '/admin/alerts', icon: Bell },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
+  { title: 'Liste d\'attente', href: '/admin/waitlist', icon: ClipboardList },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },

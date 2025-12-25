@@ -15,6 +15,7 @@ import Install from "./pages/Install";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
+import BusinessWaitlist from "./pages/BusinessWaitlist";
 import BusinessPendingApproval from "./pages/BusinessPendingApproval";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +47,7 @@ import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
 import BusinessAnalytics from "./pages/Admin/BusinessAnalytics";
 import RealtimeDashboard from "./pages/Admin/RealtimeDashboard";
 import AlertsHistory from "./pages/Admin/AlertsHistory";
+import WaitlistManagement from "./pages/Admin/WaitlistManagement";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -75,6 +77,8 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
+            <Route path="/business-waitlist" element={<BusinessWaitlist />} />
+            <Route path="/devenir-prestataire" element={<BusinessWaitlist />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/business-pending-approval" element={
               <ProtectedRoute>
@@ -240,6 +244,11 @@ const App = () => (
             <Route path="/admin/businesses" element={
               <AdminRoute>
                 <BusinessManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/waitlist" element={
+              <AdminRoute>
+                <WaitlistManagement />
               </AdminRoute>
             } />
             <Route path="/admin/business-analytics" element={
