@@ -3,8 +3,9 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Plus, MoreVertical } from 'lucide-react';
+import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -38,6 +39,26 @@ interface Admin {
     email: string | null;
   };
 }
+
+const getDisplayName = (admin: Admin) => {
+  if (admin.profiles?.first_name || admin.profiles?.last_name) {
+    return `${admin.profiles.first_name || ''} ${admin.profiles.last_name || ''}`.trim();
+  }
+  return admin.profiles?.email?.split('@')[0] || 'Admin';
+};
+
+const getInitials = (admin: Admin) => {
+  if (admin.profiles?.first_name && admin.profiles?.last_name) {
+    return `${admin.profiles.first_name[0]}${admin.profiles.last_name[0]}`.toUpperCase();
+  }
+  if (admin.profiles?.first_name) {
+    return admin.profiles.first_name.slice(0, 2).toUpperCase();
+  }
+  if (admin.profiles?.email) {
+    return admin.profiles.email.slice(0, 2).toUpperCase();
+  }
+  return 'AD';
+};
 
 export default function AdminManagement() {
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -102,102 +123,194 @@ export default function AdminManagement() {
     );
   }
 
+  const renderAdminActions = (admin: Admin) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          onClick={() => handleToggleActive(admin.id, !admin.is_active)}
+        >
+          {admin.is_active ? 'Désactiver' : 'Activer'}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          setSelectedAdminId(admin.id);
+          setSelectedAdminName(getDisplayName(admin));
+          setSelectedAdminRole(admin.role as 'super_admin' | 'moderator');
+          setCurrentPermissions(admin.permissions || {});
+          setEditPermissionsOpen(true);
+        }}>
+          Modifier les permissions
+        </DropdownMenuItem>
+        {admin.role !== 'super_admin' && (
+          <DropdownMenuItem 
+            className="text-destructive"
+            onClick={() => {
+              setSelectedAdminId(admin.id);
+              setSelectedAdminName(getDisplayName(admin));
+              setRevokeDialogOpen(true);
+            }}
+          >
+            Révoquer l'accès admin
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        {/* Header responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Gestion des administrateurs</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold font-poppins">Gestion des administrateurs</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Gérer les accès administrateurs (Super Admin uniquement)
             </p>
           </div>
-          <Button onClick={() => setAddAdminOpen(true)}>
+          <Button onClick={() => setAddAdminOpen(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
-            Ajouter un administrateur
+            <span className="sm:hidden">Ajouter</span>
+            <span className="hidden sm:inline">Ajouter un administrateur</span>
           </Button>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
+              <Shield className="h-5 w-5 text-primary" />
               Tous les administrateurs ({admins.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Date d'attribution</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {admins.map((admin) => (
-                  <TableRow key={admin.id}>
-                    <TableCell className="font-medium">
-                      {admin.profiles?.first_name && admin.profiles?.last_name
-                        ? `${admin.profiles.first_name} ${admin.profiles.last_name}`
-                        : 'Nom non défini'}
-                    </TableCell>
-                    <TableCell>{admin.profiles?.email || 'Email non défini'}</TableCell>
-                    <TableCell>
-                      <Badge variant={admin.role === 'super_admin' ? 'default' : 'secondary'}>
-                        {admin.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(admin.assigned_at)}</TableCell>
-                    <TableCell>
-                      <Badge variant={admin.is_active ? 'default' : 'destructive'}>
-                        {admin.is_active ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleToggleActive(admin.id, !admin.is_active)}
-                          >
-                            {admin.is_active ? 'Désactiver' : 'Activer'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedAdminId(admin.id);
-                            setSelectedAdminName(`${admin.profiles?.first_name || ''} ${admin.profiles?.last_name || ''}`.trim() || 'Admin');
-                            setSelectedAdminRole(admin.role as 'super_admin' | 'moderator');
-                            setCurrentPermissions(admin.permissions || {});
-                            setEditPermissionsOpen(true);
-                          }}>
-                            Modifier les permissions
-                          </DropdownMenuItem>
-                          {admin.role !== 'super_admin' && (
-                            <DropdownMenuItem 
-                              className="text-red-600"
-                              onClick={() => {
-                                setSelectedAdminId(admin.id);
-                                setSelectedAdminName(`${admin.profiles?.first_name || ''} ${admin.profiles?.last_name || ''}`.trim() || 'Admin');
-                                setRevokeDialogOpen(true);
-                              }}
-                            >
-                              Révoquer l'accès admin
-                            </DropdownMenuItem>
+            {admins.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium mb-2">Aucun administrateur</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Commencez par ajouter un administrateur à votre équipe.
+                </p>
+                <Button onClick={() => setAddAdminOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un administrateur
+                </Button>
+              </div>
+            ) : (
+              <>
+                {/* Vue mobile : cartes */}
+                <div className="block md:hidden space-y-4">
+                  {admins.map((admin) => (
+                    <Card key={admin.id} className="p-4 border bg-card/50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className={admin.role === 'super_admin' ? 'ring-2 ring-primary' : ''}>
+                            <AvatarFallback className={admin.role === 'super_admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
+                              {getInitials(admin)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{getDisplayName(admin)}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {admin.profiles?.email || 'Email non défini'}
+                            </p>
+                          </div>
+                        </div>
+                        {renderAdminActions(admin)}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Badge 
+                          variant={admin.role === 'super_admin' ? 'default' : 'secondary'}
+                          className="flex items-center gap-1"
+                        >
+                          {admin.role === 'super_admin' ? (
+                            <ShieldCheck className="h-3 w-3" />
+                          ) : (
+                            <UserCheck className="h-3 w-3" />
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          {admin.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+                        </Badge>
+                        <Badge 
+                          variant={admin.is_active ? 'outline' : 'destructive'}
+                          className="flex items-center gap-1"
+                        >
+                          {admin.is_active ? 'Actif' : <><UserX className="h-3 w-3" /> Inactif</>}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Attribué le {formatDate(admin.assigned_at)}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Vue desktop : tableau */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Administrateur</TableHead>
+                        <TableHead>Rôle</TableHead>
+                        <TableHead>Date d'attribution</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {admins.map((admin) => (
+                        <TableRow key={admin.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className={admin.role === 'super_admin' ? 'ring-2 ring-primary ring-offset-2' : ''}>
+                                <AvatarFallback className={admin.role === 'super_admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
+                                  {getInitials(admin)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{getDisplayName(admin)}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {admin.profiles?.email || 'Email non défini'}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={admin.role === 'super_admin' ? 'default' : 'secondary'}
+                              className="flex items-center gap-1 w-fit"
+                            >
+                              {admin.role === 'super_admin' ? (
+                                <ShieldCheck className="h-3 w-3" />
+                              ) : (
+                                <UserCheck className="h-3 w-3" />
+                              )}
+                              {admin.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(admin.assigned_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={admin.is_active ? 'outline' : 'destructive'}
+                              className={admin.is_active ? 'border-green-500 text-green-600' : ''}
+                            >
+                              {admin.is_active ? 'Actif' : 'Inactif'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {renderAdminActions(admin)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         
