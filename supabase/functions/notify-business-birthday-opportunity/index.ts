@@ -21,6 +21,188 @@ interface BirthdayOpportunity {
   }>;
 }
 
+interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+// Helper function to send push notification
+async function sendPushNotificationDirect(
+  subscription: PushSubscription,
+  payload: {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    requireInteraction?: boolean;
+    data?: Record<string, any>;
+  }
+): Promise<boolean> {
+  try {
+    // Use Web Push protocol - simplified version without VAPID
+    // For production, you'd want to use web-push library with VAPID keys
+    const response = await fetch(subscription.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'TTL': '86400',
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      console.error(`Push notification failed: ${response.status} ${response.statusText}`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    return false;
+  }
+}
+
+// Get email template based on priority
+function getEmailTemplate(
+  priority: string,
+  businessName: string,
+  userName: string,
+  daysUntil: number,
+  productCount: number
+): { subject: string; html: string } {
+  const priorityStyles = {
+    critical: {
+      emoji: '🚨',
+      headerBg: 'linear-gradient(135deg, #DC2626, #EF4444)',
+      urgencyText: 'CRITIQUE',
+      urgencyColor: '#DC2626',
+      animation: 'animation: pulse 2s infinite;',
+      pulseStyle: `
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+      `
+    },
+    urgent: {
+      emoji: '⚡',
+      headerBg: 'linear-gradient(135deg, #EA580C, #F97316)',
+      urgencyText: 'URGENT',
+      urgencyColor: '#EA580C',
+      animation: '',
+      pulseStyle: ''
+    },
+    high: {
+      emoji: '🎂',
+      headerBg: 'linear-gradient(135deg, #7A5DC7, #C084FC)',
+      urgencyText: '',
+      urgencyColor: '#7A5DC7',
+      animation: '',
+      pulseStyle: ''
+    }
+  };
+
+  const style = priorityStyles[priority as keyof typeof priorityStyles] || priorityStyles.high;
+  
+  const urgencyBadge = style.urgencyText ? `
+    <span style="background: ${style.urgencyColor}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px;">
+      ${style.urgencyText}
+    </span>
+  ` : '';
+
+  const productText = productCount > 1 
+    ? `${productCount} de vos produits sont dans sa liste de souhaits` 
+    : `Un de vos produits est dans sa liste de souhaits`;
+
+  const subject = priority === 'critical'
+    ? `🚨 URGENT: Anniversaire de ${userName} dans ${daysUntil} jours - ${productCount} produit(s) en wishlist !`
+    : priority === 'urgent'
+    ? `⚡ Opportunité urgente - Anniversaire de ${userName} dans ${daysUntil} jours !`
+    : `🎂 Opportunité cadeau - Anniversaire de ${userName} dans ${daysUntil} jours !`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        ${style.pulseStyle}
+      </style>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f4f4f5;">
+      <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); ${style.animation}">
+          <!-- Header -->
+          <div style="background: ${style.headerBg}; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">
+              ${style.emoji} Opportunité Cadeau ! ${urgencyBadge}
+            </h1>
+            ${priority === 'critical' ? `
+              <p style="margin: 15px 0 0 0; font-size: 14px; opacity: 0.9;">
+                Action recommandée immédiatement !
+              </p>
+            ` : ''}
+          </div>
+          
+          <!-- Content -->
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Bonjour <strong>${businessName}</strong>,</p>
+            
+            <p style="font-size: 16px; color: #333; line-height: 1.6;">
+              ${priority === 'critical' ? '🔥 Excellente nouvelle !' : 'Bonne nouvelle !'} 
+              <strong>${userName}</strong> a ajouté ${productText}, et son anniversaire est 
+              <strong style="color: ${style.urgencyColor};">dans ${daysUntil} jours</strong> !
+            </p>
+            
+            ${priority === 'critical' || priority === 'urgent' ? `
+              <div style="background: #FEF3C7; border-left: 4px solid ${style.urgencyColor}; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0; color: #92400E; font-weight: 500;">
+                  ${priority === 'critical' 
+                    ? `⚡ Avec ${productCount} produits en wishlist, c'est une opportunité rare ! Agissez vite.`
+                    : '💡 Cette personne a plusieurs de vos produits en favoris. Une cagnotte augmenterait vos chances de vente.'}
+                </p>
+              </div>
+            ` : ''}
+            
+            <div style="background: ${style.headerBg}; color: white; padding: 25px; border-radius: 12px; text-align: center; margin: 25px 0;">
+              <h2 style="margin: 0; font-size: 22px;">Créez une cagnotte maintenant</h2>
+              <p style="margin: 10px 0 0 0; opacity: 0.9;">et notifiez tous ses amis pour qu'ils participent !</p>
+            </div>
+            
+            <p style="font-size: 15px; color: #555;">En créant une cagnotte, vous :</p>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>✅ Facilitez l'achat groupé pour les proches de ${userName}</li>
+              <li>✅ Augmentez vos chances de vente</li>
+              <li>✅ Créez une expérience de don mémorable</li>
+              ${priority === 'critical' ? '<li>✅ Profitez d\'une opportunité rare avec plusieurs produits en wishlist</li>' : ''}
+            </ul>
+            
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="https://joiedevivre.lovable.app/business-dashboard?tab=products" 
+                 style="display: inline-block; background: ${style.urgencyColor}; color: white; padding: 16px 40px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; ${style.animation}">
+                ${priority === 'critical' ? '🚀 Agir maintenant' : 'Voir l\'opportunité'}
+              </a>
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div style="background: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              Cet email a été envoyé par JOIE DE VIVRE. © ${new Date().getFullYear()}
+            </p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -204,16 +386,20 @@ serve(async (req) => {
           birthday_date: birthdayDateStr,
           status: 'pending',
           priority,
-          expires_at: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000).toISOString() // Expire le jour de l'anniversaire
+          expires_at: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          _productsCount: productsForBusiness.length // Temporary field for notification
         });
       }
     }
 
     // 5. Insérer les alertes
     if (alertsToCreate.length > 0) {
+      // Remove temporary fields before insert
+      const alertsForDb = alertsToCreate.map(({ _productsCount, ...alert }) => alert);
+      
       const { error: insertError } = await supabase
         .from('business_birthday_alerts')
-        .insert(alertsToCreate);
+        .insert(alertsForDb);
 
       if (insertError) {
         console.error('Error inserting alerts:', insertError);
@@ -224,8 +410,11 @@ serve(async (req) => {
     }
 
     // 6. Envoyer des notifications aux commerçants
+    let pushNotificationsSent = 0;
+    let emailsSent = 0;
+
     for (const alert of alertsToCreate) {
-      // Récupérer l'email du commerçant
+      // Récupérer l'email et user_id du commerçant
       const { data: business } = await supabase
         .from('business_accounts')
         .select('user_id, business_name, email')
@@ -234,13 +423,26 @@ serve(async (req) => {
 
       if (!business) continue;
 
+      // Notification title/message based on priority
+      const notifTitle = alert.priority === 'critical'
+        ? '🚨 Opportunité CRITIQUE !'
+        : alert.priority === 'urgent'
+        ? '⚡ Opportunité urgente !'
+        : '🎂 Opportunité cadeau !';
+
+      const notifMessage = alert.priority === 'critical'
+        ? `L'anniversaire de ${alert.target_user_name} est dans ${alert.days_until_birthday} jours. ${alert._productsCount} de vos produits sont dans sa wishlist ! Agissez maintenant !`
+        : alert.priority === 'urgent'
+        ? `L'anniversaire de ${alert.target_user_name} est dans ${alert.days_until_birthday} jours. ${alert._productsCount} produits en wishlist !`
+        : `L'anniversaire de ${alert.target_user_name} est dans ${alert.days_until_birthday} jours. Un de vos produits est dans sa wishlist !`;
+
       // Créer une notification in-app
       const { error: notifError } = await supabase
         .from('notifications')
         .insert({
           user_id: business.user_id,
-          title: '🎂 Opportunité cadeau !',
-          message: `L'anniversaire de ${alert.target_user_name} est dans ${alert.days_until_birthday} jours. Un de vos produits est dans sa wishlist !`,
+          title: notifTitle,
+          message: notifMessage,
           type: 'birthday_opportunity',
           action_url: '/business-dashboard?tab=products',
           metadata: {
@@ -248,7 +450,8 @@ serve(async (req) => {
             target_user: alert.target_user_name,
             product_id: alert.product_id,
             days_until: alert.days_until_birthday,
-            priority: alert.priority
+            priority: alert.priority,
+            products_count: alert._productsCount
           }
         });
 
@@ -256,11 +459,72 @@ serve(async (req) => {
         console.error(`Error creating notification for business ${business.business_name}:`, notifError);
       }
 
-      // Envoyer un email si disponible
+      // 6.1 Envoyer une push notification pour les alertes critiques/urgentes
+      if (alert.priority === 'critical' || alert.priority === 'urgent') {
+        console.log(`📱 Sending push notification for ${alert.priority} alert to business ${business.business_name}`);
+        
+        // Récupérer les push subscriptions du business owner
+        const { data: pushSubs, error: pushSubsError } = await supabase
+          .from('push_subscriptions')
+          .select('*')
+          .eq('user_id', business.user_id)
+          .eq('is_active', true);
+
+        if (pushSubsError) {
+          console.error(`Error fetching push subscriptions for ${business.user_id}:`, pushSubsError);
+        } else if (pushSubs && pushSubs.length > 0) {
+          for (const sub of pushSubs) {
+            try {
+              const pushPayload = {
+                title: notifTitle,
+                body: notifMessage,
+                icon: '/pwa-192x192.png',
+                badge: '/pwa-192x192.png',
+                tag: `birthday-opportunity-${alert.target_user_id}`,
+                requireInteraction: true,
+                data: {
+                  type: 'birthday_opportunity',
+                  priority: alert.priority,
+                  url: '/business-dashboard?tab=products',
+                  alert_id: alert.id
+                }
+              };
+
+              const subscription: PushSubscription = {
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: sub.p256dh,
+                  auth: sub.auth
+                }
+              };
+
+              const success = await sendPushNotificationDirect(subscription, pushPayload);
+              if (success) {
+                pushNotificationsSent++;
+                console.log(`✅ Push notification sent to ${business.business_name}`);
+              }
+            } catch (pushError) {
+              console.error(`Error sending push to ${business.business_name}:`, pushError);
+            }
+          }
+        } else {
+          console.log(`⏭️ No active push subscriptions for business ${business.business_name}`);
+        }
+      }
+
+      // 6.2 Envoyer un email avec template différencié par priorité
       if (business.email) {
         const resendApiKey = Deno.env.get('RESEND_API_KEY');
         if (resendApiKey) {
           try {
+            const { subject, html } = getEmailTemplate(
+              alert.priority,
+              business.business_name,
+              alert.target_user_name,
+              alert.days_until_birthday,
+              alert._productsCount
+            );
+
             const emailResponse = await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -270,39 +534,16 @@ serve(async (req) => {
               body: JSON.stringify({
                 from: 'JOIE DE VIVRE <noreply@joiedevivre-africa.com>',
                 to: [business.email],
-                subject: `🎂 Opportunité cadeau - Anniversaire de ${alert.target_user_name} dans 15 jours !`,
-                html: `
-                  <div style="font-family: 'Poppins', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h1 style="color: #7A5DC7; text-align: center;">🎂 Opportunité Cadeau !</h1>
-                    <p>Bonjour <strong>${business.business_name}</strong>,</p>
-                    <p>Bonne nouvelle ! <strong>${alert.target_user_name}</strong> a ajouté un de vos produits à sa liste de souhaits, et son anniversaire est <strong>dans 15 jours</strong> !</p>
-                    <div style="background: linear-gradient(135deg, #7A5DC7, #C084FC); color: white; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
-                      <h2 style="margin: 0;">Créez une cagnotte maintenant</h2>
-                      <p style="margin: 10px 0 0 0;">et notifiez tous ses amis pour qu'ils participent !</p>
-                    </div>
-                    <p>En créant une cagnotte, vous :</p>
-                    <ul>
-                      <li>Facilitez l'achat groupé pour les proches de ${alert.target_user_name}</li>
-                      <li>Augmentez vos chances de vente</li>
-                      <li>Créez une expérience de don mémorable</li>
-                    </ul>
-                    <div style="text-align: center; margin-top: 30px;">
-                      <a href="https://joiedevivre.lovable.app/business-dashboard?tab=products" style="background: #7A5DC7; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                        Voir l'opportunité
-                      </a>
-                    </div>
-                    <p style="color: #666; font-size: 12px; margin-top: 30px; text-align: center;">
-                      Cet email a été envoyé par JOIE DE VIVRE. © 2024
-                    </p>
-                  </div>
-                `
+                subject,
+                html
               })
             });
 
             if (!emailResponse.ok) {
               console.error('Error sending email:', await emailResponse.text());
             } else {
-              console.log(`📧 Email sent to ${business.email}`);
+              emailsSent++;
+              console.log(`📧 ${alert.priority.toUpperCase()} email sent to ${business.email}`);
             }
           } catch (emailError) {
             console.error('Email sending error:', emailError);
@@ -311,14 +552,20 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🎉 Birthday opportunity detection complete. ${opportunities.length} opportunities found, ${alertsToCreate.length} alerts created.`);
+    console.log(`🎉 Birthday opportunity detection complete.`);
+    console.log(`   📊 ${opportunities.length} opportunities found`);
+    console.log(`   📬 ${alertsToCreate.length} alerts created`);
+    console.log(`   📱 ${pushNotificationsSent} push notifications sent`);
+    console.log(`   📧 ${emailsSent} emails sent`);
 
     return new Response(
       JSON.stringify({
         success: true,
         opportunities: opportunities.length,
         alertsCreated: alertsToCreate.length,
-        message: `Found ${opportunities.length} birthday opportunities, created ${alertsToCreate.length} alerts`
+        pushNotificationsSent,
+        emailsSent,
+        message: `Found ${opportunities.length} birthday opportunities, created ${alertsToCreate.length} alerts, sent ${pushNotificationsSent} push notifications and ${emailsSent} emails`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
