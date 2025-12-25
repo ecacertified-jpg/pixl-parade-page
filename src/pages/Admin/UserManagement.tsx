@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, Ban, CheckCircle, XCircle } from 'lucide-react';
+import { Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -36,6 +38,7 @@ interface User {
 }
 
 export default function UserManagement() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,11 +82,49 @@ export default function UserManagement() {
     return new Date(date).toLocaleDateString('fr-FR');
   };
 
+  const getUserDisplayName = (user: User) => {
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    }
+    return 'Utilisateur anonyme';
+  };
+
+  const getInitials = (firstName: string | null, lastName: string | null) => {
+    const f = firstName?.[0]?.toUpperCase() || '';
+    const l = lastName?.[0]?.toUpperCase() || '';
+    return f + l || '?';
+  };
+
+  const getStatusBadge = (isSuspended: boolean) => (
+    isSuspended ? (
+      <Badge variant="destructive" className="text-xs">
+        <XCircle className="mr-1 h-3 w-3" />
+        Suspendu
+      </Badge>
+    ) : (
+      <Badge className="text-xs bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
+        <CheckCircle className="mr-1 h-3 w-3" />
+        Actif
+      </Badge>
+    )
+  );
+
+  const handleUserAction = (user: User, action: 'profile' | 'transactions' | 'suspend') => {
+    setSelectedUserId(user.user_id);
+    setSelectedUserName(getUserDisplayName(user));
+    setSelectedUserSuspended(user.is_suspended);
+    
+    if (action === 'profile') setProfileModalOpen(true);
+    if (action === 'transactions') setTransactionsModalOpen(true);
+    if (action === 'suspend') setSuspendDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Chargement des utilisateurs...</p>
         </div>
       </AdminLayout>
     );
@@ -91,106 +132,187 @@ export default function UserManagement() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion des utilisateurs</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérer tous les comptes utilisateurs de la plateforme
-          </p>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/admin')}
+              className="mt-0.5 flex-shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                Gestion des utilisateurs
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gérer tous les comptes utilisateurs
+              </p>
+            </div>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={fetchUsers}
+            className="self-start sm:self-auto"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualiser
+          </Button>
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Tous les utilisateurs ({users.length})</CardTitle>
-              <div className="flex items-center gap-2">
-                <div className="relative w-64">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher un utilisateur..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  Tous les utilisateurs
+                  <Badge variant="secondary">{users.length}</Badge>
+                </CardTitle>
+              </div>
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom ou téléphone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-full"
+                />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Date d'inscription</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.user_id}>
-                    <TableCell className="font-medium">
-                      {user.first_name && user.last_name
-                        ? `${user.first_name} ${user.last_name}`
-                        : 'Nom non défini'}
-                    </TableCell>
-                    <TableCell>{user.phone || 'Non renseigné'}</TableCell>
-                    <TableCell>{formatDate(user.created_at)}</TableCell>
-                    <TableCell>
-                      {user.is_suspended ? (
-                        <Badge variant="destructive">
-                          <XCircle className="mr-1 h-3 w-3" />
-                          Suspendu
-                        </Badge>
-                      ) : (
-                        <Badge variant="default">
-                          <CheckCircle className="mr-1 h-3 w-3" />
-                          Actif
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedUserId(user.user_id);
-                            setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
-                            setProfileModalOpen(true);
-                          }}>
-                            Voir le profil
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedUserId(user.user_id);
-                            setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
-                            setTransactionsModalOpen(true);
-                          }}>
-                            Historique des transactions
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => {
-                              setSelectedUserId(user.user_id);
-                              setSelectedUserName(`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Utilisateur');
-                              setSelectedUserSuspended(user.is_suspended);
-                              setSuspendDialogOpen(true);
-                            }}
-                          >
-                            <Ban className="mr-2 h-4 w-4" />
-                            {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            {filteredUsers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-lg font-medium text-muted-foreground">
+                  Aucun utilisateur trouvé
+                </p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  {searchQuery 
+                    ? "Essayez avec un autre terme de recherche" 
+                    : "Aucun utilisateur inscrit pour le moment"}
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Vue mobile : cartes */}
+                <div className="block md:hidden space-y-3">
+                  {filteredUsers.map((user) => (
+                    <Card key={user.user_id} className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {getInitials(user.first_name, user.last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">
+                              {getUserDisplayName(user)}
+                            </p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {user.phone || 'Téléphone non renseigné'}
+                            </p>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="flex-shrink-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleUserAction(user, 'profile')}>
+                              Voir le profil
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUserAction(user, 'transactions')}>
+                              Historique des transactions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleUserAction(user, 'suspend')}
+                            >
+                              <Ban className="mr-2 h-4 w-4" />
+                              {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                        <span className="text-xs text-muted-foreground">
+                          Inscrit le {formatDate(user.created_at)}
+                        </span>
+                        {getStatusBadge(user.is_suspended)}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Vue desktop : tableau */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Utilisateur</TableHead>
+                        <TableHead>Téléphone</TableHead>
+                        <TableHead>Date d'inscription</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.user_id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                  {getInitials(user.first_name, user.last_name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">
+                                {getUserDisplayName(user)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.phone || 'Non renseigné'}</TableCell>
+                          <TableCell>{formatDate(user.created_at)}</TableCell>
+                          <TableCell>{getStatusBadge(user.is_suspended)}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleUserAction(user, 'profile')}>
+                                  Voir le profil
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUserAction(user, 'transactions')}>
+                                  Historique des transactions
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => handleUserAction(user, 'suspend')}
+                                >
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         
