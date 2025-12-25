@@ -70,42 +70,49 @@ export function BusinessTrendsChart({ data, loading }: BusinessTrendsChartProps)
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2">
-          📈 Tendances Mensuelles (12 mois)
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
-            <ToggleGroupItem value="revenue" aria-label="Voir revenus">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              Revenus
+      <CardHeader className="pb-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              📈 Tendances <span className="hidden sm:inline">Mensuelles</span> (12 mois)
+            </CardTitle>
+            <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+          </div>
+          <ToggleGroup 
+            type="single" 
+            value={viewMode} 
+            onValueChange={(v) => v && setViewMode(v as ViewMode)}
+            className="self-start"
+          >
+            <ToggleGroupItem value="revenue" aria-label="Voir revenus" size="sm">
+              <TrendingUp className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Revenus</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="businesses" aria-label="Voir business">
-              <Building2 className="h-4 w-4 mr-1" />
-              Business
+            <ToggleGroupItem value="businesses" aria-label="Voir business" size="sm">
+              <Building2 className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Business</span>
             </ToggleGroupItem>
           </ToggleGroup>
-          <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
         </div>
       </CardHeader>
       <CardContent>
         {/* Summary KPIs */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center p-3 bg-primary/10 rounded-lg">
-            <p className="text-2xl font-bold text-primary">{formatRevenue(totalRevenue)}</p>
-            <p className="text-xs text-muted-foreground">Total revenus</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <div className="text-center p-2 sm:p-3 bg-primary/10 rounded-lg">
+            <p className="text-lg sm:text-2xl font-bold text-primary">{formatRevenue(totalRevenue)}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total revenus</p>
           </div>
-          <div className="text-center p-3 bg-blue-100 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">{totalOrders}</p>
-            <p className="text-xs text-muted-foreground">Total commandes</p>
+          <div className="text-center p-2 sm:p-3 bg-blue-100 rounded-lg">
+            <p className="text-lg sm:text-2xl font-bold text-blue-600">{totalOrders}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Commandes</p>
           </div>
-          <div className="text-center p-3 bg-green-100 rounded-lg">
-            <p className="text-2xl font-bold text-green-600">+{totalNewBusinesses}</p>
-            <p className="text-xs text-muted-foreground">Nouveaux business</p>
+          <div className="text-center p-2 sm:p-3 bg-green-100 rounded-lg col-span-2 sm:col-span-1">
+            <p className="text-lg sm:text-2xl font-bold text-green-600">+{totalNewBusinesses}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Nouveaux business</p>
           </div>
         </div>
 
-        <div className="h-72">
+        <div className="h-56 sm:h-72">
           <ChartContainer config={chartConfig} className="h-full w-full">
             {viewMode === 'revenue' ? (
               <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

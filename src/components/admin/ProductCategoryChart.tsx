@@ -126,46 +126,48 @@ export function ProductCategoryChart({ data, loading }: ProductCategoryChartProp
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2">
-          📦 Produits par Catégorie
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
-            <ToggleGroupItem value="bar" aria-label="Vue barres">
-              <BarChart3 className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="treemap" aria-label="Vue treemap">
-              <Grid3X3 className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-          <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            📦 Produits par Catégorie
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
+              <ToggleGroupItem value="bar" aria-label="Vue barres" size="sm">
+                <BarChart3 className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="treemap" aria-label="Vue treemap" size="sm">
+                <Grid3X3 className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold">{totalProducts}</p>
-            <p className="text-xs text-muted-foreground">Total produits</p>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
+            <p className="text-lg sm:text-2xl font-bold">{totalProducts}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total produits</p>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold">{data.length}</p>
-            <p className="text-xs text-muted-foreground">Catégories</p>
+          <div className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
+            <p className="text-lg sm:text-2xl font-bold">{data.length}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Catégories</p>
           </div>
         </div>
 
-        <div className="h-64">
+        <div className="h-48 sm:h-64">
           <ChartContainer config={chartConfig} className="h-full w-full">
             {viewMode === 'bar' ? (
-              <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
-                <XAxis type="number" />
+              <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis 
                   type="category" 
                   dataKey="category" 
-                  width={120} 
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(value) => value.length > 15 ? value.slice(0, 13) + '...' : value}
+                  width={80} 
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(value) => value.length > 10 ? value.slice(0, 8) + '...' : value}
                 />
                 <ChartTooltip
                   content={({ active, payload }) => {

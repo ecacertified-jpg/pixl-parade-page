@@ -77,20 +77,20 @@ export function BusinessKPICards({ stats, loading }: BusinessKPICardsProps) {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
       {kpis.map((kpi) => {
         const Icon = kpi.icon;
         return (
           <Card key={kpi.title} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground font-medium">{kpi.title}</span>
-                <div className={`p-1.5 rounded-lg ${kpi.bgColor}`}>
-                  <Icon className={`h-3.5 w-3.5 ${kpi.color}`} />
+                <span className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate pr-1">{kpi.title}</span>
+                <div className={`p-1 sm:p-1.5 rounded-lg ${kpi.bgColor} shrink-0`}>
+                  <Icon className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${kpi.color}`} />
                 </div>
               </div>
-              <p className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{kpi.subtitle}</p>
+              <p className={`text-lg sm:text-2xl font-bold ${kpi.color}`}>{kpi.value}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate">{kpi.subtitle}</p>
             </CardContent>
           </Card>
         );
