@@ -6079,7 +6079,7 @@ export type Database = {
               p_event_type: string
               p_ip_address?: string
               p_metadata?: Json
-              p_risk_level?: string
+              p_severity?: string
               p_user_agent?: string
               p_user_id?: string
             }
