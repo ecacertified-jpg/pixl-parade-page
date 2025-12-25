@@ -90,6 +90,7 @@ export function AddAdminModal({ open, onOpenChange, onSuccess }: AddAdminModalPr
           role: role,
           permissions: role === 'super_admin' ? {} : permissions,
           assigned_by: user?.id,
+          is_active: true,
         });
 
       if (error) throw error;
