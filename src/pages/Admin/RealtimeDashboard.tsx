@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
@@ -6,10 +7,11 @@ import { RealtimeStatsCards } from '@/components/admin/RealtimeStatsCards';
 import { RealtimeActivityFeed } from '@/components/admin/RealtimeActivityFeed';
 import { RealtimeChart } from '@/components/admin/RealtimeChart';
 import { RealtimeMapCard } from '@/components/admin/RealtimeMapCard';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function RealtimeDashboard() {
+  const navigate = useNavigate();
   const {
     events,
     liveStats,
@@ -38,15 +40,25 @@ export default function RealtimeDashboard() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              📡 Tableau de bord temps réel
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Surveillez l'activité de la plateforme en direct
-            </p>
+          <div className="flex items-start gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/admin')}
+              className="flex-shrink-0 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                📡 Tableau de bord temps réel
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Surveillez l'activité de la plateforme en direct
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <Button 
               variant="outline" 
               size="sm" 
@@ -54,7 +66,7 @@ export default function RealtimeDashboard() {
               className="gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              Actualiser les stats
+              <span className="hidden sm:inline">Actualiser</span>
             </Button>
             <RealtimeConnectionStatus 
               isConnected={isConnected} 

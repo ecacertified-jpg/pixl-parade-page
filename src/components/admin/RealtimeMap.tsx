@@ -106,25 +106,34 @@ export function RealtimeMap({ markers, mapboxToken, onTokenSubmit }: RealtimeMap
 
   if (!mapboxToken || !hasValidToken) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[300px] bg-muted/30 rounded-lg p-6 gap-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <div className="text-center space-y-2">
-          <h3 className="font-semibold">Token Mapbox requis</h3>
-          <p className="text-sm text-muted-foreground max-w-md">
-            Pour afficher la carte, veuillez entrer votre token Mapbox public. 
-            Obtenez-en un gratuitement sur <a href="https://mapbox.com" target="_blank" rel="noopener" className="text-primary underline">mapbox.com</a>
-          </p>
+      <div className="flex flex-col items-center justify-center h-full min-h-[300px] bg-gradient-to-br from-muted/40 to-muted/10 rounded-lg p-4 sm:p-6 gap-4 sm:gap-5">
+        <div className="p-3 sm:p-4 rounded-full bg-amber-100 dark:bg-amber-900/30">
+          <AlertCircle className="h-8 w-8 sm:h-10 sm:w-10 text-amber-600" />
         </div>
-        <div className="flex gap-2 w-full max-w-md">
+        <div className="text-center space-y-2">
+          <h3 className="text-base sm:text-lg font-semibold">Token Mapbox requis</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-sm">
+            Pour afficher la carte, entrez votre token Mapbox public.
+          </p>
+          <a 
+            href="https://mapbox.com" 
+            target="_blank" 
+            rel="noopener" 
+            className="inline-block text-xs sm:text-sm text-primary hover:underline"
+          >
+            → Obtenir un token gratuit sur mapbox.com
+          </a>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full max-w-md">
           <Input
             placeholder="pk.eyJ1Ijo..."
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
             className="flex-1"
           />
-          <Button onClick={handleTokenSubmit} disabled={!tokenInput.trim()}>
-            <MapPin className="h-4 w-4 mr-2" />
-            Activer
+          <Button onClick={handleTokenSubmit} disabled={!tokenInput.trim()} className="gap-2">
+            <MapPin className="h-4 w-4" />
+            <span>Activer la carte</span>
           </Button>
         </div>
       </div>

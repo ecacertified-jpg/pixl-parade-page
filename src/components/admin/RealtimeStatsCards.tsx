@@ -22,34 +22,41 @@ function StatCard({ icon: Icon, label, value, suffix, color, format = 'number' }
     ? value.toLocaleString('fr-FR') 
     : value;
 
+  // Shorten suffix on mobile
+  const displaySuffix = suffix === "aujourd'hui" ? "auj." : suffix;
+
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all duration-300",
       "hover:shadow-lg hover:scale-[1.02]"
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-2 rounded-lg",
-              color
-            )}>
-              <Icon className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={value}
-                  initial={{ scale: 1.2, color: 'hsl(var(--primary))' }}
-                  animate={{ scale: 1, color: 'hsl(var(--foreground))' }}
-                  className="text-2xl font-bold"
-                >
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className={cn(
+            "p-1.5 sm:p-2 rounded-lg flex-shrink-0",
+            color
+          )}>
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</p>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={value}
+                initial={{ scale: 1.1, color: 'hsl(var(--primary))' }}
+                animate={{ scale: 1, color: 'hsl(var(--foreground))' }}
+                className="flex items-baseline gap-1"
+              >
+                <span className="text-lg sm:text-2xl font-bold truncate">
                   {displayValue}
-                  {suffix && <span className="text-sm font-normal text-muted-foreground ml-1">{suffix}</span>}
-                </motion.p>
-              </AnimatePresence>
-            </div>
+                </span>
+                {suffix && (
+                  <span className="text-[10px] sm:text-xs font-normal text-muted-foreground hidden xs:inline">
+                    {displaySuffix}
+                  </span>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </CardContent>
@@ -60,7 +67,7 @@ function StatCard({ icon: Icon, label, value, suffix, color, format = 'number' }
         animate={{ opacity: 0, scale: 2 }}
         transition={{ duration: 0.5 }}
         className={cn(
-          "absolute inset-0 rounded-lg",
+          "absolute inset-0 rounded-lg pointer-events-none",
           color.replace('bg-', 'bg-').replace('/20', '/10')
         )}
       />
