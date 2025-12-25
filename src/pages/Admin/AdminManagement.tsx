@@ -205,21 +205,23 @@ export default function AdminManagement() {
                 <div className="block md:hidden space-y-4">
                   {admins.map((admin) => (
                     <Card key={admin.id} className="p-4 border bg-card/50">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className={admin.role === 'super_admin' ? 'ring-2 ring-primary' : ''}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Avatar className={`flex-shrink-0 ${admin.role === 'super_admin' ? 'ring-2 ring-primary' : ''}`}>
                             <AvatarFallback className={admin.role === 'super_admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'}>
                               {getInitials(admin)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-medium truncate">{getDisplayName(admin)}</p>
                             <p className="text-sm text-muted-foreground truncate">
                               {admin.profiles?.email || 'Email non défini'}
                             </p>
                           </div>
                         </div>
-                        {renderAdminActions(admin)}
+                        <div className="flex-shrink-0">
+                          {renderAdminActions(admin)}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
                         <Badge 

@@ -184,7 +184,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Mobile menu */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="bg-background shadow-md">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
@@ -195,7 +195,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 lg:p-8">
+        <div className="container mx-auto p-6 lg:p-8 pt-16 lg:pt-8">
           {children}
         </div>
       </main>
