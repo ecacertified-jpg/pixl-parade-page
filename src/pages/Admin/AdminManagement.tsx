@@ -57,22 +57,12 @@ export default function AdminManagement() {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select(`
-          id,
-          user_id,
-          role,
-          permissions,
-          is_active,
-          created_at,
-          assigned_at,
-          profiles:user_id (first_name, last_name, email)
-        `)
-        .order('assigned_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('admin-list-admins');
 
       if (error) throw error;
-      setAdmins(data as any || []);
+      if (data?.error) throw new Error(data.error);
+      
+      setAdmins(data?.data || []);
     } catch (error) {
       console.error('Error fetching admins:', error);
       toast.error('Erreur lors du chargement des administrateurs');
