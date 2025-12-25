@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.notify-business-birthday-opportunity]
 verify_jwt = false
+
+[functions.invite-waitlist-business]
+verify_jwt = false
+
+[functions.notify-waitlist-registration]
+verify_jwt = false
