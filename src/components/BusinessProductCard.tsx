@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Users, Package, DollarSign } from "lucide-react";
+import { Edit, Trash2, Users, Package, DollarSign, Cake } from "lucide-react";
 import { BusinessCollaborativeGiftModal } from "./BusinessCollaborativeGiftModal";
 import { ProductRatingDisplay } from "./ProductRatingDisplay";
 import { RatingModal } from "./RatingModal";
+import { BirthdayAlertProductBadge } from "./BirthdayAlertProductBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBusinessBirthdayAlerts, BirthdayAlert } from "@/hooks/useBusinessBirthdayAlerts";
 
 interface Product {
   id: string;
@@ -38,6 +40,11 @@ export function BusinessProductCard({
   const { user, loading: authLoading } = useAuth();
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const { getAlertsForProduct, dismissAlert } = useBusinessBirthdayAlerts(businessId);
+
+  // Get birthday alerts for this specific product
+  const productAlerts = getAlertsForProduct(product.id);
+  const hasAlert = productAlerts.length > 0;
 
   // Use user.id as primary businessId, businessId prop as fallback
   const effectiveBusinessId = businessId || user?.id;
@@ -90,7 +97,17 @@ export function BusinessProductCard({
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <Card className={`overflow-hidden hover:shadow-lg transition-shadow relative ${hasAlert ? 'ring-2 ring-primary/50' : ''}`}>
+        {/* Birthday Alert Badge */}
+        {hasAlert && (
+          <BirthdayAlertProductBadge
+            alert={productAlerts[0]}
+            onCreateFund={() => setShowCollectiveModal(true)}
+            onDismiss={dismissAlert}
+            compact
+          />
+        )}
+        
         {/* Product Image */}
         <div className="aspect-square bg-muted relative overflow-hidden border-b">
           {product.image_url ? (

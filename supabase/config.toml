@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.escalate-unhandled-alerts]
 verify_jwt = false
+
+[functions.notify-business-birthday-opportunity]
+verify_jwt = false

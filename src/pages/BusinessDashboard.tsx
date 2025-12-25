@@ -18,7 +18,8 @@ import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotifications";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
-import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift } from "lucide-react";
+import { useBusinessBirthdayAlerts, BirthdayAlert } from "@/hooks/useBusinessBirthdayAlerts";
+import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift, Cake } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import LocationSelector from "@/components/LocationSelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
@@ -34,6 +35,8 @@ import { BusinessMetricsBar } from "@/components/BusinessMetricsBar";
 import { BusinessMetricCards } from "@/components/BusinessMetricCards";
 import { BusinessFinancialSummary } from "@/components/BusinessFinancialSummary";
 import { BusinessSelector } from "@/components/BusinessSelector";
+import { BirthdayOpportunitiesSection } from "@/components/BirthdayOpportunitiesSection";
+import { BusinessCollaborativeGiftModal } from "@/components/BusinessCollaborativeGiftModal";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -1118,6 +1121,22 @@ export default function BusinessDashboard() {
 
           {/* Gestion des produits */}
           <TabsContent value="products" className="mt-6">
+            {/* Section Opportunités d'anniversaire */}
+            {selectedBusinessId && (
+              <div className="mb-6">
+                <BirthdayOpportunitiesSection 
+                  businessId={selectedBusinessId}
+                  onCreateFund={(alert) => {
+                    // Ouvrir le modal de création de cagnotte avec les infos pré-remplies
+                    toast({
+                      title: "🎂 Création de cagnotte",
+                      description: `Créez une cagnotte pour ${alert.target_user_name}`,
+                    });
+                  }}
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Gestion des produits</h2>
               <Button className="gap-2">
