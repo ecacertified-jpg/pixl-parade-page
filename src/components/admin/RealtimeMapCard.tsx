@@ -37,19 +37,18 @@ export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
   return (
     <Card className={isFullscreen ? 'fixed inset-4 z-50' : ''}>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               🗺️ Carte des activités
             </CardTitle>
-            <CardDescription>
-              {statistics.citiesCount} villes actives • {statistics.eventsWithLocation}/{statistics.totalEvents} événements localisés
+            <CardDescription className="text-xs sm:text-sm">
+              {statistics.citiesCount} villes actives • {statistics.eventsWithLocation}/{statistics.totalEvents} localisés
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             {mapboxToken && (
-              <Button variant="ghost" size="sm" onClick={handleResetToken}>
+              <Button variant="ghost" size="sm" onClick={handleResetToken} title="Réinitialiser le token">
                 <RotateCcw className="h-4 w-4" />
               </Button>
             )}
@@ -57,10 +56,14 @@ export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
               variant="ghost" 
               size="sm" 
               onClick={() => setIsFullscreen(!isFullscreen)}
+              title="Plein écran"
             >
               <Maximize2 className="h-4 w-4" />
             </Button>
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div 
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+              title={isConnected ? 'Connecté' : 'Déconnecté'}
+            />
           </div>
         </div>
       </CardHeader>

@@ -61,9 +61,11 @@ function EventItem({ event }: { event: RealtimeEvent }) {
 export function RealtimeActivityFeed({ events, isPaused, onTogglePause, onClear }: RealtimeActivityFeedProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+      {/* Header - responsive layout */}
+      <div className="flex flex-col gap-2 mb-4">
+        {/* Row 1: Live indicator + title */}
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <span className="flex h-3 w-3">
               <span className={cn(
                 "absolute inline-flex h-full w-full rounded-full opacity-75",
@@ -75,29 +77,39 @@ export function RealtimeActivityFeed({ events, isPaused, onTogglePause, onClear 
               )} />
             </span>
           </div>
-          <h3 className="font-semibold">
+          <h3 className="font-semibold text-sm sm:text-base">
             Activité en direct
-            {isPaused && <span className="text-amber-600 ml-2">(En pause)</span>}
           </h3>
+          {isPaused && (
+            <span className="text-amber-600 text-xs sm:text-sm">(En pause)</span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">{events.length} événements</Badge>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onTogglePause}
-            title={isPaused ? "Reprendre" : "Pause"}
-          >
-            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClear}
-            title="Effacer"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        
+        {/* Row 2: Badge + action buttons */}
+        <div className="flex items-center justify-between">
+          <Badge variant="secondary" className="text-xs">
+            {events.length} événements
+          </Badge>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onTogglePause}
+              title={isPaused ? "Reprendre" : "Pause"}
+            >
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onClear}
+              title="Effacer"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
