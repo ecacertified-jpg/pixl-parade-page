@@ -76,28 +76,30 @@ export function RevenueByTypeChart({ data, loading }: RevenueByTypeChartProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2">
-          📊 Revenus par Type de Business
-        </CardTitle>
-        <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            📊 Revenus par Type
+          </CardTitle>
+          <ExportButton onExportCSV={handleExportCSV} disabled={data.length === 0} />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Pie Chart */}
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ChartContainer config={chartConfig} className="h-full w-full">
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
+                  innerRadius={35}
+                  outerRadius={60}
                   paddingAngle={2}
                   dataKey="revenue"
                   nameKey="type"
-                  label={({ type, percentage }) => `${type} (${percentage.toFixed(0)}%)`}
+                  label={({ percentage }) => `${percentage.toFixed(0)}%`}
                   labelLine={false}
                 >
                   {pieData.map((entry, index) => (
@@ -131,11 +133,17 @@ export function RevenueByTypeChart({ data, loading }: RevenueByTypeChartProps) {
           </div>
 
           {/* Bar Chart */}
-          <div className="h-64">
+          <div className="h-48 sm:h-64">
             <ChartContainer config={chartConfig} className="h-full w-full">
-              <BarChart data={barData} layout="vertical" margin={{ left: 20, right: 20 }}>
-                <XAxis type="number" tickFormatter={formatRevenue} />
-                <YAxis type="category" dataKey="type" width={100} tick={{ fontSize: 12 }} />
+              <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <XAxis type="number" tickFormatter={formatRevenue} tick={{ fontSize: 11 }} />
+                <YAxis 
+                  type="category" 
+                  dataKey="type" 
+                  width={70} 
+                  tick={{ fontSize: 10 }} 
+                  tickFormatter={(value) => value.length > 10 ? value.slice(0, 8) + '...' : value}
+                />
                 <ChartTooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {

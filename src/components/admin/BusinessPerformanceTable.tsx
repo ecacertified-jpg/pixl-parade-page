@@ -134,27 +134,29 @@ export function BusinessPerformanceTable({ data, loading }: BusinessPerformanceT
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2">
-          📋 Performance des Business
-        </CardTitle>
-        <ExportButton onExportCSV={handleExportCSV} disabled={filteredData.length === 0} />
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            📋 Performance Business
+          </CardTitle>
+          <ExportButton onExportCSV={handleExportCSV} disabled={filteredData.length === 0} />
+        </div>
       </CardHeader>
       <CardContent>
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher un business..."
+              placeholder="Rechercher..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9"
             />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Type de business" />
+            <SelectTrigger className="w-full sm:w-40 h-9">
+              <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les types</SelectItem>
@@ -165,8 +167,57 @@ export function BusinessPerformanceTable({ data, loading }: BusinessPerformanceT
           </Select>
         </div>
 
-        {/* Table */}
-        <div className="rounded-md border overflow-x-auto">
+        {/* Mobile Cards View */}
+        <div className="block md:hidden space-y-3">
+          {filteredData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Aucun business trouvé
+            </div>
+          ) : (
+            filteredData.map((business) => (
+              <Card key={business.id} className="p-3">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium flex items-center gap-1.5 truncate">
+                      {business.name}
+                      {business.isVerified && <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />}
+                    </p>
+                    <Badge variant="outline" className="mt-1 text-[10px]">{business.type}</Badge>
+                  </div>
+                  {business.isActive ? (
+                    <Badge variant="default" className="bg-green-500 text-[10px] shrink-0">Actif</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px] shrink-0">Inactif</Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t text-center">
+                  <div>
+                    <p className="text-base font-bold">{business.products}</p>
+                    <p className="text-[10px] text-muted-foreground">Produits</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-bold">{business.orders}</p>
+                    <p className="text-[10px] text-muted-foreground">Cmd</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-primary">{formatRevenue(business.revenue)}</p>
+                    <p className="text-[10px] text-muted-foreground">XOF</p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-0.5">
+                      <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                      <span className="font-bold text-base">{business.rating.toFixed(1)}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Note</p>
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -225,7 +276,7 @@ export function BusinessPerformanceTable({ data, loading }: BusinessPerformanceT
           </Table>
         </div>
 
-        <p className="text-sm text-muted-foreground mt-2">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2">
           {filteredData.length} business{filteredData.length > 1 ? 's' : ''} affiché{filteredData.length > 1 ? 's' : ''}
         </p>
       </CardContent>
