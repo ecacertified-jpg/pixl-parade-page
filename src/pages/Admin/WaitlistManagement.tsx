@@ -19,8 +19,10 @@ import {
   RefreshCw,
   Filter,
   MoreHorizontal,
+  MoreVertical,
   Send,
-  Eye
+  Eye,
+  Building2
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
@@ -184,65 +186,124 @@ export default function WaitlistManagement() {
     converted: entries.filter(e => e.status === 'converted').length,
   };
 
+  const renderEntryActions = (entry: WaitlistEntry) => {
+    const status = statusConfig[entry.status];
+    
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => {
+            setSelectedEntry(entry);
+            setShowDetailsModal(true);
+          }}>
+            <Eye className="w-4 h-4 mr-2" />
+            Voir détails
+          </DropdownMenuItem>
+          {entry.status === 'pending' && (
+            <>
+              <DropdownMenuItem 
+                onClick={() => handleInvite(entry)}
+                disabled={actionLoading}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Envoyer invitation
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => {
+                  setSelectedEntry(entry);
+                  setShowRejectModal(true);
+                }}
+                className="text-destructive"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Refuser
+              </DropdownMenuItem>
+            </>
+          )}
+          {entry.status === 'invited' && (
+            <DropdownMenuItem 
+              onClick={() => handleInvite(entry)}
+              disabled={actionLoading}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Renvoyer invitation
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Liste d'attente prestataires</h1>
-        <p className="text-muted-foreground">
-          Gérez les demandes d'inscription des prestataires
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold">Liste d'attente prestataires</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gérez les demandes d'inscription des prestataires
+          </p>
+        </div>
+        <Button variant="outline" onClick={fetchEntries} disabled={loading} className="self-start sm:self-auto">
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Actualiser
+        </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-primary" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-muted-foreground truncate">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-600" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 md:w-5 md:h-5 text-yellow-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">En attente</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Mail className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.invited}</p>
-                <p className="text-xs text-muted-foreground">Invités</p>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.pending}</p>
+                <p className="text-xs text-muted-foreground truncate">En attente</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Mail className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.converted}</p>
-                <p className="text-xs text-muted-foreground">Convertis</p>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.invited}</p>
+                <p className="text-xs text-muted-foreground truncate">Invités</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl md:text-2xl font-bold">{stats.converted}</p>
+                <p className="text-xs text-muted-foreground truncate">Convertis</p>
               </div>
             </div>
           </CardContent>
@@ -281,44 +342,89 @@ export default function WaitlistManagement() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="outline" onClick={fetchEntries} disabled={loading}>
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">#</TableHead>
-                <TableHead>Entreprise</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="w-16"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && filteredEntries.length === 0 && (
+        <Card className="p-8">
+          <div className="text-center">
+            <Building2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground">Aucune entrée trouvée</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {searchQuery ? 'Essayez de modifier votre recherche' : 'La liste d\'attente est vide'}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Mobile View: Cards */}
+      {!loading && filteredEntries.length > 0 && (
+        <div className="block md:hidden space-y-3">
+          {filteredEntries.map((entry) => {
+            const status = statusConfig[entry.status];
+            const StatusIcon = status.icon;
+            return (
+              <Card key={entry.id} className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{entry.business_name}</p>
+                    <p className="text-sm text-muted-foreground truncate">{entry.email}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {entry.contact_first_name} {entry.contact_last_name}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    {renderEntryActions(entry)}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <Badge className={status.color}>
+                    <StatusIcon className="w-3 h-3 mr-1" />
+                    {status.label}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    #{entry.position} • {format(new Date(entry.created_at), 'dd MMM yyyy', { locale: fr })}
+                  </span>
+                </div>
+                {entry.business_type && (
+                  <p className="text-xs text-muted-foreground mt-2 capitalize">
+                    Type: {entry.business_type.replace('_', ' ')}
+                  </p>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desktop View: Table */}
+      {!loading && filteredEntries.length > 0 && (
+        <Card className="hidden md:block">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
+                  <TableHead className="w-16">#</TableHead>
+                  <TableHead>Entreprise</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="w-16"></TableHead>
                 </TableRow>
-              ) : filteredEntries.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Aucune entrée trouvée
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredEntries.map((entry) => {
+              </TableHeader>
+              <TableBody>
+                {filteredEntries.map((entry) => {
                   const status = statusConfig[entry.status];
                   const StatusIcon = status.icon;
                   return (
@@ -353,61 +459,16 @@ export default function WaitlistManagement() {
                         {format(new Date(entry.created_at), 'dd MMM yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => {
-                              setSelectedEntry(entry);
-                              setShowDetailsModal(true);
-                            }}>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Voir détails
-                            </DropdownMenuItem>
-                            {entry.status === 'pending' && (
-                              <>
-                                <DropdownMenuItem 
-                                  onClick={() => handleInvite(entry)}
-                                  disabled={actionLoading}
-                                >
-                                  <Send className="w-4 h-4 mr-2" />
-                                  Envoyer invitation
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    setSelectedEntry(entry);
-                                    setShowRejectModal(true);
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <XCircle className="w-4 h-4 mr-2" />
-                                  Refuser
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {entry.status === 'invited' && (
-                              <DropdownMenuItem 
-                                onClick={() => handleInvite(entry)}
-                                disabled={actionLoading}
-                              >
-                                <Send className="w-4 h-4 mr-2" />
-                                Renvoyer invitation
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {renderEntryActions(entry)}
                       </TableCell>
                     </TableRow>
                   );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
