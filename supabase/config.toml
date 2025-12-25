@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.notify-waitlist-registration]
 verify_jwt = false
+
+[functions.admin-list-admins]
+verify_jwt = true
