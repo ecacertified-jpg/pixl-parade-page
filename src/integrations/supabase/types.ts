@@ -6073,17 +6073,30 @@ export type Database = {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      log_security_event: {
-        Args: {
-          p_event_type: string
-          p_ip_address?: string
-          p_metadata?: Json
-          p_risk_level?: string
-          p_user_agent?: string
-          p_user_id?: string
-        }
-        Returns: string
-      }
+      log_security_event:
+        | {
+            Args: {
+              p_event_type: string
+              p_ip_address?: string
+              p_metadata?: Json
+              p_risk_level?: string
+              p_user_agent?: string
+              p_user_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_action: string
+              p_event_type: string
+              p_ip_address: unknown
+              p_metadata?: Json
+              p_severity?: string
+              p_target_user_id: string
+              p_user_id: string
+            }
+            Returns: undefined
+          }
       mark_surprise_revealed: {
         Args: { p_fund_id: string }
         Returns: undefined
