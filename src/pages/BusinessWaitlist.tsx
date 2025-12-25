@@ -79,6 +79,29 @@ export default function BusinessWaitlist() {
       setPosition(data.position);
       setSubmitted(true);
       toast.success('Inscription réussie !');
+
+      // Notify super admins via Edge Function
+      try {
+        await supabase.functions.invoke('notify-waitlist-registration', {
+          body: {
+            waitlist_entry: {
+              email: formData.email.toLowerCase().trim(),
+              business_name: formData.business_name.trim(),
+              business_type: formData.business_type || null,
+              contact_first_name: formData.contact_first_name.trim(),
+              contact_last_name: formData.contact_last_name.trim(),
+              city: formData.city || null,
+              motivation: formData.motivation || null,
+              phone: formData.phone || null,
+              position: data.position
+            }
+          }
+        });
+        console.log('Super admins notified of new waitlist registration');
+      } catch (notifyError) {
+        console.error('Failed to notify super admins:', notifyError);
+        // Don't show error to user - registration was still successful
+      }
     } catch (error: any) {
       console.error('Error submitting waitlist:', error);
       toast.error('Erreur lors de l\'inscription. Veuillez réessayer.');
