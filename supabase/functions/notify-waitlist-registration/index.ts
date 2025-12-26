@@ -75,22 +75,19 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get emails from auth.users for each super admin
-    const adminEmails: string[] = [];
+    // Always include the JDV professional email as a fixed recipient
+    const JDV_ADMIN_EMAIL = "contact@joiedevivre-africa.com";
+    const adminEmails: string[] = [JDV_ADMIN_EMAIL];
+    
+    // Get emails from auth.users for each super admin and add them if not already in the list
     for (const admin of superAdmins) {
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(admin.user_id);
-      if (!userError && userData?.user?.email) {
+      if (!userError && userData?.user?.email && !adminEmails.includes(userData.user.email)) {
         adminEmails.push(userData.user.email);
       }
     }
 
-    if (adminEmails.length === 0) {
-      console.log("No super admin emails found");
-      return new Response(
-        JSON.stringify({ success: true, message: "No super admin emails found" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    console.log(`Will notify ${adminEmails.length} recipient(s):`, adminEmails);
 
     console.log(`Found ${adminEmails.length} super admin(s) to notify:`, adminEmails);
 
