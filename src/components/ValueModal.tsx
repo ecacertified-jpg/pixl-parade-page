@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
-import valueImage from "@/assets/value-proposition.jpg";
+import valueImage from "@/assets/value-proposition-collective-gift.jpg";
 
 interface ValueModalProps {
   isOpen: boolean;
