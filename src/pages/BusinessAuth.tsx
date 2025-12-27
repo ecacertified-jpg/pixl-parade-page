@@ -916,6 +916,7 @@ const BusinessAuth = () => {
                     id="email"
                     type="email"
                     placeholder="votre@business-email.com"
+                    autoComplete="email"
                     {...register('email')}
                   />
                   {errors.email && (
@@ -930,6 +931,7 @@ const BusinessAuth = () => {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
+                      autoComplete="current-password"
                       {...register('password')}
                     />
                     <button
@@ -974,6 +976,7 @@ const BusinessAuth = () => {
                       placeholder="votre@business-email.com"
                       value={forgotPasswordEmail}
                       onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      autoComplete="email"
                       className="bg-white"
                     />
                     <Button
@@ -1070,6 +1073,7 @@ const BusinessAuth = () => {
                         <Input
                           id="complete-phone"
                           placeholder="+225 XX XX XX XX XX"
+                          autoComplete="tel"
                           {...register('phone')}
                         />
                       </div>
@@ -1079,6 +1083,7 @@ const BusinessAuth = () => {
                         <Input
                           id="complete-address"
                           placeholder="Cocody, Abidjan"
+                          autoComplete="street-address"
                           {...register('address')}
                         />
                       </div>
@@ -1117,6 +1122,7 @@ const BusinessAuth = () => {
                     <Input
                       id="firstName"
                       placeholder="Votre prénom"
+                      autoComplete="given-name"
                       {...register('firstName')}
                       className={cn(errors.firstName && "border-destructive")}
                     />
@@ -1132,6 +1138,7 @@ const BusinessAuth = () => {
                     <Input
                       id="lastName"
                       placeholder="Votre nom"
+                      autoComplete="family-name"
                       {...register('lastName')}
                       className={cn(errors.lastName && "border-destructive")}
                     />
@@ -1181,6 +1188,7 @@ const BusinessAuth = () => {
                   <Input
                     id="phone"
                     placeholder="+225 XX XX XX XX XX"
+                    autoComplete="tel"
                     {...register('phone')}
                   />
                 </div>
@@ -1190,6 +1198,7 @@ const BusinessAuth = () => {
                   <Input
                     id="address"
                     placeholder="Cocody, Abidjan"
+                    autoComplete="street-address"
                     {...register('address')}
                   />
                 </div>
@@ -1210,6 +1219,7 @@ const BusinessAuth = () => {
                     id="email"
                     type="email"
                     placeholder="votre@business-email.com"
+                    autoComplete="email"
                     {...register('email')}
                   />
                   {errors.email && (
@@ -1223,6 +1233,7 @@ const BusinessAuth = () => {
                     id="password"
                     type="password"
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     {...register('password')}
                   />
                   {errors.password && (
