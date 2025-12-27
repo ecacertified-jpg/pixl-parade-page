@@ -59,6 +59,7 @@ import GiftIdeas from "./pages/GiftIdeas";
 import BusinessCollectiveFundsManagement from "./pages/BusinessCollectiveFundsManagement";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
             <BrowserRouter>
             <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />

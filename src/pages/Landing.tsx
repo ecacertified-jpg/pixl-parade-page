@@ -250,10 +250,13 @@ const Landing = () => {
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold text-foreground mb-3">Support</h3>
+              <h3 className="font-semibold text-foreground mb-3">Légal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Contact</li>
-                <li>Aide</li>
+                <li>
+                  <a href="/privacy-policy" className="hover:text-foreground transition-colors">
+                    Politique de Confidentialité
+                  </a>
+                </li>
                 <li>
                   <button 
                     onClick={() => setSurveyOpen(true)}
