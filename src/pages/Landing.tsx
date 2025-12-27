@@ -253,6 +253,11 @@ const Landing = () => {
               <h3 className="font-semibold text-foreground mb-3">Légal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
+                  <a href="/terms-of-service" className="hover:text-foreground transition-colors">
+                    Conditions d'Utilisation
+                  </a>
+                </li>
+                <li>
                   <a href="/privacy-policy" className="hover:text-foreground transition-colors">
                     Politique de Confidentialité
                   </a>
