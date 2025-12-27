@@ -909,15 +909,16 @@ const BusinessAuth = () => {
             </TabsList>
             
             <TabsContent value="signin">
-              <form onSubmit={handleSubmit(signIn)} className="space-y-4">
+              <form onSubmit={handleSubmit(signIn)} className="space-y-4" autoComplete="on">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="votre@business-email.com"
-                    autoComplete="email"
                     {...register('email')}
+                    name="email"
+                    autoComplete="email"
                   />
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -931,8 +932,9 @@ const BusinessAuth = () => {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      autoComplete="current-password"
                       {...register('password')}
+                      name="password"
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -976,6 +978,7 @@ const BusinessAuth = () => {
                       placeholder="votre@business-email.com"
                       value={forgotPasswordEmail}
                       onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      name="forgot-email"
                       autoComplete="email"
                       className="bg-white"
                     />
@@ -1073,8 +1076,9 @@ const BusinessAuth = () => {
                         <Input
                           id="complete-phone"
                           placeholder="+225 XX XX XX XX XX"
-                          autoComplete="tel"
                           {...register('phone')}
+                          name="phone"
+                          autoComplete="tel"
                         />
                       </div>
 
@@ -1083,8 +1087,9 @@ const BusinessAuth = () => {
                         <Input
                           id="complete-address"
                           placeholder="Cocody, Abidjan"
-                          autoComplete="street-address"
                           {...register('address')}
+                          name="address"
+                          autoComplete="street-address"
                         />
                       </div>
 
@@ -1113,7 +1118,7 @@ const BusinessAuth = () => {
             </TabsContent>
             
             <TabsContent value="signup">
-              <form onSubmit={handleSubmit(signUp)} className="space-y-4">
+              <form onSubmit={handleSubmit(signUp)} className="space-y-4" autoComplete="on">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="flex items-center gap-1">
@@ -1122,8 +1127,9 @@ const BusinessAuth = () => {
                     <Input
                       id="firstName"
                       placeholder="Votre prénom"
-                      autoComplete="given-name"
                       {...register('firstName')}
+                      name="given-name"
+                      autoComplete="given-name"
                       className={cn(errors.firstName && "border-destructive")}
                     />
                     {errors.firstName && (
@@ -1138,8 +1144,9 @@ const BusinessAuth = () => {
                     <Input
                       id="lastName"
                       placeholder="Votre nom"
-                      autoComplete="family-name"
                       {...register('lastName')}
+                      name="family-name"
+                      autoComplete="family-name"
                       className={cn(errors.lastName && "border-destructive")}
                     />
                     {errors.lastName && (
@@ -1188,8 +1195,9 @@ const BusinessAuth = () => {
                   <Input
                     id="phone"
                     placeholder="+225 XX XX XX XX XX"
-                    autoComplete="tel"
                     {...register('phone')}
+                    name="tel"
+                    autoComplete="tel"
                   />
                 </div>
 
@@ -1198,8 +1206,9 @@ const BusinessAuth = () => {
                   <Input
                     id="address"
                     placeholder="Cocody, Abidjan"
-                    autoComplete="street-address"
                     {...register('address')}
+                    name="street-address"
+                    autoComplete="street-address"
                   />
                 </div>
 
@@ -1219,8 +1228,9 @@ const BusinessAuth = () => {
                     id="email"
                     type="email"
                     placeholder="votre@business-email.com"
-                    autoComplete="email"
                     {...register('email')}
+                    name="email"
+                    autoComplete="email"
                   />
                   {errors.email && (
                     <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -1233,8 +1243,9 @@ const BusinessAuth = () => {
                     id="password"
                     type="password"
                     placeholder="••••••••"
-                    autoComplete="new-password"
                     {...register('password')}
+                    name="new-password"
+                    autoComplete="new-password"
                   />
                   {errors.password && (
                     <p className="text-sm text-destructive">{errors.password.message}</p>
