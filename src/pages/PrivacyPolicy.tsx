@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import logoJV from "@/assets/logo-jv.svg";
 
 const PrivacyPolicy = () => {
@@ -418,6 +418,18 @@ const PrivacyPolicy = () => {
                 </div>
               </div>
             </Card>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <Link to="/terms-of-service">
+                <Button variant="outline" className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Conditions d'Utilisation
+                </Button>
+              </Link>
+              <Button variant="ghost" onClick={() => navigate("/")}>
+                Retour à l'accueil
+              </Button>
+            </div>
           </section>
 
           {/* Legal Footer */}
@@ -428,7 +440,7 @@ const PrivacyPolicy = () => {
               données à caractère personnel.
             </p>
             <p className="mt-4">
-              © 2025 JOIE DE VIVRE. Tous droits réservés.
+              © 2025 JOIE DE VIVRE - AMTEY'S SARL. Tous droits réservés.
             </p>
           </div>
         </div>
