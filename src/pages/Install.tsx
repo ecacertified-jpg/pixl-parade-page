@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Smartphone, Share, Check, Plus } from "lucide-react";
+import { ArrowLeft, Download, Smartphone, Share, Check, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -114,18 +114,35 @@ const Install = () => {
 
         {/* Features */}
         <div className="grid gap-4">
-          <Card>
+          <Card 
+            className={`transition-all duration-200 ${
+              deferredPrompt 
+                ? 'cursor-pointer hover:shadow-lg hover:border-primary/50 hover:bg-primary/5 ring-2 ring-primary/20' 
+                : ''
+            }`}
+            onClick={deferredPrompt ? handleInstallClick : undefined}
+          >
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Download className="h-5 w-5 text-primary" />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  deferredPrompt ? 'bg-primary text-primary-foreground' : 'bg-primary/10'
+                }`}>
+                  <Download className={`h-5 w-5 ${deferredPrompt ? 'text-white' : 'text-primary'}`} />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h3 className="font-medium mb-1">Accès instantané</h3>
                   <p className="text-sm text-muted-foreground">
-                    Lancez l'application directement depuis votre écran d'accueil
+                    {deferredPrompt 
+                      ? "Cliquez ici pour installer l'application"
+                      : "Lancez l'application directement depuis votre écran d'accueil"
+                    }
                   </p>
                 </div>
+                {deferredPrompt && (
+                  <div className="flex-shrink-0 self-center">
+                    <ChevronRight className="h-5 w-5 text-primary" />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
