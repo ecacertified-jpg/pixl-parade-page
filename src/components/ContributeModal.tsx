@@ -69,14 +69,15 @@ export function ContributeModal({ isOpen, onClose }: ContributeModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-center">
             <span className="text-xl">🎁</span> Choisir un bénéficiaire
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-3 py-2">
           {contacts.map((contact) => (
             <div
               key={contact.id}
@@ -105,7 +106,8 @@ export function ContributeModal({ isOpen, onClose }: ContributeModalProps) {
           ))}
         </div>
 
-        <div className="text-center pt-4">
+        {/* Footer fixe */}
+        <div className="flex-shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={onClose} className="w-full">
             Annuler
           </Button>
