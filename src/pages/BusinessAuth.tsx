@@ -83,14 +83,39 @@ const BusinessAuth = () => {
   const businessType = watch('businessType');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  // Google Sign In function
+  // Google Sign In function - iframe-safe pour le preview Lovable
   const signInWithGoogle = async () => {
+    setIsGoogleLoading(true);
+    
+    // Utiliser l'URL de production pour le redirect
+    const productionOrigin = 'https://joiedevivre-africa.com';
+    const redirectTo = `${productionOrigin}/business-auth`;
+    
+    // Détecter si on est dans une iframe (preview Lovable)
+    let isInIframe = false;
     try {
-      setIsGoogleLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      isInIframe = window.self !== window.top;
+    } catch (e) {
+      // Si erreur cross-origin, on est probablement dans une iframe
+      isInIframe = true;
+    }
+    
+    // Toast informatif si dans iframe
+    if (isInIframe) {
+      toast({
+        title: 'Connexion Google Business',
+        description: 'Redirection vers Google... La page s\'ouvrira en plein écran pour éviter les blocages.',
+        duration: 5000,
+      });
+    }
+    
+    try {
+      // Utiliser skipBrowserRedirect pour récupérer l'URL OAuth au lieu de rediriger automatiquement
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/business-auth`,
+          redirectTo: redirectTo,
+          skipBrowserRedirect: true, // Important: récupérer l'URL au lieu de rediriger
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -100,16 +125,52 @@ const BusinessAuth = () => {
 
       if (error) {
         toast({
-          title: 'Erreur',
+          title: 'Erreur Google Auth',
           description: error.message,
+          variant: 'destructive',
+          duration: 10000,
+        });
+        setIsGoogleLoading(false);
+        return;
+      }
+
+      if (data?.url) {
+        // Forcer la navigation top-level pour éviter les problèmes d'iframe
+        if (isInIframe) {
+          try {
+            // Essayer d'accéder au contexte parent (top-level)
+            if (window.top) {
+              window.top.location.assign(data.url);
+            } else {
+              // Fallback: ouvrir dans un nouvel onglet
+              window.open(data.url, '_blank');
+            }
+          } catch (e) {
+            // Si erreur cross-origin, ouvrir dans un nouvel onglet
+            window.open(data.url, '_blank');
+            toast({
+              title: 'Nouvel onglet ouvert',
+              description: 'Veuillez compléter la connexion Google Business dans le nouvel onglet.',
+              duration: 10000,
+            });
+          }
+        } else {
+          // Navigation normale (pas dans iframe)
+          window.location.assign(data.url);
+        }
+      } else {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible d\'obtenir l\'URL de connexion Google.',
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: 'Erreur',
-        description: 'Une erreur inattendue s\'est produite',
+        title: 'Erreur inattendue',
+        description: error?.message || 'Une erreur s\'est produite lors de la connexion Google.',
         variant: 'destructive',
+        duration: 10000,
       });
     } finally {
       setIsGoogleLoading(false);
