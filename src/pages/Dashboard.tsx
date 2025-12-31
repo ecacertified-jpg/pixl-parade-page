@@ -35,6 +35,8 @@ import { BadgeProgressCard } from "@/components/BadgeProgressCard";
 import { AllBadgesCollection } from "@/components/AllBadgesCollection";
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
+import { CompleteProfileModal } from "@/components/CompleteProfileModal";
+import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -83,6 +85,9 @@ export default function Dashboard() {
   // Onboarding
   const { shouldShowOnboarding, completeOnboarding } = useOnboarding();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'amis');
+  
+  // Profile completion check (for Google sign-up users)
+  const { needsCompletion: needsProfileCompletion, isLoading: profileCompletionLoading, markComplete: markProfileComplete, initialData } = useProfileCompletion();
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -769,9 +774,19 @@ export default function Dashboard() {
           onClose={() => setShowShopForCollectiveGiftModal(false)} 
         />
         
-        {/* Onboarding Modal */}
+        {/* Complete Profile Modal - Priority over Onboarding */}
+        <CompleteProfileModal
+          open={needsProfileCompletion && !profileCompletionLoading}
+          onComplete={() => {
+            markProfileComplete();
+            loadUserProfile(); // Refresh profile data
+          }}
+          initialData={initialData}
+        />
+        
+        {/* Onboarding Modal - Only shows if profile is complete */}
         <OnboardingModal
-          open={shouldShowOnboarding}
+          open={shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading}
           onComplete={completeOnboarding}
         />
         
