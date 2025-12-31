@@ -323,37 +323,37 @@ const Auth = () => {
   };
 
   const signInWithGoogle = async () => {
+    // Détecter si on est dans le preview Lovable (évite l'avertissement WebView de Google)
+    const isLovablePreview = window.location.hostname.includes('lovableproject.com') 
+      || window.location.hostname.includes('lovable.app')
+      || window.location.hostname.includes('localhost');
+    
+    if (isLovablePreview) {
+      toast({
+        title: 'Authentification Google',
+        description: 'L\'authentification Google n\'est pas disponible dans l\'aperçu. Veuillez ouvrir le site en production.',
+        action: (
+          <a 
+            href="https://joiedevivre-africa.com/auth" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="underline font-medium"
+          >
+            Ouvrir joiedevivre-africa.com →
+          </a>
+        ),
+        duration: 15000,
+      });
+      return;
+    }
+    
     setIsGoogleLoading(true);
     
-    // Utiliser l'URL de production pour le redirect
-    const productionOrigin = 'https://joiedevivre-africa.com';
-    const redirectTo = `${productionOrigin}/auth`;
-    
-    // Détecter si on est dans une iframe (preview Lovable)
-    let isInIframe = false;
     try {
-      isInIframe = window.self !== window.top;
-    } catch (e) {
-      // Si erreur cross-origin, on est probablement dans une iframe
-      isInIframe = true;
-    }
-    
-    // Toast informatif si dans iframe
-    if (isInIframe) {
-      toast({
-        title: 'Connexion Google',
-        description: 'Redirection vers Google... Si vous êtes dans l\'aperçu Lovable, la page Google s\'ouvrira en plein écran.',
-        duration: 5000,
-      });
-    }
-    
-    try {
-      // Utiliser skipBrowserRedirect pour récupérer l'URL OAuth au lieu de rediriger automatiquement
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
-          skipBrowserRedirect: true, // Important: récupérer l'URL au lieu de rediriger
+          redirectTo: `${window.location.origin}/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -366,41 +366,6 @@ const Auth = () => {
           title: 'Erreur Google Auth',
           description: error.message,
           variant: 'destructive',
-          duration: 10000,
-        });
-        setIsGoogleLoading(false);
-        return;
-      }
-
-      if (data?.url) {
-        // Forcer la navigation top-level pour éviter les problèmes d'iframe
-        if (isInIframe) {
-          try {
-            // Essayer d'accéder au contexte parent (top-level)
-            if (window.top) {
-              window.top.location.assign(data.url);
-            } else {
-              // Fallback: ouvrir dans un nouvel onglet
-              window.open(data.url, '_blank');
-            }
-          } catch (e) {
-            // Si erreur cross-origin, ouvrir dans un nouvel onglet
-            window.open(data.url, '_blank');
-            toast({
-              title: 'Nouvel onglet ouvert',
-              description: 'Veuillez compléter la connexion Google dans le nouvel onglet.',
-              duration: 10000,
-            });
-          }
-        } else {
-          // Navigation normale (pas dans iframe)
-          window.location.assign(data.url);
-        }
-      } else {
-        toast({
-          title: 'Erreur',
-          description: 'Impossible d\'obtenir l\'URL de connexion Google.',
-          variant: 'destructive',
         });
       }
     } catch (error: any) {
@@ -408,7 +373,6 @@ const Auth = () => {
         title: 'Erreur inattendue',
         description: error?.message || 'Une erreur s\'est produite lors de la connexion Google.',
         variant: 'destructive',
-        duration: 10000,
       });
     } finally {
       setIsGoogleLoading(false);
