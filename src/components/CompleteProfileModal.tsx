@@ -99,11 +99,11 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
-        className="sm:max-w-md [&>button]:hidden"
+        className="sm:max-w-md [&>button]:hidden max-h-[90vh] overflow-hidden flex flex-col"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader className="text-center">
+        <DialogHeader className="text-center flex-shrink-0">
           <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
@@ -115,7 +115,8 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        {/* Scrollable form area */}
+        <div className="flex-1 overflow-y-auto space-y-6 py-4 min-h-0">
           {/* First Name (optional, pre-filled from Google) */}
           <div className="space-y-2">
             <Label htmlFor="firstName" className="flex items-center gap-2">
@@ -191,28 +192,31 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
           </div>
         </div>
 
-        <Button 
-          onClick={handleSubmit}
-          disabled={!isValid || isSubmitting}
-          className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
-          size="lg"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Enregistrement...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Compléter mon profil
-            </>
-          )}
-        </Button>
+        {/* Footer toujours visible */}
+        <div className="flex-shrink-0 pt-4 border-t border-border">
+          <Button 
+            onClick={handleSubmit}
+            disabled={!isValid || isSubmitting}
+            className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Compléter mon profil
+              </>
+            )}
+          </Button>
 
-        <p className="text-xs text-center text-muted-foreground">
-          Ces informations sont obligatoires pour profiter de toutes les fonctionnalités.
-        </p>
+          <p className="text-xs text-center text-muted-foreground mt-2">
+            Ces informations sont obligatoires pour profiter de toutes les fonctionnalités.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
