@@ -362,14 +362,15 @@ export function ContributionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-center">
             💰 Contribuer à la cagnotte
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* Contenu scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-2">
           {/* Info sur la cagnotte */}
           <div className="bg-muted/30 p-3 rounded-lg">
             <div className="font-medium text-sm">{fundTitle}</div>
@@ -381,85 +382,84 @@ export function ContributionModal({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Suggestions intelligentes */}
-            {fundCreatorId && (
-              <SmartAmountSuggestions
-                suggestions={smartSuggestions.suggestions}
-                loading={smartSuggestions.loading}
-                hasHistory={smartSuggestions.hasHistory}
-                reciprocityScore={smartSuggestions.reciprocityScore}
-                onSelectAmount={(selectedAmount) => setAmount(selectedAmount.toString())}
-                currentAmount={amount}
+          {/* Suggestions intelligentes */}
+          {fundCreatorId && (
+            <SmartAmountSuggestions
+              suggestions={smartSuggestions.suggestions}
+              loading={smartSuggestions.loading}
+              hasHistory={smartSuggestions.hasHistory}
+              reciprocityScore={smartSuggestions.reciprocityScore}
+              onSelectAmount={(selectedAmount) => setAmount(selectedAmount.toString())}
+              currentAmount={amount}
+            />
+          )}
+
+          <div>
+            <Label htmlFor="amount">Montant de la contribution *</Label>
+            <div className="relative">
+              <Input
+                id="amount"
+                type="number"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                max={maxAmount}
+                min="1"
+                required
+                className="pr-16"
               />
-            )}
-
-            <div>
-              <Label htmlFor="amount">Montant de la contribution *</Label>
-              <div className="relative">
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  max={maxAmount}
-                  min="1"
-                  required
-                  className="pr-16"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  {currency}
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Maximum: {maxAmount.toLocaleString()} {currency}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                {currency}
               </div>
             </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Maximum: {maxAmount.toLocaleString()} {currency}
+            </div>
+          </div>
 
-            <div>
-              <Label htmlFor="message">Message (optionnel)</Label>
-              <Textarea
-                id="message"
-                placeholder="Laissez un petit mot d'encouragement..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={3}
+          <div>
+            <Label htmlFor="message">Message (optionnel)</Label>
+            <Textarea
+              id="message"
+              placeholder="Laissez un petit mot d'encouragement..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {!isFromPublicFund && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="anonymous"
+                checked={isAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
               />
+              <Label htmlFor="anonymous" className="text-sm">
+                Contribution anonyme
+              </Label>
             </div>
+          )}
+        </div>
 
-            {!isFromPublicFund && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="anonymous"
-                  checked={isAnonymous}
-                  onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
-                />
-                <Label htmlFor="anonymous" className="text-sm">
-                  Contribution anonyme
-                </Label>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={loading}
-                className="flex-1"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || !amount}
-                className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
-              >
-                {loading ? "Envoi..." : "Contribuer"}
-              </Button>
-            </div>
-          </form>
+        {/* Footer fixe avec boutons */}
+        <div className="flex-shrink-0 pt-4 border-t flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1"
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !amount}
+            className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+          >
+            {loading ? "Envoi..." : "Contribuer"}
+          </Button>
         </div>
       </DialogContent>
 
