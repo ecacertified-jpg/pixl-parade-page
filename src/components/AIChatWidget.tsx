@@ -187,12 +187,13 @@ export const AIChatWidget = () => {
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-pink-500/5 pointer-events-none" />
                 
-                {/* Close button */}
+                {/* Close button - Taille augmentée pour meilleure accessibilité */}
                 <button
                   onClick={() => setShowWelcome(false)}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-muted/80 hover:bg-muted transition-colors z-10"
+                  className="absolute top-1 right-1 p-2.5 rounded-full bg-muted/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="Fermer le message de bienvenue"
                 >
-                  <X className="h-3 w-3 text-muted-foreground" />
+                  <X className="h-4 w-4 text-muted-foreground" />
                 </button>
 
                 {/* Content */}
