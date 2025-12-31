@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MessageCircle, X, Sparkles, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { AIChatPanel } from './AIChatPanel';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -117,6 +117,14 @@ export const AIChatWidget = () => {
     setHasNewMessage(false);
   };
 
+  // Geste swipe pour fermer le message de bienvenue
+  const handleSwipeDismiss = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // Si swipe vers la droite avec assez de vélocité ou de distance
+    if (info.offset.x > 50 || info.velocity.x > 200) {
+      setShowWelcome(false);
+    }
+  };
+
   return (
     <>
       {/* Widget Container */}
@@ -169,7 +177,7 @@ export const AIChatWidget = () => {
                 x: 0,
                 y: [0, -4, 0]
               }}
-              exit={{ opacity: 0, scale: 0.8, x: 20 }}
+              exit={{ opacity: 0, scale: 0.8, x: 100 }}
               transition={{ 
                 type: "spring",
                 damping: 15,
@@ -180,7 +188,11 @@ export const AIChatWidget = () => {
                   ease: "easeInOut"
                 }
               }}
-              className="absolute bottom-20 right-0 mr-2"
+              className="absolute bottom-20 right-0 mr-2 touch-pan-y"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.3}
+              onDragEnd={handleSwipeDismiss}
             >
               {/* Glassmorphism Card */}
               <div className="relative bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-500/20 border border-violet-200/50 dark:border-violet-500/20 p-4 max-w-[280px] overflow-hidden">
