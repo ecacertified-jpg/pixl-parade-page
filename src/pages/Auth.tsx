@@ -324,11 +324,27 @@ const Auth = () => {
 
   const signInWithGoogle = async () => {
     setIsGoogleLoading(true);
+    
+    // DIAGNOSTIC TEMPORAIRE - À retirer après résolution
+    const currentOrigin = window.location.origin;
+    const redirectTo = `${currentOrigin}/auth`;
+    
+    console.log('=== DIAGNOSTIC GOOGLE AUTH ===');
+    console.log('Origin actuel:', currentOrigin);
+    console.log('Redirect URL:', redirectTo);
+    console.log('==============================');
+    
+    toast({
+      title: 'Diagnostic Google Auth',
+      description: `Origin: ${currentOrigin} | Redirect: ${redirectTo}`,
+      duration: 10000,
+    });
+    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth`,
+          redirectTo: redirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
