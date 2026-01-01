@@ -45,7 +45,6 @@ const Landing = () => {
     description: "Organisez des surprises avec révélation programmée et musique personnalisée"
   }];
   return <>
-    <SurveyModal />
     <SurveyModal externalOpen={surveyOpen} onExternalOpenChange={setSurveyOpen} />
     <div className="min-h-screen bg-background">
       {/* Header */}
