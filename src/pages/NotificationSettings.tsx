@@ -95,48 +95,6 @@ export default function NotificationSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {permission === 'denied' && <Alert>
-                <Bell className="h-4 w-4" />
-                <AlertTitle>Notifications bloquées</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p className="text-sm">État actuel : <strong className="text-destructive">{permission}</strong></p>
-                  <p className="text-sm">Pour activer les notifications push :</p>
-                  <ol className="text-sm list-decimal list-inside space-y-1 ml-2">
-                    <li>Cliquez sur l'icône 🔒 dans la barre d'adresse</li>
-                    <li>Cliquez sur "Paramètres du site"</li>
-                    <li>Dans "Notifications", sélectionnez "Autoriser"</li>
-                    <li>Rafraîchissez complètement la page (Ctrl+Shift+R)</li>
-                  </ol>
-                  <div className="flex gap-2 mt-2">
-                    <Button 
-                      onClick={handleRefreshPermission} 
-                      disabled={isRefreshing} 
-                      size="sm" 
-                      className="flex-1 text-sm"
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      {isRefreshing ? 'Vérification...' : 'Vérifier maintenant'}
-                    </Button>
-                    <Button 
-                      onClick={() => window.location.reload()} 
-                      size="sm" 
-                      variant="outline"
-                      className="flex-1 text-sm"
-                    >
-                      Rafraîchir la page
-                    </Button>
-                  </div>
-                  <Button 
-                    onClick={resetServiceWorkers} 
-                    size="sm" 
-                    variant="destructive"
-                    className="w-full mt-2 text-sm"
-                  >
-                    🔧 Mode Debug : Réinitialiser complètement
-                  </Button>
-                </AlertDescription>
-              </Alert>}
-            
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Smartphone className="h-5 w-5 text-muted-foreground" />
