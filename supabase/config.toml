@@ -92,3 +92,27 @@ verify_jwt = false
 
 [functions.admin-list-admins]
 verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.daily-notifications-check]
+verify_jwt = false
+
+[functions.detect-reciprocity-imbalance]
+verify_jwt = false
+
+[functions.notify-critical-moderation]
+verify_jwt = false
+
+[functions.notify-gift-promises]
+verify_jwt = false
+
+[functions.notify-reciprocity-opportunities]
+verify_jwt = false
+
+[functions.send-invitation]
+verify_jwt = false
+
+[functions.award-invitation-rewards]
+verify_jwt = false
