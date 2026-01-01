@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// VAPID Public Key - must match the one configured in Supabase Edge Function secrets
 const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDJGn4Z6ydj1bGSHQUhxFxsXPCaL5Y4NvwG5KFqL7kNg';
 
 export const usePushNotifications = () => {
@@ -9,7 +10,7 @@ export const usePushNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
-
+  const [isTesting, setIsTesting] = useState(false);
   useEffect(() => {
     checkSupport();
     checkSubscription();
@@ -342,14 +343,59 @@ export const usePushNotifications = () => {
     }
   };
 
+  const sendTestNotification = useCallback(async () => {
+    if (!isSubscribed) {
+      toast.error('Vous devez d\'abord activer les notifications');
+      return false;
+    }
+
+    setIsTesting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Vous devez être connecté');
+        return false;
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_ids: [user.id],
+          title: '🎉 Test réussi !',
+          message: 'Vos notifications push fonctionnent parfaitement.',
+          type: 'celebration',
+          playSound: true,
+          isUrgent: false
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.sent > 0) {
+        toast.success('Notification de test envoyée !');
+        return true;
+      } else {
+        toast.error('Aucune souscription active trouvée');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Test notification error:', error);
+      toast.error('Erreur lors de l\'envoi du test');
+      return false;
+    } finally {
+      setIsTesting(false);
+    }
+  }, [isSubscribed]);
+
   return {
     isSupported,
     permission,
     isSubscribed,
     loading,
+    isTesting,
     subscribe,
     unsubscribe,
     recheckPermission,
     resetServiceWorkers,
+    sendTestNotification,
   };
 };

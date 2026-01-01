@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles, Cake } from "lucide-react";
+import { ArrowLeft, Bell, Mail, Smartphone, MessageSquare, Volume2, Vibrate, Clock, RefreshCw, Heart, Sparkles, Cake, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -32,7 +32,9 @@ export default function NotificationSettings() {
     subscribe,
     unsubscribe,
     recheckPermission,
-    resetServiceWorkers
+    resetServiceWorkers,
+    sendTestNotification,
+    isTesting
   } = usePushNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
   if (loading) {
@@ -147,6 +149,32 @@ export default function NotificationSettings() {
               </div>
               <Switch checked={preferences.push_enabled && isSubscribed} onCheckedChange={handlePushToggle} disabled={!isSupported} />
             </div>
+
+            {/* Test button for push notifications */}
+            {isSubscribed && (
+              <>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Send className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <Label>Tester les notifications</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Envoyer une notification de test
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={sendTestNotification}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? 'Envoi...' : 'Tester'}
+                  </Button>
+                </div>
+              </>
+            )}
 
             <Separator />
 
