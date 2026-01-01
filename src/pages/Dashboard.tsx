@@ -39,6 +39,8 @@ import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { BirthdayCountdownCard } from "@/components/BirthdayCountdownCard";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -90,6 +92,25 @@ export default function Dashboard() {
   
   // Profile completion check (for Google sign-up users)
   const { needsCompletion: needsProfileCompletion, isLoading: profileCompletionLoading, markComplete: markProfileComplete, initialData } = useProfileCompletion();
+  
+  // Push notification prompt
+  const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission } = usePushNotifications();
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  
+  // Show push notification prompt after onboarding is done
+  useEffect(() => {
+    if (!user) return;
+    
+    const wasPrompted = localStorage.getItem(`push_prompted_${user.id}`);
+    const shouldPrompt = pushSupported && !pushSubscribed && pushPermission !== 'denied' && !wasPrompted;
+    
+    // Only show after onboarding and profile completion are done
+    if (shouldPrompt && !shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading) {
+      // Small delay to not overwhelm the user
+      const timer = setTimeout(() => setShowPushPrompt(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, pushSupported, pushSubscribed, pushPermission, shouldShowOnboarding, needsProfileCompletion, profileCompletionLoading]);
 
   // Déterminer l'onglet par défaut selon les paramètres URL
   const defaultTab = searchParams.get('tab') || 'amis';
@@ -802,6 +823,12 @@ export default function Dashboard() {
         <OnboardingModal
           open={shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading}
           onComplete={completeOnboarding}
+        />
+        
+        {/* Push Notification Prompt - Shows after onboarding */}
+        <PushNotificationPrompt
+          open={showPushPrompt}
+          onClose={() => setShowPushPrompt(false)}
         />
         
         <BottomNavigation />
