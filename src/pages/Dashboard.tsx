@@ -37,6 +37,7 @@ import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { BirthdayCountdownCard } from "@/components/BirthdayCountdownCard";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -463,6 +464,13 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        {/* Compte à rebours anniversaire */}
+        <BirthdayCountdownCard 
+          birthday={userProfile?.birthday || null}
+          userName={userProfile?.first_name || user?.user_metadata?.first_name}
+          onCompleteProfile={() => navigate('/profile')}
+        />
+
         {/* Carte résumé */}
         <Card className="p-4 mb-4">
           <div className="flex items-center justify-between">
