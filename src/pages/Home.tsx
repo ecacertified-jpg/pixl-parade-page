@@ -13,6 +13,7 @@ import { BottomNavigation } from "@/components/RecentActivitySection";
 import { InstallBanner } from "@/components/InstallBanner";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import logoJV from "@/assets/logo-jv.svg";
 const Home = () => {
   // Force rebuild - Home component 
@@ -51,6 +52,9 @@ const Home = () => {
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Install Banner */}
         <InstallBanner />
+
+        {/* Friends Circle Reminder */}
+        <FriendsCircleReminderCard />
 
         {/* Section 1: What do you want card */}
         <WhatDoYouWantCard />

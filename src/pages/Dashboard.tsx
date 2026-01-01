@@ -38,6 +38,7 @@ import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import { BirthdayCountdownCard } from "@/components/BirthdayCountdownCard";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -464,6 +465,11 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        {/* Rappel cercle d'amis */}
+        <div className="mb-4">
+          <FriendsCircleReminderCard onFriendAdded={() => loadFriendsFromSupabase()} />
+        </div>
+
         {/* Compte à rebours anniversaire */}
         <BirthdayCountdownCard 
           birthday={userProfile?.birthday || null}
