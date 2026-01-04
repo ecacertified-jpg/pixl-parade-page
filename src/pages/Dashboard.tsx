@@ -41,6 +41,8 @@ import { BirthdayCountdownCard } from "@/components/BirthdayCountdownCard";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
+import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -96,6 +98,9 @@ export default function Dashboard() {
   // Push notification prompt
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
+  
+  // Friends circle badge celebration
+  const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
   
   // Show push notification prompt after onboarding is done
   useEffect(() => {
@@ -829,6 +834,13 @@ export default function Dashboard() {
         <PushNotificationPrompt
           open={showPushPrompt}
           onClose={() => setShowPushPrompt(false)}
+        />
+        
+        {/* Friends Circle Badge Celebration */}
+        <FriendsCircleBadgeCelebration
+          badge={celebrationBadge}
+          isOpen={isCelebrationOpen}
+          onClose={closeCelebration}
         />
         
         <BottomNavigation />

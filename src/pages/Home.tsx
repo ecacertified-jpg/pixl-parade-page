@@ -14,12 +14,14 @@ import { InstallBanner } from "@/components/InstallBanner";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
+import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
+import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 import logoJV from "@/assets/logo-jv.svg";
 const Home = () => {
-  // Force rebuild - Home component 
   const navigate = useNavigate();
   const { isActiveBusinessAccount } = useBusinessAccount();
   const { itemCount } = useCart();
+  const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
@@ -77,6 +79,13 @@ const Home = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
+      
+      {/* Friends Circle Badge Celebration */}
+      <FriendsCircleBadgeCelebration
+        badge={celebrationBadge}
+        isOpen={isCelebrationOpen}
+        onClose={closeCelebration}
+      />
     </div>
   );
 };
