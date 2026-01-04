@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
+const COMPLETION_NOTIFICATION_KEY = 'friends_circle_completion_notified_';
+
 const MINIMUM_CONTACTS = 2;
 const SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -85,10 +87,73 @@ export function useFriendsCircleReminder() {
     checkReminderStatus();
   }, [checkReminderStatus]);
 
+  // Send completion notification (push + in-app)
+  const sendCompletionNotification = useCallback(async () => {
+    if (!user?.id) return;
+
+    const notificationKey = `${COMPLETION_NOTIFICATION_KEY}${user.id}`;
+    
+    // Check if already sent
+    if (localStorage.getItem(notificationKey)) {
+      console.log('Completion notification already sent');
+      return;
+    }
+
+    try {
+      // Mark as sent immediately to prevent duplicates
+      localStorage.setItem(notificationKey, 'true');
+
+      const notificationTitle = '🎉 Bravo ! Cercle d\'amis complété';
+      const notificationMessage = 'Votre cercle d\'amis est prêt ! C\'est le moment idéal pour offrir votre premier cadeau à un proche.';
+
+      // 1. Send push notification
+      const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_ids: [user.id],
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'celebration',
+          action_url: '/shop'
+        }
+      });
+
+      if (pushError) {
+        console.error('Error sending push notification:', pushError);
+      } else {
+        console.log('Push notification sent for friend circle completion');
+      }
+
+      // 2. Create in-app notification as fallback
+      const { error: inAppError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: user.id,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: 'celebration',
+          action_url: '/shop',
+          is_read: false,
+          metadata: { event: 'friends_circle_completed' }
+        });
+
+      if (inAppError) {
+        console.error('Error creating in-app notification:', inAppError);
+      } else {
+        console.log('In-app notification created for friend circle completion');
+      }
+
+    } catch (error) {
+      console.error('Error sending completion notification:', error);
+      // Remove the flag if sending failed
+      localStorage.removeItem(notificationKey);
+    }
+  }, [user?.id]);
+
   return {
     ...state,
     snoozeReminder,
     refresh,
     minimumContacts: MINIMUM_CONTACTS,
+    sendCompletionNotification,
   };
 }
