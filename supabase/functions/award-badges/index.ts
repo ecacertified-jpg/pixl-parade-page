@@ -287,6 +287,31 @@ serve(async (req) => {
         }
       },
 
+      // Friends Circle badges (initial tiers)
+      {
+        badgeKey: 'first_circle',
+        requirementType: 'count',
+        threshold: 2,
+        query: async (supabase, userId) => {
+          const { count } = await supabase
+            .from('contacts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+          return count || 0;
+        }
+      },
+      {
+        badgeKey: 'growing_circle',
+        requirementType: 'count',
+        threshold: 5,
+        query: async (supabase, userId) => {
+          const { count } = await supabase
+            .from('contacts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+          return count || 0;
+        }
+      },
       // Community badges (friends count)
       {
         badgeKey: 'social_butterfly',

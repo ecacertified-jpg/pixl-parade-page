@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Clock, PartyPopper, AlertTriangle } from 'lucide-react';
+import { Users, UserPlus, Clock, PartyPopper, AlertTriangle, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -8,7 +8,8 @@ import { useFriendsCircleReminder } from '@/hooks/useFriendsCircleReminder';
 import { AddFriendModal } from '@/components/AddFriendModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-
+import { checkAndAwardBadges } from '@/utils/badgeAwarder';
+import { useAuth } from '@/contexts/AuthContext';
 interface Friend {
   id: string;
   name: string;
@@ -24,6 +25,7 @@ interface FriendsCircleReminderCardProps {
 }
 
 export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: FriendsCircleReminderCardProps) {
+  const { user } = useAuth();
   const { 
     shouldShowReminder, 
     contactsCount, 
@@ -53,13 +55,18 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
       // Send push notification and in-app notification
       sendCompletionNotification();
       
+      // Check and award badges for friend circle completion
+      if (user?.id) {
+        checkAndAwardBadges(user.id);
+      }
+      
       // Hide after celebration
       setTimeout(() => {
         setJustCompleted(false);
       }, 3000);
     }
     setPrevContactsCount(contactsCount);
-  }, [contactsCount, prevContactsCount, minimumContacts, sendCompletionNotification]);
+  }, [contactsCount, prevContactsCount, minimumContacts, sendCompletionNotification, user?.id]);
 
   const handleAddFriend = (friend: Friend) => {
     console.log('Friend added:', friend);
@@ -203,11 +210,19 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
                 </p>
 
                 {/* Progress bar with red color */}
-                <div className="mb-4">
+                <div className="mb-3">
                   <Progress 
                     value={progress} 
                     className="h-2.5 bg-destructive/20 [&>div]:bg-destructive" 
                   />
+                </div>
+
+                {/* Badge motivation */}
+                <div className="mb-4 flex items-center gap-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
+                  <Award className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-xs text-primary font-medium">
+                    Débloquez le badge 🤝 Premier Cercle !
+                  </span>
                 </div>
 
                 {/* Action buttons - stacked on mobile */}
