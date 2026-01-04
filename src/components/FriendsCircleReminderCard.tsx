@@ -30,7 +30,8 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
     isLoading, 
     snoozeReminder, 
     refresh,
-    minimumContacts 
+    minimumContacts,
+    sendCompletionNotification
   } = useFriendsCircleReminder();
   
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
@@ -48,13 +49,17 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
         origin: { y: 0.6 },
         colors: ['#7A5DC7', '#FAD4E1', '#C084FC', '#FF4D6D']
       });
+      
+      // Send push notification and in-app notification
+      sendCompletionNotification();
+      
       // Hide after celebration
       setTimeout(() => {
         setJustCompleted(false);
       }, 3000);
     }
     setPrevContactsCount(contactsCount);
-  }, [contactsCount, prevContactsCount, minimumContacts]);
+  }, [contactsCount, prevContactsCount, minimumContacts, sendCompletionNotification]);
 
   const handleAddFriend = (friend: Friend) => {
     console.log('Friend added:', friend);
