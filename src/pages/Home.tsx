@@ -48,13 +48,13 @@ const Home = () => {
         </div>
       </header>
 
+      {/* Global Friends Circle Reminder */}
+      <FriendsCircleReminderCard compact />
+
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Install Banner */}
         <InstallBanner />
-
-        {/* Friends Circle Reminder */}
-        <FriendsCircleReminderCard />
 
         {/* Section 1: What do you want card */}
         <WhatDoYouWantCard />

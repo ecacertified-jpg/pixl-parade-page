@@ -11,6 +11,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { FavoriteStatsBar } from "@/components/favorites/FavoriteStatsBar";
 import { FavoriteFilters } from "@/components/favorites/FavoriteFilters";
 import { EnrichedFavoriteCard } from "@/components/favorites/EnrichedFavoriteCard";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 
 export default function Favorites() {
   const navigate = useNavigate();
@@ -103,7 +104,10 @@ export default function Favorites() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
+      {/* Global Friends Circle Reminder */}
+      <FriendsCircleReminderCard compact />
+      
+      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Button 

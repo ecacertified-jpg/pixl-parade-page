@@ -16,6 +16,7 @@ import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -341,8 +342,11 @@ export default function Shop() {
 
   const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
   return <div className="min-h-screen bg-gradient-background">
+      {/* Global Friends Circle Reminder */}
+      <FriendsCircleReminderCard compact />
+      
       {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
+      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="p-2">

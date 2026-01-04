@@ -14,6 +14,7 @@ import { NewsFeed } from "@/components/NewsFeed";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import logoJV from "@/assets/logo-jv.svg";
 
 const Community = () => {
@@ -61,6 +62,9 @@ const Community = () => {
           </div>
         </div>
       </header>
+
+      {/* Global Friends Circle Reminder */}
+      <FriendsCircleReminderCard compact />
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
