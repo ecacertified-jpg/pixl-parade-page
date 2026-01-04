@@ -440,7 +440,7 @@ const PrivacyPolicy = () => {
               données à caractère personnel.
             </p>
             <p className="mt-4">
-              © 2025 JOIE DE VIVRE - AMTEY'S SARL. Tous droits réservés.
+              © 2026 JOIE DE VIVRE - AMTEY'S SARL. Tous droits réservés.
             </p>
           </div>
         </div>

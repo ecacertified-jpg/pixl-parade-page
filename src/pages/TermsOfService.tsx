@@ -704,7 +704,7 @@ const TermsOfService = () => {
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
           <p>
-            © 2025 JOIE DE VIVRE - AMTEY'S SARL. Tous droits réservés.
+            © 2026 JOIE DE VIVRE - AMTEY'S SARL. Tous droits réservés.
           </p>
           <p className="mt-2">
             Conformément à la législation ivoirienne en vigueur relative au commerce électronique 

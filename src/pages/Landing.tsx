@@ -274,7 +274,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            © 2025 JOIE DE VIVRE. Tous droits réservés.
+            © 2026 JOIE DE VIVRE. Tous droits réservés.
           </div>
         </div>
       </footer>
