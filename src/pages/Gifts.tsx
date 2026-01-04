@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ThanksModal } from "@/components/ThanksModal";
 import { toast } from "sonner";
+import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 
 interface Contributor {
   id: string;
@@ -229,7 +230,10 @@ function Gifts() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
+      {/* Global Friends Circle Reminder */}
+      <FriendsCircleReminderCard compact />
+      
+      <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <Button 

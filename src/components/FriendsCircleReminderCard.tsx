@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Clock, PartyPopper } from 'lucide-react';
+import { Users, UserPlus, Clock, PartyPopper, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { useFriendsCircleReminder } from '@/hooks/useFriendsCircleReminder';
 import { AddFriendModal } from '@/components/AddFriendModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,9 +20,10 @@ interface Friend {
 
 interface FriendsCircleReminderCardProps {
   onFriendAdded?: () => void;
+  compact?: boolean;
 }
 
-export function FriendsCircleReminderCard({ onFriendAdded }: FriendsCircleReminderCardProps) {
+export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: FriendsCircleReminderCardProps) {
   const { 
     shouldShowReminder, 
     contactsCount, 
@@ -96,14 +98,6 @@ export function FriendsCircleReminderCard({ onFriendAdded }: FriendsCircleRemind
   const progress = (contactsCount / minimumContacts) * 100;
   const remaining = minimumContacts - contactsCount;
 
-  // Different styles based on progress
-  const getCardStyle = () => {
-    if (contactsCount === 0) {
-      return 'bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/20 border-primary/30';
-    }
-    return 'bg-gradient-to-r from-gift/10 to-heart/10 border-gift/30';
-  };
-
   const getMessage = () => {
     if (contactsCount === 0) {
       return {
@@ -119,6 +113,53 @@ export function FriendsCircleReminderCard({ onFriendAdded }: FriendsCircleRemind
 
   const { title, subtitle } = getMessage();
 
+  // Compact version for global banner
+  if (compact) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="w-full"
+        >
+          <div className="bg-destructive/10 border-b-2 border-destructive/50 px-4 py-3">
+            <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+                </motion.div>
+                <span className="text-sm font-medium text-destructive truncate">
+                  {title}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setShowAddFriendModal(true)}
+                className="shrink-0 gap-1.5 text-xs h-8"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">Ajouter</span>
+              </Button>
+            </div>
+          </div>
+
+          <AddFriendModal
+            isOpen={showAddFriendModal}
+            onClose={() => setShowAddFriendModal(false)}
+            onAddFriend={handleAddFriend}
+          />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Full card version with urgent red styling
   return (
     <AnimatePresence>
       <motion.div
@@ -127,51 +168,61 @@ export function FriendsCircleReminderCard({ onFriendAdded }: FriendsCircleRemind
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className={`${getCardStyle()} shadow-soft overflow-hidden`}>
+        <Card className="bg-destructive/5 border-2 border-destructive/40 shadow-lg overflow-hidden">
           <CardContent className="p-4">
+            {/* Urgent badge */}
+            <div className="flex justify-between items-start mb-3">
+              <Badge variant="destructive" className="text-xs font-semibold animate-pulse">
+                ACTION REQUISE
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {contactsCount}/{minimumContacts} amis
+              </span>
+            </div>
+
             <div className="flex items-start gap-3">
               <motion.div 
-                className="p-2 bg-primary/20 rounded-full shrink-0"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
+                className="p-2.5 bg-destructive/20 rounded-full shrink-0"
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               >
-                <Users className="h-5 w-5 text-primary" />
+                <Users className="h-5 w-5 text-destructive" />
               </motion.div>
               
               <div className="flex-1 min-w-0">
-                <h3 className="font-poppins font-semibold text-foreground mb-1">
+                <h3 className="font-poppins font-semibold text-foreground text-base sm:text-lg mb-1">
                   {title}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
                   {subtitle}
                 </p>
 
-                {/* Progress bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>{contactsCount}/{minimumContacts} amis ajoutés</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
+                {/* Progress bar with red color */}
+                <div className="mb-4">
+                  <Progress 
+                    value={progress} 
+                    className="h-2.5 bg-destructive/20 [&>div]:bg-destructive" 
+                  />
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex gap-2">
+                {/* Action buttons - stacked on mobile */}
+                <div className="flex flex-col xs:flex-row gap-2">
                   <Button
-                    size="sm"
+                    size="default"
+                    variant="destructive"
                     onClick={() => setShowAddFriendModal(true)}
-                    className="flex-1 gap-2"
+                    className="flex-1 gap-2 font-semibold"
                   >
                     <UserPlus className="h-4 w-4" />
                     Ajouter mes amis
                   </Button>
                   <Button
-                    size="sm"
+                    size="default"
                     variant="ghost"
                     onClick={snoozeReminder}
-                    className="text-muted-foreground"
+                    className="text-muted-foreground hover:text-foreground xs:flex-none"
                   >
-                    <Clock className="h-4 w-4 mr-1" />
+                    <Clock className="h-4 w-4 mr-1.5" />
                     Plus tard
                   </Button>
                 </div>
