@@ -1,10 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Plus, Play, Pause, Volume2, VolumeX, Gift } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Play, Volume2, VolumeX, Gift } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, isValidImageUrl } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
 import { ShareMenu } from "@/components/ShareMenu";
 import { CommentsDrawer } from "@/components/CommentsDrawer";
 import { GiftPromiseModal } from "@/components/GiftPromiseModal";
@@ -20,13 +18,8 @@ interface TikTokPostCardProps {
   isVisible?: boolean;
 }
 
-export function TikTokPostCard({ 
-  post, 
-  currentUserId, 
-  toggleReaction, 
-  refreshPosts,
-  isVisible = false 
-}: TikTokPostCardProps) {
+export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
+  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false }, ref) {
   const navigate = useNavigate();
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -57,16 +50,28 @@ export function TikTokPostCard({
     return count.toString();
   };
 
-  // Handle video autoplay when visible
+  // Handle video autoplay when visible using IntersectionObserver
   useEffect(() => {
-    if (videoRef.current) {
-      if (isVisible) {
-        videoRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      } else {
-        videoRef.current.pause();
-        setIsPlaying(false);
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isVisible) {
+      // Reset to beginning and play
+      video.currentTime = 0;
+      const playPromise = video.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch((error) => {
+            // Autoplay blocked by browser - user needs to interact
+            console.log('Autoplay prevented:', error.message);
+            setIsPlaying(false);
+          });
       }
+    } else {
+      video.pause();
+      setIsPlaying(false);
     }
   }, [isVisible]);
 
@@ -126,7 +131,11 @@ export function TikTokPostCard({
   const gradientBg = "bg-gradient-to-br from-primary via-accent to-secondary";
 
   return (
-    <div className="relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0">
+    <div 
+      ref={ref}
+      data-post-id={post.id}
+      className="relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0"
+    >
       {/* Media background */}
       <div 
         className="absolute inset-0" 
@@ -380,4 +389,4 @@ export function TikTokPostCard({
       />
     </div>
   );
-}
+});

@@ -10,8 +10,9 @@ export function TikTokFeed() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [followingLoaded, setFollowingLoaded] = useState(false);
-  const [visiblePostIndex, setVisiblePostIndex] = useState(0);
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const postRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   
   const { posts: allPosts, loading: allLoading, toggleReaction: toggleAllReaction, refreshPosts: refreshAllPosts } = usePosts(false);
   const { posts: followingPosts, loading: followingLoading, toggleReaction: toggleFollowingReaction, refreshPosts: refreshFollowingPosts } = usePosts(activeTab === "following" || followingLoaded);
@@ -27,25 +28,52 @@ export function TikTokFeed() {
   const toggleReaction = activeTab === "all" ? toggleAllReaction : toggleFollowingReaction;
   const refreshPosts = activeTab === "all" ? refreshAllPosts : refreshFollowingPosts;
 
-  // Track which post is visible using Intersection Observer
-  const handleScroll = useCallback(() => {
-    if (containerRef.current) {
-      const scrollTop = containerRef.current.scrollTop;
-      const viewportHeight = containerRef.current.clientHeight;
-      const newIndex = Math.round(scrollTop / viewportHeight);
-      if (newIndex !== visiblePostIndex) {
-        setVisiblePostIndex(newIndex);
-      }
+  // Ref callback to register/unregister post elements
+  const setPostRef = useCallback((postId: string, element: HTMLDivElement | null) => {
+    if (element) {
+      postRefs.current.set(postId, element);
+    } else {
+      postRefs.current.delete(postId);
     }
-  }, [visiblePostIndex]);
+  }, []);
 
+  // IntersectionObserver to detect which post is visible
   useEffect(() => {
     const container = containerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
+    if (!container || posts.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            const postId = entry.target.getAttribute('data-post-id');
+            if (postId && postId !== visiblePostId) {
+              setVisiblePostId(postId);
+            }
+          }
+        });
+      },
+      {
+        root: container,
+        rootMargin: '0px',
+        threshold: 0.5, // 50% visible = active
+      }
+    );
+
+    // Observe all post elements
+    postRefs.current.forEach((element) => {
+      observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [posts, visiblePostId]);
+
+  // Set first post as visible initially
+  useEffect(() => {
+    if (posts.length > 0 && !visiblePostId) {
+      setVisiblePostId(posts[0].id);
     }
-  }, [handleScroll]);
+  }, [posts, visiblePostId]);
 
   if (loading) {
     return (
@@ -128,14 +156,15 @@ export function TikTokFeed() {
         ref={containerRef}
         className="h-full w-full overflow-y-scroll tiktok-scroll scrollbar-hide"
       >
-        {posts.map((post, index) => (
+        {posts.map((post) => (
           <TikTokPostCard
             key={post.id}
+            ref={(el) => setPostRef(post.id, el)}
             post={post}
             currentUserId={user?.id || null}
             toggleReaction={toggleReaction}
             refreshPosts={refreshPosts}
-            isVisible={index === visiblePostIndex}
+            isVisible={post.id === visiblePostId}
           />
         ))}
       </div>
