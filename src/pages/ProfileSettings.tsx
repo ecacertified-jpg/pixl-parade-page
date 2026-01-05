@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Calendar, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Calendar as CalendarIcon, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import LocationSelector from "@/components/LocationSelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parse, isValid } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 // Validation functions
 const validatePhone = (phone: string): string | null => {
@@ -359,16 +364,42 @@ const ProfileSettings = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthday">Date de naissance</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="birthday"
-                      type="date"
-                      value={profile.birthday}
-                      onChange={(e) => handleBirthdayChange(e.target.value)}
-                      className={`pl-10 ${errors.birthday ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                    />
-                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !profile.birthday && "text-muted-foreground",
+                          errors.birthday && "border-destructive focus-visible:ring-destructive"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {profile.birthday 
+                          ? format(parse(profile.birthday, "yyyy-MM-dd", new Date()), "dd MMMM yyyy", { locale: fr })
+                          : "Sélectionnez votre date de naissance"
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={profile.birthday ? parse(profile.birthday, "yyyy-MM-dd", new Date()) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            handleBirthdayChange(format(date, "yyyy-MM-dd"));
+                          }
+                        }}
+                        locale={fr}
+                        captionLayout="dropdown-buttons"
+                        fromYear={1920}
+                        toYear={new Date().getFullYear()}
+                        disabled={(date) => date > new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   {errors.birthday ? (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />

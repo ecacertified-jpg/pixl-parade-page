@@ -133,6 +133,10 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                   mode="single"
                   selected={date}
                   onSelect={setDate}
+                  locale={fr}
+                  captionLayout="dropdown-buttons"
+                  fromYear={new Date().getFullYear() - 1}
+                  toYear={new Date().getFullYear() + 10}
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />

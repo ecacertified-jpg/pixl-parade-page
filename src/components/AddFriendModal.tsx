@@ -149,6 +149,11 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
                   mode="single"
                   selected={birthday}
                   onSelect={setBirthday}
+                  locale={fr}
+                  captionLayout="dropdown-buttons"
+                  fromYear={1920}
+                  toYear={new Date().getFullYear()}
+                  disabled={(date) => date > new Date()}
                   initialFocus
                   className="pointer-events-auto"
                 />
