@@ -12,6 +12,7 @@ export function TikTokFeed() {
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [followingLoaded, setFollowingLoaded] = useState(false);
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
+  const [parallaxOffsets, setParallaxOffsets] = useState<Map<string, number>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const postRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   
@@ -51,6 +52,34 @@ export function TikTokFeed() {
       postRefs.current.delete(postId);
     }
   }, []);
+
+  // Scroll listener for parallax effect
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || posts.length === 0) return;
+
+    const handleScroll = () => {
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.height / 2;
+      const newOffsets = new Map<string, number>();
+
+      postRefs.current.forEach((element, postId) => {
+        const elementRect = element.getBoundingClientRect();
+        const elementCenter = elementRect.top - containerRect.top + elementRect.height / 2;
+        
+        // Normalized offset from -1 (above) to 1 (below), 0 = centered
+        const normalizedOffset = (elementCenter - containerCenter) / containerRect.height;
+        newOffsets.set(postId, Math.max(-1, Math.min(1, normalizedOffset)));
+      });
+
+      setParallaxOffsets(newOffsets);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial calculation
+
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [posts]);
 
   // IntersectionObserver to detect which post is visible
   useEffect(() => {
@@ -187,6 +216,7 @@ export function TikTokFeed() {
             toggleReaction={toggleReaction}
             refreshPosts={refreshPosts}
             isVisible={post.id === visiblePostId}
+            parallaxOffset={parallaxOffsets.get(post.id) || 0}
           />
         ))}
       </div>

@@ -17,10 +17,11 @@ interface TikTokPostCardProps {
   toggleReaction: (postId: string, reactionType: 'love' | 'gift' | 'like') => Promise<void>;
   refreshPosts: () => void;
   isVisible?: boolean;
+  parallaxOffset?: number; // -1 (above) to 1 (below), 0 = centered
 }
 
 export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
-  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false }, ref) {
+  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false, parallaxOffset = 0 }, ref) {
   const navigate = useNavigate();
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -150,6 +151,11 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
   // Background for posts without media
   const gradientBg = "bg-gradient-to-br from-primary via-accent to-secondary";
 
+  // Parallax offsets for different layers (creates depth effect)
+  const mediaParallax = parallaxOffset * 25; // Media moves slower (background)
+  const buttonsParallax = parallaxOffset * -12; // Buttons arrive faster
+  const textParallax = parallaxOffset * -8; // Text slightly faster than media
+
   return (
     <div 
       ref={ref}
@@ -186,10 +192,14 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
           <span className="text-sm font-medium">Partager</span>
         </div>
       )}
-      {/* Media background */}
+      {/* Media background with parallax */}
       <div 
-        className="absolute inset-0" 
+        className="absolute inset-0 will-change-transform" 
         onClick={handleDoubleTap}
+        style={{ 
+          transform: `translateY(${mediaParallax}px) scale(1.05)`,
+          transition: 'transform 0.1s ease-out',
+        }}
       >
         {post.type === 'video' && isValidImageUrl(post.media_url) ? (
           <>
@@ -275,14 +285,20 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
         </div>
       )}
 
-      {/* Right side action buttons */}
-      <div className={cn(
-        "absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10",
-        "transition-all duration-500 delay-100",
-        isVisible 
-          ? "opacity-100 translate-x-0" 
-          : "opacity-0 translate-x-4"
-      )}>
+      {/* Right side action buttons with parallax */}
+      <div 
+        className={cn(
+          "absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10 will-change-transform",
+          "transition-opacity duration-500 delay-100",
+          isVisible 
+            ? "opacity-100" 
+            : "opacity-0"
+        )}
+        style={{ 
+          transform: `translateY(${buttonsParallax}px) translateX(${isVisible ? 0 : 16}px)`,
+          transition: 'transform 0.1s ease-out, opacity 0.5s ease',
+        }}
+      >
         {/* Avatar with follow button */}
         <div 
           className="relative cursor-pointer"
@@ -408,14 +424,20 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
         </button>
       </div>
 
-      {/* Bottom info section */}
-      <div className={cn(
-        "absolute bottom-6 left-4 right-20 z-10",
-        "transition-all duration-500 delay-150",
-        isVisible 
-          ? "opacity-100 translate-y-0" 
-          : "opacity-0 translate-y-4"
-      )}>
+      {/* Bottom info section with parallax */}
+      <div 
+        className={cn(
+          "absolute bottom-6 left-4 right-20 z-10 will-change-transform",
+          "transition-opacity duration-500 delay-150",
+          isVisible 
+            ? "opacity-100" 
+            : "opacity-0"
+        )}
+        style={{ 
+          transform: `translateY(${textParallax + (isVisible ? 0 : 16)}px)`,
+          transition: 'transform 0.1s ease-out, opacity 0.5s ease',
+        }}
+      >
         <h4 
           className={cn(
             "text-white font-semibold text-base mb-1",
