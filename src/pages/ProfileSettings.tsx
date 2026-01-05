@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Calendar as CalendarIcon, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import LocationSelector from "@/components/LocationSelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { format, parse, isValid } from "date-fns";
-import { fr } from "date-fns/locale";
-import { cn } from "@/lib/utils";
 
 // Validation functions
 const validatePhone = (phone: string): string | null => {
@@ -103,33 +100,26 @@ const ProfileSettings = () => {
     birthday: "",
     city: "",
   });
-  const [birthdayInput, setBirthdayInput] = useState("");
+  const [birthdayDate, setBirthdayDate] = useState<Date | undefined>();
 
-  // Handler pour la saisie clavier avec auto-formatage
-  const handleBirthdayInputChange = (value: string) => {
-    // Garder uniquement les chiffres
-    let digits = value.replace(/\D/g, '');
-    
-    // Limiter à 8 chiffres (jjmmaaaa)
-    digits = digits.slice(0, 8);
-    
-    // Formater automatiquement avec les slashes
-    let formatted = digits;
-    if (digits.length > 2) {
-      formatted = digits.slice(0, 2) + '/' + digits.slice(2);
-    }
-    if (digits.length > 4) {
-      formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
-    }
-    
-    setBirthdayInput(formatted);
-
-    // Valider et convertir en Date si format complet (10 caractères: jj/mm/aaaa)
-    if (formatted.length === 10) {
-      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
-      if (isValid(parsedDate) && parsedDate <= new Date() && parsedDate.getFullYear() >= 1920) {
-        handleBirthdayChange(format(parsedDate, "yyyy-MM-dd"));
+  // Synchroniser birthdayDate quand profile.birthday change
+  useEffect(() => {
+    if (profile.birthday) {
+      const parsedBirthday = parse(profile.birthday, "yyyy-MM-dd", new Date());
+      if (isValid(parsedBirthday)) {
+        setBirthdayDate(parsedBirthday);
       }
+    } else {
+      setBirthdayDate(undefined);
+    }
+  }, [profile.birthday]);
+
+  const handleBirthdayDateChange = (date: Date | undefined) => {
+    setBirthdayDate(date);
+    if (date) {
+      handleBirthdayChange(format(date, "yyyy-MM-dd"));
+    } else {
+      handleBirthdayChange("");
     }
   };
 
@@ -156,11 +146,11 @@ const ProfileSettings = () => {
             birthday: data.birthday || "",
             city: data.city || "",
           });
-          // Synchroniser l'input de date
+          // Synchroniser birthdayDate
           if (data.birthday) {
             const parsedBirthday = parse(data.birthday, "yyyy-MM-dd", new Date());
             if (isValid(parsedBirthday)) {
-              setBirthdayInput(format(parsedBirthday, "dd/MM/yyyy"));
+              setBirthdayDate(parsedBirthday);
             }
           }
         }
@@ -398,62 +388,13 @@ const ProfileSettings = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="birthday">Date de naissance</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="jj/mm/aaaa"
-                      value={birthdayInput}
-                      onChange={(e) => handleBirthdayInputChange(e.target.value)}
-                      maxLength={10}
-                      className={cn(
-                        "flex-1",
-                        errors.birthday && "border-destructive focus-visible:ring-destructive"
-                      )}
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0"
-                          type="button"
-                        >
-                          <CalendarIcon className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          mode="single"
-                          selected={profile.birthday ? parse(profile.birthday, "yyyy-MM-dd", new Date()) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              handleBirthdayChange(format(date, "yyyy-MM-dd"));
-                              setBirthdayInput(format(date, "dd/MM/yyyy"));
-                            }
-                          }}
-                          locale={fr}
-                          captionLayout="dropdown-buttons"
-                          fromYear={1920}
-                          toYear={new Date().getFullYear()}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  {errors.birthday ? (
-                    <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.birthday}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Votre date d'anniversaire sera partagée avec vos proches
-                    </p>
-                  )}
-                </div>
+                <BirthdayPicker
+                  label="Date de naissance"
+                  value={birthdayDate}
+                  onChange={handleBirthdayDateChange}
+                  error={errors.birthday || undefined}
+                  helperText="Votre date d'anniversaire sera partagée avec vos proches"
+                />
 
                 <div className="space-y-2">
                   <Label>Ville de résidence</Label>
