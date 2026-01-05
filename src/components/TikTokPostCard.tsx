@@ -9,6 +9,7 @@ import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { triggerVibration } from "@/utils/celebrationFeedback";
 import type { PostData } from "@/hooks/usePosts";
 
 interface TikTokPostCardProps {
@@ -111,7 +112,8 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected
+      // Double tap detected - trigger haptic feedback
+      triggerVibration('celebration');
       setShowHeart(true);
       if (post.user_reaction !== 'love') {
         await toggleReaction(post.id, 'love');
@@ -153,6 +155,9 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
   };
 
   const handleGiftConfirm = () => {
+    // Feedback haptique pour la promesse (plus intense)
+    triggerVibration('birthday');
+    
     // Déclencher l'animation
     setShowGift(true);
     setTimeout(() => setShowGift(false), 1500);
