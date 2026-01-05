@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { 
-  PartyPopper, Store, Package, Truck, Wallet, CheckCircle, 
+  PartyPopper, Store, Package, Truck, Wallet, CheckCircle, Bell,
   LucideIcon 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ const iconMap: Record<string, LucideIcon> = {
   Truck,
   Wallet,
   CheckCircle,
+  Bell,
 };
 
 interface BusinessOnboardingStepProps {
@@ -56,6 +57,8 @@ export const BusinessOnboardingStep = ({
         return 'from-success via-primary to-accent';
       case 'payment':
         return 'from-gratitude via-primary to-heart';
+      case 'notifications':
+        return 'from-primary via-accent to-celebration';
       case 'complete':
         return 'from-celebration via-success to-primary';
       default:
