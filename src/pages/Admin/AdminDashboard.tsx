@@ -13,7 +13,6 @@ import { BusinessRegistrationStats } from '@/components/admin/BusinessRegistrati
 import { UserBusinessStatsSection } from '@/components/admin/UserBusinessStatsSection';
 import { UserBusinessTable } from '@/components/admin/UserBusinessTable';
 import { RegistrationTrendsChart } from '@/components/admin/RegistrationTrendsChart';
-import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
 import { GrowthAlertsBanner } from '@/components/admin/GrowthAlertsBanner';
 
@@ -51,9 +50,7 @@ export default function AdminDashboard() {
   const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [bulkVerifying, setBulkVerifying] = useState(false);
-
-  // Use secure admin actions hook
-  const { approveBusiness } = useSecureAdminActions();
+  const [isApproving, setIsApproving] = useState(false);
   
   // User & Business stats hook
   const { stats: userBusinessStats, users: usersWithBusiness, loading: statsLoading } = useUserBusinessStats();
@@ -122,18 +119,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleQuickApprove = (businessId: string) => {
-    approveBusiness.mutate(
-      {
-        business_id: businessId,
-        action: 'approve',
-      },
-      {
-        onSuccess: () => {
-          fetchDashboardStats();
-        }
-      }
-    );
+  const handleQuickApprove = async (businessId: string) => {
+    try {
+      setIsApproving(true);
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ is_active: true, status: 'active' })
+        .eq('id', businessId);
+
+      if (error) throw error;
+      toast.success('Prestataire activé');
+      fetchDashboardStats();
+    } catch (error) {
+      console.error('Error approving business:', error);
+      toast.error('Erreur lors de l\'activation');
+    } finally {
+      setIsApproving(false);
+    }
   };
 
   const handleBulkVerify = async () => {
@@ -371,10 +373,10 @@ export default function AdminDashboard() {
                     <Button
                       size="sm"
                       onClick={() => handleQuickApprove(business.id)}
-                      disabled={approveBusiness.isPending}
+                      disabled={isApproving}
                       className="ml-4"
                     >
-                      {approveBusiness.isPending ? 'Approbation...' : 'Approuver'}
+                      {isApproving ? 'Activation...' : 'Activer'}
                     </Button>
                   </div>
                 ))}

@@ -39,14 +39,8 @@ verify_jwt = false
 [functions.award-badges]
 verify_jwt = false
 
-[functions.send-business-approval-email]
-verify_jwt = true
-
 [functions.send-welcome-email]
 verify_jwt = false
-
-[functions.send-business-rejection-email]
-verify_jwt = true
 
 [functions.ai-gift-recommendations]
 verify_jwt = false
@@ -56,9 +50,6 @@ verify_jwt = false
 
 [functions.birthday-reminder-with-suggestions]
 verify_jwt = false
-
-[functions.admin-approve-business]
-verify_jwt = true
 
 [functions.admin-manage-users]
 verify_jwt = true
@@ -82,12 +73,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.notify-business-birthday-opportunity]
-verify_jwt = false
-
-[functions.invite-waitlist-business]
-verify_jwt = false
-
-[functions.notify-waitlist-registration]
 verify_jwt = false
 
 [functions.admin-list-admins]
