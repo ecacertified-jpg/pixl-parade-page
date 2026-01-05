@@ -26,6 +26,7 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
+  const [showGift, setShowGift] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [giftPopoverOpen, setGiftPopoverOpen] = useState(false);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
@@ -123,6 +124,10 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
   };
 
   const handleGiftConfirm = () => {
+    // Déclencher l'animation
+    setShowGift(true);
+    setTimeout(() => setShowGift(false), 1500);
+    
     toggleReaction(post.id, 'gift');
     setGiftModalOpen(false);
   };
@@ -200,6 +205,34 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
       {showHeart && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <Heart className="h-32 w-32 text-white fill-white animate-scale-in opacity-90" />
+        </div>
+      )}
+
+      {/* Gift promise animation */}
+      {showGift && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          {/* Cercles d'ondes qui s'expandent */}
+          <div className="absolute w-40 h-40 rounded-full bg-gift/30 animate-ping" />
+          <div className="absolute w-32 h-32 rounded-full bg-gift/40 animate-ping" style={{ animationDelay: '100ms' }} />
+          
+          {/* Particules qui s'envolent */}
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(8)].map((_, i) => (
+              <div 
+                key={i}
+                className="absolute left-1/2 top-1/2 w-3 h-3 bg-gift rounded-full animate-gift-particle"
+                style={{
+                  '--particle-angle': `${i * 45}deg`,
+                  animationDelay: `${i * 50}ms`,
+                } as React.CSSProperties}
+              />
+            ))}
+          </div>
+          
+          {/* Cadeau principal géant */}
+          <div className="animate-gift-pop">
+            <Gift className="h-36 w-36 text-white fill-gift drop-shadow-2xl" />
+          </div>
         </div>
       )}
 
