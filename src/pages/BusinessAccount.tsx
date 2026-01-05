@@ -18,11 +18,14 @@ import { BusinessCard } from "@/components/BusinessCard";
 import { BusinessProductCard } from "@/components/BusinessProductCard";
 import { OrderDetailsModal } from "@/components/OrderDetailsModal";
 import { BusinessSelector } from "@/components/BusinessSelector";
+import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
+import { BusinessOnboardingChecklist } from "@/components/BusinessOnboardingChecklist";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
+import { useBusinessOnboarding } from "@/hooks/useBusinessOnboarding";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
 export default function BusinessAccount() {
@@ -57,6 +60,27 @@ export default function BusinessAccount() {
   }, [user, loadingSelector, navigate]);
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
   const { getSetting, settings, isLoading: loadingSettings } = usePlatformSettings();
+  
+  // Business Onboarding
+  const {
+    shouldShowOnboarding,
+    isLoading: loadingOnboarding,
+    steps: onboardingSteps,
+    currentStepIndex,
+    nextStep,
+    prevStep,
+    goToStep,
+    completeOnboarding,
+    skipOnboarding,
+    dismissChecklist,
+    isChecklistDismissed,
+    progress: onboardingProgress,
+    completedCount,
+    totalSteps,
+    isOnboardingComplete,
+    refreshState: refreshOnboarding,
+  } = useBusinessOnboarding(selectedBusinessId || undefined);
+  
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
@@ -885,6 +909,21 @@ interface RecentOrderItem {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
+        {/* Business Onboarding Checklist */}
+        {!isOnboardingComplete && !isChecklistDismissed() && !loadingOnboarding && selectedBusinessId && (
+          <BusinessOnboardingChecklist
+            steps={onboardingSteps}
+            progress={onboardingProgress}
+            completedCount={completedCount}
+            totalSteps={totalSteps}
+            onDismiss={dismissChecklist}
+            onOpenProfileSettings={() => navigate('/business-profile-settings')}
+            onOpenAddProduct={() => setIsAddProductModalOpen(true)}
+            onOpenDeliverySettings={() => navigate('/business-profile-settings')}
+            onOpenPaymentSettings={() => navigate('/business-profile-settings')}
+          />
+        )}
+
         {/* Statut du compte */}
         <Card className="p-4 mb-6">
           <div className="grid grid-cols-4 gap-2 sm:gap-4">
@@ -1380,11 +1419,47 @@ interface RecentOrderItem {
         
       </main>
 
-      <AddProductModal isOpen={isAddProductModalOpen} onClose={() => setIsAddProductModalOpen(false)} onProductAdded={loadProducts} />
+      <AddProductModal 
+        isOpen={isAddProductModalOpen} 
+        onClose={() => setIsAddProductModalOpen(false)} 
+        onProductAdded={() => {
+          loadProducts();
+          refreshOnboarding();
+        }} 
+      />
       <AddBusinessModal isOpen={isAddBusinessModalOpen} onClose={handleBusinessModalClose} onBusinessAdded={handleBusinessChanged} editingBusiness={editingBusiness} />
       <OrderDetailsModal isOpen={isOrderDetailsModalOpen} onClose={() => {
       setIsOrderDetailsModalOpen(false);
       setSelectedOrder(null);
     }} order={selectedOrder} onOrderConfirmed={handleOrderConfirmed} />
+
+      {/* Business Onboarding Modal */}
+      <BusinessOnboardingModal
+        open={shouldShowOnboarding}
+        onClose={skipOnboarding}
+        steps={onboardingSteps}
+        currentStepIndex={currentStepIndex}
+        onNextStep={nextStep}
+        onPrevStep={prevStep}
+        onGoToStep={goToStep}
+        onComplete={completeOnboarding}
+        onSkip={skipOnboarding}
+        onOpenProfileSettings={() => {
+          skipOnboarding();
+          navigate('/business-profile-settings');
+        }}
+        onOpenAddProduct={() => {
+          skipOnboarding();
+          setIsAddProductModalOpen(true);
+        }}
+        onOpenDeliverySettings={() => {
+          skipOnboarding();
+          navigate('/business-profile-settings');
+        }}
+        onOpenPaymentSettings={() => {
+          skipOnboarding();
+          navigate('/business-profile-settings');
+        }}
+      />
     </div>;
 }
