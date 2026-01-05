@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Plus, Play, Volume2, VolumeX, Gift, User } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Play, Gift, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { ShareMenu } from "@/components/ShareMenu";
@@ -20,15 +20,15 @@ interface TikTokPostCardProps {
   isVisible?: boolean;
   parallaxOffset?: number; // -1 (above) to 1 (below), 0 = centered
   shouldPreload?: boolean; // Précharger la vidéo sans la jouer
+  globalMuted?: boolean; // État mute global
 }
 
 export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
-  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false, parallaxOffset = 0, shouldPreload = false }, ref) {
+  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false, parallaxOffset = 0, shouldPreload = false, globalMuted = true }, ref) {
   const navigate = useNavigate();
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [showGift, setShowGift] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -94,6 +94,13 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
     }
   }, [isVisible]);
 
+  // Sync l'état muted de la vidéo avec globalMuted
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = globalMuted;
+    }
+  }, [globalMuted]);
+
   // Préchargement des vidéos adjacentes
   useEffect(() => {
     const video = videoRef.current;
@@ -127,20 +134,13 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
         videoRef.current.play();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
     handleDoubleTap();
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
   };
 
   // Handle gift click
@@ -237,24 +237,14 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
               src={post.media_url}
               className="w-full h-full object-cover"
               loop
-              muted={isMuted}
+              muted={globalMuted}
               playsInline
               preload={shouldPreload || isVisible ? 'auto' : 'none'}
               onClick={handleVideoTap}
             />
-            {/* Video controls */}
-            <button 
-              onClick={toggleMute}
-              className="absolute top-20 right-4 bg-black/40 p-2 rounded-full"
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5 text-white" />
-              ) : (
-                <Volume2 className="h-5 w-5 text-white" />
-              )}
-            </button>
+            {/* Play indicator when paused */}
             {!isPlaying && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="bg-black/40 p-4 rounded-full">
                   <Play className="h-12 w-12 text-white fill-white" />
                 </div>
