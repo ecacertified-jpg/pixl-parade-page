@@ -134,7 +134,13 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
     <div 
       ref={ref}
       data-post-id={post.id}
-      className="relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0"
+      className={cn(
+        "relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0",
+        "transition-all duration-500 ease-out",
+        isVisible 
+          ? "opacity-100 scale-100" 
+          : "opacity-40 scale-95"
+      )}
     >
       {/* Media background */}
       <div 
@@ -198,7 +204,13 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
       )}
 
       {/* Right side action buttons */}
-      <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
+      <div className={cn(
+        "absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10",
+        "transition-all duration-500 delay-100",
+        isVisible 
+          ? "opacity-100 translate-x-0" 
+          : "opacity-0 translate-x-4"
+      )}>
         {/* Avatar with follow button */}
         <div 
           className="relative cursor-pointer"
@@ -325,7 +337,13 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
       </div>
 
       {/* Bottom info section */}
-      <div className="absolute bottom-6 left-4 right-20 z-10">
+      <div className={cn(
+        "absolute bottom-6 left-4 right-20 z-10",
+        "transition-all duration-500 delay-150",
+        isVisible 
+          ? "opacity-100 translate-y-0" 
+          : "opacity-0 translate-y-4"
+      )}>
         <h4 
           className={cn(
             "text-white font-semibold text-base mb-1",
