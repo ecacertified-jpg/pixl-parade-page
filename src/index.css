@@ -224,4 +224,50 @@ All colors MUST be HSL.
 .animate-heart-pop {
   animation: heart-pop 1s ease-out forwards;
 }
+
+/* TikTok gift promise animation */
+@keyframes gift-pop {
+  0% {
+    transform: scale(0) rotate(-15deg);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.4) rotate(10deg);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  70% {
+    transform: scale(1.25) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+.animate-gift-pop {
+  animation: gift-pop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes gift-particle {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: 
+      translate(
+        calc(-50% + cos(var(--particle-angle)) * 120px), 
+        calc(-50% + sin(var(--particle-angle)) * 120px)
+      ) 
+      scale(0);
+    opacity: 0;
+  }
+}
+
+.animate-gift-particle {
+  animation: gift-particle 1s ease-out forwards;
+}
 }
