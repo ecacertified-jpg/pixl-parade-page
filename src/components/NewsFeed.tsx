@@ -1,13 +1,20 @@
-import { Heart, Users } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Heart, Users, LayoutGrid, Play } from "lucide-react";
+import { useState, useEffect } from "react";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { PostCard } from "@/components/PostCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function NewsFeed() {
+interface NewsFeedProps {
+  onModeChange?: (mode: 'feed' | 'tiktok') => void;
+  currentMode?: 'feed' | 'tiktok';
+}
+
+export function NewsFeed({ onModeChange, currentMode = 'feed' }: NewsFeedProps) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [followingLoaded, setFollowingLoaded] = useState(false);
@@ -33,10 +40,22 @@ export function NewsFeed() {
   if (loading) {
     return (
       <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-400">
-          <Heart className="h-5 w-5 text-primary" />
-          Fil d'actualités
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-400">
+            <Heart className="h-5 w-5 text-primary" />
+            Fil d'actualités
+          </h3>
+          {onModeChange && (
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                <Play className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="bg-card p-4 rounded-2xl">
@@ -62,10 +81,38 @@ export function NewsFeed() {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-400">
-        <Heart className="h-5 w-5 text-primary" />
-        Fil d'actualités
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-400">
+          <Heart className="h-5 w-5 text-primary" />
+          Fil d'actualités
+        </h3>
+        {onModeChange && (
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={cn(
+                "h-8 w-8 transition-colors",
+                currentMode === 'feed' && "bg-background shadow-sm"
+              )}
+              onClick={() => onModeChange('feed')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={cn(
+                "h-8 w-8 transition-colors",
+                currentMode === 'tiktok' && "bg-background shadow-sm"
+              )}
+              onClick={() => onModeChange('tiktok')}
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full mb-4">
         <TabsList className="grid w-full grid-cols-2">
