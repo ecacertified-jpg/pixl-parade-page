@@ -103,6 +103,35 @@ const ProfileSettings = () => {
     birthday: "",
     city: "",
   });
+  const [birthdayInput, setBirthdayInput] = useState("");
+
+  // Handler pour la saisie clavier avec auto-formatage
+  const handleBirthdayInputChange = (value: string) => {
+    // Garder uniquement les chiffres
+    let digits = value.replace(/\D/g, '');
+    
+    // Limiter à 8 chiffres (jjmmaaaa)
+    digits = digits.slice(0, 8);
+    
+    // Formater automatiquement avec les slashes
+    let formatted = digits;
+    if (digits.length > 2) {
+      formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    }
+    if (digits.length > 4) {
+      formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+    }
+    
+    setBirthdayInput(formatted);
+
+    // Valider et convertir en Date si format complet (10 caractères: jj/mm/aaaa)
+    if (formatted.length === 10) {
+      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
+      if (isValid(parsedDate) && parsedDate <= new Date() && parsedDate.getFullYear() >= 1920) {
+        handleBirthdayChange(format(parsedDate, "yyyy-MM-dd"));
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -127,6 +156,13 @@ const ProfileSettings = () => {
             birthday: data.birthday || "",
             city: data.city || "",
           });
+          // Synchroniser l'input de date
+          if (data.birthday) {
+            const parsedBirthday = parse(data.birthday, "yyyy-MM-dd", new Date());
+            if (isValid(parsedBirthday)) {
+              setBirthdayInput(format(parsedBirthday, "dd/MM/yyyy"));
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -364,42 +400,49 @@ const ProfileSettings = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="birthday">Date de naissance</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !profile.birthday && "text-muted-foreground",
-                          errors.birthday && "border-destructive focus-visible:ring-destructive"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {profile.birthday 
-                          ? format(parse(profile.birthday, "yyyy-MM-dd", new Date()), "dd MMMM yyyy", { locale: fr })
-                          : "Sélectionnez votre date de naissance"
-                        }
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={profile.birthday ? parse(profile.birthday, "yyyy-MM-dd", new Date()) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            handleBirthdayChange(format(date, "yyyy-MM-dd"));
-                          }
-                        }}
-                        locale={fr}
-                        captionLayout="dropdown-buttons"
-                        fromYear={1920}
-                        toYear={new Date().getFullYear()}
-                        disabled={(date) => date > new Date()}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="jj/mm/aaaa"
+                      value={birthdayInput}
+                      onChange={(e) => handleBirthdayInputChange(e.target.value)}
+                      maxLength={10}
+                      className={cn(
+                        "flex-1",
+                        errors.birthday && "border-destructive focus-visible:ring-destructive"
+                      )}
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          type="button"
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={profile.birthday ? parse(profile.birthday, "yyyy-MM-dd", new Date()) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              handleBirthdayChange(format(date, "yyyy-MM-dd"));
+                              setBirthdayInput(format(date, "dd/MM/yyyy"));
+                            }
+                          }}
+                          locale={fr}
+                          captionLayout="dropdown-buttons"
+                          fromYear={1920}
+                          toYear={new Date().getFullYear()}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   {errors.birthday ? (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />

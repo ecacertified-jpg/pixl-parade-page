@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
+import { format, parse, isValid as isValidDate } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CalendarIcon, Gift, MapPin, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,42 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const [city, setCity] = useState('');
   const [firstName, setFirstName] = useState(initialData?.firstName || '');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [birthdayInput, setBirthdayInput] = useState('');
+
+  // Synchroniser l'input quand la date est sélectionnée via calendrier
+  useEffect(() => {
+    if (birthday) {
+      setBirthdayInput(format(birthday, "dd/MM/yyyy"));
+    }
+  }, [birthday]);
+
+  // Handler pour la saisie clavier avec auto-formatage
+  const handleBirthdayInputChange = (value: string) => {
+    // Garder uniquement les chiffres
+    let digits = value.replace(/\D/g, '');
+    
+    // Limiter à 8 chiffres (jjmmaaaa)
+    digits = digits.slice(0, 8);
+    
+    // Formater automatiquement avec les slashes
+    let formatted = digits;
+    if (digits.length > 2) {
+      formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+    }
+    if (digits.length > 4) {
+      formatted = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+    }
+    
+    setBirthdayInput(formatted);
+
+    // Valider et convertir en Date si format complet (10 caractères: jj/mm/aaaa)
+    if (formatted.length === 10) {
+      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
+      if (isValidDate(parsedDate) && parsedDate <= new Date() && parsedDate.getFullYear() >= 1920) {
+        setBirthday(parsedDate);
+      }
+    }
+  };
 
   const isValid = birthday && city.trim().length > 0;
 
@@ -138,38 +174,46 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
               <span>Date d'anniversaire</span>
               <span className="text-xs text-destructive">*</span>
             </Label>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !birthday && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {birthday ? format(birthday, "dd MMMM yyyy", { locale: fr }) : "Sélectionnez votre date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={birthday}
-                  onSelect={(date) => {
-                    setBirthday(date);
-                    setCalendarOpen(false);
-                  }}
-                  locale={fr}
-                  captionLayout="dropdown-buttons"
-                  fromYear={1920}
-                  toYear={new Date().getFullYear()}
-                  disabled={(date) => date > new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex gap-2">
+              <Input
+                placeholder="jj/mm/aaaa"
+                value={birthdayInput}
+                onChange={(e) => handleBirthdayInputChange(e.target.value)}
+                maxLength={10}
+                className="flex-1"
+              />
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    type="button"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={birthday}
+                    onSelect={(date) => {
+                      setBirthday(date);
+                      if (date) setBirthdayInput(format(date, "dd/MM/yyyy"));
+                      setCalendarOpen(false);
+                    }}
+                    locale={fr}
+                    captionLayout="dropdown-buttons"
+                    fromYear={1920}
+                    toYear={new Date().getFullYear()}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Nous l'utiliserons pour vous souhaiter un joyeux anniversaire !
+              Tapez la date ou utilisez le calendrier
             </p>
           </div>
 
