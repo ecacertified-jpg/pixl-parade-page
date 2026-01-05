@@ -825,7 +825,7 @@ const BusinessAuth = () => {
         description: 'Votre espace business est maintenant prêt.',
       });
       
-      navigate('/business-account', { replace: true });
+      navigate('/business-account?onboarding=true', { replace: true });
       reset();
     } catch (error) {
       toast({
@@ -890,7 +890,7 @@ const BusinessAuth = () => {
         title: 'Bienvenue !',
         description: 'Votre espace business est maintenant prêt.',
       });
-      navigate('/business-account', { replace: true });
+      navigate('/business-account?onboarding=true', { replace: true });
     } catch (error) {
       toast({
         title: 'Erreur',
