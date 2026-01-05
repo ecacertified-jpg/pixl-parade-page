@@ -3,7 +3,7 @@ import AdminAuth from "./pages/AdminAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -15,8 +15,6 @@ import Install from "./pages/Install";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
-import BusinessWaitlist from "./pages/BusinessWaitlist";
-import BusinessPendingApproval from "./pages/BusinessPendingApproval";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Publications from "./pages/Publications";
@@ -47,7 +45,6 @@ import ReciprocityDashboard from "./pages/Admin/ReciprocityDashboard";
 import BusinessAnalytics from "./pages/Admin/BusinessAnalytics";
 import RealtimeDashboard from "./pages/Admin/RealtimeDashboard";
 import AlertsHistory from "./pages/Admin/AlertsHistory";
-import WaitlistManagement from "./pages/Admin/WaitlistManagement";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -81,14 +78,11 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/business-auth" element={<BusinessAuth />} />
-            <Route path="/business-waitlist" element={<BusinessWaitlist />} />
-            <Route path="/devenir-prestataire" element={<BusinessWaitlist />} />
+            {/* Redirects for removed waitlist/pending pages */}
+            <Route path="/business-waitlist" element={<Navigate to="/business-auth" replace />} />
+            <Route path="/devenir-prestataire" element={<Navigate to="/business-auth" replace />} />
+            <Route path="/business-pending-approval" element={<Navigate to="/business-account" replace />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
-            <Route path="/business-pending-approval" element={
-              <ProtectedRoute>
-                <BusinessPendingApproval />
-              </ProtectedRoute>
-            } />
             <Route path="/home" element={
               <ProtectedRoute>
                 <Home />
@@ -250,11 +244,8 @@ const App = () => (
                 <BusinessManagement />
               </AdminRoute>
             } />
-            <Route path="/admin/waitlist" element={
-              <AdminRoute>
-                <WaitlistManagement />
-              </AdminRoute>
-            } />
+            {/* Redirect removed waitlist admin page */}
+            <Route path="/admin/waitlist" element={<Navigate to="/admin/businesses" replace />} />
             <Route path="/admin/business-analytics" element={
               <AdminRoute>
                 <BusinessAnalytics />

@@ -772,8 +772,8 @@ const BusinessAuth = () => {
               address: data.address || '',
               description: data.description || '',
               email: data.email,
-              is_active: false,
-              status: 'pending',
+              is_active: true,
+              status: 'active',
             });
 
           if (businessError) {
@@ -807,31 +807,6 @@ const BusinessAuth = () => {
             return;
           }
 
-          // Notify admins
-          const { data: admins } = await supabase
-            .from('admin_users')
-            .select('user_id')
-            .eq('is_active', true);
-
-          if (admins && admins.length > 0) {
-            const notifications = admins.map(admin => ({
-              user_id: admin.user_id,
-              notification_type: 'new_business_pending_approval',
-              title: '🏪 Nouveau prestataire en attente',
-              message: `${data.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
-              scheduled_for: new Date().toISOString(),
-              delivery_methods: ['push', 'in_app'],
-              metadata: {
-                business_name: data.businessName,
-                business_type: data.businessType,
-                business_user_id: authData.user.id,
-                action_url: '/admin/businesses',
-              }
-            }));
-            
-            await supabase.from('scheduled_notifications').insert(notifications);
-          }
-
           setUserMode('business');
           await refreshSession();
         } catch (businessCreationError) {
@@ -846,11 +821,11 @@ const BusinessAuth = () => {
       }
 
       toast({
-        title: 'Inscription soumise',
-        description: 'Votre compte est en attente d\'approbation par l\'équipe JOIE DE VIVRE',
+        title: 'Bienvenue !',
+        description: 'Votre espace business est maintenant prêt.',
       });
       
-      navigate('/business-pending-approval', { replace: true });
+      navigate('/business-account', { replace: true });
       reset();
     } catch (error) {
       toast({
@@ -896,8 +871,8 @@ const BusinessAuth = () => {
           address: formData.address || '',
           description: formData.description || '',
           email: authenticatedEmail,
-          is_active: false,
-          status: 'pending',
+          is_active: true,
+          status: 'active',
         });
 
       if (businessError) {
@@ -910,37 +885,12 @@ const BusinessAuth = () => {
         return;
       }
 
-      // Notify admins
-      const { data: admins } = await supabase
-        .from('admin_users')
-        .select('user_id')
-        .eq('is_active', true);
-
-      if (admins && admins.length > 0) {
-        const notifications = admins.map(admin => ({
-          user_id: admin.user_id,
-          notification_type: 'new_business_pending_approval',
-          title: '🏪 Nouveau prestataire en attente',
-          message: `${formData.businessName || 'Un nouveau prestataire'} vient de s'inscrire et attend votre approbation`,
-          scheduled_for: new Date().toISOString(),
-          delivery_methods: ['push', 'in_app'],
-          metadata: {
-            business_name: formData.businessName,
-            business_type: formData.businessType,
-            business_user_id: authenticatedUserId,
-            action_url: '/admin/businesses',
-          }
-        }));
-        
-        await supabase.from('scheduled_notifications').insert(notifications);
-      }
-
       setUserMode('business');
       toast({
-        title: 'Inscription complétée',
-        description: 'Votre compte business est maintenant en attente d\'approbation',
+        title: 'Bienvenue !',
+        description: 'Votre espace business est maintenant prêt.',
       });
-      navigate('/business-pending-approval', { replace: true });
+      navigate('/business-account', { replace: true });
     } catch (error) {
       toast({
         title: 'Erreur',

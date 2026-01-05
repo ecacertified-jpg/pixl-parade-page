@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar } from 'lucide-react';
-import { useSecureAdminActions } from '@/hooks/useSecureAdminActions';
 import {
   Table,
   TableBody,
@@ -92,9 +91,6 @@ export default function BusinessManagement() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
 
-  // Use secure admin actions hook
-  const { approveBusiness } = useSecureAdminActions();
-
   // Get unique business types for filter
   const businessTypes = [...new Set(businesses.map(b => b.business_type).filter(Boolean))] as string[];
 
@@ -138,58 +134,48 @@ export default function BusinessManagement() {
   };
 
   const handleToggleActive = async (businessId: string, active: boolean) => {
-    if (active) {
-      // Use secure Edge Function for approval
-      approveBusiness.mutate(
-        {
-          business_id: businessId,
-          action: 'approve',
-        },
-        {
-          onSuccess: () => {
-            fetchBusinesses();
-          }
-        }
-      );
-    } else {
-      // For deactivation, use direct update (not a security-critical action)
-      try {
-        const { error } = await supabase
-          .from('business_accounts')
-          .update({ 
-            is_active: false,
-            status: 'pending',
-          })
-          .eq('id', businessId);
+    try {
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ 
+          is_active: active,
+          status: active ? 'active' : 'inactive',
+        })
+        .eq('id', businessId);
 
-        if (error) throw error;
-        toast.success('Prestataire désactivé');
-        fetchBusinesses();
-      } catch (error) {
-        console.error('Error deactivating business:', error);
-        toast.error('Erreur lors de la désactivation');
-      }
+      if (error) throw error;
+      toast.success(active ? 'Prestataire activé' : 'Prestataire désactivé');
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Error updating business:', error);
+      toast.error('Erreur lors de la mise à jour');
     }
   };
 
   const handleRejectBusiness = async (reason: string) => {
     if (!businessToReject) return;
 
-    // Use secure Edge Function for rejection
-    approveBusiness.mutate(
-      {
-        business_id: businessToReject.id,
-        action: 'reject',
-        rejection_reason: reason,
-      },
-      {
-        onSuccess: () => {
-          setBusinessToReject(null);
-          setRejectModalOpen(false);
-          fetchBusinesses();
-        }
-      }
-    );
+    try {
+      const { error } = await supabase
+        .from('business_accounts')
+        .update({ 
+          is_active: false,
+          status: 'rejected',
+          rejection_reason: reason,
+          rejection_date: new Date().toISOString(),
+        })
+        .eq('id', businessToReject.id);
+
+      if (error) throw error;
+      
+      toast.success('Prestataire désactivé');
+      setBusinessToReject(null);
+      setRejectModalOpen(false);
+      fetchBusinesses();
+    } catch (error) {
+      console.error('Error rejecting business:', error);
+      toast.error('Erreur lors de la désactivation');
+    }
   };
 
   const filteredBusinesses = businesses.filter(business => {
