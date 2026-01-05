@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -88,6 +88,23 @@ export function DateRangePicker({
   const [isFromValid, setIsFromValid] = useState(false);
   const [isToValid, setIsToValid] = useState(false);
   const isMobile = useIsMobile();
+  
+  const fromInputRef = useRef<HTMLInputElement>(null);
+  const toInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus automatique sur le champ "from" en cas d'erreur
+  useEffect(() => {
+    if (fromError && fromInputRef.current) {
+      fromInputRef.current.focus();
+    }
+  }, [fromError]);
+
+  // Focus automatique sur le champ "to" en cas d'erreur
+  useEffect(() => {
+    if (toError && toInputRef.current) {
+      toInputRef.current.focus();
+    }
+  }, [toError]);
 
   // Responsive: 1 mois sur mobile, 2 sur desktop (sauf si spécifié)
   const calendarMonths = numberOfMonths ?? (isMobile ? 1 : 2);
@@ -294,6 +311,7 @@ export function DateRangePicker({
             <Label className="text-xs text-muted-foreground">{labelFrom}</Label>
           )}
           <Input
+            ref={fromInputRef}
             placeholder="jj/mm/aaaa"
             value={fromInput}
             onChange={(e) => handleFromInputChange(e.target.value)}
@@ -328,6 +346,7 @@ export function DateRangePicker({
             <Label className="text-xs text-muted-foreground">{labelTo}</Label>
           )}
           <Input
+            ref={toInputRef}
             placeholder="jj/mm/aaaa"
             value={toInput}
             onChange={(e) => handleToInputChange(e.target.value)}
