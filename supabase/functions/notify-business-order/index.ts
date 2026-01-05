@@ -214,7 +214,7 @@ async function processOrder(payload: OrderPayload) {
       console.log('⚠️ Could not parse order summary');
     }
 
-    // Prepare push payload
+    // Prepare push payload with quick action buttons
     const pushPayload = {
       title: '🎉 Nouvelle commande !',
       message: itemCount > 1 
@@ -230,8 +230,15 @@ async function processOrder(payload: OrderPayload) {
         type: 'new_order',
         order_id: order.id,
         business_id: order.business_account_id,
-        url: '/business-account',
+        business_user_id: businessAccount.user_id,
+        url: '/business-account?tab=orders',
+        requires_action: true,
       },
+      actions: [
+        { action: 'accept', title: '✅ Accepter' },
+        { action: 'reject', title: '❌ Refuser' },
+        { action: 'view', title: '👁️ Voir' }
+      ],
       requireInteraction: true,
     };
 

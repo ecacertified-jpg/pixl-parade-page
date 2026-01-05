@@ -1,5 +1,8 @@
 project_id = "vaimfeurvzokepqqqrsl"
 
+[functions.handle-order-action]
+verify_jwt = false
+
 [functions.generate-ai-music]
 verify_jwt = true
 

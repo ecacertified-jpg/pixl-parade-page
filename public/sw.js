@@ -170,10 +170,110 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  // Déterminer l'URL à ouvrir
-  let urlToOpen = '/';
   const data = event.notification.data || {};
   const notificationType = data.type || 'default';
+  
+  // Special handling for order quick actions
+  if (data.type === 'new_order' && (event.action === 'accept' || event.action === 'reject' || event.action === 'view')) {
+    console.log('[SW] Order quick action:', event.action, 'for order:', data.order_id);
+    
+    event.waitUntil(
+      (async () => {
+        // Notify clients that action is starting
+        const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        allClients.forEach(client => {
+          client.postMessage({ 
+            type: 'ORDER_ACTION_STARTED',
+            orderId: data.order_id,
+            action: event.action
+          });
+        });
+        
+        try {
+          // Call the handle-order-action edge function
+          const response = await fetch('https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/handle-order-action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: data.order_id,
+              action: event.action,
+              business_user_id: data.business_user_id
+            })
+          });
+          
+          const result = await response.json();
+          console.log('[SW] Order action result:', result);
+          
+          // Notify all clients about the action completion
+          const updatedClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          updatedClients.forEach(client => {
+            client.postMessage({ 
+              type: 'ORDER_ACTION_COMPLETED',
+              action: event.action,
+              orderId: data.order_id,
+              success: result.success,
+              newStatus: result.new_status
+            });
+          });
+          
+          // For view action, open the app
+          if (event.action === 'view') {
+            const redirectUrl = result.redirect_url || '/business-account?tab=orders';
+            if (updatedClients.length > 0) {
+              updatedClients[0].focus();
+              updatedClients[0].navigate(redirectUrl);
+            } else if (self.clients.openWindow) {
+              await self.clients.openWindow(redirectUrl);
+            }
+          }
+          
+          // Show result notification for accept/reject
+          if (event.action !== 'view') {
+            const resultTitle = result.success 
+              ? (event.action === 'accept' ? '✅ Commande acceptée' : '❌ Commande refusée')
+              : '⚠️ Erreur';
+            const resultBody = result.success
+              ? (event.action === 'accept' ? 'Le client a été notifié' : 'Le client a été informé')
+              : (result.error || 'Impossible de traiter l\'action');
+            
+            await self.registration.showNotification(resultTitle, {
+              body: resultBody,
+              icon: '/logo-jv.png',
+              tag: `order-result-${data.order_id}`,
+              requireInteraction: false
+            });
+          }
+          
+        } catch (error) {
+          console.error('[SW] Error handling order action:', error);
+          
+          // Notify clients about the error
+          const errorClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          errorClients.forEach(client => {
+            client.postMessage({ 
+              type: 'ORDER_ACTION_COMPLETED',
+              action: event.action,
+              orderId: data.order_id,
+              success: false,
+              error: error.message
+            });
+          });
+          
+          // Show error notification
+          await self.registration.showNotification('⚠️ Erreur', {
+            body: 'Impossible de traiter l\'action. Ouvrez l\'app pour réessayer.',
+            icon: '/logo-jv.png',
+            tag: `order-error-${data.order_id}`,
+            data: { url: '/business-account?tab=orders' }
+          });
+        }
+      })()
+    );
+    return;
+  }
+
+  // Déterminer l'URL à ouvrir
+  let urlToOpen = '/';
   
   // Actions spécifiques aux anniversaires
   if (event.action === 'celebrate') {
