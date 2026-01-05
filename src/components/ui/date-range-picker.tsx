@@ -83,6 +83,8 @@ export function DateRangePicker({
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [fromError, setFromError] = useState<string | null>(null);
+  const [toError, setToError] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Responsive: 1 mois sur mobile, 2 sur desktop (sauf si spécifié)
@@ -92,6 +94,7 @@ export function DateRangePicker({
   useEffect(() => {
     if (value?.from) {
       setFromInput(format(value.from, "dd/MM/yyyy"));
+      setFromError(null);
     } else {
       setFromInput("");
     }
@@ -100,6 +103,7 @@ export function DateRangePicker({
   useEffect(() => {
     if (value?.to) {
       setToInput(format(value.to, "dd/MM/yyyy"));
+      setToError(null);
     } else {
       setToInput("");
     }
@@ -120,13 +124,75 @@ export function DateRangePicker({
     return formatted;
   };
 
-  // Valider une date parsée
-  const validateDate = (date: Date): boolean => {
-    if (!isValid(date)) return false;
-    if (minDate && isBefore(date, minDate)) return false;
-    if (maxDate && isAfter(date, maxDate)) return false;
-    if (date.getFullYear() < minYear || date.getFullYear() > maxYear) return false;
-    return true;
+  // Validation en temps réel
+  const validateDateInput = (
+    formatted: string, 
+    setError: (error: string | null) => void,
+    checkAgainstDate?: Date,
+    isEndDate: boolean = false
+  ): { isValid: boolean; date?: Date } => {
+    // Pas de validation si champ vide
+    if (formatted.length === 0) {
+      setError(null);
+      return { isValid: true };
+    }
+
+    // Validation du jour
+    if (formatted.length >= 2) {
+      const day = parseInt(formatted.slice(0, 2));
+      if (day > 31 || day === 0) {
+        setError("Jour invalide (01-31)");
+        return { isValid: false };
+      }
+    }
+
+    // Validation du mois
+    if (formatted.length >= 5) {
+      const month = parseInt(formatted.slice(3, 5));
+      if (month > 12 || month === 0) {
+        setError("Mois invalide (01-12)");
+        return { isValid: false };
+      }
+    }
+
+    // Validation complète quand la date est saisie entièrement
+    if (formatted.length === 10) {
+      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
+
+      if (!isValid(parsedDate)) {
+        setError("Cette date n'existe pas");
+        return { isValid: false };
+      }
+
+      const year = parsedDate.getFullYear();
+      if (year < minYear || year > maxYear) {
+        setError(`Année doit être entre ${minYear} et ${maxYear}`);
+        return { isValid: false };
+      }
+
+      if (minDate && isBefore(parsedDate, minDate)) {
+        setError(`Date minimum: ${format(minDate, "dd/MM/yyyy")}`);
+        return { isValid: false };
+      }
+
+      if (maxDate && isAfter(parsedDate, maxDate)) {
+        setError(`Date maximum: ${format(maxDate, "dd/MM/yyyy")}`);
+        return { isValid: false };
+      }
+
+      // Vérification date de fin après date de début
+      if (isEndDate && checkAgainstDate && isBefore(parsedDate, checkAgainstDate)) {
+        setError("La date de fin doit être après la date de début");
+        return { isValid: false };
+      }
+
+      setError(null);
+      return { isValid: true, date: parsedDate };
+    }
+
+    // Effacer l'erreur si on est en cours de saisie valide
+    setError(null);
+    return { isValid: true };
   };
 
   // Handler pour la date de début
@@ -134,13 +200,15 @@ export function DateRangePicker({
     const formatted = formatDateInput(rawValue);
     setFromInput(formatted);
 
-    if (formatted.length === 10) {
-      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
-      if (validateDate(parsedDate)) {
-        // Si la date de fin existe et est avant la nouvelle date de début, la réinitialiser
-        const newTo = value?.to && isBefore(value.to, parsedDate) ? undefined : value?.to;
-        onChange({ from: parsedDate, to: newTo });
+    const result = validateDateInput(formatted, setFromError);
+
+    if (formatted.length === 10 && result.isValid && result.date) {
+      // Si la date de fin existe et est avant la nouvelle date de début, la réinitialiser
+      const newTo = value?.to && isBefore(value.to, result.date) ? undefined : value?.to;
+      if (newTo !== value?.to) {
+        setToError(null);
       }
+      onChange({ from: result.date, to: newTo });
     }
   };
 
@@ -149,21 +217,18 @@ export function DateRangePicker({
     const formatted = formatDateInput(rawValue);
     setToInput(formatted);
 
-    if (formatted.length === 10) {
-      const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
-      if (validateDate(parsedDate)) {
-        // Vérifier que la date de fin est après la date de début
-        if (value?.from && isBefore(parsedDate, value.from)) {
-          return; // Ne pas accepter une date de fin avant la date de début
-        }
-        onChange({ from: value?.from, to: parsedDate });
-      }
+    const result = validateDateInput(formatted, setToError, value?.from, true);
+
+    if (formatted.length === 10 && result.isValid && result.date) {
+      onChange({ from: value?.from, to: result.date });
     }
   };
 
   // Handler pour la sélection calendrier
   const handleCalendarSelect = (range: DateRange | undefined) => {
     if (range) {
+      setFromError(null);
+      setToError(null);
       onChange(range);
       // Fermer le calendrier seulement si les deux dates sont sélectionnées
       if (range.from && range.to) {
@@ -182,11 +247,16 @@ export function DateRangePicker({
   // Appliquer un preset
   const applyPreset = (preset: Preset) => {
     const range = preset.getValue();
+    setFromError(null);
+    setToError(null);
     onChange(range);
     setIsCalendarOpen(false);
   };
 
   const activePresets = presets || defaultPresets;
+  const hasFromError = error || fromError;
+  const hasToError = error || toError;
+  const hasAnyError = hasFromError || hasToError;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -217,9 +287,15 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
-              error && "border-destructive focus-visible:ring-destructive"
+              hasFromError && "border-destructive focus-visible:ring-destructive"
             )}
           />
+          {fromError && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {fromError}
+            </p>
+          )}
         </div>
 
         {layout === 'inline' && (
@@ -241,9 +317,15 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
-              error && "border-destructive focus-visible:ring-destructive"
+              hasToError && "border-destructive focus-visible:ring-destructive"
             )}
           />
+          {toError && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {toError}
+            </p>
+          )}
         </div>
 
         {/* Bouton Calendrier */}
@@ -252,7 +334,10 @@ export function DateRangePicker({
             <Button
               variant="outline"
               size="icon"
-              className="shrink-0"
+              className={cn(
+                "shrink-0",
+                hasAnyError && "border-destructive text-destructive hover:border-destructive"
+              )}
               type="button"
               disabled={disabled}
             >
@@ -301,19 +386,19 @@ export function DateRangePicker({
       </div>
 
       {/* Affichage de la plage sélectionnée */}
-      {value?.from && value?.to && !error && (
+      {value?.from && value?.to && !hasAnyError && (
         <p className="text-xs text-muted-foreground">
           Du {format(value.from, "d MMMM yyyy", { locale: fr })} au {format(value.to, "d MMMM yyyy", { locale: fr })}
         </p>
       )}
 
-      {/* Message d'erreur ou texte d'aide */}
+      {/* Message d'erreur global ou texte d'aide */}
       {error ? (
         <p className="text-xs text-destructive flex items-center gap-1">
           <AlertCircle className="h-3 w-3" />
           {error}
         </p>
-      ) : !value?.from && !value?.to && helperText ? (
+      ) : !value?.from && !value?.to && !fromError && !toError && helperText ? (
         <p className="text-xs text-muted-foreground">{helperText}</p>
       ) : null}
     </div>
