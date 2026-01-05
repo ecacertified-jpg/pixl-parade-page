@@ -5,6 +5,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper function to send web push notifications
+async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
+  try {
+    const response = await fetch(subscription.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'TTL': '86400',
+        'Urgency': 'high',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404 || response.status === 410) {
+        console.log('Push subscription expired:', subscription.endpoint);
+      } else {
+        console.error('Push failed:', response.status, await response.text());
+      }
+      return false;
+    }
+
+    console.log('✅ Push sent successfully to:', subscription.endpoint.substring(0, 50));
+    return true;
+  } catch (error) {
+    console.error('Error in sendWebPush:', error);
+    return false;
+  }
+}
+
+// Helper function to create in-app notification
+async function createInAppNotification(
+  supabase: any,
+  userId: string,
+  businessName: string
+) {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        type: 'business_approved',
+        title: '🎉 Compte business approuvé !',
+        message: `Félicitations ! Votre compte "${businessName}" a été approuvé. Vous pouvez maintenant gérer vos produits et recevoir des commandes.`,
+        data: {
+          action_url: '/business-account',
+        },
+        is_read: false,
+      });
+
+    if (error) {
+      console.error('Error creating in-app notification:', error);
+    } else {
+      console.log('✅ In-app notification created for business approval');
+    }
+  } catch (error) {
+    console.error('Error in createInAppNotification:', error);
+  }
+}
+
 interface ApproveBusinessRequest {
   business_id: string
   action: 'approve' | 'reject'
@@ -210,6 +270,47 @@ Deno.serve(async (req) => {
         })
       } catch (emailError) {
         console.error('Failed to send email notification:', emailError)
+      }
+    }
+
+    // Send push notification to business owner if approved
+    if (body.action === 'approve') {
+      try {
+        // Get active push subscriptions for the business owner
+        const { data: subscriptions } = await supabaseAdmin
+          .from('push_subscriptions')
+          .select('*')
+          .eq('user_id', business.user_id)
+          .eq('is_active', true);
+
+        if (subscriptions && subscriptions.length > 0) {
+          const pushPayload = {
+            title: '🎉 Félicitations !',
+            body: `Votre compte "${business.business_name}" a été approuvé. Accédez à votre espace business.`,
+            icon: '/pwa-192x192.png',
+            badge: '/pwa-192x192.png',
+            tag: `business-approved-${business.id}`,
+            data: {
+              type: 'business_approved',
+              business_id: business.id,
+              url: '/business-account',
+            },
+            requireInteraction: true,
+          };
+
+          let pushSent = 0;
+          for (const subscription of subscriptions) {
+            const success = await sendWebPush(subscription, pushPayload);
+            if (success) pushSent++;
+          }
+          console.log(`📲 Push notifications sent to ${pushSent}/${subscriptions.length} devices`);
+        }
+
+        // Create in-app notification
+        await createInAppNotification(supabaseAdmin, business.user_id, business.business_name);
+      } catch (notifError) {
+        console.error('Failed to send push/in-app notification:', notifError);
+        // Don't fail the main request
       }
     }
 
