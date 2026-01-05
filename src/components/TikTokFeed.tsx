@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { TikTokPostCard } from '@/components/TikTokPostCard';
+import { TikTokProgressIndicator } from '@/components/TikTokProgressIndicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Heart } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +28,20 @@ export function TikTokFeed() {
   const loading = activeTab === "all" ? allLoading : followingLoading;
   const toggleReaction = activeTab === "all" ? toggleAllReaction : toggleFollowingReaction;
   const refreshPosts = activeTab === "all" ? refreshAllPosts : refreshFollowingPosts;
+
+  // Calculer l'index actuel pour l'indicateur de progression
+  const currentIndex = posts.findIndex(p => p.id === visiblePostId);
+
+  // Fonction pour scroller vers un post spécifique
+  const scrollToPost = useCallback((index: number) => {
+    const postId = posts[index]?.id;
+    if (postId) {
+      const element = postRefs.current.get(postId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [posts]);
 
   // Ref callback to register/unregister post elements
   const setPostRef = useCallback((postId: string, element: HTMLDivElement | null) => {
@@ -150,6 +165,13 @@ export function TikTokFeed() {
           </TabsList>
         </Tabs>
       </div>
+
+      {/* Progress indicator */}
+      <TikTokProgressIndicator
+        totalPosts={posts.length}
+        currentIndex={currentIndex >= 0 ? currentIndex : 0}
+        onDotClick={scrollToPost}
+      />
 
       {/* Scrollable posts container */}
       <div 
