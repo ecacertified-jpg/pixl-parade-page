@@ -300,16 +300,18 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
-              "transition-colors",
+              "transition-all duration-300 ease-in-out",
               showFromSuccess && "border-green-500 focus-visible:ring-green-500",
               hasFromError && "border-destructive focus-visible:ring-destructive"
             )}
           />
           {fromError && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {fromError}
-            </p>
+            <div className="animate-fade-in">
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3 animate-scale-in" />
+                {fromError}
+              </p>
+            </div>
           )}
         </div>
 
@@ -332,16 +334,18 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
-              "transition-colors",
+              "transition-all duration-300 ease-in-out",
               showToSuccess && "border-green-500 focus-visible:ring-green-500",
               hasToError && "border-destructive focus-visible:ring-destructive"
             )}
           />
           {toError && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              {toError}
-            </p>
+            <div className="animate-fade-in">
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3 w-3 animate-scale-in" />
+                {toError}
+              </p>
+            </div>
           )}
         </div>
 
@@ -352,7 +356,7 @@ export function DateRangePicker({
               variant="outline"
               size="icon"
               className={cn(
-                "shrink-0 transition-colors",
+                "shrink-0 transition-all duration-300 ease-in-out",
                 showRangeSuccess && "border-green-500 text-green-600 hover:border-green-500",
                 hasAnyError && "border-destructive text-destructive hover:border-destructive"
               )}
@@ -405,18 +409,22 @@ export function DateRangePicker({
 
       {/* Affichage de la plage sélectionnée avec succès */}
       {showRangeSuccess && (
-        <p className="text-xs text-green-600 flex items-center gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          Du {format(value.from!, "d MMMM yyyy", { locale: fr })} au {format(value.to!, "d MMMM yyyy", { locale: fr })}
-        </p>
+        <div className="animate-fade-in">
+          <p className="text-xs text-green-600 flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 animate-scale-in" />
+            Du {format(value.from!, "d MMMM yyyy", { locale: fr })} au {format(value.to!, "d MMMM yyyy", { locale: fr })}
+          </p>
+        </div>
       )}
 
       {/* Message d'erreur global ou texte d'aide */}
       {error ? (
-        <p className="text-xs text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          {error}
-        </p>
+        <div className="animate-fade-in">
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3 animate-scale-in" />
+            {error}
+          </p>
+        </div>
       ) : !value?.from && !value?.to && !fromError && !toError && helperText ? (
         <p className="text-xs text-muted-foreground">{helperText}</p>
       ) : null}
