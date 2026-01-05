@@ -41,8 +41,11 @@ export default function BusinessAccount() {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Redirect if not active or if rejected/pending/resubmitted
-      if (businessAccount && (!businessAccount.is_active || businessAccount.status !== 'active')) {
+      // Redirect if not active or if rejected/pending/resubmitted (allow both 'approved' and 'active')
+      if (businessAccount && (
+        !businessAccount.is_active || 
+        (businessAccount.status !== 'active' && businessAccount.status !== 'approved')
+      )) {
         navigate('/business-pending-approval', { replace: true });
       }
     };
