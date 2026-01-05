@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TikTokPostCard } from '@/components/TikTokPostCard';
 import { TikTokProgressIndicator } from '@/components/TikTokProgressIndicator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Heart } from 'lucide-react';
+import { Users, Heart, Volume2, VolumeX } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
@@ -12,6 +12,21 @@ export function TikTokFeed() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [followingLoaded, setFollowingLoaded] = useState(false);
+  
+  // État global du son avec persistance localStorage
+  const [globalMuted, setGlobalMuted] = useState(() => {
+    const saved = localStorage.getItem('tiktok-feed-muted');
+    return saved !== null ? JSON.parse(saved) : true; // Muet par défaut
+  });
+
+  // Toggle global mute
+  const toggleGlobalMute = useCallback(() => {
+    setGlobalMuted((prev: boolean) => {
+      const newValue = !prev;
+      localStorage.setItem('tiktok-feed-muted', JSON.stringify(newValue));
+      return newValue;
+    });
+  }, []);
   
   // États séparés pour chaque onglet
   const [allVisiblePostId, setAllVisiblePostId] = useState<string | null>(null);
@@ -303,6 +318,20 @@ export function TikTokFeed() {
         onDotClick={scrollToPost}
       />
 
+      {/* Bouton mute/unmute global */}
+      <button
+        onClick={toggleGlobalMute}
+        className="absolute top-20 right-4 z-30 bg-black/50 backdrop-blur-sm p-3 rounded-full 
+                   transition-all duration-200 hover:bg-black/70 active:scale-95"
+        aria-label={globalMuted ? "Activer le son" : "Couper le son"}
+      >
+        {globalMuted ? (
+          <VolumeX className="h-5 w-5 text-white" />
+        ) : (
+          <Volume2 className="h-5 w-5 text-white" />
+        )}
+      </button>
+
       {/* Edge glow indicators */}
       {activeTab === "all" && (
         <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/5 to-transparent pointer-events-none z-10" />
@@ -346,6 +375,7 @@ export function TikTokFeed() {
                   isVisible={post.id === allVisiblePostId && activeTab === "all"}
                   parallaxOffset={allParallaxOffsets.get(post.id) || 0}
                   shouldPreload={activeTab === "all" && preloadPostIds.includes(post.id)}
+                  globalMuted={globalMuted}
                 />
               ))}
             </div>
@@ -385,6 +415,7 @@ export function TikTokFeed() {
                   isVisible={post.id === followingVisiblePostId && activeTab === "following"}
                   parallaxOffset={followingParallaxOffsets.get(post.id) || 0}
                   shouldPreload={activeTab === "following" && preloadPostIds.includes(post.id)}
+                  globalMuted={globalMuted}
                 />
               ))}
             </div>
