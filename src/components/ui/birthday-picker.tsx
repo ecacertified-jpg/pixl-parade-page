@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,14 @@ export function BirthdayPicker({
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isValidDate, setIsValidDate] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus automatique sur le champ en cas d'erreur
+  useEffect(() => {
+    if (validationError && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [validationError]);
 
   // Synchroniser l'input quand la date change
   useEffect(() => {
@@ -186,6 +194,7 @@ export function BirthdayPicker({
       
       <div className="flex gap-2">
         <Input
+          ref={inputRef}
           placeholder={placeholder}
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
