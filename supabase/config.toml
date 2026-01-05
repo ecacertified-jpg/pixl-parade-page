@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.award-invitation-rewards]
 verify_jwt = false
+
+[functions.link-business-account-to-user]
+verify_jwt = true

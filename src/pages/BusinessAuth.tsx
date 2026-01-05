@@ -265,10 +265,57 @@ const BusinessAuth = () => {
           // Tous les comptes sont rejetés/inactifs, rediriger vers le dashboard business
           navigate('/business-account', { replace: true });
         }
+      } else {
+        // Aucun compte trouvé par user_id - essayer de lier par email
+        console.log('No business account found by user_id, trying to link by email...');
+        const linkResult = await tryLinkBusinessAccountByEmail();
+        
+        if (linkResult && linkResult.linked) {
+          console.log('Successfully linked business account:', linkResult);
+          // Re-check with the newly linked account
+          const { data: linkedAccounts } = await supabase
+            .from('business_accounts')
+            .select('id, is_active, status')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (linkedAccounts && linkedAccounts.length > 0) {
+            const activeAccount = linkedAccounts.find(
+              acc => acc.is_active && (acc.status === 'approved' || acc.status === 'active')
+            );
+            const pendingAccount = linkedAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
+            
+            if (activeAccount) {
+              setUserMode('business');
+              navigate('/business-account', { replace: true });
+            } else if (pendingAccount) {
+              navigate('/business-pending-approval', { replace: true });
+            } else {
+              navigate('/business-account', { replace: true });
+            }
+          }
+        }
+        // Si toujours pas de compte, laisser afficher le formulaire
       }
-      // Si aucun compte, laisser afficher le formulaire
     } catch (error) {
       console.error('Error checking business account:', error);
+    }
+  };
+
+  // Helper function to link business account by email
+  const tryLinkBusinessAccountByEmail = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('link-business-account-to-user');
+      
+      if (error) {
+        console.error('Error invoking link function:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error linking business account:', error);
+      return null;
     }
   };
 
@@ -362,11 +409,29 @@ const BusinessAuth = () => {
       }
 
       // Check if business account exists - gérer plusieurs comptes
-      const { data: businessAccounts, error: businessError } = await supabase
+      let { data: businessAccounts, error: businessError } = await supabase
         .from('business_accounts')
         .select('is_active, status')
         .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
+
+      // If no account found by user_id, try to link by email
+      if (!businessError && (!businessAccounts || businessAccounts.length === 0)) {
+        console.log('No business account found after login, trying to link by email...');
+        const linkResult = await tryLinkBusinessAccountByEmail();
+        
+        if (linkResult && linkResult.linked) {
+          console.log('Successfully linked business account after login:', linkResult);
+          // Re-fetch with the newly linked account
+          const { data: linkedAccounts } = await supabase
+            .from('business_accounts')
+            .select('is_active, status')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+          
+          businessAccounts = linkedAccounts;
+        }
+      }
 
       if (businessError || !businessAccounts || businessAccounts.length === 0) {
         // Pas de compte business - proposer d'en créer un
