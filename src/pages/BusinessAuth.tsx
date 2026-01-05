@@ -861,6 +861,100 @@ const BusinessAuth = () => {
     'Autre'
   ];
 
+  // If showing complete registration form (after Google OAuth), show dedicated full-screen form
+  if (showCompleteRegistration) {
+    return (
+      <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4 pt-8">
+        <Card className="w-full max-w-lg shadow-lg border-primary/20">
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Store className="h-8 w-8 text-primary" />
+              <CardTitle className="text-2xl font-poppins font-bold text-primary">
+                Finalisez votre inscription
+              </CardTitle>
+            </div>
+            <CardDescription className="text-base">
+              Bienvenue {authenticatedEmail} ! Complétez votre profil business pour continuer.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleSubmit(completeBusinessRegistration)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="complete-businessName" className="flex items-center gap-1">
+                  Nom de l'entreprise <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="complete-businessName"
+                  placeholder="Mon Enterprise SARL"
+                  {...register('businessName')}
+                  onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
+                />
+                {businessNameError && (
+                  <p className="text-sm text-destructive">{businessNameError}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complete-businessType">Type d'activité</Label>
+                <Select onValueChange={(value) => setValue('businessType', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez votre activité" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {businessTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complete-phone">Téléphone</Label>
+                <Input
+                  id="complete-phone"
+                  placeholder="+225 XX XX XX XX XX"
+                  {...register('phone')}
+                  autoComplete="tel"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complete-address">Adresse</Label>
+                <Input
+                  id="complete-address"
+                  placeholder="Cocody, Abidjan"
+                  {...register('address')}
+                  autoComplete="street-address"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complete-description">Description</Label>
+                <Textarea
+                  id="complete-description"
+                  placeholder="Décrivez votre activité..."
+                  rows={3}
+                  {...register('description')}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Création...' : 'Compléter mon inscription'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // If in reset mode, show the password reset form
   if (isResetMode) {
     return (
@@ -1156,93 +1250,6 @@ const BusinessAuth = () => {
                   </div>
                 )}
 
-                {showCompleteRegistration && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                    <div className="flex items-start gap-2">
-                      <Store className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-blue-800">
-                          Complétez votre inscription business
-                        </p>
-                        <p className="text-sm text-blue-700">
-                          Votre compte utilisateur existe ({authenticatedEmail}), mais l'inscription business n'est pas terminée.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="complete-businessName">Nom de l'entreprise *</Label>
-                        <Input
-                          id="complete-businessName"
-                          placeholder="Mon Enterprise SARL"
-                          {...register('businessName')}
-                          onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
-                        />
-                        {businessNameError && (
-                          <p className="text-sm text-destructive">{businessNameError}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="complete-businessType">Type d'activité</Label>
-                        <Select onValueChange={(value) => setValue('businessType', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez votre activité" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {businessTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="complete-phone">Téléphone</Label>
-                        <Input
-                          id="complete-phone"
-                          placeholder="+225 XX XX XX XX XX"
-                          {...register('phone')}
-                          name="phone"
-                          autoComplete="tel"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="complete-address">Adresse</Label>
-                        <Input
-                          id="complete-address"
-                          placeholder="Cocody, Abidjan"
-                          {...register('address')}
-                          name="address"
-                          autoComplete="street-address"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="complete-description">Description</Label>
-                        <Textarea
-                          id="complete-description"
-                          placeholder="Décrivez votre activité..."
-                          rows={2}
-                          {...register('description')}
-                        />
-                      </div>
-
-                      <Button
-                        type="button"
-                        className="w-full"
-                        onClick={handleSubmit(completeBusinessRegistration)}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Création...' : 'Compléter mon inscription'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </form>
             </TabsContent>
             

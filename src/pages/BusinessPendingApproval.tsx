@@ -51,7 +51,9 @@ const BusinessPendingApproval = () => {
         },
         (payload) => {
           const newData = payload.new as BusinessAccount;
-          if (newData.status === 'active' && newData.is_active) {
+          // Accept both 'approved' and 'active' status for immediate redirection
+          if ((newData.status === 'approved' || newData.status === 'active') && newData.is_active) {
+            toast.success('Votre compte a été approuvé !');
             navigate('/business-account', { replace: true });
           } else {
             setBusinessAccount(newData);
@@ -94,8 +96,8 @@ const BusinessPendingApproval = () => {
         return;
       }
 
-      // If the account is active and approved, redirect to dashboard
-      if (data.status === 'active' && data.is_active) {
+      // If the account is approved or active, redirect to dashboard
+      if ((data.status === 'approved' || data.status === 'active') && data.is_active) {
         navigate('/business-account', { replace: true });
         return;
       }
