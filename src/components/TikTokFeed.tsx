@@ -61,7 +61,7 @@ export function TikTokFeed() {
 
   if (posts.length === 0) {
     return (
-      <div className="relative h-screen w-full bg-black">
+      <div className="relative h-[100dvh] w-full bg-black">
         {/* Tab switcher overlay - TOUJOURS VISIBLE */}
         <div className="absolute top-16 left-0 right-0 z-20 px-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full">
@@ -100,13 +100,13 @@ export function TikTokFeed() {
   }
 
   return (
-    <div className="relative h-screen w-full bg-black">
+    <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
       {/* Tab switcher overlay */}
       <div className="absolute top-16 left-0 right-0 z-20 px-4">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full">
           <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-black/40 backdrop-blur-sm">
             <TabsTrigger 
-              value="all" 
+              value="all"
               className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20"
             >
               <Heart className="h-4 w-4 mr-1" />
@@ -126,8 +126,7 @@ export function TikTokFeed() {
       {/* Scrollable posts container */}
       <div 
         ref={containerRef}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
-        style={{ scrollSnapType: 'y mandatory' }}
+        className="h-full w-full overflow-y-scroll tiktok-scroll scrollbar-hide"
       >
         {posts.map((post, index) => (
           <TikTokPostCard
