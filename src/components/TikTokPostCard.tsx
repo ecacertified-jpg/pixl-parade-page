@@ -126,7 +126,7 @@ export function TikTokPostCard({
   const gradientBg = "bg-gradient-to-br from-primary via-accent to-secondary";
 
   return (
-    <div className="relative h-screen w-full snap-start bg-black flex-shrink-0">
+    <div className="relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0">
       {/* Media background */}
       <div 
         className="absolute inset-0" 

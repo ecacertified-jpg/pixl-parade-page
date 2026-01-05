@@ -193,6 +193,18 @@ All colors MUST be HSL.
   display: none;
 }
 
+/* TikTok-style smooth vertical scrolling */
+.tiktok-scroll {
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.tiktok-scroll > * {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
 /* TikTok heart animation */
 @keyframes heart-pop {
   0% {

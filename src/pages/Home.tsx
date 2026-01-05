@@ -29,7 +29,7 @@ const Home = () => {
   // TikTok mode - full screen immersive
   if (feedMode === 'tiktok') {
     return (
-      <div className="h-screen w-full bg-black fixed inset-0 z-50">
+      <div className="h-[100dvh] w-full bg-black fixed inset-0 z-50 overflow-hidden">
         {/* Minimal header for TikTok mode */}
         <header className="absolute top-0 left-0 right-0 z-30 px-4 py-3 flex items-center justify-between">
           <button 
