@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
+import { useQuickOrderActions } from "@/hooks/useQuickOrderActions";
 
 interface CollectiveOrder {
   id: string;
@@ -62,6 +63,14 @@ export function BusinessOrdersSection() {
   const { selectedBusinessId } = useSelectedBusiness();
   const { toast } = useToast();
   const { funds: businessFunds, loading: loadingBusinessFunds } = useBusinessCollectiveFunds();
+  
+  // Handle quick order actions from push notifications
+  const handleQuickActionCompleted = useCallback(() => {
+    console.log('🔄 Quick action completed, refreshing orders...');
+    loadOrders();
+  }, []);
+  
+  const { lastAction, isProcessing, triggerAction } = useQuickOrderActions(handleQuickActionCompleted);
 
   useEffect(() => {
     if (user && selectedBusinessId) {
