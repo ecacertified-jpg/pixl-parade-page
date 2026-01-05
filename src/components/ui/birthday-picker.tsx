@@ -192,7 +192,7 @@ export function BirthdayPicker({
           maxLength={10}
           disabled={disabled}
           className={cn(
-            "flex-1 transition-colors",
+            "flex-1 transition-all duration-300 ease-in-out",
             showSuccess && "border-green-500 focus-visible:ring-green-500",
             hasError && "border-destructive focus-visible:ring-destructive"
           )}
@@ -203,7 +203,7 @@ export function BirthdayPicker({
               variant="outline"
               size="icon"
               className={cn(
-                "shrink-0 transition-colors",
+                "shrink-0 transition-all duration-300 ease-in-out",
                 showSuccess && "border-green-500 text-green-600 hover:border-green-500",
                 hasError && "border-destructive text-destructive hover:border-destructive"
               )}
@@ -231,15 +231,19 @@ export function BirthdayPicker({
       </div>
       
       {hasError ? (
-        <p className="text-xs text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          {error || validationError}
-        </p>
+        <div className="animate-fade-in">
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3 animate-scale-in" />
+            {error || validationError}
+          </p>
+        </div>
       ) : showSuccess ? (
-        <p className="text-xs text-green-600 flex items-center gap-1">
-          <CheckCircle2 className="h-3 w-3" />
-          Date valide
-        </p>
+        <div className="animate-fade-in">
+          <p className="text-xs text-green-600 flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3 animate-scale-in" />
+            Date valide
+          </p>
+        </div>
       ) : helperText ? (
         <p className="text-xs text-muted-foreground">{helperText}</p>
       ) : null}
