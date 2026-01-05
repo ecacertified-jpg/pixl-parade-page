@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Plus, Play, Volume2, VolumeX, Gift } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Play, Volume2, VolumeX, Gift, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { ShareMenu } from "@/components/ShareMenu";
@@ -8,6 +8,7 @@ import { CommentsDrawer } from "@/components/CommentsDrawer";
 import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import type { PostData } from "@/hooks/usePosts";
 
 interface TikTokPostCardProps {
@@ -35,6 +36,20 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
 
   // Profile info
   const isProfileVisible = post.profiles?.is_visible !== false;
+
+  // Swipe gesture hook
+  const { handlers: swipeHandlers, isSwiping, swipeOffset } = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (isProfileVisible) {
+        navigate(`/profile/${post.user_id}`);
+      }
+    },
+    onSwipeRight: () => {
+      setShareMenuOpen(true);
+    },
+    threshold: 80,
+  });
+
   const authorName = isProfileVisible && post.profiles?.first_name
     ? `${post.profiles.first_name} ${post.profiles.last_name || ''}`
     : 'Utilisateur';
@@ -139,6 +154,7 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
     <div 
       ref={ref}
       data-post-id={post.id}
+      {...swipeHandlers}
       className={cn(
         "relative h-[100dvh] w-full snap-start snap-always bg-black flex-shrink-0",
         "transition-all duration-500 ease-out",
@@ -146,7 +162,30 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
           ? "opacity-100 scale-100" 
           : "opacity-40 scale-95"
       )}
+      style={{
+        transform: isSwiping ? `translateX(${swipeOffset}px)` : undefined,
+        transition: isSwiping ? 'none' : 'transform 0.3s ease-out',
+      }}
     >
+      {/* Swipe left indicator - Profile */}
+      {isSwiping && swipeOffset < -30 && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 
+                        flex items-center gap-2 text-white bg-primary/80 
+                        px-4 py-2 rounded-full animate-fade-in">
+          <User className="h-5 w-5" />
+          <span className="text-sm font-medium">Voir profil</span>
+        </div>
+      )}
+
+      {/* Swipe right indicator - Share */}
+      {isSwiping && swipeOffset > 30 && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 
+                        flex items-center gap-2 text-white bg-accent/80 
+                        px-4 py-2 rounded-full animate-fade-in">
+          <Share2 className="h-5 w-5" />
+          <span className="text-sm font-medium">Partager</span>
+        </div>
+      )}
       {/* Media background */}
       <div 
         className="absolute inset-0" 
