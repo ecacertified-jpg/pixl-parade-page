@@ -61,15 +61,40 @@ export function TikTokFeed() {
 
   if (posts.length === 0) {
     return (
-      <div className="h-screen bg-black flex flex-col items-center justify-center text-white p-8">
-        <Heart className="h-16 w-16 mb-4 text-primary" />
-        <p className="text-lg font-medium mb-2">Aucune publication</p>
-        <p className="text-sm text-white/60 text-center">
-          {activeTab === "following" 
-            ? "Suivez des utilisateurs pour voir leurs publications ici"
-            : "Soyez le premier à partager un moment de joie ! 🎉"
-          }
-        </p>
+      <div className="relative h-screen w-full bg-black">
+        {/* Tab switcher overlay - TOUJOURS VISIBLE */}
+        <div className="absolute top-16 left-0 right-0 z-20 px-4">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full">
+            <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-black/40 backdrop-blur-sm">
+              <TabsTrigger 
+                value="all" 
+                className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20"
+              >
+                <Heart className="h-4 w-4 mr-1" />
+                Pour toi
+              </TabsTrigger>
+              <TabsTrigger 
+                value="following" 
+                className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20"
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Abonnés
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Contenu vide */}
+        <div className="h-full flex flex-col items-center justify-center text-white p-8">
+          <Heart className="h-16 w-16 mb-4 text-primary" />
+          <p className="text-lg font-medium mb-2">Aucune publication</p>
+          <p className="text-sm text-white/60 text-center">
+            {activeTab === "following" 
+              ? "Suivez des utilisateurs pour voir leurs publications ici"
+              : "Soyez le premier à partager un moment de joie ! 🎉"
+            }
+          </p>
+        </div>
       </div>
     );
   }

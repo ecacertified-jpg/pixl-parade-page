@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Share2, Plus, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Play, Pause, Volume2, VolumeX, Gift } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, isValidImageUrl } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ShareMenu } from "@/components/ShareMenu";
 import { CommentsDrawer } from "@/components/CommentsDrawer";
+import { GiftPromiseModal } from "@/components/GiftPromiseModal";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import type { PostData } from "@/hooks/usePosts";
 
 interface TikTokPostCardProps {
@@ -31,6 +34,8 @@ export function TikTokPostCard({
   const [isMuted, setIsMuted] = useState(true);
   const [showHeart, setShowHeart] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [giftPopoverOpen, setGiftPopoverOpen] = useState(false);
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
 
@@ -99,6 +104,22 @@ export function TikTokPostCard({
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
+  };
+
+  // Handle gift click
+  const handleGiftClick = () => {
+    if (post.user_reaction === 'gift') {
+      // Already promised - toggle off
+      toggleReaction(post.id, 'gift');
+    } else {
+      // Show warning popover first
+      setGiftPopoverOpen(true);
+    }
+  };
+
+  const handleGiftConfirm = () => {
+    toggleReaction(post.id, 'gift');
+    setGiftModalOpen(false);
   };
 
   // Background for posts without media
@@ -208,6 +229,65 @@ export function TikTokPostCard({
           </span>
         </button>
 
+        {/* Gift Promise */}
+        <Popover open={giftPopoverOpen} onOpenChange={setGiftPopoverOpen}>
+          <PopoverTrigger asChild>
+            <button 
+              className="flex flex-col items-center"
+              onClick={handleGiftClick}
+            >
+              <div className={cn(
+                "p-2 rounded-full transition-colors",
+                post.user_reaction === 'gift' && "bg-gift/20"
+              )}>
+                <Gift className={cn(
+                  "h-8 w-8 text-white transition-all",
+                  post.user_reaction === 'gift' && "fill-gift text-gift scale-110"
+                )} />
+              </div>
+              <span className="text-white text-xs font-medium mt-1">
+                {formatCount(post.reactions?.gift || 0)}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-72 p-4 bg-background/95 backdrop-blur-sm border-border"
+            side="left"
+            align="center"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gift">
+                <Gift className="h-5 w-5" />
+                <p className="font-semibold">Promesse de cadeau</p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Ceci est un engagement à contribuer pour offrir un cadeau à {authorName}. 
+                Êtes-vous sûr de vouloir continuer ?
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => setGiftPopoverOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="flex-1 bg-gift hover:bg-gift/90"
+                  onClick={() => {
+                    setGiftPopoverOpen(false);
+                    setGiftModalOpen(true);
+                  }}
+                >
+                  Continuer
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         {/* Comments */}
         <button 
           className="flex flex-col items-center"
@@ -288,6 +368,15 @@ export function TikTokPostCard({
         onOpenChange={setCommentsOpen}
         postId={post.id}
         onCommentAdded={refreshPosts}
+      />
+
+      {/* Gift Promise Modal */}
+      <GiftPromiseModal
+        open={giftModalOpen}
+        onOpenChange={setGiftModalOpen}
+        onConfirm={handleGiftConfirm}
+        authorName={authorName}
+        occasion={post.occasion || 'anniversaire'}
       />
     </div>
   );
