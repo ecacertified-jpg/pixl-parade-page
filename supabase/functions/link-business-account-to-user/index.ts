@@ -62,27 +62,25 @@ serve(async (req) => {
       .from('business_accounts')
       .select('id, status, is_active, user_id, email, business_name')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .order('created_at', { ascending: false });
 
     if (existingError) {
       console.error('Error checking existing accounts:', existingError);
     }
 
+    // Priority order for status selection
+    const priorityOrder = ['approved', 'active', 'pending', 'resubmitted', 'rejected'];
+    
+    // Find best account by user_id
+    let bestByUserId = null;
     if (existingByUserId && existingByUserId.length > 0) {
-      const account = existingByUserId[0];
-      console.log(`✅ User already has linked account: ${account.id}, status: ${account.status}`);
-      return new Response(
-        JSON.stringify({ 
-          linked: true, 
-          already_linked: true,
-          business_account_id: account.id, 
-          status: account.status, 
-          is_active: account.is_active,
-          business_name: account.business_name
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      existingByUserId.sort((a, b) => {
+        const priorityA = priorityOrder.indexOf(a.status || 'rejected');
+        const priorityB = priorityOrder.indexOf(b.status || 'rejected');
+        return priorityA - priorityB;
+      });
+      bestByUserId = existingByUserId[0];
+      console.log(`📋 Best account by user_id: ${bestByUserId.id}, status: ${bestByUserId.status}`);
     }
 
     // Search for business accounts by email (case insensitive)
@@ -102,6 +100,20 @@ serve(async (req) => {
 
     if (!accountsByEmail || accountsByEmail.length === 0) {
       console.log(`❌ No business account found for email: ${userEmail?.substring(0, 5)}...`);
+      // If user has an account by user_id but none by email, return what we have
+      if (bestByUserId) {
+        return new Response(
+          JSON.stringify({ 
+            linked: true, 
+            already_linked: true,
+            business_account_id: bestByUserId.id, 
+            status: bestByUserId.status, 
+            is_active: bestByUserId.is_active,
+            business_name: bestByUserId.business_name
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ linked: false, no_account: true }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -109,7 +121,6 @@ serve(async (req) => {
     }
 
     // Choose the best account to link (priority: approved/active > pending/resubmitted > most recent)
-    const priorityOrder = ['approved', 'active', 'pending', 'resubmitted', 'rejected'];
     accountsByEmail.sort((a, b) => {
       const priorityA = priorityOrder.indexOf(a.status || 'rejected');
       const priorityB = priorityOrder.indexOf(b.status || 'rejected');
@@ -117,7 +128,37 @@ serve(async (req) => {
       return 0; // Already ordered by created_at desc
     });
 
-    const targetAccount = accountsByEmail[0];
+    const bestByEmail = accountsByEmail[0];
+    console.log(`📋 Best account by email: ${bestByEmail.id}, status: ${bestByEmail.status}`);
+
+    // Compare: if bestByUserId exists and has same or better priority than bestByEmail, keep it
+    if (bestByUserId) {
+      const priorityByUserId = priorityOrder.indexOf(bestByUserId.status || 'rejected');
+      const priorityByEmail = priorityOrder.indexOf(bestByEmail.status || 'rejected');
+      
+      if (priorityByUserId <= priorityByEmail && bestByUserId.id === bestByEmail.id) {
+        // Same account, already linked correctly
+        console.log(`✅ User already has the best account linked: ${bestByUserId.id}`);
+        return new Response(
+          JSON.stringify({ 
+            linked: true, 
+            already_linked: true,
+            business_account_id: bestByUserId.id, 
+            status: bestByUserId.status, 
+            is_active: bestByUserId.is_active,
+            business_name: bestByUserId.business_name
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // If bestByEmail is better (lower priority index = better), switch to it
+      if (priorityByEmail < priorityByUserId) {
+        console.log(`🔄 Switching to better account: ${bestByEmail.id} (${bestByEmail.status}) over ${bestByUserId.id} (${bestByUserId.status})`);
+      }
+    }
+
+    const targetAccount = bestByEmail;
     const oldUserId = targetAccount.user_id;
 
     console.log(`🔄 Found account ${targetAccount.id} (${targetAccount.business_name}) with user_id ${oldUserId}, linking to ${userId}`);
