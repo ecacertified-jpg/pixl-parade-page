@@ -173,6 +173,9 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
   const mediaParallax = parallaxOffset * 25; // Media moves slower (background)
   const buttonsParallax = parallaxOffset * -12; // Buttons arrive faster
   const textParallax = parallaxOffset * -8; // Text slightly faster than media
+  
+  // Progressive blur for depth effect (0px when visible, up to 10px when far)
+  const blurAmount = Math.abs(parallaxOffset) * 10;
 
   return (
     <div 
@@ -210,15 +213,23 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
           <span className="text-sm font-medium">Partager</span>
         </div>
       )}
-      {/* Media background with parallax */}
+      {/* Media background with parallax and progressive blur */}
       <div 
-        className="absolute inset-0 will-change-transform" 
+        className="absolute inset-0 will-change-[transform,filter]" 
         onClick={handleDoubleTap}
         style={{ 
           transform: `translateY(${mediaParallax}px) scale(1.05)`,
-          transition: 'transform 0.1s ease-out',
+          filter: isVisible ? 'none' : `blur(${blurAmount}px)`,
+          transition: 'transform 0.1s ease-out, filter 0.2s ease-out',
         }}
       >
+        {/* Depth overlay for non-visible posts */}
+        {!isVisible && (
+          <div 
+            className="absolute inset-0 bg-black pointer-events-none z-[5] transition-opacity duration-300"
+            style={{ opacity: Math.abs(parallaxOffset) * 0.3 }}
+          />
+        )}
         {post.type === 'video' && isValidImageUrl(post.media_url) ? (
           <>
             <video
