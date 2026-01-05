@@ -246,8 +246,35 @@ serve(async (req) => {
     let failedCount = 0;
     const expiredEndpoints: string[] = [];
 
+    // Determine category from notification type
+    const categoryMap: Record<string, string> = {
+      'birthday': 'birthday',
+      'birthday_reminder': 'birthday',
+      'gift': 'fund',
+      'fund': 'fund',
+      'celebration': 'gratitude',
+      'order': 'order',
+    };
+    const category = categoryMap[notificationType] || 'other';
+
     // Send notifications
     for (const subscription of subscriptions) {
+      // Create analytics entry before sending
+      const { data: analyticsEntry } = await supabaseAdmin
+        .from('notification_analytics')
+        .insert({
+          user_id: subscription.user_id,
+          notification_type: 'push',
+          category,
+          title: payload.title,
+          body: payload.message,
+          action_url: payload.data?.url as string || null,
+          status: 'sent',
+          device_type: subscription.device_type || 'unknown',
+        })
+        .select('id')
+        .single();
+
       const result = await sendWebPush(
         subscription,
         pushPayload,
@@ -258,13 +285,34 @@ serve(async (req) => {
 
       if (result.success) {
         successCount++;
-        // Update last_used_at
+        // Update last_used_at and mark as delivered
         await supabaseAdmin
           .from('push_subscriptions')
           .update({ last_used_at: new Date().toISOString() })
           .eq('id', subscription.id);
+        
+        // Update analytics as delivered
+        if (analyticsEntry?.id) {
+          await supabaseAdmin
+            .from('notification_analytics')
+            .update({ 
+              delivered_at: new Date().toISOString(),
+              status: 'delivered'
+            })
+            .eq('id', analyticsEntry.id);
+        }
       } else {
         failedCount++;
+        // Update analytics with error
+        if (analyticsEntry?.id) {
+          await supabaseAdmin
+            .from('notification_analytics')
+            .update({ 
+              status: 'failed',
+              error_message: result.error
+            })
+            .eq('id', analyticsEntry.id);
+        }
         // Deactivate expired subscriptions
         if (result.error === 'subscription_expired') {
           expiredEndpoints.push(subscription.endpoint);
