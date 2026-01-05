@@ -199,6 +199,40 @@ const BusinessAuth = () => {
     }
   }, [user, navigate, isResetMode]);
 
+  // Realtime listener for business account approval
+  useEffect(() => {
+    if (!user || isResetMode) return;
+
+    const channel = supabase
+      .channel('business-auth-approval-watch')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'business_accounts',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newData = payload.new as { status: string; is_active: boolean };
+          console.log('BusinessAuth realtime update:', newData);
+          
+          // If approved or active with is_active=true, redirect to business account
+          if (newData.is_active && (newData.status === 'approved' || newData.status === 'active')) {
+            setUserMode('business');
+            navigate('/business-account', { replace: true });
+          } else if (newData.status === 'pending' || newData.status === 'resubmitted') {
+            navigate('/business-pending-approval', { replace: true });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, isResetMode, navigate, setUserMode]);
+
   const checkExistingBusinessAccount = async () => {
     if (!user) return;
     
@@ -216,11 +250,14 @@ const BusinessAuth = () => {
       }
 
       if (businessAccounts && businessAccounts.length > 0) {
-        // Trouver le compte actif ou le plus récent en attente
-        const activeAccount = businessAccounts.find(acc => acc.is_active);
+        // Trouver le compte actif (approved ou active) ou le plus récent en attente
+        const activeAccount = businessAccounts.find(
+          acc => acc.is_active && (acc.status === 'approved' || acc.status === 'active')
+        );
         const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
         
         if (activeAccount) {
+          setUserMode('business');
           navigate('/business-account', { replace: true });
         } else if (pendingAccount) {
           navigate('/business-pending-approval', { replace: true });
