@@ -41,6 +41,26 @@ export function TikTokFeed() {
   const { posts: allPosts, loading: allLoading, toggleReaction: toggleAllReaction, refreshPosts: refreshAllPosts } = usePosts(false);
   const { posts: followingPosts, loading: followingLoading, toggleReaction: toggleFollowingReaction, refreshPosts: refreshFollowingPosts } = usePosts(activeTab === "following" || followingLoaded);
 
+  // Préchargement automatique de l'onglet "Abonnés" après un délai
+  useEffect(() => {
+    const preloadTimer = setTimeout(() => {
+      if (!followingLoaded) {
+        setFollowingLoaded(true);
+      }
+    }, 2000); // 2 secondes après le montage
+    
+    return () => clearTimeout(preloadTimer);
+  }, []);
+
+  // Préchargement anticipé pendant le swipe (avant complétion)
+  useEffect(() => {
+    // Si l'utilisateur swipe vers "Abonnés" et qu'ils ne sont pas encore chargés
+    if (activeTab === "all" && tabSwipeOffset < -20 && !followingLoaded) {
+      setFollowingLoaded(true);
+    }
+  }, [tabSwipeOffset, activeTab, followingLoaded]);
+
+  // Charger immédiatement si on change d'onglet manuellement
   useEffect(() => {
     if (activeTab === "following" && !followingLoaded) {
       setFollowingLoaded(true);
