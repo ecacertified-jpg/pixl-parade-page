@@ -18,10 +18,11 @@ interface TikTokPostCardProps {
   refreshPosts: () => void;
   isVisible?: boolean;
   parallaxOffset?: number; // -1 (above) to 1 (below), 0 = centered
+  shouldPreload?: boolean; // Précharger la vidéo sans la jouer
 }
 
 export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
-  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false, parallaxOffset = 0 }, ref) {
+  function TikTokPostCard({ post, currentUserId, toggleReaction, refreshPosts, isVisible = false, parallaxOffset = 0, shouldPreload = false }, ref) {
   const navigate = useNavigate();
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -91,6 +92,18 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
       setIsPlaying(false);
     }
   }, [isVisible]);
+
+  // Préchargement des vidéos adjacentes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || post.type !== 'video') return;
+
+    if (shouldPreload && !isVisible) {
+      // Précharger les métadonnées et le début de la vidéo
+      video.preload = 'auto';
+      video.load(); // Force le début du chargement
+    }
+  }, [shouldPreload, isVisible, post.type]);
 
   // Double tap to like
   const handleDoubleTap = async () => {
@@ -210,6 +223,7 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
               loop
               muted={isMuted}
               playsInline
+              preload={shouldPreload || isVisible ? 'auto' : 'none'}
               onClick={handleVideoTap}
             />
             {/* Video controls */}
