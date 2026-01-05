@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, AlertCircle, ArrowRight } from "lucide-react";
+import { CalendarIcon, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
 import { format, parse, isValid, isBefore, isAfter, addDays, startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -85,6 +85,8 @@ export function DateRangePicker({
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [fromError, setFromError] = useState<string | null>(null);
   const [toError, setToError] = useState<string | null>(null);
+  const [isFromValid, setIsFromValid] = useState(false);
+  const [isToValid, setIsToValid] = useState(false);
   const isMobile = useIsMobile();
 
   // Responsive: 1 mois sur mobile, 2 sur desktop (sauf si spécifié)
@@ -92,20 +94,24 @@ export function DateRangePicker({
 
   // Synchroniser les inputs quand la valeur change
   useEffect(() => {
-    if (value?.from) {
+    if (value?.from && isValid(value.from)) {
       setFromInput(format(value.from, "dd/MM/yyyy"));
       setFromError(null);
+      setIsFromValid(true);
     } else {
       setFromInput("");
+      setIsFromValid(false);
     }
   }, [value?.from]);
 
   useEffect(() => {
-    if (value?.to) {
+    if (value?.to && isValid(value.to)) {
       setToInput(format(value.to, "dd/MM/yyyy"));
       setToError(null);
+      setIsToValid(true);
     } else {
       setToInput("");
+      setIsToValid(false);
     }
   }, [value?.to]);
 
@@ -229,6 +235,8 @@ export function DateRangePicker({
     if (range) {
       setFromError(null);
       setToError(null);
+      if (range.from) setIsFromValid(true);
+      if (range.to) setIsToValid(true);
       onChange(range);
       // Fermer le calendrier seulement si les deux dates sont sélectionnées
       if (range.from && range.to) {
@@ -249,6 +257,8 @@ export function DateRangePicker({
     const range = preset.getValue();
     setFromError(null);
     setToError(null);
+    setIsFromValid(true);
+    setIsToValid(true);
     onChange(range);
     setIsCalendarOpen(false);
   };
@@ -257,6 +267,9 @@ export function DateRangePicker({
   const hasFromError = error || fromError;
   const hasToError = error || toError;
   const hasAnyError = hasFromError || hasToError;
+  const showFromSuccess = !hasFromError && isFromValid;
+  const showToSuccess = !hasToError && isToValid;
+  const showRangeSuccess = showFromSuccess && showToSuccess && value?.from && value?.to;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -287,6 +300,8 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
+              "transition-colors",
+              showFromSuccess && "border-green-500 focus-visible:ring-green-500",
               hasFromError && "border-destructive focus-visible:ring-destructive"
             )}
           />
@@ -317,6 +332,8 @@ export function DateRangePicker({
             maxLength={10}
             disabled={disabled}
             className={cn(
+              "transition-colors",
+              showToSuccess && "border-green-500 focus-visible:ring-green-500",
               hasToError && "border-destructive focus-visible:ring-destructive"
             )}
           />
@@ -335,7 +352,8 @@ export function DateRangePicker({
               variant="outline"
               size="icon"
               className={cn(
-                "shrink-0",
+                "shrink-0 transition-colors",
+                showRangeSuccess && "border-green-500 text-green-600 hover:border-green-500",
                 hasAnyError && "border-destructive text-destructive hover:border-destructive"
               )}
               type="button"
@@ -385,10 +403,11 @@ export function DateRangePicker({
         </Popover>
       </div>
 
-      {/* Affichage de la plage sélectionnée */}
-      {value?.from && value?.to && !hasAnyError && (
-        <p className="text-xs text-muted-foreground">
-          Du {format(value.from, "d MMMM yyyy", { locale: fr })} au {format(value.to, "d MMMM yyyy", { locale: fr })}
+      {/* Affichage de la plage sélectionnée avec succès */}
+      {showRangeSuccess && (
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Du {format(value.from!, "d MMMM yyyy", { locale: fr })} au {format(value.to!, "d MMMM yyyy", { locale: fr })}
         </p>
       )}
 

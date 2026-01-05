@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, AlertCircle } from "lucide-react";
+import { CalendarIcon, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -45,14 +45,17 @@ export function BirthdayPicker({
   const [inputValue, setInputValue] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isValidDate, setIsValidDate] = useState(false);
 
   // Synchroniser l'input quand la date change
   useEffect(() => {
     if (value && isValid(value)) {
       setInputValue(format(value, "dd/MM/yyyy"));
       setValidationError(null);
+      setIsValidDate(true);
     } else {
       setInputValue("");
+      setIsValidDate(false);
     }
   }, [value]);
 
@@ -61,6 +64,7 @@ export function BirthdayPicker({
     // Pas de validation si champ vide ou en cours de saisie
     if (formatted.length === 0) {
       setValidationError(null);
+      setIsValidDate(false);
       return true;
     }
 
@@ -69,6 +73,7 @@ export function BirthdayPicker({
       const day = parseInt(formatted.slice(0, 2));
       if (day > 31 || day === 0) {
         setValidationError("Jour invalide (01-31)");
+        setIsValidDate(false);
         return false;
       }
     }
@@ -78,6 +83,7 @@ export function BirthdayPicker({
       const month = parseInt(formatted.slice(3, 5));
       if (month > 12 || month === 0) {
         setValidationError("Mois invalide (01-12)");
+        setIsValidDate(false);
         return false;
       }
     }
@@ -89,31 +95,37 @@ export function BirthdayPicker({
 
       if (!isValid(parsedDate)) {
         setValidationError("Cette date n'existe pas");
+        setIsValidDate(false);
         return false;
       }
 
       const year = parsedDate.getFullYear();
       if (year < minYear || year > maxYear) {
         setValidationError(`Année doit être entre ${minYear} et ${maxYear}`);
+        setIsValidDate(false);
         return false;
       }
 
       if (disableFuture && parsedDate > now) {
         setValidationError("La date ne peut pas être dans le futur");
+        setIsValidDate(false);
         return false;
       }
 
       if (disablePast && parsedDate < now) {
         setValidationError("La date ne peut pas être dans le passé");
+        setIsValidDate(false);
         return false;
       }
 
       setValidationError(null);
+      setIsValidDate(true);
       return true;
     }
 
     // Effacer l'erreur si on est en cours de saisie valide
     setValidationError(null);
+    setIsValidDate(false);
     return true;
   };
 
@@ -146,6 +158,9 @@ export function BirthdayPicker({
     setValidationError(null);
     if (date) {
       setInputValue(format(date, "dd/MM/yyyy"));
+      setIsValidDate(true);
+    } else {
+      setIsValidDate(false);
     }
   };
 
@@ -157,6 +172,7 @@ export function BirthdayPicker({
   };
 
   const hasError = error || validationError;
+  const showSuccess = !hasError && isValidDate;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -176,7 +192,8 @@ export function BirthdayPicker({
           maxLength={10}
           disabled={disabled}
           className={cn(
-            "flex-1",
+            "flex-1 transition-colors",
+            showSuccess && "border-green-500 focus-visible:ring-green-500",
             hasError && "border-destructive focus-visible:ring-destructive"
           )}
         />
@@ -186,7 +203,8 @@ export function BirthdayPicker({
               variant="outline"
               size="icon"
               className={cn(
-                "shrink-0",
+                "shrink-0 transition-colors",
+                showSuccess && "border-green-500 text-green-600 hover:border-green-500",
                 hasError && "border-destructive text-destructive hover:border-destructive"
               )}
               type="button"
@@ -216,6 +234,11 @@ export function BirthdayPicker({
         <p className="text-xs text-destructive flex items-center gap-1">
           <AlertCircle className="h-3 w-3" />
           {error || validationError}
+        </p>
+      ) : showSuccess ? (
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Date valide
         </p>
       ) : helperText ? (
         <p className="text-xs text-muted-foreground">{helperText}</p>
