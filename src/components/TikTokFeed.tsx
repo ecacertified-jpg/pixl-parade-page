@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TikTokPostCard } from '@/components/TikTokPostCard';
 import { TikTokProgressIndicator } from '@/components/TikTokProgressIndicator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Heart } from 'lucide-react';
+import { Users, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 
 export function TikTokFeed() {
   const { user } = useAuth();
@@ -13,8 +14,29 @@ export function TikTokFeed() {
   const [followingLoaded, setFollowingLoaded] = useState(false);
   const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
   const [parallaxOffsets, setParallaxOffsets] = useState<Map<string, number>>(new Map());
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const postRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Swipe horizontal pour navigation entre onglets
+  const { handlers: tabSwipeHandlers, isSwiping: isTabSwiping, swipeOffset: tabSwipeOffset } = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (activeTab === "all") {
+        setSlideDirection('left');
+        setActiveTab("following");
+        setTimeout(() => setSlideDirection(null), 300);
+      }
+    },
+    onSwipeRight: () => {
+      if (activeTab === "following") {
+        setSlideDirection('right');
+        setActiveTab("all");
+        setTimeout(() => setSlideDirection(null), 300);
+      }
+    },
+    threshold: 60,
+    maxOffset: 150,
+  });
   
   const { posts: allPosts, loading: allLoading, toggleReaction: toggleAllReaction, refreshPosts: refreshAllPosts } = usePosts(false);
   const { posts: followingPosts, loading: followingLoading, toggleReaction: toggleFollowingReaction, refreshPosts: refreshFollowingPosts } = usePosts(activeTab === "following" || followingLoaded);
@@ -173,10 +195,18 @@ export function TikTokFeed() {
 
   return (
     <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
-      {/* Tab switcher overlay */}
-      <div className="absolute top-16 left-0 right-0 z-20 px-4">
+      {/* Tab switcher overlay with swipe support */}
+      <div 
+        className="absolute top-16 left-0 right-0 z-20 px-4"
+        {...tabSwipeHandlers}
+      >
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full">
-          <TabsList className="grid w-full max-w-xs mx-auto grid-cols-2 bg-black/40 backdrop-blur-sm">
+          <TabsList 
+            className="grid w-full max-w-xs mx-auto grid-cols-2 bg-black/40 backdrop-blur-sm transition-transform duration-200"
+            style={{
+              transform: isTabSwiping ? `translateX(${tabSwipeOffset * 0.3}px)` : undefined,
+            }}
+          >
             <TabsTrigger 
               value="all"
               className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20"
@@ -193,6 +223,20 @@ export function TikTokFeed() {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* Swipe direction indicators */}
+        {isTabSwiping && tabSwipeOffset < -30 && activeTab === "all" && (
+          <div className="absolute right-8 top-1/2 -translate-y-1/2 text-white/60 text-xs flex items-center gap-1 animate-fade-in">
+            <span>Abonnés</span>
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        )}
+        {isTabSwiping && tabSwipeOffset > 30 && activeTab === "following" && (
+          <div className="absolute left-8 top-1/2 -translate-y-1/2 text-white/60 text-xs flex items-center gap-1 animate-fade-in">
+            <ChevronLeft className="h-4 w-4" />
+            <span>Pour toi</span>
+          </div>
+        )}
       </div>
 
       {/* Progress indicator */}
@@ -202,10 +246,13 @@ export function TikTokFeed() {
         onDotClick={scrollToPost}
       />
 
-      {/* Scrollable posts container */}
+      {/* Scrollable posts container with slide animation */}
       <div 
         ref={containerRef}
-        className="h-full w-full overflow-y-scroll tiktok-scroll scrollbar-hide"
+        className={`h-full w-full overflow-y-scroll tiktok-scroll scrollbar-hide transition-transform duration-300 ease-out ${
+          slideDirection === 'left' ? 'animate-slide-out-left' : 
+          slideDirection === 'right' ? 'animate-slide-out-right' : ''
+        }`}
       >
         {posts.map((post) => (
           <TikTokPostCard
