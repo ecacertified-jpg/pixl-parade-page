@@ -20,6 +20,7 @@ import { OrderDetailsModal } from "@/components/OrderDetailsModal";
 import { BusinessSelector } from "@/components/BusinessSelector";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { BusinessOnboardingChecklist } from "@/components/BusinessOnboardingChecklist";
+import { BusinessPushNotificationPrompt } from "@/components/BusinessPushNotificationPrompt";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,6 +85,7 @@ export default function BusinessAccount() {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
+  const [showPushNotificationPrompt, setShowPushNotificationPrompt] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [loadingBusinesses, setLoadingBusinesses] = useState(false);
@@ -1460,6 +1462,19 @@ interface RecentOrderItem {
           skipOnboarding();
           navigate('/business-profile-settings');
         }}
+        onOpenNotificationSettings={() => {
+          setShowPushNotificationPrompt(true);
+        }}
+      />
+
+      {/* Business Push Notification Prompt */}
+      <BusinessPushNotificationPrompt
+        open={showPushNotificationPrompt}
+        onClose={() => {
+          setShowPushNotificationPrompt(false);
+          refreshOnboarding();
+        }}
+        businessId={selectedBusinessId || undefined}
       />
     </div>;
 }

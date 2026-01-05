@@ -22,6 +22,7 @@ interface BusinessOnboardingModalProps {
   onOpenAddProduct: () => void;
   onOpenDeliverySettings: () => void;
   onOpenPaymentSettings: () => void;
+  onOpenNotificationSettings: () => void;
 }
 
 export const BusinessOnboardingModal = ({
@@ -38,6 +39,7 @@ export const BusinessOnboardingModal = ({
   onOpenAddProduct,
   onOpenDeliverySettings,
   onOpenPaymentSettings,
+  onOpenNotificationSettings,
 }: BusinessOnboardingModalProps) => {
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
@@ -98,6 +100,14 @@ export const BusinessOnboardingModal = ({
           primary: { 
             label: currentStep.isCompleted ? 'Continuer' : 'Configurer le paiement', 
             onClick: currentStep.isCompleted ? onNextStep : () => { onOpenPaymentSettings(); onClose(); }
+          },
+          secondary: { label: 'Passer', onClick: onNextStep },
+        };
+      case 'notifications':
+        return {
+          primary: { 
+            label: currentStep.isCompleted ? 'Continuer' : 'Activer les notifications', 
+            onClick: currentStep.isCompleted ? onNextStep : () => { onOpenNotificationSettings(); }
           },
           secondary: { label: 'Passer', onClick: onNextStep },
         };

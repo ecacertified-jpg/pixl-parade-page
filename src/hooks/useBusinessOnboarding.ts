@@ -17,6 +17,7 @@ interface BusinessOnboardingState {
   hasPaymentInfo: boolean;
   hasDescription: boolean;
   hasLogo: boolean;
+  hasPushNotifications: boolean;
 }
 
 export const useBusinessOnboarding = (businessId?: string) => {
@@ -30,7 +31,23 @@ export const useBusinessOnboarding = (businessId?: string) => {
     hasPaymentInfo: false,
     hasDescription: false,
     hasLogo: false,
+    hasPushNotifications: false,
   });
+
+  // Helper function to check if push notifications are subscribed
+  const checkPushSubscription = async (): Promise<boolean> => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return false;
+    }
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) return false;
+      const subscription = await registration.pushManager.getSubscription();
+      return !!subscription;
+    } catch {
+      return false;
+    }
+  };
 
   const checkOnboardingStatus = useCallback(async () => {
     if (!user || !businessId) {
@@ -74,12 +91,16 @@ export const useBusinessOnboarding = (businessId?: string) => {
         const deliveryZones = business.delivery_zones as { name: string }[] | null;
         const paymentInfo = business.payment_info as { mobile_money?: string } | null;
 
+        // Check if push notifications are enabled
+        const hasPush = await checkPushSubscription();
+
         const state: BusinessOnboardingState = {
           hasProducts: (products?.length || 0) > 0,
           hasDeliveryZones: (deliveryZones?.length || 0) > 0,
           hasPaymentInfo: !!paymentInfo?.mobile_money,
           hasDescription: !!business.description && business.description.length > 10,
           hasLogo: !!business.logo_url,
+          hasPushNotifications: hasPush,
         };
 
         setCompletionState(state);
@@ -145,6 +166,14 @@ export const useBusinessOnboarding = (businessId?: string) => {
         icon: 'Wallet',
         required: false,
         isCompleted: completionState.hasPaymentInfo,
+      },
+      {
+        id: 'notifications',
+        title: 'Notifications',
+        description: 'Activez les notifications pour ne manquer aucune commande.',
+        icon: 'Bell',
+        required: false,
+        isCompleted: completionState.hasPushNotifications,
       },
       {
         id: 'complete',
