@@ -2910,6 +2910,75 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_analytics: {
+        Row: {
+          action_url: string | null
+          body: string | null
+          category: string | null
+          clicked_at: string | null
+          conversion_type: string | null
+          conversion_value: number | null
+          converted_at: string | null
+          created_at: string | null
+          delivered_at: string | null
+          device_type: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notification_id: string | null
+          notification_type: string
+          opened_at: string | null
+          sent_at: string | null
+          status: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_url?: string | null
+          body?: string | null
+          category?: string | null
+          clicked_at?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          converted_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          device_type?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+          notification_type?: string
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_url?: string | null
+          body?: string | null
+          category?: string | null
+          clicked_at?: string | null
+          conversion_type?: string | null
+          conversion_value?: number | null
+          converted_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          device_type?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_id?: string | null
+          notification_type?: string
+          opened_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           ai_suggestions: boolean | null

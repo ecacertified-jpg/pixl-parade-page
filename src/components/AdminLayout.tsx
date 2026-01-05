@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'Temps réel', href: '/admin/realtime', icon: Radio },
   { title: 'Alertes KPI', href: '/admin/alerts', icon: Bell },
+  { title: 'Notifications', href: '/admin/notifications', icon: Bell },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },

@@ -196,6 +196,24 @@ self.addEventListener('notificationclick', (event) => {
     urlToOpen = '/gifts';
   }
 
+  // Track notification click for analytics
+  if (data.analytics_id) {
+    fetch('https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/track-notification-event', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        analytics_id: data.analytics_id,
+        event_type: 'clicked',
+        metadata: {
+          action: event.action,
+          url: urlToOpen
+        }
+      })
+    }).catch(err => console.log('[SW] Error tracking click:', err));
+  }
+
   // Envoyer un message pour jouer le son de célébration si c'est un anniversaire
   if (notificationType.includes('birthday') && data.playSound !== false) {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })

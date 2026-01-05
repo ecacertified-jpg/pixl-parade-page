@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.link-business-account-to-user]
 verify_jwt = true
+
+[functions.track-notification-event]
+verify_jwt = false
