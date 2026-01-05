@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle, ArrowLeft, Phone, Mail, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, ArrowLeft, Phone, Mail, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ResubmitBusinessForm } from '@/components/ResubmitBusinessForm';
@@ -29,6 +29,158 @@ const BusinessPendingApproval = () => {
   const [businessAccount, setBusinessAccount] = useState<BusinessAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [noAccountFound, setNoAccountFound] = useState(false);
+  const [isRelinking, setIsRelinking] = useState(false);
+
+  // Try to link business account by email (if mismatch exists)
+  const tryRelinkAccount = useCallback(async () => {
+    if (!user) return null;
+    
+    setIsRelinking(true);
+    console.log('🔗 Attempting to relink business account by email...');
+    
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.log('❌ No active session for relinking');
+        return null;
+      }
+
+      const { data, error } = await supabase.functions.invoke('link-business-account-to-user', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Error invoking link-business-account-to-user:', error);
+        return null;
+      }
+
+      console.log('🔗 Link result:', data);
+      return data;
+    } catch (err) {
+      console.error('Exception during relinking:', err);
+      return null;
+    } finally {
+      setIsRelinking(false);
+    }
+  }, [user]);
+
+  // Handle manual refresh button click
+  const handleRefreshStatus = async () => {
+    const linkResult = await tryRelinkAccount();
+    
+    if (linkResult?.linked) {
+      // Re-fetch after linking
+      const { data } = await supabase
+        .from('business_accounts')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setBusinessAccount(data);
+        if ((data.status === 'approved' || data.status === 'active') && data.is_active !== false) {
+          toast.success('Votre compte a été approuvé !');
+          navigate('/business-account', { replace: true });
+          return;
+        }
+      }
+    }
+    
+    // Also try direct fetch
+    await fetchBusinessAccount();
+    toast.info('Statut mis à jour');
+  };
+
+  const fetchBusinessAccount = async () => {
+    if (!user) {
+      navigate('/business-auth', { replace: true });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('📋 Fetching business account for user:', user.id);
+      
+      // Use order + limit to avoid "multiple rows" error with maybeSingle
+      const { data, error } = await supabase
+        .from('business_accounts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching business account:', error);
+        toast.error('Erreur lors de la récupération du compte');
+        navigate('/business-auth', { replace: true });
+        return;
+      }
+
+      console.log('📋 Fetch result:', data);
+
+      // If no data found by user_id, or if data is not approved/active, try relinking
+      if (!data || (data.status !== 'approved' && data.status !== 'active')) {
+        console.log('🔗 No approved account found by user_id, attempting relink...');
+        const linkResult = await tryRelinkAccount();
+        
+        if (linkResult?.linked && !linkResult?.already_linked) {
+          console.log('🔗 Relink successful, re-fetching...');
+          // Re-fetch after successful linking
+          const { data: relinkedData } = await supabase
+            .from('business_accounts')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (relinkedData) {
+            if ((relinkedData.status === 'approved' || relinkedData.status === 'active') && relinkedData.is_active) {
+              toast.success('Votre compte a été approuvé !');
+              navigate('/business-account', { replace: true });
+              return;
+            }
+            setBusinessAccount(relinkedData);
+            setLoading(false);
+            return;
+          }
+        } else if (linkResult?.linked && linkResult?.already_linked) {
+          // Check the status from the link result
+          if ((linkResult.status === 'approved' || linkResult.status === 'active') && linkResult.is_active !== false) {
+            toast.success('Votre compte a été approuvé !');
+            navigate('/business-account', { replace: true });
+            return;
+          }
+        }
+      }
+
+      // If no business account exists for this user
+      if (!data) {
+        setNoAccountFound(true);
+        setLoading(false);
+        return;
+      }
+
+      // If the account is approved or active, redirect to dashboard
+      if ((data.status === 'approved' || data.status === 'active') && data.is_active) {
+        navigate('/business-account', { replace: true });
+        return;
+      }
+
+      setBusinessAccount(data);
+    } catch (error) {
+      console.error('Error fetching business account:', error);
+      toast.error('Erreur lors de la récupération du compte');
+      navigate('/business-auth', { replace: true });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -67,53 +219,6 @@ const BusinessPendingApproval = () => {
       supabase.removeChannel(channel);
     };
   }, [user, navigate]);
-
-  const fetchBusinessAccount = async () => {
-    if (!user) {
-      navigate('/business-auth', { replace: true });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Use order + limit to avoid "multiple rows" error with maybeSingle
-      const { data, error } = await supabase
-        .from('business_accounts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching business account:', error);
-        toast.error('Erreur lors de la récupération du compte');
-        navigate('/business-auth', { replace: true });
-        return;
-      }
-
-      // If no business account exists for this user
-      if (!data) {
-        setNoAccountFound(true);
-        setLoading(false);
-        return;
-      }
-
-      // If the account is approved or active, redirect to dashboard
-      if ((data.status === 'approved' || data.status === 'active') && data.is_active) {
-        navigate('/business-account', { replace: true });
-        return;
-      }
-
-      setBusinessAccount(data);
-    } catch (error) {
-      console.error('Error fetching business account:', error);
-      toast.error('Erreur lors de la récupération du compte');
-      navigate('/business-auth', { replace: true });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -260,11 +365,13 @@ const BusinessPendingApproval = () => {
                 Retour à l'accueil client
               </Button>
               <Button
-                onClick={() => window.location.reload()}
+                onClick={handleRefreshStatus}
                 variant="secondary"
                 className="flex-1 w-full sm:w-auto"
+                disabled={isRelinking}
               >
-                Actualiser le statut
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRelinking ? 'animate-spin' : ''}`} />
+                {isRelinking ? 'Vérification...' : 'Mettre à jour mon statut'}
               </Button>
             </div>
           </CardContent>
@@ -377,11 +484,13 @@ const BusinessPendingApproval = () => {
               Retour à l'accueil client
             </Button>
             <Button
-              onClick={() => window.location.reload()}
+              onClick={handleRefreshStatus}
               variant="secondary"
               className="flex-1 w-full sm:w-auto"
+              disabled={isRelinking}
             >
-              Actualiser le statut
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRelinking ? 'animate-spin' : ''}`} />
+              {isRelinking ? 'Vérification...' : 'Mettre à jour mon statut'}
             </Button>
           </div>
         </CardContent>
