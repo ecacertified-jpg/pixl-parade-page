@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { TikTokPostCard } from '@/components/TikTokPostCard';
@@ -54,6 +54,30 @@ export function TikTokFeed() {
 
   // Calculer l'index actuel pour l'indicateur de progression
   const currentIndex = posts.findIndex(p => p.id === visiblePostId);
+
+  // Calculer les posts vidéo à précharger (±2 autour du visible)
+  const preloadPostIds = useMemo(() => {
+    if (currentIndex === -1) return [];
+    
+    // Vérifier le type de connexion pour éviter le préchargement sur connexion lente
+    const connection = (navigator as unknown as { connection?: { effectiveType?: string; saveData?: boolean } }).connection;
+    if (connection?.effectiveType === '2g' || connection?.saveData) {
+      return []; // Pas de préchargement sur 2G ou mode économie de données
+    }
+    
+    const ids: string[] = [];
+    // Précharger le post précédent (si vidéo)
+    if (currentIndex > 0 && posts[currentIndex - 1]?.type === 'video') {
+      ids.push(posts[currentIndex - 1].id);
+    }
+    // Précharger les 2 posts suivants (si vidéo)
+    for (let i = 1; i <= 2; i++) {
+      if (currentIndex + i < posts.length && posts[currentIndex + i]?.type === 'video') {
+        ids.push(posts[currentIndex + i].id);
+      }
+    }
+    return ids;
+  }, [posts, currentIndex]);
 
   // Fonction pour scroller vers un post spécifique
   const scrollToPost = useCallback((index: number) => {
@@ -264,6 +288,7 @@ export function TikTokFeed() {
             refreshPosts={refreshPosts}
             isVisible={post.id === visiblePostId}
             parallaxOffset={parallaxOffsets.get(post.id) || 0}
+            shouldPreload={preloadPostIds.includes(post.id)}
           />
         ))}
       </div>
