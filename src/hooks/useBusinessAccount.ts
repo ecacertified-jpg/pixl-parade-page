@@ -32,10 +32,13 @@ export const useBusinessAccount = () => {
 
   const checkBusinessAccount = async () => {
     try {
+      // Use order + limit to avoid "multiple rows" error with maybeSingle
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url')
         .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {

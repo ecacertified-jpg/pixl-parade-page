@@ -76,10 +76,13 @@ const BusinessPendingApproval = () => {
 
     try {
       setLoading(true);
+      // Use order + limit to avoid "multiple rows" error with maybeSingle
       const { data, error } = await supabase
         .from('business_accounts')
         .select('*')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) {

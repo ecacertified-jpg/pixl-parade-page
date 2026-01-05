@@ -35,10 +35,13 @@ export default function BusinessAccount() {
     const checkApprovalStatus = async () => {
       if (!user || loadingSelector) return;
 
+      // Use order + limit to avoid "multiple rows" error with maybeSingle
       const { data: businessAccount } = await supabase
         .from('business_accounts')
         .select('is_active, status')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       // Redirect if not active or if rejected/pending/resubmitted (allow both 'approved' and 'active')
