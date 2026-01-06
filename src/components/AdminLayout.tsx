@@ -16,7 +16,8 @@ import {
   Heart,
   TrendingUp,
   Radio,
-  Bell
+  Bell,
+  UserCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { title: 'Alertes KPI', href: '/admin/alerts', icon: Bell },
   { title: 'Notifications', href: '/admin/notifications', icon: Bell },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
+  { title: 'Complétion Profils', href: '/admin/profile-completion', icon: UserCircle },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
   { title: 'Contenu', href: '/admin/content', icon: FileText },
