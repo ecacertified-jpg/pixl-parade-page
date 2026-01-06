@@ -110,3 +110,6 @@ verify_jwt = true
 
 [functions.track-notification-event]
 verify_jwt = false
+
+[functions.profile-completion-reminder]
+verify_jwt = false

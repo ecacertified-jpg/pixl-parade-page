@@ -12,6 +12,7 @@ import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
 import { AdminReportSettings } from '@/components/admin/AdminReportSettings';
+import { ProfileReminderSettings } from '@/components/admin/ProfileReminderSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -112,6 +113,7 @@ export default function Settings() {
             <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
             <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
             <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
+            <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
@@ -149,6 +151,20 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <AdminReportSettings />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile-reminders">
+            <Card>
+              <CardHeader>
+                <CardTitle>Relances profils incomplets</CardTitle>
+                <CardDescription>
+                  Configurez les emails et notifications de relance pour les utilisateurs avec des profils incomplets
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfileReminderSettings />
               </CardContent>
             </Card>
           </TabsContent>
