@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users } from 'lucide-react';
+import { 
+  Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users,
+  Download, UserCheck, AlertTriangle, UserX, TrendingUp, Trophy, Phone, MapPin,
+  Calendar, Image, FileText
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -22,26 +27,147 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { UserTransactionsModal } from '@/components/admin/UserTransactionsModal';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
+import { exportToCSV, ExportColumn } from '@/utils/exportUtils';
 
 interface User {
   user_id: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  created_at: string;
+  city: string | null;
+  birthday: string | null;
+  avatar_url: string | null;
   bio: string | null;
+  created_at: string;
   is_suspended: boolean;
 }
+
+interface ProfileCompletion {
+  score: number;
+  level: 'complete' | 'partial' | 'minimal';
+  missingFields: string[];
+  filledFields: string[];
+}
+
+type CompletionFilter = 'all' | 'complete' | 'partial' | 'minimal';
+type StatusFilter = 'all' | 'active' | 'suspended';
+type MissingFieldFilter = 'all' | 'phone' | 'city' | 'birthday' | 'avatar_url' | 'bio';
+
+const FIELD_LABELS: Record<string, string> = {
+  first_name: 'Prénom',
+  last_name: 'Nom',
+  phone: 'Téléphone',
+  city: 'Ville',
+  birthday: 'Date de naissance',
+  avatar_url: 'Photo',
+  bio: 'Bio'
+};
+
+const calculateProfileCompletion = (user: User): ProfileCompletion => {
+  const fields = [
+    { key: 'first_name', weight: 15, filled: !!user.first_name },
+    { key: 'last_name', weight: 15, filled: !!user.last_name },
+    { key: 'phone', weight: 15, filled: !!user.phone },
+    { key: 'city', weight: 15, filled: !!user.city },
+    { key: 'birthday', weight: 15, filled: !!user.birthday },
+    { key: 'avatar_url', weight: 15, filled: !!user.avatar_url },
+    { key: 'bio', weight: 10, filled: !!user.bio },
+  ];
+
+  const score = fields.reduce((acc, f) => acc + (f.filled ? f.weight : 0), 0);
+  const missingFields = fields.filter(f => !f.filled).map(f => f.key);
+  const filledFields = fields.filter(f => f.filled).map(f => f.key);
+  
+  let level: 'complete' | 'partial' | 'minimal';
+  if (score >= 80) level = 'complete';
+  else if (score >= 40) level = 'partial';
+  else level = 'minimal';
+
+  return { score, level, missingFields, filledFields };
+};
+
+const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
+  const colorClass = {
+    complete: 'text-green-600 dark:text-green-400',
+    partial: 'text-yellow-600 dark:text-yellow-400',
+    minimal: 'text-red-600 dark:text-red-400'
+  }[completion.level];
+
+  const bgClass = {
+    complete: 'bg-green-500',
+    partial: 'bg-yellow-500',
+    minimal: 'bg-red-500'
+  }[completion.level];
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-2 min-w-[100px]">
+            <Progress 
+              value={completion.score} 
+              className="h-2 flex-1"
+              indicatorClassName={bgClass}
+            />
+            <span className={`text-xs font-medium ${colorClass} w-10 text-right`}>
+              {completion.score}%
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <div className="space-y-2">
+            <p className="font-medium">Champs remplis :</p>
+            <div className="flex flex-wrap gap-1">
+              {completion.filledFields.map(field => (
+                <Badge key={field} variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  ✓ {FIELD_LABELS[field]}
+                </Badge>
+              ))}
+            </div>
+            {completion.missingFields.length > 0 && (
+              <>
+                <p className="font-medium mt-2">Champs manquants :</p>
+                <div className="flex flex-wrap gap-1">
+                  {completion.missingFields.map(field => (
+                    <Badge key={field} variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      ✗ {FIELD_LABELS[field]}
+                    </Badge>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 export default function UserManagement() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [missingFieldFilter, setMissingFieldFilter] = useState<MissingFieldFilter>('all');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedUserSuspended, setSelectedUserSuspended] = useState(false);
@@ -58,7 +184,7 @@ export default function UserManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, phone, created_at, bio, is_suspended')
+        .select('user_id, first_name, last_name, phone, city, birthday, avatar_url, bio, created_at, is_suspended')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -71,12 +197,51 @@ export default function UserManagement() {
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
-    const phone = user.phone?.toLowerCase() || '';
-    const query = searchQuery.toLowerCase();
-    return fullName.includes(query) || phone.includes(query);
-  });
+  // Calculate completions for all users
+  const usersWithCompletion = useMemo(() => {
+    return users.map(user => ({
+      ...user,
+      completion: calculateProfileCompletion(user)
+    }));
+  }, [users]);
+
+  // Global statistics
+  const stats = useMemo(() => {
+    const total = usersWithCompletion.length;
+    const complete = usersWithCompletion.filter(u => u.completion.level === 'complete').length;
+    const partial = usersWithCompletion.filter(u => u.completion.level === 'partial').length;
+    const minimal = usersWithCompletion.filter(u => u.completion.level === 'minimal').length;
+    const avgScore = total > 0 
+      ? Math.round(usersWithCompletion.reduce((acc, u) => acc + u.completion.score, 0) / total)
+      : 0;
+    const perfectCount = usersWithCompletion.filter(u => u.completion.score === 100).length;
+    const perfectRate = total > 0 ? Math.round((perfectCount / total) * 100) : 0;
+
+    return { total, complete, partial, minimal, avgScore, perfectCount, perfectRate };
+  }, [usersWithCompletion]);
+
+  // Filtered users
+  const filteredUsers = useMemo(() => {
+    return usersWithCompletion.filter(user => {
+      // Search filter
+      const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+      const phone = user.phone?.toLowerCase() || '';
+      const query = searchQuery.toLowerCase();
+      if (query && !fullName.includes(query) && !phone.includes(query)) return false;
+
+      // Completion filter
+      if (completionFilter !== 'all' && user.completion.level !== completionFilter) return false;
+
+      // Status filter
+      if (statusFilter === 'active' && user.is_suspended) return false;
+      if (statusFilter === 'suspended' && !user.is_suspended) return false;
+
+      // Missing field filter
+      if (missingFieldFilter !== 'all' && !user.completion.missingFields.includes(missingFieldFilter)) return false;
+
+      return true;
+    });
+  }, [usersWithCompletion, searchQuery, completionFilter, statusFilter, missingFieldFilter]);
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('fr-FR');
@@ -109,7 +274,7 @@ export default function UserManagement() {
     )
   );
 
-  const handleUserAction = (user: User, action: 'profile' | 'transactions' | 'suspend') => {
+  const handleUserAction = (user: User & { completion: ProfileCompletion }, action: 'profile' | 'transactions' | 'suspend') => {
     setSelectedUserId(user.user_id);
     setSelectedUserName(getUserDisplayName(user));
     setSelectedUserSuspended(user.is_suspended);
@@ -117,6 +282,29 @@ export default function UserManagement() {
     if (action === 'profile') setProfileModalOpen(true);
     if (action === 'transactions') setTransactionsModalOpen(true);
     if (action === 'suspend') setSuspendDialogOpen(true);
+  };
+
+  const handleExportIncomplete = () => {
+    const incompleteUsers = usersWithCompletion.filter(u => u.completion.score < 100);
+    
+    const columns: ExportColumn<typeof incompleteUsers[0]>[] = [
+      { key: 'first_name', header: 'Prénom' },
+      { key: 'last_name', header: 'Nom' },
+      { key: 'phone', header: 'Téléphone' },
+      { key: 'city', header: 'Ville' },
+      { key: 'completion', header: 'Complétion %', format: (v) => `${(v as ProfileCompletion).score}%` },
+      { key: 'completion', header: 'Champs manquants', format: (v) => (v as ProfileCompletion).missingFields.map(f => FIELD_LABELS[f]).join(', ') },
+      { key: 'created_at', header: 'Date inscription', format: (v) => formatDate(v as string) },
+    ];
+
+    exportToCSV(incompleteUsers, columns, 'profils-incomplets');
+    toast.success(`${incompleteUsers.length} profils incomplets exportés`);
+  };
+
+  const handleStatClick = (filter: CompletionFilter) => {
+    setCompletionFilter(filter);
+    setMissingFieldFilter('all');
+    setStatusFilter('all');
   };
 
   if (loading) {
@@ -133,7 +321,7 @@ export default function UserManagement() {
   return (
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
-        {/* Header responsive */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-start gap-3">
             <Button 
@@ -164,23 +352,157 @@ export default function UserManagement() {
           </Button>
         </div>
 
+        {/* Statistics Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${completionFilter === 'all' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => handleStatClick('all')}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <Users className="h-6 w-6 text-primary mb-2" />
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${completionFilter === 'complete' ? 'ring-2 ring-green-500' : ''}`}
+            onClick={() => handleStatClick('complete')}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <UserCheck className="h-6 w-6 text-green-500 mb-2" />
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.complete}</p>
+              <p className="text-xs text-muted-foreground">Complets</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${completionFilter === 'partial' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => handleStatClick('partial')}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <AlertTriangle className="h-6 w-6 text-yellow-500 mb-2" />
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.partial}</p>
+              <p className="text-xs text-muted-foreground">Partiels</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${completionFilter === 'minimal' ? 'ring-2 ring-red-500' : ''}`}
+            onClick={() => handleStatClick('minimal')}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <UserX className="h-6 w-6 text-red-500 mb-2" />
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.minimal}</p>
+              <p className="text-xs text-muted-foreground">Minimaux</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-default">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <TrendingUp className="h-6 w-6 text-blue-500 mb-2" />
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.avgScore}%</p>
+              <p className="text-xs text-muted-foreground">Moyenne</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-default">
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <Trophy className="h-6 w-6 text-purple-500 mb-2" />
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.perfectRate}%</p>
+              <p className="text-xs text-muted-foreground">Taux 100%</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader className="pb-4">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  Tous les utilisateurs
-                  <Badge variant="secondary">{users.length}</Badge>
+                  Utilisateurs filtrés
+                  <Badge variant="secondary">{filteredUsers.length}</Badge>
                 </CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleExportIncomplete}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exporter incomplets</span>
+                  <span className="sm:hidden">Export</span>
+                </Button>
               </div>
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher par nom ou téléphone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full"
-                />
+              
+              {/* Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                <Select value={completionFilter} onValueChange={(v) => setCompletionFilter(v as CompletionFilter)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Complétion" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les niveaux</SelectItem>
+                    <SelectItem value="complete">✅ Complets (80%+)</SelectItem>
+                    <SelectItem value="partial">⚠️ Partiels (40-79%)</SelectItem>
+                    <SelectItem value="minimal">❌ Minimaux (&lt;40%)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="active">Actifs uniquement</SelectItem>
+                    <SelectItem value="suspended">Suspendus uniquement</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={missingFieldFilter} onValueChange={(v) => setMissingFieldFilter(v as MissingFieldFilter)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Champ manquant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les champs</SelectItem>
+                    <SelectItem value="phone">
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-3 w-3" /> Sans téléphone
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="city">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3" /> Sans ville
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="birthday">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" /> Sans date de naissance
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="avatar_url">
+                      <div className="flex items-center gap-2">
+                        <Image className="h-3 w-3" /> Sans photo
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="bio">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-3 w-3" /> Sans bio
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
@@ -192,20 +514,31 @@ export default function UserManagement() {
                   Aucun utilisateur trouvé
                 </p>
                 <p className="text-sm text-muted-foreground/70 mt-1">
-                  {searchQuery 
-                    ? "Essayez avec un autre terme de recherche" 
-                    : "Aucun utilisateur inscrit pour le moment"}
+                  Essayez de modifier les filtres
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCompletionFilter('all');
+                    setStatusFilter('all');
+                    setMissingFieldFilter('all');
+                  }}
+                >
+                  Réinitialiser les filtres
+                </Button>
               </div>
             ) : (
               <>
-                {/* Vue mobile : cartes */}
+                {/* Mobile view */}
                 <div className="block md:hidden space-y-3">
                   {filteredUsers.map((user) => (
                     <Card key={user.user_id} className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <Avatar className="h-10 w-10 flex-shrink-0">
+                            {user.avatar_url && <AvatarImage src={user.avatar_url} />}
                             <AvatarFallback className="bg-primary/10 text-primary text-sm">
                               {getInitials(user.first_name, user.last_name)}
                             </AvatarFallback>
@@ -242,6 +575,27 @@ export default function UserManagement() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+                      
+                      {/* Completion bar for mobile */}
+                      <div className="mt-3 pt-3 border-t space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Complétion</span>
+                          <CompletionBadge completion={user.completion} />
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {user.completion.filledFields.slice(0, 3).map(field => (
+                            <Badge key={field} variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                              ✓ {FIELD_LABELS[field]}
+                            </Badge>
+                          ))}
+                          {user.completion.missingFields.slice(0, 2).map(field => (
+                            <Badge key={field} variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                              ✗ {FIELD_LABELS[field]}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between mt-3 pt-3 border-t">
                         <span className="text-xs text-muted-foreground">
                           Inscrit le {formatDate(user.created_at)}
@@ -252,13 +606,14 @@ export default function UserManagement() {
                   ))}
                 </div>
 
-                {/* Vue desktop : tableau */}
+                {/* Desktop view */}
                 <div className="hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Utilisateur</TableHead>
                         <TableHead>Téléphone</TableHead>
+                        <TableHead>Complétion</TableHead>
                         <TableHead>Date d'inscription</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -270,6 +625,7 @@ export default function UserManagement() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
+                                {user.avatar_url && <AvatarImage src={user.avatar_url} />}
                                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                                   {getInitials(user.first_name, user.last_name)}
                                 </AvatarFallback>
@@ -280,6 +636,9 @@ export default function UserManagement() {
                             </div>
                           </TableCell>
                           <TableCell>{user.phone || 'Non renseigné'}</TableCell>
+                          <TableCell>
+                            <CompletionBadge completion={user.completion} />
+                          </TableCell>
                           <TableCell>{formatDate(user.created_at)}</TableCell>
                           <TableCell>{getStatusBadge(user.is_suspended)}</TableCell>
                           <TableCell className="text-right">
