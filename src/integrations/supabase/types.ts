@@ -3753,6 +3753,108 @@ export type Database = {
           },
         ]
       }
+      profile_completion_reminders: {
+        Row: {
+          channel: string
+          clicked_at: string | null
+          completed_after: boolean | null
+          completion_at_send: number
+          created_at: string
+          id: string
+          missing_fields: string[] | null
+          opened_at: string | null
+          reminder_number: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          clicked_at?: string | null
+          completed_after?: boolean | null
+          completion_at_send?: number
+          created_at?: string
+          id?: string
+          missing_fields?: string[] | null
+          opened_at?: string | null
+          reminder_number?: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          clicked_at?: string | null
+          completed_after?: boolean | null
+          completion_at_send?: number
+          created_at?: string
+          id?: string
+          missing_fields?: string[] | null
+          opened_at?: string | null
+          reminder_number?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_reminder_settings: {
+        Row: {
+          created_at: string
+          email_enabled: boolean | null
+          email_subject_1: string | null
+          email_subject_2: string | null
+          email_subject_3: string | null
+          email_subject_final: string | null
+          id: string
+          in_app_enabled: boolean | null
+          is_enabled: boolean | null
+          max_reminders: number | null
+          min_completion_threshold: number | null
+          push_enabled: boolean | null
+          reminder_1_days: number | null
+          reminder_2_days: number | null
+          reminder_3_days: number | null
+          reminder_final_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean | null
+          email_subject_1?: string | null
+          email_subject_2?: string | null
+          email_subject_3?: string | null
+          email_subject_final?: string | null
+          id?: string
+          in_app_enabled?: boolean | null
+          is_enabled?: boolean | null
+          max_reminders?: number | null
+          min_completion_threshold?: number | null
+          push_enabled?: boolean | null
+          reminder_1_days?: number | null
+          reminder_2_days?: number | null
+          reminder_3_days?: number | null
+          reminder_final_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean | null
+          email_subject_1?: string | null
+          email_subject_2?: string | null
+          email_subject_3?: string | null
+          email_subject_final?: string | null
+          id?: string
+          in_app_enabled?: boolean | null
+          is_enabled?: boolean | null
+          max_reminders?: number | null
+          min_completion_threshold?: number | null
+          push_enabled?: boolean | null
+          reminder_1_days?: number | null
+          reminder_2_days?: number | null
+          reminder_3_days?: number | null
+          reminder_final_days?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_referrals: number | null
