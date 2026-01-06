@@ -6046,6 +6046,10 @@ export type Database = {
           total_amount_donated: number
         }[]
       }
+      get_user_email_for_admin: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
       get_user_favorites_with_products: {
         Args: { p_user_id: string }
         Returns: {
