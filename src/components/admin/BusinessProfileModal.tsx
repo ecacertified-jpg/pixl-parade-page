@@ -2,9 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp } from "lucide-react";
+import { 
+  Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp, 
+  Star, DollarSign, ShoppingCart, CheckCircle, Clock, XCircle,
+  AlertTriangle
+} from "lucide-react";
 
 interface BusinessProfile {
   id: string;
@@ -21,6 +26,33 @@ interface BusinessProfile {
   created_at: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  image_url: string | null;
+  stock_quantity: number;
+  is_active: boolean;
+}
+
+interface BusinessStats {
+  productsCount: number;
+  activeProductsCount: number;
+  ordersCount: number;
+  totalRevenue: number;
+  monthlyRevenue: number;
+  averageRating: number;
+  ratingsCount: number;
+  ordersByStatus: {
+    pending: number;
+    confirmed: number;
+    delivered: number;
+    cancelled: number;
+  };
+  conversionRate: number;
+}
+
 interface BusinessProfileModalProps {
   businessId: string | null;
   open: boolean;
@@ -30,8 +62,18 @@ interface BusinessProfileModalProps {
 export function BusinessProfileModal({ businessId, open, onOpenChange }: BusinessProfileModalProps) {
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(false);
-  const [productsCount, setProductsCount] = useState(0);
-  const [ordersCount, setOrdersCount] = useState(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState<BusinessStats>({
+    productsCount: 0,
+    activeProductsCount: 0,
+    ordersCount: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    averageRating: 0,
+    ratingsCount: 0,
+    ordersByStatus: { pending: 0, confirmed: 0, delivered: 0, cancelled: 0 },
+    conversionRate: 0
+  });
   
   useEffect(() => {
     if (open && businessId) {
@@ -64,22 +106,84 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
     if (!businessId) return;
     
     try {
-      const [productsResult, ordersResult] = await Promise.all([
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('business_id', businessId),
-        supabase
-          .from('business_orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('business_account_id', businessId)
-      ]);
+      // Fetch products with details - FIXED: using correct column name
+      const { data: productsData } = await supabase
+        .from('products')
+        .select('id, name, price, currency, image_url, stock_quantity, is_active')
+        .eq('business_account_id', businessId);
       
-      setProductsCount(productsResult.count || 0);
-      setOrdersCount(ordersResult.count || 0);
+      const productsList = productsData || [];
+      setProducts(productsList);
+      
+      // Fetch orders with details
+      const { data: ordersData } = await supabase
+        .from('business_orders')
+        .select('id, status, total_amount, created_at')
+        .eq('business_account_id', businessId);
+      
+      const orders = ordersData || [];
+      
+      // Fetch ratings for all products
+      const productIds = productsList.map(p => p.id);
+      let ratingsData: { rating: number }[] = [];
+      if (productIds.length > 0) {
+        const { data: ratings } = await supabase
+          .from('product_ratings')
+          .select('rating')
+          .in('product_id', productIds);
+        ratingsData = ratings || [];
+      }
+      
+      // Calculate statistics
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const activeProducts = productsList.filter(p => p.is_active);
+      const deliveredOrders = orders.filter(o => o.status === 'delivered');
+      const monthlyOrders = deliveredOrders.filter(o => new Date(o.created_at) >= startOfMonth);
+      
+      const ordersByStatus = {
+        pending: orders.filter(o => o.status === 'pending').length,
+        confirmed: orders.filter(o => o.status === 'confirmed').length,
+        delivered: deliveredOrders.length,
+        cancelled: orders.filter(o => o.status === 'cancelled').length
+      };
+      
+      const totalRevenue = deliveredOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      
+      const avgRating = ratingsData.length > 0
+        ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length
+        : 0;
+      
+      const conversionRate = orders.length > 0
+        ? (deliveredOrders.length / orders.length) * 100
+        : 0;
+      
+      setStats({
+        productsCount: productsList.length,
+        activeProductsCount: activeProducts.length,
+        ordersCount: orders.length,
+        totalRevenue,
+        monthlyRevenue,
+        averageRating: Math.round(avgRating * 10) / 10,
+        ratingsCount: ratingsData.length,
+        ordersByStatus,
+        conversionRate: Math.round(conversionRate)
+      });
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' XOF';
+  };
+  
+  const getStockBadge = (stock: number) => {
+    if (stock === 0) return <Badge variant="destructive" className="text-xs">Rupture</Badge>;
+    if (stock <= 3) return <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">Stock faible</Badge>;
+    return <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">En stock</Badge>;
   };
   
   if (loading) {
@@ -96,6 +200,8 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
   
   if (!business) return null;
   
+  const totalOrders = stats.ordersCount;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -109,7 +215,7 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
         <Tabs defaultValue="info" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Informations</TabsTrigger>
-            <TabsTrigger value="products">Produits ({productsCount})</TabsTrigger>
+            <TabsTrigger value="products">Produits ({stats.productsCount})</TabsTrigger>
             <TabsTrigger value="stats">Statistiques</TabsTrigger>
           </TabsList>
           
@@ -192,66 +298,253 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Produits et services
+                  Produits et services ({stats.productsCount})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    {productsCount === 0 
-                      ? "Aucun produit disponible pour le moment" 
-                      : `${productsCount} produit${productsCount > 1 ? 's' : ''} disponible${productsCount > 1 ? 's' : ''}`
-                    }
-                  </p>
-                </div>
+                {products.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      Aucun produit disponible pour le moment
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {products.map((product) => (
+                      <div 
+                        key={product.id} 
+                        className="flex gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow"
+                      >
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                          {product.image_url ? (
+                            <img 
+                              src={product.image_url} 
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-medium text-sm truncate">{product.name}</h4>
+                            {!product.is_active && (
+                              <Badge variant="secondary" className="text-xs">Inactif</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm font-semibold text-primary mt-1">
+                            {formatCurrency(product.price)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {getStockBadge(product.stock_quantity)}
+                            <span className="text-xs text-muted-foreground">
+                              {product.stock_quantity} en stock
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="stats">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <TabsContent value="stats" className="space-y-4">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Produits
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    Produits actifs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-2xl font-bold">{productsCount}</span>
-                  </div>
+                  <span className="text-2xl font-bold">{stats.activeProductsCount}</span>
+                  <span className="text-sm text-muted-foreground ml-1">/ {stats.productsCount}</span>
                 </CardContent>
               </Card>
               
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Commandes
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <ShoppingCart className="h-3 w-3" />
+                    Commandes totales
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-2xl font-bold">{ordersCount}</span>
-                  </div>
+                  <span className="text-2xl font-bold">{stats.ordersCount}</span>
                 </CardContent>
               </Card>
               
               <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Statut
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    CA Total
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Badge variant={business.is_active ? "default" : "destructive"} className="text-sm">
-                    {business.is_active ? 'Actif' : 'Inactif'}
-                  </Badge>
+                  <span className="text-xl font-bold">{formatCurrency(stats.totalRevenue)}</span>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    CA du mois
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <span className="text-xl font-bold">{formatCurrency(stats.monthlyRevenue)}</span>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Star className="h-3 w-3" />
+                    Note moyenne
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-1">
+                    <span className="text-2xl font-bold">{stats.averageRating || '-'}</span>
+                    {stats.averageRating > 0 && <Star className="h-4 w-4 fill-amber-400 text-amber-400" />}
+                  </div>
+                  <span className="text-xs text-muted-foreground">{stats.ratingsCount} avis</span>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" />
+                    Taux de conversion
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <span className="text-2xl font-bold">{stats.conversionRate}%</span>
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Order Status Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Répartition des commandes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {totalOrders === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Aucune commande pour le moment
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-amber-500" />
+                          <span>En attente</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{stats.ordersByStatus.pending}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ({Math.round((stats.ordersByStatus.pending / totalOrders) * 100)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={(stats.ordersByStatus.pending / totalOrders) * 100} 
+                        className="h-2 bg-muted"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-blue-500" />
+                          <span>Confirmées</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{stats.ordersByStatus.confirmed}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ({Math.round((stats.ordersByStatus.confirmed / totalOrders) * 100)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={(stats.ordersByStatus.confirmed / totalOrders) * 100} 
+                        className="h-2 bg-muted"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Livrées</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{stats.ordersByStatus.delivered}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ({Math.round((stats.ordersByStatus.delivered / totalOrders) * 100)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={(stats.ordersByStatus.delivered / totalOrders) * 100} 
+                        className="h-2 bg-muted"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <XCircle className="h-4 w-4 text-red-500" />
+                          <span>Annulées</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{stats.ordersByStatus.cancelled}</span>
+                          <span className="text-muted-foreground text-xs">
+                            ({Math.round((stats.ordersByStatus.cancelled / totalOrders) * 100)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={(stats.ordersByStatus.cancelled / totalOrders) * 100} 
+                        className="h-2 bg-muted"
+                      />
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Status Badge */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Statut du compte</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Badge variant={business.is_active ? "default" : "destructive"}>
+                    {business.is_active ? 'Actif' : 'Inactif'}
+                  </Badge>
+                  {business.is_verified && (
+                    <Badge variant="outline" className="border-green-500 text-green-600">
+                      Vérifié
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </DialogContent>
