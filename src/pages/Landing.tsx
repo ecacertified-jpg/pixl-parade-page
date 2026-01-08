@@ -252,6 +252,11 @@ const Landing = () => {
               <h3 className="font-semibold text-foreground mb-3">Légal</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
+                  <a href="/legal-notice" className="hover:text-foreground transition-colors">
+                    Mentions Légales
+                  </a>
+                </li>
+                <li>
                   <a href="/terms-of-service" className="hover:text-foreground transition-colors">
                     Conditions d'Utilisation
                   </a>
