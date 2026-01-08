@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, MessageSquare } from "lucide-react";
+import { ContactModal } from "@/components/ContactModal";
 import { AnimatedGiftButton } from "@/components/AnimatedGiftButton";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -98,6 +99,7 @@ export default function Dashboard() {
   // Push notification prompt
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   
   // Friends circle badge celebration
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
@@ -572,6 +574,34 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Section Aide rapide */}
+        <Card className="p-4 mb-4 bg-muted/30">
+          <div className="flex items-center gap-2 mb-3">
+            <HelpCircle className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm">Aide rapide</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex flex-col items-center gap-1"
+              onClick={() => navigate('/faq')}
+            >
+              <BookOpen className="h-5 w-5" />
+              <span className="text-xs font-medium">FAQ</span>
+              <span className="text-xs text-muted-foreground">Questions fréquentes</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-3 flex flex-col items-center gap-1"
+              onClick={() => setShowContactModal(true)}
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="text-xs font-medium">Contact</span>
+              <span className="text-xs text-muted-foreground">Envoyez un message</span>
+            </Button>
+          </div>
+        </Card>
+
         {/* CTA Business */}
         <Card className="p-4 mb-4 bg-green-100">
           <div className="flex items-center justify-between">
@@ -841,6 +871,12 @@ export default function Dashboard() {
           badge={celebrationBadge}
           isOpen={isCelebrationOpen}
           onClose={closeCelebration}
+        />
+        
+        {/* Contact Modal */}
+        <ContactModal
+          open={showContactModal}
+          onOpenChange={setShowContactModal}
         />
         
         <BottomNavigation />
