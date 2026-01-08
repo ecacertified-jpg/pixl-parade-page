@@ -115,28 +115,40 @@ const TermsOfService = () => {
               Informations Légales
             </h3>
             <div className="grid gap-3 text-sm">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-4 w-4 text-primary" />
-                <span className="text-foreground"><strong>Raison sociale :</strong> AMTEY'S SARL</span>
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Raison sociale :</strong> AMTEY'S</span>
               </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span className="text-foreground"><strong>Siège social :</strong> Anyama, Abidjan, Côte d'Ivoire</span>
+              <div className="flex items-start gap-3">
+                <FileText className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Forme juridique :</strong> SARLU (Société à Responsabilité Limitée Unipersonnelle)</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-primary" />
+              <div className="flex items-start gap-3">
+                <CreditCard className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Capital social :</strong> 1 000 000 F CFA</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Siège social :</strong> Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <FileCheck className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>N° RCCM :</strong> CI-ABJ-03-2026-B13-00031</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Mail className="h-4 w-4 text-primary mt-0.5" />
                 <a href="mailto:contact@joiedevivre-africa.com" className="text-foreground hover:text-primary transition-colors">
                   <strong>E-mail :</strong> contact@joiedevivre-africa.com
                 </a>
               </div>
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-primary" />
+              <div className="flex items-start gap-3">
+                <Phone className="h-4 w-4 text-primary mt-0.5" />
                 <a href="tel:+2250546566646" className="text-foreground hover:text-primary transition-colors">
                   <strong>Téléphone :</strong> +225 0546566646
                 </a>
               </div>
-              <div className="flex items-center gap-3">
-                <Shield className="h-4 w-4 text-primary" />
+              <div className="flex items-start gap-3">
+                <Shield className="h-4 w-4 text-primary mt-0.5" />
                 <Link to="/privacy-policy" className="text-primary hover:underline flex items-center gap-1">
                   <strong>Politique de Confidentialité</strong>
                   <ExternalLink className="h-3 w-3" />
@@ -156,8 +168,10 @@ const TermsOfService = () => {
             </h2>
             <div className="prose prose-sm max-w-none text-muted-foreground space-y-3">
               <p>
-                JOIE DE VIVRE est une plateforme numérique exploitée par <strong className="text-foreground">AMTEY'S SARL</strong>, 
-                société de droit ivoirien dont le siège social est situé à Anyama, Abidjan, Côte d'Ivoire.
+                JOIE DE VIVRE est une plateforme numérique exploitée par <strong className="text-foreground">AMTEY'S</strong>, 
+                SARLU au capital de 1 000 000 F CFA, immatriculée au RCCM sous le numéro CI-ABJ-03-2026-B13-00031, 
+                dont le siège social est situé à Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, 
+                non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21, Côte d'Ivoire.
               </p>
               <p>
                 La plateforme permet aux utilisateurs de :
