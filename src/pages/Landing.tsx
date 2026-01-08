@@ -1,17 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Gift, Users, Heart, Sparkles, ShoppingBag, Calendar } from "lucide-react";
+import { Gift, Users, Heart, Sparkles, ShoppingBag, Calendar, MessageSquare, Mail } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
 import celebrationHero from "@/assets/cadeaux-echanges.png";
 import valueProposition from "@/assets/value-proposition-collective-gift.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { SurveyModal } from "@/components/SurveyModal";
-import { MessageSquare } from "lucide-react";
+import { ContactModal } from "@/components/ContactModal";
 const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Redirect authenticated users to home
   useEffect(() => {
@@ -46,6 +47,7 @@ const Landing = () => {
   }];
   return <>
     <SurveyModal externalOpen={surveyOpen} onExternalOpenChange={setSurveyOpen} />
+    <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -266,6 +268,25 @@ const Landing = () => {
                   <a href="/privacy-policy" className="hover:text-foreground transition-colors">
                     Politique de Confidentialité
                   </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-3">Support</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <a href="/faq" className="hover:text-foreground transition-colors">
+                    FAQ
+                  </a>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setContactOpen(true)}
+                    className="hover:text-foreground transition-colors flex items-center gap-1"
+                  >
+                    <Mail className="h-3 w-3" />
+                    Nous contacter
+                  </button>
                 </li>
                 <li>
                   <button 
