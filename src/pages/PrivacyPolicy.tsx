@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink } from "lucide-react";
+import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink, Building2, CreditCard, FileCheck } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import logoJV from "@/assets/logo-jv.svg";
 
@@ -88,20 +88,36 @@ const PrivacyPolicy = () => {
               JOIE DE VIVRE - Vos données sont protégées
             </h3>
             <div className="grid gap-3 text-sm">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-primary" />
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Raison sociale :</strong> AMTEY'S</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <FileText className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Forme juridique :</strong> SARLU</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <CreditCard className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Capital social :</strong> 1 000 000 F CFA</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>Siège social :</strong> Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <FileCheck className="h-4 w-4 text-primary mt-0.5" />
+                <span className="text-foreground"><strong>N° RCCM :</strong> CI-ABJ-03-2026-B13-00031</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <Mail className="h-4 w-4 text-primary mt-0.5" />
                 <a href="mailto:contact@joiedevivre-africa.com" className="text-foreground hover:text-primary transition-colors">
-                  contact@joiedevivre-africa.com
+                  <strong>E-mail :</strong> contact@joiedevivre-africa.com
                 </a>
               </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span className="text-foreground">Anyama, Abidjan, Côte d'Ivoire</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-primary" />
+              <div className="flex items-start gap-3">
+                <Phone className="h-4 w-4 text-primary mt-0.5" />
                 <a href="tel:+2250546566646" className="text-foreground hover:text-primary transition-colors">
-                  +225 0546566646
+                  <strong>Téléphone :</strong> +225 0546566646
                 </a>
               </div>
             </div>
