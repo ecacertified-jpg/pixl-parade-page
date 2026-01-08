@@ -124,10 +124,10 @@ const LegalNotice = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Téléphone</p>
                   <a 
-                    href="tel:+2250707467445" 
+                    href="tel:+22505465666 46" 
                     className="font-medium text-primary hover:underline"
                   >
-                    +225 07 07 46 7445
+                    +225 05 465 666 46
                   </a>
                 </div>
               </div>
