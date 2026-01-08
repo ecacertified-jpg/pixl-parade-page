@@ -317,15 +317,15 @@ export default function FAQ() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="outline" className="gap-2" asChild>
-                  <a href="mailto:contact@joie-de-vivre.ci">
+                  <a href="mailto:contact@joiedevivre-africa.com">
                     <Mail className="h-4 w-4" />
-                    contact@joie-de-vivre.ci
+                    contact@joiedevivre-africa.com
                   </a>
                 </Button>
                 <Button variant="outline" className="gap-2" asChild>
-                  <a href="tel:+2250707467445">
+                  <a href="tel:+2250546566646">
                     <Phone className="h-4 w-4" />
-                    +225 07 07 46 7445
+                    +225 05 465 666 46
                   </a>
                 </Button>
               </div>
