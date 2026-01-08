@@ -240,7 +240,6 @@ const Landing = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="/auth" className="hover:text-foreground transition-colors">S'inscrire</a></li>
                 <li><a href="/business-auth" className="hover:text-foreground transition-colors">Espace Vendeur</a></li>
-                <li><a href="/faq" className="hover:text-foreground transition-colors">FAQ</a></li>
               </ul>
             </div>
             <div>
