@@ -51,7 +51,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Comment supprimer mon compte ?",
-        answer: "Pour supprimer votre compte, veuillez contacter notre support à contact@joie-de-vivre.ci. Notez que la suppression est définitive et entraînera la perte de toutes vos données, contributions et historique.",
+        answer: "Pour supprimer votre compte, veuillez contacter notre support à contact@joiedevivre-africa.com. Notez que la suppression est définitive et entraînera la perte de toutes vos données, contributions et historique.",
       },
       {
         question: "J'ai oublié mon mot de passe, que faire ?",
@@ -170,7 +170,7 @@ const faqCategories: FAQCategory[] = [
     items: [
       {
         question: "Comment contacter le support ?",
-        answer: "Vous pouvez nous contacter par email à contact@joie-de-vivre.ci, par téléphone au +225 07 07 46 7445, ou via le chat intégré à l'application (icône en bas à droite de l'écran).",
+        answer: "Vous pouvez nous contacter par email à contact@joiedevivre-africa.com, par téléphone au +225 05 465 666 46, ou via le chat intégré à l'application (icône en bas à droite de l'écran).",
       },
       {
         question: "Quels sont vos horaires de support ?",
@@ -178,7 +178,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Comment signaler un problème technique ?",
-        answer: "Décrivez le problème rencontré avec le plus de détails possible (écran concerné, message d'erreur, etc.) et envoyez-le à contact@joie-de-vivre.ci. Des captures d'écran nous aideront à résoudre le problème plus rapidement.",
+        answer: "Décrivez le problème rencontré avec le plus de détails possible (écran concerné, message d'erreur, etc.) et envoyez-le à contact@joiedevivre-africa.com. Des captures d'écran nous aideront à résoudre le problème plus rapidement.",
       },
       {
         question: "Comment signaler un contenu inapproprié ?",

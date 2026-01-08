@@ -111,10 +111,10 @@ const LegalNotice = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <a 
-                    href="mailto:contact@joie-de-vivre.ci" 
+                    href="mailto:contact@joiedevivre-africa.com" 
                     className="font-medium text-primary hover:underline"
                   >
-                    contact@joie-de-vivre.ci
+                    contact@joiedevivre-africa.com
                   </a>
                 </div>
               </div>
