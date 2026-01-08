@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, MessageSquare } from "lucide-react";
-import { ContactModal } from "@/components/ContactModal";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot } from "lucide-react";
 import { AnimatedGiftButton } from "@/components/AnimatedGiftButton";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -99,7 +98,7 @@ export default function Dashboard() {
   // Push notification prompt
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
+  
   
   // Friends circle badge celebration
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
@@ -593,11 +592,11 @@ export default function Dashboard() {
             <Button
               variant="outline"
               className="h-auto py-3 flex flex-col items-center gap-1"
-              onClick={() => setShowContactModal(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent('openAIChat'))}
             >
-              <MessageSquare className="h-5 w-5" />
-              <span className="text-xs font-medium">Contact</span>
-              <span className="text-xs text-muted-foreground">Envoyez un message</span>
+              <Bot className="h-5 w-5" />
+              <span className="text-xs font-medium">Assistant</span>
+              <span className="text-xs text-muted-foreground">Posez vos questions</span>
             </Button>
           </div>
         </Card>
@@ -871,12 +870,6 @@ export default function Dashboard() {
           badge={celebrationBadge}
           isOpen={isCelebrationOpen}
           onClose={closeCelebration}
-        />
-        
-        {/* Contact Modal */}
-        <ContactModal
-          open={showContactModal}
-          onOpenChange={setShowContactModal}
         />
         
         <BottomNavigation />
