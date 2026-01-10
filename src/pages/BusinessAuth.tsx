@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,194 +13,89 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Mail, RefreshCw, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
-// Schéma de base pour la connexion (email + password uniquement)
-const businessAuthSchema = z.object({
-  email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  businessName: z.string().optional(),
+// Schéma pour la connexion (téléphone uniquement)
+const signInSchema = z.object({
+  phone: z.string().regex(/^[0-9]{8,10}$/, 'Format de téléphone invalide (8-10 chiffres)'),
+  countryCode: z.string().default('+225'),
+});
+
+// Schéma pour l'inscription business (téléphone + infos business)
+const signUpSchema = z.object({
+  firstName: z.string().min(2, 'Le prénom est requis (min 2 caractères)'),
+  lastName: z.string().min(2, 'Le nom est requis (min 2 caractères)'),
+  businessName: z.string().min(2, 'Le nom d\'entreprise est requis (min 2 caractères)'),
   businessType: z.string().optional(),
-  phone: z.string().optional(),
+  phone: z.string().regex(/^[0-9]{8,10}$/, 'Format de téléphone invalide (8-10 chiffres)'),
+  countryCode: z.string().default('+225'),
   address: z.string().optional(),
   description: z.string().optional(),
 });
 
-type BusinessAuthFormData = z.infer<typeof businessAuthSchema>;
+// Schéma pour vérification OTP
+const otpSchema = z.object({
+  otp: z.string().length(6, 'Le code doit contenir 6 chiffres'),
+});
 
-// Fonction de validation pour l'inscription (prénom, nom, entreprise obligatoires)
-const validateSignupData = (data: BusinessAuthFormData): { field: string; message: string } | null => {
-  if (!data.firstName?.trim() || data.firstName.trim().length < 2) {
-    return { field: 'firstName', message: 'Le prénom est requis (minimum 2 caractères)' };
-  }
-  if (!data.lastName?.trim() || data.lastName.trim().length < 2) {
-    return { field: 'lastName', message: 'Le nom est requis (minimum 2 caractères)' };
-  }
-  if (!data.businessName?.trim() || data.businessName.trim().length < 2) {
-    return { field: 'businessName', message: 'Le nom de l\'entreprise est requis (minimum 2 caractères)' };
-  }
-  return null;
-};
+type SignInFormData = z.infer<typeof signInSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
+type OtpFormData = z.infer<typeof otpSchema>;
 
 const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [businessNameError, setBusinessNameError] = useState<string | null>(null);
-  const [showResendButton, setShowResendButton] = useState(false);
-  const [resendEmail, setResendEmail] = useState('');
-  const [isResending, setIsResending] = useState(false);
   const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
   const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
-  const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [isSendingReset, setIsSendingReset] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [recoverySession, setRecoverySession] = useState<Session | null>(null);
+  const [authenticatedPhone, setAuthenticatedPhone] = useState<string | null>(null);
+  
+  // États pour OTP
+  const [otpSent, setOtpSent] = useState(false);
+  const [currentPhone, setCurrentPhone] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [signupFormData, setSignupFormData] = useState<SignUpFormData | null>(null);
+  const [otpValue, setOtpValue] = useState('');
+  const [countryCode, setCountryCode] = useState('+225');
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, setUserMode, refreshSession } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-  } = useForm<BusinessAuthFormData>({
-    resolver: zodResolver(businessAuthSchema),
+  // Forms
+  const signInForm = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { countryCode: '+225' },
   });
 
-  const businessType = watch('businessType');
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { countryCode: '+225' },
+  });
 
-  // Google Sign In function - détecte le preview Lovable pour éviter l'avertissement WebView
-  const signInWithGoogle = async () => {
-    // Détecter si on est dans le preview Lovable (évite l'avertissement WebView de Google)
-    const isLovablePreview = window.location.hostname.includes('lovableproject.com') 
-      || window.location.hostname.includes('lovable.app')
-      || window.location.hostname.includes('localhost');
-    
-    if (isLovablePreview) {
-      toast({
-        title: 'Authentification Google Business',
-        description: 'L\'authentification Google n\'est pas disponible dans l\'aperçu. Veuillez ouvrir le site en production.',
-        action: (
-          <a 
-            href="https://joiedevivre-africa.com/business-auth" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline font-medium"
-          >
-            Ouvrir joiedevivre-africa.com →
-          </a>
-        ),
-        duration: 15000,
-      });
-      return;
-    }
-    
-    setIsGoogleLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/business-auth`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
+  const businessType = signUpForm.watch('businessType');
 
-      if (error) {
-        toast({
-          title: 'Erreur Google Auth',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Erreur inattendue',
-        description: error?.message || 'Une erreur s\'est produite lors de la connexion Google.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
-  // Detect PASSWORD_RECOVERY event and handle OAuth callback
+  // Countdown timer for OTP resend
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Has session:', !!session);
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('PASSWORD_RECOVERY event detected');
-        setIsResetMode(true);
-        setRecoverySession(session);
-      }
-      
-      // Handle OAuth callback (Google)
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Use setTimeout to defer Supabase call and prevent deadlock
-        setTimeout(async () => {
-          try {
-            const { data: businessAccounts } = await supabase
-              .from('business_accounts')
-              .select('id, is_active, status')
-              .eq('user_id', session.user.id)
-              .order('created_at', { ascending: false });
-
-            if (!businessAccounts || businessAccounts.length === 0) {
-              // New Google user - show complete registration form
-              setAuthenticatedUserId(session.user.id);
-              setAuthenticatedEmail(session.user.email || null);
-              setShowCompleteRegistration(true);
-            }
-          } catch (error) {
-            console.error('Error checking business account after OAuth:', error);
-          }
-        }, 0);
-      }
-    });
-
-    // Check if coming from reset link with reset=true param
-    const resetParam = searchParams.get('reset');
-    if (resetParam === 'true') {
-      // Vérifier si on a déjà une session active
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log('Reset param detected, current session:', !!session);
-        if (session) {
-          setIsResetMode(true);
-          setRecoverySession(session);
-        }
-      });
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
     }
+  }, [countdown]);
 
-    return () => subscription.unsubscribe();
-  }, [searchParams]);
-
-  // Redirect based on business account status (only if not in reset mode)
+  // Redirect based on business account status
   useEffect(() => {
-    if (user && !isResetMode) {
+    if (user) {
       checkExistingBusinessAccount();
     }
-  }, [user, navigate, isResetMode]);
+  }, [user, navigate]);
 
   // Realtime listener for business account approval
   useEffect(() => {
-    if (!user || isResetMode) return;
+    if (!user) return;
 
     const channel = supabase
       .channel('business-auth-approval-watch')
@@ -217,7 +111,6 @@ const BusinessAuth = () => {
           const newData = payload.new as { status: string; is_active: boolean };
           console.log('BusinessAuth realtime update:', newData);
           
-          // If approved or active with is_active=true, redirect to business account
           if (newData.is_active && (newData.status === 'approved' || newData.status === 'active')) {
             setUserMode('business');
             navigate('/business-account', { replace: true });
@@ -231,13 +124,20 @@ const BusinessAuth = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, isResetMode, navigate, setUserMode]);
+  }, [user, navigate, setUserMode]);
+
+  // Detect referral code from URL
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      localStorage.setItem('referral_code', refCode);
+    }
+  }, [searchParams]);
 
   const checkExistingBusinessAccount = async () => {
     if (!user) return;
     
     try {
-      // Récupérer TOUS les comptes business de l'utilisateur
       const { data: businessAccounts, error } = await supabase
         .from('business_accounts')
         .select('id, is_active, status')
@@ -250,7 +150,6 @@ const BusinessAuth = () => {
       }
 
       if (businessAccounts && businessAccounts.length > 0) {
-        // Trouver le compte actif (approved ou active) ou le plus récent en attente
         const activeAccount = businessAccounts.find(
           acc => acc.is_active && (acc.status === 'approved' || acc.status === 'active')
         );
@@ -262,17 +161,13 @@ const BusinessAuth = () => {
         } else if (pendingAccount) {
           navigate('/business-pending-approval', { replace: true });
         } else {
-          // Tous les comptes sont rejetés/inactifs, rediriger vers le dashboard business
           navigate('/business-account', { replace: true });
         }
       } else {
-        // Aucun compte trouvé par user_id - essayer de lier par email
-        console.log('No business account found by user_id, trying to link by email...');
+        // No business account found - try to link by email/phone
         const linkResult = await tryLinkBusinessAccountByEmail();
         
         if (linkResult && linkResult.linked) {
-          console.log('Successfully linked business account:', linkResult);
-          // Re-check with the newly linked account
           const { data: linkedAccounts } = await supabase
             .from('business_accounts')
             .select('id, is_active, status')
@@ -295,23 +190,19 @@ const BusinessAuth = () => {
             }
           }
         }
-        // Si toujours pas de compte, laisser afficher le formulaire
       }
     } catch (error) {
       console.error('Error checking business account:', error);
     }
   };
 
-  // Helper function to link business account by email
   const tryLinkBusinessAccountByEmail = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('link-business-account-to-user');
-      
       if (error) {
         console.error('Error invoking link function:', error);
         return null;
       }
-      
       return data;
     } catch (error) {
       console.error('Error linking business account:', error);
@@ -335,7 +226,7 @@ const BusinessAuth = () => {
 
       if (error) {
         console.error('Error checking business name:', error);
-        return true; // Allow submission if check fails
+        return true;
       }
 
       if (data && data.length > 0) {
@@ -347,130 +238,41 @@ const BusinessAuth = () => {
       return true;
     } catch (error) {
       console.error('Error checking business name:', error);
-      return true; // Allow submission if check fails
+      return true;
     }
   };
 
-  const signIn = async (data: BusinessAuthFormData) => {
+  // Envoyer OTP pour connexion
+  const sendOtpSignIn = async (data: SignInFormData) => {
+    setIsLoading(true);
+    const fullPhone = `${countryCode}${data.phone}`;
+    
     try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
       });
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: 'Erreur de connexion',
-            description: 'Email ou mot de passe incorrect',
-            variant: 'destructive',
-          });
-        } else if (error.message.includes('Email not confirmed')) {
-          setShowResendButton(true);
-          setResendEmail(data.email);
-          toast({
-            title: 'Email non confirmé',
-            description: 'Veuillez confirmer votre email. Vous pouvez demander un nouvel email de confirmation ci-dessous.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Erreur',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
-        return;
-      }
-
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (!currentUser) {
         toast({
           title: 'Erreur',
-          description: 'Impossible de récupérer les informations utilisateur',
+          description: error.message,
           variant: 'destructive',
         });
         return;
       }
 
-      // Check if there's a pending registration to process (email just verified)
-      const newBusinessId = await processPendingRegistration(currentUser.id);
-      
-      if (newBusinessId) {
-        toast({
-          title: 'Compte créé avec succès',
-          description: 'Votre email a été vérifié. Votre compte est maintenant en attente d\'approbation.',
-        });
-        setUserMode('business');
-        navigate('/business-pending-approval', { replace: true });
-        return;
-      }
-
-      // Check if business account exists - gérer plusieurs comptes
-      let { data: businessAccounts, error: businessError } = await supabase
-        .from('business_accounts')
-        .select('is_active, status')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-
-      // If no account found by user_id, try to link by email
-      if (!businessError && (!businessAccounts || businessAccounts.length === 0)) {
-        console.log('No business account found after login, trying to link by email...');
-        const linkResult = await tryLinkBusinessAccountByEmail();
-        
-        if (linkResult && linkResult.linked) {
-          console.log('Successfully linked business account after login:', linkResult);
-          // Re-fetch with the newly linked account
-          const { data: linkedAccounts } = await supabase
-            .from('business_accounts')
-            .select('is_active, status')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-          
-          businessAccounts = linkedAccounts;
-        }
-      }
-
-      if (businessError || !businessAccounts || businessAccounts.length === 0) {
-        // Pas de compte business - proposer d'en créer un
-        setAuthenticatedUserId(currentUser.id);
-        setAuthenticatedEmail(currentUser.email || null);
-        setShowCompleteRegistration(true);
-        toast({
-          title: 'Inscription incomplète',
-          description: 'Votre compte existe mais l\'inscription business n\'est pas terminée. Veuillez la compléter ci-dessous.',
-        });
-        return;
-      }
-
-      // L'utilisateur a au moins un compte business - trouver le bon
-      const activeAccount = businessAccounts.find(acc => acc.is_active);
-      const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
-
-      setUserMode('business');
-      
-      if (activeAccount) {
-        toast({
-          title: 'Connexion réussie',
-          description: 'Bienvenue dans votre espace business',
-        });
-        navigate('/business-account', { replace: true });
-      } else if (pendingAccount) {
-        toast({
-          title: 'Compte en attente',
-          description: 'Votre compte est en attente d\'approbation',
-        });
-        navigate('/business-pending-approval', { replace: true });
-      } else {
-        // Comptes rejetés/inactifs - aller au dashboard pour voir le statut
-        navigate('/business-account', { replace: true });
-      }
-    } catch (error) {
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setAuthMode('signin');
+      setCountdown(120);
+      toast({
+        title: 'Code envoyé',
+        description: `Un code de vérification a été envoyé au ${fullPhone}`,
+      });
+    } catch (error: any) {
       toast({
         title: 'Erreur',
-        description: 'Une erreur inattendue s\'est produite',
+        description: error?.message || 'Une erreur s\'est produite',
         variant: 'destructive',
       });
     } finally {
@@ -478,300 +280,107 @@ const BusinessAuth = () => {
     }
   };
 
-  const resendConfirmationEmail = async () => {
-    if (!resendEmail) return;
+  // Envoyer OTP pour inscription
+  const sendOtpSignUp = async (data: SignUpFormData) => {
+    setIsLoading(true);
     
-    setIsResending(true);
+    // Vérifier l'unicité du nom d'entreprise
+    const isUnique = await checkBusinessNameUniqueness(data.businessName);
+    if (!isUnique) {
+      setIsLoading(false);
+      toast({
+        title: 'Nom d\'entreprise déjà utilisé',
+        description: 'Ce nom d\'entreprise est déjà enregistré. Veuillez en choisir un autre.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const fullPhone = `${countryCode}${data.phone}`;
+    
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: resendEmail,
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: fullPhone,
         options: {
-          emailRedirectTo: `${window.location.origin}/business-auth`
-        }
-      });
-      
-      if (error) {
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Email envoyé',
-          description: 'Un nouvel email de confirmation a été envoyé. Vérifiez votre boîte de réception.',
-        });
-        setShowResendButton(false);
-      }
-    } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'envoyer l\'email de confirmation',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsResending(false);
-    }
-  };
-
-  const sendPasswordResetEmail = async () => {
-    if (!forgotPasswordEmail.trim()) {
-      toast({
-        title: 'Email requis',
-        description: 'Veuillez entrer votre email pour réinitialiser votre mot de passe.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSendingReset(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/business-auth?reset=true`,
-      });
-
-      if (error) {
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Email envoyé',
-          description: 'Un email de réinitialisation vous a été envoyé. Vérifiez votre boîte de réception.',
-        });
-        setShowForgotPassword(false);
-        setForgotPasswordEmail('');
-      }
-    } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible d\'envoyer l\'email de réinitialisation.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSendingReset(false);
-    }
-  };
-
-  const updatePassword = async () => {
-    if (!newPassword || !confirmPassword) {
-      toast({
-        title: 'Champs requis',
-        description: 'Veuillez remplir les deux champs de mot de passe.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: 'Mots de passe différents',
-        description: 'Les deux mots de passe ne correspondent pas.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: 'Mot de passe trop court',
-        description: 'Le mot de passe doit contenir au moins 6 caractères.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    try {
-      // Vérifier qu'on a une session active
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session && !recoverySession) {
-        toast({
-          title: 'Session expirée',
-          description: 'Le lien de réinitialisation a expiré. Veuillez en demander un nouveau.',
-          variant: 'destructive',
-        });
-        setIsResetMode(false);
-        setRecoverySession(null);
-        setShowForgotPassword(true);
-        return;
-      }
-
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      
-      if (error) {
-        console.error('Password update error:', error);
-        
-        if (error.message.includes('session') || error.message.includes('Auth') || error.message.includes('missing')) {
-          toast({
-            title: 'Session expirée',
-            description: 'Le lien a expiré. Veuillez demander un nouveau lien de réinitialisation.',
-            variant: 'destructive',
-          });
-          setIsResetMode(false);
-          setRecoverySession(null);
-          setShowForgotPassword(true);
-        } else {
-          toast({
-            title: 'Erreur',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
-      } else {
-        toast({
-          title: 'Mot de passe modifié ✓',
-          description: 'Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter.',
-        });
-        setIsResetMode(false);
-        setNewPassword('');
-        setConfirmPassword('');
-        setRecoverySession(null);
-        navigate('/business-auth', { replace: true });
-      }
-    } catch (error) {
-      console.error('Password update exception:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de modifier le mot de passe. Veuillez réessayer.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
-
-  const processPendingRegistration = async (userId: string) => {
-    try {
-      const { data: businessId, error } = await supabase.rpc('process_pending_business_registration', {
-        p_user_id: userId
-      });
-      
-      if (error) {
-        console.error('Error processing pending registration:', error);
-        return null;
-      }
-      
-      return businessId;
-    } catch (error) {
-      console.error('Error processing pending registration:', error);
-      return null;
-    }
-  };
-
-  const signUp = async (data: BusinessAuthFormData) => {
-    try {
-      setIsLoading(true);
-
-      // Valider les champs obligatoires (prénom, nom, entreprise)
-      const validationError = validateSignupData(data);
-      if (validationError) {
-        setIsLoading(false);
-        toast({
-          title: 'Champs obligatoires manquants',
-          description: validationError.message,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // Vérifier l'unicité du nom d'entreprise avant de créer le compte
-      const isUnique = await checkBusinessNameUniqueness(data.businessName || '');
-      if (!isUnique) {
-        setIsLoading(false);
-        toast({
-          title: 'Nom d\'entreprise déjà utilisé',
-          description: 'Ce nom d\'entreprise est déjà enregistré. Veuillez en choisir un autre.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const redirectUrl = `${window.location.origin}/business-auth`;
-      
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: redirectUrl,
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
             is_business: true,
-            pending_business_name: data.businessName,
           },
         },
       });
 
       if (error) {
-        if (error.message.includes('User already registered')) {
-          toast({
-            title: 'Compte existant',
-            description: 'Un compte avec cet email existe déjà. Essayez de vous connecter.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Erreur',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
-        return;
-      }
-
-      // Si l'utilisateur est créé mais sans session (confirmation email requise)
-      if (authData.user && !authData.session) {
-        // Store pending registration data for after email verification
-        const { error: pendingError } = await supabase
-          .from('pending_business_registrations')
-          .insert({
-            user_id: authData.user.id,
-            email: data.email,
-            business_name: data.businessName || '',
-            business_type: data.businessType || null,
-            phone: data.phone || null,
-            address: data.address || null,
-            description: data.description || null,
-            first_name: data.firstName || null,
-            last_name: data.lastName || null,
-          });
-
-        if (pendingError) {
-          console.error('Error storing pending registration:', pendingError);
-          // Still show success message since the auth account was created
-        }
-
         toast({
-          title: 'Vérifiez votre email',
-          description: 'Un email de confirmation a été envoyé. Confirmez votre email pour finaliser votre inscription.',
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
         });
-        navigate('/business-pending-approval', { replace: true });
         return;
       }
 
-      // Si une session est retournée (email confirmation disabled), créer directement le compte
-      if (authData.user && authData.session) {
-        try {
-          await supabase.auth.setSession({
-            access_token: authData.session.access_token,
-            refresh_token: authData.session.refresh_token,
-          });
+      // Sauvegarder les données du formulaire pour après vérification
+      setSignupFormData(data);
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setAuthMode('signup');
+      setCountdown(120);
+      toast({
+        title: 'Code envoyé',
+        description: `Un code de vérification a été envoyé au ${fullPhone}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Une erreur s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Vérifier OTP
+  const verifyOtp = async () => {
+    if (otpValue.length !== 6) {
+      toast({
+        title: 'Code incomplet',
+        description: 'Veuillez entrer les 6 chiffres du code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const { data: authData, error } = await supabase.auth.verifyOtp({
+        phone: currentPhone,
+        token: otpValue,
+        type: 'sms',
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur de vérification',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (authData.user) {
+        // Si c'est une inscription, créer le business_account
+        if (authMode === 'signup' && signupFormData) {
           const { error: businessError } = await supabase
             .from('business_accounts')
             .insert({
               user_id: authData.user.id,
-              business_name: data.businessName || '',
-              business_type: data.businessType || '',
-              phone: data.phone || '',
-              address: data.address || '',
-              description: data.description || '',
-              email: data.email,
+              business_name: signupFormData.businessName,
+              business_type: signupFormData.businessType || '',
+              phone: currentPhone,
+              address: signupFormData.address || '',
+              description: signupFormData.description || '',
               is_active: true,
               status: 'active',
             });
@@ -779,58 +388,74 @@ const BusinessAuth = () => {
           if (businessError) {
             console.error('Error creating business account:', businessError);
             
-            if (businessError.code === '42501' || businessError.message?.includes('row-level security') || businessError.message?.includes('RLS')) {
-              toast({
-                title: 'Erreur de sécurité',
-                description: 'Votre session n\'est pas correctement authentifiée. Veuillez vous déconnecter et réessayer.',
-                variant: 'destructive',
-              });
-            } else if (businessError.code === '23505' || businessError.message?.includes('duplicate')) {
-              toast({
-                title: 'Compte déjà existant',
-                description: 'Un compte prestataire existe déjà pour cet utilisateur.',
-                variant: 'destructive',
-              });
-            } else if (businessError.code === '23503') {
-              toast({
-                title: 'Erreur de référence',
-                description: 'Les données de référence sont invalides. Veuillez réessayer.',
-                variant: 'destructive',
-              });
+            if (businessError.code === '23505' || businessError.message?.includes('duplicate')) {
+              // Business account already exists - continue
+              console.log('Business account already exists, continuing...');
             } else {
               toast({
                 title: 'Erreur de création',
-                description: `Impossible de créer le compte prestataire: ${businessError.message || 'Erreur inconnue'}`,
+                description: `Impossible de créer le compte business: ${businessError.message}`,
                 variant: 'destructive',
               });
+              return;
             }
-            return;
           }
 
           setUserMode('business');
           await refreshSession();
-        } catch (businessCreationError) {
-          console.error('Error creating business account:', businessCreationError);
+          
           toast({
-            title: 'Erreur',
-            description: 'Une erreur s\'est produite lors de la création du compte.',
-            variant: 'destructive',
+            title: 'Bienvenue !',
+            description: 'Votre espace business est maintenant prêt.',
           });
-          return;
+          navigate('/business-account?onboarding=true', { replace: true });
+        } else {
+          // Connexion - vérifier si un business account existe
+          const { data: businessAccounts } = await supabase
+            .from('business_accounts')
+            .select('id, is_active, status')
+            .eq('user_id', authData.user.id)
+            .order('created_at', { ascending: false });
+
+          if (!businessAccounts || businessAccounts.length === 0) {
+            // Pas de compte business - montrer le formulaire de complétion
+            setAuthenticatedUserId(authData.user.id);
+            setAuthenticatedPhone(currentPhone);
+            setShowCompleteRegistration(true);
+            setOtpSent(false);
+            toast({
+              title: 'Inscription incomplète',
+              description: 'Votre compte existe mais l\'inscription business n\'est pas terminée. Veuillez la compléter.',
+            });
+            return;
+          }
+
+          const activeAccount = businessAccounts.find(acc => acc.is_active);
+          const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
+
+          setUserMode('business');
+          
+          if (activeAccount) {
+            toast({
+              title: 'Connexion réussie',
+              description: 'Bienvenue dans votre espace business',
+            });
+            navigate('/business-account', { replace: true });
+          } else if (pendingAccount) {
+            toast({
+              title: 'Compte en attente',
+              description: 'Votre compte est en attente d\'approbation',
+            });
+            navigate('/business-pending-approval', { replace: true });
+          } else {
+            navigate('/business-account', { replace: true });
+          }
         }
       }
-
-      toast({
-        title: 'Bienvenue !',
-        description: 'Votre espace business est maintenant prêt.',
-      });
-      
-      navigate('/business-account?onboarding=true', { replace: true });
-      reset();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Erreur',
-        description: 'Une erreur inattendue s\'est produite',
+        description: error?.message || 'Une erreur s\'est produite',
         variant: 'destructive',
       });
     } finally {
@@ -838,24 +463,58 @@ const BusinessAuth = () => {
     }
   };
 
-  const completeBusinessRegistration = async (formData: BusinessAuthFormData) => {
-    if (!authenticatedUserId) return;
+  // Renvoyer OTP
+  const resendOtp = async () => {
+    if (countdown > 0) return;
     
     setIsLoading(true);
     try {
-      // Valider le nom d'entreprise obligatoire
-      if (!formData.businessName?.trim() || formData.businessName.trim().length < 2) {
-        setIsLoading(false);
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: currentPhone,
+      });
+
+      if (error) {
         toast({
-          title: 'Champ obligatoire manquant',
-          description: 'Le nom de l\'entreprise est requis (minimum 2 caractères)',
+          title: 'Erreur',
+          description: error.message,
           variant: 'destructive',
         });
         return;
       }
 
+      setCountdown(120);
+      toast({
+        title: 'Code renvoyé',
+        description: `Un nouveau code a été envoyé au ${currentPhone}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Une erreur s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Réinitialiser le flux OTP
+  const resetOtpFlow = () => {
+    setOtpSent(false);
+    setOtpValue('');
+    setCurrentPhone('');
+    setCountdown(0);
+    setSignupFormData(null);
+  };
+
+  // Compléter l'inscription business (après connexion sans business account)
+  const completeBusinessRegistration = async (formData: SignUpFormData) => {
+    if (!authenticatedUserId) return;
+    
+    setIsLoading(true);
+    try {
       // Vérifier l'unicité du nom d'entreprise
-      const isUnique = await checkBusinessNameUniqueness(formData.businessName || '');
+      const isUnique = await checkBusinessNameUniqueness(formData.businessName);
       if (!isUnique) {
         setIsLoading(false);
         return;
@@ -865,12 +524,11 @@ const BusinessAuth = () => {
         .from('business_accounts')
         .insert({
           user_id: authenticatedUserId,
-          business_name: formData.businessName || '',
+          business_name: formData.businessName,
           business_type: formData.businessType || '',
-          phone: formData.phone || '',
+          phone: authenticatedPhone || '',
           address: formData.address || '',
           description: formData.description || '',
-          email: authenticatedEmail,
           is_active: true,
           status: 'active',
         });
@@ -913,7 +571,16 @@ const BusinessAuth = () => {
     'Autre'
   ];
 
-  // If showing complete registration form (after Google OAuth), show dedicated full-screen form
+  const countryCodes = [
+    { code: '+225', country: 'CI', flag: '🇨🇮' },
+    { code: '+33', country: 'FR', flag: '🇫🇷' },
+    { code: '+1', country: 'US', flag: '🇺🇸' },
+    { code: '+44', country: 'GB', flag: '🇬🇧' },
+    { code: '+32', country: 'BE', flag: '🇧🇪' },
+    { code: '+41', country: 'CH', flag: '🇨🇭' },
+  ];
+
+  // Formulaire de complétion d'inscription (après connexion OTP sans business account)
   if (showCompleteRegistration) {
     return (
       <div className="min-h-screen flex items-start justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4 pt-8">
@@ -926,11 +593,34 @@ const BusinessAuth = () => {
               </CardTitle>
             </div>
             <CardDescription className="text-base">
-              Bienvenue {authenticatedEmail} ! Complétez votre profil business pour continuer.
+              Bienvenue ! Complétez votre profil business pour continuer.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit(completeBusinessRegistration)} className="space-y-4">
+            <form onSubmit={signUpForm.handleSubmit(completeBusinessRegistration)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="complete-firstName" className="flex items-center gap-1">
+                    Prénom <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="complete-firstName"
+                    placeholder="Votre prénom"
+                    {...signUpForm.register('firstName')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="complete-lastName" className="flex items-center gap-1">
+                    Nom <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="complete-lastName"
+                    placeholder="Votre nom"
+                    {...signUpForm.register('lastName')}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="complete-businessName" className="flex items-center gap-1">
                   Nom de l'entreprise <span className="text-destructive">*</span>
@@ -938,7 +628,7 @@ const BusinessAuth = () => {
                 <Input
                   id="complete-businessName"
                   placeholder="Mon Enterprise SARL"
-                  {...register('businessName')}
+                  {...signUpForm.register('businessName')}
                   onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
                 />
                 {businessNameError && (
@@ -948,7 +638,7 @@ const BusinessAuth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="complete-businessType">Type d'activité</Label>
-                <Select onValueChange={(value) => setValue('businessType', value)}>
+                <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez votre activité" />
                   </SelectTrigger>
@@ -963,42 +653,33 @@ const BusinessAuth = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="complete-phone">Téléphone</Label>
-                <Input
-                  id="complete-phone"
-                  placeholder="+225 XX XX XX XX XX"
-                  {...register('phone')}
-                  autoComplete="tel"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="complete-address">Adresse</Label>
                 <Input
                   id="complete-address"
                   placeholder="Cocody, Abidjan"
-                  {...register('address')}
-                  autoComplete="street-address"
+                  {...signUpForm.register('address')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="complete-description">Description</Label>
+                <Label htmlFor="complete-description">Description (optionnel)</Label>
                 <Textarea
                   id="complete-description"
                   placeholder="Décrivez votre activité..."
                   rows={3}
-                  {...register('description')}
+                  {...signUpForm.register('description')}
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Création...' : 'Compléter mon inscription'}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  'Compléter mon inscription'
+                )}
               </Button>
             </form>
           </CardContent>
@@ -1007,107 +688,92 @@ const BusinessAuth = () => {
     );
   }
 
-  // If in reset mode, show the password reset form
-  if (isResetMode) {
+  // Écran de vérification OTP
+  if (otpSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
         <Card className="w-full max-w-md shadow-lg border-primary/20">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <KeyRound className="h-6 w-6 text-primary" />
+              <Phone className="h-6 w-6 text-primary" />
               <CardTitle className="text-2xl font-poppins font-bold text-primary">
-                Nouveau mot de passe
+                Vérification
               </CardTitle>
             </div>
-            <CardDescription>
-              Choisissez un nouveau mot de passe pour votre compte business
+            <CardDescription className="text-base">
+              Entrez le code à 6 chiffres envoyé au
+              <br />
+              <span className="font-medium text-foreground">{currentPhone}</span>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
+          <CardContent className="space-y-6">
+            <div className="flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={otpValue}
+                onChange={(value) => setOtpValue(value)}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button
+              onClick={verifyOtp}
+              className="w-full"
+              disabled={isLoading || otpValue.length !== 6}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Vérification...
+                </>
+              ) : (
+                'Vérifier'
+              )}
+            </Button>
+
+            <div className="text-center space-y-2">
+              <button
+                type="button"
+                onClick={resendOtp}
+                disabled={countdown > 0 || isLoading}
+                className={cn(
+                  "text-sm",
+                  countdown > 0
+                    ? "text-muted-foreground cursor-not-allowed"
+                    : "text-primary hover:underline"
+                )}
+              >
+                {countdown > 0
+                  ? `Renvoyer le code dans ${countdown}s`
+                  : 'Renvoyer le code'}
+              </button>
+
+              <div>
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={resetOtpFlow}
+                  className="text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 mx-auto"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <Edit2 className="h-3 w-3" />
+                  Modifier le numéro
                 </button>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            {!recoverySession && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-                <p className="font-medium">⚠️ Session de récupération non détectée</p>
-                <p className="mt-1">Si vous rencontrez une erreur, demandez un nouveau lien de réinitialisation.</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 border-amber-300 text-amber-700 hover:bg-amber-100"
-                  onClick={() => {
-                    setIsResetMode(false);
-                    setRecoverySession(null);
-                    setShowForgotPassword(true);
-                    navigate('/business-auth', { replace: true });
-                  }}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Demander un nouveau lien
-                </Button>
-              </div>
-            )}
-
-            <Button
-              onClick={updatePassword}
-              disabled={isUpdatingPassword}
-              className="w-full"
-            >
-              {isUpdatingPassword ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsResetMode(false);
-                setNewPassword('');
-                setConfirmPassword('');
-                setRecoverySession(null);
-                navigate('/business-auth', { replace: true });
-              }}
-              className="w-full text-sm"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour à la connexion
-            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Formulaire principal (connexion / inscription)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
       <Card className="w-full max-w-lg">
@@ -1136,224 +802,58 @@ const BusinessAuth = () => {
               <TabsTrigger value="signup">Inscription Business</TabsTrigger>
             </TabsList>
             
+            {/* Onglet Connexion */}
             <TabsContent value="signin">
-              {/* Google Sign In Button */}
-              <div className="space-y-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full flex items-center justify-center gap-2 h-11"
-                  onClick={signInWithGoogle}
-                  disabled={isLoading || isGoogleLoading}
-                >
-                  {isGoogleLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <svg className="h-5 w-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      />
-                    </svg>
-                  )}
-                  Continuer avec Google
-                </Button>
-
-                {/* Separator */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      ou
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit(signIn)} className="space-y-4 mt-4" autoComplete="on">
+              <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@business-email.com"
-                    {...register('email')}
-                    name="email"
-                    autoComplete="email"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
+                  <Label htmlFor="signin-phone">Numéro de téléphone</Label>
+                  <div className="flex gap-2">
+                    <Select value={countryCode} onValueChange={setCountryCode}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map((cc) => (
+                          <SelectItem key={cc.code} value={cc.code}>
+                            {cc.flag} {cc.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      {...register('password')}
-                      name="password"
-                      autoComplete="current-password"
+                      id="signin-phone"
+                      type="tel"
+                      placeholder="07 XX XX XX XX"
+                      {...signInForm.register('phone')}
+                      className="flex-1"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
+                  {signInForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive">
+                      {signInForm.formState.errors.phone.message}
+                    </p>
                   )}
                 </div>
 
-                {/* Mot de passe oublié */}
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(!showForgotPassword)}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Mot de passe oublié ?
-                  </button>
-                </div>
-
-                {showForgotPassword && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-blue-800">
-                          Réinitialiser votre mot de passe
-                        </p>
-                        <p className="text-sm text-blue-700">
-                          Entrez votre email et nous vous enverrons un lien de réinitialisation.
-                        </p>
-                      </div>
-                    </div>
-                    <Input
-                      type="email"
-                      placeholder="votre@business-email.com"
-                      value={forgotPasswordEmail}
-                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                      name="forgot-email"
-                      autoComplete="email"
-                      className="bg-white"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={sendPasswordResetEmail}
-                      disabled={isSendingReset}
-                      className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
-                    >
-                      <Mail className={cn("h-4 w-4 mr-2", isSendingReset && "animate-pulse")} />
-                      {isSendingReset ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}
-                    </Button>
-                  </div>
-                )}
-                
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Connexion...' : 'Se connecter'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi du code...
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="mr-2 h-4 w-4" />
+                      Envoyer le code
+                    </>
+                  )}
                 </Button>
-
-                {showResendButton && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <Mail className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-amber-800">
-                          Email non confirmé
-                        </p>
-                        <p className="text-sm text-amber-700">
-                          Votre email n'a pas encore été confirmé. Vérifiez votre boîte de réception ou demandez un nouvel email.
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={resendConfirmationEmail}
-                      disabled={isResending}
-                      className="w-full border-amber-300 text-amber-700 hover:bg-amber-100"
-                    >
-                      <RefreshCw className={cn("h-4 w-4 mr-2", isResending && "animate-spin")} />
-                      {isResending ? 'Envoi en cours...' : 'Renvoyer l\'email de confirmation'}
-                    </Button>
-                  </div>
-                )}
-
               </form>
             </TabsContent>
             
+            {/* Onglet Inscription */}
             <TabsContent value="signup">
-              {/* Google Sign Up Button */}
-              <div className="space-y-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full flex items-center justify-center gap-2 h-11"
-                  onClick={signInWithGoogle}
-                  disabled={isLoading || isGoogleLoading}
-                >
-                  {isGoogleLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <svg className="h-5 w-5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-8.09 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      />
-                    </svg>
-                  )}
-                  S'inscrire avec Google
-                </Button>
-
-                {/* Separator */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      ou
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit(signUp)} className="space-y-4 mt-4" autoComplete="on">
+              <form onSubmit={signUpForm.handleSubmit(sendOtpSignUp)} className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="flex items-center gap-1">
@@ -1362,13 +862,11 @@ const BusinessAuth = () => {
                     <Input
                       id="firstName"
                       placeholder="Votre prénom"
-                      {...register('firstName')}
-                      name="given-name"
-                      autoComplete="given-name"
-                      className={cn(errors.firstName && "border-destructive")}
+                      {...signUpForm.register('firstName')}
+                      className={cn(signUpForm.formState.errors.firstName && "border-destructive")}
                     />
-                    {errors.firstName && (
-                      <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                    {signUpForm.formState.errors.firstName && (
+                      <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
                     )}
                   </div>
                   
@@ -1379,13 +877,11 @@ const BusinessAuth = () => {
                     <Input
                       id="lastName"
                       placeholder="Votre nom"
-                      {...register('lastName')}
-                      name="family-name"
-                      autoComplete="family-name"
-                      className={cn(errors.lastName && "border-destructive")}
+                      {...signUpForm.register('lastName')}
+                      className={cn(signUpForm.formState.errors.lastName && "border-destructive")}
                     />
-                    {errors.lastName && (
-                      <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                    {signUpForm.formState.errors.lastName && (
+                      <p className="text-sm text-destructive">{signUpForm.formState.errors.lastName.message}</p>
                     )}
                   </div>
                 </div>
@@ -1397,12 +893,12 @@ const BusinessAuth = () => {
                   <Input
                     id="businessName"
                     placeholder="Mon Enterprise SARL"
-                    {...register('businessName')}
+                    {...signUpForm.register('businessName')}
                     onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
-                    className={cn((errors.businessName || businessNameError) && "border-destructive")}
+                    className={cn((signUpForm.formState.errors.businessName || businessNameError) && "border-destructive")}
                   />
-                  {errors.businessName && (
-                    <p className="text-sm text-destructive">{errors.businessName.message}</p>
+                  {signUpForm.formState.errors.businessName && (
+                    <p className="text-sm text-destructive">{signUpForm.formState.errors.businessName.message}</p>
                   )}
                   {businessNameError && (
                     <p className="text-sm text-destructive">{businessNameError}</p>
@@ -1411,7 +907,7 @@ const BusinessAuth = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="businessType">Type d'activité</Label>
-                  <Select onValueChange={(value) => setValue('businessType', value)}>
+                  <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionnez votre activité" />
                     </SelectTrigger>
@@ -1426,14 +922,33 @@ const BusinessAuth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    placeholder="+225 XX XX XX XX XX"
-                    {...register('phone')}
-                    name="tel"
-                    autoComplete="tel"
-                  />
+                  <Label htmlFor="phone" className="flex items-center gap-1">
+                    Téléphone <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select value={countryCode} onValueChange={setCountryCode}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map((cc) => (
+                          <SelectItem key={cc.code} value={cc.code}>
+                            {cc.flag} {cc.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="07 XX XX XX XX"
+                      {...signUpForm.register('phone')}
+                      className="flex-1"
+                    />
+                  </div>
+                  {signUpForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1441,9 +956,7 @@ const BusinessAuth = () => {
                   <Input
                     id="address"
                     placeholder="Cocody, Abidjan"
-                    {...register('address')}
-                    name="street-address"
-                    autoComplete="street-address"
+                    {...signUpForm.register('address')}
                   />
                 </div>
 
@@ -1453,42 +966,22 @@ const BusinessAuth = () => {
                     id="description"
                     placeholder="Décrivez votre activité..."
                     rows={3}
-                    {...register('description')}
+                    {...signUpForm.register('description')}
                   />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@business-email.com"
-                    {...register('email')}
-                    name="email"
-                    autoComplete="email"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    {...register('password')}
-                    name="new-password"
-                    autoComplete="new-password"
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password.message}</p>
-                  )}
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Création...' : 'Créer mon compte business'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi du code...
+                    </>
+                  ) : (
+                    <>
+                      <Phone className="mr-2 h-4 w-4" />
+                      Créer mon compte business
+                    </>
+                  )}
                 </Button>
               </form>
             </TabsContent>
