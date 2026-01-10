@@ -87,7 +87,6 @@ const App = () => (
             {/* Redirects for removed waitlist/pending pages */}
             <Route path="/business-waitlist" element={<Navigate to="/business-auth" replace />} />
             <Route path="/devenir-prestataire" element={<Navigate to="/business-auth" replace />} />
-            <Route path="/business-pending-approval" element={<Navigate to="/business-account" replace />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
             <Route path="/home" element={
               <ProtectedRoute>
