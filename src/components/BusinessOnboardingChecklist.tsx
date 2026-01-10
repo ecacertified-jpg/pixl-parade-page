@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Rocket, CheckCircle, Circle, ChevronDown, ChevronUp, X,
-  Store, Package, Truck, Wallet
+  Store, Package, Truck, Wallet, Bell
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ interface BusinessOnboardingChecklistProps {
   onOpenAddProduct: () => void;
   onOpenDeliverySettings: () => void;
   onOpenPaymentSettings: () => void;
+  onOpenNotificationSettings: () => void;
 }
 
 const stepIcons: Record<string, React.ReactNode> = {
@@ -26,6 +27,7 @@ const stepIcons: Record<string, React.ReactNode> = {
   'first-product': <Package className="w-4 h-4" />,
   delivery: <Truck className="w-4 h-4" />,
   payment: <Wallet className="w-4 h-4" />,
+  notifications: <Bell className="w-4 h-4" />,
 };
 
 export const BusinessOnboardingChecklist = ({
@@ -38,6 +40,7 @@ export const BusinessOnboardingChecklist = ({
   onOpenAddProduct,
   onOpenDeliverySettings,
   onOpenPaymentSettings,
+  onOpenNotificationSettings,
 }: BusinessOnboardingChecklistProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -60,6 +63,8 @@ export const BusinessOnboardingChecklist = ({
         return onOpenDeliverySettings;
       case 'payment':
         return onOpenPaymentSettings;
+      case 'notifications':
+        return onOpenNotificationSettings;
       default:
         return () => {};
     }

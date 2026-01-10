@@ -923,6 +923,7 @@ interface RecentOrderItem {
             onOpenAddProduct={() => setIsAddProductModalOpen(true)}
             onOpenDeliverySettings={() => navigate('/business-profile-settings')}
             onOpenPaymentSettings={() => navigate('/business-profile-settings')}
+            onOpenNotificationSettings={() => setShowPushNotificationPrompt(true)}
           />
         )}
 
