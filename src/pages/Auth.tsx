@@ -525,7 +525,7 @@ const Auth = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="city">Lieu de livraison (Ville)</Label>
+                      <Label htmlFor="city">Lieu de livraison</Label>
                       <Input
                         id="city"
                         placeholder="Votre ville"
