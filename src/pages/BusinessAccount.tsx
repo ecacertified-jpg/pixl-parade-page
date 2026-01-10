@@ -34,31 +34,6 @@ export default function BusinessAccount() {
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   
-  // Check if business account is approved
-  useEffect(() => {
-    const checkApprovalStatus = async () => {
-      if (!user || loadingSelector) return;
-
-      // Use order + limit to avoid "multiple rows" error with maybeSingle
-      const { data: businessAccount } = await supabase
-        .from('business_accounts')
-        .select('is_active, status')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // Redirect if not active or if rejected/pending/resubmitted (allow both 'approved' and 'active')
-      if (businessAccount && (
-        !businessAccount.is_active || 
-        (businessAccount.status !== 'active' && businessAccount.status !== 'approved')
-      )) {
-        navigate('/business-pending-approval', { replace: true });
-      }
-    };
-
-    checkApprovalStatus();
-  }, [user, loadingSelector, navigate]);
   const { stats: analyticsStats, loading: loadingAnalytics } = useBusinessAnalytics(selectedBusinessId || undefined);
   const { getSetting, settings, isLoading: loadingSettings } = usePlatformSettings();
   
