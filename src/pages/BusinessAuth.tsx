@@ -93,38 +93,6 @@ const BusinessAuth = () => {
     }
   }, [user, navigate]);
 
-  // Realtime listener for business account approval
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('business-auth-approval-watch')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'business_accounts',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newData = payload.new as { status: string; is_active: boolean };
-          console.log('BusinessAuth realtime update:', newData);
-          
-          if (newData.is_active && (newData.status === 'approved' || newData.status === 'active')) {
-            setUserMode('business');
-            navigate('/business-account', { replace: true });
-          } else if (newData.status === 'pending' || newData.status === 'resubmitted') {
-            navigate('/business-pending-approval', { replace: true });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, navigate, setUserMode]);
 
   // Detect referral code from URL
   useEffect(() => {
@@ -140,9 +108,9 @@ const BusinessAuth = () => {
     try {
       const { data: businessAccounts, error } = await supabase
         .from('business_accounts')
-        .select('id, is_active, status')
+        .select('id')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .limit(1);
 
       if (error) {
         console.error('Error checking business account:', error);
@@ -150,45 +118,14 @@ const BusinessAuth = () => {
       }
 
       if (businessAccounts && businessAccounts.length > 0) {
-        const activeAccount = businessAccounts.find(
-          acc => acc.is_active && (acc.status === 'approved' || acc.status === 'active')
-        );
-        const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
-        
-        if (activeAccount) {
-          setUserMode('business');
-          navigate('/business-account', { replace: true });
-        } else if (pendingAccount) {
-          navigate('/business-pending-approval', { replace: true });
-        } else {
-          navigate('/business-account', { replace: true });
-        }
+        setUserMode('business');
+        navigate('/business-account', { replace: true });
       } else {
         // No business account found - try to link by email/phone
         const linkResult = await tryLinkBusinessAccountByEmail();
-        
-        if (linkResult && linkResult.linked) {
-          const { data: linkedAccounts } = await supabase
-            .from('business_accounts')
-            .select('id, is_active, status')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-
-          if (linkedAccounts && linkedAccounts.length > 0) {
-            const activeAccount = linkedAccounts.find(
-              acc => acc.is_active && (acc.status === 'approved' || acc.status === 'active')
-            );
-            const pendingAccount = linkedAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
-            
-            if (activeAccount) {
-              setUserMode('business');
-              navigate('/business-account', { replace: true });
-            } else if (pendingAccount) {
-              navigate('/business-pending-approval', { replace: true });
-            } else {
-              navigate('/business-account', { replace: true });
-            }
-          }
+        if (linkResult?.linked) {
+          setUserMode('business');
+          navigate('/business-account', { replace: true });
         }
       }
     } catch (error) {
@@ -221,7 +158,7 @@ const BusinessAuth = () => {
         .from('business_accounts')
         .select('id')
         .ilike('business_name', businessName.trim())
-        .in('status', ['pending', 'active', 'resubmitted'])
+        .eq('status', 'active')
         .limit(1);
 
       if (error) {
@@ -413,9 +350,9 @@ const BusinessAuth = () => {
           // Connexion - vérifier si un business account existe
           const { data: businessAccounts } = await supabase
             .from('business_accounts')
-            .select('id, is_active, status')
+            .select('id')
             .eq('user_id', authData.user.id)
-            .order('created_at', { ascending: false });
+            .limit(1);
 
           if (!businessAccounts || businessAccounts.length === 0) {
             // Pas de compte business - montrer le formulaire de complétion
@@ -430,26 +367,12 @@ const BusinessAuth = () => {
             return;
           }
 
-          const activeAccount = businessAccounts.find(acc => acc.is_active);
-          const pendingAccount = businessAccounts.find(acc => acc.status === 'pending' || acc.status === 'resubmitted');
-
           setUserMode('business');
-          
-          if (activeAccount) {
-            toast({
-              title: 'Connexion réussie',
-              description: 'Bienvenue dans votre espace business',
-            });
-            navigate('/business-account', { replace: true });
-          } else if (pendingAccount) {
-            toast({
-              title: 'Compte en attente',
-              description: 'Votre compte est en attente d\'approbation',
-            });
-            navigate('/business-pending-approval', { replace: true });
-          } else {
-            navigate('/business-account', { replace: true });
-          }
+          toast({
+            title: 'Connexion réussie',
+            description: 'Bienvenue dans votre espace business',
+          });
+          navigate('/business-account', { replace: true });
         }
       }
     } catch (error: any) {
