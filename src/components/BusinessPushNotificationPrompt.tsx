@@ -23,8 +23,9 @@ export const BusinessPushNotificationPrompt = ({
   const [isActivating, setIsActivating] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
-  // Don't show if not supported, already subscribed, or permission denied
-  const shouldShow = open && isSupported && !isSubscribed && permission !== 'denied';
+  // Show the modal even when permission is denied (to show instructions)
+  const permissionDenied = permission === 'denied';
+  const shouldShow = open && isSupported && !isSubscribed;
 
   const handleActivate = async () => {
     setIsActivating(true);
@@ -122,6 +123,87 @@ export const BusinessPushNotificationPrompt = ({
   }
 
   if (!shouldShow) return null;
+
+  // If permission is denied, show instructions to unblock
+  if (permissionDenied) {
+    return (
+      <Dialog open={shouldShow} onOpenChange={handleSkip}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden border-2 border-destructive/20">
+          <div className="relative p-6 sm:p-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-3 top-3 h-8 w-8 rounded-full"
+              onClick={handleSkip}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200 }}
+              className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-destructive/80 to-destructive/40 flex items-center justify-center mb-5 shadow-lg"
+            >
+              <Bell className="h-8 w-8 text-white" />
+            </motion.div>
+
+            <div className="text-center space-y-3 mb-6">
+              <h2 className="text-xl font-bold text-foreground">
+                🚫 Notifications bloquées
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Vous avez précédemment refusé les notifications. Pour les activer :
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-6 text-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-primary">1</span>
+                </div>
+                <span className="text-muted-foreground">
+                  Cliquez sur l'icône 🔒 à gauche de la barre d'adresse
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-primary">2</span>
+                </div>
+                <span className="text-muted-foreground">
+                  Trouvez "Notifications" et changez en "Autoriser"
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-primary">3</span>
+                </div>
+                <span className="text-muted-foreground">
+                  Rechargez la page et réessayez
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="w-full gap-2"
+              >
+                Recharger la page
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleSkip}
+                className="w-full text-muted-foreground"
+              >
+                Fermer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={shouldShow} onOpenChange={handleSkip}>
