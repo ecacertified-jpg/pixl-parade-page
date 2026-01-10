@@ -18,10 +18,10 @@ import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
 
-const phoneRegex = /^(\+225)?[0-9]{8,10}$/;
+const phoneRegex = /^[0-9]{10}$/;
 
 const signInSchema = z.object({
-  phone: z.string().regex(phoneRegex, 'Format de téléphone invalide (+225XXXXXXXX)'),
+  phone: z.string().regex(phoneRegex, 'Le numéro doit contenir 10 chiffres'),
   countryCode: z.string().default('+225'),
 });
 
@@ -29,7 +29,7 @@ const signUpSchema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
   birthday: z.string().optional(),
   city: z.string().min(1, 'La ville est requise').optional(),
-  phone: z.string().regex(phoneRegex, 'Format de téléphone invalide (+225XXXXXXXX)'),
+  phone: z.string().regex(phoneRegex, 'Le numéro doit contenir 10 chiffres'),
   countryCode: z.string().default('+225'),
   otp: z.string().optional(),
 });
@@ -440,25 +440,26 @@ const Auth = () => {
               <TabsContent value="signin">
                 <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-phone">Numéro de téléphone</Label>
+                    <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
                     <div className="flex gap-2">
                       <Select 
                         value={signInForm.watch('countryCode')} 
                         onValueChange={(value) => signInForm.setValue('countryCode', value)}
                       >
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="w-[110px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="+225">🇨🇮 +225</SelectItem>
-                          <SelectItem value="+33">🇫🇷 +33</SelectItem>
-                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                          <SelectItem value="+225">CI +225</SelectItem>
+                          <SelectItem value="+33">FR +33</SelectItem>
+                          <SelectItem value="+1">US +1</SelectItem>
                         </SelectContent>
                       </Select>
                       <Input
                         id="signin-phone"
                         type="tel"
-                        placeholder="01234567"
+                        placeholder="07 XX XX XX XX"
+                        maxLength={10}
                         {...signInForm.register('phone')}
                         className="flex-1"
                       />
@@ -537,25 +538,26 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Numéro de téléphone</Label>
+                    <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
                     <div className="flex gap-2">
                       <Select 
                         value={signUpForm.watch('countryCode')} 
                         onValueChange={(value) => signUpForm.setValue('countryCode', value)}
                       >
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="w-[110px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="+225">🇨🇮 +225</SelectItem>
-                          <SelectItem value="+33">🇫🇷 +33</SelectItem>
-                          <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                          <SelectItem value="+225">CI +225</SelectItem>
+                          <SelectItem value="+33">FR +33</SelectItem>
+                          <SelectItem value="+1">US +1</SelectItem>
                         </SelectContent>
                       </Select>
                       <Input
                         id="signup-phone"
                         type="tel"
-                        placeholder="01234567"
+                        placeholder="07 XX XX XX XX"
+                        maxLength={10}
                         {...signUpForm.register('phone')}
                         className="flex-1"
                       />
