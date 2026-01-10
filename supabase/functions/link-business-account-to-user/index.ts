@@ -44,12 +44,13 @@ serve(async (req) => {
 
     const userId = user.id;
     const userEmail = user.email;
+    const userPhone = user.phone;
 
-    console.log(`🔗 Link request for user ${userId}, email: ${userEmail?.substring(0, 5)}...`);
+    console.log(`🔗 Link request for user ${userId}, email: ${userEmail?.substring(0, 5) || 'none'}..., phone: ${userPhone?.substring(0, 6) || 'none'}...`);
 
-    if (!userEmail) {
+    if (!userEmail && !userPhone) {
       return new Response(
-        JSON.stringify({ linked: false, error: 'User has no email' }),
+        JSON.stringify({ linked: false, error: 'User has no email or phone' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -60,7 +61,7 @@ serve(async (req) => {
     // First check if user already has a linked business account
     const { data: existingByUserId, error: existingError } = await supabaseAdmin
       .from('business_accounts')
-      .select('id, status, is_active, user_id, email, business_name')
+      .select('id, status, is_active, user_id, email, phone, business_name')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -83,24 +84,68 @@ serve(async (req) => {
       console.log(`📋 Best account by user_id: ${bestByUserId.id}, status: ${bestByUserId.status}`);
     }
 
-    // Search for business accounts by email (case insensitive)
-    const { data: accountsByEmail, error: emailSearchError } = await supabaseAdmin
-      .from('business_accounts')
-      .select('id, status, is_active, user_id, email, business_name')
-      .ilike('email', userEmail)
-      .order('created_at', { ascending: false });
+    // Search for business accounts by email or phone
+    let accountsByEmailOrPhone: any[] = [];
+    
+    // Search by email if available
+    if (userEmail) {
+      const { data: accountsByEmail, error: emailSearchError } = await supabaseAdmin
+        .from('business_accounts')
+        .select('id, status, is_active, user_id, email, phone, business_name')
+        .ilike('email', userEmail)
+        .order('created_at', { ascending: false });
 
-    if (emailSearchError) {
-      console.error('Error searching by email:', emailSearchError);
-      return new Response(
-        JSON.stringify({ linked: false, error: 'Database error', details: emailSearchError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (emailSearchError) {
+        console.error('Error searching by email:', emailSearchError);
+      } else if (accountsByEmail) {
+        accountsByEmailOrPhone = [...accountsByEmailOrPhone, ...accountsByEmail];
+      }
+    }
+    
+    // Search by phone if available
+    if (userPhone) {
+      // Try exact match first
+      const { data: accountsByPhone, error: phoneSearchError } = await supabaseAdmin
+        .from('business_accounts')
+        .select('id, status, is_active, user_id, email, phone, business_name')
+        .eq('phone', userPhone)
+        .order('created_at', { ascending: false });
+
+      if (phoneSearchError) {
+        console.error('Error searching by phone:', phoneSearchError);
+      } else if (accountsByPhone) {
+        // Avoid duplicates
+        const existingIds = new Set(accountsByEmailOrPhone.map(a => a.id));
+        for (const acc of accountsByPhone) {
+          if (!existingIds.has(acc.id)) {
+            accountsByEmailOrPhone.push(acc);
+          }
+        }
+      }
+      
+      // Also try matching without country code prefix (for +225 phone numbers)
+      const phoneWithoutPlus = userPhone.replace('+', '');
+      if (phoneWithoutPlus !== userPhone) {
+        const { data: accountsByPhoneAlt } = await supabaseAdmin
+          .from('business_accounts')
+          .select('id, status, is_active, user_id, email, phone, business_name')
+          .or(`phone.eq.${phoneWithoutPlus},phone.ilike.%${phoneWithoutPlus.slice(-10)}`)
+          .order('created_at', { ascending: false });
+
+        if (accountsByPhoneAlt) {
+          const existingIds = new Set(accountsByEmailOrPhone.map(a => a.id));
+          for (const acc of accountsByPhoneAlt) {
+            if (!existingIds.has(acc.id)) {
+              accountsByEmailOrPhone.push(acc);
+            }
+          }
+        }
+      }
     }
 
-    if (!accountsByEmail || accountsByEmail.length === 0) {
-      console.log(`❌ No business account found for email: ${userEmail?.substring(0, 5)}...`);
-      // If user has an account by user_id but none by email, return what we have
+    if (accountsByEmailOrPhone.length === 0) {
+      console.log(`❌ No business account found for email/phone`);
+      // If user has an account by user_id but none by email/phone, return what we have
       if (bestByUserId) {
         return new Response(
           JSON.stringify({ 
@@ -121,22 +166,22 @@ serve(async (req) => {
     }
 
     // Choose the best account to link (priority: approved/active > pending/resubmitted > most recent)
-    accountsByEmail.sort((a, b) => {
+    accountsByEmailOrPhone.sort((a, b) => {
       const priorityA = priorityOrder.indexOf(a.status || 'rejected');
       const priorityB = priorityOrder.indexOf(b.status || 'rejected');
       if (priorityA !== priorityB) return priorityA - priorityB;
       return 0; // Already ordered by created_at desc
     });
 
-    const bestByEmail = accountsByEmail[0];
-    console.log(`📋 Best account by email: ${bestByEmail.id}, status: ${bestByEmail.status}`);
+    const bestByEmailOrPhone = accountsByEmailOrPhone[0];
+    console.log(`📋 Best account by email/phone: ${bestByEmailOrPhone.id}, status: ${bestByEmailOrPhone.status}`);
 
-    // Compare: if bestByUserId exists and has same or better priority than bestByEmail, keep it
+    // Compare: if bestByUserId exists and has same or better priority than bestByEmailOrPhone, keep it
     if (bestByUserId) {
       const priorityByUserId = priorityOrder.indexOf(bestByUserId.status || 'rejected');
-      const priorityByEmail = priorityOrder.indexOf(bestByEmail.status || 'rejected');
+      const priorityByEmailOrPhone = priorityOrder.indexOf(bestByEmailOrPhone.status || 'rejected');
       
-      if (priorityByUserId <= priorityByEmail && bestByUserId.id === bestByEmail.id) {
+      if (priorityByUserId <= priorityByEmailOrPhone && bestByUserId.id === bestByEmailOrPhone.id) {
         // Same account, already linked correctly
         console.log(`✅ User already has the best account linked: ${bestByUserId.id}`);
         return new Response(
@@ -152,13 +197,13 @@ serve(async (req) => {
         );
       }
       
-      // If bestByEmail is better (lower priority index = better), switch to it
-      if (priorityByEmail < priorityByUserId) {
-        console.log(`🔄 Switching to better account: ${bestByEmail.id} (${bestByEmail.status}) over ${bestByUserId.id} (${bestByUserId.status})`);
+      // If bestByEmailOrPhone is better (lower priority index = better), switch to it
+      if (priorityByEmailOrPhone < priorityByUserId) {
+        console.log(`🔄 Switching to better account: ${bestByEmailOrPhone.id} (${bestByEmailOrPhone.status}) over ${bestByUserId.id} (${bestByUserId.status})`);
       }
     }
 
-    const targetAccount = bestByEmail;
+    const targetAccount = bestByEmailOrPhone;
     const oldUserId = targetAccount.user_id;
 
     console.log(`🔄 Found account ${targetAccount.id} (${targetAccount.business_name}) with user_id ${oldUserId}, linking to ${userId}`);
