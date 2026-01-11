@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Gift, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Gift, MapPin, Sparkles, Loader2, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import confetti from 'canvas-confetti';
 import LocationSelector from '@/components/LocationSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CompleteProfileModalProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface CompleteProfileModalProps {
   initialData?: {
     firstName?: string;
     lastName?: string;
+    phone?: string;
   };
 }
 
@@ -28,8 +30,11 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const [birthday, setBirthday] = useState<Date | undefined>();
   const [city, setCity] = useState('');
   const [firstName, setFirstName] = useState(initialData?.firstName || '');
+  const [phone, setPhone] = useState(initialData?.phone?.replace(/^\+\d{1,3}/, '') || '');
+  const [countryCode, setCountryCode] = useState('+225');
 
-  const isValid = birthday && city.trim().length > 0;
+  const isPhoneValid = /^[0-9]{8,10}$/.test(phone);
+  const isValid = birthday && city.trim().length > 0 && isPhoneValid;
 
   const triggerCelebration = () => {
     confetti({
@@ -49,6 +54,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
       const updateData: Record<string, string | null> = {
         birthday: birthday ? format(birthday, 'yyyy-MM-dd') : null,
         city: city.trim(),
+        phone: phone ? `${countryCode}${phone}` : null,
       };
 
       // Update first_name only if provided
@@ -151,6 +157,39 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             />
             <p className="text-xs text-muted-foreground">
               Pour faciliter la livraison de vos cadeaux surprises !
+            </p>
+          </div>
+
+          {/* Phone (required) */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-primary" />
+              <span>Numéro de téléphone</span>
+              <span className="text-xs text-destructive">*</span>
+            </Label>
+            <div className="flex gap-2">
+              <Select value={countryCode} onValueChange={setCountryCode}>
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="+225">🇨🇮 +225</SelectItem>
+                  <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                  <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                  <SelectItem value="+32">🇧🇪 +32</SelectItem>
+                  <SelectItem value="+41">🇨🇭 +41</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="0701020304"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                maxLength={10}
+                className={!isPhoneValid && phone.length > 0 ? "border-destructive" : ""}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pour recevoir vos rappels d'anniversaire par SMS
             </p>
           </div>
         </div>
