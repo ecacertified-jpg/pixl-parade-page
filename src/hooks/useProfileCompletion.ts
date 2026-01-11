@@ -9,6 +9,7 @@ export const useProfileCompletion = () => {
   const [initialData, setInitialData] = useState<{
     firstName?: string;
     lastName?: string;
+    phone?: string;
   }>({});
 
   const checkProfileCompletion = useCallback(async () => {
@@ -21,7 +22,7 @@ export const useProfileCompletion = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, birthday, city')
+        .select('first_name, last_name, birthday, city, phone')
         .eq('user_id', user.id)
         .single();
 
@@ -32,8 +33,8 @@ export const useProfileCompletion = () => {
         return;
       }
 
-      // Profile is incomplete if birthday OR city is missing
-      const incomplete = !data?.birthday || !data?.city;
+      // Profile is incomplete if birthday, city OR phone is missing
+      const incomplete = !data?.birthday || !data?.city || !data?.phone;
       setNeedsCompletion(incomplete);
 
       // Store initial data from Google if available
@@ -41,6 +42,7 @@ export const useProfileCompletion = () => {
         setInitialData({
           firstName: data?.first_name || user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name,
           lastName: data?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || user.user_metadata?.last_name,
+          phone: data?.phone || user.phone || '',
         });
       }
     } catch (error) {
