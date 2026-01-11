@@ -116,11 +116,19 @@ const Auth = () => {
       setIsLoading(true);
       const fullPhone = `${data.countryCode}${data.phone}`;
       
+      console.log('📱 [OTP Sign-In] Sending OTP to:', fullPhone);
+      
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
       });
 
       if (error) {
+        console.error('❌ [OTP Sign-In] Send error:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+          name: error.name,
+        });
         toast({
           title: 'Erreur',
           description: error.message,
@@ -129,14 +137,16 @@ const Auth = () => {
         return;
       }
 
+      console.log('✅ [OTP Sign-In] OTP sent successfully to:', fullPhone);
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(60);
       toast({
         title: 'Code envoyé',
-        description: 'Un code de vérification a été envoyé par SMS',
+        description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('💥 [OTP Sign-In] Unexpected error:', error);
       toast({
         title: 'Erreur',
         description: 'Une erreur inattendue s\'est produite',
@@ -152,6 +162,11 @@ const Auth = () => {
       setIsLoading(true);
       const fullPhone = `${data.countryCode}${data.phone}`;
       
+      console.log('📱 [OTP Sign-Up] Sending OTP to:', fullPhone, 'with metadata:', {
+        first_name: data.firstName,
+        city: data.city,
+      });
+      
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
         options: {
@@ -165,6 +180,12 @@ const Auth = () => {
       });
 
       if (error) {
+        console.error('❌ [OTP Sign-Up] Send error:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+          name: error.name,
+        });
         toast({
           title: 'Erreur',
           description: error.message,
@@ -173,15 +194,17 @@ const Auth = () => {
         return;
       }
 
+      console.log('✅ [OTP Sign-Up] OTP sent successfully to:', fullPhone);
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setAuthMode('signup');
       setCountdown(60);
       toast({
         title: 'Code envoyé',
-        description: 'Un code de vérification a été envoyé par SMS',
+        description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('💥 [OTP Sign-Up] Unexpected error:', error);
       toast({
         title: 'Erreur',
         description: 'Une erreur inattendue s\'est produite',
@@ -196,6 +219,12 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
+      console.log('🔐 [OTP Verify] Verifying OTP:', {
+        phone: currentPhone,
+        tokenLength: data.otp.length,
+        tokenPreview: data.otp.substring(0, 2) + '****',
+      });
+      
       const { data: authData, error } = await supabase.auth.verifyOtp({
         phone: currentPhone,
         token: data.otp,
@@ -203,13 +232,21 @@ const Auth = () => {
       });
 
       if (error) {
+        console.error('❌ [OTP Verify] Verification failed:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+          name: error.name,
+        });
         toast({
           title: 'Code invalide',
-          description: 'Le code saisi est incorrect ou expiré',
+          description: error.message || 'Le code saisi est incorrect ou expiré',
           variant: 'destructive',
         });
         return;
       }
+
+      console.log('✅ [OTP Verify] Verification successful, user:', authData.user?.id);
 
       if (authData.user) {
         // Check if this is a new signup by checking profile creation time
@@ -270,7 +307,8 @@ const Auth = () => {
           await handleSmartRedirect(authData.user, navigate);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('💥 [OTP Verify] Unexpected error:', error);
       toast({
         title: 'Erreur',
         description: 'Une erreur inattendue s\'est produite',
@@ -286,11 +324,19 @@ const Auth = () => {
     
     try {
       setIsLoading(true);
+      
+      console.log('🔄 [OTP Resend] Resending OTP to:', currentPhone);
+      
       const { error } = await supabase.auth.signInWithOtp({
         phone: currentPhone,
       });
 
       if (error) {
+        console.error('❌ [OTP Resend] Error:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+        });
         toast({
           title: 'Erreur',
           description: error.message,
@@ -299,12 +345,14 @@ const Auth = () => {
         return;
       }
 
+      console.log('✅ [OTP Resend] OTP resent successfully');
       setCountdown(60);
       toast({
         title: 'Code renvoyé',
-        description: 'Un nouveau code a été envoyé par SMS',
+        description: 'Un nouveau code a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('💥 [OTP Resend] Unexpected error:', error);
       toast({
         title: 'Erreur',
         description: 'Une erreur inattendue s\'est produite',
