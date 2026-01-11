@@ -40,9 +40,20 @@ const otpSchema = z.object({
   otp: z.string().length(6, 'Le code doit contenir 6 chiffres'),
 });
 
+// Schéma pour compléter l'inscription (sans téléphone car déjà authentifié via OTP)
+const completeRegistrationSchema = z.object({
+  firstName: z.string().min(2, 'Le prénom est requis (min 2 caractères)'),
+  lastName: z.string().min(2, 'Le nom est requis (min 2 caractères)'),
+  businessName: z.string().min(2, 'Le nom d\'entreprise est requis (min 2 caractères)'),
+  businessType: z.string().optional(),
+  address: z.string().optional(),
+  description: z.string().optional(),
+});
+
 type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
 type OtpFormData = z.infer<typeof otpSchema>;
+type CompleteRegistrationFormData = z.infer<typeof completeRegistrationSchema>;
 
 const BusinessAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +85,10 @@ const BusinessAuth = () => {
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { countryCode: '+225' },
+  });
+
+  const completeRegistrationForm = useForm<CompleteRegistrationFormData>({
+    resolver: zodResolver(completeRegistrationSchema),
   });
 
   const businessType = signUpForm.watch('businessType');
@@ -431,7 +446,7 @@ const BusinessAuth = () => {
   };
 
   // Compléter l'inscription business (après connexion sans business account)
-  const completeBusinessRegistration = async (formData: SignUpFormData) => {
+  const completeBusinessRegistration = async (formData: CompleteRegistrationFormData) => {
     if (!authenticatedUserId) return;
     
     setIsLoading(true);
@@ -520,7 +535,7 @@ const BusinessAuth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={signUpForm.handleSubmit(completeBusinessRegistration)} className="space-y-4">
+            <form onSubmit={completeRegistrationForm.handleSubmit(completeBusinessRegistration)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="complete-firstName" className="flex items-center gap-1">
@@ -529,8 +544,13 @@ const BusinessAuth = () => {
                   <Input
                     id="complete-firstName"
                     placeholder="Votre prénom"
-                    {...signUpForm.register('firstName')}
+                    {...completeRegistrationForm.register('firstName')}
                   />
+                  {completeRegistrationForm.formState.errors.firstName && (
+                    <p className="text-sm text-destructive">
+                      {completeRegistrationForm.formState.errors.firstName.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="complete-lastName" className="flex items-center gap-1">
@@ -539,8 +559,13 @@ const BusinessAuth = () => {
                   <Input
                     id="complete-lastName"
                     placeholder="Votre nom"
-                    {...signUpForm.register('lastName')}
+                    {...completeRegistrationForm.register('lastName')}
                   />
+                  {completeRegistrationForm.formState.errors.lastName && (
+                    <p className="text-sm text-destructive">
+                      {completeRegistrationForm.formState.errors.lastName.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -551,9 +576,14 @@ const BusinessAuth = () => {
                 <Input
                   id="complete-businessName"
                   placeholder="Mon Enterprise SARL"
-                  {...signUpForm.register('businessName')}
+                  {...completeRegistrationForm.register('businessName')}
                   onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
                 />
+                {completeRegistrationForm.formState.errors.businessName && (
+                  <p className="text-sm text-destructive">
+                    {completeRegistrationForm.formState.errors.businessName.message}
+                  </p>
+                )}
                 {businessNameError && (
                   <p className="text-sm text-destructive">{businessNameError}</p>
                 )}
@@ -561,7 +591,7 @@ const BusinessAuth = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="complete-businessType">Type d'activité</Label>
-                <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
+                <Select onValueChange={(value) => completeRegistrationForm.setValue('businessType', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionnez votre activité" />
                   </SelectTrigger>
@@ -580,7 +610,7 @@ const BusinessAuth = () => {
                 <Input
                   id="complete-address"
                   placeholder="Cocody, Abidjan"
-                  {...signUpForm.register('address')}
+                  {...completeRegistrationForm.register('address')}
                 />
               </div>
 
@@ -590,7 +620,7 @@ const BusinessAuth = () => {
                   id="complete-description"
                   placeholder="Décrivez votre activité..."
                   rows={3}
-                  {...signUpForm.register('description')}
+                  {...completeRegistrationForm.register('description')}
                 />
               </div>
 
