@@ -12,11 +12,76 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Loader2, Phone, Edit2 } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+
+// Progress Indicator Component
+const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
+  return (
+    <div className="space-y-3 mb-6 p-4 bg-secondary/30 rounded-xl">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-foreground">{step}</span>
+        <span className="text-sm font-semibold text-primary">{progress}%</span>
+      </div>
+      <Progress 
+        value={progress} 
+        className="h-2" 
+        indicatorClassName={cn(
+          "transition-all duration-500",
+          progress === 100 ? "bg-green-500" : "bg-primary"
+        )}
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-1">
+          {progress >= 25 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Identité</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {progress >= 50 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Business</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {progress >= 75 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Contact</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Validation</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Signup Progress Indicator with form integration
+const SignupProgressIndicator = ({ signUpForm }: { signUpForm: any }) => {
+  const values = signUpForm.watch();
+  
+  // Calculate progress based on filled required fields
+  let filledFields = 0;
+  const totalRequiredFields = 4; // firstName, lastName, businessName, phone
+  
+  if (values.firstName && values.firstName.length >= 2) filledFields++;
+  if (values.lastName && values.lastName.length >= 2) filledFields++;
+  if (values.businessName && values.businessName.length >= 2) filledFields++;
+  if (values.phone && /^[0-9]{8,10}$/.test(values.phone)) filledFields++;
+  
+  const progress = Math.round((filledFields / totalRequiredFields) * 100);
+  
+  const getStepLabel = (progress: number) => {
+    if (progress === 0) return 'Commencez votre inscription';
+    if (progress < 50) return 'Informations personnelles';
+    if (progress < 75) return 'Informations business';
+    if (progress < 100) return 'Presque terminé !';
+    return 'Prêt pour la vérification';
+  };
+
+  return <ProgressIndicator progress={progress} step={getStepLabel(progress)} />;
+};
 
 // Google Icon component
 const GoogleIcon = () => (
@@ -911,6 +976,9 @@ const BusinessAuth = () => {
             
             {/* Onglet Inscription */}
             <TabsContent value="signup">
+              {/* Progress Indicator */}
+              <SignupProgressIndicator signUpForm={signUpForm} />
+              
               <form onSubmit={signUpForm.handleSubmit(sendOtpSignUp)} className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
