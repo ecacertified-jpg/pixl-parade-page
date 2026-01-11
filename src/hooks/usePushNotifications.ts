@@ -223,11 +223,13 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      await diagnosePermissionState();
-      console.log('🔔 Début de l\'abonnement aux notifications push');
-
-      // Request permission avec fallback pour Chrome
-      const { permission: perm, registration: existingRegistration } = await requestPermissionWithFallback();
+      console.log('🔔 Demande de permission immédiate...');
+      
+      // IMPORTANT: Appeler requestPermission() IMMÉDIATEMENT au clic
+      // Cela garantit que le popup natif du navigateur apparaît
+      const perm = await Notification.requestPermission();
+      
+      console.log('✅ Permission après demande:', perm);
       setPermission(perm);
 
       if (perm !== 'granted') {
@@ -247,23 +249,17 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      // Utiliser le registration existant ou en créer un nouveau
-      let registration: ServiceWorkerRegistration;
-      if (existingRegistration) {
-        registration = existingRegistration;
-        console.log('✅ Réutilisation du service worker existant');
-        // Attendre l'activation même pour les registrations existants
-        await waitForServiceWorkerActivation(registration);
-      } else {
-        console.log('📝 Enregistrement d\'un nouveau service worker');
-        registration = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
-        
-        // Attendre l'activation complète
-        await waitForServiceWorkerActivation(registration);
-      }
+      // Permission accordée - maintenant on peut faire le diagnostic et le reste
+      await diagnosePermissionState();
+      console.log('🔔 Début de l\'abonnement aux notifications push');
 
-      // Vérifier que pushManager est disponible
+      // Enregistrer un nouveau service worker
+      console.log('📝 Enregistrement du service worker');
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      
+      // Attendre l'activation complète
+      await waitForServiceWorkerActivation(registration);
       if (!registration.pushManager) {
         throw new Error('PushManager non disponible sur ce service worker');
       }
