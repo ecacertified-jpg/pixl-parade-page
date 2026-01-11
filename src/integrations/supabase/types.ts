@@ -6271,6 +6271,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_stats_for_admin: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
       get_visible_profiles_for_posts: {
         Args: { p_user_ids: string[]; p_viewer_id: string }
         Returns: {

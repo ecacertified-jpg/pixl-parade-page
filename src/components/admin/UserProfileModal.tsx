@@ -120,37 +120,34 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
     if (!userId) return;
 
     try {
-      const [
-        { count: giftsGiven },
-        { count: giftsReceived },
-        { count: fundsCreated },
-        { count: friendsCount },
-        { count: contributionsCount },
-        { data: contributionsData },
-        { data: communityData }
-      ] = await Promise.all([
-        supabase.from('gifts').select('*', { count: 'exact', head: true }).eq('giver_id', userId),
-        supabase.from('gifts').select('*', { count: 'exact', head: true }).eq('receiver_id', userId),
-        supabase.from('collective_funds').select('*', { count: 'exact', head: true }).eq('creator_id', userId),
-        supabase.from('contact_relationships').select('*', { count: 'exact', head: true }).or(`user_a.eq.${userId},user_b.eq.${userId}`),
-        supabase.from('fund_contributions').select('*', { count: 'exact', head: true }).eq('contributor_id', userId),
-        supabase.from('fund_contributions').select('amount').eq('contributor_id', userId),
-        supabase.from('community_scores').select('total_points').eq('user_id', userId).single()
-      ]);
+      const { data, error } = await supabase
+        .rpc('get_user_stats_for_admin', { target_user_id: userId });
 
-      const totalContributed = contributionsData?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
+      if (error) throw error;
 
-      setStats({
-        giftsGiven: giftsGiven || 0,
-        giftsReceived: giftsReceived || 0,
-        fundsCreated: fundsCreated || 0,
-        friendsCount: friendsCount || 0,
-        contributionsCount: contributionsCount || 0,
-        totalContributed,
-        communityPoints: communityData?.total_points || 0,
-      });
+      if (data) {
+        const statsData = data as {
+          giftsGiven: number;
+          giftsReceived: number;
+          fundsCreated: number;
+          friendsCount: number;
+          contributionsCount: number;
+          totalContributed: number;
+          communityPoints: number;
+        };
+        setStats({
+          giftsGiven: statsData.giftsGiven || 0,
+          giftsReceived: statsData.giftsReceived || 0,
+          fundsCreated: statsData.fundsCreated || 0,
+          friendsCount: statsData.friendsCount || 0,
+          contributionsCount: statsData.contributionsCount || 0,
+          totalContributed: statsData.totalContributed || 0,
+          communityPoints: statsData.communityPoints || 0,
+        });
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
+      toast.error("Erreur lors du chargement des statistiques");
     }
   };
 
