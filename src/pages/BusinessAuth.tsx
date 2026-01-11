@@ -654,9 +654,23 @@ const BusinessAuth = () => {
               </CardTitle>
             </div>
             <CardDescription className="text-base">
-              Entrez le code à 6 chiffres envoyé au
-              <br />
-              <span className="font-medium text-foreground">{currentPhone}</span>
+              {authMode === 'signup' ? (
+                <>
+                  Dernière étape ! Entrez le code à 6 chiffres envoyé au
+                  <br />
+                  <span className="font-medium text-foreground">{currentPhone}</span>
+                  <br />
+                  <span className="text-xs text-muted-foreground mt-1 block">
+                    Votre compte business sera créé après vérification
+                  </span>
+                </>
+              ) : (
+                <>
+                  Entrez le code à 6 chiffres envoyé au
+                  <br />
+                  <span className="font-medium text-foreground">{currentPhone}</span>
+                </>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -685,10 +699,10 @@ const BusinessAuth = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Vérification...
+                  {authMode === 'signup' ? 'Création du compte...' : 'Vérification...'}
                 </>
               ) : (
-                'Vérifier'
+                authMode === 'signup' ? 'Créer mon compte business' : 'Se connecter'
               )}
             </Button>
 
@@ -932,10 +946,13 @@ const BusinessAuth = () => {
                   ) : (
                     <>
                       <Phone className="mr-2 h-4 w-4" />
-                      Créer mon compte business
+                      Continuer - Vérifier mon numéro
                     </>
                   )}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Un code de vérification sera envoyé à votre téléphone
+                </p>
               </form>
             </TabsContent>
           </Tabs>
