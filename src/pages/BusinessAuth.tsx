@@ -83,6 +83,97 @@ const SignupProgressIndicator = ({ signUpForm }: { signUpForm: any }) => {
   return <ProgressIndicator progress={progress} step={getStepLabel(progress)} />;
 };
 
+// Complete Registration Progress Indicator (for Google Auth completion form)
+const CompleteRegistrationProgressIndicator = ({ 
+  form, 
+  isGoogleAuth 
+}: { 
+  form: any; 
+  isGoogleAuth: boolean;
+}) => {
+  const values = form.watch();
+  
+  // Champs requis : firstName, lastName, businessName
+  // + phone si Google Auth (optionnel mais compte pour la progression)
+  let filledFields = 0;
+  const totalRequiredFields = 3; // Toujours 3 requis (firstName, lastName, businessName)
+  
+  if (values.firstName && values.firstName.length >= 2) filledFields++;
+  if (values.lastName && values.lastName.length >= 2) filledFields++;
+  if (values.businessName && values.businessName.length >= 2) filledFields++;
+  
+  // Bonus pour champs optionnels (ajoute un pourcentage supplémentaire)
+  let bonusProgress = 0;
+  if (isGoogleAuth && values.phone && /^[0-9]{8,10}$/.test(values.phone)) bonusProgress += 10;
+  if (values.businessType) bonusProgress += 5;
+  if (values.address) bonusProgress += 3;
+  if (values.description) bonusProgress += 2;
+  
+  const baseProgress = Math.round((filledFields / totalRequiredFields) * 80); // 80% max pour champs requis
+  const progress = Math.min(100, baseProgress + bonusProgress);
+  
+  const getStepLabel = (progress: number) => {
+    if (progress === 0) return 'Complétez votre profil';
+    if (progress < 30) return 'Informations personnelles';
+    if (progress < 60) return 'Informations business';
+    if (progress < 80) return 'Presque terminé !';
+    return 'Prêt à finaliser !';
+  };
+
+  const isIdentityComplete = values.firstName?.length >= 2 && values.lastName?.length >= 2;
+  const isBusinessComplete = values.businessName?.length >= 2;
+  const isContactComplete = isGoogleAuth ? (values.phone && /^[0-9]{8,10}$/.test(values.phone)) : true;
+  const isReady = isIdentityComplete && isBusinessComplete;
+
+  return (
+    <div className="space-y-3 mb-6 p-4 bg-secondary/30 rounded-xl">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-foreground">{getStepLabel(progress)}</span>
+        <span className="text-sm font-semibold text-primary">{progress}%</span>
+      </div>
+      <Progress 
+        value={progress} 
+        className="h-2" 
+        indicatorClassName={cn(
+          "transition-all duration-500",
+          progress >= 80 ? "bg-green-500" : "bg-primary"
+        )}
+      />
+      <div className={cn(
+        "flex text-xs text-muted-foreground",
+        isGoogleAuth ? "justify-between" : "justify-around"
+      )}>
+        <div className="flex items-center gap-1">
+          {isIdentityComplete 
+            ? <Check className="h-3 w-3 text-green-500" /> 
+            : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Identité</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {isBusinessComplete 
+            ? <Check className="h-3 w-3 text-green-500" /> 
+            : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Business</span>
+        </div>
+        {isGoogleAuth && (
+          <div className="flex items-center gap-1">
+            {isContactComplete
+              ? <Check className="h-3 w-3 text-green-500" /> 
+              : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+            <span>Contact</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          {isReady 
+            ? <Check className="h-3 w-3 text-green-500" /> 
+            : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Prêt</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Google Icon component
 const GoogleIcon = () => (
   <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -689,6 +780,12 @@ const BusinessAuth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Progress Indicator */}
+            <CompleteRegistrationProgressIndicator 
+              form={completeRegistrationForm} 
+              isGoogleAuth={isGoogleAuth}
+            />
+            
             <form onSubmit={completeRegistrationForm.handleSubmit(completeBusinessRegistration)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
