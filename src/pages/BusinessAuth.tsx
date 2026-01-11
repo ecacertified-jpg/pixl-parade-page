@@ -116,12 +116,13 @@ const otpSchema = z.object({
   otp: z.string().length(6, 'Le code doit contenir 6 chiffres'),
 });
 
-// Schéma pour compléter l'inscription (sans téléphone car déjà authentifié via OTP)
+// Schéma pour compléter l'inscription (téléphone optionnel pour Google Auth)
 const completeRegistrationSchema = z.object({
   firstName: z.string().min(2, 'Le prénom est requis (min 2 caractères)'),
   lastName: z.string().min(2, 'Le nom est requis (min 2 caractères)'),
   businessName: z.string().min(2, 'Le nom d\'entreprise est requis (min 2 caractères)'),
   businessType: z.string().optional(),
+  phone: z.string().regex(/^[0-9]{8,10}$/, 'Format invalide').optional().or(z.literal('')),
   address: z.string().optional(),
   description: z.string().optional(),
 });
@@ -136,6 +137,8 @@ const BusinessAuth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [businessNameError, setBusinessNameError] = useState<string | null>(null);
   const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
+  const [isGoogleAuth, setIsGoogleAuth] = useState(false);
+  const [completePhoneCountryCode, setCompletePhoneCountryCode] = useState('+225');
   const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
   const [authenticatedPhone, setAuthenticatedPhone] = useState<string | null>(null);
   
@@ -218,6 +221,19 @@ const BusinessAuth = () => {
         if (linkResult?.linked) {
           setUserMode('business');
           navigate('/business-account', { replace: true });
+        } else {
+          // No business account - show completion form for Google Auth users
+          setAuthenticatedUserId(user.id);
+          setAuthenticatedPhone(user.phone || '');
+          setIsGoogleAuth(!user.phone); // Google Auth users don't have phone
+          setShowCompleteRegistration(true);
+          
+          // Pre-fill form with Google data
+          const firstName = user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.given_name || '';
+          const lastName = user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || user.user_metadata?.family_name || '';
+          
+          completeRegistrationForm.setValue('firstName', firstName);
+          completeRegistrationForm.setValue('lastName', lastName);
         }
       }
     } catch (error) {
@@ -592,13 +608,17 @@ const BusinessAuth = () => {
         return;
       }
 
+      // Déterminer le téléphone : OTP phone ou formulaire phone (Google Auth)
+      const phoneToUse = authenticatedPhone || (formData.phone ? `${completePhoneCountryCode}${formData.phone}` : '');
+
       const { error: businessError } = await supabase
         .from('business_accounts')
         .insert({
           user_id: authenticatedUserId,
           business_name: formData.businessName,
           business_type: formData.businessType || '',
-          phone: authenticatedPhone || '',
+          phone: phoneToUse,
+          email: user?.email || '',
           address: formData.address || '',
           description: formData.description || '',
           is_active: true,
@@ -738,6 +758,41 @@ const BusinessAuth = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Téléphone (affiché uniquement pour Google Auth) */}
+              {isGoogleAuth && (
+                <div className="space-y-2">
+                  <Label htmlFor="complete-phone" className="flex items-center gap-1">
+                    <Phone className="h-4 w-4 text-primary" />
+                    Téléphone <span className="text-xs text-muted-foreground">(optionnel)</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select 
+                      value={completePhoneCountryCode}
+                      onValueChange={setCompletePhoneCountryCode}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map(({ code, flag }) => (
+                          <SelectItem key={code} value={code}>
+                            {flag} {code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="complete-phone"
+                      placeholder="0701020304"
+                      {...completeRegistrationForm.register('phone')}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pour recevoir les notifications de commandes par SMS
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="complete-address">Adresse</Label>
