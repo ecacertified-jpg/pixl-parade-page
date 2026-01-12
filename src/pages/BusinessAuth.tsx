@@ -18,6 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Store, ArrowLeft, Loader2, Phone, Edit2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
+import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -242,10 +244,16 @@ const BusinessAuth = () => {
   const [otpValue, setOtpValue] = useState('');
   const [countryCode, setCountryCode] = useState('+225');
   
+  // États pour détection des doublons
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<DuplicateCheckResult | null>(null);
+  const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, setUserMode, refreshSession } = useAuth();
+  const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
 
   // Forms
   const signInForm = useForm<SignInFormData>({
@@ -473,8 +481,13 @@ const BusinessAuth = () => {
     }
   };
 
+  // Handler pour le formulaire d'inscription
+  const handleSignUpSubmit = async (data: SignUpFormData) => {
+    await sendOtpSignUp(data, false);
+  };
+
   // Envoyer OTP pour inscription
-  const sendOtpSignUp = async (data: SignUpFormData) => {
+  const sendOtpSignUp = async (data: SignUpFormData, skipDuplicateCheck: boolean) => {
     setIsLoading(true);
     
     // Vérifier l'unicité du nom d'entreprise
@@ -490,6 +503,21 @@ const BusinessAuth = () => {
     }
 
     const fullPhone = `${countryCode}${data.phone}`;
+    
+    // Vérification des doublons avant inscription (sauf si on a déjà vérifié)
+    if (!skipDuplicateCheck) {
+      console.log('🔍 [Business Duplicate Check] Checking for existing accounts...');
+      const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName);
+      
+      if (duplicateCheck.hasPotentialDuplicate) {
+        console.log('⚠️ [Business Duplicate Check] Found potential duplicate:', duplicateCheck);
+        setDuplicateResult(duplicateCheck);
+        setPendingSignUpData(data);
+        setShowDuplicateModal(true);
+        setIsLoading(false);
+        return;
+      }
+    }
     
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -531,6 +559,38 @@ const BusinessAuth = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handlers pour le modal de doublon
+  const handleDuplicateLoginWithPhone = (phone: string) => {
+    setShowDuplicateModal(false);
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
+    // Passer en mode connexion et pré-remplir le numéro
+    setAuthMode('signin');
+    const phoneDigits = phone.replace(/^\+\d{1,3}/, '');
+    signInForm.setValue('phone', phoneDigits.slice(-10));
+    toast({
+      title: 'Connexion',
+      description: 'Envoyez un code de vérification pour vous connecter',
+    });
+  };
+
+  const handleDuplicateLoginWithGoogle = () => {
+    setShowDuplicateModal(false);
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
+    signInWithGoogle();
+  };
+
+  const handleDuplicateContinueAnyway = () => {
+    setShowDuplicateModal(false);
+    if (pendingSignUpData) {
+      // Continuer l'inscription en sautant la vérification des doublons
+      sendOtpSignUp(pendingSignUpData, true);
+    }
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
   };
 
   // Vérifier OTP
@@ -1131,7 +1191,7 @@ const BusinessAuth = () => {
               {/* Progress Indicator */}
               <SignupProgressIndicator signUpForm={signUpForm} />
               
-              <form onSubmit={signUpForm.handleSubmit(sendOtpSignUp)} className="space-y-4 mt-4">
+              <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="flex items-center gap-1">
@@ -1291,6 +1351,20 @@ const BusinessAuth = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Modal de détection des doublons */}
+      <DuplicateAccountModal
+        isOpen={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setPendingSignUpData(null);
+          setDuplicateResult(null);
+        }}
+        duplicateResult={duplicateResult}
+        onLoginWithGoogle={handleDuplicateLoginWithGoogle}
+        onLoginWithPhone={handleDuplicateLoginWithPhone}
+        onContinueAnyway={handleDuplicateContinueAnyway}
+      />
     </div>
   );
 };

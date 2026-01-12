@@ -17,6 +17,8 @@ import { Store, Gift, Loader2, Shield } from 'lucide-react';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
+import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
+import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -50,10 +52,17 @@ const Auth = () => {
   const [countdown, setCountdown] = useState(0);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  
+  // États pour détection des doublons
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<DuplicateCheckResult | null>(null);
+  const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
+  const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -157,10 +166,29 @@ const Auth = () => {
     }
   };
 
-  const sendOtpSignUp = async (data: SignUpFormData) => {
+  const handleSignUpSubmit = async (data: SignUpFormData) => {
+    await sendOtpSignUp(data, false);
+  };
+
+  const sendOtpSignUp = async (data: SignUpFormData, skipDuplicateCheck: boolean) => {
     try {
       setIsLoading(true);
       const fullPhone = `${data.countryCode}${data.phone}`;
+      
+      // Vérification des doublons avant inscription (sauf si on a déjà vérifié)
+      if (!skipDuplicateCheck) {
+        console.log('🔍 [Duplicate Check] Checking for existing accounts...');
+        const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName, data.city);
+        
+        if (duplicateCheck.hasPotentialDuplicate) {
+          console.log('⚠️ [Duplicate Check] Found potential duplicate:', duplicateCheck);
+          setDuplicateResult(duplicateCheck);
+          setPendingSignUpData(data);
+          setShowDuplicateModal(true);
+          setIsLoading(false);
+          return;
+        }
+      }
       
       console.log('📱 [OTP Sign-Up] Sending OTP to:', fullPhone, 'with metadata:', {
         first_name: data.firstName,
@@ -213,6 +241,38 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handlers pour le modal de doublon
+  const handleDuplicateLoginWithPhone = (phone: string) => {
+    setShowDuplicateModal(false);
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
+    // Passer en mode connexion et pré-remplir le numéro
+    setAuthMode('signin');
+    const phoneDigits = phone.replace(/^\+\d{1,3}/, '');
+    signInForm.setValue('phone', phoneDigits.slice(-10));
+    toast({
+      title: 'Connexion',
+      description: 'Envoyez un code de vérification pour vous connecter',
+    });
+  };
+
+  const handleDuplicateLoginWithGoogle = () => {
+    setShowDuplicateModal(false);
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
+    signInWithGoogle();
+  };
+
+  const handleDuplicateContinueAnyway = () => {
+    setShowDuplicateModal(false);
+    if (pendingSignUpData) {
+      // Continuer l'inscription en sautant la vérification des doublons
+      sendOtpSignUp(pendingSignUpData, true);
+    }
+    setDuplicateResult(null);
+    setPendingSignUpData(null);
   };
 
   const verifyOtp = async (data: OtpFormData) => {
@@ -517,8 +577,8 @@ const Auth = () => {
                     )}
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Envoi...' : 'Envoyer le code'}
+                  <Button type="submit" className="w-full" disabled={isLoading || isChecking}>
+                    {isLoading || isChecking ? 'Vérification...' : 'Envoyer le code'}
                   </Button>
 
                   <div className="relative my-4">
@@ -546,7 +606,7 @@ const Auth = () => {
               </TabsContent>
               
               <TabsContent value="signup">
-                <form onSubmit={signUpForm.handleSubmit(sendOtpSignUp)} className="space-y-4">
+                <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">Prénom</Label>
                     <Input
@@ -615,8 +675,8 @@ const Auth = () => {
                     )}
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Envoi...' : 'Envoyer le code'}
+                  <Button type="submit" className="w-full" disabled={isLoading || isChecking}>
+                    {isLoading || isChecking ? 'Vérification...' : 'Envoyer le code'}
                   </Button>
 
                   <div className="relative my-4">
@@ -721,6 +781,20 @@ const Auth = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de détection des doublons */}
+      <DuplicateAccountModal
+        isOpen={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setPendingSignUpData(null);
+          setDuplicateResult(null);
+        }}
+        duplicateResult={duplicateResult}
+        onLoginWithGoogle={handleDuplicateLoginWithGoogle}
+        onLoginWithPhone={handleDuplicateLoginWithPhone}
+        onContinueAnyway={handleDuplicateContinueAnyway}
+      />
     </div>
   );
 };
