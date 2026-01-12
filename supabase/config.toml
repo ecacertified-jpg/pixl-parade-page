@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.merge-user-accounts]
 verify_jwt = true
+
+[functions.detect-duplicate-accounts]
+verify_jwt = true

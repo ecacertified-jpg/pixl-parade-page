@@ -36,7 +36,9 @@ import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
 import { BusinessPerformanceAlertsBanner } from '@/components/admin/BusinessPerformanceAlertsBanner';
 import { AddBusinessAccountModal } from '@/components/admin/AddBusinessAccountModal';
+import { UnifyBusinessAccountsModal } from '@/components/admin/UnifyBusinessAccountsModal';
 import { useAdmin } from '@/hooks/useAdmin';
+import { GitMerge } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -88,6 +90,7 @@ export default function BusinessManagement() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [addBusinessModalOpen, setAddBusinessModalOpen] = useState(false);
+  const [unifyBusinessModalOpen, setUnifyBusinessModalOpen] = useState(false);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -463,13 +466,21 @@ export default function BusinessManagement() {
               Gérer et valider les comptes business
             </p>
           </div>
-          {isSuperAdmin && (
-            <Button onClick={() => setAddBusinessModalOpen(true)}>
-              <Building2 className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Ajouter un prestataire</span>
-              <span className="sm:hidden">Ajouter</span>
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={() => setUnifyBusinessModalOpen(true)}>
+                <GitMerge className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Unifier prestataires</span>
+              </Button>
+            )}
+            {isSuperAdmin && (
+              <Button onClick={() => setAddBusinessModalOpen(true)}>
+                <Building2 className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Ajouter un prestataire</span>
+                <span className="sm:hidden">Ajouter</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Performance Alerts Banner */}
@@ -886,6 +897,12 @@ export default function BusinessManagement() {
           open={addBusinessModalOpen}
           onOpenChange={setAddBusinessModalOpen}
           onSuccess={fetchBusinesses}
+        />
+
+        <UnifyBusinessAccountsModal
+          open={unifyBusinessModalOpen}
+          onOpenChange={setUnifyBusinessModalOpen}
+          onMergeComplete={fetchBusinesses}
         />
       </div>
     </AdminLayout>
