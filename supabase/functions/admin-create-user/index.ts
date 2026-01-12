@@ -160,9 +160,9 @@ serve(async (req) => {
           email: body.business_email || null,
           address: body.business_address || null,
           description: body.business_description || null,
-          is_active: body.is_active !== false,
+          is_active: true,
           is_verified: body.is_verified === true,
-          status: body.is_verified ? 'approved' : 'pending'
+          status: 'active'
         })
         .select('id')
         .single();
