@@ -405,8 +405,14 @@ export default function DeletedBusinesses() {
                     {filteredBusinesses.map((business) => (
                       <TableRow key={business.id}>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{business.business_name}</p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{business.business_name}</p>
+                              <Badge variant="secondary" className="bg-gray-500 hover:bg-gray-600 text-white">
+                                <Trash2 className="mr-1 h-3 w-3" />
+                                Supprimé
+                              </Badge>
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               {business.business_type || 'Non spécifié'}
                             </p>
