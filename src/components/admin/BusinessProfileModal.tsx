@@ -238,8 +238,11 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
           
           <TabsContent value="info" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Informations générales</CardTitle>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary flex-shrink-0" />
+                  <span>Informations générales</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -312,20 +315,20 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
           
           <TabsContent value="products">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Produits et services ({stats.productsCount})
+                    <Package className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span>Produits et services ({stats.productsCount})</span>
                   </CardTitle>
                   {isSuperAdmin && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <Button size="sm" variant="outline" onClick={() => setManageCategoriesOpen(true)}>
-                        <Tag className="h-4 w-4 mr-1" />
+                        <Tag className="h-4 w-4 mr-2" />
                         Catégories
                       </Button>
                       <Button size="sm" onClick={() => setAddProductOpen(true)}>
-                        <Plus className="h-4 w-4 mr-1" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Ajouter
                       </Button>
                     </div>
@@ -334,14 +337,16 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
               </CardHeader>
               <CardContent>
                 {products.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Package className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
                       Aucun produit disponible pour le moment
                     </p>
                     {isSuperAdmin && (
-                      <Button variant="outline" size="sm" className="mt-4" onClick={() => setAddProductOpen(true)}>
-                        <Plus className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm" onClick={() => setAddProductOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
                         Ajouter un produit
                       </Button>
                     )}
