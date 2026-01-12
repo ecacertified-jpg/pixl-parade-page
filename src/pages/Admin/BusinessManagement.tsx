@@ -41,8 +41,9 @@ import { AdminAddProductModal } from '@/components/admin/AdminAddProductModal';
 import { AdminEditBusinessModal } from '@/components/admin/AdminEditBusinessModal';
 import { AdminAddBusinessToOwnerModal } from '@/components/admin/AdminAddBusinessToOwnerModal';
 import { AdminManageCategoriesModal } from '@/components/admin/AdminManageCategoriesModal';
+import { AdminOrdersModal } from '@/components/admin/AdminOrdersModal';
 import { useAdmin } from '@/hooks/useAdmin';
-import { GitMerge, Package, UserPlus, Tag } from 'lucide-react';
+import { GitMerge, Package, UserPlus, Tag, ShoppingCart } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -103,6 +104,8 @@ export default function BusinessManagement() {
   const [productBusinessId, setProductBusinessId] = useState<string | null>(null);
   const [manageCategoriesModalOpen, setManageCategoriesModalOpen] = useState(false);
   const [categoryBusiness, setCategoryBusiness] = useState<Business | null>(null);
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+  const [ordersBusiness, setOrdersBusiness] = useState<Business | null>(null);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -882,6 +885,13 @@ export default function BusinessManagement() {
                                 <Tag className="mr-2 h-4 w-4" />
                                 Gérer les catégories
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setOrdersBusiness(business);
+                                setOrdersModalOpen(true);
+                              }}>
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Voir les commandes
+                              </DropdownMenuItem>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -980,6 +990,16 @@ export default function BusinessManagement() {
           onOpenChange={(open) => {
             setManageCategoriesModalOpen(open);
             if (!open) setCategoryBusiness(null);
+          }}
+        />
+
+        <AdminOrdersModal
+          businessId={ordersBusiness?.id || null}
+          businessName={ordersBusiness?.business_name || ''}
+          open={ordersModalOpen}
+          onOpenChange={(open) => {
+            setOrdersModalOpen(open);
+            if (!open) setOrdersBusiness(null);
           }}
         />
       </div>
