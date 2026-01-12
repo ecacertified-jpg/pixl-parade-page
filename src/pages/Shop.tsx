@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store } from "lucide-react";
+import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,10 @@ export default function Shop() {
   const [ratingProductId, setRatingProductId] = useState<string>("");
   const [ratingProductName, setRatingProductName] = useState<string>("");
   const [contributionTarget, setContributionTarget] = useState<any>(null);
+  
+  // State for product detail modal
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailProduct, setDetailProduct] = useState<typeof products[0] | null>(null);
   
   // Pre-selected recipient from URL params (when coming from friend card gift button)
   const [preSelectedRecipient, setPreSelectedRecipient] = useState<{
@@ -597,18 +602,25 @@ export default function Shop() {
           ) : (
             filteredProducts.map(product => (
               <Card key={product.id} className="overflow-hidden">
-                <div className="relative">
-                  <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
+                {/* Clickable Image */}
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={() => {
+                    setDetailProduct(product);
+                    setIsDetailModalOpen(true);
+                  }}
+                >
+                  <img src={product.image} alt={product.name} className="w-full h-40 object-cover" />
                   {product.isExperience && (
-                    <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
+                    <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
                       ✨ EXPÉRIENCE
                     </Badge>
                   )}
                   <Button 
                     variant="ghost" 
-                    size="sm" 
+                    size="icon" 
                     className={cn(
-                      "absolute top-2 right-2 bg-white/80 hover:bg-white transition-all",
+                      "absolute top-2 right-2 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full",
                       isFavorite(String(product.id)) && "text-destructive"
                     )}
                     onClick={async (e) => {
@@ -631,13 +643,14 @@ export default function Shop() {
                   </Button>
                 </div>
                 
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2 gap-2">
-                    <h3 className="font-semibold text-lg flex-1">{product.name}</h3>
+                <div className="p-3">
+                  {/* Name + Vendor on same line */}
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <h3 className="font-semibold text-base line-clamp-1 flex-1">{product.name}</h3>
                     <Badge 
                       variant="outline" 
                       className={cn(
-                        "text-xs font-normal whitespace-nowrap flex items-center gap-1.5 py-1 px-2",
+                        "text-xs font-normal whitespace-nowrap flex items-center gap-1 py-0.5 px-1.5 flex-shrink-0",
                         product.vendorId && "cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors"
                       )}
                       onClick={(e) => {
@@ -651,39 +664,38 @@ export default function Shop() {
                         <img 
                           src={product.vendorLogo} 
                           alt={product.vendor} 
-                          className="w-4 h-4 rounded-full object-cover"
+                          className="w-3.5 h-3.5 rounded-full object-cover"
                         />
                       ) : (
-                        <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Store className="h-3 w-3 text-muted-foreground" />
                       )}
-                      <span>{product.vendor}</span>
+                      <span className="max-w-[60px] truncate">{product.vendor}</span>
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xl font-bold text-primary">
-                      {product.isExperience && "À partir de "}
+                  
+                  {/* Short description (1 line) */}
+                  <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{product.description}</p>
+                  
+                  {/* Price + Stock */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-lg font-bold text-primary">
                       {product.price.toLocaleString()} {product.currency}
                     </span>
-                    <Badge variant={product.inStock ? "default" : "secondary"}>
-                      {product.inStock ? (product.isExperience ? "Disponible" : "En stock") : "Épuisé"}
+                    <Badge variant={product.inStock ? "default" : "secondary"} className="text-xs">
+                      {product.inStock ? (product.isExperience ? "Dispo" : "Stock") : "Épuisé"}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center mb-4">
-                    <ProductRatingDisplay
-                      productId={String(product.id)}
-                      onWriteReview={() => {
-                        setRatingProductId(String(product.id));
-                        setRatingProductName(product.name);
-                        setIsRatingModalOpen(true);
-                      }}
-                      compact
-                    />
+                  {/* Compact Rating */}
+                  <div className="flex items-center gap-1 mb-2">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">({product.reviews} avis)</span>
                   </div>
 
                   <Button 
                     className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600" 
+                    size="sm"
                     onClick={() => {
                       setSelectedProduct(product);
                       setIsOrderModalOpen(true);
@@ -716,6 +728,31 @@ export default function Shop() {
         }}
         productId={ratingProductId}
         productName={ratingProductName}
+      />
+      
+      <ProductDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        product={detailProduct}
+        onOrder={() => {
+          setSelectedProduct(detailProduct);
+          setIsDetailModalOpen(false);
+          setIsOrderModalOpen(true);
+        }}
+        onToggleFavorite={async () => {
+          if (detailProduct) {
+            const productIdStr = String(detailProduct.id);
+            if (isFavorite(productIdStr)) {
+              const favoriteId = getFavoriteId(productIdStr);
+              if (favoriteId) {
+                await removeFavorite(favoriteId);
+              }
+            } else {
+              await addFavorite(productIdStr);
+            }
+          }
+        }}
+        isFavorite={detailProduct ? isFavorite(String(detailProduct.id)) : false}
       />
     </div>;
 }
