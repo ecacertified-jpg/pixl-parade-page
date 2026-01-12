@@ -65,6 +65,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import LegalNotice from "./pages/LegalNotice";
 import FAQ from "./pages/FAQ";
+import AccountLinking from "./pages/AccountLinking";
 
 const queryClient = new QueryClient();
 
@@ -224,6 +225,11 @@ const App = () => (
             <Route path="/gift-ideas/:contactId" element={
               <ProtectedRoute>
                 <GiftIdeas />
+              </ProtectedRoute>
+            } />
+            <Route path="/account-linking" element={
+              <ProtectedRoute>
+                <AccountLinking />
               </ProtectedRoute>
             } />
             {/* Admin routes */}
