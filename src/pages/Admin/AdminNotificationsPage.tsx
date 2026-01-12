@@ -17,7 +17,8 @@ import {
   Store,
   ShoppingBag,
   AlertCircle,
-  Filter
+  Filter,
+  Clock
 } from 'lucide-react';
 import {
   Select,
@@ -34,6 +35,7 @@ const typeLabels: Record<string, { label: string; icon: any }> = {
   new_business: { label: 'Nouveaux prestataires', icon: Store },
   new_order: { label: 'Nouvelles commandes', icon: ShoppingBag },
   refund_request: { label: 'Remboursements', icon: AlertCircle },
+  business_expiring: { label: 'Expirations corbeille', icon: Clock },
 };
 
 export default function AdminNotificationsPage() {
