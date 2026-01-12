@@ -3,13 +3,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp, 
   Star, DollarSign, ShoppingCart, CheckCircle, Clock, XCircle,
-  AlertTriangle
+  AlertTriangle, Plus, Pencil, Settings
 } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
+import { AdminAddProductModal } from "./AdminAddProductModal";
+import { AdminEditProductModal } from "./AdminEditProductModal";
 
 interface BusinessProfile {
   id: string;
@@ -29,11 +33,17 @@ interface BusinessProfile {
 interface Product {
   id: string;
   name: string;
+  description: string | null;
   price: number;
   currency: string;
   image_url: string | null;
   stock_quantity: number;
   is_active: boolean;
+  category_id: string | null;
+  is_experience: boolean;
+  experience_type: string | null;
+  location_name: string | null;
+  business_account_id: string;
 }
 
 interface BusinessStats {
@@ -57,12 +67,16 @@ interface BusinessProfileModalProps {
   businessId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onBusinessUpdated?: () => void;
 }
 
-export function BusinessProfileModal({ businessId, open, onOpenChange }: BusinessProfileModalProps) {
+export function BusinessProfileModal({ businessId, open, onOpenChange, onBusinessUpdated }: BusinessProfileModalProps) {
+  const { isSuperAdmin } = useAdmin();
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [stats, setStats] = useState<BusinessStats>({
     productsCount: 0,
     activeProductsCount: 0,
@@ -106,10 +120,10 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
     if (!businessId) return;
     
     try {
-      // Fetch products with details - FIXED: using correct column name
+      // Fetch products with details
       const { data: productsData } = await supabase
         .from('products')
-        .select('id, name, price, currency, image_url, stock_quantity, is_active')
+        .select('id, name, description, price, currency, image_url, stock_quantity, is_active, category_id, is_experience, experience_type, location_name, business_account_id')
         .eq('business_account_id', businessId);
       
       const productsList = productsData || [];
@@ -296,10 +310,18 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
           <TabsContent value="products">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Produits et services ({stats.productsCount})
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Produits et services ({stats.productsCount})
+                  </CardTitle>
+                  {isSuperAdmin && (
+                    <Button size="sm" onClick={() => setAddProductOpen(true)}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {products.length === 0 ? (
@@ -308,13 +330,19 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
                     <p className="text-sm text-muted-foreground">
                       Aucun produit disponible pour le moment
                     </p>
+                    {isSuperAdmin && (
+                      <Button variant="outline" size="sm" className="mt-4" onClick={() => setAddProductOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter un produit
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {products.map((product) => (
                       <div 
                         key={product.id} 
-                        className="flex gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow"
+                        className="flex gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow group"
                       >
                         <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
                           {product.image_url ? (
@@ -332,9 +360,21 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h4 className="font-medium text-sm truncate">{product.name}</h4>
-                            {!product.is_active && (
-                              <Badge variant="secondary" className="text-xs">Inactif</Badge>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {!product.is_active && (
+                                <Badge variant="secondary" className="text-xs">Inactif</Badge>
+                              )}
+                              {isSuperAdmin && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => setEditingProduct(product as any)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                           <p className="text-sm font-semibold text-primary mt-1">
                             {formatCurrency(product.price)}
@@ -548,6 +588,27 @@ export function BusinessProfileModal({ businessId, open, onOpenChange }: Busines
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Admin Modals */}
+      <AdminAddProductModal
+        open={addProductOpen}
+        onOpenChange={setAddProductOpen}
+        onProductAdded={() => {
+          fetchStats();
+          onBusinessUpdated?.();
+        }}
+        preselectedBusinessId={businessId || undefined}
+      />
+
+      <AdminEditProductModal
+        product={editingProduct}
+        open={!!editingProduct}
+        onOpenChange={(open) => !open && setEditingProduct(null)}
+        onProductUpdated={() => {
+          fetchStats();
+          onBusinessUpdated?.();
+        }}
+      />
     </Dialog>
   );
 }

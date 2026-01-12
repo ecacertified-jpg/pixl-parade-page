@@ -131,3 +131,44 @@ const checkCriticalAction = async (
     console.error('Error checking critical action:', error);
   }
 };
+
+/**
+ * Generic admin action logger for all admin operations
+ */
+export const logAdminAction = async (
+  actionType: string,
+  targetType: string,
+  targetId: string | null,
+  description: string,
+  metadata?: Record<string, any>
+) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Get admin_user_id
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!adminUser) return;
+
+    const userAgent = navigator.userAgent;
+
+    await supabase
+      .from('admin_audit_logs')
+      .insert({
+        admin_user_id: adminUser.id,
+        action_type: actionType,
+        target_type: targetType,
+        target_id: targetId,
+        description,
+        metadata: metadata || {},
+        user_agent: userAgent,
+      });
+  } catch (error) {
+    console.error('Error logging admin action:', error);
+  }
+};

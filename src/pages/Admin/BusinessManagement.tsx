@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2 } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2, Pencil } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -37,8 +37,11 @@ import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
 import { BusinessPerformanceAlertsBanner } from '@/components/admin/BusinessPerformanceAlertsBanner';
 import { AddBusinessAccountModal } from '@/components/admin/AddBusinessAccountModal';
 import { UnifyBusinessAccountsModal } from '@/components/admin/UnifyBusinessAccountsModal';
+import { AdminAddProductModal } from '@/components/admin/AdminAddProductModal';
+import { AdminEditBusinessModal } from '@/components/admin/AdminEditBusinessModal';
+import { AdminAddBusinessToOwnerModal } from '@/components/admin/AdminAddBusinessToOwnerModal';
 import { useAdmin } from '@/hooks/useAdmin';
-import { GitMerge } from 'lucide-react';
+import { GitMerge, Package, UserPlus } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -91,6 +94,11 @@ export default function BusinessManagement() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [addBusinessModalOpen, setAddBusinessModalOpen] = useState(false);
   const [unifyBusinessModalOpen, setUnifyBusinessModalOpen] = useState(false);
+  const [addProductModalOpen, setAddProductModalOpen] = useState(false);
+  const [addBusinessToOwnerModalOpen, setAddBusinessToOwnerModalOpen] = useState(false);
+  const [editBusinessModalOpen, setEditBusinessModalOpen] = useState(false);
+  const [businessToEdit, setBusinessToEdit] = useState<Business | null>(null);
+  const [productBusinessId, setProductBusinessId] = useState<string | null>(null);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -466,18 +474,23 @@ export default function BusinessManagement() {
               Gérer et valider les comptes business
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={() => setAddBusinessToOwnerModalOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Ajouter à un prestataire</span>
+              </Button>
+            )}
             {isSuperAdmin && (
               <Button variant="outline" onClick={() => setUnifyBusinessModalOpen(true)}>
                 <GitMerge className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Unifier prestataires</span>
+                <span className="hidden sm:inline">Unifier</span>
               </Button>
             )}
             {isSuperAdmin && (
               <Button onClick={() => setAddBusinessModalOpen(true)}>
                 <Building2 className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Ajouter un prestataire</span>
-                <span className="sm:hidden">Ajouter</span>
+                <span className="hidden sm:inline">Nouveau prestataire</span>
               </Button>
             )}
           </div>
@@ -842,6 +855,24 @@ export default function BusinessManagement() {
                           }}>
                             Voir le profil complet
                           </DropdownMenuItem>
+                          {isSuperAdmin && (
+                            <>
+                              <DropdownMenuItem onClick={() => {
+                                setProductBusinessId(business.id);
+                                setAddProductModalOpen(true);
+                              }}>
+                                <Package className="mr-2 h-4 w-4" />
+                                Ajouter un produit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setBusinessToEdit(business);
+                                setEditBusinessModalOpen(true);
+                              }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Modifier le business
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
