@@ -160,42 +160,49 @@ export function CascadeDeleteBusinessModal({
     if (!linkedData) return;
     
     setIsDeleting(true);
-    const toastId = toast.loading("Suppression en cascade en cours...");
+    const toastId = toast.loading("Mise en corbeille en cours...");
     
     try {
-      // Step 1: Delete product ratings (15%)
-      setCurrentAction("Suppression des notes produits...");
+      // Get current user for deleted_by
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Step 1: Archive linked data (15%)
+      setCurrentAction("Archivage des données liées...");
       setDeleteProgress(5);
       
-      if (linkedData.products.ids.length > 0) {
-        await supabase
-          .from('product_ratings')
-          .delete()
-          .in('product_id', linkedData.products.ids);
-      }
+      const archiveData = {
+        products: { 
+          count: linkedData.products.count, 
+          ids: linkedData.products.ids 
+        },
+        categories: { count: linkedData.categories.count },
+        orders: { count: linkedData.orders.count },
+        funds: {
+          total: linkedData.funds.total,
+          withContributions: linkedData.funds.withContributions,
+          withoutContributions: linkedData.funds.withoutContributions,
+        },
+      };
+
+      await supabase.from('deleted_business_archives').insert({
+        business_id: business.id,
+        archived_data: archiveData,
+        deleted_by: user?.id,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
       setDeleteProgress(15);
 
-      // Step 2: Delete products (30%)
-      setCurrentAction("Suppression des produits...");
+      // Step 2: Deactivate products (not delete) (30%)
+      setCurrentAction("Désactivation des produits...");
       if (linkedData.products.count > 0) {
         await supabase
           .from('products')
-          .delete()
+          .update({ is_active: false })
           .eq('business_account_id', business.id);
       }
       setDeleteProgress(30);
 
-      // Step 3: Delete categories (40%)
-      setCurrentAction("Suppression des catégories...");
-      if (linkedData.categories.count > 0) {
-        await supabase
-          .from('business_categories')
-          .delete()
-          .eq('business_owner_id', business.user_id);
-      }
-      setDeleteProgress(40);
-
-      // Step 4: Disassociate funds with contributions (50%)
+      // Step 3: Disassociate funds with contributions (50%)
       setCurrentAction("Dissociation des cagnottes avec contributions...");
       if (linkedData.funds.idsToDisassociate.length > 0) {
         await supabase
@@ -205,22 +212,19 @@ export function CascadeDeleteBusinessModal({
       }
       setDeleteProgress(50);
 
-      // Step 5: Delete funds without contributions (60%)
+      // Step 4: Delete funds without contributions (70%)
       setCurrentAction("Suppression des cagnottes vides...");
       if (linkedData.funds.idsToDelete.length > 0) {
-        // First delete fund comments
         await supabase
           .from('fund_comments')
           .delete()
           .in('fund_id', linkedData.funds.idsToDelete);
         
-        // Then delete fund activities
         await supabase
           .from('fund_activities')
           .delete()
           .in('fund_id', linkedData.funds.idsToDelete);
         
-        // Finally delete the funds
         await supabase
           .from('collective_funds')
           .delete()
@@ -228,21 +232,16 @@ export function CascadeDeleteBusinessModal({
       }
       setDeleteProgress(70);
 
-      // Step 6: Delete orders (85%)
-      setCurrentAction("Suppression des commandes...");
-      if (linkedData.orders.count > 0) {
-        await supabase
-          .from('business_orders')
-          .delete()
-          .eq('business_account_id', business.id);
-      }
-      setDeleteProgress(85);
-
-      // Step 7: Delete business account (100%)
-      setCurrentAction("Suppression du business...");
+      // Step 5: Soft-delete business account (100%)
+      setCurrentAction("Mise en corbeille du business...");
       const { error } = await supabase
         .from('business_accounts')
-        .delete()
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id,
+          is_active: false,
+          status: 'deleted'
+        })
         .eq('id', business.id);
 
       if (error) throw error;
@@ -250,7 +249,7 @@ export function CascadeDeleteBusinessModal({
       setDeleteProgress(100);
       setCurrentAction("Terminé !");
       
-      toast.success(`✅ "${business.business_name}" et tous ses éléments ont été supprimés`, { id: toastId });
+      toast.success(`🗑️ "${business.business_name}" déplacé dans la corbeille (récupérable pendant 30 jours)`, { id: toastId });
       
       setTimeout(() => {
         onOpenChange(false);
@@ -258,8 +257,8 @@ export function CascadeDeleteBusinessModal({
       }, 500);
       
     } catch (error) {
-      console.error('Cascade delete error:', error);
-      toast.error("Erreur lors de la suppression en cascade", { id: toastId });
+      console.error('Soft delete error:', error);
+      toast.error("Erreur lors de la mise en corbeille", { id: toastId });
       setIsDeleting(false);
       setDeleteProgress(0);
     }
@@ -268,12 +267,12 @@ export function CascadeDeleteBusinessModal({
   const renderStep1 = () => (
     <>
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-          Suppression en cascade de "{business.business_name}"
+        <DialogTitle className="flex items-center gap-2 text-amber-600">
+          <Trash2 className="h-5 w-5" />
+          Mise en corbeille de "{business.business_name}"
         </DialogTitle>
         <DialogDescription>
-          Cette action supprimera DÉFINITIVEMENT tous les éléments liés à ce business.
+          Le business sera déplacé dans la corbeille et pourra être restauré pendant 30 jours.
         </DialogDescription>
       </DialogHeader>
 
@@ -288,7 +287,7 @@ export function CascadeDeleteBusinessModal({
               <Package className="h-5 w-5 text-primary" />
               <div className="flex-1">
                 <p className="font-medium">{linkedData.products.count} produit(s)</p>
-                <p className="text-sm text-muted-foreground">Seront supprimés définitivement</p>
+                <p className="text-sm text-muted-foreground">Seront désactivés (récupérables)</p>
               </div>
             </div>
 
@@ -296,7 +295,7 @@ export function CascadeDeleteBusinessModal({
               <ShoppingCart className="h-5 w-5 text-primary" />
               <div className="flex-1">
                 <p className="font-medium">{linkedData.orders.count} commande(s)</p>
-                <p className="text-sm text-muted-foreground">Historique supprimé</p>
+                <p className="text-sm text-muted-foreground">Historique conservé (récupérable)</p>
               </div>
             </div>
 
@@ -321,7 +320,7 @@ export function CascadeDeleteBusinessModal({
               <FolderOpen className="h-5 w-5 text-primary" />
               <div className="flex-1">
                 <p className="font-medium">{linkedData.categories.count} catégorie(s) personnalisée(s)</p>
-                <p className="text-sm text-muted-foreground">Seront supprimées</p>
+                <p className="text-sm text-muted-foreground">Seront conservées (récupérables)</p>
               </div>
             </div>
           </div>
@@ -333,7 +332,8 @@ export function CascadeDeleteBusinessModal({
           Annuler
         </Button>
         <Button 
-          variant="destructive" 
+          variant="default" 
+          className="bg-amber-600 hover:bg-amber-700"
           onClick={() => setStep(2)}
           disabled={loading}
         >
@@ -366,8 +366,8 @@ export function CascadeDeleteBusinessModal({
             }
           />
           <Label htmlFor="confirm-orders" className="cursor-pointer leading-relaxed">
-            Je comprends que <strong>toutes les commandes</strong> seront supprimées et que 
-            l'historique des ventes sera perdu.
+            Je comprends que le business sera <strong>désactivé</strong> et ne sera plus visible 
+            par les utilisateurs pendant 30 jours.
           </Label>
         </div>
 
@@ -380,8 +380,8 @@ export function CascadeDeleteBusinessModal({
             }
           />
           <Label htmlFor="confirm-products" className="cursor-pointer leading-relaxed">
-            Je comprends que <strong>tous les produits</strong> et leurs notes/avis 
-            seront supprimés définitivement.
+            Je comprends que <strong>tous les produits</strong> seront désactivés mais 
+            pourront être restaurés avec le business.
           </Label>
         </div>
 
@@ -399,7 +399,7 @@ export function CascadeDeleteBusinessModal({
           </Label>
         </div>
 
-        <div className="flex items-start gap-3 p-3 border border-destructive/50 bg-destructive/5 rounded-lg">
+        <div className="flex items-start gap-3 p-3 border border-amber-500/50 bg-amber-500/5 rounded-lg">
           <Checkbox 
             id="confirm-irreversible"
             checked={confirmations.irreversible}
@@ -407,9 +407,9 @@ export function CascadeDeleteBusinessModal({
               setConfirmations(prev => ({ ...prev, irreversible: checked === true }))
             }
           />
-          <Label htmlFor="confirm-irreversible" className="cursor-pointer leading-relaxed text-destructive">
-            Je comprends que cette action est <strong>IRRÉVERSIBLE</strong> et que 
-            toutes les données seront perdues à jamais.
+          <Label htmlFor="confirm-irreversible" className="cursor-pointer leading-relaxed text-amber-700">
+            Je comprends que si je ne restaure pas le business dans <strong>30 jours</strong>, 
+            toutes les données seront supprimées définitivement.
           </Label>
         </div>
       </div>
@@ -420,7 +420,8 @@ export function CascadeDeleteBusinessModal({
           Retour
         </Button>
         <Button 
-          variant="destructive" 
+          variant="default"
+          className="bg-amber-600 hover:bg-amber-700"
           onClick={() => setStep(3)}
           disabled={!allConfirmationsChecked}
         >
@@ -434,11 +435,11 @@ export function CascadeDeleteBusinessModal({
   const renderStep3 = () => (
     <>
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2 text-destructive">
-          🚨 CONFIRMATION FINALE
+        <DialogTitle className="flex items-center gap-2 text-amber-600">
+          🗑️ CONFIRMATION FINALE
         </DialogTitle>
         <DialogDescription>
-          Dernière étape avant la suppression définitive.
+          Dernière étape avant la mise en corbeille.
         </DialogDescription>
       </DialogHeader>
 
@@ -493,19 +494,19 @@ export function CascadeDeleteBusinessModal({
           Retour
         </Button>
         <Button 
-          variant="destructive" 
+          className="bg-amber-600 hover:bg-amber-700"
           onClick={handleCascadeDelete}
           disabled={!nameMatches || isDeleting}
         >
           {isDeleting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Suppression...
+              Mise en corbeille...
             </>
           ) : (
             <>
               <Trash2 className="h-4 w-4 mr-2" />
-              Supprimer définitivement
+              Mettre en corbeille
             </>
           )}
         </Button>
@@ -516,13 +517,12 @@ export function CascadeDeleteBusinessModal({
   return (
     <Dialog open={open} onOpenChange={isDeleting ? undefined : onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {/* Progress indicator */}
         <div className="flex justify-center gap-2 mb-2">
           {[1, 2, 3].map((s) => (
             <div
               key={s}
               className={`h-2 w-16 rounded-full transition-colors ${
-                s <= step ? 'bg-destructive' : 'bg-muted'
+                s <= step ? 'bg-amber-600' : 'bg-muted'
               }`}
             />
           ))}

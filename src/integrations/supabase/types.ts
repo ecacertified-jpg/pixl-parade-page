@@ -618,6 +618,8 @@ export type Database = {
           business_type: string | null
           corrections_message: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           delivery_settings: Json | null
           delivery_zones: Json | null
           description: string | null
@@ -643,6 +645,8 @@ export type Database = {
           business_type?: string | null
           corrections_message?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_settings?: Json | null
           delivery_zones?: Json | null
           description?: string | null
@@ -668,6 +672,8 @@ export type Database = {
           business_type?: string | null
           corrections_message?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_settings?: Json | null
           delivery_zones?: Json | null
           description?: string | null
@@ -805,6 +811,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "business_birthday_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_birthday_alerts_fund_id_fkey"
             columns: ["fund_id"]
             isOneToOne: false
@@ -910,6 +923,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
             referencedColumns: ["id"]
           },
           {
@@ -1048,6 +1068,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "business_orders_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "business_orders_fund_id_fkey"
             columns: ["fund_id"]
             isOneToOne: false
@@ -1149,6 +1176,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_performance_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
             referencedColumns: ["id"]
           },
         ]
@@ -1274,6 +1308,13 @@ export type Database = {
             columns: ["converted_to_business_id"]
             isOneToOne: false
             referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_waitlist_converted_to_business_id_fkey"
+            columns: ["converted_to_business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
             referencedColumns: ["id"]
           },
         ]
@@ -1541,6 +1582,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "collective_funds_created_by_business_id_fkey"
+            columns: ["created_by_business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "collective_funds_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
@@ -1783,6 +1831,58 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_birthday_stats"
             referencedColumns: ["auth_user_id"]
+          },
+        ]
+      }
+      deleted_business_archives: {
+        Row: {
+          archived_data: Json
+          business_id: string
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          expires_at: string | null
+          id: string
+        }
+        Insert: {
+          archived_data: Json
+          business_id: string
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string | null
+          id?: string
+        }
+        Update: {
+          archived_data?: Json
+          business_id?: string
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deleted_business_archives_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deleted_business_archives_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deleted_business_archives_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3831,6 +3931,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "products_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "products_business_category_id_fkey"
             columns: ["business_category_id"]
             isOneToOne: false
@@ -3849,6 +3956,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
             referencedColumns: ["id"]
           },
           {
@@ -5826,6 +5940,41 @@ export type Database = {
             referencedColumns: ["auth_user_id"]
           },
         ]
+      }
+      deleted_businesses_with_admin: {
+        Row: {
+          address: string | null
+          archived_data: Json | null
+          business_name: string | null
+          business_type: string | null
+          corrections_message: string | null
+          created_at: string | null
+          days_remaining: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_first_name: string | null
+          deleted_by_last_name: string | null
+          delivery_settings: Json | null
+          delivery_zones: Json | null
+          description: string | null
+          email: string | null
+          expires_at: string | null
+          id: string | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          logo_url: string | null
+          opening_hours: Json | null
+          payment_info: Json | null
+          phone: string | null
+          rejection_date: string | null
+          rejection_reason: string | null
+          resubmission_count: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          website_url: string | null
+        }
+        Relationships: []
       }
       fund_contributions_safe: {
         Row: {
