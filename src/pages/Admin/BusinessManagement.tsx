@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2, Pencil } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2, Pencil, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -42,6 +42,7 @@ import { AdminEditBusinessModal } from '@/components/admin/AdminEditBusinessModa
 import { AdminAddBusinessToOwnerModal } from '@/components/admin/AdminAddBusinessToOwnerModal';
 import { AdminManageCategoriesModal } from '@/components/admin/AdminManageCategoriesModal';
 import { AdminOrdersModal } from '@/components/admin/AdminOrdersModal';
+import { CascadeDeleteBusinessModal } from '@/components/CascadeDeleteBusinessModal';
 import { useAdmin } from '@/hooks/useAdmin';
 import { GitMerge, Package, UserPlus, Tag, ShoppingCart } from 'lucide-react';
 import {
@@ -106,6 +107,8 @@ export default function BusinessManagement() {
   const [categoryBusiness, setCategoryBusiness] = useState<Business | null>(null);
   const [ordersModalOpen, setOrdersModalOpen] = useState(false);
   const [ordersBusiness, setOrdersBusiness] = useState<Business | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -892,6 +895,16 @@ export default function BusinessManagement() {
                                 <ShoppingCart className="mr-2 h-4 w-4" />
                                 Voir les commandes
                               </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setBusinessToDelete(business);
+                                  setDeleteModalOpen(true);
+                                }}
+                                className="text-destructive font-medium"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer le business
+                              </DropdownMenuItem>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -1002,6 +1015,30 @@ export default function BusinessManagement() {
             if (!open) setOrdersBusiness(null);
           }}
         />
+
+        {businessToDelete && (
+          <CascadeDeleteBusinessModal
+            open={deleteModalOpen}
+            onOpenChange={(open) => {
+              setDeleteModalOpen(open);
+              if (!open) setBusinessToDelete(null);
+            }}
+            business={{
+              id: businessToDelete.id,
+              business_name: businessToDelete.business_name,
+              opening_hours: {},
+              delivery_zones: [],
+              payment_info: {},
+              delivery_settings: { free_delivery_threshold: 0, standard_cost: 0 }
+            }}
+            onDeleted={() => {
+              setDeleteModalOpen(false);
+              setBusinessToDelete(null);
+              fetchBusinesses();
+              toast.success('Business supprimé avec succès');
+            }}
+          />
+        )}
       </div>
     </AdminLayout>
   );
