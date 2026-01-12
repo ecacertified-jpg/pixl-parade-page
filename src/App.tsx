@@ -47,6 +47,7 @@ import RealtimeDashboard from "./pages/Admin/RealtimeDashboard";
 import AlertsHistory from "./pages/Admin/AlertsHistory";
 import NotificationAnalytics from "./pages/Admin/NotificationAnalytics";
 import ProfileCompletionDashboard from "./pages/Admin/ProfileCompletionDashboard";
+import DuplicateAccountsDashboard from "./pages/Admin/DuplicateAccountsDashboard";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -252,6 +253,11 @@ const App = () => (
             <Route path="/admin/profile-completion" element={
               <AdminRoute>
                 <ProfileCompletionDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/duplicates" element={
+              <AdminRoute>
+                <DuplicateAccountsDashboard />
               </AdminRoute>
             } />
             <Route path="/admin/businesses" element={

@@ -17,7 +17,8 @@ import {
   TrendingUp,
   Radio,
   Bell,
-  UserCircle
+  UserCircle,
+  Copy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { title: 'Alertes KPI', href: '/admin/alerts', icon: Bell },
   { title: 'Notifications', href: '/admin/notifications', icon: Bell },
   { title: 'Utilisateurs', href: '/admin/users', icon: Users },
+  { title: 'Doublons', href: '/admin/duplicates', icon: Copy, requiresSuperAdmin: true },
   { title: 'Complétion Profils', href: '/admin/profile-completion', icon: UserCircle },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },

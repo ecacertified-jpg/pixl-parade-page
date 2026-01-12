@@ -1788,6 +1788,57 @@ export type Database = {
           },
         ]
       }
+      detected_duplicate_accounts: {
+        Row: {
+          account_ids: string[]
+          admin_notes: string | null
+          confidence: string
+          created_at: string
+          detected_at: string
+          id: string
+          match_criteria: string[]
+          metadata: Json | null
+          primary_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          account_ids?: string[]
+          admin_notes?: string | null
+          confidence?: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          match_criteria?: string[]
+          metadata?: Json | null
+          primary_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          account_ids?: string[]
+          admin_notes?: string | null
+          confidence?: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          match_criteria?: string[]
+          metadata?: Json | null
+          primary_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_popularity_reports: {
         Row: {
           avg_contributors: number | null
