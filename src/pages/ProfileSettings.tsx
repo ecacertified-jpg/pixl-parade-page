@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Save, Camera, Gift, AlertCircle, Settings, Lock } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2 } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -404,6 +404,32 @@ const ProfileSettings = () => {
                     placeholder="Sélectionnez votre ville"
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Méthodes de connexion */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Méthodes de connexion
+                </CardTitle>
+                <CardDescription>
+                  Gérez vos différentes façons de vous connecter
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4 text-sm">
+                  Liez plusieurs méthodes de connexion pour sécuriser votre compte et éviter de perdre l'accès.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/account-linking")}
+                >
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Gérer mes méthodes de connexion
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

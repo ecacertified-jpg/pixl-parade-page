@@ -4700,6 +4700,7 @@ export type Database = {
           message: string
           metadata: Json | null
           notification_type: string
+          priority: string | null
           priority_score: number | null
           scheduled_for: string
           sent_at: string | null
@@ -4720,6 +4721,7 @@ export type Database = {
           message: string
           metadata?: Json | null
           notification_type: string
+          priority?: string | null
           priority_score?: number | null
           scheduled_for: string
           sent_at?: string | null
@@ -4740,6 +4742,7 @@ export type Database = {
           message?: string
           metadata?: Json | null
           notification_type?: string
+          priority?: string | null
           priority_score?: number | null
           scheduled_for?: string
           sent_at?: string | null

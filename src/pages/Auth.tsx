@@ -17,8 +17,9 @@ import { Store, Gift, Loader2, Shield } from 'lucide-react';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
-import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
+import { useDuplicateAccountDetection, type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
+import { useAccountLinking } from '@/hooks/useAccountLinking';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -63,6 +64,8 @@ const Auth = () => {
   const { user } = useAuth();
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  const { checkExistingAccount } = useAccountLinking();
+  const [isServerChecking, setIsServerChecking] = useState(false);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -177,11 +180,49 @@ const Auth = () => {
       
       // Vérification des doublons avant inscription (sauf si on a déjà vérifié)
       if (!skipDuplicateCheck) {
-        console.log('🔍 [Duplicate Check] Checking for existing accounts...');
+        console.log('🔍 [Duplicate Check] Checking for existing accounts via server...');
+        setIsServerChecking(true);
+        
+        // 1. D'abord vérification serveur (plus fiable car accède à auth.users)
+        const serverResult = await checkExistingAccount(fullPhone, undefined, data.firstName, data.city);
+        setIsServerChecking(false);
+        
+        if (serverResult && serverResult.exists && serverResult.accounts.length > 0) {
+          console.log('⚠️ [Server Check] Found existing account:', serverResult);
+          
+          // Convertir le résultat serveur en format DuplicateCheckResult
+          const matchingProfiles: MatchingProfile[] = serverResult.accounts.map((acc: any) => ({
+            id: acc.user_id,
+            user_id: acc.user_id,
+            first_name: acc.first_name,
+            last_name: acc.last_name,
+            phone: acc.phone,
+            city: acc.city,
+            avatar_url: acc.avatar_url,
+            created_at: acc.created_at,
+            has_google: acc.auth_methods?.includes('google') || false,
+            has_phone: acc.auth_methods?.includes('phone') || false,
+          }));
+
+          const duplicateCheck: DuplicateCheckResult = {
+            hasPotentialDuplicate: true,
+            duplicateType: serverResult.accounts[0]?.is_exact_phone_match ? 'phone' : 'name',
+            matchingProfiles,
+            confidence: serverResult.confidence,
+          };
+          
+          setDuplicateResult(duplicateCheck);
+          setPendingSignUpData(data);
+          setShowDuplicateModal(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        // 2. Fallback: vérification client-side (profiles publics)
         const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName, data.city);
         
         if (duplicateCheck.hasPotentialDuplicate) {
-          console.log('⚠️ [Duplicate Check] Found potential duplicate:', duplicateCheck);
+          console.log('⚠️ [Client Check] Found potential duplicate:', duplicateCheck);
           setDuplicateResult(duplicateCheck);
           setPendingSignUpData(data);
           setShowDuplicateModal(true);
@@ -577,8 +618,8 @@ const Auth = () => {
                     )}
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading || isChecking}>
-                    {isLoading || isChecking ? 'Vérification...' : 'Envoyer le code'}
+                  <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                    {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
                   </Button>
 
                   <div className="relative my-4">
@@ -675,8 +716,8 @@ const Auth = () => {
                     )}
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={isLoading || isChecking}>
-                    {isLoading || isChecking ? 'Vérification...' : 'Envoyer le code'}
+                  <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                    {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
                   </Button>
 
                   <div className="relative my-4">
