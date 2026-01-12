@@ -48,6 +48,8 @@ import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
 import { MergeAccountsModal } from '@/components/admin/MergeAccountsModal';
 import { exportToCSV, ExportColumn } from '@/utils/exportUtils';
 import { useAdmin } from '@/hooks/useAdmin';
+import { AddClientModal } from '@/components/admin/AddClientModal';
+import { UserPlus } from 'lucide-react';
 
 interface User {
   user_id: string;
@@ -180,6 +182,7 @@ export default function UserManagement() {
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [addClientModalOpen, setAddClientModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -353,6 +356,15 @@ export default function UserManagement() {
           </div>
           
           <div className="flex gap-2 self-start sm:self-auto">
+            {isSuperAdmin && (
+              <Button 
+                onClick={() => setAddClientModalOpen(true)}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Ajouter un client</span>
+                <span className="sm:hidden">Ajouter</span>
+              </Button>
+            )}
             {isSuperAdmin && (
               <Button 
                 variant="outline" 
@@ -759,6 +771,12 @@ export default function UserManagement() {
             onMergeComplete={fetchUsers}
           />
         )}
+
+        <AddClientModal
+          open={addClientModalOpen}
+          onOpenChange={setAddClientModalOpen}
+          onSuccess={fetchUsers}
+        />
       </div>
     </AdminLayout>
   );

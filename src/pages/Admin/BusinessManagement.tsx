@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -35,6 +35,8 @@ import { toast } from 'sonner';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { RejectBusinessModal } from '@/components/admin/RejectBusinessModal';
 import { BusinessPerformanceAlertsBanner } from '@/components/admin/BusinessPerformanceAlertsBanner';
+import { AddBusinessAccountModal } from '@/components/admin/AddBusinessAccountModal';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   Select,
   SelectContent,
@@ -71,6 +73,7 @@ interface Business {
 }
 
 export default function BusinessManagement() {
+  const { isSuperAdmin } = useAdmin();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,6 +87,7 @@ export default function BusinessManagement() {
   const [bulkAction, setBulkAction] = useState<'verify' | 'approve' | 'deactivate' | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [addBusinessModalOpen, setAddBusinessModalOpen] = useState(false);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -452,11 +456,20 @@ export default function BusinessManagement() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Gestion des prestataires</h1>
-          <p className="text-muted-foreground mt-2">
-            Gérer et valider les comptes business
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Gestion des prestataires</h1>
+            <p className="text-muted-foreground mt-2">
+              Gérer et valider les comptes business
+            </p>
+          </div>
+          {isSuperAdmin && (
+            <Button onClick={() => setAddBusinessModalOpen(true)}>
+              <Building2 className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Ajouter un prestataire</span>
+              <span className="sm:hidden">Ajouter</span>
+            </Button>
+          )}
         </div>
 
         {/* Performance Alerts Banner */}
@@ -868,6 +881,12 @@ export default function BusinessManagement() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AddBusinessAccountModal
+          open={addBusinessModalOpen}
+          onOpenChange={setAddBusinessModalOpen}
+          onSuccess={fetchBusinesses}
+        />
       </div>
     </AdminLayout>
   );
