@@ -18,7 +18,8 @@ import {
   Radio,
   Bell,
   UserCircle,
-  Copy
+  Copy,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
   { title: 'Doublons', href: '/admin/duplicates', icon: Copy, requiresSuperAdmin: true },
   { title: 'Complétion Profils', href: '/admin/profile-completion', icon: UserCircle },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
+  { title: 'Corbeille Business', href: '/admin/deleted-businesses', icon: Trash2, requiresSuperAdmin: true },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },

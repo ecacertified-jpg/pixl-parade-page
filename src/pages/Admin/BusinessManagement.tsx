@@ -129,6 +129,7 @@ export default function BusinessManagement() {
       const { data, error } = await supabase
         .from('business_accounts')
         .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at')
+        .is('deleted_at', null) // Exclure les business supprimés
         .order('created_at', { ascending: false });
 
       if (error) throw error;
