@@ -201,7 +201,10 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
             payment_info: formData.payment_info,
-            delivery_settings: formData.delivery_settings
+            delivery_settings: formData.delivery_settings,
+            is_active: true,
+            is_verified: false,
+            status: 'active'
           })
           .select()
           .single();
