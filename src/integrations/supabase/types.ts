@@ -4950,6 +4950,42 @@ export type Database = {
           },
         ]
       }
+      user_account_merges: {
+        Row: {
+          created_at: string | null
+          data_transferred: Json | null
+          id: string
+          merged_at: string | null
+          merged_by: string | null
+          primary_name: string | null
+          primary_user_id: string
+          secondary_name: string | null
+          secondary_user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_transferred?: Json | null
+          id?: string
+          merged_at?: string | null
+          merged_by?: string | null
+          primary_name?: string | null
+          primary_user_id: string
+          secondary_name?: string | null
+          secondary_user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data_transferred?: Json | null
+          id?: string
+          merged_at?: string | null
+          merged_by?: string | null
+          primary_name?: string | null
+          primary_user_id?: string
+          secondary_name?: string | null
+          secondary_user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_key: string
