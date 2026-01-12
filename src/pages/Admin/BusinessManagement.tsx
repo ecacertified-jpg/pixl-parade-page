@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -568,6 +569,17 @@ export default function BusinessManagement() {
                     <span className="hidden sm:inline">Exporter CSV</span>
                     <span className="sm:hidden">CSV</span>
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Link to="/admin/deleted-businesses">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Corbeille</span>
+                    </Link>
+                  </Button>
                 </div>
               </div>
 
@@ -746,6 +758,12 @@ export default function BusinessManagement() {
                     <TableCell>{formatDate(business.created_at)}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
+                        {business.status === 'deleted' && (
+                          <Badge variant="secondary" className="bg-gray-500 hover:bg-gray-600 text-white">
+                            <Trash2 className="mr-1 h-3 w-3" />
+                            Supprimé
+                          </Badge>
+                        )}
                         {business.status === 'rejected' && (
                           <Badge variant="destructive">
                             <XCircle className="mr-1 h-3 w-3" />
