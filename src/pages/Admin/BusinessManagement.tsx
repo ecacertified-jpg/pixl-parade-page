@@ -40,8 +40,9 @@ import { UnifyBusinessAccountsModal } from '@/components/admin/UnifyBusinessAcco
 import { AdminAddProductModal } from '@/components/admin/AdminAddProductModal';
 import { AdminEditBusinessModal } from '@/components/admin/AdminEditBusinessModal';
 import { AdminAddBusinessToOwnerModal } from '@/components/admin/AdminAddBusinessToOwnerModal';
+import { AdminManageCategoriesModal } from '@/components/admin/AdminManageCategoriesModal';
 import { useAdmin } from '@/hooks/useAdmin';
-import { GitMerge, Package, UserPlus } from 'lucide-react';
+import { GitMerge, Package, UserPlus, Tag } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -61,6 +62,7 @@ import {
 } from '@/components/ui/collapsible';
 interface Business {
   id: string;
+  user_id: string;
   business_name: string;
   business_type: string | null;
   email: string | null;
@@ -99,6 +101,8 @@ export default function BusinessManagement() {
   const [editBusinessModalOpen, setEditBusinessModalOpen] = useState(false);
   const [businessToEdit, setBusinessToEdit] = useState<Business | null>(null);
   const [productBusinessId, setProductBusinessId] = useState<string | null>(null);
+  const [manageCategoriesModalOpen, setManageCategoriesModalOpen] = useState(false);
+  const [categoryBusiness, setCategoryBusiness] = useState<Business | null>(null);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -118,7 +122,7 @@ export default function BusinessManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at')
+        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -871,6 +875,13 @@ export default function BusinessManagement() {
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Modifier le business
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setCategoryBusiness(business);
+                                setManageCategoriesModalOpen(true);
+                              }}>
+                                <Tag className="mr-2 h-4 w-4" />
+                                Gérer les catégories
+                              </DropdownMenuItem>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -959,6 +970,17 @@ export default function BusinessManagement() {
           open={addBusinessToOwnerModalOpen}
           onOpenChange={setAddBusinessToOwnerModalOpen}
           onBusinessAdded={fetchBusinesses}
+        />
+
+        <AdminManageCategoriesModal
+          businessId={categoryBusiness?.id || null}
+          businessOwnerId={categoryBusiness?.user_id || null}
+          businessName={categoryBusiness?.business_name || ''}
+          open={manageCategoriesModalOpen}
+          onOpenChange={(open) => {
+            setManageCategoriesModalOpen(open);
+            if (!open) setCategoryBusiness(null);
+          }}
         />
       </div>
     </AdminLayout>

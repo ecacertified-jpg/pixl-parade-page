@@ -9,14 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp, 
   Star, DollarSign, ShoppingCart, CheckCircle, Clock, XCircle,
-  AlertTriangle, Plus, Pencil, Settings
+  AlertTriangle, Plus, Pencil, Settings, Tag
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { AdminAddProductModal } from "./AdminAddProductModal";
 import { AdminEditProductModal } from "./AdminEditProductModal";
+import { AdminManageCategoriesModal } from "./AdminManageCategoriesModal";
 
 interface BusinessProfile {
   id: string;
+  user_id: string;
   business_name: string;
   business_type: string | null;
   phone: string | null;
@@ -77,6 +79,7 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
   const [products, setProducts] = useState<Product[]>([]);
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [stats, setStats] = useState<BusinessStats>({
     productsCount: 0,
     activeProductsCount: 0,
@@ -316,10 +319,16 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
                     Produits et services ({stats.productsCount})
                   </CardTitle>
                   {isSuperAdmin && (
-                    <Button size="sm" onClick={() => setAddProductOpen(true)}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Ajouter
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setManageCategoriesOpen(true)}>
+                        <Tag className="h-4 w-4 mr-1" />
+                        Catégories
+                      </Button>
+                      <Button size="sm" onClick={() => setAddProductOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardHeader>
@@ -608,6 +617,14 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
           fetchStats();
           onBusinessUpdated?.();
         }}
+      />
+
+      <AdminManageCategoriesModal
+        businessId={business?.id || null}
+        businessOwnerId={business?.user_id || null}
+        businessName={business?.business_name || ''}
+        open={manageCategoriesOpen}
+        onOpenChange={setManageCategoriesOpen}
       />
     </Dialog>
   );
