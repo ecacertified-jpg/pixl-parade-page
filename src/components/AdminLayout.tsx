@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AlertsCenter } from '@/components/admin/AlertsCenter';
+import { AdminNotificationsCenter } from '@/components/admin/AdminNotificationsCenter';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -85,7 +86,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="p-6 border-b">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-primary">JOIE DE VIVRE</h2>
-          <AlertsCenter />
+          <div className="flex items-center gap-1">
+            <AdminNotificationsCenter />
+            <AlertsCenter />
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
           Panneau d'administration
