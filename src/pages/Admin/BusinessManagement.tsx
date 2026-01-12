@@ -888,6 +888,7 @@ export default function BusinessManagement() {
           businessId={selectedBusinessId}
           open={profileModalOpen}
           onOpenChange={setProfileModalOpen}
+          onBusinessUpdated={fetchBusinesses}
         />
         
         <RejectBusinessModal
@@ -934,6 +935,30 @@ export default function BusinessManagement() {
           open={unifyBusinessModalOpen}
           onOpenChange={setUnifyBusinessModalOpen}
           onMergeComplete={fetchBusinesses}
+        />
+
+        {/* Super Admin Modals */}
+        <AdminAddProductModal
+          open={addProductModalOpen}
+          onOpenChange={setAddProductModalOpen}
+          onProductAdded={fetchBusinesses}
+          preselectedBusinessId={productBusinessId || undefined}
+        />
+
+        <AdminEditBusinessModal
+          business={businessToEdit as any}
+          open={editBusinessModalOpen}
+          onOpenChange={(open) => {
+            setEditBusinessModalOpen(open);
+            if (!open) setBusinessToEdit(null);
+          }}
+          onBusinessUpdated={fetchBusinesses}
+        />
+
+        <AdminAddBusinessToOwnerModal
+          open={addBusinessToOwnerModalOpen}
+          onOpenChange={setAddBusinessToOwnerModalOpen}
+          onBusinessAdded={fetchBusinesses}
         />
       </div>
     </AdminLayout>
