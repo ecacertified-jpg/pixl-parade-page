@@ -10,7 +10,8 @@ import {
   ExternalLink,
   AlertCircle,
   AlertTriangle,
-  Info
+  Info,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,11 @@ const typeConfig: Record<string, { icon: any; bgColor: string; textColor: string
     icon: RefreshCw,
     bgColor: 'bg-red-100 dark:bg-red-900/30',
     textColor: 'text-red-600 dark:text-red-400',
+  },
+  business_expiring: {
+    icon: Clock,
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    textColor: 'text-orange-600 dark:text-orange-400',
   },
 };
 
