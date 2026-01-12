@@ -49,6 +49,7 @@ import NotificationAnalytics from "./pages/Admin/NotificationAnalytics";
 import ProfileCompletionDashboard from "./pages/Admin/ProfileCompletionDashboard";
 import DuplicateAccountsDashboard from "./pages/Admin/DuplicateAccountsDashboard";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
+import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -269,6 +270,11 @@ const App = () => (
             <Route path="/admin/orders" element={
               <AdminRoute>
                 <OrdersManagement />
+              </AdminRoute>
+            } />
+            <Route path="/admin/admin-notifications" element={
+              <AdminRoute>
+                <AdminNotificationsPage />
               </AdminRoute>
             } />
             {/* Redirect removed waitlist admin page */}
