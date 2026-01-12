@@ -21,6 +21,8 @@ import { BusinessSelector } from "@/components/BusinessSelector";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { BusinessOnboardingChecklist } from "@/components/BusinessOnboardingChecklist";
 import { BusinessPushNotificationPrompt } from "@/components/BusinessPushNotificationPrompt";
+import { ProductImportModal } from "@/components/ProductImportModal";
+import { ProductExportButton } from "@/components/ProductExportButton";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +31,7 @@ import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 import { useBusinessOnboarding } from "@/hooks/useBusinessOnboarding";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { toast } from "sonner";
+
 export default function BusinessAccount() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -59,6 +62,7 @@ export default function BusinessAccount() {
   
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [showPushNotificationPrompt, setShowPushNotificationPrompt] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -1181,12 +1185,23 @@ interface RecentOrderItem {
 
           {/* Onglet Produits */}
           <TabsContent value="produits" className="mt-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
               <h2 className="font-semibold text-base text-gray-500">Gestion des produits</h2>
-              <Button onClick={() => setIsAddProductModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]">
-                <Plus className="h-4 w-4" />
-                Ajouter un produit
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)} className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Importer CSV
+                </Button>
+                <ProductExportButton 
+                  businessAccountId={selectedBusinessId || undefined}
+                  businessName={selectedBusiness?.business_name}
+                  size="sm"
+                />
+                <Button onClick={() => setIsAddProductModalOpen(true)} className="gap-2 bg-rose-500 hover:bg-rose-400 px-[8px]" size="sm">
+                  <Plus className="h-4 w-4" />
+                  Ajouter
+                </Button>
+              </div>
             </div>
 
 
@@ -1451,6 +1466,14 @@ interface RecentOrderItem {
           refreshOnboarding();
         }}
         businessId={selectedBusinessId || undefined}
+      />
+
+      {/* Product Import Modal */}
+      <ProductImportModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        businessAccountId={selectedBusinessId || undefined}
+        onImportComplete={loadProducts}
       />
     </div>;
 }
