@@ -1,5 +1,8 @@
 project_id = "vaimfeurvzokepqqqrsl"
 
+[functions.admin-create-user]
+verify_jwt = false
+
 [functions.handle-order-action]
 verify_jwt = false
 
