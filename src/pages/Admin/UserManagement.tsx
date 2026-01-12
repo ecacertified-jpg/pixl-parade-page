@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users,
   Download, UserCheck, AlertTriangle, UserX, TrendingUp, Trophy, Phone, MapPin,
-  Calendar, Image, FileText
+  Calendar, Image, FileText, GitMerge
 } from 'lucide-react';
 import {
   Table,
@@ -25,6 +25,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -44,7 +45,9 @@ import { toast } from 'sonner';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { UserTransactionsModal } from '@/components/admin/UserTransactionsModal';
 import { SuspendUserDialog } from '@/components/admin/SuspendUserDialog';
+import { MergeAccountsModal } from '@/components/admin/MergeAccountsModal';
 import { exportToCSV, ExportColumn } from '@/utils/exportUtils';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface User {
   user_id: string;
@@ -162,6 +165,7 @@ const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
 
 export default function UserManagement() {
   const navigate = useNavigate();
+  const { isSuperAdmin } = useAdmin();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,9 +175,11 @@ export default function UserManagement() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>('');
   const [selectedUserSuspended, setSelectedUserSuspended] = useState(false);
+  const [selectedUserForMerge, setSelectedUserForMerge] = useState<User | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -274,7 +280,7 @@ export default function UserManagement() {
     )
   );
 
-  const handleUserAction = (user: User & { completion: ProfileCompletion }, action: 'profile' | 'transactions' | 'suspend') => {
+  const handleUserAction = (user: User & { completion: ProfileCompletion }, action: 'profile' | 'transactions' | 'suspend' | 'merge') => {
     setSelectedUserId(user.user_id);
     setSelectedUserName(getUserDisplayName(user));
     setSelectedUserSuspended(user.is_suspended);
@@ -282,6 +288,10 @@ export default function UserManagement() {
     if (action === 'profile') setProfileModalOpen(true);
     if (action === 'transactions') setTransactionsModalOpen(true);
     if (action === 'suspend') setSuspendDialogOpen(true);
+    if (action === 'merge') {
+      setSelectedUserForMerge(user);
+      setMergeModalOpen(true);
+    }
   };
 
   const handleExportIncomplete = () => {
@@ -342,14 +352,27 @@ export default function UserManagement() {
             </div>
           </div>
           
-          <Button 
-            variant="outline" 
-            onClick={fetchUsers}
-            className="self-start sm:self-auto"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualiser
-          </Button>
+          <div className="flex gap-2 self-start sm:self-auto">
+            {isSuperAdmin && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSelectedUserForMerge(null);
+                  setMergeModalOpen(true);
+                }}
+              >
+                <GitMerge className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Fusionner comptes</span>
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={fetchUsers}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Actualiser</span>
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Bar */}
@@ -565,6 +588,16 @@ export default function UserManagement() {
                             <DropdownMenuItem onClick={() => handleUserAction(user, 'transactions')}>
                               Historique des transactions
                             </DropdownMenuItem>
+                            {isSuperAdmin && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleUserAction(user, 'merge')}>
+                                  <GitMerge className="mr-2 h-4 w-4" />
+                                  Fusionner avec un autre compte
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               className="text-destructive"
                               onClick={() => handleUserAction(user, 'suspend')}
@@ -655,6 +688,16 @@ export default function UserManagement() {
                                 <DropdownMenuItem onClick={() => handleUserAction(user, 'transactions')}>
                                   Historique des transactions
                                 </DropdownMenuItem>
+                                {isSuperAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleUserAction(user, 'merge')}>
+                                      <GitMerge className="mr-2 h-4 w-4" />
+                                      Fusionner avec un autre compte
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   className="text-destructive"
                                   onClick={() => handleUserAction(user, 'suspend')}
@@ -697,6 +740,25 @@ export default function UserManagement() {
           onOpenChange={setSuspendDialogOpen}
           onSuccess={fetchUsers}
         />
+
+        {isSuperAdmin && (
+          <MergeAccountsModal
+            isOpen={mergeModalOpen}
+            onClose={() => {
+              setMergeModalOpen(false);
+              setSelectedUserForMerge(null);
+            }}
+            initialPrimaryUser={selectedUserForMerge ? {
+              user_id: selectedUserForMerge.user_id,
+              first_name: selectedUserForMerge.first_name,
+              last_name: selectedUserForMerge.last_name,
+              phone: selectedUserForMerge.phone,
+              avatar_url: selectedUserForMerge.avatar_url,
+              created_at: selectedUserForMerge.created_at
+            } : null}
+            onMergeComplete={fetchUsers}
+          />
+        )}
       </div>
     </AdminLayout>
   );

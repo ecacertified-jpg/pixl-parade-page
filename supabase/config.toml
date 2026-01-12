@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.send-contact-email]
 verify_jwt = false
+
+[functions.merge-user-accounts]
+verify_jwt = true
