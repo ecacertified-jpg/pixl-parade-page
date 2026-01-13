@@ -2,9 +2,11 @@ import { useState, useRef, useCallback } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, GripVertical, Image as ImageIcon, Crop } from "lucide-react";
+import { Upload, X, GripVertical, Image as ImageIcon, Crop, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageCropModal } from "./ImageCropModal";
+import { ImageCompressionModal } from "./ImageCompressionModal";
+import { formatFileSize } from "@/utils/compressImage";
 
 export interface ImageItem {
   id: string;
@@ -29,6 +31,7 @@ export function MultiImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [cropModalImage, setCropModalImage] = useState<ImageItem | null>(null);
+  const [compressionModalImage, setCompressionModalImage] = useState<ImageItem | null>(null);
 
   const handleFilesSelected = useCallback((files: FileList | null) => {
     if (!files || disabled) return;
@@ -74,6 +77,28 @@ export function MultiImageUploader({
 
   const handleOpenCrop = useCallback((image: ImageItem) => {
     setCropModalImage(image);
+  }, []);
+
+  const handleCompressionComplete = useCallback((compressedUrl: string, compressedFile: File) => {
+    if (!compressionModalImage) return;
+    
+    // Revoke old blob URL if needed
+    if (compressionModalImage.url.startsWith('blob:')) {
+      URL.revokeObjectURL(compressionModalImage.url);
+    }
+    
+    // Update image with compressed version
+    onChange(images.map(img => 
+      img.id === compressionModalImage.id 
+        ? { ...img, url: compressedUrl, file: compressedFile, isExisting: false }
+        : img
+    ));
+    
+    setCompressionModalImage(null);
+  }, [compressionModalImage, images, onChange]);
+
+  const handleOpenCompression = useCallback((image: ImageItem) => {
+    setCompressionModalImage(image);
   }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -153,6 +178,7 @@ export function MultiImageUploader({
                 index={index}
                 onRemove={() => handleRemove(image.id)}
                 onCrop={() => handleOpenCrop(image)}
+                onCompress={() => handleOpenCompression(image)}
                 disabled={disabled}
               />
             ))}
@@ -177,6 +203,14 @@ export function MultiImageUploader({
         onClose={() => setCropModalImage(null)}
         onCropComplete={handleCropComplete}
       />
+
+      {/* Compression Modal */}
+      <ImageCompressionModal
+        image={compressionModalImage}
+        isOpen={!!compressionModalImage}
+        onClose={() => setCompressionModalImage(null)}
+        onCompressionComplete={handleCompressionComplete}
+      />
     </div>
   );
 }
@@ -186,10 +220,11 @@ interface SortableImageItemProps {
   index: number;
   onRemove: () => void;
   onCrop: () => void;
+  onCompress: () => void;
   disabled: boolean;
 }
 
-function SortableImageItem({ image, index, onRemove, onCrop, disabled }: SortableImageItemProps) {
+function SortableImageItem({ image, index, onRemove, onCrop, onCompress, disabled }: SortableImageItemProps) {
   const controls = useDragControls();
 
   return (
@@ -231,6 +266,16 @@ function SortableImageItem({ image, index, onRemove, onCrop, disabled }: Sortabl
             Principale
           </Badge>
         )}
+
+        {/* File size indicator */}
+        {image.file && (
+          <Badge 
+            variant="secondary"
+            className="absolute top-1 right-7 text-[8px] px-1 py-0 bg-black/60 text-white border-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            {formatFileSize(image.file.size)}
+          </Badge>
+        )}
         
         {/* Remove button */}
         {!disabled && (
@@ -261,6 +306,22 @@ function SortableImageItem({ image, index, onRemove, onCrop, disabled }: Sortabl
             }}
           >
             <Crop className="h-3 w-3" />
+          </Button>
+        )}
+
+        {/* Compress button */}
+        {!disabled && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="absolute bottom-1 left-7 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCompress();
+            }}
+          >
+            <Minimize2 className="h-3 w-3" />
           </Button>
         )}
         
