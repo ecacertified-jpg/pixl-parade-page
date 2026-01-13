@@ -6,13 +6,15 @@ import { Upload, X, GripVertical, Image as ImageIcon, Crop, Minimize2 } from "lu
 import { cn } from "@/lib/utils";
 import { ImageCropModal } from "./ImageCropModal";
 import { ImageCompressionModal } from "./ImageCompressionModal";
-import { formatFileSize } from "@/utils/compressImage";
+import { FormatBadge } from "./FormatBadge";
+import { formatFileSize, compressWithSmartFormat } from "@/utils/compressImage";
 
 export interface ImageItem {
   id: string;
   file?: File;
   url: string;
   isExisting?: boolean;
+  format?: 'webp' | 'jpeg' | 'png' | 'original';
 }
 
 interface MultiImageUploaderProps {
@@ -20,34 +22,74 @@ interface MultiImageUploaderProps {
   onChange: (images: ImageItem[]) => void;
   maxImages?: number;
   disabled?: boolean;
+  autoCompress?: boolean;
+  autoCompressQuality?: number;
+  preferWebP?: boolean;
 }
 
 export function MultiImageUploader({ 
   images, 
   onChange, 
   maxImages = 5,
-  disabled = false
+  disabled = false,
+  autoCompress = false,
+  autoCompressQuality = 0.8,
+  preferWebP = true
 }: MultiImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [cropModalImage, setCropModalImage] = useState<ImageItem | null>(null);
   const [compressionModalImage, setCompressionModalImage] = useState<ImageItem | null>(null);
 
-  const handleFilesSelected = useCallback((files: FileList | null) => {
+  const handleFilesSelected = useCallback(async (files: FileList | null) => {
     if (!files || disabled) return;
     
     const remainingSlots = maxImages - images.length;
     const filesToAdd = Array.from(files).slice(0, remainingSlots);
     
-    const newImages: ImageItem[] = filesToAdd.map(file => ({
-      id: crypto.randomUUID(),
-      file,
-      url: URL.createObjectURL(file),
-      isExisting: false
-    }));
-    
-    onChange([...images, ...newImages]);
-  }, [images, maxImages, onChange, disabled]);
+    // If auto compress is enabled
+    if (autoCompress) {
+      const processedImages: ImageItem[] = [];
+      
+      for (const file of filesToAdd) {
+        try {
+          const result = await compressWithSmartFormat(file, {
+            quality: autoCompressQuality,
+            preferWebP
+          });
+          
+          processedImages.push({
+            id: crypto.randomUUID(),
+            file: result.file,
+            url: result.url,
+            isExisting: false,
+            format: result.format
+          });
+        } catch {
+          // Fallback: add original image
+          processedImages.push({
+            id: crypto.randomUUID(),
+            file,
+            url: URL.createObjectURL(file),
+            isExisting: false,
+            format: 'original'
+          });
+        }
+      }
+      
+      onChange([...images, ...processedImages]);
+    } else {
+      // Current behavior without auto compression
+      const newImages: ImageItem[] = filesToAdd.map(file => ({
+        id: crypto.randomUUID(),
+        file,
+        url: URL.createObjectURL(file),
+        isExisting: false
+      }));
+      
+      onChange([...images, ...newImages]);
+    }
+  }, [images, maxImages, onChange, disabled, autoCompress, autoCompressQuality, preferWebP]);
 
   const handleRemove = useCallback((id: string) => {
     const imageToRemove = images.find(img => img.id === id);
@@ -87,10 +129,13 @@ export function MultiImageUploader({
       URL.revokeObjectURL(compressionModalImage.url);
     }
     
+    // Determine format from file type
+    const format = compressedFile.type === 'image/webp' ? 'webp' : 'jpeg';
+    
     // Update image with compressed version
     onChange(images.map(img => 
       img.id === compressionModalImage.id 
-        ? { ...img, url: compressedUrl, file: compressedFile, isExisting: false }
+        ? { ...img, url: compressedUrl, file: compressedFile, isExisting: false, format }
         : img
     ));
     
@@ -275,6 +320,16 @@ function SortableImageItem({ image, index, onRemove, onCrop, onCompress, disable
           >
             {formatFileSize(image.file.size)}
           </Badge>
+        )}
+
+        {/* Format badge */}
+        {image.format && image.format !== 'original' && (
+          <FormatBadge 
+            format={image.format} 
+            size="sm"
+            showIcon={false}
+            className="absolute bottom-1 left-14 opacity-0 group-hover:opacity-100 transition-opacity"
+          />
         )}
         
         {/* Remove button */}
