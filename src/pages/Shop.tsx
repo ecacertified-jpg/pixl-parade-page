@@ -170,9 +170,35 @@ export default function Shop() {
         }
       }
 
-      // Étape 4: Formater les produits avec les noms et logos de boutiques
+      // Étape 4: Récupérer les ratings pour tous les produits
+      const productIds = productsData.map(p => p.id);
+      const ratingsMap: Record<string, { sum: number; count: number }> = {};
+      
+      if (productIds.length > 0) {
+        const { data: ratingsData } = await supabase
+          .from('product_ratings')
+          .select('product_id, rating')
+          .in('product_id', productIds);
+
+        if (ratingsData) {
+          ratingsData.forEach(r => {
+            if (!ratingsMap[r.product_id]) {
+              ratingsMap[r.product_id] = { sum: 0, count: 0 };
+            }
+            ratingsMap[r.product_id].sum += r.rating;
+            ratingsMap[r.product_id].count += 1;
+          });
+        }
+      }
+
+      // Étape 5: Formater les produits avec les noms, logos et vrais ratings
       const formattedProducts = productsData.map(product => {
         const businessInfo = product.business_account_id ? businessMap[product.business_account_id] : null;
+        const ratingInfo = ratingsMap[product.id];
+        const avgRating = ratingInfo && ratingInfo.count > 0 
+          ? ratingInfo.sum / ratingInfo.count 
+          : 0;
+        const reviewCount = ratingInfo?.count || 0;
         
         // Construire le tableau d'images (image principale + images additionnelles)
         const mainImage = product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png";
@@ -192,8 +218,8 @@ export default function Shop() {
           vendorId: product.business_account_id || null,
           vendorLogo: businessInfo?.logo || null,
           distance: "2.3 km",
-          rating: 4.8,
-          reviews: 45,
+          rating: parseFloat(avgRating.toFixed(1)),
+          reviews: reviewCount,
           inStock: (product.stock_quantity || 0) > 0,
           isExperience: product.is_experience || false,
           categoryName: product.category_name,
@@ -696,9 +722,20 @@ export default function Shop() {
 
                   {/* Compact Rating */}
                   <div className="flex items-center gap-1 mb-2">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
-                    <span className="text-xs text-muted-foreground">({product.reviews} avis)</span>
+                    {product.reviews > 0 ? (
+                      <>
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({product.reviews} {product.reviews === 1 ? 'avis' : 'avis'})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Aucun avis</span>
+                      </>
+                    )}
                   </div>
 
                   <Button 
