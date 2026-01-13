@@ -261,7 +261,15 @@ export function DeleteClientModal({
     confirmations.funds && 
     confirmations.irreversible;
 
-  const nameMatches = confirmName.trim().toLowerCase() === userName.trim().toLowerCase();
+  // Normalise les espaces : supprime début/fin et remplace les espaces multiples par un seul
+  const normalizeName = (name: string): string => {
+    return name
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  };
+
+  const nameMatches = normalizeName(confirmName) === normalizeName(userName);
   const canDelete = nameMatches && reason.trim().length >= 10;
 
   const handleDelete = () => {
@@ -535,7 +543,7 @@ export function DeleteClientModal({
               </p>
               <div className="p-4 bg-gradient-to-r from-muted to-muted/50 rounded-xl text-center">
                 <p className="font-mono font-semibold text-lg text-foreground">
-                  {userName}
+                  {userName.trim().replace(/\s+/g, ' ')}
                 </p>
               </div>
               <Input
