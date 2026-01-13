@@ -1,8 +1,159 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// Function to send email notification to Super Admins when a client is deleted
+async function sendDeletionNotificationEmail(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  deletedUserName: string,
+  deletedUserEmail: string | null,
+  deletedUserId: string,
+  adminName: string,
+  adminEmail: string,
+  reason: string
+) {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey) {
+    console.log('⚠️ RESEND_API_KEY not configured, skipping email notification');
+    return;
+  }
+
+  try {
+    // Fetch all active super admins
+    const { data: superAdmins } = await supabaseAdmin
+      .from('admin_users')
+      .select('user_id')
+      .eq('role', 'super_admin')
+      .eq('is_active', true);
+
+    if (!superAdmins || superAdmins.length === 0) {
+      console.log('No super admins to notify');
+      return;
+    }
+
+    // Get emails of super admins via auth.admin
+    const superAdminEmails: string[] = [];
+    for (const admin of superAdmins) {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(admin.user_id);
+      if (authUser?.user?.email) {
+        superAdminEmails.push(authUser.user.email);
+      }
+    }
+
+    if (superAdminEmails.length === 0) {
+      console.log('No super admin emails found');
+      return;
+    }
+
+    const resend = new Resend(resendApiKey);
+    const deletionDate = new Date().toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+          .header { background: linear-gradient(135deg, #7A5DC7, #C084FC); color: white; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .content { padding: 30px; }
+          .alert-box { background: #FEF2F2; border-left: 4px solid #EF4444; padding: 15px; margin-bottom: 20px; border-radius: 0 8px 8px 0; }
+          .alert-box h3 { color: #DC2626; margin: 0 0 10px 0; }
+          .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .info-table th { text-align: left; padding: 12px; background: #F3F4F6; color: #374151; font-weight: 600; }
+          .info-table td { padding: 12px; border-bottom: 1px solid #E5E7EB; color: #4B5563; }
+          .reason-box { background: #F3F4F6; padding: 15px; border-radius: 8px; color: #374151; }
+          .footer { background: #F9FAFB; padding: 20px; text-align: center; color: #6B7280; font-size: 12px; }
+          .note { margin-top: 20px; color: #6B7280; }
+          .note a { color: #7A5DC7; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🗑️ Compte Client Supprimé</h1>
+          </div>
+          <div class="content">
+            <div class="alert-box">
+              <h3>⚠️ Action Critique</h3>
+              <p>Un compte client a été supprimé de la plateforme.</p>
+            </div>
+            
+            <h2>Détails de l'action</h2>
+            <table class="info-table">
+              <tr>
+                <th>Client supprimé</th>
+                <td>${deletedUserName}</td>
+              </tr>
+              <tr>
+                <th>Email du client</th>
+                <td>${deletedUserEmail || 'Non disponible'}</td>
+              </tr>
+              <tr>
+                <th>ID utilisateur</th>
+                <td style="font-family: monospace; font-size: 12px;">${deletedUserId}</td>
+              </tr>
+              <tr>
+                <th>Date de suppression</th>
+                <td>${deletionDate}</td>
+              </tr>
+            </table>
+
+            <h2>Administrateur responsable</h2>
+            <table class="info-table">
+              <tr>
+                <th>Nom</th>
+                <td>${adminName}</td>
+              </tr>
+              <tr>
+                <th>Email</th>
+                <td>${adminEmail}</td>
+              </tr>
+            </table>
+
+            <h2>Raison de la suppression</h2>
+            <div class="reason-box">
+              ${reason || 'Aucune raison spécifiée'}
+            </div>
+
+            <p class="note">
+              <strong>Note :</strong> Le compte a été soft-deleted et peut être restauré depuis la 
+              <a href="https://joiedevivre-africa.com/admin/deleted-clients">Corbeille Clients</a> 
+              pendant 30 jours.
+            </p>
+          </div>
+          <div class="footer">
+            <p>JOIE DE VIVRE - Panneau d'Administration</p>
+            <p>Cet email a été envoyé automatiquement. Ne pas répondre.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await resend.emails.send({
+      from: 'JOIE DE VIVRE <onboarding@resend.dev>',
+      to: superAdminEmails,
+      subject: `🗑️ Compte supprimé : ${deletedUserName}`,
+      html: emailHtml
+    });
+    
+    console.log(`📧 Deletion notification sent to ${superAdminEmails.length} super admin(s)`);
+  } catch (emailError) {
+    console.error('Failed to send deletion notification email:', emailError);
+    // Don't throw - email failure should not block the deletion
+  }
 }
 
 interface ManageUserRequest {
@@ -238,6 +389,36 @@ Deno.serve(async (req) => {
         }
 
         actionDescription = `Deleted user: ${targetFullName}`
+
+        // Send email notification to all Super Admins
+        // Get acting admin's profile info
+        const { data: adminProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        const { data: adminAuthUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+        
+        const adminName = [adminProfile?.first_name, adminProfile?.last_name]
+          .filter(Boolean).join(' ') || 'Admin';
+        const adminEmail = adminAuthUser?.user?.email || 'Email non disponible';
+        
+        // Get deleted user's email
+        const { data: deletedAuthUser } = await supabaseAdmin.auth.admin.getUserById(body.user_id);
+        const deletedUserEmail = deletedAuthUser?.user?.email || null;
+        
+        // Send notification email (async, non-blocking)
+        await sendDeletionNotificationEmail(
+          supabaseAdmin,
+          targetFullName,
+          deletedUserEmail,
+          body.user_id,
+          adminName,
+          adminEmail,
+          body.reason || 'Aucune raison spécifiée'
+        );
+
         break
       }
 
