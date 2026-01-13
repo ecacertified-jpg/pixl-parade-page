@@ -94,45 +94,84 @@ serve(async (req) => {
       // STEP 2: Delete all product dependencies
       // =====================================================
 
-      // 2a. Delete product_ratings
-      const { count: ratingsCount } = await supabaseAdmin
+      // 2a. Delete order_items referencing products (CRITICAL for FK integrity)
+      // If this table doesn't exist in a given environment, Supabase will return a clear error.
+      const { count: orderItemsCount, error: orderItemsError } = await supabaseAdmin
+        .from("order_items")
+        .delete()
+        .in("product_id", productIds)
+        .select("*", { count: "exact", head: true });
+
+      if (orderItemsError) {
+        console.error("Error deleting order_items:", orderItemsError);
+        throw new Error(`Failed to delete order_items: ${orderItemsError.message}`);
+      }
+
+      // 2b. Delete product_ratings
+      const { count: ratingsCount, error: ratingsError } = await supabaseAdmin
         .from("product_ratings")
         .delete()
         .in("product_id", productIds)
         .select("*", { count: "exact", head: true });
+
+      if (ratingsError) {
+        console.error("Error deleting product_ratings:", ratingsError);
+        throw new Error(`Failed to delete product_ratings: ${ratingsError.message}`);
+      }
       stats.product_ratings = ratingsCount || 0;
 
-      // 2b. Delete business_birthday_alerts referencing products
-      const { count: alertsCount } = await supabaseAdmin
+      // 2c. Delete business_birthday_alerts referencing products
+      const { count: alertsCount, error: alertsError } = await supabaseAdmin
         .from("business_birthday_alerts")
         .delete()
         .in("product_id", productIds)
         .select("*", { count: "exact", head: true });
+
+      if (alertsError) {
+        console.error("Error deleting business_birthday_alerts:", alertsError);
+        throw new Error(`Failed to delete business_birthday_alerts: ${alertsError.message}`);
+      }
       stats.birthday_alerts = alertsCount || 0;
 
-      // 2c. Delete business_collective_funds referencing products
-      const { count: bcfCount } = await supabaseAdmin
+      // 2d. Delete business_collective_funds referencing products
+      const { count: bcfCount, error: bcfError } = await supabaseAdmin
         .from("business_collective_funds")
         .delete()
         .in("product_id", productIds)
         .select("*", { count: "exact", head: true });
+
+      if (bcfError) {
+        console.error("Error deleting business_collective_funds:", bcfError);
+        throw new Error(`Failed to delete business_collective_funds: ${bcfError.message}`);
+      }
       stats.business_collective_funds = bcfCount || 0;
 
-      // 2d. Set business_product_id to NULL in collective_funds
-      await supabaseAdmin
+      // 2e. Set business_product_id to NULL in collective_funds
+      const { error: nullifyFundsError } = await supabaseAdmin
         .from("collective_funds")
         .update({ business_product_id: null })
         .in("business_product_id", productIds);
 
-      // 2e. Delete favorites referencing products
-      const { count: favCount } = await supabaseAdmin
+      if (nullifyFundsError) {
+        console.error("Error nullifying collective_funds.business_product_id:", nullifyFundsError);
+        throw new Error(`Failed to nullify collective_funds product link: ${nullifyFundsError.message}`);
+      }
+
+      // 2f. Delete favorites referencing products
+      const { count: favCount, error: favError } = await supabaseAdmin
         .from("favorites")
         .delete()
         .in("product_id", productIds)
         .select("*", { count: "exact", head: true });
+
+      if (favError) {
+        console.error("Error deleting favorites:", favError);
+        throw new Error(`Failed to delete favorites: ${favError.message}`);
+      }
       stats.favorites = favCount || 0;
 
       console.log(`[delete-business-cascade] Deleted product dependencies:`, {
+        order_items: orderItemsCount || 0,
         ratings: stats.product_ratings,
         alerts: stats.birthday_alerts,
         bcf: stats.business_collective_funds,
