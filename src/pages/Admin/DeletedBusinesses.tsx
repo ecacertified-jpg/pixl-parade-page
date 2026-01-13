@@ -205,32 +205,59 @@ export default function DeletedBusinesses() {
       const businessId = businessToHardDelete.id;
       const businessUserId = businessToHardDelete.user_id;
 
-      // 1. Delete product ratings
+      // 1. Get product IDs first
       const { data: products } = await supabase
         .from('products')
         .select('id')
         .eq('business_account_id', businessId);
 
       if (products && products.length > 0) {
+        const productIds = products.map(p => p.id);
+
+        // 2. Delete product ratings
         await supabase
           .from('product_ratings')
           .delete()
-          .in('product_id', products.map(p => p.id));
+          .in('product_id', productIds);
+
+        // 3. Delete business_birthday_alerts referencing products
+        await supabase
+          .from('business_birthday_alerts')
+          .delete()
+          .in('product_id', productIds);
+
+        // 4. Delete business_collective_funds referencing products
+        await supabase
+          .from('business_collective_funds')
+          .delete()
+          .in('product_id', productIds);
+
+        // 5. Set business_product_id to NULL in collective_funds
+        await supabase
+          .from('collective_funds')
+          .update({ business_product_id: null })
+          .in('business_product_id', productIds);
+
+        // 6. Delete user_favorites referencing products
+        await supabase
+          .from('favorites')
+          .delete()
+          .in('product_id', productIds);
       }
 
-      // 2. Delete products
+      // 7. Delete products
       await supabase
         .from('products')
         .delete()
         .eq('business_account_id', businessId);
 
-      // 3. Delete categories
+      // 8. Delete categories
       await supabase
         .from('business_categories')
         .delete()
         .eq('business_owner_id', businessUserId);
 
-      // 4. Handle funds - disassociate or delete
+      // 9. Handle funds - disassociate or delete
       const { data: funds } = await supabase
         .from('collective_funds')
         .select('id, fund_contributions(id)')
@@ -261,19 +288,19 @@ export default function DeletedBusinesses() {
         }
       }
 
-      // 5. Delete orders
+      // 10. Delete orders
       await supabase
         .from('business_orders')
         .delete()
         .eq('business_account_id', businessId);
 
-      // 6. Delete archive
+      // 11. Delete archive
       await supabase
         .from('deleted_business_archives')
         .delete()
         .eq('business_id', businessId);
 
-      // 7. Delete business account
+      // 12. Delete business account
       const { error } = await supabase
         .from('business_accounts')
         .delete()
