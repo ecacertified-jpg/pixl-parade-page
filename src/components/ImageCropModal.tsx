@@ -3,9 +3,17 @@ import Cropper from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ZoomIn, ZoomOut, Check, RotateCw } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ZoomIn, ZoomOut, Check, RotateCw, RotateCcw, RefreshCw } from "lucide-react";
 import { getCroppedImage, Area } from "@/utils/cropImage";
 import { cn } from "@/lib/utils";
+
+const ROTATION_PRESETS = [
+  { label: "0°", value: 0 },
+  { label: "90°", value: 90 },
+  { label: "180°", value: 180 },
+  { label: "270°", value: 270 },
+];
 
 interface AspectRatioOption {
   label: string;
@@ -54,13 +62,13 @@ export function ImageCropModal({
     }
   }, [isOpen, imageSrc]);
 
-  // Update preview when crop changes (debounced)
+  // Update preview when crop or rotation changes (debounced)
   useEffect(() => {
     if (!croppedAreaPixels || !imageSrc) return;
 
     const timeoutId = setTimeout(async () => {
       try {
-        const { url } = await getCroppedImage(imageSrc, croppedAreaPixels, { width: 120, height: 120 });
+        const { url } = await getCroppedImage(imageSrc, croppedAreaPixels, { width: 120, height: 120 }, rotation);
         setPreview(url);
       } catch (error) {
         console.error('Preview generation failed:', error);
@@ -68,14 +76,22 @@ export function ImageCropModal({
     }, 150);
 
     return () => clearTimeout(timeoutId);
-  }, [croppedAreaPixels, imageSrc]);
+  }, [croppedAreaPixels, imageSrc, rotation]);
 
   const onCropAreaChange = useCallback((_: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
   }, []);
 
-  const handleRotate = () => {
+  const handleRotateRight = () => {
     setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const handleRotateLeft = () => {
+    setRotation((prev) => (prev - 90 + 360) % 360);
+  };
+
+  const handleResetRotation = () => {
+    setRotation(0);
   };
 
   const handleApply = async () => {
@@ -83,7 +99,7 @@ export function ImageCropModal({
 
     setIsProcessing(true);
     try {
-      const { url, file } = await getCroppedImage(imageSrc, croppedAreaPixels);
+      const { url, file } = await getCroppedImage(imageSrc, croppedAreaPixels, undefined, rotation);
       onCropComplete(url, file);
       onClose();
     } catch (error) {
@@ -139,45 +155,108 @@ export function ImageCropModal({
         {/* Controls */}
         <div className="space-y-4 mt-2">
           {/* Zoom slider */}
-          <div className="flex items-center gap-3">
-            <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Slider
-              value={[zoom]}
-              min={1}
-              max={3}
-              step={0.05}
-              onValueChange={(v) => setZoom(v[0])}
-              className="flex-1"
-            />
-            <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={handleRotate}
-            >
-              <RotateCw className="h-4 w-4" />
-            </Button>
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Zoom</Label>
+            <div className="flex items-center gap-3">
+              <ZoomOut className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Slider
+                value={[zoom]}
+                min={1}
+                max={3}
+                step={0.05}
+                onValueChange={(v) => setZoom(v[0])}
+                className="flex-1"
+              />
+              <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
+            </div>
+          </div>
+
+          {/* Rotation controls */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Rotation</Label>
+              <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                {rotation}°
+              </span>
+            </div>
+            
+            {/* Rotation presets */}
+            <div className="flex gap-2">
+              {ROTATION_PRESETS.map((preset) => (
+                <Button
+                  key={preset.value}
+                  type="button"
+                  variant={rotation === preset.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setRotation(preset.value)}
+                  className="flex-1 text-xs"
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Free rotation slider */}
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handleRotateLeft}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Slider
+                value={[rotation]}
+                min={-180}
+                max={180}
+                step={1}
+                onValueChange={(v) => setRotation(v[0] < 0 ? v[0] + 360 : v[0])}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handleRotateRight}
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handleResetRotation}
+                disabled={rotation === 0}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Aspect ratio selector */}
-          <div className="flex gap-2 flex-wrap">
-            {aspectRatios.map((ratio) => (
-              <Button
-                key={ratio.label}
-                type="button"
-                variant={aspect === ratio.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setAspect(ratio.value)}
-                className={cn(
-                  "text-xs",
-                  aspect === ratio.value && "bg-primary text-primary-foreground"
-                )}
-              >
-                {ratio.label}
-              </Button>
-            ))}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Ratio</Label>
+            <div className="flex gap-2 flex-wrap">
+              {aspectRatios.map((ratio) => (
+                <Button
+                  key={ratio.label}
+                  type="button"
+                  variant={aspect === ratio.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAspect(ratio.value)}
+                  className={cn(
+                    "text-xs",
+                    aspect === ratio.value && "bg-primary text-primary-foreground"
+                  )}
+                >
+                  {ratio.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
