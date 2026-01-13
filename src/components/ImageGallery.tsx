@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Expand } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ZoomableImage } from "@/components/ZoomableImage";
+import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hasSwiped, setHasSwiped] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = useIsMobile();
 
   const onSelect = useCallback(() => {
@@ -44,29 +46,82 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
     emblaApi?.scrollTo(index);
   }, [emblaApi]);
 
-  // If single image, just show ZoomableImage without carousel
+  const openFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  // If no images, show placeholder
   if (!images || images.length === 0) {
     return (
-      <ZoomableImage
-        src="/lovable-uploads/placeholder.png"
-        alt={alt}
-        className={className}
-      />
+      <div className="relative">
+        <ZoomableImage
+          src="/lovable-uploads/placeholder.png"
+          alt={alt}
+          className={className}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8"
+          onClick={openFullscreen}
+        >
+          <Expand className="h-4 w-4" />
+        </Button>
+        <FullscreenGallery
+          images={["/lovable-uploads/placeholder.png"]}
+          alt={alt}
+          initialIndex={0}
+          isOpen={isFullscreen}
+          onClose={closeFullscreen}
+        />
+      </div>
     );
   }
 
+  // Single image - show with fullscreen option
   if (images.length === 1) {
     return (
-      <ZoomableImage
-        src={images[0]}
-        alt={alt}
-        className={className}
-      />
+      <div className="relative">
+        <ZoomableImage
+          src={images[0]}
+          alt={alt}
+          className={className}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8"
+          onClick={openFullscreen}
+        >
+          <Expand className="h-4 w-4" />
+        </Button>
+        <FullscreenGallery
+          images={images}
+          alt={alt}
+          initialIndex={0}
+          isOpen={isFullscreen}
+          onClose={closeFullscreen}
+        />
+      </div>
     );
   }
 
   return (
     <div className="relative">
+      {/* Fullscreen button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-3 right-12 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8"
+        onClick={openFullscreen}
+      >
+        <Expand className="h-4 w-4" />
+      </Button>
+
       {/* Carousel container */}
       <div ref={emblaRef} className="overflow-hidden">
         <div className="flex">
@@ -136,6 +191,15 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
       <div className="absolute top-3 left-3 z-30 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full pointer-events-none">
         {selectedIndex + 1} / {images.length}
       </div>
+
+      {/* Fullscreen Gallery */}
+      <FullscreenGallery
+        images={images}
+        alt={alt}
+        initialIndex={selectedIndex}
+        isOpen={isFullscreen}
+        onClose={closeFullscreen}
+      />
     </div>
   );
 }
