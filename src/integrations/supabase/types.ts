@@ -1886,6 +1886,39 @@ export type Database = {
           },
         ]
       }
+      deleted_client_archives: {
+        Row: {
+          archived_data: Json
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          expires_at: string
+          id: string
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          archived_data?: Json
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string
+          id?: string
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          archived_data?: Json
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string
+          id?: string
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           coordinates: Json
@@ -4086,11 +4119,15 @@ export type Database = {
           birthday_badge_level: number | null
           city: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           first_birthday_on_platform: string | null
           first_name: string | null
           id: string
           invitations_accepted: number | null
           invitations_sent: number | null
+          is_deleted: boolean | null
           is_suspended: boolean | null
           last_name: string | null
           phone: string | null
@@ -4115,11 +4152,15 @@ export type Database = {
           birthday_badge_level?: number | null
           city?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
           invitations_accepted?: number | null
           invitations_sent?: number | null
+          is_deleted?: boolean | null
           is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null
@@ -4144,11 +4185,15 @@ export type Database = {
           birthday_badge_level?: number | null
           city?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           first_birthday_on_platform?: string | null
           first_name?: string | null
           id?: string
           invitations_accepted?: number | null
           invitations_sent?: number | null
+          is_deleted?: boolean | null
           is_suspended?: boolean | null
           last_name?: string | null
           phone?: string | null

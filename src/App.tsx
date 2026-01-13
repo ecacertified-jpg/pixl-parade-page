@@ -49,6 +49,7 @@ import NotificationAnalytics from "./pages/Admin/NotificationAnalytics";
 import ProfileCompletionDashboard from "./pages/Admin/ProfileCompletionDashboard";
 import DuplicateAccountsDashboard from "./pages/Admin/DuplicateAccountsDashboard";
 import DeletedBusinesses from "./pages/Admin/DeletedBusinesses";
+import DeletedClients from "./pages/Admin/DeletedClients";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
@@ -280,8 +281,13 @@ const App = () => (
               </AdminRoute>
             } />
             <Route path="/admin/deleted-businesses" element={
-              <AdminRoute>
+              <AdminRoute requiredRole="super_admin">
                 <DeletedBusinesses />
+              </AdminRoute>
+            } />
+            <Route path="/admin/deleted-clients" element={
+              <AdminRoute requiredRole="super_admin">
+                <DeletedClients />
               </AdminRoute>
             } />
             <Route path="/admin/admin-notifications" element={
