@@ -41,139 +41,36 @@ serve(async (req) => {
     const results = {
       purged: 0,
       failed: 0,
-      details: [] as { id: string; name: string; status: string; error?: string }[],
+      details: [] as { id: string; name: string; status: string; deleted?: object; error?: string }[],
     };
 
     for (const business of expiredBusinesses || []) {
       try {
         console.log(`[Purge] Processing business: ${business.business_name} (${business.id})`);
 
-        // 1. Get products for this business
-        const { data: products } = await supabaseAdmin
-          .from("products")
-          .select("id")
-          .eq("business_account_id", business.id);
-
-        // 2. Delete all product dependencies
-        if (products && products.length > 0) {
-          const productIds = products.map((p) => p.id);
-
-          // Delete product ratings
-          await supabaseAdmin
-            .from("product_ratings")
-            .delete()
-            .in("product_id", productIds);
-
-          // Delete business_birthday_alerts referencing products
-          await supabaseAdmin
-            .from("business_birthday_alerts")
-            .delete()
-            .in("product_id", productIds);
-
-          // Delete business_collective_funds referencing products
-          await supabaseAdmin
-            .from("business_collective_funds")
-            .delete()
-            .in("product_id", productIds);
-
-          // Set business_product_id to NULL in collective_funds
-          await supabaseAdmin
-            .from("collective_funds")
-            .update({ business_product_id: null })
-            .in("business_product_id", productIds);
-
-          // Delete favorites referencing products
-          await supabaseAdmin
-            .from("favorites")
-            .delete()
-            .in("product_id", productIds);
-        }
-
-        // 3. Delete products
-        await supabaseAdmin
-          .from("products")
-          .delete()
-          .eq("business_account_id", business.id);
-
-        // 4. Delete categories
-        await supabaseAdmin
-          .from("business_categories")
-          .delete()
-          .eq("business_owner_id", business.user_id);
-
-        // 5. Handle funds
-        const { data: funds } = await supabaseAdmin
-          .from("collective_funds")
-          .select("id, fund_contributions(id)")
-          .eq("created_by_business_id", business.id);
-
-        if (funds) {
-          const fundsWithContribs = funds.filter(
-            (f) => Array.isArray(f.fund_contributions) && f.fund_contributions.length > 0
-          );
-          const fundsWithoutContribs = funds.filter(
-            (f) => !Array.isArray(f.fund_contributions) || f.fund_contributions.length === 0
-          );
-
-          // Disassociate funds with contributions
-          if (fundsWithContribs.length > 0) {
-            await supabaseAdmin
-              .from("collective_funds")
-              .update({ created_by_business_id: null })
-              .in("id", fundsWithContribs.map((f) => f.id));
-          }
-
-          // Delete empty funds
-          if (fundsWithoutContribs.length > 0) {
-            const fundIds = fundsWithoutContribs.map((f) => f.id);
-            await supabaseAdmin.from("fund_comments").delete().in("fund_id", fundIds);
-            await supabaseAdmin.from("fund_activities").delete().in("fund_id", fundIds);
-            await supabaseAdmin.from("collective_funds").delete().in("id", fundIds);
-          }
-        }
-
-        // 6. Delete orders
-        await supabaseAdmin
-          .from("business_orders")
-          .delete()
-          .eq("business_account_id", business.id);
-
-        // 7. Delete archive
-        await supabaseAdmin
-          .from("deleted_business_archives")
-          .delete()
-          .eq("business_id", business.id);
-
-        // 8. Delete business account
-        const { error: deleteError } = await supabaseAdmin
-          .from("business_accounts")
-          .delete()
-          .eq("id", business.id);
-
-        if (deleteError) throw deleteError;
-
-        // 9. Log the purge
-        await supabaseAdmin.from("admin_audit_logs").insert({
-          admin_user_id: "00000000-0000-0000-0000-000000000000", // System user
-          action_type: "auto_purge_business",
-          target_type: "business",
-          target_id: business.id,
-          description: `Business "${business.business_name}" purgé automatiquement (30 jours écoulés)`,
-          metadata: { 
+        // Call centralized cascade deletion function
+        const { data, error } = await supabaseAdmin.functions.invoke('delete-business-cascade', {
+          body: {
+            business_id: business.id,
+            business_user_id: business.user_id,
             business_name: business.business_name,
-            deleted_at: business.deleted_at,
-            purged_at: now.toISOString()
-          },
+            admin_user_id: null, // System action
+            action_type: 'auto_purge'
+          }
         });
+
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || 'Cascade deletion failed');
 
         results.purged++;
         results.details.push({
           id: business.id,
           name: business.business_name,
           status: "purged",
+          deleted: data.deleted,
         });
 
-        console.log(`[Purge] Successfully purged: ${business.business_name}`);
+        console.log(`[Purge] Successfully purged: ${business.business_name}`, data.deleted);
       } catch (error) {
         console.error(`[Purge] Error purging business ${business.id}:`, error);
         results.failed++;

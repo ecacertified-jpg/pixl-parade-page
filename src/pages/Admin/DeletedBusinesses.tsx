@@ -202,130 +202,33 @@ export default function DeletedBusinesses() {
     const toastId = toast.loading(`Suppression définitive de "${businessToHardDelete.business_name}"...`);
 
     try {
-      const businessId = businessToHardDelete.id;
-      const businessUserId = businessToHardDelete.user_id;
-
-      // 1. Get product IDs first
-      const { data: products } = await supabase
-        .from('products')
-        .select('id')
-        .eq('business_account_id', businessId);
-
-      if (products && products.length > 0) {
-        const productIds = products.map(p => p.id);
-
-        // 2. Delete product ratings
-        await supabase
-          .from('product_ratings')
-          .delete()
-          .in('product_id', productIds);
-
-        // 3. Delete business_birthday_alerts referencing products
-        await supabase
-          .from('business_birthday_alerts')
-          .delete()
-          .in('product_id', productIds);
-
-        // 4. Delete business_collective_funds referencing products
-        await supabase
-          .from('business_collective_funds')
-          .delete()
-          .in('product_id', productIds);
-
-        // 5. Set business_product_id to NULL in collective_funds
-        await supabase
-          .from('collective_funds')
-          .update({ business_product_id: null })
-          .in('business_product_id', productIds);
-
-        // 6. Delete user_favorites referencing products
-        await supabase
-          .from('favorites')
-          .delete()
-          .in('product_id', productIds);
-      }
-
-      // 7. Delete products
-      await supabase
-        .from('products')
-        .delete()
-        .eq('business_account_id', businessId);
-
-      // 8. Delete categories
-      await supabase
-        .from('business_categories')
-        .delete()
-        .eq('business_owner_id', businessUserId);
-
-      // 9. Handle funds - disassociate or delete
-      const { data: funds } = await supabase
-        .from('collective_funds')
-        .select('id, fund_contributions(id)')
-        .eq('created_by_business_id', businessId);
-
-      if (funds) {
-        const fundsWithContribs = funds.filter(f => 
-          Array.isArray(f.fund_contributions) && f.fund_contributions.length > 0
-        );
-        const fundsWithoutContribs = funds.filter(f => 
-          !Array.isArray(f.fund_contributions) || f.fund_contributions.length === 0
-        );
-
-        // Disassociate funds with contributions
-        if (fundsWithContribs.length > 0) {
-          await supabase
-            .from('collective_funds')
-            .update({ created_by_business_id: null })
-            .in('id', fundsWithContribs.map(f => f.id));
+      // Use centralized cascade deletion function
+      const { data, error } = await supabase.functions.invoke('delete-business-cascade', {
+        body: {
+          business_id: businessToHardDelete.id,
+          business_user_id: businessToHardDelete.user_id,
+          business_name: businessToHardDelete.business_name,
+          admin_user_id: user?.id || null,
+          action_type: 'hard_delete'
         }
-
-        // Delete empty funds
-        if (fundsWithoutContribs.length > 0) {
-          const fundIds = fundsWithoutContribs.map(f => f.id);
-          await supabase.from('fund_comments').delete().in('fund_id', fundIds);
-          await supabase.from('fund_activities').delete().in('fund_id', fundIds);
-          await supabase.from('collective_funds').delete().in('id', fundIds);
-        }
-      }
-
-      // 10. Delete orders
-      await supabase
-        .from('business_orders')
-        .delete()
-        .eq('business_account_id', businessId);
-
-      // 11. Delete archive
-      await supabase
-        .from('deleted_business_archives')
-        .delete()
-        .eq('business_id', businessId);
-
-      // 12. Delete business account
-      const { error } = await supabase
-        .from('business_accounts')
-        .delete()
-        .eq('id', businessId);
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Échec de la suppression');
 
-      // 8. Log the action
-      if (user) {
-        await logAdminAction(
-          'hard_delete_business',
-          'business',
-          businessId,
-          `Business "${businessToHardDelete.business_name}" supprimé définitivement`,
-          { business_name: businessToHardDelete.business_name }
-        );
-      }
+      const stats = data.deleted;
+      console.log('Deletion stats:', stats);
 
-      toast.success(`✅ "${businessToHardDelete.business_name}" supprimé définitivement`, { id: toastId });
+      toast.success(
+        `✅ "${businessToHardDelete.business_name}" supprimé définitivement (${stats.products} produits, ${stats.orders} commandes)`, 
+        { id: toastId }
+      );
       setShowHardDeleteDialog(false);
       setBusinessToHardDelete(null);
       fetchDeletedBusinesses();
     } catch (error) {
       console.error('Error hard deleting business:', error);
-      toast.error('Erreur lors de la suppression définitive', { id: toastId });
+      toast.error(`Erreur: ${error instanceof Error ? error.message : 'Échec de la suppression'}`, { id: toastId });
     } finally {
       setHardDeleting(null);
     }
