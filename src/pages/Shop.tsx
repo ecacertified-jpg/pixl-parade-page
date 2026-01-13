@@ -37,6 +37,7 @@ export default function Shop() {
     price: number;
     currency: string;
     image: string;
+    images?: string[];
     category: string;
     vendor: string;
     vendorId: string | null;
@@ -172,13 +173,20 @@ export default function Shop() {
       // Étape 4: Formater les produits avec les noms et logos de boutiques
       const formattedProducts = productsData.map(product => {
         const businessInfo = product.business_account_id ? businessMap[product.business_account_id] : null;
+        
+        // Construire le tableau d'images (image principale + images additionnelles)
+        const mainImage = product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png";
+        const additionalImages = Array.isArray(product.images) ? (product.images as string[]) : [];
+        const allImages = [mainImage, ...additionalImages.filter(img => img !== mainImage)];
+        
         return {
           id: product.id,
           name: product.name,
           description: product.description || "Description non disponible",
           price: product.price,
           currency: product.currency || "F",
-          image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+          image: mainImage,
+          images: allImages,
           category: product.category_name || "Produit",
           vendor: businessInfo?.name || "Boutique",
           vendorId: product.business_account_id || null,
