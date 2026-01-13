@@ -2,8 +2,9 @@ import { useState, useRef, useCallback } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, GripVertical, Image as ImageIcon } from "lucide-react";
+import { Upload, X, GripVertical, Image as ImageIcon, Crop } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageCropModal } from "./ImageCropModal";
 
 export interface ImageItem {
   id: string;
@@ -27,6 +28,7 @@ export function MultiImageUploader({
 }: MultiImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [cropModalImage, setCropModalImage] = useState<ImageItem | null>(null);
 
   const handleFilesSelected = useCallback((files: FileList | null) => {
     if (!files || disabled) return;
@@ -51,6 +53,28 @@ export function MultiImageUploader({
     }
     onChange(images.filter(img => img.id !== id));
   }, [images, onChange]);
+
+  const handleCropComplete = useCallback((croppedUrl: string, croppedFile: File) => {
+    if (!cropModalImage) return;
+    
+    // Revoke old blob URL if needed
+    if (cropModalImage.url.startsWith('blob:')) {
+      URL.revokeObjectURL(cropModalImage.url);
+    }
+    
+    // Update image with cropped version
+    onChange(images.map(img => 
+      img.id === cropModalImage.id 
+        ? { ...img, url: croppedUrl, file: croppedFile, isExisting: false }
+        : img
+    ));
+    
+    setCropModalImage(null);
+  }, [cropModalImage, images, onChange]);
+
+  const handleOpenCrop = useCallback((image: ImageItem) => {
+    setCropModalImage(image);
+  }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -128,6 +152,7 @@ export function MultiImageUploader({
                 image={image}
                 index={index}
                 onRemove={() => handleRemove(image.id)}
+                onCrop={() => handleOpenCrop(image)}
                 disabled={disabled}
               />
             ))}
@@ -144,6 +169,14 @@ export function MultiImageUploader({
           </div>
         </div>
       )}
+
+      {/* Crop Modal */}
+      <ImageCropModal
+        imageSrc={cropModalImage?.url || ''}
+        isOpen={!!cropModalImage}
+        onClose={() => setCropModalImage(null)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }
@@ -152,10 +185,11 @@ interface SortableImageItemProps {
   image: ImageItem;
   index: number;
   onRemove: () => void;
+  onCrop: () => void;
   disabled: boolean;
 }
 
-function SortableImageItem({ image, index, onRemove, disabled }: SortableImageItemProps) {
+function SortableImageItem({ image, index, onRemove, onCrop, disabled }: SortableImageItemProps) {
   const controls = useDragControls();
 
   return (
@@ -211,6 +245,22 @@ function SortableImageItem({ image, index, onRemove, disabled }: SortableImageIt
             }}
           >
             <X className="h-3 w-3" />
+          </Button>
+        )}
+
+        {/* Crop button */}
+        {!disabled && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="absolute bottom-1 left-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCrop();
+            }}
+          >
+            <Crop className="h-3 w-3" />
           </Button>
         )}
         
