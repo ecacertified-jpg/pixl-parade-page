@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     // Get target user profile
     const { data: targetProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, full_name, email')
+      .select('user_id, first_name, last_name, email')
       .eq('user_id', body.user_id)
       .single()
 
@@ -138,12 +138,17 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Build full name from first_name and last_name
+    const targetFullName = [targetProfile.first_name, targetProfile.last_name]
+      .filter(Boolean)
+      .join(' ') || 'Unknown User'
+
     console.log(`Admin ${user.id} performing ${body.action} on user ${body.user_id}`)
 
     let actionDescription = ''
     let metadata: Record<string, unknown> = {
       target_user_id: body.user_id,
-      target_user_name: targetProfile.full_name,
+      target_user_name: targetFullName,
       reason: body.reason || null
     }
 
@@ -176,7 +181,7 @@ Deno.serve(async (req) => {
           )
         }
 
-        actionDescription = `Suspended user: ${targetProfile.full_name}`
+        actionDescription = `Suspended user: ${targetFullName}`
         metadata.suspension_end = body.suspension_end || 'indefinite'
         break
       }
@@ -200,7 +205,7 @@ Deno.serve(async (req) => {
           )
         }
 
-        actionDescription = `Unsuspended user: ${targetProfile.full_name}`
+        actionDescription = `Unsuspended user: ${targetFullName}`
         break
       }
 
@@ -232,7 +237,7 @@ Deno.serve(async (req) => {
           )
         }
 
-        actionDescription = `Deleted user: ${targetProfile.full_name}`
+        actionDescription = `Deleted user: ${targetFullName}`
         break
       }
 
@@ -290,7 +295,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        actionDescription = `Updated role for ${targetProfile.full_name} to ${body.new_role}`
+        actionDescription = `Updated role for ${targetFullName} to ${body.new_role}`
         metadata.new_role = body.new_role
         break
       }
