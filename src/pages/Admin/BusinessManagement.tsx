@@ -145,6 +145,7 @@ export default function BusinessManagement() {
 
   const handleVerifyBusiness = async (businessId: string, verify: boolean) => {
     try {
+      const business = businesses.find(b => b.id === businessId);
       const { error } = await supabase
         .from('business_accounts')
         .update({ is_verified: verify })
@@ -153,6 +154,32 @@ export default function BusinessManagement() {
       if (error) throw error;
 
       toast.success(verify ? 'Prestataire vérifié' : 'Vérification retirée');
+      
+      // Send notification to super admins
+      if (verify && business) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user?.id)
+          .single();
+        
+        const adminName = [adminProfile?.first_name, adminProfile?.last_name].filter(Boolean).join(' ') || 'Admin';
+        
+        await supabase.functions.invoke('admin-notify-critical', {
+          body: {
+            type: 'business_verification',
+            title: 'Prestataire vérifié',
+            message: `${business.business_name} a été vérifié par ${adminName}`,
+            adminName,
+            entityId: businessId,
+            entityType: 'business',
+            actionUrl: '/admin/businesses',
+            metadata: { business_name: business.business_name, business_type: business.business_type }
+          }
+        });
+      }
+      
       fetchBusinesses();
     } catch (error) {
       console.error('Error updating business:', error);
@@ -162,6 +189,7 @@ export default function BusinessManagement() {
 
   const handleToggleActive = async (businessId: string, active: boolean) => {
     try {
+      const business = businesses.find(b => b.id === businessId);
       const { error } = await supabase
         .from('business_accounts')
         .update({ 
@@ -172,6 +200,32 @@ export default function BusinessManagement() {
 
       if (error) throw error;
       toast.success(active ? 'Prestataire activé' : 'Prestataire désactivé');
+      
+      // Send notification to super admins
+      if (business) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user?.id)
+          .single();
+        
+        const adminName = [adminProfile?.first_name, adminProfile?.last_name].filter(Boolean).join(' ') || 'Admin';
+        
+        await supabase.functions.invoke('admin-notify-critical', {
+          body: {
+            type: active ? 'business_approval' : 'business_rejection',
+            title: active ? 'Prestataire activé' : 'Prestataire désactivé',
+            message: `${business.business_name} a été ${active ? 'activé' : 'désactivé'} par ${adminName}`,
+            adminName,
+            entityId: businessId,
+            entityType: 'business',
+            actionUrl: '/admin/businesses',
+            metadata: { business_name: business.business_name, business_type: business.business_type }
+          }
+        });
+      }
+      
       fetchBusinesses();
     } catch (error) {
       console.error('Error updating business:', error);
@@ -194,6 +248,33 @@ export default function BusinessManagement() {
         .eq('id', businessToReject.id);
 
       if (error) throw error;
+      
+      // Send notification to super admins
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('user_id', user?.id)
+        .single();
+      
+      const adminName = [adminProfile?.first_name, adminProfile?.last_name].filter(Boolean).join(' ') || 'Admin';
+      
+      await supabase.functions.invoke('admin-notify-critical', {
+        body: {
+          type: 'business_rejection',
+          title: 'Prestataire rejeté',
+          message: `${businessToReject.business_name} a été rejeté par ${adminName}`,
+          adminName,
+          entityId: businessToReject.id,
+          entityType: 'business',
+          actionUrl: '/admin/businesses',
+          metadata: { 
+            business_name: businessToReject.business_name, 
+            business_type: businessToReject.business_type,
+            reason 
+          }
+        }
+      });
       
       toast.success('Prestataire désactivé');
       setBusinessToReject(null);
