@@ -13,6 +13,7 @@ import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
 import { AdminReportSettings } from '@/components/admin/AdminReportSettings';
 import { ProfileReminderSettings } from '@/components/admin/ProfileReminderSettings';
+import { AdminNotificationPreferencesSettings } from '@/components/admin/AdminNotificationPreferencesSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -109,15 +110,30 @@ export default function Settings() {
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="flex-wrap">
             <TabsTrigger value="general">Général</TabsTrigger>
+            <TabsTrigger value="my-notifications">🔔 Mes notifications</TabsTrigger>
             <TabsTrigger value="objectives">Objectifs</TabsTrigger>
             <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
             <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
             <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
             <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="my-notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>🔔 Mes préférences de notifications</CardTitle>
+                <CardDescription>
+                  Configurez les notifications que vous souhaitez recevoir en tant qu'administrateur (email, push, in-app)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AdminNotificationPreferencesSettings />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="objectives">
             <ObjectivesEditor />
