@@ -54,11 +54,37 @@ serve(async (req) => {
           .select("id")
           .eq("business_account_id", business.id);
 
-        // 2. Delete product ratings
+        // 2. Delete all product dependencies
         if (products && products.length > 0) {
           const productIds = products.map((p) => p.id);
+
+          // Delete product ratings
           await supabaseAdmin
             .from("product_ratings")
+            .delete()
+            .in("product_id", productIds);
+
+          // Delete business_birthday_alerts referencing products
+          await supabaseAdmin
+            .from("business_birthday_alerts")
+            .delete()
+            .in("product_id", productIds);
+
+          // Delete business_collective_funds referencing products
+          await supabaseAdmin
+            .from("business_collective_funds")
+            .delete()
+            .in("product_id", productIds);
+
+          // Set business_product_id to NULL in collective_funds
+          await supabaseAdmin
+            .from("collective_funds")
+            .update({ business_product_id: null })
+            .in("business_product_id", productIds);
+
+          // Delete favorites referencing products
+          await supabaseAdmin
+            .from("favorites")
             .delete()
             .in("product_id", productIds);
         }
