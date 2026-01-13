@@ -126,6 +126,80 @@ export type Database = {
           },
         ]
       }
+      admin_notification_preferences: {
+        Row: {
+          admin_user_id: string
+          client_deletion_alerts: boolean
+          created_at: string
+          critical_moderation_alerts: boolean
+          daily_digest: boolean
+          email_enabled: boolean
+          growth_alerts: boolean
+          id: string
+          in_app_enabled: boolean
+          new_business_alerts: boolean
+          new_client_alerts: boolean
+          new_order_alerts: boolean
+          performance_alerts: boolean
+          push_enabled: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          refund_request_alerts: boolean
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          client_deletion_alerts?: boolean
+          created_at?: string
+          critical_moderation_alerts?: boolean
+          daily_digest?: boolean
+          email_enabled?: boolean
+          growth_alerts?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          new_business_alerts?: boolean
+          new_client_alerts?: boolean
+          new_order_alerts?: boolean
+          performance_alerts?: boolean
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          refund_request_alerts?: boolean
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          client_deletion_alerts?: boolean
+          created_at?: string
+          critical_moderation_alerts?: boolean
+          daily_digest?: boolean
+          email_enabled?: boolean
+          growth_alerts?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          new_business_alerts?: boolean
+          new_client_alerts?: boolean
+          new_order_alerts?: boolean
+          performance_alerts?: boolean
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          refund_request_alerts?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_admin_notification_prefs_admin"
+            columns: ["admin_user_id"]
+            isOneToOne: true
+            referencedRelation: "admin_users"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       admin_notifications: {
         Row: {
           action_url: string | null
