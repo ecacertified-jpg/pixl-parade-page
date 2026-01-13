@@ -322,7 +322,40 @@ export const useAdminOrders = () => {
   };
 
   const approveRefund = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
     await refundOrder(orderId, 'Demande de remboursement approuvée par un administrateur');
+    
+    // Send notification to super admins
+    if (order) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user?.id)
+          .single();
+        
+        const adminName = [adminProfile?.first_name, adminProfile?.last_name].filter(Boolean).join(' ') || 'Admin';
+        
+        await supabase.functions.invoke('admin-notify-critical', {
+          body: {
+            type: 'refund_approved',
+            title: 'Remboursement approuvé',
+            message: `Remboursement de ${order.total_amount} XOF approuvé par ${adminName} pour la commande #${orderId.slice(0, 8)}`,
+            adminName,
+            entityId: orderId,
+            entityType: 'order',
+            actionUrl: '/admin/orders',
+            metadata: { 
+              amount: order.total_amount,
+              business_name: order.business_name
+            }
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send refund approval notification:', notifError);
+      }
+    }
   };
 
   const rejectRefund = async (orderId: string, reason: string) => {
@@ -358,6 +391,37 @@ export const useAdminOrders = () => {
         `Demande de remboursement refusée. Raison: ${reason}`,
         { reason, business_id: order.business_account_id }
       );
+
+      // Send notification to super admins
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user?.id)
+          .single();
+        
+        const adminName = [adminProfile?.first_name, adminProfile?.last_name].filter(Boolean).join(' ') || 'Admin';
+        
+        await supabase.functions.invoke('admin-notify-critical', {
+          body: {
+            type: 'refund_rejected',
+            title: 'Remboursement refusé',
+            message: `Remboursement de ${order.total_amount} XOF refusé par ${adminName} pour la commande #${orderId.slice(0, 8)}`,
+            adminName,
+            entityId: orderId,
+            entityType: 'order',
+            actionUrl: '/admin/orders',
+            metadata: { 
+              amount: order.total_amount,
+              business_name: order.business_name,
+              reason
+            }
+          }
+        });
+      } catch (notifError) {
+        console.error('Failed to send refund rejection notification:', notifError);
+      }
 
       toast.success('Demande de remboursement refusée');
       await loadOrders();

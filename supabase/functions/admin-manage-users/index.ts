@@ -406,6 +406,35 @@ Deno.serve(async (req) => {
 
         actionDescription = `Suspended user: ${targetFullName}`
         metadata.suspension_end = body.suspension_end || 'indefinite'
+        
+        // Get admin name for notification
+        const { data: adminProfileSuspend } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        const adminNameSuspend = [adminProfileSuspend?.first_name, adminProfileSuspend?.last_name]
+          .filter(Boolean).join(' ') || 'Admin';
+        
+        // Send notification to super admins
+        await supabaseAdmin.functions.invoke('admin-notify-critical', {
+          body: {
+            type: 'user_suspension',
+            title: 'Utilisateur suspendu',
+            message: `${targetFullName} a été suspendu par ${adminNameSuspend}. Raison: ${body.reason}`,
+            adminName: adminNameSuspend,
+            entityId: body.user_id,
+            entityType: 'user',
+            actionUrl: '/admin/users',
+            metadata: { 
+              reason: body.reason,
+              suspension_end: body.suspension_end || 'indéfinie',
+              user_name: targetFullName
+            }
+          }
+        });
+        
         break
       }
 

@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.link-account-identity]
 verify_jwt = true
+
+[functions.admin-notify-critical]
+verify_jwt = false
