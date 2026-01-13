@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users,
   Download, UserCheck, AlertTriangle, UserX, TrendingUp, Trophy, Phone, MapPin,
-  Calendar, Image, FileText, GitMerge
+  Calendar, Image, FileText, GitMerge, Trash2
 } from 'lucide-react';
 import {
   Table,
@@ -50,6 +50,7 @@ import { exportToCSV, ExportColumn } from '@/utils/exportUtils';
 import { useAdmin } from '@/hooks/useAdmin';
 import { AddClientModal } from '@/components/admin/AddClientModal';
 import { UnifyClientAccountsModal } from '@/components/admin/UnifyClientAccountsModal';
+import { DeleteClientModal } from '@/components/admin/DeleteClientModal';
 import { UserPlus, Users2 } from 'lucide-react';
 
 interface User {
@@ -185,6 +186,7 @@ export default function UserManagement() {
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [addClientModalOpen, setAddClientModalOpen] = useState(false);
   const [unifyClientModalOpen, setUnifyClientModalOpen] = useState(false);
+  const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -285,7 +287,7 @@ export default function UserManagement() {
     )
   );
 
-  const handleUserAction = (user: User & { completion: ProfileCompletion }, action: 'profile' | 'transactions' | 'suspend' | 'merge') => {
+  const handleUserAction = (user: User & { completion: ProfileCompletion }, action: 'profile' | 'transactions' | 'suspend' | 'merge' | 'delete') => {
     setSelectedUserId(user.user_id);
     setSelectedUserName(getUserDisplayName(user));
     setSelectedUserSuspended(user.is_suspended);
@@ -297,6 +299,7 @@ export default function UserManagement() {
       setSelectedUserForMerge(user);
       setMergeModalOpen(true);
     }
+    if (action === 'delete') setDeleteClientModalOpen(true);
   };
 
   const handleExportIncomplete = () => {
@@ -628,6 +631,15 @@ export default function UserManagement() {
                               <Ban className="mr-2 h-4 w-4" />
                               {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
                             </DropdownMenuItem>
+                            {isSuperAdmin && (
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleUserAction(user, 'delete')}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer le compte
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -728,6 +740,15 @@ export default function UserManagement() {
                                   <Ban className="mr-2 h-4 w-4" />
                                   {user.is_suspended ? 'Réactiver le compte' : 'Suspendre le compte'}
                                 </DropdownMenuItem>
+                                {isSuperAdmin && (
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => handleUserAction(user, 'delete')}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Supprimer le compte
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -794,6 +815,16 @@ export default function UserManagement() {
           onOpenChange={setUnifyClientModalOpen}
           onMergeComplete={fetchUsers}
         />
+
+        {isSuperAdmin && (
+          <DeleteClientModal
+            open={deleteClientModalOpen}
+            onOpenChange={setDeleteClientModalOpen}
+            userId={selectedUserId}
+            userName={selectedUserName}
+            onDeleted={fetchUsers}
+          />
+        )}
       </div>
     </AdminLayout>
   );
