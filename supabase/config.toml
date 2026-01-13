@@ -140,3 +140,6 @@ verify_jwt = true
 
 [functions.admin-notify-critical]
 verify_jwt = false
+
+[functions.delete-business-cascade]
+verify_jwt = false
