@@ -20,10 +20,26 @@ function createImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * Calculate the bounding box dimensions after rotation
+ */
+function getRotatedBoundingBox(
+  width: number,
+  height: number,
+  rotation: number
+): { width: number; height: number } {
+  const rotRad = Math.abs((rotation * Math.PI) / 180);
+  return {
+    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
 export async function getCroppedImage(
   imageSrc: string,
   pixelCrop: Area,
-  outputSize?: { width: number; height: number }
+  outputSize?: { width: number; height: number },
+  rotation: number = 0
 ): Promise<CroppedImageResult> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -33,13 +49,38 @@ export async function getCroppedImage(
     throw new Error('Could not get canvas context');
   }
 
-  // Set canvas size to output size or crop size
+  // Calculate rotated bounding box
+  const rotRad = (rotation * Math.PI) / 180;
+  const { width: bBoxWidth, height: bBoxHeight } = getRotatedBoundingBox(
+    image.width,
+    image.height,
+    rotation
+  );
+
+  // Create a canvas for the rotated image
+  const rotatedCanvas = document.createElement('canvas');
+  const rotatedCtx = rotatedCanvas.getContext('2d');
+
+  if (!rotatedCtx) {
+    throw new Error('Could not get rotated canvas context');
+  }
+
+  rotatedCanvas.width = bBoxWidth;
+  rotatedCanvas.height = bBoxHeight;
+
+  // Apply rotation transformation
+  rotatedCtx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  rotatedCtx.rotate(rotRad);
+  rotatedCtx.translate(-image.width / 2, -image.height / 2);
+  rotatedCtx.drawImage(image, 0, 0);
+
+  // Set output canvas size
   canvas.width = outputSize?.width || pixelCrop.width;
   canvas.height = outputSize?.height || pixelCrop.height;
 
-  // Draw the cropped portion
+  // Draw the cropped portion from the rotated image
   ctx.drawImage(
-    image,
+    rotatedCanvas,
     pixelCrop.x,
     pixelCrop.y,
     pixelCrop.width,
@@ -69,7 +110,11 @@ export async function getCroppedImage(
 }
 
 // Generate a quick preview at reduced resolution
-export async function generatePreview(imageSrc: string, pixelCrop: Area): Promise<string> {
-  const { url } = await getCroppedImage(imageSrc, pixelCrop, { width: 150, height: 150 });
+export async function generatePreview(
+  imageSrc: string, 
+  pixelCrop: Area, 
+  rotation: number = 0
+): Promise<string> {
+  const { url } = await getCroppedImage(imageSrc, pixelCrop, { width: 150, height: 150 }, rotation);
   return url;
 }
