@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
     // Get target user profile
     const { data: targetProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, first_name, last_name, email')
+      .select('user_id, first_name, last_name')
       .eq('user_id', body.user_id)
       .single()
 
