@@ -1,6 +1,30 @@
 /**
- * Image compression utilities
+ * Image compression utilities with WebP support and JPEG fallback
  */
+
+// Cache for WebP support detection
+let webpSupportCache: boolean | null = null;
+
+/**
+ * Check if the browser supports WebP encoding
+ * Uses Canvas API to test WebP encoding capability
+ */
+export async function checkWebPSupport(): Promise<boolean> {
+  if (webpSupportCache !== null) return webpSupportCache;
+  
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    
+    // Try to convert to WebP
+    const dataUrl = canvas.toDataURL('image/webp');
+    
+    // If browser supports WebP, URL starts with 'data:image/webp'
+    webpSupportCache = dataUrl.startsWith('data:image/webp');
+    resolve(webpSupportCache);
+  });
+}
 
 export interface CompressionOptions {
   quality: number;        // 0-1 (0.1 = 10%, 1 = 100%)
@@ -177,4 +201,80 @@ export async function estimateCompression(
     estimatedSize,
     ratio: baseRatio
   };
+}
+
+/**
+ * Smart compression result with format info
+ */
+export interface SmartCompressionResult extends CompressionResult {
+  format: 'webp' | 'jpeg';
+  formatLabel: string;
+  webpSupported: boolean;
+}
+
+/**
+ * Smart compression: WebP if supported, otherwise JPEG fallback
+ */
+export async function compressWithSmartFormat(
+  imageSrc: string | File,
+  options: Omit<CompressionOptions, 'format'> & { 
+    preferWebP?: boolean;  // true by default
+    forceFormat?: 'webp' | 'jpeg';  // Force specific format
+  }
+): Promise<SmartCompressionResult> {
+  const webpSupported = await checkWebPSupport();
+  
+  // Determine format to use
+  let format: 'webp' | 'jpeg';
+  
+  if (options.forceFormat) {
+    format = options.forceFormat;
+  } else if (options.preferWebP !== false && webpSupported) {
+    format = 'webp';
+  } else {
+    format = 'jpeg';
+  }
+  
+  // Compress with chosen format
+  const result = await compressImage(imageSrc, {
+    ...options,
+    format
+  });
+  
+  return {
+    ...result,
+    format,
+    formatLabel: format === 'webp' ? 'WebP' : 'JPEG',
+    webpSupported
+  };
+}
+
+/**
+ * Compare WebP vs JPEG sizes for an image
+ * Useful to show WebP savings to user
+ */
+export async function compareFormats(
+  imageSrc: string | File,
+  quality: number
+): Promise<{
+  webp: CompressionResult | null;
+  jpeg: CompressionResult;
+  webpSavings: number;  // % savings with WebP
+  webpSupported: boolean;
+}> {
+  const webpSupported = await checkWebPSupport();
+  
+  // Always compress to JPEG (fallback)
+  const jpeg = await compressImage(imageSrc, { quality, format: 'jpeg' });
+  
+  // Compress to WebP if supported
+  let webp: CompressionResult | null = null;
+  let webpSavings = 0;
+  
+  if (webpSupported) {
+    webp = await compressImage(imageSrc, { quality, format: 'webp' });
+    webpSavings = Math.round((1 - webp.compressedSize / jpeg.compressedSize) * 100);
+  }
+  
+  return { webp, jpeg, webpSavings, webpSupported };
 }

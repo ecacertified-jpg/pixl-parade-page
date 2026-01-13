@@ -11,14 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Minimize2, ArrowRight, Loader2 } from "lucide-react";
+import { Minimize2, ArrowRight, Loader2, Zap, Image as ImageIcon, Sparkles, AlertTriangle } from "lucide-react";
 import { ComparisonSlider } from "./ComparisonSlider";
+import { FormatBadge } from "./FormatBadge";
 import { 
-  compressImage, 
+  compressWithSmartFormat, 
   formatFileSize, 
   getFileSize,
+  checkWebPSupport,
   QUALITY_PRESETS,
-  type CompressionResult 
+  type SmartCompressionResult 
 } from "@/utils/compressImage";
 import { cn } from "@/lib/utils";
 
@@ -45,9 +47,16 @@ export function ImageCompressionModal({
   const [quality, setQuality] = useState(0.75);
   const [selectedPreset, setSelectedPreset] = useState<string>('medium');
   const [originalSize, setOriginalSize] = useState(0);
-  const [compressionResult, setCompressionResult] = useState<CompressionResult | null>(null);
+  const [compressionResult, setCompressionResult] = useState<SmartCompressionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
+  const [formatMode, setFormatMode] = useState<'auto' | 'webp' | 'jpeg'>('auto');
+  const [webpSupported, setWebpSupported] = useState(true);
+
+  // Check WebP support on mount
+  useEffect(() => {
+    checkWebPSupport().then(setWebpSupported);
+  }, []);
 
   // Load original size when image changes
   useEffect(() => {
@@ -61,7 +70,7 @@ export function ImageCompressionModal({
     loadSize();
   }, [image, isOpen]);
 
-  // Generate preview when quality changes
+  // Generate preview when quality or format changes
   useEffect(() => {
     if (!image || !isOpen) return;
     
@@ -69,10 +78,11 @@ export function ImageCompressionModal({
       setIsProcessing(true);
       try {
         const preset = QUALITY_PRESETS[selectedPreset];
-        const result = await compressImage(image.file || image.url, {
+        const result = await compressWithSmartFormat(image.file || image.url, {
           quality,
           maxWidth: preset?.maxWidth,
-          format: 'jpeg'
+          preferWebP: formatMode !== 'jpeg',
+          forceFormat: formatMode === 'auto' ? undefined : formatMode
         });
         
         // Revoke previous preview URL
@@ -90,7 +100,7 @@ export function ImageCompressionModal({
     
     const debounce = setTimeout(generatePreview, 300);
     return () => clearTimeout(debounce);
-  }, [image, quality, selectedPreset, isOpen]);
+  }, [image, quality, selectedPreset, formatMode, isOpen]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -99,6 +109,7 @@ export function ImageCompressionModal({
       setSelectedPreset('medium');
       setSliderPosition(50);
       setCompressionResult(null);
+      setFormatMode('auto');
     }
   }, [isOpen]);
 
@@ -184,20 +195,75 @@ export function ImageCompressionModal({
             )}>
               {compressionResult ? formatFileSize(compressionResult.compressedSize) : '—'}
             </p>
-            {compressionResult && (
-              <Badge 
-                variant="secondary" 
-                className={cn(
-                  "text-xs mt-1",
-                  isGoodCompression 
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                )}
-              >
-                -{compressionPercentage}%
+            <div className="flex items-center justify-center gap-1 mt-1">
+              {compressionResult && (
+                <>
+                  <FormatBadge format={compressionResult.format} size="sm" />
+                  <Badge 
+                    variant="secondary" 
+                    className={cn(
+                      "text-[10px]",
+                      isGoodCompression 
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    )}
+                  >
+                    -{compressionPercentage}%
+                  </Badge>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Format selector */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Format de sortie</Label>
+            {!webpSupported && (
+              <Badge variant="outline" className="text-amber-600 text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                WebP non supporté
               </Badge>
             )}
           </div>
+          
+          <div className="flex gap-2">
+            <Button
+              variant={formatMode === 'auto' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1"
+              onClick={() => setFormatMode('auto')}
+            >
+              <Sparkles className="h-3.5 w-3.5 mr-1" />
+              Auto
+            </Button>
+            <Button
+              variant={formatMode === 'webp' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1"
+              onClick={() => setFormatMode('webp')}
+              disabled={!webpSupported}
+            >
+              <Zap className="h-3.5 w-3.5 mr-1" />
+              WebP
+            </Button>
+            <Button
+              variant={formatMode === 'jpeg' ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1"
+              onClick={() => setFormatMode('jpeg')}
+            >
+              <ImageIcon className="h-3.5 w-3.5 mr-1" />
+              JPEG
+            </Button>
+          </div>
+          
+          {webpSupported && formatMode === 'auto' && (
+            <p className="text-xs text-muted-foreground">
+              WebP sera utilisé automatiquement (25-35% plus léger que JPEG)
+            </p>
+          )}
         </div>
 
         {/* Quality presets */}
