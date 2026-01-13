@@ -156,6 +156,78 @@ async function sendDeletionNotificationEmail(
   }
 }
 
+// Function to send push notification to Super Admins when a client is deleted
+async function sendDeletionPushNotification(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  deletedUserName: string,
+  deletedUserId: string,
+  adminName: string,
+  reason: string
+) {
+  try {
+    // Fetch all active super admins
+    const { data: superAdmins } = await supabaseAdmin
+      .from('admin_users')
+      .select('user_id')
+      .eq('role', 'super_admin')
+      .eq('is_active', true);
+
+    if (!superAdmins || superAdmins.length === 0) {
+      console.log('No super admins to send push notification');
+      return;
+    }
+
+    const superAdminIds = superAdmins.map(admin => admin.user_id);
+
+    // Check if any super admin has active push subscriptions
+    const { data: subscriptions } = await supabaseAdmin
+      .from('push_subscriptions')
+      .select('user_id')
+      .in('user_id', superAdminIds)
+      .eq('is_active', true);
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('No active push subscriptions for super admins');
+      return;
+    }
+
+    // Truncate reason for push message
+    const truncatedReason = reason.length > 50 ? reason.substring(0, 47) + '...' : reason;
+
+    // Call send-push-notification function
+    const { error: pushError } = await supabaseAdmin.functions.invoke('send-push-notification', {
+      body: {
+        user_ids: superAdminIds,
+        title: '🗑️ Compte Client Supprimé',
+        message: `${deletedUserName} a été supprimé par ${adminName}. Raison: ${truncatedReason}`,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: `client-deletion-${deletedUserId}`,
+        type: 'default',
+        isUrgent: false,
+        requireInteraction: true,
+        data: {
+          type: 'client_deletion',
+          deletedUserId: deletedUserId,
+          deletedUserName: deletedUserName,
+          adminName: adminName,
+          reason: reason,
+          url: '/admin/deleted-clients'
+        }
+      }
+    });
+
+    if (pushError) {
+      console.error('Failed to send push notification:', pushError);
+    } else {
+      console.log(`📱 Deletion push notification sent to ${superAdminIds.length} super admin(s)`);
+    }
+  } catch (pushError) {
+    console.error('Error sending deletion push notification:', pushError);
+    // Don't throw - push failure should not block the deletion
+  }
+}
+
 interface ManageUserRequest {
   user_id: string
   action: 'suspend' | 'unsuspend' | 'delete' | 'update_role'
@@ -416,6 +488,15 @@ Deno.serve(async (req) => {
           body.user_id,
           adminName,
           adminEmail,
+          body.reason || 'Aucune raison spécifiée'
+        );
+
+        // Send push notification to all Super Admins (async, non-blocking)
+        await sendDeletionPushNotification(
+          supabaseAdmin,
+          targetFullName,
+          body.user_id,
+          adminName,
           body.reason || 'Aucune raison spécifiée'
         );
 
