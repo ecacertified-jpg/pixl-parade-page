@@ -111,20 +111,20 @@ function DataCard({ type, count, label, description }: DataCardProps) {
   
   return (
     <div className={cn(
-      "flex items-center gap-4 p-4 rounded-xl border border-l-4 transition-all duration-200 hover:shadow-md",
+      "flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-l-4 transition-all duration-200 hover:shadow-md",
       `bg-gradient-to-r ${config.bgGradient}`,
       config.borderColor,
       "border-gray-100 dark:border-gray-800"
     )}>
       <div className={cn(
-        "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
+        "flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center",
         config.iconBg
       )}>
-        <Icon className={cn("h-5 w-5", config.iconColor)} />
+        <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", config.iconColor)} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-foreground">{count} {label}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="font-semibold text-sm sm:text-base text-foreground">{count} {label}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
   );
@@ -137,11 +137,11 @@ interface StepIndicatorProps {
 
 function StepIndicator({ currentStep }: StepIndicatorProps) {
   return (
-    <div className="flex items-center justify-center gap-3 mb-6">
+    <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
       {[1, 2, 3].map((s) => (
-        <div key={s} className="flex items-center gap-2">
+        <div key={s} className="flex items-center gap-1.5 sm:gap-2">
           <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300",
+            "w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-all duration-300",
             s < currentStep 
               ? "bg-primary text-primary-foreground" 
               : s === currentStep 
@@ -149,14 +149,14 @@ function StepIndicator({ currentStep }: StepIndicatorProps) {
                 : "bg-muted text-muted-foreground"
           )}>
             {s < currentStep ? (
-              <CheckCircle2 className="h-4 w-4" />
+              <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
             ) : (
               s
             )}
           </div>
           {s < 3 && (
             <div className={cn(
-              "w-8 h-1 rounded-full transition-all duration-300",
+              "w-4 sm:w-8 h-1 rounded-full transition-all duration-300",
               s < currentStep ? "bg-primary" : "bg-muted"
             )} />
           )}
@@ -299,16 +299,16 @@ export function DeleteClientModal({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-3 py-4">
+      <div className="space-y-2 sm:space-y-3 py-3 sm:py-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-8 gap-3">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-6 sm:py-8 gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-primary" />
             </div>
-            <p className="text-sm text-muted-foreground">Chargement des données...</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Chargement des données...</p>
           </div>
         ) : linkedData ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             <DataCard 
               type="contacts"
               count={linkedData.contacts}
