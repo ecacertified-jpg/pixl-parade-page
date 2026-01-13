@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { MultiImageUploader, ImageItem } from '@/components/MultiImageUploader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Package, Trash2, Upload, X } from 'lucide-react';
+import { Loader2, Package, Trash2 } from 'lucide-react';
 import { logAdminAction } from '@/utils/auditLogger';
 
 interface Product {
@@ -24,6 +25,7 @@ interface Product {
   location_name: string | null;
   is_active: boolean;
   image_url: string | null;
+  images?: string[] | null;
   business_account_id: string;
 }
 
@@ -49,8 +51,7 @@ export function AdminEditProductModal({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [productImages, setProductImages] = useState<ImageItem[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -77,7 +78,29 @@ export function AdminEditProductModal({
         location_name: product.location_name || '',
         is_active: product.is_active,
       });
-      setImagePreview(product.image_url);
+      
+      // Load existing images
+      const existingImages: ImageItem[] = [];
+      if (product.image_url) {
+        existingImages.push({
+          id: 'main-image',
+          url: product.image_url,
+          isExisting: true
+        });
+      }
+      if (product.images && Array.isArray(product.images)) {
+        product.images.forEach((url, index) => {
+          if (url !== product.image_url) {
+            existingImages.push({
+              id: `existing-${index}`,
+              url,
+              isExisting: true
+            });
+          }
+        });
+      }
+      setProductImages(existingImages);
+      
       loadCategories();
     }
   }, [open, product]);
@@ -93,19 +116,6 @@ export function AdminEditProductModal({
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
@@ -117,27 +127,29 @@ export function AdminEditProductModal({
 
     setLoading(true);
     try {
-      let imageUrl = product.image_url;
+      // Upload new images
+      const uploadedUrls: string[] = [];
       
-      // Upload new image if provided
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `products/${product.business_account_id}/${fileName}`;
+      for (const image of productImages) {
+        if (image.file) {
+          const fileExt = image.file.name.split('.').pop();
+          const fileName = `${Date.now()}_${uploadedUrls.length}.${fileExt}`;
+          const filePath = `products/${product.business_account_id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(filePath, imageFile);
+          const { error: uploadError } = await supabase.storage
+            .from('products')
+            .upload(filePath, image.file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath);
-        
-        imageUrl = urlData.publicUrl;
-      } else if (!imagePreview) {
-        imageUrl = null;
+          const { data: urlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+          
+          uploadedUrls.push(urlData.publicUrl);
+        } else if (image.url && image.isExisting) {
+          uploadedUrls.push(image.url);
+        }
       }
 
       // Update product
@@ -153,7 +165,8 @@ export function AdminEditProductModal({
           experience_type: formData.is_experience ? formData.experience_type : null,
           location_name: formData.is_experience ? formData.location_name : null,
           is_active: formData.is_active,
-          image_url: imageUrl,
+          image_url: uploadedUrls[0] || null,
+          images: uploadedUrls,
         })
         .eq('id', product.id);
 
@@ -327,32 +340,13 @@ export function AdminEditProductModal({
 
           {/* Image Upload */}
           <div className="space-y-2">
-            <Label>Image du produit</Label>
-            {imagePreview ? (
-              <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={removeImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <span className="text-sm text-muted-foreground">Cliquer pour ajouter une image</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            )}
+            <Label>Images du produit</Label>
+            <MultiImageUploader
+              images={productImages}
+              onChange={setProductImages}
+              maxImages={5}
+              disabled={loading}
+            />
           </div>
 
           {/* Active Toggle */}

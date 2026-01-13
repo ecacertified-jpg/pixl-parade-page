@@ -13,6 +13,7 @@ import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFun
 import { BusinessOrdersSection } from "@/components/BusinessOrdersSection";
 import { BusinessCategoriesSection } from "@/components/BusinessCategoriesSection";
 import { AddProductModal } from "@/components/AddProductModal";
+import { EditProductModal } from "@/components/EditProductModal";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
 import { BusinessCard } from "@/components/BusinessCard";
 import { BusinessProductCard } from "@/components/BusinessProductCard";
@@ -62,6 +63,8 @@ export default function BusinessAccount() {
   
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddBusinessModalOpen, setIsAddBusinessModalOpen] = useState(false);
   const [showPushNotificationPrompt, setShowPushNotificationPrompt] = useState(false);
@@ -397,19 +400,26 @@ interface RecentOrderItem {
     loadBusinesses(); // Recharge Config (liste locale)
     refetch(); // ⚡ Recharge le Context global (met à jour le sélecteur automatiquement)
   };
-  const handleEditProduct = (productId: string | number) => {
-    // Find the product to edit
-    const productToEdit = products.find(p => p.id === productId);
-    if (productToEdit) {
-      // For now, we'll use a simple prompt - can be expanded to a full modal later
-      const newName = prompt("Nouveau nom du produit:", productToEdit.name);
-      const newPrice = prompt("Nouveau prix (FCFA):", productToEdit.price.toString());
-      if (newName && newPrice) {
-        updateProduct(productId, {
-          name: newName,
-          price: parseFloat(newPrice)
-        });
+  const handleEditProduct = async (productId: string | number) => {
+    // Fetch the full product data from database
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', String(productId))
+        .single();
+      
+      if (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Erreur lors du chargement du produit');
+        return;
       }
+      
+      setEditingProduct(data);
+      setIsEditProductModalOpen(true);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Erreur lors du chargement du produit');
     }
   };
   const updateProduct = async (productId: string | number, updates: any) => {
@@ -1474,6 +1484,17 @@ interface RecentOrderItem {
         onOpenChange={setIsImportModalOpen}
         businessAccountId={selectedBusinessId || undefined}
         onImportComplete={loadProducts}
+      />
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        product={editingProduct}
+        isOpen={isEditProductModalOpen}
+        onClose={() => {
+          setIsEditProductModalOpen(false);
+          setEditingProduct(null);
+        }}
+        onProductUpdated={loadProducts}
       />
     </div>;
 }
