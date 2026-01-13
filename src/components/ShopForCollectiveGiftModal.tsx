@@ -68,23 +68,52 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
       }
 
       if (data && data.length > 0) {
-        const formattedProducts = data.map(product => ({
-          id: product.id,
-          name: product.name,
-          description: product.description || "Description non disponible",
-          price: product.price,
-          currency: product.currency || "F",
-          image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-          category: product.category_name || "Produit",
-          vendor: product.business_accounts?.business_name || "Boutique",
-          distance: "2.3 km",
-          rating: 4.8,
-          reviews: 45,
-          inStock: (product.stock_quantity || 0) > 0,
-          isExperience: product.is_experience || false,
-          categoryName: product.category_name,
-          locationName: product.location_name || "Non spécifié"
-        }));
+        // Récupérer les ratings pour tous les produits
+        const productIds = data.map((p: any) => p.id);
+        const ratingsMap: Record<string, { sum: number; count: number }> = {};
+        
+        if (productIds.length > 0) {
+          const { data: ratingsData } = await supabase
+            .from('product_ratings')
+            .select('product_id, rating')
+            .in('product_id', productIds);
+
+          if (ratingsData) {
+            ratingsData.forEach(r => {
+              if (!ratingsMap[r.product_id]) {
+                ratingsMap[r.product_id] = { sum: 0, count: 0 };
+              }
+              ratingsMap[r.product_id].sum += r.rating;
+              ratingsMap[r.product_id].count += 1;
+            });
+          }
+        }
+
+        const formattedProducts = data.map((product: any) => {
+          const ratingInfo = ratingsMap[product.id];
+          const avgRating = ratingInfo && ratingInfo.count > 0 
+            ? ratingInfo.sum / ratingInfo.count 
+            : 0;
+          const reviewCount = ratingInfo?.count || 0;
+
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description || "Description non disponible",
+            price: product.price,
+            currency: product.currency || "F",
+            image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+            category: product.category_name || "Produit",
+            vendor: product.business_accounts?.business_name || "Boutique",
+            distance: "2.3 km",
+            rating: parseFloat(avgRating.toFixed(1)),
+            reviews: reviewCount,
+            inStock: (product.stock_quantity || 0) > 0,
+            isExperience: product.is_experience || false,
+            categoryName: product.category_name,
+            locationName: product.location_name || "Non spécifié"
+          };
+        });
         setProducts(formattedProducts);
       }
     } catch (error) {
