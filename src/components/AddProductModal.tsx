@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Plus, Tag } from "lucide-react";
+import { Upload, Tag, Loader2 } from "lucide-react";
+import { MultiImageUploader, ImageItem } from "@/components/MultiImageUploader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
@@ -24,7 +25,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
   const { selectedBusinessId } = useSelectedBusiness();
   const { categories: businessCategories } = useBusinessCategories();
   const [loading, setLoading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [productImages, setProductImages] = useState<ImageItem[]>([]);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -137,9 +138,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedFiles(event.target.files);
-  };
+  // Removed - now using MultiImageUploader
 
   const handleInputChange = (field: string, value: string) => {
     if (field === 'is_experience') {
@@ -173,34 +172,36 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
     setLoading(true);
 
     try {
-      // Upload image if selected
-      let imageUrl = null;
-      if (selectedFiles && selectedFiles.length > 0) {
-        const file = selectedFiles[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `product_${Date.now()}.${fileExt}`;
-        
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+      // Upload all images
+      const uploadedUrls: string[] = [];
+      
+      for (const image of productImages) {
+        if (image.file) {
+          const fileExt = image.file.name.split('.').pop();
+          const fileName = `product_${Date.now()}_${uploadedUrls.length}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('products')
+            .upload(fileName, image.file, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
-        if (uploadError) {
-          console.error('Error uploading image:', uploadError);
-          toast.error("Erreur lors de l'upload de l'image");
-          return;
+          if (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            toast.error("Erreur lors de l'upload d'une image");
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(fileName);
+          
+          uploadedUrls.push(urlData.publicUrl);
         }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('products')
-          .getPublicUrl(fileName);
-        
-        imageUrl = urlData.publicUrl;
       }
+      
+      const imageUrl = uploadedUrls[0] || null;
 
       // Get business address to extract location
       const { data: businessData } = await supabase
@@ -245,6 +246,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           currency: 'XOF',
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
+          images: uploadedUrls,
           business_owner_id: user.id,
           business_account_id: selectedBusinessId || formData.business_id,
           business_id: formData.business_id,
@@ -276,7 +278,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         business_id: "",
         is_experience: false
       });
-      setSelectedFiles(null);
+      setProductImages([]);
       setUseCustomCategory(false);
       
       onProductAdded();
@@ -461,19 +463,14 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           </div>
 
           <div>
-            <Label htmlFor="image">Image du produit</Label>
+            <Label>Images du produit</Label>
             <div className="mt-1">
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
+              <MultiImageUploader
+                images={productImages}
+                onChange={setProductImages}
+                maxImages={5}
+                disabled={loading}
               />
-              {selectedFiles && selectedFiles.length > 0 && (
-                <p className="text-sm text-green-600 mt-1">
-                  {selectedFiles.length} fichier(s) sélectionné(s)
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -484,7 +481,10 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="flex-1">
             {loading ? (
-              "Ajout en cours..."
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Ajout en cours...
+              </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
