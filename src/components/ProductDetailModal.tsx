@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Heart, Star, Store, MapPin, Tag, X } from "lucide-react";
+import { Heart, Store, MapPin, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
 import { RatingModal } from "@/components/RatingModal";
+import { ZoomableImage } from "@/components/ZoomableImage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/drawer";
 import { useNavigate } from "react-router-dom";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-
 interface Product {
   id: string | number;
   name: string;
@@ -63,15 +63,15 @@ export function ProductDetailModal({
 
   const ModalContent = () => (
     <div className="flex flex-col max-h-[85vh] overflow-hidden">
-      {/* Image Section */}
+      {/* Image Section with Zoom */}
       <div className="relative flex-shrink-0">
-        <img
+        <ZoomableImage
           src={product.image}
           alt={product.name}
           className="w-full h-56 sm:h-64 object-cover"
         />
         {product.isExperience && (
-          <Badge className="absolute top-3 left-3 bg-purple-600 text-white">
+          <Badge className="absolute top-3 left-3 bg-purple-600 text-white z-20 pointer-events-none">
             ✨ EXPÉRIENCE
           </Badge>
         )}
@@ -79,7 +79,7 @@ export function ProductDetailModal({
           variant="ghost"
           size="icon"
           className={cn(
-            "absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full h-10 w-10 shadow-md",
+            "absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full h-10 w-10 shadow-md z-20",
             isFavorite && "text-destructive"
           )}
           onClick={(e) => {
@@ -99,7 +99,7 @@ export function ProductDetailModal({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-3 left-3 bg-white/90 hover:bg-white rounded-full h-10 w-10 shadow-md"
+            className="absolute top-3 left-3 bg-white/90 hover:bg-white rounded-full h-10 w-10 shadow-md z-20"
             onClick={onClose}
           >
             <X className="h-5 w-5" />
