@@ -81,6 +81,32 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     mobileMoneyProviders: ["MTN Mobile Money", "Moov Money", "Celtiis Cash"],
     dateFormat: "DD/MM/YYYY",
     language: "fr"
+  },
+  SN: {
+    code: "SN",
+    name: "Sénégal",
+    flag: "🇸🇳",
+    currency: "XOF",
+    currencySymbol: "FCFA",
+    phonePrefix: "+221",
+    capital: "Dakar",
+    economicCapital: "Dakar",
+    mapCenter: [-17.4677, 14.7167],
+    mapBounds: [[-17.5, 12.3], [-11.4, 16.7]],
+    legalEntity: {
+      companyName: "JOIE DE VIVRE Sénégal",
+      legalForm: "SARL",
+      registrationNumber: "SN-DKR-2024-XXXXX",
+      registrationAuthority: "RCCM Dakar",
+      address: "Dakar, Sénégal",
+      email: "contact@joiedevivre.sn",
+      phone: "+221 XX XXX XX XX",
+      director: "Directeur de Publication JOIE DE VIVRE Sénégal",
+      ecommerceLaw: "Loi n° 2008-08 du 25 janvier 2008 sur les transactions électroniques et Loi n° 2017-27 du 28 juin 2017 relative à la protection des données personnelles"
+    },
+    mobileMoneyProviders: ["Orange Money", "Wave", "Free Money", "Wari", "Joni Joni"],
+    dateFormat: "DD/MM/YYYY",
+    language: "fr"
   }
 };
 
