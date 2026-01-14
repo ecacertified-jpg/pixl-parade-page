@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Store, Gift, Loader2, Shield } from 'lucide-react';
+import { getAllCountries } from '@/config/countries';
+import { useCountry } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
@@ -62,19 +64,23 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { country } = useCountry();
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
   const { checkExistingAccount } = useAccountLinking();
   const [isServerChecking, setIsServerChecking] = useState(false);
 
+  // Liste des pays depuis la configuration
+  const countries = getAllCountries();
+
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
-    defaultValues: { countryCode: '+225' }
+    defaultValues: { countryCode: country.phonePrefix }
   });
 
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { countryCode: '+225' }
+    defaultValues: { countryCode: country.phonePrefix }
   });
 
   const otpForm = useForm<OtpFormData>({
@@ -599,9 +605,11 @@ const Auth = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="+225">CI +225</SelectItem>
-                          <SelectItem value="+33">FR +33</SelectItem>
-                          <SelectItem value="+1">US +1</SelectItem>
+                          {countries.map((c) => (
+                            <SelectItem key={c.code} value={c.phonePrefix}>
+                              {c.flag} {c.phonePrefix}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <Input
@@ -697,9 +705,11 @@ const Auth = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="+225">CI +225</SelectItem>
-                          <SelectItem value="+33">FR +33</SelectItem>
-                          <SelectItem value="+1">US +1</SelectItem>
+                          {countries.map((c) => (
+                            <SelectItem key={c.code} value={c.phonePrefix}>
+                              {c.flag} {c.phonePrefix}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <Input

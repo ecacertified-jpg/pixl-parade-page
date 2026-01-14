@@ -16,6 +16,8 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Store, ArrowLeft, Loader2, Phone, Edit2, Check } from 'lucide-react';
+import { getAllCountries } from '@/config/countries';
+import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
@@ -226,12 +228,14 @@ type OtpFormData = z.infer<typeof otpSchema>;
 type CompleteRegistrationFormData = z.infer<typeof completeRegistrationSchema>;
 
 const BusinessAuth = () => {
+  const { country } = useCountry();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [businessNameError, setBusinessNameError] = useState<string | null>(null);
   const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
-  const [completePhoneCountryCode, setCompletePhoneCountryCode] = useState('+225');
+  const [completePhoneCountryCode, setCompletePhoneCountryCode] = useState(country.phonePrefix);
   const [authenticatedUserId, setAuthenticatedUserId] = useState<string | null>(null);
   const [authenticatedPhone, setAuthenticatedPhone] = useState<string | null>(null);
   
@@ -242,7 +246,7 @@ const BusinessAuth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [signupFormData, setSignupFormData] = useState<SignUpFormData | null>(null);
   const [otpValue, setOtpValue] = useState('');
-  const [countryCode, setCountryCode] = useState('+225');
+  const [countryCode, setCountryCode] = useState(country.phonePrefix);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -258,12 +262,12 @@ const BusinessAuth = () => {
   // Forms
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
-    defaultValues: { countryCode: '+225' },
+    defaultValues: { countryCode: country.phonePrefix },
   });
 
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: { countryCode: '+225' },
+    defaultValues: { countryCode: country.phonePrefix },
   });
 
   const completeRegistrationForm = useForm<CompleteRegistrationFormData>({
@@ -814,14 +818,12 @@ const BusinessAuth = () => {
     'Autre'
   ];
 
-  const countryCodes = [
-    { code: '+225', country: 'CI', flag: '🇨🇮' },
-    { code: '+33', country: 'FR', flag: '🇫🇷' },
-    { code: '+1', country: 'US', flag: '🇺🇸' },
-    { code: '+44', country: 'GB', flag: '🇬🇧' },
-    { code: '+32', country: 'BE', flag: '🇧🇪' },
-    { code: '+41', country: 'CH', flag: '🇨🇭' },
-  ];
+  // Générer les codes pays dynamiquement depuis la configuration
+  const countryCodes = getAllCountries().map(c => ({
+    code: c.phonePrefix,
+    country: c.code,
+    flag: c.flag
+  }));
 
   // Formulaire de complétion d'inscription (après connexion OTP sans business account)
   if (showCompleteRegistration) {
