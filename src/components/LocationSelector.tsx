@@ -44,11 +44,17 @@ export default function LocationSelector({
 
   const loadLocations = async () => {
     try {
-      // Note: country_code filter will work after migration is applied
-      const { data, error } = await supabase
+      let query = supabase
         .from('business_locations')
-        .select('id, name, commune')
+        .select('id, name, commune, country_code')
         .order('name');
+
+      // Filter by country if enabled
+      if (filterByCountry) {
+        query = query.eq('country_code', countryCode);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setLocations(data || []);
@@ -67,6 +73,7 @@ export default function LocationSelector({
         .from('business_locations')
         .insert({
           name: newLocation.trim(),
+          country_code: countryCode,
           created_by: (await supabase.auth.getUser()).data.user?.id
         })
         .select()

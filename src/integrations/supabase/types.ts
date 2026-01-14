@@ -1032,6 +1032,7 @@ export type Database = {
       business_locations: {
         Row: {
           commune: string | null
+          country_code: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -1041,6 +1042,7 @@ export type Database = {
         }
         Insert: {
           commune?: string | null
+          country_code?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1050,6 +1052,7 @@ export type Database = {
         }
         Update: {
           commune?: string | null
+          country_code?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
