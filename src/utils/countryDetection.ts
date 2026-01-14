@@ -16,17 +16,20 @@ const COUNTRY_MAPPING: Record<string, string> = {
   // Direct matches
   'CI': 'CI',  // Côte d'Ivoire
   'BJ': 'BJ',  // Bénin
+  'SN': 'SN',  // Sénégal
   
   // Nearby countries mapped to closest supported country
   'TG': 'BJ',  // Togo -> Bénin (geographic proximity)
   'GH': 'CI',  // Ghana -> Côte d'Ivoire
-  'ML': 'CI',  // Mali -> Côte d'Ivoire
+  'ML': 'SN',  // Mali -> Sénégal (proximity)
   'BF': 'CI',  // Burkina Faso -> Côte d'Ivoire
-  'SN': 'CI',  // Sénégal -> Côte d'Ivoire
-  'GN': 'CI',  // Guinée -> Côte d'Ivoire
+  'GN': 'SN',  // Guinée -> Sénégal (proximity)
   'LR': 'CI',  // Liberia -> Côte d'Ivoire
   'NE': 'BJ',  // Niger -> Bénin
   'NG': 'BJ',  // Nigeria -> Bénin
+  'GM': 'SN',  // Gambie -> Sénégal (enclavé)
+  'GW': 'SN',  // Guinée-Bissau -> Sénégal
+  'MR': 'SN',  // Mauritanie -> Sénégal
 };
 
 /**
@@ -118,6 +121,12 @@ function getCountryFromCoordinates(lat: number, lng: number): string | null {
   // Lat: 6.0°N to 12.5°N, Lng: 0.7°E to 3.9°E
   if (lat >= 6.0 && lat <= 12.5 && lng >= 0.7 && lng <= 3.9) {
     return 'BJ';
+  }
+  
+  // Sénégal bounds (approximate)
+  // Lat: 12.3°N to 16.7°N, Lng: 17.5°W to 11.4°W
+  if (lat >= 12.3 && lat <= 16.7 && lng >= -17.5 && lng <= -11.4) {
+    return 'SN';
   }
   
   return null;

@@ -14,6 +14,13 @@ import {
   findBeninCityCoordinates 
 } from "./beninCities";
 
+import { 
+  SENEGAL_CITIES, 
+  SENEGAL_CENTER, 
+  SENEGAL_BOUNDS,
+  findSenegalCityCoordinates 
+} from "./senegalCities";
+
 export type { CityCoordinates };
 export { getCityColor };
 
@@ -21,16 +28,19 @@ export { getCityColor };
 const COUNTRY_CITIES: Record<string, CityCoordinates[]> = {
   CI: IVORY_COAST_CITIES,
   BJ: BENIN_CITIES,
+  SN: SENEGAL_CITIES,
 };
 
 const COUNTRY_CENTERS: Record<string, [number, number]> = {
   CI: IVORY_COAST_CENTER,
   BJ: BENIN_CENTER,
+  SN: SENEGAL_CENTER,
 };
 
 const COUNTRY_BOUNDS: Record<string, [[number, number], [number, number]]> = {
   CI: IVORY_COAST_BOUNDS,
   BJ: BENIN_BOUNDS,
+  SN: SENEGAL_BOUNDS,
 };
 
 /**
@@ -70,6 +80,8 @@ export function findCityInCountry(address: string, countryCode: string): CityCoo
   switch (countryCode) {
     case "BJ":
       return findBeninCityCoordinates(address);
+    case "SN":
+      return findSenegalCityCoordinates(address);
     case "CI":
     default:
       return findIvoryCityCoordinates(address);
