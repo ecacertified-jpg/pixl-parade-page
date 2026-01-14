@@ -7,8 +7,10 @@ import {
   type CountryConfig 
 } from "@/config/countries";
 import { getCitiesForCountry, type CityCoordinates } from "@/utils/countryCities";
+import { detectUserCountry } from "@/utils/countryDetection";
 
 const STORAGE_KEY = "joiedevivre_country";
+const AUTO_DETECTED_KEY = "joiedevivre_country_auto_detected";
 
 interface CountryContextType {
   country: CountryConfig;
@@ -16,6 +18,8 @@ interface CountryContextType {
   setCountryCode: (code: string) => void;
   cities: CityCoordinates[];
   allCountries: CountryConfig[];
+  isDetecting: boolean;
+  wasAutoDetected: boolean;
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -26,7 +30,6 @@ interface CountryProviderProps {
 
 export function CountryProvider({ children }: CountryProviderProps) {
   const [countryCode, setCountryCodeState] = useState<string>(() => {
-    // Initialize from localStorage or default
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored && isValidCountryCode(stored)) {
@@ -35,6 +38,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
     return DEFAULT_COUNTRY_CODE;
   });
+
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [wasAutoDetected, setWasAutoDetected] = useState(false);
 
   const country = getCountryConfig(countryCode);
   const cities = getCitiesForCountry(countryCode);
@@ -47,11 +53,30 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   };
 
-  // Sync with localStorage on mount
+  // Auto-detect country on first visit
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && isValidCountryCode(stored) && stored !== countryCode) {
-      setCountryCodeState(stored);
+    const alreadyDetected = localStorage.getItem(AUTO_DETECTED_KEY);
+
+    // Only auto-detect if no stored preference and not already attempted
+    if (!stored && !alreadyDetected) {
+      setIsDetecting(true);
+      
+      detectUserCountry(false).then((detectedCode) => {
+        if (isValidCountryCode(detectedCode)) {
+          setCountryCodeState(detectedCode);
+          localStorage.setItem(STORAGE_KEY, detectedCode);
+          
+          // Only mark as auto-detected if it's different from default
+          if (detectedCode !== DEFAULT_COUNTRY_CODE) {
+            setWasAutoDetected(true);
+          }
+        }
+        
+        // Mark that we've attempted detection
+        localStorage.setItem(AUTO_DETECTED_KEY, 'true');
+        setIsDetecting(false);
+      });
     }
   }, []);
 
@@ -62,7 +87,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
         countryCode, 
         setCountryCode, 
         cities,
-        allCountries 
+        allCountries,
+        isDetecting,
+        wasAutoDetected
       }}
     >
       {children}

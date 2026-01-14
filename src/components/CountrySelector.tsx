@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useCountry } from "@/contexts/CountryContext";
 import {
   Select,
@@ -6,21 +7,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Globe } from "lucide-react";
+import { Globe, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+const WELCOMED_KEY = "joiedevivre_country_welcomed";
 
 interface CountrySelectorProps {
   variant?: "default" | "compact" | "minimal";
   className?: string;
+  showWelcomeToast?: boolean;
 }
 
-export function CountrySelector({ variant = "default", className = "" }: CountrySelectorProps) {
-  const { countryCode, setCountryCode, allCountries, country } = useCountry();
+export function CountrySelector({ 
+  variant = "default", 
+  className = "",
+  showWelcomeToast = true 
+}: CountrySelectorProps) {
+  const { countryCode, setCountryCode, allCountries, country, isDetecting, wasAutoDetected } = useCountry();
+  const hasShownWelcome = useRef(false);
+
+  // Show welcome toast when country is auto-detected
+  useEffect(() => {
+    if (showWelcomeToast && wasAutoDetected && !hasShownWelcome.current) {
+      const alreadyWelcomed = localStorage.getItem(WELCOMED_KEY);
+      
+      if (!alreadyWelcomed) {
+        hasShownWelcome.current = true;
+        
+        // Small delay for better UX
+        setTimeout(() => {
+          toast.success(`Bienvenue depuis ${country.flag} ${country.name} !`, {
+            description: "Vous pouvez changer de pays à tout moment.",
+            duration: 5000,
+          });
+          localStorage.setItem(WELCOMED_KEY, 'true');
+        }, 500);
+      }
+    }
+  }, [wasAutoDetected, country, showWelcomeToast]);
+
+  // Show loading state during detection
+  if (isDetecting) {
+    return (
+      <div className={`flex items-center gap-2 text-sm text-muted-foreground ${className}`}>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="hidden sm:inline">Détection...</span>
+      </div>
+    );
+  }
 
   if (variant === "minimal") {
     return (
       <button
         onClick={() => {
-          // Toggle between countries
           const currentIndex = allCountries.findIndex(c => c.code === countryCode);
           const nextIndex = (currentIndex + 1) % allCountries.length;
           setCountryCode(allCountries[nextIndex].code);
