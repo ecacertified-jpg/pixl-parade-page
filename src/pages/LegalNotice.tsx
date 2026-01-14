@@ -3,10 +3,15 @@ import { ArrowLeft, Building2, MapPin, FileCheck, CreditCard, Mail, Phone, Globe
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import logoJV from "@/assets/logo-jv.svg";
+import { useCountry } from "@/contexts/CountryContext";
+import { CountrySelector } from "@/components/CountrySelector";
 
 const LegalNotice = () => {
   const navigate = useNavigate();
+  const { country } = useCountry();
   const lastUpdated = "8 janvier 2026";
+
+  const legal = country.legalEntity;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/10">
@@ -23,7 +28,10 @@ const LegalNotice = () => {
               <ArrowLeft className="h-4 w-4" />
               Retour
             </Button>
-            <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
+            <div className="flex items-center gap-3">
+              <CountrySelector variant="minimal" />
+              <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
+            </div>
           </div>
         </div>
       </header>
@@ -37,6 +45,9 @@ const LegalNotice = () => {
           </h1>
           <p className="text-muted-foreground">
             Dernière mise à jour : {lastUpdated}
+          </p>
+          <p className="text-sm text-primary font-medium">
+            {country.flag} {country.name}
           </p>
         </div>
 
@@ -54,7 +65,7 @@ const LegalNotice = () => {
                 <Building2 className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Raison sociale</p>
-                  <p className="font-medium text-foreground">AMTEY'S</p>
+                  <p className="font-medium text-foreground">{legal.companyName}</p>
                 </div>
               </div>
               
@@ -62,8 +73,10 @@ const LegalNotice = () => {
                 <FileCheck className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Forme juridique</p>
-                  <p className="font-medium text-foreground">SARLU</p>
-                  <p className="text-xs text-muted-foreground">Société à Responsabilité Limitée Unipersonnelle</p>
+                  <p className="font-medium text-foreground">{legal.legalForm}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {legal.legalForm === 'SARL' ? 'Société à Responsabilité Limitée' : legal.legalForm}
+                  </p>
                 </div>
               </div>
               
@@ -71,7 +84,7 @@ const LegalNotice = () => {
                 <CreditCard className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Capital social</p>
-                  <p className="font-medium text-foreground">1 000 000 F CFA</p>
+                  <p className="font-medium text-foreground">1 000 000 {country.currencySymbol}</p>
                 </div>
               </div>
               
@@ -79,7 +92,8 @@ const LegalNotice = () => {
                 <FileCheck className="h-5 w-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">N° RCCM</p>
-                  <p className="font-medium text-foreground">CI-ABJ-03-2026-B13-00031</p>
+                  <p className="font-medium text-foreground">{legal.registrationNumber}</p>
+                  <p className="text-xs text-muted-foreground">{legal.registrationAuthority}</p>
                 </div>
               </div>
             </div>
@@ -89,7 +103,7 @@ const LegalNotice = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Siège social</p>
                 <p className="font-medium text-foreground">
-                  Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21.
+                  {legal.address}
                 </p>
               </div>
             </div>
@@ -111,10 +125,10 @@ const LegalNotice = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
                   <a 
-                    href="mailto:contact@joiedevivre-africa.com" 
+                    href={`mailto:${legal.email}`}
                     className="font-medium text-primary hover:underline"
                   >
-                    contact@joiedevivre-africa.com
+                    {legal.email}
                   </a>
                 </div>
               </div>
@@ -124,10 +138,10 @@ const LegalNotice = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Téléphone</p>
                   <a 
-                    href="tel:+22505465666 46" 
+                    href={`tel:${legal.phone.replace(/\s/g, '')}`}
                     className="font-medium text-primary hover:underline"
                   >
-                    +225 05 465 666 46
+                    {legal.phone}
                   </a>
                 </div>
               </div>
@@ -148,7 +162,7 @@ const LegalNotice = () => {
               <User className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <p className="text-sm text-muted-foreground">Responsable</p>
-                <p className="font-medium text-foreground">Le Gérant de AMTEY'S</p>
+                <p className="font-medium text-foreground">{legal.director}</p>
               </div>
             </div>
           </CardContent>
@@ -226,9 +240,9 @@ const LegalNotice = () => {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground pt-8 border-t">
-          <p>© 2026 JOIE DE VIVRE - AMTEY'S. Tous droits réservés.</p>
+          <p>© 2026 JOIE DE VIVRE - {legal.companyName}. Tous droits réservés.</p>
           <p className="mt-2">
-            Conformément à la législation ivoirienne sur le commerce électronique.
+            {legal.ecommerceLaw}
           </p>
         </div>
       </main>

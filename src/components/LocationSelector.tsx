@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, MapPin } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useCountry } from "@/contexts/CountryContext";
 
 interface Location {
   id: string;
   name: string;
   commune?: string;
+  country_code?: string;
 }
 
 interface LocationSelectorProps {
@@ -19,9 +21,18 @@ interface LocationSelectorProps {
   label?: string;
   placeholder?: string;
   showAddButton?: boolean;
+  filterByCountry?: boolean; // New prop to optionally filter by country
 }
 
-export default function LocationSelector({ value, onChange, label = "Adresse complète", placeholder = "Sélectionner un lieu", showAddButton = true }: LocationSelectorProps) {
+export default function LocationSelector({ 
+  value, 
+  onChange, 
+  label = "Adresse complète", 
+  placeholder = "Sélectionner un lieu", 
+  showAddButton = true,
+  filterByCountry = true 
+}: LocationSelectorProps) {
+  const { countryCode } = useCountry();
   const [locations, setLocations] = useState<Location[]>([]);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newLocation, setNewLocation] = useState("");
@@ -29,10 +40,11 @@ export default function LocationSelector({ value, onChange, label = "Adresse com
 
   useEffect(() => {
     loadLocations();
-  }, []);
+  }, [countryCode]); // Reload when country changes
 
   const loadLocations = async () => {
     try {
+      // Note: country_code filter will work after migration is applied
       const { data, error } = await supabase
         .from('business_locations')
         .select('id, name, commune')

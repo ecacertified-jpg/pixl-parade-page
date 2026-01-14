@@ -5,12 +5,16 @@ import logoJV from "@/assets/logo-jv.svg";
 import celebrationHero from "@/assets/cadeaux-echanges.png";
 import valueProposition from "@/assets/value-proposition-collective-gift.jpg";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { useEffect, useState } from "react";
 import { SurveyModal } from "@/components/SurveyModal";
 import { ContactModal } from "@/components/ContactModal";
+import { CountrySelector } from "@/components/CountrySelector";
+
 const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { country } = useCountry();
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
@@ -39,7 +43,7 @@ const Landing = () => {
   }, {
     icon: ShoppingBag,
     title: "Boutique Locale",
-    description: "Découvrez des artisans et commerçants locaux de Côte d'Ivoire"
+    description: `Découvrez des artisans et commerçants locaux ${country.code === 'BJ' ? 'du Bénin' : 'de Côte d\'Ivoire'}`
   }, {
     icon: Sparkles,
     title: "Surprises Mémorables",
@@ -55,9 +59,9 @@ const Landing = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center gap-3">
               <img src={logoJV} alt="Joie de Vivre" className="h-12 w-auto" />
-              
             </div>
             <div className="flex items-center gap-2">
+              <CountrySelector variant="compact" />
               <Button variant="ghost" onClick={() => navigate("/auth")}>
                 Connexion
               </Button>
@@ -77,7 +81,7 @@ const Landing = () => {
             <div className="space-y-6 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
                 <Sparkles className="h-4 w-4" />
-                Plateforme #1 en Côte d'Ivoire
+                Plateforme #1 {country.code === 'BJ' ? 'au Bénin' : 'en Côte d\'Ivoire'}
               </div>
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
                 Célébrez les Moments de{" "}
@@ -232,7 +236,7 @@ const Landing = () => {
                 <span className="font-bold text-foreground">JOIE DE VIVRE</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Célébrez les moments de bonheur avec vos proches en Côte d'Ivoire
+                Célébrez les moments de bonheur avec vos proches {country.code === 'BJ' ? 'au Bénin' : 'en Côte d\'Ivoire'}
               </p>
             </div>
             <div>

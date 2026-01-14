@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
+import { CountryProvider } from "@/contexts/CountryContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { NotificationSoundProvider } from "@/components/NotificationSoundProvider";
@@ -73,11 +74,12 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <SelectedBusinessProvider>
-        <NotificationSoundProvider>
-          <TooltipProvider>
-            <OfflineIndicator />
+    <CountryProvider>
+      <AuthProvider>
+        <SelectedBusinessProvider>
+          <NotificationSoundProvider>
+            <TooltipProvider>
+              <OfflineIndicator />
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -340,12 +342,13 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <AIChatWidget />
-        </BrowserRouter>
-        </TooltipProvider>
-        </NotificationSoundProvider>
-      </SelectedBusinessProvider>
-    </AuthProvider>
+            <AIChatWidget />
+          </BrowserRouter>
+          </TooltipProvider>
+          </NotificationSoundProvider>
+        </SelectedBusinessProvider>
+      </AuthProvider>
+    </CountryProvider>
   </QueryClientProvider>
 );
 
