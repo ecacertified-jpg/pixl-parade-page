@@ -74,7 +74,6 @@ const Home = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <CountrySelector variant="compact" showWelcomeToast={false} />
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
               {itemCount > 0 && (
