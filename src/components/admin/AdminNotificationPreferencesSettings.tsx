@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Mail, Bell, MessageSquare, Clock, Save, AlertTriangle, Users, Store, ShoppingCart, RefreshCcw, Shield, TrendingUp, BarChart3 } from 'lucide-react';
+import { Loader2, Mail, Bell, MessageSquare, Clock, Save, AlertTriangle, Users, Store, ShoppingCart, RefreshCcw, Shield, TrendingUp, BarChart3, Globe } from 'lucide-react';
 import { useAdminNotificationPreferences, AdminNotificationPreferences } from '@/hooks/useAdminNotificationPreferences';
+import { AdminCountryNotificationSettings } from './AdminCountryNotificationSettings';
 
 interface AlertToggleProps {
   id: string;
@@ -57,6 +58,7 @@ export function AdminNotificationPreferencesSettings() {
         quiet_hours_enabled: preferences.quiet_hours_enabled,
         quiet_hours_start: preferences.quiet_hours_start,
         quiet_hours_end: preferences.quiet_hours_end,
+        monitored_countries: preferences.monitored_countries,
       });
       setHasChanges(false);
     }
@@ -239,6 +241,25 @@ export function AdminNotificationPreferencesSettings() {
               onCheckedChange={(checked) => handleChange('growth_alerts', checked)}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Geographic Filtering */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Globe className="h-5 w-5" />
+            Filtrage géographique
+          </CardTitle>
+          <CardDescription>
+            Choisissez les pays pour lesquels vous souhaitez recevoir des notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminCountryNotificationSettings
+            selectedCountries={localPrefs.monitored_countries ?? null}
+            onCountriesChange={(countries) => handleChange('monitored_countries', countries)}
+          />
         </CardContent>
       </Card>
 

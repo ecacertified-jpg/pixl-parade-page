@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { CountryBadge } from '@/components/CountryBadge';
 import type { AdminNotification } from '@/hooks/useAdminNotifications';
 
 interface AdminNotificationItemProps {
@@ -111,6 +112,9 @@ export const AdminNotificationItem = ({
             )}>
               {notification.title}
             </span>
+            {notification.country_code && (
+              <CountryBadge countryCode={notification.country_code} variant="minimal" />
+            )}
             {notification.severity === 'critical' && (
               <AlertCircle className="h-3 w-3 text-destructive flex-shrink-0" />
             )}
@@ -142,8 +146,11 @@ export const AdminNotificationItem = ({
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="font-semibold">{notification.title}</span>
+          {notification.country_code && (
+            <CountryBadge countryCode={notification.country_code} variant="minimal" />
+          )}
           {SeverityIcon && (
             <SeverityIcon className={cn('h-4 w-4', severityConfig[notification.severity].color)} />
           )}
