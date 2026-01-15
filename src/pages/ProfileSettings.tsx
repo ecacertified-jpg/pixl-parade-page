@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, MapPin, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2 } from "lucide-react";
+import { ArrowLeft, User, Phone, MapPin, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2, Globe } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CitySelector } from "@/components/CitySelector";
+import { CountrySelector } from "@/components/CountrySelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
+import { useCountry } from "@/contexts/CountryContext";
 import { format, parse, isValid } from "date-fns";
 
 // Validation functions
@@ -75,6 +77,50 @@ const validateBirthday = (birthday: string): string | null => {
   }
   
   return null;
+};
+
+// Country Settings Card Component
+const CountrySettingsCard = () => {
+  const { country } = useCountry();
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          Pays et région
+        </CardTitle>
+        <CardDescription>
+          Personnalisez votre expérience selon votre localisation
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Votre pays</Label>
+          <CountrySelector variant="default" showWelcomeToast={false} />
+          <p className="text-xs text-muted-foreground">
+            Affecte les formats de numéros de téléphone, les villes disponibles et les modes de paiement
+          </p>
+        </div>
+        
+        {/* Country Info Display */}
+        <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Devise</span>
+            <span className="font-medium">{country.currency}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Préfixe téléphone</span>
+            <span className="font-medium">{country.phonePrefix}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Capitale</span>
+            <span className="font-medium">{country.capital}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 const ProfileSettings = () => {
@@ -440,6 +486,9 @@ const ProfileSettings = () => {
 
           {/* Preferences Tab */}
           <TabsContent value="preferences" className="space-y-6">
+            {/* Country Selection Card */}
+            <CountrySettingsCard />
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Préférences cadeaux</CardTitle>
