@@ -5,11 +5,13 @@ import { CountryPerformanceCard } from '@/components/admin/CountryPerformanceCar
 import { CountryComparisonChart } from '@/components/admin/CountryComparisonChart';
 import { CountryTrendsChart } from '@/components/admin/CountryTrendsChart';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download, Globe } from 'lucide-react';
+import { RefreshCw, Download, Globe, GitCompare } from 'lucide-react';
 import { exportToCSV, formatNumberFr, formatCurrencyXOF } from '@/utils/exportUtils';
+import { useNavigate } from 'react-router-dom';
 
 const CountryPerformanceDashboard = () => {
   const { countries, trends, totals, loading, refresh } = useCountryPerformance();
+  const navigate = useNavigate();
 
   const handleExport = () => {
     if (countries.length === 0) return;
@@ -53,6 +55,14 @@ const CountryPerformanceDashboard = () => {
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => navigate('/admin/countries/comparison')}
+            >
+              <GitCompare className="h-4 w-4 mr-2" />
+              Comparaison
             </Button>
             <Button
               variant="outline"

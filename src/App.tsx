@@ -55,6 +55,7 @@ import AdminPerformanceDashboard from "./pages/Admin/AdminPerformanceDashboard";
 import CountryPerformanceDashboard from "./pages/Admin/CountryPerformanceDashboard";
 import CountryDetailPage from "./pages/Admin/CountryDetailPage";
 import CountryObjectivesPage from "./pages/Admin/CountryObjectivesPage";
+import CountryMonthlyComparisonPage from "./pages/Admin/CountryMonthlyComparisonPage";
 import ForecastPage from "./pages/Admin/ForecastPage";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
@@ -362,6 +363,11 @@ const App = () => (
             <Route path="/admin/countries/objectives" element={
               <AdminRoute>
                 <CountryObjectivesPage />
+              </AdminRoute>
+            } />
+            <Route path="/admin/countries/comparison" element={
+              <AdminRoute>
+                <CountryMonthlyComparisonPage />
               </AdminRoute>
             } />
             <Route path="/admin/forecast" element={
