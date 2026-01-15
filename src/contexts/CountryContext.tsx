@@ -8,6 +8,7 @@ import {
 } from "@/config/countries";
 import { getCitiesForCountry, type CityCoordinates } from "@/utils/countryCities";
 import { detectUserCountry } from "@/utils/countryDetection";
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "joiedevivre_country";
 const AUTO_DETECTED_KEY = "joiedevivre_country_auto_detected";
@@ -46,10 +47,27 @@ export function CountryProvider({ children }: CountryProviderProps) {
   const cities = getCitiesForCountry(countryCode);
   const allCountries = Object.values(COUNTRIES);
 
+  // Synchronize country code with user profile in database
+  const syncCountryToProfile = async (code: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ country_code: code })
+          .eq('user_id', user.id);
+      }
+    } catch (error) {
+      console.error('Error syncing country to profile:', error);
+    }
+  };
+
   const setCountryCode = (code: string) => {
     if (isValidCountryCode(code)) {
       setCountryCodeState(code);
       localStorage.setItem(STORAGE_KEY, code);
+      // Sync to database
+      syncCountryToProfile(code);
     }
   };
 

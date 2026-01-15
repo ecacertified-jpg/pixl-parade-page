@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountry } from '@/contexts/CountryContext';
 
 export interface UserSuggestion {
   user_id: string;
@@ -16,6 +17,7 @@ export interface UserSuggestion {
 
 export function useUserSuggestions(limit: number = 5) {
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +28,7 @@ export function useUserSuggestions(limit: number = 5) {
     }
 
     fetchSuggestions();
-  }, [user?.id]);
+  }, [user?.id, countryCode]);
 
   const fetchSuggestions = async () => {
     if (!user?.id) return;
@@ -108,11 +110,12 @@ export function useUserSuggestions(limit: number = 5) {
         return;
       }
 
-      // Fetch profiles
+      // Fetch profiles - filtered by country
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name, avatar_url, bio')
-        .in('user_id', uniqueUserIds);
+        .in('user_id', uniqueUserIds)
+        .eq('country_code', countryCode);
 
       // Build suggestions with scoring
       const suggestionsWithScores = profiles?.map(profile => {
