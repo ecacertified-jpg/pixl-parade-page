@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { CountryBadge } from "@/components/CountryBadge";
 
 export function UserSuggestionsSection() {
   const { user } = useAuth();
@@ -193,6 +194,7 @@ export function UserSuggestionsSection() {
                 >
                   {userName}
                 </h4>
+                <CountryBadge countryCode={suggestion.country_code} variant="minimal" />
                 <p className="text-xs text-muted-foreground line-clamp-1">
                   {suggestion.reason}
                 </p>

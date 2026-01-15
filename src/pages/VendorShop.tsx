@@ -15,6 +15,7 @@ import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { VendorReviewsSection } from "@/components/VendorReviewsSection";
 import { cn } from "@/lib/utils";
+import { CountryBadge } from "@/components/CountryBadge";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -317,6 +318,7 @@ interface ProductCardProps {
     image: string;
     inStock: boolean;
     isExperience: boolean;
+    country_code?: string;
   };
   isFavorite: boolean;
   onToggleFavorite: () => void;
@@ -333,11 +335,14 @@ function ProductCard({ product, isFavorite, onToggleFavorite, onOrder, onRate }:
           alt={product.name} 
           className="w-full h-48 object-cover" 
         />
-        {product.isExperience && (
-          <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
-            ✨ EXPÉRIENCE
-          </Badge>
-        )}
+        <div className="absolute top-2 left-2 flex items-center gap-2">
+          <CountryBadge countryCode={product.country_code} variant="compact" />
+          {product.isExperience && (
+            <Badge className="bg-purple-600 text-white">
+              ✨ EXPÉRIENCE
+            </Badge>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="sm"

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { triggerVibration } from "@/utils/celebrationFeedback";
 import type { PostData } from "@/hooks/usePosts";
+import { CountryBadge } from "@/components/CountryBadge";
 
 interface TikTokPostCardProps {
   post: PostData;
@@ -458,15 +459,18 @@ export const TikTokPostCard = forwardRef<HTMLDivElement, TikTokPostCardProps>(
           transition: 'transform 0.1s ease-out, opacity 0.5s ease',
         }}
       >
-        <h4 
-          className={cn(
-            "text-white font-semibold text-base mb-1",
-            isProfileVisible && "cursor-pointer"
-          )}
-          onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
-        >
-          @{authorName.replace(' ', '_').toLowerCase()}
-        </h4>
+        <div className="flex items-center gap-2">
+          <h4 
+            className={cn(
+              "text-white font-semibold text-base",
+              isProfileVisible && "cursor-pointer"
+            )}
+            onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
+          >
+            @{authorName.replace(' ', '_').toLowerCase()}
+          </h4>
+          <CountryBadge countryCode={post.profiles?.country_code} variant="minimal" className="text-white/90" />
+        </div>
         
         {post.occasion && (
           <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full mb-2">

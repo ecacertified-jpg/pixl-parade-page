@@ -37,6 +37,7 @@ export interface CollectiveFund {
   priority?: number; // 1: friends' public funds, 2: own funds, 3: contributed funds, 4: general public funds
   isBusinessInitiated?: boolean;
   businessName?: string;
+  countryCode?: string;
 }
 
 export function useCollectiveFunds() {
@@ -65,6 +66,7 @@ export function useCollectiveFunds() {
         is_public,
         beneficiary_contact_id,
         created_by_business_id,
+        country_code,
         fund_contributions(
           id,
           amount,
@@ -293,7 +295,8 @@ export function useCollectiveFunds() {
           isPublic: fund.is_public || false,
           priority: fund.priority || 4,
           isBusinessInitiated,
-          businessName
+          businessName,
+          countryCode: fund.country_code
         };
       });
 
