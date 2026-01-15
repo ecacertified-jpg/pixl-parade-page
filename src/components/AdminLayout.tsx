@@ -24,6 +24,7 @@ import {
   Activity,
   Globe,
   Target,
+  GitCompare,
   Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ const navItems: NavItem[] = [
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
   { title: 'Performance Admins', href: '/admin/performance', icon: Activity, requiresSuperAdmin: true },
   { title: 'Performance Pays', href: '/admin/countries', icon: Globe },
+  { title: 'Comparaison Pays', href: '/admin/countries/comparison', icon: GitCompare },
   { title: 'Objectifs Pays', href: '/admin/countries/objectives', icon: Target },
   { title: 'Prévisions', href: '/admin/forecast', icon: Sparkles },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },
