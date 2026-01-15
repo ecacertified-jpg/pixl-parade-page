@@ -17,6 +17,7 @@ export interface AdminNotificationPreferences {
   critical_moderation_alerts: boolean;
   performance_alerts: boolean;
   growth_alerts: boolean;
+  struggling_country_alerts: boolean;
   daily_digest: boolean;
   quiet_hours_enabled: boolean;
   quiet_hours_start: string | null;
@@ -38,6 +39,7 @@ const defaultPreferences: Omit<AdminNotificationPreferences, 'id' | 'admin_user_
   critical_moderation_alerts: true,
   performance_alerts: true,
   growth_alerts: true,
+  struggling_country_alerts: true,
   daily_digest: false,
   quiet_hours_enabled: false,
   quiet_hours_start: '22:00',
