@@ -44,20 +44,14 @@ export function MLForecastPanel({ countryCode, countryName, flag, year }: MLFore
     getConfidenceBadge
   } = useMLForecast();
   
-  const { data: performanceData, isLoading: isLoadingPerformance } = useCountryPerformance();
-  const { objectives } = useCountryObjectives(countryCode, year);
+  const { trends: performanceData, loading: isLoadingPerformance } = useCountryPerformance();
+  const { objectives } = useCountryObjectives(year, countryCode);
 
-  // Prepare historical data from performance data
+  // Prepare historical data from performance data (trends by country)
   const historicalDataByMetric = useMemo(() => {
-    if (!performanceData?.trends) return {} as Record<MetricType, any[]>;
+    if (!performanceData || !performanceData[countryCode]) return {} as Record<MetricType, any[]>;
 
-    const countryTrends = performanceData.trends
-      .filter(t => t.country_code === countryCode)
-      .sort((a, b) => {
-        const dateA = new Date(a.period_year, a.period_month - 1);
-        const dateB = new Date(b.period_year, b.period_month - 1);
-        return dateA.getTime() - dateB.getTime();
-      });
+    const countryTrends = performanceData[countryCode] || [];
 
     const result: Record<MetricType, any[]> = {
       users: [],
@@ -66,21 +60,21 @@ export function MLForecastPanel({ countryCode, countryName, flag, year }: MLFore
       orders: []
     };
 
-    countryTrends.forEach(trend => {
+    countryTrends.forEach((trend, index) => {
       const monthData = {
-        month: MONTH_LABELS[trend.period_month - 1],
-        year: trend.period_year,
-        monthNum: trend.period_month
+        month: trend.label || MONTH_LABELS[index % 12],
+        year: year,
+        monthNum: index + 1
       };
 
-      result.users.push({ ...monthData, value: trend.new_users || 0 });
-      result.businesses.push({ ...monthData, value: trend.new_businesses || 0 });
-      result.revenue.push({ ...monthData, value: trend.total_revenue || 0 });
-      result.orders.push({ ...monthData, value: trend.total_orders || 0 });
+      result.users.push({ ...monthData, value: trend.users || 0 });
+      result.businesses.push({ ...monthData, value: trend.businesses || 0 });
+      result.revenue.push({ ...monthData, value: trend.revenue || 0 });
+      result.orders.push({ ...monthData, value: trend.orders || 0 });
     });
 
     return result;
-  }, [performanceData, countryCode]);
+  }, [performanceData, countryCode, year]);
 
   // Prepare objectives context
   const objectivesContext = useMemo(() => {

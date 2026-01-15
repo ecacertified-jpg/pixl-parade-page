@@ -39,19 +39,15 @@ export default function ForecastPage() {
   const { generateForecast, selectedMethod } = useForecastEngine();
   
   // Performance data for statistical forecasts
-  const { data: performanceData } = useCountryPerformance();
+  const { trends: performanceData } = useCountryPerformance();
 
   // Generate statistical forecasts for comparison
   const statisticalForecasts = useMemo(() => {
-    if (!performanceData?.trends) return {} as Record<MetricType, ForecastResult[] | null>;
+    if (!performanceData || !performanceData[selectedCountry]) {
+      return {} as Record<MetricType, ForecastResult[] | null>;
+    }
 
-    const countryTrends = performanceData.trends
-      .filter(t => t.country_code === selectedCountry)
-      .sort((a, b) => {
-        const dateA = new Date(a.period_year, a.period_month - 1);
-        const dateB = new Date(b.period_year, b.period_month - 1);
-        return dateA.getTime() - dateB.getTime();
-      });
+    const countryTrends = performanceData[selectedCountry] || [];
 
     const metrics: MetricType[] = ['users', 'businesses', 'revenue', 'orders'];
     const result: Record<MetricType, ForecastResult[] | null> = {
@@ -62,23 +58,23 @@ export default function ForecastPage() {
     };
 
     metrics.forEach(metric => {
-      const metricKey = metric === 'users' ? 'new_users' : 
-                       metric === 'businesses' ? 'new_businesses' :
-                       metric === 'revenue' ? 'total_revenue' : 'total_orders';
+      const historicalData = countryTrends.map((t, index) => ({
+        month: t.label || MONTH_LABELS[index % 12],
+        value: t[metric] || 0
+      }));
       
-      const values = countryTrends.map(t => (t as any)[metricKey] || 0);
-      
-      if (values.length >= 3) {
+      if (historicalData.length >= 3) {
         result[metric] = generateForecast({
-          historicalData: values,
-          periodsToForecast: 12,
-          confidenceLevel: 0.8
+          historicalData,
+          metricType: metric,
+          countryCode: selectedCountry,
+          targetYear: selectedYear
         }, selectedMethod);
       }
     });
 
     return result;
-  }, [performanceData, selectedCountry, generateForecast, selectedMethod]);
+  }, [performanceData, selectedCountry, generateForecast, selectedMethod, selectedYear]);
 
   return (
     <AdminLayout>
