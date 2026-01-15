@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
+import { useAdminNotificationPreferences } from '@/hooks/useAdminNotificationPreferences';
 import { AdminNotificationItem } from '@/components/admin/AdminNotificationItem';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,8 @@ import {
   ShoppingBag,
   AlertCircle,
   Filter,
-  Clock
+  Clock,
+  Globe
 } from 'lucide-react';
 import {
   Select,
@@ -28,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { COUNTRIES } from '@/config/countries';
 
 const typeLabels: Record<string, { label: string; icon: any }> = {
   all: { label: 'Toutes', icon: Bell },
@@ -39,21 +42,27 @@ const typeLabels: Record<string, { label: string; icon: any }> = {
 };
 
 export default function AdminNotificationsPage() {
+  const { preferences } = useAdminNotificationPreferences();
+  
   const {
     notifications,
     loading,
     unreadCount,
     criticalCount,
+    countryStats,
     markAsRead,
     markAllAsRead,
     dismissNotification,
     dismissAll,
     refreshNotifications,
-  } = useAdminNotifications();
+  } = useAdminNotifications({
+    monitoredCountries: preferences?.monitored_countries,
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [countryFilter, setCountryFilter] = useState('all');
 
   const filteredNotifications = notifications.filter((n) => {
     const matchesSearch = 
@@ -61,7 +70,8 @@ export default function AdminNotificationsPage() {
       n.message.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' || n.type === typeFilter;
     const matchesSeverity = severityFilter === 'all' || n.severity === severityFilter;
-    return matchesSearch && matchesType && matchesSeverity;
+    const matchesCountry = countryFilter === 'all' || n.country_code === countryFilter || (countryFilter === 'global' && !n.country_code);
+    return matchesSearch && matchesType && matchesSeverity && matchesCountry;
   });
 
   const unreadNotifications = filteredNotifications.filter((n) => !n.is_read);
@@ -121,19 +131,25 @@ export default function AdminNotificationsPage() {
             </CardContent>
           </Card>
           
-          {Object.entries(statsByType).map(([type, count]) => {
-            const config = typeLabels[type];
-            const Icon = config.icon;
+          {/* Country stats */}
+          {Object.entries(countryStats).map(([code, stats]) => {
+            const country = code !== 'global' ? COUNTRIES[code] : null;
             return (
-              <Card key={type}>
+              <Card key={code}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-full bg-muted">
-                      <Icon className="h-5 w-5 text-muted-foreground" />
+                      {country ? (
+                        <span className="text-lg">{country.flag}</span>
+                      ) : (
+                        <Globe className="h-5 w-5 text-muted-foreground" />
+                      )}
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{count}</p>
-                      <p className="text-xs text-muted-foreground truncate">{config.label}</p>
+                      <p className="text-2xl font-bold">{stats.unread}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {country ? country.name : 'Global'}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -177,6 +193,21 @@ export default function AdminNotificationsPage() {
                   <SelectItem value="critical">Critique</SelectItem>
                   <SelectItem value="warning">Avertissement</SelectItem>
                   <SelectItem value="info">Information</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <Globe className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Pays" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les pays</SelectItem>
+                  <SelectItem value="global">🌍 Global</SelectItem>
+                  {Object.entries(COUNTRIES).map(([code, country]) => (
+                    <SelectItem key={code} value={code}>
+                      {country.flag} {country.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

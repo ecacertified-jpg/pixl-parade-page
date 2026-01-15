@@ -21,6 +21,7 @@ export interface AdminNotificationPreferences {
   quiet_hours_enabled: boolean;
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
+  monitored_countries: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ const defaultPreferences: Omit<AdminNotificationPreferences, 'id' | 'admin_user_
   quiet_hours_enabled: false,
   quiet_hours_start: '22:00',
   quiet_hours_end: '08:00',
+  monitored_countries: null, // null = all countries
 };
 
 export function useAdminNotificationPreferences() {

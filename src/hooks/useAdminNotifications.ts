@@ -17,14 +17,21 @@ export interface AdminNotification {
   entity_type: string | null;
   entity_id: string | null;
   metadata: Record<string, any>;
+  country_code: string | null;
   created_at: string;
 }
 
-export const useAdminNotifications = () => {
+export interface UseAdminNotificationsOptions {
+  monitoredCountries?: string[] | null;
+}
+
+export const useAdminNotifications = (options?: UseAdminNotificationsOptions) => {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
+  
+  const monitoredCountries = options?.monitoredCountries;
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !isAdmin) {
@@ -34,12 +41,20 @@ export const useAdminNotifications = () => {
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('admin_notifications')
         .select('*')
         .eq('is_dismissed', false)
         .order('created_at', { ascending: false })
         .limit(100);
+
+      // Filter by monitored countries if specified
+      if (monitoredCountries && monitoredCountries.length > 0) {
+        // Include notifications from monitored countries OR notifications without country_code (global)
+        query = query.or(`country_code.in.(${monitoredCountries.join(',')}),country_code.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setNotifications((data || []) as AdminNotification[]);
@@ -48,7 +63,7 @@ export const useAdminNotifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, monitoredCountries]);
 
   // Setup realtime subscription
   useEffect(() => {
@@ -197,16 +212,34 @@ export const useAdminNotifications = () => {
   const getNotificationsByType = (type: string) => 
     notifications.filter((n) => n.type === type);
 
+  const getNotificationsByCountry = (countryCode: string | null) => {
+    if (!countryCode) return notifications;
+    return notifications.filter((n) => n.country_code === countryCode);
+  };
+
+  // Stats by country
+  const countryStats = notifications.reduce((acc, n) => {
+    const code = n.country_code || 'global';
+    if (!acc[code]) {
+      acc[code] = { total: 0, unread: 0 };
+    }
+    acc[code].total++;
+    if (!n.is_read) acc[code].unread++;
+    return acc;
+  }, {} as Record<string, { total: number; unread: number }>);
+
   return {
     notifications,
     loading,
     unreadCount,
     criticalCount,
+    countryStats,
     markAsRead,
     markAllAsRead,
     dismissNotification,
     dismissAll,
     refreshNotifications: fetchNotifications,
     getNotificationsByType,
+    getNotificationsByCountry,
   };
 };

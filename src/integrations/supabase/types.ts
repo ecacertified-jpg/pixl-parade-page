@@ -137,6 +137,7 @@ export type Database = {
           growth_alerts: boolean
           id: string
           in_app_enabled: boolean
+          monitored_countries: string[] | null
           new_business_alerts: boolean
           new_client_alerts: boolean
           new_order_alerts: boolean
@@ -158,6 +159,7 @@ export type Database = {
           growth_alerts?: boolean
           id?: string
           in_app_enabled?: boolean
+          monitored_countries?: string[] | null
           new_business_alerts?: boolean
           new_client_alerts?: boolean
           new_order_alerts?: boolean
@@ -179,6 +181,7 @@ export type Database = {
           growth_alerts?: boolean
           id?: string
           in_app_enabled?: boolean
+          monitored_countries?: string[] | null
           new_business_alerts?: boolean
           new_client_alerts?: boolean
           new_order_alerts?: boolean
@@ -204,6 +207,7 @@ export type Database = {
         Row: {
           action_url: string | null
           admin_user_id: string | null
+          country_code: string | null
           created_at: string | null
           entity_id: string | null
           entity_type: string | null
@@ -219,6 +223,7 @@ export type Database = {
         Insert: {
           action_url?: string | null
           admin_user_id?: string | null
+          country_code?: string | null
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -234,6 +239,7 @@ export type Database = {
         Update: {
           action_url?: string | null
           admin_user_id?: string | null
+          country_code?: string | null
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string | null
