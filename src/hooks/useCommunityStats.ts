@@ -10,7 +10,7 @@ export interface CommunityStats {
 }
 
 export const useCommunityStats = () => {
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const [stats, setStats] = useState<CommunityStats>({
     giftsThisWeek: 0,
     birthdaysToday: 0,
@@ -30,51 +30,69 @@ export const useCommunityStats = () => {
         .select('*', { count: 'exact', head: true })
         .gte('gift_date', weekStart.toISOString());
 
-      // Count birthdays today (contacts with birthday today) - filtered by user's country
+      // Count birthdays today (contacts with birthday today) - filtered by user's country if set
       const today = new Date();
       const todayStr = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      // Get profiles from current country, then their contacts
-      const { data: countryProfiles } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('country_code', countryCode);
-      
-      const countryUserIds = countryProfiles?.map(p => p.user_id) || [];
-      
       let birthdaysCount = 0;
-      if (countryUserIds.length > 0) {
+      if (effectiveCountryFilter) {
+        // Get profiles from current country, then their contacts
+        const { data: countryProfiles } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('country_code', effectiveCountryFilter);
+        
+        const countryUserIds = countryProfiles?.map(p => p.user_id) || [];
+        
+        if (countryUserIds.length > 0) {
+          const { count } = await supabase
+            .from('contacts')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', countryUserIds)
+            .like('birthday', `%-${todayStr}`);
+          birthdaysCount = count || 0;
+        }
+      } else {
+        // All countries - count all birthdays
         const { count } = await supabase
           .from('contacts')
           .select('*', { count: 'exact', head: true })
-          .in('user_id', countryUserIds)
           .like('birthday', `%-${todayStr}`);
         birthdaysCount = count || 0;
       }
 
-      // Count active funds - filtered by country
-      const { count: fundsCount } = await supabase
+      // Count active funds - filtered by country if set
+      let fundsQuery = supabase
         .from('collective_funds')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .eq('country_code', countryCode);
+        .eq('status', 'active');
+      
+      if (effectiveCountryFilter) {
+        fundsQuery = fundsQuery.eq('country_code', effectiveCountryFilter);
+      }
+      
+      const { count: fundsCount } = await fundsQuery;
 
-      // Count active users this week (users who contributed) - filtered by country
+      // Count active users this week (users who contributed)
       const { data: activeUsersData } = await supabase
         .from('fund_contributions')
         .select('contributor_id')
         .gte('created_at', weekStart.toISOString());
 
-      // Filter by users in current country
+      // Filter by users in current country if set
       let activeUsersInCountry = 0;
       if (activeUsersData && activeUsersData.length > 0) {
         const contributorIds = [...new Set(activeUsersData.map(c => c.contributor_id))];
-        const { count } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .in('user_id', contributorIds)
-          .eq('country_code', countryCode);
-        activeUsersInCountry = count || 0;
+        
+        if (effectiveCountryFilter) {
+          const { count } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', contributorIds)
+            .eq('country_code', effectiveCountryFilter);
+          activeUsersInCountry = count || 0;
+        } else {
+          activeUsersInCountry = contributorIds.length;
+        }
       }
 
       setStats({
@@ -96,7 +114,7 @@ export const useCommunityStats = () => {
     // Refresh stats every 5 minutes
     const interval = setInterval(loadStats, 300000);
     return () => clearInterval(interval);
-  }, [countryCode]);
+  }, [effectiveCountryFilter]);
 
   return { stats, loading, refreshStats: loadStats };
 };

@@ -8,6 +8,7 @@ import { PostCard } from "@/components/PostCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 
 interface NewsFeedProps {
   onModeChange?: (mode: 'feed' | 'tiktok') => void;
@@ -86,7 +87,9 @@ export function NewsFeed({ onModeChange, currentMode = 'feed' }: NewsFeedProps) 
           <Heart className="h-5 w-5 text-primary" />
           Fil d'actualités
         </h3>
-        {onModeChange && (
+        <div className="flex items-center gap-2">
+          <CountryFilterToggle variant="compact" />
+          {onModeChange && (
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
             <Button 
               variant="ghost" 
@@ -112,6 +115,7 @@ export function NewsFeed({ onModeChange, currentMode = 'feed' }: NewsFeedProps) 
             </Button>
           </div>
         )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "following")} className="w-full mb-4">

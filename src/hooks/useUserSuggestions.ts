@@ -18,7 +18,7 @@ export interface UserSuggestion {
 
 export function useUserSuggestions(limit: number = 5) {
   const { user } = useAuth();
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +29,7 @@ export function useUserSuggestions(limit: number = 5) {
     }
 
     fetchSuggestions();
-  }, [user?.id, countryCode]);
+  }, [user?.id, effectiveCountryFilter]);
 
   const fetchSuggestions = async () => {
     if (!user?.id) return;
@@ -111,12 +111,17 @@ export function useUserSuggestions(limit: number = 5) {
         return;
       }
 
-      // Fetch profiles - filtered by country
-      const { data: profiles } = await supabase
+      // Fetch profiles - filtered by country if set
+      let profilesQuery = supabase
         .from('profiles')
         .select('user_id, first_name, last_name, avatar_url, bio, country_code')
-        .in('user_id', uniqueUserIds)
-        .eq('country_code', countryCode);
+        .in('user_id', uniqueUserIds);
+      
+      if (effectiveCountryFilter) {
+        profilesQuery = profilesQuery.eq('country_code', effectiveCountryFilter);
+      }
+      
+      const { data: profiles } = await profilesQuery;
 
       // Build suggestions with scoring
       const suggestionsWithScores = profiles?.map(profile => {

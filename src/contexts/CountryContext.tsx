@@ -21,6 +21,9 @@ interface CountryContextType {
   allCountries: CountryConfig[];
   isDetecting: boolean;
   wasAutoDetected: boolean;
+  showAllCountries: boolean;
+  setShowAllCountries: (value: boolean) => void;
+  effectiveCountryFilter: string | null; // null = all countries
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -42,10 +45,14 @@ export function CountryProvider({ children }: CountryProviderProps) {
 
   const [isDetecting, setIsDetecting] = useState(false);
   const [wasAutoDetected, setWasAutoDetected] = useState(false);
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
   const country = getCountryConfig(countryCode);
   const cities = getCitiesForCountry(countryCode);
   const allCountries = Object.values(COUNTRIES);
+  
+  // effectiveCountryFilter returns null when showing all countries, otherwise the current countryCode
+  const effectiveCountryFilter = showAllCountries ? null : countryCode;
 
   // Synchronize country code with user profile in database
   const syncCountryToProfile = async (code: string) => {
@@ -107,7 +114,10 @@ export function CountryProvider({ children }: CountryProviderProps) {
         cities,
         allCountries,
         isDetecting,
-        wasAutoDetected
+        wasAutoDetected,
+        showAllCountries,
+        setShowAllCountries,
+        effectiveCountryFilter
       }}
     >
       {children}

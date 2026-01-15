@@ -18,8 +18,8 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
-
-export default function Shop() {
+import { CountryFilterToggle } from "@/components/CountryFilterToggle";
+import { useCountry } from "@/contexts/CountryContext";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { itemCount, addItem } = useCart();
@@ -425,9 +425,9 @@ export default function Shop() {
             </div>
           </div>
 
-          {/* Location Selector */}
-          <div className="flex justify-center items-center">
-            <div className="w-full max-w-sm">
+          {/* Location Selector and Country Filter */}
+          <div className="flex justify-center items-center gap-2">
+            <div className="flex-1 max-w-sm">
               <CitySelector 
                 value={selectedLocation} 
                 onChange={setSelectedLocation}
@@ -436,6 +436,7 @@ export default function Shop() {
                 allowCustom={false}
               />
             </div>
+            <CountryFilterToggle variant="compact" />
           </div>
         </div>
       </header>
@@ -799,5 +800,6 @@ export default function Shop() {
         }}
         isFavorite={detailProduct ? isFavorite(String(detailProduct.id)) : false}
       />
-    </div>;
+    </div>
+  );
 }

@@ -4,12 +4,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TikTokPostCard } from '@/components/TikTokPostCard';
 import { TikTokProgressIndicator } from '@/components/TikTokProgressIndicator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, Heart, Volume2, VolumeX } from 'lucide-react';
+import { Users, Heart, Volume2, VolumeX, Globe } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
+import { useCountry } from '@/contexts/CountryContext';
 
 export function TikTokFeed() {
   const { user } = useAuth();
+  const { country, showAllCountries, setShowAllCountries } = useCountry();
   const [activeTab, setActiveTab] = useState<"all" | "following">("all");
   const [followingLoaded, setFollowingLoaded] = useState(false);
   
@@ -318,19 +320,36 @@ export function TikTokFeed() {
         onDotClick={scrollToPost}
       />
 
-      {/* Bouton mute/unmute global */}
-      <button
-        onClick={toggleGlobalMute}
-        className="absolute top-20 right-4 z-30 bg-black/50 backdrop-blur-sm p-3 rounded-full 
-                   transition-all duration-200 hover:bg-black/70 active:scale-95"
-        aria-label={globalMuted ? "Activer le son" : "Couper le son"}
-      >
-        {globalMuted ? (
-          <VolumeX className="h-5 w-5 text-white" />
-        ) : (
-          <Volume2 className="h-5 w-5 text-white" />
-        )}
-      </button>
+      {/* Bouton mute/unmute global et filtre pays */}
+      <div className="absolute top-20 right-4 z-30 flex flex-col gap-2">
+        {/* Country filter toggle */}
+        <button
+          onClick={() => setShowAllCountries(!showAllCountries)}
+          className="bg-black/50 backdrop-blur-sm p-3 rounded-full 
+                     transition-all duration-200 hover:bg-black/70 active:scale-95"
+          aria-label={showAllCountries ? "Filtrer par mon pays" : "Voir tous les pays"}
+        >
+          {showAllCountries ? (
+            <Globe className="h-5 w-5 text-white" />
+          ) : (
+            <span className="text-lg leading-none">{country.flag}</span>
+          )}
+        </button>
+        
+        {/* Mute button */}
+        <button
+          onClick={toggleGlobalMute}
+          className="bg-black/50 backdrop-blur-sm p-3 rounded-full 
+                     transition-all duration-200 hover:bg-black/70 active:scale-95"
+          aria-label={globalMuted ? "Activer le son" : "Couper le son"}
+        >
+          {globalMuted ? (
+            <VolumeX className="h-5 w-5 text-white" />
+          ) : (
+            <Volume2 className="h-5 w-5 text-white" />
+          )}
+        </button>
+      </div>
 
       {/* Edge glow indicators */}
       {activeTab === "all" && (

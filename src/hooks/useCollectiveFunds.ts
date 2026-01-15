@@ -44,7 +44,7 @@ export function useCollectiveFunds() {
   const [funds, setFunds] = useState<CollectiveFund[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const { toast } = useToast();
 
   const loadFunds = async () => {
@@ -89,18 +89,23 @@ export function useCollectiveFunds() {
       `;
 
       // Execute all initial queries in parallel for better performance
+      // Build the funds query with optional country filter
+      let fundsQuery = supabase
+        .from('collective_funds')
+        .select(selectQuery);
+      
+      if (effectiveCountryFilter) {
+        fundsQuery = fundsQuery.eq('country_code', effectiveCountryFilter);
+      }
+      
       const [friendsResult, allFundsResult] = await Promise.all([
         // Get friends data
         supabase
           .from('contact_relationships')
           .select('user_a, user_b')
           .or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
-        // Get all funds - filtered by country
-        supabase
-          .from('collective_funds')
-          .select(selectQuery)
-          .eq('country_code', countryCode)
-          .order('created_at', { ascending: false })
+        // Get all funds - filtered by country if set
+        fundsQuery.order('created_at', { ascending: false })
       ]);
 
       const friendsData = friendsResult.data;
@@ -318,7 +323,7 @@ export function useCollectiveFunds() {
 
   useEffect(() => {
     loadFunds();
-  }, [user, countryCode]);
+  }, [user, effectiveCountryFilter]);
 
   return {
     funds,
