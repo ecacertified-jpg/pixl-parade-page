@@ -166,6 +166,7 @@ export function usePosts(filterFollowing: boolean = false) {
             last_name: profile.last_name,
             avatar_url: profile.avatar_url,
             is_visible: profile.is_visible,
+            country_code: profile.country_code,
           } : undefined,
           reactions,
           user_reaction: userReaction,
