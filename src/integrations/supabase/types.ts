@@ -18,11 +18,13 @@ export type Database = {
         Row: {
           action_type: string
           admin_user_id: string
+          country_code: string | null
           created_at: string
           description: string
           id: string
           ip_address: string | null
           metadata: Json | null
+          related_notification_id: string | null
           target_id: string | null
           target_type: string | null
           user_agent: string | null
@@ -30,11 +32,13 @@ export type Database = {
         Insert: {
           action_type: string
           admin_user_id: string
+          country_code?: string | null
           created_at?: string
           description: string
           id?: string
           ip_address?: string | null
           metadata?: Json | null
+          related_notification_id?: string | null
           target_id?: string | null
           target_type?: string | null
           user_agent?: string | null
@@ -42,16 +46,25 @@ export type Database = {
         Update: {
           action_type?: string
           admin_user_id?: string
+          country_code?: string | null
           created_at?: string
           description?: string
           id?: string
           ip_address?: string | null
           metadata?: Json | null
+          related_notification_id?: string | null
           target_id?: string | null
           target_type?: string | null
           user_agent?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_related_notification_id_fkey"
+            columns: ["related_notification_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_admin_audit_admin_user"
             columns: ["admin_user_id"]

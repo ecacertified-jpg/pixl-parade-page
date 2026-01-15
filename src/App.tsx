@@ -51,6 +51,7 @@ import ProfileCompletionDashboard from "./pages/Admin/ProfileCompletionDashboard
 import DuplicateAccountsDashboard from "./pages/Admin/DuplicateAccountsDashboard";
 import DeletedBusinesses from "./pages/Admin/DeletedBusinesses";
 import DeletedClients from "./pages/Admin/DeletedClients";
+import AdminPerformanceDashboard from "./pages/Admin/AdminPerformanceDashboard";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
@@ -337,6 +338,11 @@ const App = () => (
             <Route path="/admin/audit" element={
               <AdminRoute>
                 <AuditLogs />
+              </AdminRoute>
+            } />
+            <Route path="/admin/performance" element={
+              <AdminRoute>
+                <AdminPerformanceDashboard />
               </AdminRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

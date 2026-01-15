@@ -20,7 +20,8 @@ import {
   UserCircle,
   Copy,
   Trash2,
-  UserMinus
+  UserMinus,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -63,6 +64,7 @@ const navItems: NavItem[] = [
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
+  { title: 'Performance Admins', href: '/admin/performance', icon: Activity, requiresSuperAdmin: true },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },
 ];
 
