@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users } from 'lucide-react';
+import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users, Globe, MapPin } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { AddAdminModal } from '@/components/admin/AddAdminModal';
 import { EditPermissionsModal } from '@/components/admin/EditPermissionsModal';
 import { RevokeAdminDialog } from '@/components/admin/RevokeAdminDialog';
+import { COUNTRIES } from '@/config/countries';
 
 interface Admin {
   id: string;
@@ -33,6 +34,7 @@ interface Admin {
   is_active: boolean;
   created_at: string;
   assigned_at: string;
+  assigned_countries: string[] | null;
   profiles: {
     first_name: string | null;
     last_name: string | null;
@@ -68,9 +70,9 @@ export default function AdminManagement() {
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
   const [selectedAdminName, setSelectedAdminName] = useState('');
-  const [selectedAdminRole, setSelectedAdminRole] = useState<'super_admin' | 'moderator'>('moderator');
+  const [selectedAdminRole, setSelectedAdminRole] = useState<string>('moderator');
   const [currentPermissions, setCurrentPermissions] = useState<any>({});
-
+  const [currentCountries, setCurrentCountries] = useState<string[] | null>(null);
   useEffect(() => {
     fetchAdmins();
   }, []);
@@ -139,8 +141,9 @@ export default function AdminManagement() {
         <DropdownMenuItem onClick={() => {
           setSelectedAdminId(admin.id);
           setSelectedAdminName(getDisplayName(admin));
-          setSelectedAdminRole(admin.role as 'super_admin' | 'moderator');
+          setSelectedAdminRole(admin.role);
           setCurrentPermissions(admin.permissions || {});
+          setCurrentCountries(admin.assigned_countries);
           setEditPermissionsOpen(true);
         }}>
           Modifier les permissions
@@ -225,15 +228,17 @@ export default function AdminManagement() {
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
                         <Badge 
-                          variant={admin.role === 'super_admin' ? 'default' : 'secondary'}
-                          className="flex items-center gap-1"
+                          variant={admin.role === 'super_admin' ? 'default' : admin.role === 'regional_admin' ? 'default' : 'secondary'}
+                          className={`flex items-center gap-1 ${admin.role === 'regional_admin' ? 'bg-blue-500' : ''}`}
                         >
                           {admin.role === 'super_admin' ? (
                             <ShieldCheck className="h-3 w-3" />
+                          ) : admin.role === 'regional_admin' ? (
+                            <Shield className="h-3 w-3" />
                           ) : (
                             <UserCheck className="h-3 w-3" />
                           )}
-                          {admin.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+                          {admin.role === 'super_admin' ? 'Super Admin' : admin.role === 'regional_admin' ? 'Admin Régional' : 'Modérateur'}
                         </Badge>
                         <Badge 
                           variant={admin.is_active ? 'outline' : 'destructive'}
@@ -241,6 +246,26 @@ export default function AdminManagement() {
                         >
                           {admin.is_active ? 'Actif' : <><UserX className="h-3 w-3" /> Inactif</>}
                         </Badge>
+                      </div>
+                      {/* Countries */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {admin.assigned_countries === null ? (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            Tous les pays
+                          </Badge>
+                        ) : admin.assigned_countries && admin.assigned_countries.length > 0 ? (
+                          admin.assigned_countries.map(code => (
+                            <Badge key={code} variant="secondary" className="text-xs">
+                              {COUNTRIES[code]?.flag} {code}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            Aucun pays
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-3">
                         Attribué le {formatDate(admin.assigned_at)}
@@ -256,6 +281,7 @@ export default function AdminManagement() {
                       <TableRow>
                         <TableHead>Administrateur</TableHead>
                         <TableHead>Rôle</TableHead>
+                        <TableHead>Pays</TableHead>
                         <TableHead>Date d'attribution</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -281,16 +307,36 @@ export default function AdminManagement() {
                           </TableCell>
                           <TableCell>
                             <Badge 
-                              variant={admin.role === 'super_admin' ? 'default' : 'secondary'}
-                              className="flex items-center gap-1 w-fit"
+                              variant={admin.role === 'super_admin' ? 'default' : admin.role === 'regional_admin' ? 'default' : 'secondary'}
+                              className={`flex items-center gap-1 w-fit ${admin.role === 'regional_admin' ? 'bg-blue-500' : ''}`}
                             >
                               {admin.role === 'super_admin' ? (
                                 <ShieldCheck className="h-3 w-3" />
+                              ) : admin.role === 'regional_admin' ? (
+                                <Shield className="h-3 w-3" />
                               ) : (
                                 <UserCheck className="h-3 w-3" />
                               )}
-                              {admin.role === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+                              {admin.role === 'super_admin' ? 'Super Admin' : admin.role === 'regional_admin' ? 'Admin Régional' : 'Modérateur'}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {admin.assigned_countries === null ? (
+                                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                  <Globe className="h-3 w-3" />
+                                  Tous
+                                </Badge>
+                              ) : admin.assigned_countries && admin.assigned_countries.length > 0 ? (
+                                admin.assigned_countries.map(code => (
+                                  <Badge key={code} variant="secondary" className="text-xs">
+                                    {COUNTRIES[code]?.flag} {code}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {formatDate(admin.assigned_at)}
@@ -328,6 +374,7 @@ export default function AdminManagement() {
           adminName={selectedAdminName}
           adminRole={selectedAdminRole}
           currentPermissions={currentPermissions}
+          currentCountries={currentCountries}
           open={editPermissionsOpen}
           onOpenChange={setEditPermissionsOpen}
           onSuccess={fetchAdmins}

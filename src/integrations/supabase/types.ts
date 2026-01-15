@@ -391,6 +391,7 @@ export type Database = {
           allowed_ips: string[] | null
           assigned_at: string
           assigned_by: string | null
+          assigned_countries: string[] | null
           created_at: string
           failed_login_attempts: number | null
           id: string
@@ -409,6 +410,7 @@ export type Database = {
           allowed_ips?: string[] | null
           assigned_at?: string
           assigned_by?: string | null
+          assigned_countries?: string[] | null
           created_at?: string
           failed_login_attempts?: number | null
           id?: string
@@ -427,6 +429,7 @@ export type Database = {
           allowed_ips?: string[] | null
           assigned_at?: string
           assigned_by?: string | null
+          assigned_countries?: string[] | null
           created_at?: string
           failed_login_attempts?: number | null
           id?: string
@@ -6348,6 +6351,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_can_access_country: {
+        Args: { admin_user_id: string; country_code: string }
+        Returns: boolean
+      }
       archive_old_notifications: { Args: never; Returns: undefined }
       are_friends: {
         Args: { user_a_id: string; user_b_id: string }
@@ -6566,6 +6573,10 @@ export type Database = {
       generate_unique_referral_code: {
         Args: { code_format?: string; user_uuid: string }
         Returns: string
+      }
+      get_admin_countries: {
+        Args: { admin_user_id: string }
+        Returns: string[]
       }
       get_badge_name: { Args: { badge_level: string }; Returns: string }
       get_business_account: {
