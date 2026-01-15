@@ -6717,6 +6717,7 @@ export type Database = {
         Args: { p_user_ids: string[]; p_viewer_id: string }
         Returns: {
           avatar_url: string
+          country_code: string
           first_name: string
           is_visible: boolean
           last_name: string
