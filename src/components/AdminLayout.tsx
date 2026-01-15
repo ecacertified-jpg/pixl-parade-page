@@ -23,7 +23,8 @@ import {
   UserMinus,
   Activity,
   Globe,
-  Target
+  Target,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -69,6 +70,7 @@ const navItems: NavItem[] = [
   { title: 'Performance Admins', href: '/admin/performance', icon: Activity, requiresSuperAdmin: true },
   { title: 'Performance Pays', href: '/admin/countries', icon: Globe },
   { title: 'Objectifs Pays', href: '/admin/countries/objectives', icon: Target },
+  { title: 'Prévisions', href: '/admin/forecast', icon: Sparkles },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },
 ];
 
