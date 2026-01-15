@@ -21,8 +21,19 @@ import {
   findSenegalCityCoordinates 
 } from "./senegalCities";
 
+import { getCountryConfig } from "@/config/countries";
+
 export type { CityCoordinates };
 export { getCityColor };
+
+// Interface for grouped cities by country
+export interface CountryCitiesGroup {
+  countryCode: string;
+  countryName: string;
+  flag: string;
+  isUserCountry: boolean;
+  cities: CityCoordinates[];
+}
 
 // Map of country code to cities data
 const COUNTRY_CITIES: Record<string, CityCoordinates[]> = {
@@ -126,4 +137,31 @@ export function getMajorCities(countryCode: string): CityCoordinates[] {
 export function getNeighborhoods(countryCode: string, cityName: string): CityCoordinates[] {
   const cities = getCitiesForCountry(countryCode);
   return cities.filter(city => city.region === cityName);
+}
+
+/**
+ * Get all cities grouped by country, with user's country first
+ */
+export function getCitiesGroupedByCountry(userCountryCode: string): CountryCitiesGroup[] {
+  const groups: CountryCitiesGroup[] = [];
+  
+  // Get all country codes and sort with user's country first
+  const countryCodes = Object.keys(COUNTRY_CITIES);
+  const sortedCodes = [
+    userCountryCode,
+    ...countryCodes.filter(c => c !== userCountryCode)
+  ].filter(code => COUNTRY_CITIES[code]); // Only include countries with cities
+  
+  for (const code of sortedCodes) {
+    const countryConfig = getCountryConfig(code);
+    groups.push({
+      countryCode: code,
+      countryName: countryConfig.name,
+      flag: countryConfig.flag,
+      isUserCountry: code === userCountryCode,
+      cities: COUNTRY_CITIES[code] || []
+    });
+  }
+  
+  return groups;
 }
