@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGrowthAlerts } from './useGrowthAlerts';
 import { useBusinessPerformanceAlerts } from './useBusinessPerformanceAlerts';
+import { useObjectiveAlerts } from './useObjectiveAlerts';
 
 export interface UnifiedAlert {
   id: string;
-  type: 'growth' | 'business';
+  type: 'growth' | 'business' | 'objective';
   alert_type: string;
   metric_type: string;
   message: string;
@@ -20,6 +21,7 @@ export interface UnifiedAlert {
   triggered_at: string;
   metadata?: Record<string, any>;
   business_name?: string;
+  country_code?: string;
 }
 
 export function useAllAlerts() {
@@ -39,6 +41,13 @@ export function useAllAlerts() {
     markAsRead: markBusinessAsRead,
     dismissAlert: dismissBusinessAlert,
   } = useBusinessPerformanceAlerts();
+
+  const {
+    alerts: objectiveAlerts,
+    loading: objectiveLoading,
+    markAsRead: markObjectiveAsRead,
+    dismissAlert: dismissObjectiveAlert,
+  } = useObjectiveAlerts();
 
   useEffect(() => {
     const unified: UnifiedAlert[] = [];
@@ -88,30 +97,57 @@ export function useAllAlerts() {
       });
     }
 
+    // Transform objective alerts
+    for (const alert of objectiveAlerts) {
+      unified.push({
+        id: alert.id,
+        type: 'objective',
+        alert_type: alert.alert_type,
+        metric_type: alert.metric_type,
+        message: alert.message,
+        current_value: alert.actual_value,
+        previous_value: alert.target_value,
+        growth_percentage: alert.achievement_rate,
+        severity: alert.severity,
+        original_severity: null,
+        escalation_count: 0,
+        last_escalated_at: null,
+        is_read: alert.is_read,
+        is_dismissed: alert.is_dismissed,
+        triggered_at: alert.triggered_at,
+        metadata: alert.metadata,
+        country_code: alert.country_code,
+      });
+    }
+
     // Sort by date desc
     unified.sort((a, b) => 
       new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
     );
 
     setUnifiedAlerts(unified);
-    setLoading(growthLoading || businessLoading);
-  }, [growthAlerts, businessAlerts, growthLoading, businessLoading]);
+    setLoading(growthLoading || businessLoading || objectiveLoading);
+  }, [growthAlerts, businessAlerts, objectiveAlerts, growthLoading, businessLoading, objectiveLoading]);
 
-  const markAsRead = useCallback(async (alertId: string, type: 'growth' | 'business') => {
+  const markAsRead = useCallback(async (alertId: string, type: 'growth' | 'business' | 'objective') => {
     if (type === 'growth') {
       await markGrowthAsRead(alertId);
-    } else {
+    } else if (type === 'business') {
       await markBusinessAsRead(alertId);
+    } else {
+      await markObjectiveAsRead(alertId);
     }
-  }, [markGrowthAsRead, markBusinessAsRead]);
+  }, [markGrowthAsRead, markBusinessAsRead, markObjectiveAsRead]);
 
-  const dismissAlert = useCallback(async (alertId: string, type: 'growth' | 'business') => {
+  const dismissAlert = useCallback(async (alertId: string, type: 'growth' | 'business' | 'objective') => {
     if (type === 'growth') {
       await dismissGrowthAlert(alertId);
-    } else {
+    } else if (type === 'business') {
       await dismissBusinessAlert(alertId);
+    } else {
+      await dismissObjectiveAlert(alertId);
     }
-  }, [dismissGrowthAlert, dismissBusinessAlert]);
+  }, [dismissGrowthAlert, dismissBusinessAlert, dismissObjectiveAlert]);
 
   const unreadCount = unifiedAlerts.filter(a => !a.is_read).length;
   const criticalCount = unifiedAlerts.filter(a => 
@@ -120,6 +156,9 @@ export function useAllAlerts() {
   const escalatedCount = unifiedAlerts.filter(a => 
     !a.is_read && a.escalation_count > 0
   ).length;
+  const objectiveAlertCount = unifiedAlerts.filter(a => 
+    !a.is_read && a.type === 'objective'
+  ).length;
 
   return {
     alerts: unifiedAlerts,
@@ -127,6 +166,7 @@ export function useAllAlerts() {
     unreadCount,
     criticalCount,
     escalatedCount,
+    objectiveAlertCount,
     markAsRead,
     dismissAlert,
   };

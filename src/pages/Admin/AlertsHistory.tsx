@@ -38,6 +38,8 @@ const alertTypeLabels: Record<string, string> = {
   inactivity: 'Inactivité',
   rating_drop: 'Baisse note',
   order_drop: 'Baisse commandes',
+  objective_not_met: 'Objectif non atteint',
+  objective_critical: 'Objectif critique',
 };
 
 const metricLabels: Record<string, string> = {
@@ -58,12 +60,23 @@ const alertIcons: Record<string, React.ReactNode> = {
   revenue_drop: <TrendingDown className="h-4 w-4" />,
   inactivity: <AlertTriangle className="h-4 w-4" />,
   rating_drop: <AlertTriangle className="h-4 w-4" />,
+  objective_not_met: <Target className="h-4 w-4" />,
+  objective_critical: <AlertTriangle className="h-4 w-4" />,
 };
 
 const severityColors: Record<string, string> = {
   critical: 'bg-destructive text-destructive-foreground',
   warning: 'bg-amber-500 text-white',
   info: 'bg-blue-500 text-white',
+};
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  CI: '🇨🇮',
+  SN: '🇸🇳',
+  BJ: '🇧🇯',
+  ML: '🇲🇱',
+  BF: '🇧🇫',
+  TG: '🇹🇬',
 };
 
 function EscalationBadge({ alert }: { alert: UnifiedAlert }) {
@@ -111,12 +124,13 @@ function EscalationBadge({ alert }: { alert: UnifiedAlert }) {
 }
 
 export default function AlertsHistory() {
-  const { alerts, loading, unreadCount, criticalCount, escalatedCount, markAsRead, dismissAlert } = useAllAlerts();
+  const { alerts, loading, unreadCount, criticalCount, escalatedCount, objectiveAlertCount, markAsRead, dismissAlert } = useAllAlerts();
   
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [metricFilter, setMetricFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filteredAlerts = useMemo(() => {
@@ -133,16 +147,21 @@ export default function AlertsHistory() {
       if (metricFilter !== 'all' && alert.metric_type !== metricFilter) {
         return false;
       }
+      // Country filter (for objective alerts)
+      if (countryFilter !== 'all' && alert.country_code !== countryFilter) {
+        return false;
+      }
       // Status filter
       if (statusFilter === 'unread' && alert.is_read) return false;
       if (statusFilter === 'read' && !alert.is_read) return false;
       if (statusFilter === 'dismissed' && !alert.is_dismissed) return false;
       if (statusFilter === 'escalated' && alert.escalation_count === 0) return false;
+      if (statusFilter === 'objective' && alert.type !== 'objective') return false;
       if (statusFilter !== 'dismissed' && alert.is_dismissed) return false;
       
       return true;
     });
-  }, [alerts, search, typeFilter, metricFilter, statusFilter]);
+  }, [alerts, search, typeFilter, metricFilter, statusFilter, countryFilter]);
 
   const toggleSelect = (alertId: string, type: string) => {
     const key = `${type}-${alertId}`;
@@ -165,16 +184,18 @@ export default function AlertsHistory() {
 
   const handleBulkMarkRead = async () => {
     for (const key of selectedIds) {
-      const [type, id] = key.split('-') as ['growth' | 'business', string];
-      await markAsRead(id, type);
+      const [type, ...idParts] = key.split('-');
+      const id = idParts.join('-');
+      await markAsRead(id, type as 'growth' | 'business' | 'objective');
     }
     setSelectedIds(new Set());
   };
 
   const handleBulkDismiss = async () => {
     for (const key of selectedIds) {
-      const [type, id] = key.split('-') as ['growth' | 'business', string];
-      await dismissAlert(id, type);
+      const [type, ...idParts] = key.split('-');
+      const id = idParts.join('-');
+      await dismissAlert(id, type as 'growth' | 'business' | 'objective');
     }
     setSelectedIds(new Set());
   };
@@ -287,6 +308,8 @@ export default function AlertsHistory() {
                   <SelectItem value="growth_spike">Croissance</SelectItem>
                   <SelectItem value="daily_record">Record</SelectItem>
                   <SelectItem value="decline">Baisse</SelectItem>
+                  <SelectItem value="objective_not_met">Objectif non atteint</SelectItem>
+                  <SelectItem value="objective_critical">Objectif critique</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -304,6 +327,21 @@ export default function AlertsHistory() {
                 </SelectContent>
               </Select>
 
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Pays" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous pays</SelectItem>
+                  <SelectItem value="CI">🇨🇮 Côte d'Ivoire</SelectItem>
+                  <SelectItem value="SN">🇸🇳 Sénégal</SelectItem>
+                  <SelectItem value="BJ">🇧🇯 Bénin</SelectItem>
+                  <SelectItem value="ML">🇲🇱 Mali</SelectItem>
+                  <SelectItem value="BF">🇧🇫 Burkina Faso</SelectItem>
+                  <SelectItem value="TG">🇹🇬 Togo</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Statut" />
@@ -313,6 +351,7 @@ export default function AlertsHistory() {
                   <SelectItem value="unread">Non lues</SelectItem>
                   <SelectItem value="read">Lues</SelectItem>
                   <SelectItem value="escalated">Escaladées</SelectItem>
+                  <SelectItem value="objective">Objectifs</SelectItem>
                   <SelectItem value="dismissed">Masquées</SelectItem>
                 </SelectContent>
               </Select>
@@ -415,6 +454,8 @@ export default function AlertsHistory() {
                         <Badge variant="outline" className="text-xs">
                           {alert.type === 'business' ? (
                             <><Store className="h-3 w-3 mr-1" />Business</>
+                          ) : alert.type === 'objective' ? (
+                            <><Target className="h-3 w-3 mr-1" />{COUNTRY_FLAGS[alert.country_code || ''] || ''} Objectif</>
                           ) : (
                             'Plateforme'
                           )}
@@ -424,6 +465,9 @@ export default function AlertsHistory() {
                         <p className="truncate text-sm">{alert.message}</p>
                         {alert.business_name && (
                           <p className="text-xs text-muted-foreground truncate">{alert.business_name}</p>
+                        )}
+                        {alert.country_code && (
+                          <p className="text-xs text-muted-foreground">{COUNTRY_FLAGS[alert.country_code]}</p>
                         )}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">

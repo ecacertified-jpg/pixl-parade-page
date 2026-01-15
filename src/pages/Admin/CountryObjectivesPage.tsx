@@ -3,12 +3,15 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { CountryObjectivesEditor } from '@/components/admin/CountryObjectivesEditor';
 import { CountryObjectivesSummary } from '@/components/admin/CountryObjectivesSummary';
 import { ObjectiveAchievementChart } from '@/components/admin/ObjectiveAchievementChart';
+import { ObjectiveAlertsBanner } from '@/components/admin/ObjectiveAlertsBanner';
 import { useCountryObjectives } from '@/hooks/useCountryObjectives';
 import { useCountryPerformance } from '@/hooks/useCountryPerformance';
-import { Target, BarChart3, Calendar } from 'lucide-react';
+import { useObjectiveAlerts } from '@/hooks/useObjectiveAlerts';
+import { Target, BarChart3, Calendar, AlertTriangle } from 'lucide-react';
 
 const COUNTRIES = [
   { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
@@ -34,6 +37,9 @@ export default function CountryObjectivesPage() {
   
   // Fetch performance data
   const { countries: performanceData, loading: performanceLoading } = useCountryPerformance();
+
+  // Fetch objective alerts
+  const { unreadCount: alertCount, getAlertsByCountry } = useObjectiveAlerts();
 
   // Get objectives for selected country
   const { objectives: countryObjectives, getObjectiveValue } = useCountryObjectives(selectedYear, selectedCountry);
@@ -96,12 +102,21 @@ export default function CountryObjectivesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Objective Alerts Banner */}
+        <ObjectiveAlertsBanner maxAlerts={3} />
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Target className="h-6 w-6 text-primary" />
               Objectifs par pays
+              {alertCount > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {alertCount} alerte{alertCount > 1 ? 's' : ''}
+                </Badge>
+              )}
             </h1>
             <p className="text-muted-foreground">
               Définir et suivre les cibles mensuelles pour chaque marché
@@ -145,17 +160,29 @@ export default function CountryObjectivesPage() {
         {/* Country Tabs */}
         <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
           <TabsList className="flex-wrap h-auto gap-1 p-1">
-            {COUNTRIES.map(country => (
-              <TabsTrigger 
-                key={country.code} 
-                value={country.code}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <span className="mr-1">{country.flag}</span>
-                <span className="hidden sm:inline">{country.name}</span>
-                <span className="sm:hidden">{country.code}</span>
-              </TabsTrigger>
-            ))}
+            {COUNTRIES.map(country => {
+              const countryAlerts = getAlertsByCountry(country.code);
+              const hasCritical = countryAlerts.some(a => a.severity === 'critical');
+              return (
+                <TabsTrigger 
+                  key={country.code} 
+                  value={country.code}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                >
+                  <span className="mr-1">{country.flag}</span>
+                  <span className="hidden sm:inline">{country.name}</span>
+                  <span className="sm:hidden">{country.code}</span>
+                  {countryAlerts.length > 0 && (
+                    <Badge 
+                      variant={hasCritical ? "destructive" : "secondary"} 
+                      className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    >
+                      {countryAlerts.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
 
           {COUNTRIES.map(country => (

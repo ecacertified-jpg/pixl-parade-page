@@ -1942,6 +1942,63 @@ export type Database = {
           },
         ]
       }
+      country_objective_alerts: {
+        Row: {
+          achievement_rate: number
+          actual_value: number
+          alert_type: string
+          country_code: string
+          created_at: string | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          metric_type: string
+          month: number
+          severity: string
+          target_value: number
+          triggered_at: string | null
+          year: number
+        }
+        Insert: {
+          achievement_rate: number
+          actual_value: number
+          alert_type?: string
+          country_code: string
+          created_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          metric_type: string
+          month: number
+          severity?: string
+          target_value: number
+          triggered_at?: string | null
+          year: number
+        }
+        Update: {
+          achievement_rate?: number
+          actual_value?: number
+          alert_type?: string
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          metric_type?: string
+          month?: number
+          severity?: string
+          target_value?: number
+          triggered_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       deleted_business_archives: {
         Row: {
           archived_data: Json
