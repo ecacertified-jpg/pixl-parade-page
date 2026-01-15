@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCountry } from '@/contexts/CountryContext';
 
 export interface LeaderboardEntry {
   userId: string;
@@ -13,6 +14,7 @@ export interface LeaderboardEntry {
 }
 
 export const useCommunityLeaderboards = (limit: number = 10) => {
+  const { countryCode } = useCountry();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,6 +31,7 @@ export const useCommunityLeaderboards = (limit: number = 10) => {
           funds_created_count,
           posts_count
         `)
+        .eq('country_code', countryCode)
         .order('total_points', { ascending: false })
         .limit(limit);
 
@@ -87,7 +90,7 @@ export const useCommunityLeaderboards = (limit: number = 10) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [limit]);
+  }, [limit, countryCode]);
 
   return { leaderboard, loading, refreshLeaderboards: loadLeaderboards };
 };

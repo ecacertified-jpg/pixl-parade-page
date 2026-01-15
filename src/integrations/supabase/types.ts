@@ -691,6 +691,7 @@ export type Database = {
           business_name: string
           business_type: string | null
           corrections_message: string | null
+          country_code: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -718,6 +719,7 @@ export type Database = {
           business_name: string
           business_type?: string | null
           corrections_message?: string | null
+          country_code?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -745,6 +747,7 @@ export type Database = {
           business_name?: string
           business_type?: string | null
           corrections_message?: string | null
+          country_code?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -1554,6 +1557,7 @@ export type Database = {
           allow_anonymous_contributions: boolean | null
           beneficiary_contact_id: string | null
           business_product_id: string | null
+          country_code: string | null
           created_at: string
           created_by_business_id: string | null
           creator_id: string
@@ -1578,6 +1582,7 @@ export type Database = {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
           business_product_id?: string | null
+          country_code?: string | null
           created_at?: string
           created_by_business_id?: string | null
           creator_id: string
@@ -1602,6 +1607,7 @@ export type Database = {
           allow_anonymous_contributions?: boolean | null
           beneficiary_contact_id?: string | null
           business_product_id?: string | null
+          country_code?: string | null
           created_at?: string
           created_by_business_id?: string | null
           creator_id?: string
@@ -1691,6 +1697,7 @@ export type Database = {
       community_scores: {
         Row: {
           badge_level: string
+          country_code: string | null
           created_at: string
           funds_created_count: number
           gifts_given_count: number
@@ -1704,6 +1711,7 @@ export type Database = {
         }
         Insert: {
           badge_level?: string
+          country_code?: string | null
           created_at?: string
           funds_created_count?: number
           gifts_given_count?: number
@@ -1717,6 +1725,7 @@ export type Database = {
         }
         Update: {
           badge_level?: string
+          country_code?: string | null
           created_at?: string
           funds_created_count?: number
           gifts_given_count?: number
@@ -2668,6 +2677,7 @@ export type Database = {
         Row: {
           beneficiary_id: string
           contributor_id: string
+          country_code: string | null
           created_at: string | null
           fund_id: string | null
           id: string
@@ -2680,6 +2690,7 @@ export type Database = {
         Insert: {
           beneficiary_id: string
           contributor_id: string
+          country_code?: string | null
           created_at?: string | null
           fund_id?: string | null
           id?: string
@@ -2692,6 +2703,7 @@ export type Database = {
         Update: {
           beneficiary_id?: string
           contributor_id?: string
+          country_code?: string | null
           created_at?: string | null
           fund_id?: string | null
           id?: string
@@ -3846,6 +3858,7 @@ export type Database = {
       posts: {
         Row: {
           content: string
+          country_code: string | null
           created_at: string
           id: string
           is_pinned: boolean | null
@@ -3860,6 +3873,7 @@ export type Database = {
         }
         Insert: {
           content: string
+          country_code?: string | null
           created_at?: string
           id?: string
           is_pinned?: boolean | null
@@ -3874,6 +3888,7 @@ export type Database = {
         }
         Update: {
           content?: string
+          country_code?: string | null
           created_at?: string
           id?: string
           is_pinned?: boolean | null
@@ -3966,6 +3981,7 @@ export type Database = {
           business_owner_id: string | null
           category_id: string | null
           category_name: string | null
+          country_code: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -3988,6 +4004,7 @@ export type Database = {
           business_owner_id?: string | null
           category_id?: string | null
           category_name?: string | null
+          country_code?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -4010,6 +4027,7 @@ export type Database = {
           business_owner_id?: string | null
           category_id?: string | null
           category_name?: string | null
+          country_code?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -4195,6 +4213,7 @@ export type Database = {
           birthday: string | null
           birthday_badge_level: number | null
           city: string | null
+          country_code: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -4228,6 +4247,7 @@ export type Database = {
           birthday?: string | null
           birthday_badge_level?: number | null
           city?: string | null
+          country_code?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -4261,6 +4281,7 @@ export type Database = {
           birthday?: string | null
           birthday_badge_level?: number | null
           city?: string | null
+          country_code?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null

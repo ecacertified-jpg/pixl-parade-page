@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountry } from '@/contexts/CountryContext';
 
 export interface PostData {
   id: string;
@@ -30,6 +31,7 @@ export interface PostData {
 
 export function usePosts(filterFollowing: boolean = false) {
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,22 +57,24 @@ export function usePosts(filterFollowing: boolean = false) {
           return;
         }
 
-        // Fetch posts only from followed users
+        // Fetch posts only from followed users - filtered by country
         const { data, error: postsError } = await supabase
           .from('posts')
           .select('*')
           .eq('is_published', true)
+          .eq('country_code', countryCode)
           .in('user_id', followedUserIds)
           .order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
         postsData = data;
       } else {
-        // Fetch all published posts
+        // Fetch all published posts - filtered by country
         const { data, error: postsError } = await supabase
           .from('posts')
           .select('*')
           .eq('is_published', true)
+          .eq('country_code', countryCode)
           .order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
@@ -198,7 +202,7 @@ export function usePosts(filterFollowing: boolean = false) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, filterFollowing]);
+  }, [user?.id, filterFollowing, countryCode]);
 
   const toggleReaction = async (postId: string, reactionType: 'love' | 'gift' | 'like') => {
     if (!user?.id) return;

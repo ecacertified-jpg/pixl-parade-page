@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, X, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCountry } from "@/contexts/CountryContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ interface ShopForCollectiveGiftModalProps {
 }
 
 export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiveGiftModalProps) {
+  const { countryCode } = useCountry();
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("Tous les lieux");
@@ -50,6 +52,19 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
 
   const loadProducts = async () => {
     try {
+      // First get businesses in current country
+      const { data: businesses } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('country_code', countryCode);
+      
+      const businessIds = businesses?.map(b => b.id) || [];
+      
+      if (businessIds.length === 0) {
+        setProducts([]);
+        return;
+      }
+
       let query = supabase
         .from('products')
         .select(`
@@ -58,7 +73,8 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             business_name
           )
         `)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .in('business_id', businessIds);
 
       const { data, error } = await query.order('created_at', { ascending: false });
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountry } from '@/contexts/CountryContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface Contributor {
@@ -42,6 +43,7 @@ export function useCollectiveFunds() {
   const [funds, setFunds] = useState<CollectiveFund[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const { toast } = useToast();
 
   const loadFunds = async () => {
@@ -91,10 +93,11 @@ export function useCollectiveFunds() {
           .from('contact_relationships')
           .select('user_a, user_b')
           .or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
-        // Get all funds
+        // Get all funds - filtered by country
         supabase
           .from('collective_funds')
           .select(selectQuery)
+          .eq('country_code', countryCode)
           .order('created_at', { ascending: false })
       ]);
 
@@ -312,7 +315,7 @@ export function useCollectiveFunds() {
 
   useEffect(() => {
     loadFunds();
-  }, [user]);
+  }, [user, countryCode]);
 
   return {
     funds,

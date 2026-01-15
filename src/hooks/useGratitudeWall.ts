@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountry } from '@/contexts/CountryContext';
 
 export interface GratitudeMessage {
   id: string;
@@ -20,6 +21,7 @@ export interface GratitudeMessage {
 
 export const useGratitudeWall = (limit: number = 10) => {
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const [messages, setMessages] = useState<GratitudeMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +36,7 @@ export const useGratitudeWall = (limit: number = 10) => {
           fund:collective_funds(title)
         `)
         .eq('is_public', true)
+        .eq('country_code', countryCode)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -109,7 +112,7 @@ export const useGratitudeWall = (limit: number = 10) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, countryCode]);
 
   return { messages, loading, refreshMessages: loadMessages, addReaction };
 };

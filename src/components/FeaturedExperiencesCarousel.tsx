@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCountry } from "@/contexts/CountryContext";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,14 +10,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const FeaturedExperiencesCarousel = () => {
   const navigate = useNavigate();
+  const { countryCode } = useCountry();
 
   const { data: experiences, isLoading } = useQuery({
-    queryKey: ["featured-experiences"],
+    queryKey: ["featured-experiences", countryCode],
     queryFn: async () => {
+      // First get businesses in current country
+      const { data: businesses } = await supabase
+        .from("business_accounts")
+        .select("id")
+        .eq("country_code", countryCode);
+      
+      const businessIds = businesses?.map(b => b.id) || [];
+      
+      if (businessIds.length === 0) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("is_experience", true)
+        .in("business_id", businessIds)
         .order("created_at", { ascending: false })
         .limit(5);
 

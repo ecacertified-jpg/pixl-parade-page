@@ -10,6 +10,7 @@ import { Upload, Tag, Loader2 } from "lucide-react";
 import { MultiImageUploader, ImageItem } from "@/components/MultiImageUploader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { useBusinessCategories } from "@/hooks/useBusinessCategories";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ interface AddProductModalProps {
 
 export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductModalProps) {
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const { selectedBusinessId } = useSelectedBusiness();
   const { categories: businessCategories } = useBusinessCategories();
   const [loading, setLoading] = useState(false);
@@ -236,7 +238,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         }
       }
 
-      // Create product in database
+      // Create product in database with country_code
       const { data, error } = await supabase
         .from('products')
         .insert({
@@ -254,7 +256,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           business_category_id: useCustomCategory ? formData.business_category_id : null,
           is_experience: formData.is_experience,
           is_active: true,
-          location_name: locationName
+          location_name: locationName,
+          country_code: countryCode
         })
         .select()
         .single();

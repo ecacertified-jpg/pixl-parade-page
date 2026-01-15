@@ -11,11 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Plus, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { toast } from "sonner";
 import { CitySelector } from "@/components/CitySelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import type { Business } from "@/types/business";
-
 
 interface AddBusinessModalProps {
   isOpen: boolean;
@@ -43,6 +43,7 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
 
 export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusiness }: AddBusinessModalProps) {
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<Business>({
     business_name: "",
@@ -185,7 +186,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         data = result.data;
         error = result.error;
       } else {
-        // Create new business
+        // Create new business with country_code
         const result = await supabase
           .from('business_accounts')
           .insert({
@@ -204,7 +205,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             delivery_settings: formData.delivery_settings,
             is_active: true,
             is_verified: false,
-            status: 'active'
+            status: 'active',
+            country_code: countryCode
           })
           .select()
           .single();
