@@ -57,7 +57,8 @@ export function AutoSuggestDialog({
 
   // Get historical data for the country
   const countryTrends = useMemo(() => {
-    return trends.filter(t => t.countryCode === countryCode);
+    const countryData = trends[countryCode] || [];
+    return countryData;
   }, [trends, countryCode]);
 
   // Get recommended method
