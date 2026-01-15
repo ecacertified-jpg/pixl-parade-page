@@ -17,6 +17,7 @@ import { useCart } from "@/hooks/useCart";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
+import { CountrySelector } from "@/components/CountrySelector";
 import logoJV from "@/assets/logo-jv.svg";
 
 const Home = () => {
@@ -39,6 +40,7 @@ const Home = () => {
             ← Retour
           </button>
           <div className="flex items-center gap-2">
+            <CountrySelector variant="minimal" className="text-white" showWelcomeToast={false} />
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-5 w-5 text-white/80 hover:text-white transition-colors" />
               {itemCount > 0 && (
@@ -72,6 +74,7 @@ const Home = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            <CountrySelector variant="compact" showWelcomeToast={false} />
             <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
               <ShoppingCart className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
               {itemCount > 0 && (
