@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.delete-business-cascade]
 verify_jwt = false
+
+[functions.check-objective-alerts]
+verify_jwt = false
