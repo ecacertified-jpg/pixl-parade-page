@@ -160,6 +160,7 @@ export type Database = {
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           refund_request_alerts: boolean
+          struggling_country_alerts: boolean | null
           updated_at: string
         }
         Insert: {
@@ -182,6 +183,7 @@ export type Database = {
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           refund_request_alerts?: boolean
+          struggling_country_alerts?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -204,6 +206,7 @@ export type Database = {
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           refund_request_alerts?: boolean
+          struggling_country_alerts?: boolean | null
           updated_at?: string
         }
         Relationships: [
@@ -1996,6 +1999,45 @@ export type Database = {
           target_value?: number
           triggered_at?: string | null
           year?: number
+        }
+        Relationships: []
+      }
+      country_struggling_status: {
+        Row: {
+          country_code: string
+          created_at: string | null
+          id: string
+          is_struggling: boolean | null
+          last_status_change: string | null
+          metadata: Json | null
+          severity: string | null
+          struggling_metrics: string[] | null
+          struggling_since: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string | null
+          id?: string
+          is_struggling?: boolean | null
+          last_status_change?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          struggling_metrics?: string[] | null
+          struggling_since?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          is_struggling?: boolean | null
+          last_status_change?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          struggling_metrics?: string[] | null
+          struggling_since?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
