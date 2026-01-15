@@ -52,6 +52,8 @@ import DuplicateAccountsDashboard from "./pages/Admin/DuplicateAccountsDashboard
 import DeletedBusinesses from "./pages/Admin/DeletedBusinesses";
 import DeletedClients from "./pages/Admin/DeletedClients";
 import AdminPerformanceDashboard from "./pages/Admin/AdminPerformanceDashboard";
+import CountryPerformanceDashboard from "./pages/Admin/CountryPerformanceDashboard";
+import CountryDetailPage from "./pages/Admin/CountryDetailPage";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
@@ -343,6 +345,16 @@ const App = () => (
             <Route path="/admin/performance" element={
               <AdminRoute>
                 <AdminPerformanceDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/countries" element={
+              <AdminRoute>
+                <CountryPerformanceDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/countries/:countryCode" element={
+              <AdminRoute>
+                <CountryDetailPage />
               </AdminRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

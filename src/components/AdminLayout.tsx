@@ -21,7 +21,8 @@ import {
   Copy,
   Trash2,
   UserMinus,
-  Activity
+  Activity,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,6 +66,7 @@ const navItems: NavItem[] = [
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
   { title: 'Performance Admins', href: '/admin/performance', icon: Activity, requiresSuperAdmin: true },
+  { title: 'Performance Pays', href: '/admin/countries', icon: Globe },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },
 ];
 
