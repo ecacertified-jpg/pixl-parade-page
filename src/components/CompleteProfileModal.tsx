@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import confetti from 'canvas-confetti';
-import LocationSelector from '@/components/LocationSelector';
+import { CitySelector } from '@/components/CitySelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -149,11 +149,12 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
               <span>Ville ou quartier de livraison</span>
               <span className="text-xs text-destructive">*</span>
             </Label>
-            <LocationSelector
+            <CitySelector
               value={city}
               onChange={setCity}
+              label=""
               placeholder="Sélectionnez ou ajoutez votre ville"
-              showAddButton
+              allowCustom
             />
             <p className="text-xs text-muted-foreground">
               Pour faciliter la livraison de vos cadeaux surprises !

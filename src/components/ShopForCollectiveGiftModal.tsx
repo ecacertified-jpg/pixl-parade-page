@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
-import LocationSelector from "@/components/LocationSelector";
+import { CitySelector } from "@/components/CitySelector";
 import { CollaborativeGiftModal } from "@/components/CollaborativeGiftModal";
 
 interface ShopForCollectiveGiftModalProps {
@@ -200,12 +200,12 @@ export function ShopForCollectiveGiftModal({ isOpen, onClose }: ShopForCollectiv
             </div>
 
             {/* Location Selector */}
-            <LocationSelector 
+            <CitySelector 
               value={selectedLocation} 
               onChange={setSelectedLocation}
               label=""
               placeholder="Sélectionner un lieu de livraison"
-              showAddButton={false}
+              allowCustom={false}
             />
           </div>
 
