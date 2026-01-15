@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import LocationSelector from "@/components/LocationSelector";
+import { CitySelector } from "@/components/CitySelector";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
@@ -396,14 +396,13 @@ const ProfileSettings = () => {
                   helperText="Votre date d'anniversaire sera partagée avec vos proches"
                 />
 
-                <div className="space-y-2">
-                  <Label>Ville de résidence</Label>
-                  <LocationSelector
-                    value={profile.city}
-                    onChange={(value) => setProfile({ ...profile, city: value })}
-                    placeholder="Sélectionnez votre ville"
-                  />
-                </div>
+                <CitySelector
+                  value={profile.city}
+                  onChange={(value) => setProfile({ ...profile, city: value })}
+                  label="Ville de résidence"
+                  placeholder="Sélectionnez votre ville"
+                  allowCustom
+                />
               </CardContent>
             </Card>
 

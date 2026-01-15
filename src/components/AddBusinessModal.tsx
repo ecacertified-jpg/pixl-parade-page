@@ -12,7 +12,7 @@ import { Edit, Trash2, Plus, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import LocationSelector from "@/components/LocationSelector";
+import { CitySelector } from "@/components/CitySelector";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import type { Business } from "@/types/business";
 
@@ -321,15 +321,14 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="address">Adresse</Label>
-                <LocationSelector
-                  value={formData.address}
-                  onChange={(value) => handleInputChange('address', value)}
-                  label=""
-                  placeholder="Sélectionnez l'emplacement"
-                />
-              </div>
+              <CitySelector
+                value={formData.address}
+                onChange={(value) => handleInputChange('address', value)}
+                label="Adresse"
+                placeholder="Sélectionnez l'emplacement"
+                allowCustom
+                showRegions
+              />
 
               <div>
                 <Label htmlFor="description">Description</Label>

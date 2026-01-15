@@ -11,7 +11,7 @@ import { OrderModal } from "@/components/OrderModal";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
 import { RatingModal } from "@/components/RatingModal";
 import { AIRecommendationsSection } from "@/components/AIRecommendationsSection";
-import LocationSelector from "@/components/LocationSelector";
+import { CitySelector } from "@/components/CitySelector";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -428,12 +428,12 @@ export default function Shop() {
           {/* Location Selector */}
           <div className="flex justify-center items-center">
             <div className="w-full max-w-sm">
-              <LocationSelector 
+              <CitySelector 
                 value={selectedLocation} 
                 onChange={setSelectedLocation}
                 label=""
                 placeholder="Rechercher un lieu"
-                showAddButton={false}
+                allowCustom={false}
               />
             </div>
           </div>
