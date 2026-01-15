@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CountryForecastPanel } from '@/components/admin/CountryForecastPanel';
-import { Sparkles } from 'lucide-react';
+import { MLForecastPanel } from '@/components/admin/MLForecastPanel';
+import { ForecastComparisonView } from '@/components/admin/ForecastComparisonView';
+import { useMLForecast, MetricType } from '@/hooks/useMLForecast';
+import { useForecastEngine, ForecastResult } from '@/hooks/useForecastEngine';
+import { useCountryPerformance } from '@/hooks/useCountryPerformance';
+import { Sparkles, Brain, GitCompare, TrendingUp } from 'lucide-react';
 
 const COUNTRIES = [
   { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
@@ -18,11 +23,62 @@ const COUNTRIES = [
 
 const YEARS = [2024, 2025, 2026, 2027];
 
+const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
 export default function ForecastPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0].code);
+  const [forecastMode, setForecastMode] = useState<'statistical' | 'ml' | 'comparison'>('statistical');
 
   const currentCountry = COUNTRIES.find(c => c.code === selectedCountry) || COUNTRIES[0];
+
+  // ML Forecast hook
+  const { forecasts: mlForecasts } = useMLForecast();
+  
+  // Statistical forecast hook
+  const { generateForecast, selectedMethod } = useForecastEngine();
+  
+  // Performance data for statistical forecasts
+  const { data: performanceData } = useCountryPerformance();
+
+  // Generate statistical forecasts for comparison
+  const statisticalForecasts = useMemo(() => {
+    if (!performanceData?.trends) return {} as Record<MetricType, ForecastResult[] | null>;
+
+    const countryTrends = performanceData.trends
+      .filter(t => t.country_code === selectedCountry)
+      .sort((a, b) => {
+        const dateA = new Date(a.period_year, a.period_month - 1);
+        const dateB = new Date(b.period_year, b.period_month - 1);
+        return dateA.getTime() - dateB.getTime();
+      });
+
+    const metrics: MetricType[] = ['users', 'businesses', 'revenue', 'orders'];
+    const result: Record<MetricType, ForecastResult[] | null> = {
+      users: null,
+      businesses: null,
+      revenue: null,
+      orders: null
+    };
+
+    metrics.forEach(metric => {
+      const metricKey = metric === 'users' ? 'new_users' : 
+                       metric === 'businesses' ? 'new_businesses' :
+                       metric === 'revenue' ? 'total_revenue' : 'total_orders';
+      
+      const values = countryTrends.map(t => (t as any)[metricKey] || 0);
+      
+      if (values.length >= 3) {
+        result[metric] = generateForecast({
+          historicalData: values,
+          periodsToForecast: 12,
+          confidenceLevel: 0.8
+        }, selectedMethod);
+      }
+    });
+
+    return result;
+  }, [performanceData, selectedCountry, generateForecast, selectedMethod]);
 
   return (
     <AdminLayout>
@@ -35,7 +91,7 @@ export default function ForecastPage() {
               Prévisions automatiques
             </h1>
             <p className="text-muted-foreground mt-1">
-              Suggestions d'objectifs basées sur les tendances historiques
+              Suggestions d'objectifs basées sur les tendances historiques et ML
             </p>
           </div>
 
@@ -56,31 +112,111 @@ export default function ForecastPage() {
           </Select>
         </div>
 
-        {/* Country tabs */}
-        <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
-          <TabsList className="flex flex-wrap h-auto gap-1">
-            {COUNTRIES.map(country => (
-              <TabsTrigger
-                key={country.code}
-                value={country.code}
-                className="flex items-center gap-1"
-              >
-                <span>{country.flag}</span>
-                <span className="hidden sm:inline">{country.code}</span>
-              </TabsTrigger>
-            ))}
+        {/* Forecast Mode Tabs */}
+        <Tabs value={forecastMode} onValueChange={(v) => setForecastMode(v as typeof forecastMode)}>
+          <TabsList>
+            <TabsTrigger value="statistical" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Statistique
+            </TabsTrigger>
+            <TabsTrigger value="ml" className="gap-2">
+              <Brain className="h-4 w-4" />
+              Machine Learning
+            </TabsTrigger>
+            <TabsTrigger value="comparison" className="gap-2">
+              <GitCompare className="h-4 w-4" />
+              Comparaison
+            </TabsTrigger>
           </TabsList>
 
-          {COUNTRIES.map(country => (
-            <TabsContent key={country.code} value={country.code}>
-              <CountryForecastPanel
-                countryCode={country.code}
-                countryName={country.name}
-                flag={country.flag}
-                year={selectedYear}
-              />
-            </TabsContent>
-          ))}
+          {/* Statistical Tab */}
+          <TabsContent value="statistical" className="mt-6">
+            <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
+              <TabsList className="flex flex-wrap h-auto gap-1">
+                {COUNTRIES.map(country => (
+                  <TabsTrigger
+                    key={country.code}
+                    value={country.code}
+                    className="flex items-center gap-1"
+                  >
+                    <span>{country.flag}</span>
+                    <span className="hidden sm:inline">{country.code}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {COUNTRIES.map(country => (
+                <TabsContent key={country.code} value={country.code}>
+                  <CountryForecastPanel
+                    countryCode={country.code}
+                    countryName={country.name}
+                    flag={country.flag}
+                    year={selectedYear}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </TabsContent>
+
+          {/* ML Tab */}
+          <TabsContent value="ml" className="mt-6">
+            <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
+              <TabsList className="flex flex-wrap h-auto gap-1">
+                {COUNTRIES.map(country => (
+                  <TabsTrigger
+                    key={country.code}
+                    value={country.code}
+                    className="flex items-center gap-1"
+                  >
+                    <span>{country.flag}</span>
+                    <span className="hidden sm:inline">{country.code}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {COUNTRIES.map(country => (
+                <TabsContent key={country.code} value={country.code}>
+                  <MLForecastPanel
+                    countryCode={country.code}
+                    countryName={country.name}
+                    flag={country.flag}
+                    year={selectedYear}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </TabsContent>
+
+          {/* Comparison Tab */}
+          <TabsContent value="comparison" className="mt-6">
+            <Tabs value={selectedCountry} onValueChange={setSelectedCountry}>
+              <TabsList className="flex flex-wrap h-auto gap-1">
+                {COUNTRIES.map(country => (
+                  <TabsTrigger
+                    key={country.code}
+                    value={country.code}
+                    className="flex items-center gap-1"
+                  >
+                    <span>{country.flag}</span>
+                    <span className="hidden sm:inline">{country.code}</span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {COUNTRIES.map(country => (
+                <TabsContent key={country.code} value={country.code}>
+                  <ForecastComparisonView
+                    countryCode={country.code}
+                    countryName={country.name}
+                    flag={country.flag}
+                    year={selectedYear}
+                    mlForecasts={mlForecasts}
+                    statisticalForecasts={statisticalForecasts}
+                  />
+                </TabsContent>
+              ))}
+            </Tabs>
+          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>

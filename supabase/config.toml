@@ -149,3 +149,6 @@ verify_jwt = false
 
 [functions.notify-struggling-countries]
 verify_jwt = false
+
+[functions.ml-country-forecast]
+verify_jwt = true

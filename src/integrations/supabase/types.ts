@@ -3324,6 +3324,84 @@ export type Database = {
         }
         Relationships: []
       }
+      ml_forecast_results: {
+        Row: {
+          anomaly_detected: boolean | null
+          confidence_score: number | null
+          contributing_factors: Json | null
+          country_code: string
+          created_at: string | null
+          expires_at: string | null
+          forecast_month: number
+          forecast_year: number
+          generated_at: string | null
+          growth_momentum: number | null
+          id: string
+          lower_bound: number | null
+          metric_type: string
+          model_confidence: number | null
+          model_version: string | null
+          opportunities: string[] | null
+          overall_trend: string | null
+          predicted_value: number
+          risk_factors: string[] | null
+          seasonal_factor: number | null
+          seasonal_patterns: string[] | null
+          trend_direction: string | null
+          upper_bound: number | null
+        }
+        Insert: {
+          anomaly_detected?: boolean | null
+          confidence_score?: number | null
+          contributing_factors?: Json | null
+          country_code: string
+          created_at?: string | null
+          expires_at?: string | null
+          forecast_month: number
+          forecast_year: number
+          generated_at?: string | null
+          growth_momentum?: number | null
+          id?: string
+          lower_bound?: number | null
+          metric_type: string
+          model_confidence?: number | null
+          model_version?: string | null
+          opportunities?: string[] | null
+          overall_trend?: string | null
+          predicted_value: number
+          risk_factors?: string[] | null
+          seasonal_factor?: number | null
+          seasonal_patterns?: string[] | null
+          trend_direction?: string | null
+          upper_bound?: number | null
+        }
+        Update: {
+          anomaly_detected?: boolean | null
+          confidence_score?: number | null
+          contributing_factors?: Json | null
+          country_code?: string
+          created_at?: string | null
+          expires_at?: string | null
+          forecast_month?: number
+          forecast_year?: number
+          generated_at?: string | null
+          growth_momentum?: number | null
+          id?: string
+          lower_bound?: number | null
+          metric_type?: string
+          model_confidence?: number | null
+          model_version?: string | null
+          opportunities?: string[] | null
+          overall_trend?: string | null
+          predicted_value?: number
+          risk_factors?: string[] | null
+          seasonal_factor?: number | null
+          seasonal_patterns?: string[] | null
+          trend_direction?: string | null
+          upper_bound?: number | null
+        }
+        Relationships: []
+      }
       monthly_objectives: {
         Row: {
           country_code: string | null
