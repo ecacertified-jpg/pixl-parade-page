@@ -92,8 +92,17 @@ export function ForecastComparisonView({
     const mlHigher = validData.filter(d => d.ml! > d.statistical!).length;
     const statHigher = validData.filter(d => d.statistical! > d.ml!).length;
 
-    const avgMlConfidence = validData.reduce((sum, d) => sum + (d.mlConfidence || 0), 0) / validData.length;
-    const avgStatConfidence = validData.reduce((sum, d) => sum + (d.statConfidence || 0), 0) / validData.length;
+    const avgMlConfidence = validData.reduce((sum, d) => {
+      const conf = typeof d.mlConfidence === 'number' ? d.mlConfidence : 0;
+      return sum + conf;
+    }, 0) / validData.length;
+    
+    const avgStatConfidence = validData.reduce((sum, d) => {
+      // statConfidence is 'high' | 'medium' | 'low', convert to number
+      const confMap: Record<string, number> = { high: 90, medium: 70, low: 50 };
+      const conf = typeof d.statConfidence === 'string' ? (confMap[d.statConfidence] || 0) : 0;
+      return sum + conf;
+    }, 0) / validData.length;
 
     return {
       avgDeviation,
