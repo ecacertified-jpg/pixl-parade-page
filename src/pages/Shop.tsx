@@ -20,8 +20,11 @@ import { useToast } from "@/hooks/use-toast";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
+
+export default function Shop() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { effectiveCountryFilter } = useCountry();
   const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
   const { toast } = useToast();
@@ -380,7 +383,8 @@ import { useCountry } from "@/contexts/CountryContext";
   ];
 
   const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
-  return <div className="min-h-screen bg-gradient-background">
+  return (
+    <div className="min-h-screen bg-gradient-background">
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />
       
