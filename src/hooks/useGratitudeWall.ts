@@ -21,13 +21,13 @@ export interface GratitudeMessage {
 
 export const useGratitudeWall = (limit: number = 10) => {
   const { user } = useAuth();
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const [messages, setMessages] = useState<GratitudeMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadMessages = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('gratitude_wall')
         .select(`
           *,
@@ -35,8 +35,13 @@ export const useGratitudeWall = (limit: number = 10) => {
           beneficiary:profiles!gratitude_wall_beneficiary_id_fkey(first_name, last_name),
           fund:collective_funds(title)
         `)
-        .eq('is_public', true)
-        .eq('country_code', countryCode)
+        .eq('is_public', true);
+      
+      if (effectiveCountryFilter) {
+        query = query.eq('country_code', effectiveCountryFilter);
+      }
+      
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -112,7 +117,7 @@ export const useGratitudeWall = (limit: number = 10) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, countryCode]);
+  }, [user, effectiveCountryFilter]);
 
   return { messages, loading, refreshMessages: loadMessages, addReaction };
 };

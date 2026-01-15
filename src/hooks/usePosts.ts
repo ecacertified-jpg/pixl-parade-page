@@ -32,7 +32,7 @@ export interface PostData {
 
 export function usePosts(filterFollowing: boolean = false) {
   const { user } = useAuth();
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,25 +58,33 @@ export function usePosts(filterFollowing: boolean = false) {
           return;
         }
 
-        // Fetch posts only from followed users - filtered by country
-        const { data, error: postsError } = await supabase
+        // Fetch posts only from followed users - filtered by country if not showing all
+        let followingQuery = supabase
           .from('posts')
           .select('*')
           .eq('is_published', true)
-          .eq('country_code', countryCode)
-          .in('user_id', followedUserIds)
-          .order('created_at', { ascending: false });
+          .in('user_id', followedUserIds);
+        
+        if (effectiveCountryFilter) {
+          followingQuery = followingQuery.eq('country_code', effectiveCountryFilter);
+        }
+        
+        const { data, error: postsError } = await followingQuery.order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
         postsData = data;
       } else {
-        // Fetch all published posts - filtered by country
-        const { data, error: postsError } = await supabase
+        // Fetch all published posts - filtered by country if not showing all
+        let allQuery = supabase
           .from('posts')
           .select('*')
-          .eq('is_published', true)
-          .eq('country_code', countryCode)
-          .order('created_at', { ascending: false });
+          .eq('is_published', true);
+        
+        if (effectiveCountryFilter) {
+          allQuery = allQuery.eq('country_code', effectiveCountryFilter);
+        }
+        
+        const { data, error: postsError } = await allQuery.order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
         postsData = data;
@@ -204,7 +212,7 @@ export function usePosts(filterFollowing: boolean = false) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, filterFollowing, countryCode]);
+  }, [user?.id, filterFollowing, effectiveCountryFilter]);
 
   const toggleReaction = async (postId: string, reactionType: 'love' | 'gift' | 'like') => {
     if (!user?.id) return;

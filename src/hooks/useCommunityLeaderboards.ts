@@ -14,13 +14,13 @@ export interface LeaderboardEntry {
 }
 
 export const useCommunityLeaderboards = (limit: number = 10) => {
-  const { countryCode } = useCountry();
+  const { effectiveCountryFilter } = useCountry();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadLeaderboards = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('community_scores')
         .select(`
           user_id,
@@ -30,8 +30,13 @@ export const useCommunityLeaderboards = (limit: number = 10) => {
           gifts_given_count,
           funds_created_count,
           posts_count
-        `)
-        .eq('country_code', countryCode)
+        `);
+      
+      if (effectiveCountryFilter) {
+        query = query.eq('country_code', effectiveCountryFilter);
+      }
+      
+      const { data, error } = await query
         .order('total_points', { ascending: false })
         .limit(limit);
 
@@ -90,7 +95,7 @@ export const useCommunityLeaderboards = (limit: number = 10) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [limit, countryCode]);
+  }, [limit, effectiveCountryFilter]);
 
   return { leaderboard, loading, refreshLeaderboards: loadLeaderboards };
 };
