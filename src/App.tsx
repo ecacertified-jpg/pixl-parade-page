@@ -54,6 +54,7 @@ import DeletedClients from "./pages/Admin/DeletedClients";
 import AdminPerformanceDashboard from "./pages/Admin/AdminPerformanceDashboard";
 import CountryPerformanceDashboard from "./pages/Admin/CountryPerformanceDashboard";
 import CountryDetailPage from "./pages/Admin/CountryDetailPage";
+import CountryObjectivesPage from "./pages/Admin/CountryObjectivesPage";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
@@ -355,6 +356,11 @@ const App = () => (
             <Route path="/admin/countries/:countryCode" element={
               <AdminRoute>
                 <CountryDetailPage />
+              </AdminRoute>
+            } />
+            <Route path="/admin/countries/objectives" element={
+              <AdminRoute>
+                <CountryObjectivesPage />
               </AdminRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

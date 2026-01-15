@@ -3227,6 +3227,7 @@ export type Database = {
       }
       monthly_objectives: {
         Row: {
+          country_code: string | null
           created_at: string | null
           created_by: string | null
           id: string
@@ -3238,6 +3239,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          country_code?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -3249,6 +3251,7 @@ export type Database = {
           year: number
         }
         Update: {
+          country_code?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
