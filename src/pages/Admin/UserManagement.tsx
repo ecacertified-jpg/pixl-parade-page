@@ -52,6 +52,9 @@ import { AddClientModal } from '@/components/admin/AddClientModal';
 import { UnifyClientAccountsModal } from '@/components/admin/UnifyClientAccountsModal';
 import { DeleteClientModal } from '@/components/admin/DeleteClientModal';
 import { UserPlus, Users2 } from 'lucide-react';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
+import { CountryBadge } from '@/components/CountryBadge';
+
 
 interface User {
   user_id: string;
@@ -64,6 +67,7 @@ interface User {
   bio: string | null;
   created_at: string;
   is_suspended: boolean;
+  country_code: string | null;
 }
 
 interface ProfileCompletion {
@@ -170,6 +174,7 @@ const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
 export default function UserManagement() {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAdmin();
+  const { selectedCountry } = useAdminCountry();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -190,15 +195,21 @@ export default function UserManagement() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [selectedCountry]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, phone, city, birthday, avatar_url, bio, created_at, is_suspended')
+        .select('user_id, first_name, last_name, phone, city, birthday, avatar_url, bio, created_at, is_suspended, country_code')
         .order('created_at', { ascending: false });
+
+      if (selectedCountry) {
+        query = query.eq('country_code', selectedCountry);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setUsers(data || []);

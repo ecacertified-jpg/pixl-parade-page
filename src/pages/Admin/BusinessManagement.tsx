@@ -46,6 +46,8 @@ import { AdminOrdersModal } from '@/components/admin/AdminOrdersModal';
 import { CascadeDeleteBusinessModal } from '@/components/CascadeDeleteBusinessModal';
 import { useAdmin } from '@/hooks/useAdmin';
 import { GitMerge, Package, UserPlus, Tag, ShoppingCart } from 'lucide-react';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
+import { CountryBadge } from '@/components/CountryBadge';
 import {
   Select,
   SelectContent,
@@ -80,10 +82,12 @@ interface Business {
   corrections_message: string | null;
   created_at: string;
   updated_at: string;
+  country_code: string | null;
 }
 
 export default function BusinessManagement() {
   const { isSuperAdmin } = useAdmin();
+  const { selectedCountry } = useAdminCountry();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,16 +126,22 @@ export default function BusinessManagement() {
 
   useEffect(() => {
     fetchBusinesses();
-  }, []);
+  }, [selectedCountry]);
 
   const fetchBusinesses = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('business_accounts')
-        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at')
+        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code')
         .is('deleted_at', null) // Exclure les business supprimés
         .order('created_at', { ascending: false });
+
+      if (selectedCountry) {
+        query = query.eq('country_code', selectedCountry);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setBusinesses(data || []);

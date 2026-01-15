@@ -31,6 +31,8 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AlertsCenter } from '@/components/admin/AlertsCenter';
 import { AdminNotificationsCenter } from '@/components/admin/AdminNotificationsCenter';
+import { AdminCountryProvider } from '@/contexts/AdminCountryContext';
+import { AdminCountrySelector } from '@/components/admin/AdminCountrySelector';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -98,8 +100,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <p className="text-sm text-muted-foreground mt-1">
           Panneau d'administration
         </p>
-        <div className="mt-2 px-2 py-1 bg-primary/10 rounded text-xs font-medium text-primary">
-          {adminRole === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <div className="px-2 py-1 bg-primary/10 rounded text-xs font-medium text-primary">
+            {adminRole === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+          </div>
+          {isSuperAdmin && <AdminCountrySelector />}
         </div>
       </div>
       
@@ -143,30 +148,32 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   );
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar desktop */}
-      <aside className="hidden lg:flex lg:w-64 lg:flex-col border-r">
-        <NavContent />
-      </aside>
-
-      {/* Mobile menu */}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="outline" size="icon" className="bg-background shadow-md">
-            <Menu className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-64">
+    <AdminCountryProvider>
+      <div className="flex h-screen bg-background">
+        {/* Sidebar desktop */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col border-r">
           <NavContent />
-        </SheetContent>
-      </Sheet>
+        </aside>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 lg:p-8 pt-16 lg:pt-8">
-          {children}
-        </div>
-      </main>
-    </div>
+        {/* Mobile menu */}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
+            <Button variant="outline" size="icon" className="bg-background shadow-md">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <NavContent />
+          </SheetContent>
+        </Sheet>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6 lg:p-8 pt-16 lg:pt-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </AdminCountryProvider>
   );
 };

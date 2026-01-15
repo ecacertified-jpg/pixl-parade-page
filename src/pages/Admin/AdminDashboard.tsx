@@ -15,6 +15,8 @@ import { UserBusinessTable } from '@/components/admin/UserBusinessTable';
 import { RegistrationTrendsChart } from '@/components/admin/RegistrationTrendsChart';
 import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
 import { GrowthAlertsBanner } from '@/components/admin/GrowthAlertsBanner';
+import { CountryStatsCards } from '@/components/admin/CountryStatsCards';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 
 interface DashboardStats {
   totalUsers: number;
@@ -37,6 +39,7 @@ interface PendingBusiness {
 }
 
 export default function AdminDashboard() {
+  const { selectedCountry } = useAdminCountry();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeClients: 0,
@@ -52,53 +55,51 @@ export default function AdminDashboard() {
   const [bulkVerifying, setBulkVerifying] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   
-  // User & Business stats hook
-  const { stats: userBusinessStats, users: usersWithBusiness, loading: statsLoading } = useUserBusinessStats();
+  // User & Business stats hook with country filter
+  const { stats: userBusinessStats, users: usersWithBusiness, loading: statsLoading } = useUserBusinessStats(selectedCountry);
 
   useEffect(() => {
     fetchDashboardStats();
-  }, []);
+  }, [selectedCountry]);
 
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
 
+      // Build queries with optional country filter
+      let usersQuery = supabase.from('profiles').select('*', { count: 'exact', head: true });
+      let businessQuery = supabase.from('business_accounts').select('*', { count: 'exact', head: true }).eq('is_active', true);
+      let fundsQuery = supabase.from('collective_funds').select('*', { count: 'exact', head: true });
+      let pendingApprovalsQuery = supabase.from('business_accounts').select('*', { count: 'exact', head: true }).eq('is_active', false);
+      let pendingValidationsQuery = supabase.from('business_accounts').select('*', { count: 'exact', head: true }).eq('is_verified', false).eq('is_active', true);
+      let pendingBusinessQuery = supabase.from('business_accounts').select('id, business_name, business_type, phone, email, created_at').eq('is_active', false).order('created_at', { ascending: false }).limit(5);
+
+      if (selectedCountry) {
+        usersQuery = usersQuery.eq('country_code', selectedCountry);
+        businessQuery = businessQuery.eq('country_code', selectedCountry);
+        fundsQuery = fundsQuery.eq('country_code', selectedCountry);
+        pendingApprovalsQuery = pendingApprovalsQuery.eq('country_code', selectedCountry);
+        pendingValidationsQuery = pendingValidationsQuery.eq('country_code', selectedCountry);
+        pendingBusinessQuery = pendingBusinessQuery.eq('country_code', selectedCountry);
+      }
+
       // Total users (profiles)
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { count: totalUsers } = await usersQuery;
 
       // Active businesses
-      const { count: activeBusinesses } = await supabase
-        .from('business_accounts')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
+      const { count: activeBusinesses } = await businessQuery;
 
       // Total collective funds (as transactions proxy)
-      const { count: totalTransactions } = await supabase
-        .from('collective_funds')
-        .select('*', { count: 'exact', head: true });
+      const { count: totalTransactions } = await fundsQuery;
 
       // Pending business approvals (is_active = false)
-      const { count: pendingApprovals } = await supabase
-        .from('business_accounts')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', false);
+      const { count: pendingApprovals } = await pendingApprovalsQuery;
 
       // Pending business validations (is_active = true but is_verified = false)
-      const { count: pendingValidations } = await supabase
-        .from('business_accounts')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_verified', false)
-        .eq('is_active', true);
+      const { count: pendingValidations } = await pendingValidationsQuery;
 
       // Fetch recent pending businesses
-      const { data: recentPending } = await supabase
-        .from('business_accounts')
-        .select('id, business_name, business_type, phone, email, created_at')
-        .eq('is_active', false)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const { data: recentPending } = await pendingBusinessQuery;
 
       setStats({
         totalUsers: totalUsers || 0,
@@ -193,8 +194,19 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
           <p className="text-muted-foreground mt-2">
             Vue d'ensemble de la plateforme JOIE DE VIVRE
+            {selectedCountry && (
+              <span className="text-primary font-medium"> — Filtre actif</span>
+            )}
           </p>
         </div>
+
+        {/* Country Stats Cards - Only show when viewing all countries */}
+        {!selectedCountry && userBusinessStats.countryStats && (
+          <CountryStatsCards 
+            stats={userBusinessStats.countryStats} 
+            loading={statsLoading} 
+          />
+        )}
 
         {/* Growth Alerts Banner */}
         <GrowthAlertsBanner />
