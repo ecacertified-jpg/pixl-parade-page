@@ -9,6 +9,7 @@ export interface UserSuggestion {
   last_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  country_code: string | null;
   mutual_follows_count: number;
   common_occasions: string[];
   total_gifts_given: number;
@@ -113,7 +114,7 @@ export function useUserSuggestions(limit: number = 5) {
       // Fetch profiles - filtered by country
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url, bio')
+        .select('user_id, first_name, last_name, avatar_url, bio, country_code')
         .in('user_id', uniqueUserIds)
         .eq('country_code', countryCode);
 
@@ -150,6 +151,7 @@ export function useUserSuggestions(limit: number = 5) {
           last_name: profile.last_name,
           avatar_url: profile.avatar_url,
           bio: profile.bio,
+          country_code: profile.country_code,
           mutual_follows_count: mutualFollowsCount,
           common_occasions: commonOccasions,
           total_gifts_given: giftsGiven,

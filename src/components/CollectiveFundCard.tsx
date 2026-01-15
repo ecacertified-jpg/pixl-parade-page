@@ -13,6 +13,7 @@ import type { CollectiveFund } from "@/hooks/useCollectiveFunds";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CountryBadge } from "@/components/CountryBadge";
 
 interface Contributor {
   id: string;
@@ -220,7 +221,10 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
         {/* Header avec nom du bénéficiaire et statut */}
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">{fund.title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">{fund.title}</h3>
+              <CountryBadge countryCode={fund.countryCode} variant="minimal" />
+            </div>
             <p className="text-sm text-muted-foreground">
               {getBirthdayDisplayText()}
             </p>

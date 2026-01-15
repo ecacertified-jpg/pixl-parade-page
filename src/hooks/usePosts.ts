@@ -19,6 +19,7 @@ export interface PostData {
     last_name?: string;
     avatar_url?: string;
     is_visible?: boolean;
+    country_code?: string;
   };
   reactions?: {
     love: number;

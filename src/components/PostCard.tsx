@@ -15,6 +15,7 @@ import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 import { PostActionsMenu } from "@/components/PostActionsMenu";
 import { toast } from "sonner";
 import type { PostData } from "@/hooks/usePosts";
+import { CountryBadge } from "@/components/CountryBadge";
 
 interface PostCardProps {
   post: PostData;
@@ -119,17 +120,20 @@ export function PostCard({ post, currentUserId, toggleReaction, refreshPosts }: 
               </AvatarFallback>
             </Avatar>
             <div>
-              <h4 
-                className={cn(
-                  "font-medium text-sm",
-                  isProfileVisible 
-                    ? "text-foreground cursor-pointer hover:underline" 
-                    : "text-muted-foreground italic"
-                )}
-                onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
-              >
-                {authorName}
-              </h4>
+              <div className="flex items-center gap-1.5">
+                <h4 
+                  className={cn(
+                    "font-medium text-sm",
+                    isProfileVisible 
+                      ? "text-foreground cursor-pointer hover:underline" 
+                      : "text-muted-foreground italic"
+                  )}
+                  onClick={() => isProfileVisible && navigate(`/profile/${post.user_id}`)}
+                >
+                  {authorName}
+                </h4>
+                <CountryBadge countryCode={post.profiles?.country_code} variant="minimal" />
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground">{timestamp}</p>
                 {post.occasion && (
