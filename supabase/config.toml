@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.check-objective-alerts]
 verify_jwt = false
+
+[functions.notify-struggling-countries]
+verify_jwt = false

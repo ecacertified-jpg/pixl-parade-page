@@ -4,6 +4,7 @@ import { GlobalSummaryKPIs } from '@/components/admin/GlobalSummaryKPIs';
 import { CountryPerformanceCard } from '@/components/admin/CountryPerformanceCard';
 import { CountryComparisonChart } from '@/components/admin/CountryComparisonChart';
 import { CountryTrendsChart } from '@/components/admin/CountryTrendsChart';
+import { StrugglingCountryLiveBanner } from '@/components/admin/StrugglingCountryLiveBanner';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Download, Globe, GitCompare } from 'lucide-react';
 import { exportToCSV, formatNumberFr, formatCurrencyXOF } from '@/utils/exportUtils';
@@ -35,6 +36,9 @@ const CountryPerformanceDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Struggling Countries Banner */}
+        <StrugglingCountryLiveBanner />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>

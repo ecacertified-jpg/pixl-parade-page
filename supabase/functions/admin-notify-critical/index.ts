@@ -7,13 +7,25 @@ const corsHeaders = {
 }
 
 // Types for notification request
+type NotificationType = 
+  | 'business_approval' 
+  | 'business_rejection' 
+  | 'business_verification' 
+  | 'user_suspension' 
+  | 'refund_approved' 
+  | 'refund_rejected' 
+  | 'client_deletion'
+  | 'struggling_country'
+  | 'struggling_country_recovery'
+  | 'objective_critical';
+
 interface CriticalNotificationRequest {
-  type: 'business_approval' | 'business_rejection' | 'business_verification' | 'user_suspension' | 'refund_approved' | 'refund_rejected' | 'client_deletion';
+  type: NotificationType;
   title: string;
   message: string;
   adminName: string;
   entityId: string;
-  entityType: 'business' | 'user' | 'order';
+  entityType: 'business' | 'user' | 'order' | 'country' | 'objective';
   actionUrl: string;
   metadata?: Record<string, any>;
 }
@@ -31,13 +43,14 @@ interface AdminNotificationPreferences {
   critical_moderation_alerts: boolean;
   performance_alerts: boolean;
   growth_alerts: boolean;
+  struggling_country_alerts: boolean;
   quiet_hours_enabled: boolean;
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
 }
 
 // Map notification type to preference field
-function getPreferenceField(type: CriticalNotificationRequest['type']): keyof AdminNotificationPreferences {
+function getPreferenceField(type: NotificationType): keyof AdminNotificationPreferences {
   switch (type) {
     case 'business_approval':
     case 'business_rejection':
@@ -49,6 +62,11 @@ function getPreferenceField(type: CriticalNotificationRequest['type']): keyof Ad
     case 'refund_approved':
     case 'refund_rejected':
       return 'refund_request_alerts';
+    case 'struggling_country':
+    case 'struggling_country_recovery':
+      return 'struggling_country_alerts';
+    case 'objective_critical':
+      return 'performance_alerts';
     default:
       return 'critical_moderation_alerts';
   }
@@ -80,7 +98,7 @@ function isInQuietHours(prefs: AdminNotificationPreferences): boolean {
 }
 
 // Get severity and colors based on notification type
-function getNotificationStyle(type: CriticalNotificationRequest['type']): { emoji: string; color: string; severity: string } {
+function getNotificationStyle(type: NotificationType): { emoji: string; color: string; severity: string } {
   switch (type) {
     case 'business_approval':
     case 'business_verification':
@@ -95,6 +113,12 @@ function getNotificationStyle(type: CriticalNotificationRequest['type']): { emoj
       return { emoji: '❌', color: '#EF4444', severity: 'warning' };
     case 'client_deletion':
       return { emoji: '🗑️', color: '#EF4444', severity: 'critical' };
+    case 'struggling_country':
+      return { emoji: '🚨', color: '#EF4444', severity: 'critical' };
+    case 'struggling_country_recovery':
+      return { emoji: '🎉', color: '#22C55E', severity: 'info' };
+    case 'objective_critical':
+      return { emoji: '⚠️', color: '#F59E0B', severity: 'warning' };
     default:
       return { emoji: '🔔', color: '#7A5DC7', severity: 'info' };
   }
@@ -244,6 +268,7 @@ Deno.serve(async (req) => {
       critical_moderation_alerts: true,
       performance_alerts: true,
       growth_alerts: true,
+      struggling_country_alerts: true,
       quiet_hours_enabled: false,
       quiet_hours_start: null,
       quiet_hours_end: null,

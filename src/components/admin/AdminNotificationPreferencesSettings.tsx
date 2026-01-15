@@ -54,6 +54,7 @@ export function AdminNotificationPreferencesSettings() {
         critical_moderation_alerts: preferences.critical_moderation_alerts,
         performance_alerts: preferences.performance_alerts,
         growth_alerts: preferences.growth_alerts,
+        struggling_country_alerts: preferences.struggling_country_alerts,
         daily_digest: preferences.daily_digest,
         quiet_hours_enabled: preferences.quiet_hours_enabled,
         quiet_hours_start: preferences.quiet_hours_start,
@@ -239,6 +240,14 @@ export function AdminNotificationPreferencesSettings() {
               icon={<BarChart3 className="h-4 w-4" />}
               checked={localPrefs.growth_alerts ?? true}
               onCheckedChange={(checked) => handleChange('growth_alerts', checked)}
+            />
+            <AlertToggle
+              id="struggling_country_alerts"
+              label="Marchés en difficulté"
+              description="Notification lorsqu'un pays passe en mode difficulté (objectifs < 70%)"
+              icon={<Globe className="h-4 w-4" />}
+              checked={localPrefs.struggling_country_alerts ?? true}
+              onCheckedChange={(checked) => handleChange('struggling_country_alerts', checked)}
             />
           </div>
         </CardContent>

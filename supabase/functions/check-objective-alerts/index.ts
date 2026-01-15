@@ -250,14 +250,25 @@ serve(async (req) => {
             message: criticalAlerts.map(a => 
               `${a.country_name}: ${a.metric_label} à ${a.achievement_rate.toFixed(1)}%`
             ).join('\n'),
-            severity: 'critical',
+            adminName: 'Système',
+            entityId: 'objectives',
             entityType: 'objective',
+            actionUrl: '/admin/countries/comparison',
             metadata: { alerts: criticalAlerts },
           },
         });
       } catch (notifyError) {
         console.error('Error sending critical notifications:', notifyError);
       }
+    }
+
+    // 5. Check for struggling countries (state changes)
+    try {
+      await supabase.functions.invoke('notify-struggling-countries', {
+        body: { year: currentYear, month: currentMonth },
+      });
+    } catch (strugglingError) {
+      console.error('Error checking struggling countries:', strugglingError);
     }
 
     console.log(`Created ${alertsCreated.length} alerts, ${criticalAlerts.length} critical`);
