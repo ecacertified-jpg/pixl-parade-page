@@ -55,7 +55,7 @@ export function CountryObjectivesEditor({
   const { 
     objectives, 
     loading, 
-    fetchObjectives,
+    refresh,
     getObjectiveValue, 
     bulkSetObjectives,
     copyFromCountry,
@@ -296,7 +296,7 @@ export function CountryObjectivesEditor({
         countryName={countryName}
         flag={flag}
         year={selectedYear}
-        onSuccess={() => fetchObjectives(selectedYear)}
+        onSuccess={() => refresh()}
       />
     </>
   );

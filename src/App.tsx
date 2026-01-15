@@ -55,6 +55,7 @@ import AdminPerformanceDashboard from "./pages/Admin/AdminPerformanceDashboard";
 import CountryPerformanceDashboard from "./pages/Admin/CountryPerformanceDashboard";
 import CountryDetailPage from "./pages/Admin/CountryDetailPage";
 import CountryObjectivesPage from "./pages/Admin/CountryObjectivesPage";
+import ForecastPage from "./pages/Admin/ForecastPage";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
@@ -361,6 +362,11 @@ const App = () => (
             <Route path="/admin/countries/objectives" element={
               <AdminRoute>
                 <CountryObjectivesPage />
+              </AdminRoute>
+            } />
+            <Route path="/admin/forecast" element={
+              <AdminRoute>
+                <ForecastPage />
               </AdminRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
