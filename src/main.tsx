@@ -16,11 +16,19 @@ const updateSW = registerSW({
   },
   onRegistered(registration) {
     console.log('[PWA] Service Worker enregistré:', registration);
-    // Vérifier les mises à jour toutes les heures
     if (registration) {
+      // Vérifier les mises à jour toutes les heures
       setInterval(() => {
         registration.update();
       }, 60 * 60 * 1000);
+      
+      // Vérifier les mises à jour quand l'onglet redevient actif
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          console.log('[PWA] Onglet actif - vérification des mises à jour...');
+          registration.update();
+        }
+      });
     }
   },
   onRegisterError(error) {
