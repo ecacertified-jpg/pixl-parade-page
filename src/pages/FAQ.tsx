@@ -345,6 +345,9 @@ export default function FAQ() {
             <Button variant="link" onClick={() => navigate("/legal-notice")}>
               Mentions Légales
             </Button>
+            <Button variant="link" onClick={() => navigate("/about")}>
+              À propos
+            </Button>
           </div>
           <Button variant="ghost" onClick={() => navigate("/")}>
             Retour à l'accueil
