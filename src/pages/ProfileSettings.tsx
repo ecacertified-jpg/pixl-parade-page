@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2, Globe } from "lucide-react";
+import { ArrowLeft, User, Phone, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2, Globe, Info } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -510,11 +510,19 @@ const ProfileSettings = () => {
                 </CardTitle>
                 <CardDescription>Gérer les mises à jour de l'application</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4 text-sm">
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground text-sm">
                   Si vous ne voyez pas les dernières modifications, utilisez ce bouton pour forcer la mise à jour.
                 </p>
                 <ForceUpdateButton />
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/about")}
+                >
+                  <Info className="h-4 w-4 mr-2" />
+                  À propos de JOIE DE VIVRE
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
