@@ -24,6 +24,7 @@ import BusinessDashboard from "./pages/BusinessDashboard";
 import Shop from "./pages/Shop";
 import VendorShop from "./pages/VendorShop";
 import Favorites from "./pages/Favorites";
+import FollowedShops from "./pages/FollowedShops";
 import Gifts from "./pages/Gifts";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -156,6 +157,11 @@ const App = () => (
             <Route path="/favorites" element={
               <ProtectedRoute>
                 <Favorites />
+              </ProtectedRoute>
+            } />
+            <Route path="/followed-shops" element={
+              <ProtectedRoute>
+                <FollowedShops />
               </ProtectedRoute>
             } />
             <Route path="/gifts" element={
