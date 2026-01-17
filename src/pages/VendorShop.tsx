@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles, Play, Share2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { BusinessShareMenu } from "@/components/BusinessShareMenu";
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { products, vendor, loading, error } = useVendorProducts(businessId);
   const { itemCount } = useCart();
   const { isFavorite, getFavoriteId, addFavorite, removeFavorite, stats } = useFavorites();
@@ -33,6 +34,18 @@ export default function VendorShop() {
   const [ratingProductId, setRatingProductId] = useState("");
   const [ratingProductName, setRatingProductName] = useState("");
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  // Deep linking: ouvrir le produit directement depuis l'URL ?product={id}
+  useEffect(() => {
+    const productId = searchParams.get('product');
+    if (productId && products.length > 0 && !loading) {
+      const product = products.find(p => String(p.id) === productId);
+      if (product) {
+        setSelectedProduct(product);
+        setIsOrderModalOpen(true);
+      }
+    }
+  }, [searchParams, products, loading]);
 
   const filteredProducts = products.filter(p => p.isExperience === (activeTab === "experiences"));
   const productCount = products.filter(p => !p.isExperience).length;
