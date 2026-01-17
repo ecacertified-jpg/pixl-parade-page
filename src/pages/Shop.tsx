@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2 } from "lucide-react";
+import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -79,13 +80,16 @@ export default function Shop() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<typeof products[0] | null>(null);
   
+  // State for product share
+  const [shareProduct, setShareProduct] = useState<typeof products[0] | null>(null);
+  
   // Pre-selected recipient from URL params (when coming from friend card gift button)
   const [preSelectedRecipient, setPreSelectedRecipient] = useState<{
     id: string;
     name: string;
   } | null>(null);
 
-  // Check for pre-selected recipient from URL params
+  // Check for pre-selected recipient from URL params and deep link for shared product
   useEffect(() => {
     const giftForId = searchParams.get('giftFor');
     const giftForName = searchParams.get('friendName');
@@ -97,6 +101,18 @@ export default function Shop() {
       });
     }
   }, [searchParams]);
+
+  // Deep link: open product modal from shared link
+  useEffect(() => {
+    const productId = searchParams.get('product');
+    if (productId && products.length > 0) {
+      const product = products.find(p => String(p.id) === productId);
+      if (product) {
+        setDetailProduct(product);
+        setIsDetailModalOpen(true);
+      }
+    }
+  }, [searchParams, products]);
   useEffect(() => {
     // Check if user came from contribution flow
     const target = localStorage.getItem('contributionTarget');
@@ -689,6 +705,19 @@ export default function Shop() {
                       </Badge>
                     </button>
                   )}
+                  {/* Share Button */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-12 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShareProduct(product);
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  {/* Favorite Button */}
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -845,6 +874,13 @@ export default function Shop() {
         isOpen={!!selectedVideo} 
         onClose={() => setSelectedVideo(null)} 
         title={selectedVideo?.title}
+      />
+      
+      {/* Product Share Modal */}
+      <ProductShareMenu
+        open={!!shareProduct}
+        onOpenChange={(open) => !open && setShareProduct(null)}
+        product={shareProduct}
       />
     </div>
   );

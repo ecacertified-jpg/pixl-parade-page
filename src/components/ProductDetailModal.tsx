@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Heart, Store, MapPin, Tag, X } from "lucide-react";
+import { Heart, Store, MapPin, Tag, X, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
 import { RatingModal } from "@/components/RatingModal";
+import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ImageGallery } from "@/components/ImageGallery";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ export function ProductDetailModal({
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   if (!product) return null;
 
@@ -80,6 +82,19 @@ export function ProductDetailModal({
             ✨ EXPÉRIENCE
           </Badge>
         )}
+        {/* Share Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-14 bg-white/90 hover:bg-white rounded-full h-10 w-10 shadow-md z-40"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsShareOpen(true);
+          }}
+        >
+          <Share2 className="h-5 w-5" />
+        </Button>
+        {/* Favorite Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -218,6 +233,13 @@ export function ProductDetailModal({
         onClose={() => setIsRatingModalOpen(false)}
         productId={String(product.id)}
         productName={product.name}
+      />
+      
+      {/* Share Modal */}
+      <ProductShareMenu
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        product={product}
       />
     </div>
   );
