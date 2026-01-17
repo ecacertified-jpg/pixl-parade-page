@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles, Play } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles, Play, Share2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { VendorReviewsSection } from "@/components/VendorReviewsSection";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { cn } from "@/lib/utils";
 import { CountryBadge } from "@/components/CountryBadge";
+import { BusinessShareMenu } from "@/components/BusinessShareMenu";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -31,6 +32,7 @@ export default function VendorShop() {
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [ratingProductId, setRatingProductId] = useState("");
   const [ratingProductName, setRatingProductName] = useState("");
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const filteredProducts = products.filter(p => p.isExperience === (activeTab === "experiences"));
   const productCount = products.filter(p => !p.isExperience).length;
@@ -92,6 +94,9 @@ export default function VendorShop() {
               <h1 className="text-lg font-bold truncate">{vendor.businessName}</h1>
             </div>
             <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShareMenuOpen(true)}>
+                <Share2 className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/favorites')}>
                 <Heart className="h-4 w-4" />
                 {stats.total > 0 && (
@@ -303,6 +308,14 @@ export default function VendorShop() {
         }}
         productId={ratingProductId}
         productName={ratingProductName}
+      />
+
+      <BusinessShareMenu
+        open={shareMenuOpen}
+        onOpenChange={setShareMenuOpen}
+        businessId={businessId!}
+        businessName={vendor.businessName}
+        businessType={vendor.businessType}
       />
     </div>
   );
