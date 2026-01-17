@@ -74,9 +74,10 @@ export function useBusinessProducts() {
         throw error;
       }
 
-      // Map the data to include category name
+      // Map the data to include category name and properly type fields
       const mappedProducts = (data || []).map(product => ({
         ...product,
+        images: Array.isArray(product.images) ? product.images as string[] : [],
         category_name: product.business_category?.name || product.category_name?.name || 'Sans catégorie'
       }));
       
