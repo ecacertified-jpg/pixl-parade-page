@@ -27,7 +27,7 @@ import {
 import { VideoCompressionProgress } from '@/components/VideoCompressionProgress';
 import { 
   getVideoMetadata, 
-  validateVideoDuration, 
+  validateVideoDurationWithConfig, 
   formatDuration,
   VIDEO_VALIDATION_CONFIG 
 } from '@/utils/videoValidation';
@@ -36,6 +36,8 @@ interface MultiVideoUploaderProps {
   videos: VideoItem[];
   onChange: (videos: VideoItem[]) => void;
   maxVideos?: number;
+  maxDurationSeconds?: number;
+  productType?: 'experience' | 'product';
   disabled?: boolean;
 }
 
@@ -46,8 +48,15 @@ export function MultiVideoUploader({
   videos,
   onChange,
   maxVideos = 5,
+  maxDurationSeconds,
+  productType,
   disabled = false,
 }: MultiVideoUploaderProps) {
+  // Use configured max or fallback to default
+  const effectiveMaxDuration = maxDurationSeconds ?? VIDEO_VALIDATION_CONFIG.maxDurationSeconds;
+  const maxDurationFormatted = effectiveMaxDuration >= 60
+    ? `${Math.round(effectiveMaxDuration / 60)} min`
+    : `${effectiveMaxDuration} sec`;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('upload');
   const [externalUrl, setExternalUrl] = useState('');
@@ -148,10 +157,10 @@ export function MultiVideoUploader({
         return;
       }
       
-      const durationCheck = validateVideoDuration(metadata.duration);
+      const durationCheck = validateVideoDurationWithConfig(metadata.duration, effectiveMaxDuration, productType);
       if (!durationCheck.valid) {
         toast.error(
-          `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${VIDEO_VALIDATION_CONFIG.maxDurationFormatted}.`,
+          durationCheck.error || `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${maxDurationFormatted}.`,
           { duration: 5000 }
         );
         setValidatingDuration(false);
@@ -511,7 +520,7 @@ export function MultiVideoUploader({
                   <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                   <p className="text-sm font-medium">Cliquez pour sélectionner</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV ou WebM • Max 50 MB • Max 3 min
+                    MP4, MOV ou WebM • Max 50 MB • Max {maxDurationFormatted}
                   </p>
                 </div>
               )}

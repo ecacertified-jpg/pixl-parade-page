@@ -14,6 +14,7 @@ import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAler
 import { AdminReportSettings } from '@/components/admin/AdminReportSettings';
 import { ProfileReminderSettings } from '@/components/admin/ProfileReminderSettings';
 import { AdminNotificationPreferencesSettings } from '@/components/admin/AdminNotificationPreferencesSettings';
+import { VideoDurationLimitsSettings } from '@/components/admin/VideoDurationLimitsSettings';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -229,6 +230,11 @@ export default function Settings() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Video Duration Limits */}
+            <div className="mt-6">
+              <VideoDurationLimitsSettings />
+            </div>
           </TabsContent>
 
           <TabsContent value="finance">
