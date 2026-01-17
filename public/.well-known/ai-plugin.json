@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Joie de Vivre",
+  "name_for_model": "joie_de_vivre",
+  "description_for_human": "Plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes et découvrez des boutiques locales.",
+  "description_for_model": "Joie de Vivre is a collaborative gift platform for French-speaking Africa (Côte d'Ivoire, Benin, Senegal). Users can create collective funds (cagnottes) for celebrations like birthdays, weddings, and promotions. The platform connects users with local artisan shops offering African fashion, jewelry, decoration, gastronomy, and experiences. Payments are made via Mobile Money (Orange Money, MTN, Wave). Key features: collective gift pools, birthday reminders, surprise reveals, social celebrations.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://pixl-parade-page.lovable.app/openapi.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://pixl-parade-page.lovable.app/pwa-512x512.png",
+  "contact_email": "contact@joiedevivre.app",
+  "legal_info_url": "https://pixl-parade-page.lovable.app/terms-of-service"
+}

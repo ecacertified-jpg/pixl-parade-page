@@ -1,14 +1,64 @@
+# Joie de Vivre - Robots.txt
+# Plateforme de cadeaux collaboratifs en Afrique francophone
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Google
 User-agent: Googlebot
 Allow: /
 
+User-agent: Googlebot-Image
+Allow: /
+
+# Bing
 User-agent: Bingbot
 Allow: /
 
+# Social Media Crawlers
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+# AI Crawlers - Explicitly allowed
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Sitemap location
+Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator
+
+# AI-friendly documentation
+# See /llms.txt for structured information about this platform

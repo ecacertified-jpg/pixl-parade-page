@@ -164,3 +164,6 @@ verify_jwt = false
 
 [functions.notify-new-product]
 verify_jwt = false
+
+[functions.sitemap-generator]
+verify_jwt = false
