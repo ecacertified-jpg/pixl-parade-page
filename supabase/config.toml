@@ -158,3 +158,6 @@ verify_jwt = false
 
 [functions.fund-preview]
 verify_jwt = false
+
+[functions.business-preview]
+verify_jwt = false
