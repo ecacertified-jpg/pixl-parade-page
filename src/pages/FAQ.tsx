@@ -22,6 +22,7 @@ import {
   Phone,
 } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 
 interface FAQItem {
   question: string;
@@ -209,6 +210,8 @@ export default function FAQ() {
   );
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.faq} />
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 shadow-sm">
@@ -358,5 +361,6 @@ export default function FAQ() {
         </div>
       </main>
     </div>
+    </>
   );
 }

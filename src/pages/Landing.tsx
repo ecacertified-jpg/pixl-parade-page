@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { SurveyModal } from "@/components/SurveyModal";
 import { ContactModal } from "@/components/ContactModal";
 import { CountrySelector } from "@/components/CountrySelector";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ const Landing = () => {
     description: "Organisez des surprises avec révélation programmée et musique personnalisée"
   }];
   return <>
+    <SEOHead {...SEO_CONFIGS.landing} />
     <SurveyModal externalOpen={surveyOpen} onExternalOpenChange={setSurveyOpen} />
     <ContactModal open={contactOpen} onOpenChange={setContactOpen} />
     <div className="min-h-screen bg-background">
