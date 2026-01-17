@@ -41,6 +41,7 @@ interface VendorInfo {
   businessType: string | null;
   deliveryZones: any;
   openingHours: any;
+  countryCode: string;
 }
 
 export function useVendorProducts(businessId: string | undefined) {
@@ -82,6 +83,7 @@ export function useVendorProducts(businessId: string | undefined) {
         businessType: businessData.business_type,
         deliveryZones: businessData.delivery_zones,
         openingHours: businessData.opening_hours,
+        countryCode: businessData.country_code || 'CI',
       });
 
       // Charger les produits du prestataire
