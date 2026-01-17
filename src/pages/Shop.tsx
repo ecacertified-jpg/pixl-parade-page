@@ -427,6 +427,14 @@ export default function Shop() {
               <span className="text-sm text-muted-foreground">🏷️</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/followed-shops')}
+                title="Mes boutiques suivies"
+              >
+                <Store className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/favorites')}>
                 <Heart className="h-4 w-4" />
                 {stats.total > 0 && (
