@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -595,167 +596,179 @@ const Auth = () => {
                 <TabsTrigger value="signup">Inscription</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="signin">
-                <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
-                    <div className="flex gap-2">
-                      <Select 
-                        value={signInForm.watch('countryCode')} 
-                        onValueChange={(value) => signInForm.setValue('countryCode', value)}
-                      >
-                        <SelectTrigger className="w-[110px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.phonePrefix}>
-                              {c.flag} {c.phonePrefix}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        id="signin-phone"
-                        type="tel"
-                        placeholder="07 XX XX XX XX"
-                        maxLength={10}
-                        {...signInForm.register('phone')}
-                        className="flex-1"
-                      />
-                    </div>
-                    {signInForm.formState.errors.phone && (
-                      <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-                  
-                  <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
-                    {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
-                  </Button>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={authMode}
+                  initial={{ opacity: 0, x: authMode === 'signup' ? 20 : -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: authMode === 'signup' ? -20 : 20 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                >
+                  {authMode === 'signin' ? (
+                    <div className="mt-2">
+                      <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
+                          <div className="flex gap-2">
+                            <Select 
+                              value={signInForm.watch('countryCode')} 
+                              onValueChange={(value) => signInForm.setValue('countryCode', value)}
+                            >
+                              <SelectTrigger className="w-[110px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countries.map((c) => (
+                                  <SelectItem key={c.code} value={c.phonePrefix}>
+                                    {c.flag} {c.phonePrefix}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              id="signin-phone"
+                              type="tel"
+                              placeholder="07 XX XX XX XX"
+                              maxLength={10}
+                              {...signInForm.register('phone')}
+                              className="flex-1"
+                            />
+                          </div>
+                          {signInForm.formState.errors.phone && (
+                            <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
+                          )}
+                        </div>
+                        
+                        <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                          {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
+                        </Button>
 
-                  <div className="relative my-4">
-                    <Separator />
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                      ou
-                    </span>
-                  </div>
+                        <div className="relative my-4">
+                          <Separator />
+                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                            ou
+                          </span>
+                        </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={isGoogleLoading}
-                    onClick={signInWithGoogle}
-                  >
-                    {isGoogleLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    <span className="ml-2">Continuer avec Google</span>
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
-                    <Input
-                      id="firstName"
-                      placeholder="Prénom"
-                      {...signUpForm.register('firstName')}
-                    />
-                    {signUpForm.formState.errors.firstName && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="birthday">Date d'anniversaire</Label>
-                      <Input
-                        id="birthday"
-                        type="date"
-                        {...signUpForm.register('birthday')}
-                      />
-                      {signUpForm.formState.errors.birthday && (
-                        <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
-                      )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          disabled={isGoogleLoading}
+                          onClick={signInWithGoogle}
+                        >
+                          {isGoogleLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <GoogleIcon />
+                          )}
+                          <span className="ml-2">Continuer avec Google</span>
+                        </Button>
+                      </form>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="city">Lieu de livraison</Label>
-                      <Input
-                        id="city"
-                        placeholder="Votre ville"
-                        {...signUpForm.register('city')}
-                      />
-                      {signUpForm.formState.errors.city && (
-                        <p className="text-sm text-destructive">{signUpForm.formState.errors.city.message}</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
-                    <div className="flex gap-2">
-                      <Select 
-                        value={signUpForm.watch('countryCode')} 
-                        onValueChange={(value) => signUpForm.setValue('countryCode', value)}
-                      >
-                        <SelectTrigger className="w-[110px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((c) => (
-                            <SelectItem key={c.code} value={c.phonePrefix}>
-                              {c.flag} {c.phonePrefix}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="07 XX XX XX XX"
-                        maxLength={10}
-                        {...signUpForm.register('phone')}
-                        className="flex-1"
-                      />
-                    </div>
-                    {signUpForm.formState.errors.phone && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-                  
-                  <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
-                    {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
-                  </Button>
+                  ) : (
+                    <div className="mt-2">
+                      <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">Prénom</Label>
+                          <Input
+                            id="firstName"
+                            placeholder="Prénom"
+                            {...signUpForm.register('firstName')}
+                          />
+                          {signUpForm.formState.errors.firstName && (
+                            <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="birthday">Date d'anniversaire</Label>
+                            <Input
+                              id="birthday"
+                              type="date"
+                              {...signUpForm.register('birthday')}
+                            />
+                            {signUpForm.formState.errors.birthday && (
+                              <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="city">Lieu de livraison</Label>
+                            <Input
+                              id="city"
+                              placeholder="Votre ville"
+                              {...signUpForm.register('city')}
+                            />
+                            {signUpForm.formState.errors.city && (
+                              <p className="text-sm text-destructive">{signUpForm.formState.errors.city.message}</p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
+                          <div className="flex gap-2">
+                            <Select 
+                              value={signUpForm.watch('countryCode')} 
+                              onValueChange={(value) => signUpForm.setValue('countryCode', value)}
+                            >
+                              <SelectTrigger className="w-[110px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countries.map((c) => (
+                                  <SelectItem key={c.code} value={c.phonePrefix}>
+                                    {c.flag} {c.phonePrefix}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              id="signup-phone"
+                              type="tel"
+                              placeholder="07 XX XX XX XX"
+                              maxLength={10}
+                              {...signUpForm.register('phone')}
+                              className="flex-1"
+                            />
+                          </div>
+                          {signUpForm.formState.errors.phone && (
+                            <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
+                          )}
+                        </div>
+                        
+                        <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                          {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
+                        </Button>
 
-                  <div className="relative my-4">
-                    <Separator />
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                      ou
-                    </span>
-                  </div>
+                        <div className="relative my-4">
+                          <Separator />
+                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                            ou
+                          </span>
+                        </div>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={isGoogleLoading}
-                    onClick={signInWithGoogle}
-                  >
-                    {isGoogleLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    <span className="ml-2">S'inscrire avec Google</span>
-                  </Button>
-                </form>
-              </TabsContent>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          disabled={isGoogleLoading}
+                          onClick={signInWithGoogle}
+                        >
+                          {isGoogleLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <GoogleIcon />
+                          )}
+                          <span className="ml-2">S'inscrire avec Google</span>
+                        </Button>
+                      </form>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
             </Tabs>
           ) : (
             <div className="space-y-4">

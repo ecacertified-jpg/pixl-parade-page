@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -1118,239 +1119,251 @@ const BusinessAuth = () => {
               <TabsTrigger value="signup">Inscription Business</TabsTrigger>
             </TabsList>
             
-            {/* Onglet Connexion */}
-            <TabsContent value="signin">
-              <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-phone">Numéro de téléphone</Label>
-                  <div className="flex gap-2">
-                    <Select value={countryCode} onValueChange={setCountryCode}>
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countryCodes.map((cc) => (
-                          <SelectItem key={cc.code} value={cc.code}>
-                            {cc.flag} {cc.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      id="signin-phone"
-                      type="tel"
-                      placeholder="07 XX XX XX XX"
-                      {...signInForm.register('phone')}
-                      className="flex-1"
-                    />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={authMode}
+                initial={{ opacity: 0, x: authMode === 'signup' ? 20 : -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: authMode === 'signup' ? -20 : 20 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+              >
+                {authMode === 'signin' ? (
+                  <div className="mt-4">
+                    {/* Onglet Connexion */}
+                    <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-phone">Numéro de téléphone</Label>
+                        <div className="flex gap-2">
+                          <Select value={countryCode} onValueChange={setCountryCode}>
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countryCodes.map((cc) => (
+                                <SelectItem key={cc.code} value={cc.code}>
+                                  {cc.flag} {cc.code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="signin-phone"
+                            type="tel"
+                            placeholder="07 XX XX XX XX"
+                            {...signInForm.register('phone')}
+                            className="flex-1"
+                          />
+                        </div>
+                        {signInForm.formState.errors.phone && (
+                          <p className="text-sm text-destructive">
+                            {signInForm.formState.errors.phone.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Envoi du code...
+                          </>
+                        ) : (
+                          <>
+                            <Phone className="mr-2 h-4 w-4" />
+                            Envoyer le code
+                          </>
+                        )}
+                      </Button>
+
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isGoogleLoading}
+                        onClick={signInWithGoogle}
+                      >
+                        {isGoogleLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <GoogleIcon />
+                        )}
+                        <span className="ml-2">Continuer avec Google</span>
+                      </Button>
+                    </form>
                   </div>
-                  {signInForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">
-                      {signInForm.formState.errors.phone.message}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="mt-4">
+                    {/* Onglet Inscription */}
+                    {/* Progress Indicator */}
+                    <SignupProgressIndicator signUpForm={signUpForm} />
+                    
+                    <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName" className="flex items-center gap-1">
+                            Prénom <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="firstName"
+                            placeholder="Votre prénom"
+                            {...signUpForm.register('firstName')}
+                            className={cn(signUpForm.formState.errors.firstName && "border-destructive")}
+                          />
+                          {signUpForm.formState.errors.firstName && (
+                            <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName" className="flex items-center gap-1">
+                            Nom <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="lastName"
+                            placeholder="Votre nom"
+                            {...signUpForm.register('lastName')}
+                            className={cn(signUpForm.formState.errors.lastName && "border-destructive")}
+                          />
+                          {signUpForm.formState.errors.lastName && (
+                            <p className="text-sm text-destructive">{signUpForm.formState.errors.lastName.message}</p>
+                          )}
+                        </div>
+                      </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Envoi du code...
-                    </>
-                  ) : (
-                    <>
-                      <Phone className="mr-2 h-4 w-4" />
-                      Envoyer le code
-                    </>
-                  )}
-                </Button>
+                      <div className="space-y-2">
+                        <Label htmlFor="businessName" className="flex items-center gap-1">
+                          Nom de l'entreprise <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="businessName"
+                          placeholder="Mon Enterprise SARL"
+                          {...signUpForm.register('businessName')}
+                          onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
+                          className={cn((signUpForm.formState.errors.businessName || businessNameError) && "border-destructive")}
+                        />
+                        {signUpForm.formState.errors.businessName && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.businessName.message}</p>
+                        )}
+                        {businessNameError && (
+                          <p className="text-sm text-destructive">{businessNameError}</p>
+                        )}
+                      </div>
 
-                <div className="relative my-4">
-                  <Separator />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                    ou
-                  </span>
-                </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="businessType">Type d'activité</Label>
+                        <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez votre activité" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {businessTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isGoogleLoading}
-                  onClick={signInWithGoogle}
-                >
-                  {isGoogleLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <GoogleIcon />
-                  )}
-                  <span className="ml-2">Continuer avec Google</span>
-                </Button>
-              </form>
-            </TabsContent>
-            
-            {/* Onglet Inscription */}
-            <TabsContent value="signup">
-              {/* Progress Indicator */}
-              <SignupProgressIndicator signUpForm={signUpForm} />
-              
-              <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName" className="flex items-center gap-1">
-                      Prénom <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="firstName"
-                      placeholder="Votre prénom"
-                      {...signUpForm.register('firstName')}
-                      className={cn(signUpForm.formState.errors.firstName && "border-destructive")}
-                    />
-                    {signUpForm.formState.errors.firstName && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
-                    )}
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="flex items-center gap-1">
+                          Téléphone <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Select value={countryCode} onValueChange={setCountryCode}>
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countryCodes.map((cc) => (
+                                <SelectItem key={cc.code} value={cc.code}>
+                                  {cc.flag} {cc.code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="07 XX XX XX XX"
+                            {...signUpForm.register('phone')}
+                            className="flex-1"
+                          />
+                        </div>
+                        {signUpForm.formState.errors.phone && (
+                          <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Adresse</Label>
+                        <Input
+                          id="address"
+                          placeholder="Cocody, Abidjan"
+                          {...signUpForm.register('address')}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description (optionnel)</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="Décrivez votre activité..."
+                          rows={3}
+                          {...signUpForm.register('description')}
+                        />
+                      </div>
+                      
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Envoi du code...
+                          </>
+                        ) : (
+                          <>
+                            <Phone className="mr-2 h-4 w-4" />
+                            Continuer - Vérifier mon numéro
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        Un code de vérification sera envoyé à votre téléphone
+                      </p>
+
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isGoogleLoading}
+                        onClick={signInWithGoogle}
+                      >
+                        {isGoogleLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <GoogleIcon />
+                        )}
+                        <span className="ml-2">S'inscrire avec Google</span>
+                      </Button>
+                    </form>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName" className="flex items-center gap-1">
-                      Nom <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="lastName"
-                      placeholder="Votre nom"
-                      {...signUpForm.register('lastName')}
-                      className={cn(signUpForm.formState.errors.lastName && "border-destructive")}
-                    />
-                    {signUpForm.formState.errors.lastName && (
-                      <p className="text-sm text-destructive">{signUpForm.formState.errors.lastName.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessName" className="flex items-center gap-1">
-                    Nom de l'entreprise <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="businessName"
-                    placeholder="Mon Enterprise SARL"
-                    {...signUpForm.register('businessName')}
-                    onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
-                    className={cn((signUpForm.formState.errors.businessName || businessNameError) && "border-destructive")}
-                  />
-                  {signUpForm.formState.errors.businessName && (
-                    <p className="text-sm text-destructive">{signUpForm.formState.errors.businessName.message}</p>
-                  )}
-                  {businessNameError && (
-                    <p className="text-sm text-destructive">{businessNameError}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="businessType">Type d'activité</Label>
-                  <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez votre activité" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {businessTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="flex items-center gap-1">
-                    Téléphone <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="flex gap-2">
-                    <Select value={countryCode} onValueChange={setCountryCode}>
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countryCodes.map((cc) => (
-                          <SelectItem key={cc.code} value={cc.code}>
-                            {cc.flag} {cc.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="07 XX XX XX XX"
-                      {...signUpForm.register('phone')}
-                      className="flex-1"
-                    />
-                  </div>
-                  {signUpForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Adresse</Label>
-                  <Input
-                    id="address"
-                    placeholder="Cocody, Abidjan"
-                    {...signUpForm.register('address')}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (optionnel)</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Décrivez votre activité..."
-                    rows={3}
-                    {...signUpForm.register('description')}
-                  />
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Envoi du code...
-                    </>
-                  ) : (
-                    <>
-                      <Phone className="mr-2 h-4 w-4" />
-                      Continuer - Vérifier mon numéro
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Un code de vérification sera envoyé à votre téléphone
-                </p>
-
-                <div className="relative my-4">
-                  <Separator />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                    ou
-                  </span>
-                </div>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={isGoogleLoading}
-                  onClick={signInWithGoogle}
-                >
-                  {isGoogleLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <GoogleIcon />
-                  )}
-                  <span className="ml-2">S'inscrire avec Google</span>
-                </Button>
-              </form>
-            </TabsContent>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </Tabs>
         </CardContent>
       </Card>
