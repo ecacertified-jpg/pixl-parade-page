@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2 } from "lucide-react";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
+import { ProductShareCount } from "@/components/ProductShareCount";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -797,21 +798,25 @@ export default function Shop() {
                   </div>
 
                   {/* Compact Rating */}
-                  <div className="flex items-center gap-1 mb-2">
-                    {product.reviews > 0 ? (
-                      <>
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ({product.reviews} {product.reviews === 1 ? 'avis' : 'avis'})
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Star className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Aucun avis</span>
-                      </>
-                    )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1">
+                      {product.reviews > 0 ? (
+                        <>
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({product.reviews} {product.reviews === 1 ? 'avis' : 'avis'})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Star className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Aucun avis</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground">•</span>
+                    <ProductShareCount productId={String(product.id)} compact showIcon />
                   </div>
 
                   <Button 
