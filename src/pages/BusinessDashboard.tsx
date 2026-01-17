@@ -38,6 +38,7 @@ import { BusinessSelector } from "@/components/BusinessSelector";
 import { BirthdayOpportunitiesSection } from "@/components/BirthdayOpportunitiesSection";
 import { BusinessCollaborativeGiftModal } from "@/components/BusinessCollaborativeGiftModal";
 import { BusinessFollowersSection } from "@/components/BusinessFollowersSection";
+import { MostSharedProducts } from "@/components/MostSharedProducts";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -962,9 +963,12 @@ export default function BusinessDashboard() {
               commissionRate={Number(getSetting('commission_rate') || 15)}
             />
 
-            {/* Section Mes abonnés */}
+            {/* Section Mes abonnés et Produits les plus partagés */}
             {selectedBusinessId && (
-              <BusinessFollowersSection businessId={selectedBusinessId} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <BusinessFollowersSection businessId={selectedBusinessId} />
+                <MostSharedProducts businessId={selectedBusinessId} />
+              </div>
             )}
 
             {/* Commandes et Cagnottes */}

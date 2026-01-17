@@ -3,6 +3,7 @@ import { Heart, Store, MapPin, Tag, X, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProductRatingDisplay } from "@/components/ProductRatingDisplay";
+import { ProductShareCount } from "@/components/ProductShareCount";
 import { RatingModal } from "@/components/RatingModal";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ImageGallery } from "@/components/ImageGallery";
@@ -180,13 +181,16 @@ export function ProductDetailModal({
           </Badge>
         </div>
 
-        {/* Rating */}
+        {/* Rating and Share Stats */}
         <div className="py-2 border-y border-border">
-          <ProductRatingDisplay
-            productId={String(product.id)}
-            onWriteReview={() => setIsRatingModalOpen(true)}
-            compact={false}
-          />
+          <div className="flex items-center justify-between gap-4">
+            <ProductRatingDisplay
+              productId={String(product.id)}
+              onWriteReview={() => setIsRatingModalOpen(true)}
+              compact={false}
+            />
+            <ProductShareCount productId={String(product.id)} showIcon />
+          </div>
         </div>
 
         {/* Description */}

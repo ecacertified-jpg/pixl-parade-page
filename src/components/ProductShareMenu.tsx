@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { Copy, Mail, MessageCircle, Share2, Facebook, Smartphone, Loader2, ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ProductShareCard } from "./ProductShareCard";
 import { useProductShareCard } from "@/hooks/useProductShareCard";
+import { useProductShares } from "@/hooks/useProductShares";
 
 interface ProductShareMenuProps {
   open: boolean;
@@ -28,6 +30,7 @@ export function ProductShareMenu({
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const { generating, shareImageUrl, generateShareCard, getShareFile, reset } = useProductShareCard();
+  const { stats, recordShare } = useProductShares(product ? String(product.id) : '');
 
   // Générer l'image à l'ouverture du modal
   useEffect(() => {
@@ -57,31 +60,36 @@ export function ProductShareMenu({
       await navigator.clipboard.writeText(productUrl);
       setCopied(true);
       toast.success("Lien copié !");
+      await recordShare('copy_link');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Impossible de copier le lien");
     }
   };
 
-  const shareViaWhatsApp = () => {
+  const shareViaWhatsApp = async () => {
+    await recordShare('whatsapp');
     const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
     window.open(url, "_blank");
     onOpenChange(false);
   };
 
-  const shareViaFacebook = () => {
+  const shareViaFacebook = async () => {
+    await recordShare('facebook');
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank");
     onOpenChange(false);
   };
 
-  const shareViaSMS = () => {
+  const shareViaSMS = async () => {
+    await recordShare('sms');
     const url = `sms:?body=${encodeURIComponent(fullMessage)}`;
     window.location.href = url;
     onOpenChange(false);
   };
 
-  const shareViaEmail = () => {
+  const shareViaEmail = async () => {
+    await recordShare('email');
     const subject = encodeURIComponent(`Découvre ${product.name} sur JOIE DE VIVRE !`);
     const body = encodeURIComponent(fullMessage);
     const url = `mailto:?subject=${subject}&body=${body}`;
@@ -96,6 +104,7 @@ export function ProductShareMenu({
         if (shareImageUrl && navigator.canShare) {
           const file = await getShareFile(shareImageUrl, product.name);
           if (file && navigator.canShare({ files: [file] })) {
+            await recordShare('native');
             await navigator.share({
               title: `${product.name} - JOIE DE VIVRE`,
               text: shareText,
@@ -108,6 +117,7 @@ export function ProductShareMenu({
         }
         
         // Fallback sans image
+        await recordShare('native');
         await navigator.share({
           title: `${product.name} - JOIE DE VIVRE`,
           text: shareText,
@@ -137,6 +147,11 @@ export function ProductShareMenu({
             <DialogTitle className="text-center flex items-center justify-center gap-2">
               <Share2 className="h-5 w-5 text-primary" />
               Partager ce produit
+              {stats && stats.totalShares > 0 && (
+                <Badge variant="secondary" className="ml-2 text-xs">
+                  {stats.totalShares} partage{stats.totalShares > 1 ? 's' : ''}
+                </Badge>
+              )}
             </DialogTitle>
           </DialogHeader>
 

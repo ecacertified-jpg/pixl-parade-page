@@ -4218,6 +4218,38 @@ export type Database = {
           },
         ]
       }
+      product_shares: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          share_platform: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          share_platform: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          share_platform?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           business_account_id: string | null
@@ -6435,6 +6467,29 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_ratings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_share_stats: {
+        Row: {
+          email_shares: number | null
+          facebook_shares: number | null
+          link_copies: number | null
+          native_shares: number | null
+          product_id: string | null
+          shares_this_week: number | null
+          shares_today: number | null
+          sms_shares: number | null
+          total_shares: number | null
+          whatsapp_shares: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_shares_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
