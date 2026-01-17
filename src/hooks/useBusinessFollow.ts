@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { trackBusinessShareEvent } from './useBusinessShareTracking';
 
 interface UseBusinessFollowReturn {
   isFollowing: boolean;
@@ -98,6 +99,22 @@ export function useBusinessFollow(businessId: string): UseBusinessFollowReturn {
         toast.success('Vous suivez maintenant cette boutique !', {
           description: 'Vous serez notifié des nouveaux produits'
         });
+
+        // Track follow conversion if came from a share link
+        const shareRef = sessionStorage.getItem(`business_share_ref_${businessId}`);
+        if (shareRef) {
+          trackBusinessShareEvent({
+            shareToken: shareRef,
+            eventType: 'follow',
+            businessId: businessId,
+          }).then(success => {
+            if (success) {
+              console.log('Follow conversion tracked');
+              // Remove the ref after tracking to avoid duplicate tracking
+              sessionStorage.removeItem(`business_share_ref_${businessId}`);
+            }
+          });
+        }
       }
     } catch (err: any) {
       console.error('Error toggling follow:', err);
