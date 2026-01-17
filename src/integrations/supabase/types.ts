@@ -4200,6 +4200,7 @@ export type Database = {
           updated_at: string
           video_thumbnail_url: string | null
           video_url: string | null
+          videos: Json | null
         }
         Insert: {
           business_account_id?: string | null
@@ -4225,6 +4226,7 @@ export type Database = {
           updated_at?: string
           video_thumbnail_url?: string | null
           video_url?: string | null
+          videos?: Json | null
         }
         Update: {
           business_account_id?: string | null
@@ -4250,6 +4252,7 @@ export type Database = {
           updated_at?: string
           video_thumbnail_url?: string | null
           video_url?: string | null
+          videos?: Json | null
         }
         Relationships: [
           {

@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { MultiImageUploader, ImageItem } from '@/components/MultiImageUploader';
+import { MultiVideoUploader } from '@/components/MultiVideoUploader';
+import { VideoItem, ProductVideo, productVideoToVideoItem, videoItemToProductVideo } from '@/types/video';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Package, Trash2 } from 'lucide-react';
@@ -26,6 +28,9 @@ interface Product {
   is_active: boolean;
   image_url: string | null;
   images?: string[] | null;
+  videos?: ProductVideo[] | null;
+  video_url?: string | null;
+  video_thumbnail_url?: string | null;
   business_account_id: string;
 }
 
@@ -52,6 +57,7 @@ export function AdminEditProductModal({
   const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [productImages, setProductImages] = useState<ImageItem[]>([]);
+  const [productVideos, setProductVideos] = useState<VideoItem[]>([]);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -100,6 +106,24 @@ export function AdminEditProductModal({
         });
       }
       setProductImages(existingImages);
+      
+      // Load existing videos
+      if (product.videos && Array.isArray(product.videos)) {
+        const existingVideos = (product.videos as ProductVideo[]).map(productVideoToVideoItem);
+        setProductVideos(existingVideos);
+      } else if (product.video_url) {
+        // Fallback for old format
+        setProductVideos([{
+          id: 'legacy-video',
+          url: product.video_url,
+          thumbnailUrl: product.video_thumbnail_url || null,
+          source: 'direct',
+          order: 0,
+          isExisting: true,
+        }]);
+      } else {
+        setProductVideos([]);
+      }
       
       loadCategories();
     }
@@ -152,6 +176,10 @@ export function AdminEditProductModal({
         }
       }
 
+      // Convert videos to database format
+      const videosForDb = productVideos.map(videoItemToProductVideo) as unknown as import('@/integrations/supabase/types').Json;
+      const firstVideo = productVideos[0];
+
       // Update product
       const { error: updateError } = await supabase
         .from('products')
@@ -167,6 +195,9 @@ export function AdminEditProductModal({
           is_active: formData.is_active,
           image_url: uploadedUrls[0] || null,
           images: uploadedUrls,
+          videos: videosForDb,
+          video_url: firstVideo?.url || null,
+          video_thumbnail_url: firstVideo?.thumbnailUrl || null,
         })
         .eq('id', product.id);
 
@@ -345,6 +376,16 @@ export function AdminEditProductModal({
               images={productImages}
               onChange={setProductImages}
               maxImages={5}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Video Upload */}
+          <div className="space-y-2">
+            <MultiVideoUploader
+              videos={productVideos}
+              onChange={setProductVideos}
+              maxVideos={5}
               disabled={loading}
             />
           </div>

@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+interface ProductVideo {
+  id: string;
+  url: string;
+  thumbnail_url: string | null;
+  source: 'direct' | 'youtube' | 'vimeo';
+  title?: string;
+  order: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -13,6 +22,7 @@ interface Product {
   images?: string[];
   video_url?: string | null;
   video_thumbnail_url?: string | null;
+  videos?: ProductVideo[];
   business_owner_id: string;
   category_id?: string;
   category_name?: string;
@@ -75,11 +85,28 @@ export function useBusinessProducts() {
       }
 
       // Map the data to include category name and properly type fields
-      const mappedProducts = (data || []).map(product => ({
-        ...product,
-        images: Array.isArray(product.images) ? product.images as string[] : [],
-        category_name: product.business_category?.name || product.category_name?.name || 'Sans catégorie'
-      }));
+      const mappedProducts = (data || []).map(product => {
+        // Parse videos from JSONB
+        let parsedVideos: ProductVideo[] = [];
+        if (product.videos && Array.isArray(product.videos)) {
+          parsedVideos = (product.videos as unknown as ProductVideo[]).sort((a, b) => a.order - b.order);
+        } else if (product.video_url) {
+          parsedVideos = [{
+            id: 'legacy',
+            url: product.video_url,
+            thumbnail_url: product.video_thumbnail_url,
+            source: 'direct',
+            order: 0
+          }];
+        }
+
+        return {
+          ...product,
+          images: Array.isArray(product.images) ? product.images as string[] : [],
+          videos: parsedVideos,
+          category_name: product.business_category?.name || product.category_name?.name || 'Sans catégorie'
+        };
+      });
       
       console.log('✅ [useBusinessProducts] Mapped products:', mappedProducts);
       console.log('📝 [useBusinessProducts] Number of products found:', mappedProducts.length);

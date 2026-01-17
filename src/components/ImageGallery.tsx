@@ -5,8 +5,16 @@ import { Button } from "@/components/ui/button";
 import { ZoomableImage } from "@/components/ZoomableImage";
 import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoCarousel } from "@/components/VideoCarousel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+
+interface VideoItem {
+  url: string;
+  thumbnailUrl: string | null;
+  source: string;
+  title?: string;
+}
 
 interface ImageGalleryProps {
   images: string[];
@@ -14,9 +22,10 @@ interface ImageGalleryProps {
   className?: string;
   videoUrl?: string | null;
   videoThumbnailUrl?: string | null;
+  videos?: VideoItem[];
 }
 
-export function ImageGallery({ images, alt, className, videoUrl, videoThumbnailUrl }: ImageGalleryProps) {
+export function ImageGallery({ images, alt, className, videoUrl, videoThumbnailUrl, videos }: ImageGalleryProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hasSwiped, setHasSwiped] = useState(false);
@@ -24,10 +33,17 @@ export function ImageGallery({ images, alt, className, videoUrl, videoThumbnailU
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const isMobile = useIsMobile();
   
-  // If video exists with thumbnail, use thumbnail as first image
-  const hasVideo = !!videoUrl;
-  const displayImages = hasVideo && videoThumbnailUrl 
-    ? [videoThumbnailUrl, ...images.filter(img => img !== videoThumbnailUrl)]
+  // Check if we have multiple videos (new format)
+  const hasMultipleVideos = videos && videos.length > 1;
+  
+  // For backward compatibility: if no videos array, use single video props
+  const hasVideo = hasMultipleVideos || !!videoUrl;
+  const singleVideoThumbnail = videos?.[0]?.thumbnailUrl || videoThumbnailUrl;
+  const singleVideoUrl = videos?.[0]?.url || videoUrl;
+  
+  // If video exists with thumbnail, use thumbnail as first image (only for single video)
+  const displayImages = (hasVideo && !hasMultipleVideos && singleVideoThumbnail)
+    ? [singleVideoThumbnail, ...images.filter(img => img !== singleVideoThumbnail)]
     : images;
 
   const onSelect = useCallback(() => {
@@ -292,14 +308,29 @@ export function ImageGallery({ images, alt, className, videoUrl, videoThumbnailU
         onClose={closeFullscreen}
       />
 
-      {/* Video Player */}
-      {hasVideo && (
+      {/* Video Player for single video */}
+      {hasVideo && !hasMultipleVideos && (
         <VideoPlayer
-          videoUrl={videoUrl}
+          videoUrl={singleVideoUrl}
           isOpen={isVideoOpen}
           onClose={() => setIsVideoOpen(false)}
           title={alt}
         />
+      )}
+
+      {/* Video Carousel for multiple videos */}
+      {hasMultipleVideos && (
+        <div className="mt-3 px-1">
+          <VideoCarousel 
+            videos={videos.map(v => ({
+              url: v.url,
+              thumbnailUrl: v.thumbnailUrl,
+              source: v.source,
+              title: v.title,
+            }))} 
+            productName={alt}
+          />
+        </div>
       )}
     </div>
   );
