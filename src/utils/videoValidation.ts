@@ -87,6 +87,30 @@ export function validateVideoDuration(
 }
 
 /**
+ * Validate video duration with dynamic config and product type context
+ */
+export function validateVideoDurationWithConfig(
+  durationSeconds: number,
+  maxSeconds: number,
+  productType?: 'experience' | 'product'
+): { valid: boolean; error?: string } {
+  if (durationSeconds <= maxSeconds) {
+    return { valid: true };
+  }
+
+  const typeLabel = productType === 'experience'
+    ? 'les expériences'
+    : productType === 'product'
+      ? 'les produits'
+      : 'ce type de produit';
+
+  return {
+    valid: false,
+    error: `La vidéo dépasse la durée maximale pour ${typeLabel} (${formatDuration(durationSeconds)} / ${formatDuration(maxSeconds)}).`,
+  };
+}
+
+/**
  * Format seconds to mm:ss or hh:mm:ss format
  */
 export function formatDuration(seconds: number): string {

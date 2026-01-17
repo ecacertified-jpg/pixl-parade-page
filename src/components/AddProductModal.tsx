@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { useBusinessCategories } from "@/hooks/useBusinessCategories";
+import { useVideoDurationLimits, getMaxDurationForProduct } from "@/hooks/useVideoDurationLimits";
 import { toast } from "sonner";
 
 interface AddProductModalProps {
@@ -28,6 +29,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
   const { countryCode } = useCountry();
   const { selectedBusinessId } = useSelectedBusiness();
   const { categories: businessCategories } = useBusinessCategories();
+  const { limits: videoDurationLimits } = useVideoDurationLimits();
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<ImageItem[]>([]);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
@@ -492,6 +494,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
               videos={productVideos}
               onChange={setProductVideos}
               maxVideos={5}
+              maxDurationSeconds={getMaxDurationForProduct(videoDurationLimits, formData.is_experience)}
+              productType={formData.is_experience ? 'experience' : 'product'}
               disabled={loading}
             />
           </div>
