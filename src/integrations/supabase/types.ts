@@ -1379,6 +1379,165 @@ export type Database = {
           },
         ]
       }
+      business_share_events: {
+        Row: {
+          actor_user_id: string | null
+          business_id: string
+          conversion_value: number | null
+          created_at: string
+          device_type: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          referrer_url: string | null
+          share_id: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          business_id: string
+          conversion_value?: number | null
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          referrer_url?: string | null
+          share_id: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          business_id?: string
+          conversion_value?: number | null
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          referrer_url?: string | null
+          share_id?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_share_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_share_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_share_events_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_share_events_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "business_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_shares: {
+        Row: {
+          business_id: string
+          click_count: number | null
+          created_at: string
+          first_clicked_at: string | null
+          first_follow_at: string | null
+          follow_count: number | null
+          id: string
+          last_clicked_at: string | null
+          order_count: number | null
+          referrer_url: string | null
+          share_platform: string
+          share_token: string | null
+          total_order_value: number | null
+          user_agent: string | null
+          user_id: string | null
+          view_count: number | null
+        }
+        Insert: {
+          business_id: string
+          click_count?: number | null
+          created_at?: string
+          first_clicked_at?: string | null
+          first_follow_at?: string | null
+          follow_count?: number | null
+          id?: string
+          last_clicked_at?: string | null
+          order_count?: number | null
+          referrer_url?: string | null
+          share_platform: string
+          share_token?: string | null
+          total_order_value?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          business_id?: string
+          click_count?: number | null
+          created_at?: string
+          first_clicked_at?: string | null
+          first_follow_at?: string | null
+          follow_count?: number | null
+          id?: string
+          last_clicked_at?: string | null
+          order_count?: number | null
+          referrer_url?: string | null
+          share_platform?: string
+          share_token?: string | null
+          total_order_value?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_shares_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_shares_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_shares_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_waitlist: {
         Row: {
           business_name: string
@@ -7187,6 +7346,14 @@ export type Database = {
       has_contributed_to_fund: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
+      }
+      increment_business_share_metrics: {
+        Args: {
+          p_conversion_value?: number
+          p_event_type: string
+          p_share_id: string
+        }
+        Returns: undefined
       }
       increment_gratitude_reaction: {
         Args: { p_message_id: string }
