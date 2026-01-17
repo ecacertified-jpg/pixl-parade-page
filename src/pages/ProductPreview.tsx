@@ -1,0 +1,210 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Gift, Store, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface ProductData {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  image_url: string | null;
+  vendor_name: string;
+  vendor_id: string | null;
+}
+
+export default function ProductPreview() {
+  const { productId } = useParams<{ productId: string }>();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<ProductData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!productId) {
+        setError("ID du produit manquant");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("products")
+          .select(`
+            id,
+            name,
+            description,
+            price,
+            currency,
+            image_url,
+            business_accounts!products_business_id_fkey (
+              id,
+              business_name
+            )
+          `)
+          .eq("id", productId)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error("Error fetching product:", fetchError);
+          setError("Erreur lors du chargement du produit");
+          return;
+        }
+
+        if (!data) {
+          setError("Produit introuvable");
+          return;
+        }
+
+        setProduct({
+          id: data.id,
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          currency: data.currency || "XOF",
+          image_url: data.image_url,
+          vendor_name: data.business_accounts?.business_name || "Vendeur",
+          vendor_id: data.business_accounts?.id || null,
+        });
+      } catch (err) {
+        console.error("Error:", err);
+        setError("Une erreur est survenue");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [productId]);
+
+  const handleViewInApp = () => {
+    if (product?.vendor_id) {
+      navigate(`/boutique/${product.vendor_id}?product=${product.id}`);
+    } else {
+      navigate(`/shop?product=${product?.id}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Chargement du produit...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h1 className="text-xl font-semibold mb-2">Produit introuvable</h1>
+            <p className="text-muted-foreground mb-6">
+              {error || "Ce produit n'existe pas ou n'est plus disponible."}
+            </p>
+            <Button asChild>
+              <Link to="/shop">
+                Découvrir la boutique
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const formattedPrice = `${product.price.toLocaleString("fr-FR")} ${product.currency}`;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* Header */}
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Gift className="h-6 w-6 text-primary" />
+            <span className="font-poppins font-semibold text-lg text-primary">
+              JOIE DE VIVRE
+            </span>
+          </Link>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/auth">Se connecter</Link>
+          </Button>
+        </div>
+      </header>
+
+      {/* Product Content */}
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card className="overflow-hidden">
+          {/* Product Image */}
+          {product.image_url && (
+            <div className="aspect-square w-full overflow-hidden bg-muted">
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          <CardContent className="p-6 space-y-4">
+            {/* Vendor */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Store className="h-4 w-4" />
+              <span>{product.vendor_name}</span>
+            </div>
+
+            {/* Product Name */}
+            <h1 className="text-2xl font-poppins font-semibold">
+              {product.name}
+            </h1>
+
+            {/* Price */}
+            <p className="text-3xl font-bold text-primary">
+              {formattedPrice}
+            </p>
+
+            {/* Description */}
+            {product.description && (
+              <p className="text-muted-foreground">
+                {product.description}
+              </p>
+            )}
+
+            {/* CTA Button */}
+            <Button
+              size="lg"
+              className="w-full mt-6"
+              variant="gradient"
+              onClick={handleViewInApp}
+            >
+              <Gift className="mr-2 h-5 w-5" />
+              Voir dans l'application
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+
+            {/* Info text */}
+            <p className="text-xs text-center text-muted-foreground pt-2">
+              Connectez-vous pour ajouter ce produit à vos favoris ou l'offrir à un proche
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Footer branding */}
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          <Gift className="h-5 w-5 inline-block mr-2 text-primary" />
+          <span>La plateforme de cadeaux collaboratifs</span>
+        </div>
+      </main>
+    </div>
+  );
+}
