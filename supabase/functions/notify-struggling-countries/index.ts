@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         .from('business_accounts')
         .select('*', { count: 'exact', head: true })
         .eq('country_code', countryCode)
-        .eq('status', 'approved');
+        .eq('status', 'active');
 
       // Get orders and revenue for current month
       const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString();

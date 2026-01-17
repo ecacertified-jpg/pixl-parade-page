@@ -80,7 +80,7 @@ export default function BusinessPreview() {
           `)
           .eq("id", businessId)
           .eq("is_active", true)
-          .eq("status", "approved")
+          .eq("status", "active")
           .maybeSingle();
 
         if (fetchError) {
