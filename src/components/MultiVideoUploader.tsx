@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Video, X, Plus, GripVertical, Play, Link2, Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { Video, X, Plus, GripVertical, Play, Link2, Upload, Loader2, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,12 @@ import {
   CompressionProgress 
 } from '@/utils/videoCompressor';
 import { VideoCompressionProgress } from '@/components/VideoCompressionProgress';
+import { 
+  getVideoMetadata, 
+  validateVideoDuration, 
+  formatDuration,
+  VIDEO_VALIDATION_CONFIG 
+} from '@/utils/videoValidation';
 
 interface MultiVideoUploaderProps {
   videos: VideoItem[];
@@ -53,9 +59,9 @@ export function MultiVideoUploader({
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
+  const [validatingDuration, setValidatingDuration] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-
   const canAddMore = videos.length < maxVideos;
 
   // Validate external URL
@@ -129,6 +135,33 @@ export function MultiVideoUploader({
     if (file.size > MAX_VIDEO_SIZE) {
       toast.error('La vidéo ne doit pas dépasser 50 MB.');
       return;
+    }
+
+    // Validate video duration
+    setValidatingDuration(true);
+    try {
+      const metadata = await getVideoMetadata(file);
+      
+      if (!metadata.isValid) {
+        toast.error(metadata.error || 'Impossible de lire la vidéo.');
+        setValidatingDuration(false);
+        return;
+      }
+      
+      const durationCheck = validateVideoDuration(metadata.duration);
+      if (!durationCheck.valid) {
+        toast.error(
+          `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${VIDEO_VALIDATION_CONFIG.maxDurationFormatted}.`,
+          { duration: 5000 }
+        );
+        setValidatingDuration(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('Duration validation failed:', error);
+      // Continue anyway as fallback
+    } finally {
+      setValidatingDuration(false);
     }
 
     let fileToUpload = file;
@@ -457,7 +490,12 @@ export function MultiVideoUploader({
                 />
               )}
 
-              {uploading ? (
+              {validatingDuration ? (
+                <div className="space-y-3 p-6 text-center">
+                  <Clock className="h-10 w-10 mx-auto text-primary animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Vérification de la durée...</p>
+                </div>
+              ) : uploading ? (
                 <div className="space-y-3 p-6 text-center">
                   <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
                   <p className="text-sm text-muted-foreground">Upload en cours...</p>
@@ -473,7 +511,7 @@ export function MultiVideoUploader({
                   <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                   <p className="text-sm font-medium">Cliquez pour sélectionner</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV ou WebM • Max 50 MB
+                    MP4, MOV ou WebM • Max 50 MB • Max 3 min
                   </p>
                 </div>
               )}
