@@ -21,7 +21,7 @@ export function BusinessShareMenu({
 }: BusinessShareMenuProps) {
   const [copied, setCopied] = useState(false);
 
-  const businessUrl = `${window.location.origin}/boutique/${businessId}`;
+  const businessUrl = `${window.location.origin}/b/${businessId}`;
   const shareText = `Découvre ${businessName} sur JOIE DE VIVRE ! ${businessType ? `(${businessType})` : ''} 🎁`;
   const fullMessage = `${shareText}\n\n${businessUrl}`;
 
