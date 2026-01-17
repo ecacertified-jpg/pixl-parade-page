@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -48,12 +48,15 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type OtpFormData = z.infer<typeof otpSchema>;
 
 const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [currentPhone, setCurrentPhone] = useState('');
   const [countdown, setCountdown] = useState(0);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   
   // États pour détection des doublons
@@ -586,7 +589,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           {!otpSent ? (
-            <Tabs defaultValue="signin" onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
+            <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Connexion</TabsTrigger>
                 <TabsTrigger value="signup">Inscription</TabsTrigger>
