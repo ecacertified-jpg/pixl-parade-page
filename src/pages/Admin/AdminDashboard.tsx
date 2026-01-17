@@ -24,8 +24,8 @@ interface DashboardStats {
   activeBusinesses: number;
   totalTransactions: number;
   pendingReports: number;
-  pendingApprovals: number; // is_active = false
-  pendingVerifications: number; // is_active = true AND is_verified = false
+  pendingApprovals: number;
+  pendingVerifications: number;
   pendingRefunds: number;
 }
 
@@ -38,7 +38,17 @@ interface PendingBusiness {
   created_at: string;
 }
 
+// Wrapper component that provides AdminLayout
 export default function AdminDashboard() {
+  return (
+    <AdminLayout>
+      <AdminDashboardContent />
+    </AdminLayout>
+  );
+}
+
+// Inner component that can safely use useAdminCountry
+function AdminDashboardContent() {
   const { selectedCountry } = useAdminCountry();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -179,17 +189,14 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-        </div>
-      </AdminLayout>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
           <p className="text-muted-foreground mt-2">
@@ -423,6 +430,5 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   );
 }
