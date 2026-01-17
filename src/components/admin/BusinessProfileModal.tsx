@@ -10,7 +10,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { 
   Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp, 
   Star, DollarSign, ShoppingCart, CheckCircle, Clock, XCircle,
-  AlertTriangle, Plus, Pencil, Settings, Tag, Video
+  AlertTriangle, Plus, Pencil, Settings, Tag, Video, Target, Image
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { AdminAddProductModal } from "./AdminAddProductModal";
@@ -233,6 +233,22 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
   // Video statistics
   const productsWithVideo = products.filter(hasVideos).length;
   const productsWithoutVideo = products.length - productsWithVideo;
+  
+  // Extended video stats for dashboard
+  const totalVideos = products.reduce((sum, p) => sum + getVideoCount(p), 0);
+  const productsWithThumbnail = products.filter(p => p.video_thumbnail_url).length;
+  const coverageRate = products.length > 0 
+    ? Math.round((productsWithVideo / products.length) * 100) 
+    : 0;
+  const avgVideosPerProduct = productsWithVideo > 0 
+    ? Math.round((totalVideos / productsWithVideo) * 10) / 10 
+    : 0;
+  
+  // Priority products: active, no video, sorted by price descending
+  const priorityProducts = products
+    .filter(p => p.is_active && !hasVideos(p))
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 5);
   
   if (loading) {
     return (
@@ -695,6 +711,146 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
                     <Badge variant="outline" className="border-green-500 text-green-600">
                       Vérifié
                     </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Video Statistics Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  Statistiques Vidéo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Video KPIs */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Coverage Rate with circular gauge */}
+                  <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
+                    <div className="relative w-16 h-16 mb-2">
+                      <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                        <circle 
+                          cx="32" cy="32" r="28" 
+                          fill="none" 
+                          stroke="hsl(var(--muted))" 
+                          strokeWidth="6"
+                        />
+                        <circle 
+                          cx="32" cy="32" r="28" 
+                          fill="none" 
+                          stroke={coverageRate >= 75 ? 'hsl(142 76% 36%)' : coverageRate >= 50 ? 'hsl(45 93% 47%)' : 'hsl(0 84% 60%)'}
+                          strokeWidth="6"
+                          strokeDasharray={`${coverageRate * 1.76} 176`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">
+                        {coverageRate}%
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground text-center">Couverture</span>
+                    <span className="text-xs text-muted-foreground">{productsWithVideo}/{products.length}</span>
+                  </div>
+
+                  {/* Total Videos */}
+                  <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50">
+                    <Video className="h-6 w-6 text-primary mb-1" />
+                    <span className="text-2xl font-bold">{totalVideos}</span>
+                    <span className="text-xs text-muted-foreground text-center">Vidéos totales</span>
+                  </div>
+
+                  {/* Average per product */}
+                  <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50">
+                    <TrendingUp className="h-6 w-6 text-primary mb-1" />
+                    <span className="text-2xl font-bold">{avgVideosPerProduct}</span>
+                    <span className="text-xs text-muted-foreground text-center">Moy./produit</span>
+                  </div>
+
+                  {/* Custom Thumbnails */}
+                  <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-muted/50">
+                    <Image className="h-6 w-6 text-primary mb-1" />
+                    <span className="text-2xl font-bold">{productsWithThumbnail}</span>
+                    <span className="text-xs text-muted-foreground text-center">Miniatures</span>
+                  </div>
+                </div>
+
+                {/* Video Distribution Bar */}
+                {products.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Répartition vidéo</span>
+                      <span>{productsWithVideo} avec / {productsWithoutVideo} sans</span>
+                    </div>
+                    <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+                      <div 
+                        className="bg-green-500 transition-all duration-300" 
+                        style={{ width: `${coverageRate}%` }}
+                      />
+                      <div 
+                        className="bg-amber-400 transition-all duration-300" 
+                        style={{ width: `${100 - coverageRate}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-muted-foreground">Avec vidéo</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-amber-400" />
+                        <span className="text-muted-foreground">Sans vidéo</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Products */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm font-medium">Produits prioritaires</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Produits actifs sans vidéo - ajoutez-en pour améliorer vos ventes
+                  </p>
+                  
+                  {priorityProducts.length === 0 ? (
+                    <div className="flex flex-col items-center py-6 text-center rounded-lg bg-green-50 dark:bg-green-950/20">
+                      <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
+                      <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                        Excellent ! Tous vos produits actifs ont des vidéos
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {priorityProducts.map((product, index) => (
+                        <div 
+                          key={product.id} 
+                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-sm font-medium text-muted-foreground w-5 flex-shrink-0">
+                              {index + 1}.
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">{formatCurrency(product.price)}</p>
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => setEditingProduct(product)}
+                            className="text-xs flex-shrink-0"
+                          >
+                            <Video className="h-3 w-3 mr-1" />
+                            Ajouter
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </CardContent>
