@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Scissors, X, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, RotateCcw, Scissors, X, AlertTriangle, Volume2, VolumeX, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { VideoTrimTimeline } from '@/components/VideoTrimTimeline';
 import { VideoTrimProgress } from '@/components/VideoTrimProgress';
 import { VideoTimelineZoomControls } from '@/components/VideoTimelineZoomControls';
+import { VideoFrameCapture } from '@/components/VideoFrameCapture';
 import { useTimelineZoom } from '@/hooks/useTimelineZoom';
 import { trimVideo, TrimProgress, formatTimeDisplay } from '@/utils/videoTrimmer';
 import { toast } from 'sonner';
@@ -16,6 +17,7 @@ interface VideoTrimEditorProps {
   videoDuration: number;
   onTrimComplete: (trimmedFile: File) => void;
   onCancel: () => void;
+  onFrameCapture?: (blob: Blob, timestamp: number) => void;
   open: boolean;
 }
 
@@ -25,6 +27,7 @@ export function VideoTrimEditor({
   videoDuration,
   onTrimComplete,
   onCancel,
+  onFrameCapture,
   open,
 }: VideoTrimEditorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -241,6 +244,17 @@ export function VideoTrimEditor({
                       <Volume2 className="h-4 w-4" />
                     )}
                   </Button>
+
+                  {/* Frame capture button */}
+                  {onFrameCapture && (
+                    <VideoFrameCapture
+                      videoRef={videoRef}
+                      videoUrl={videoUrl}
+                      onCapture={onFrameCapture}
+                      variant="compact"
+                      className="h-8 w-8 text-white hover:bg-white/20"
+                    />
+                  )}
 
                   <span className="text-white text-sm ml-2">
                     {formatTimeDisplay(currentTime)} / {formatTimeDisplay(videoDuration)}
