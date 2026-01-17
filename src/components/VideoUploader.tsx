@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2, Clock } from 'lucide-react';
+import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2, Clock, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -29,6 +29,7 @@ import {
   formatDuration,
   VIDEO_VALIDATION_CONFIG 
 } from '@/utils/videoValidation';
+import { VideoTrimEditor } from '@/components/VideoTrimEditor';
 
 interface VideoUploaderProps {
   videoUrl: string | null;
@@ -36,6 +37,7 @@ interface VideoUploaderProps {
   onVideoChange: (videoUrl: string | null) => void;
   onThumbnailChange: (thumbnailUrl: string | null) => void;
   disabled?: boolean;
+  maxDurationSeconds?: number;
 }
 
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
@@ -49,7 +51,13 @@ export function VideoUploader({
   onVideoChange,
   onThumbnailChange,
   disabled = false,
+  maxDurationSeconds,
 }: VideoUploaderProps) {
+  const effectiveMaxDuration = maxDurationSeconds ?? VIDEO_VALIDATION_CONFIG.maxDurationSeconds;
+  const maxDurationFormatted = effectiveMaxDuration >= 60
+    ? `${Math.round(effectiveMaxDuration / 60)} min`
+    : `${effectiveMaxDuration} sec`;
+    
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
@@ -62,6 +70,11 @@ export function VideoUploader({
   const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
   const [validatingDuration, setValidatingDuration] = useState(false);
+  // Trim editor state
+  const [showTrimEditor, setShowTrimEditor] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingVideoDuration, setPendingVideoDuration] = useState(0);
+  
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -105,47 +118,8 @@ export function VideoUploader({
     return () => clearTimeout(debounce);
   }, [externalUrl]);
 
-  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
-      toast.error('Format non supporté. Utilisez MP4, MOV ou WebM.');
-      return;
-    }
-
-    if (file.size > MAX_VIDEO_SIZE) {
-      toast.error('La vidéo ne doit pas dépasser 50 MB.');
-      return;
-    }
-
-    // Validate video duration
-    setValidatingDuration(true);
-    try {
-      const metadata = await getVideoMetadata(file);
-      
-      if (!metadata.isValid) {
-        toast.error(metadata.error || 'Impossible de lire la vidéo.');
-        setValidatingDuration(false);
-        return;
-      }
-      
-      const durationCheck = validateVideoDuration(metadata.duration);
-      if (!durationCheck.valid) {
-        toast.error(
-          `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${VIDEO_VALIDATION_CONFIG.maxDurationFormatted}.`,
-          { duration: 5000 }
-        );
-        setValidatingDuration(false);
-        return;
-      }
-    } catch (error) {
-      console.warn('Duration validation failed:', error);
-      // Continue anyway as fallback
-    } finally {
-      setValidatingDuration(false);
-    }
-
+  // Process video upload (after potential trim)
+  const processVideoUpload = async (file: File) => {
     let fileToUpload = file;
     setOriginalFileSize(file.size);
 
@@ -222,6 +196,73 @@ export function VideoUploader({
         videoInputRef.current.value = '';
       }
     }
+  };
+
+  // Handle trim completion
+  const handleTrimComplete = async (trimmedFile: File) => {
+    setShowTrimEditor(false);
+    setPendingFile(null);
+    setPendingVideoDuration(0);
+    await processVideoUpload(trimmedFile);
+  };
+
+  // Cancel trim
+  const handleTrimCancel = () => {
+    setShowTrimEditor(false);
+    setPendingFile(null);
+    setPendingVideoDuration(0);
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez MP4, MOV ou WebM.');
+      return;
+    }
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error('La vidéo ne doit pas dépasser 50 MB.');
+      return;
+    }
+
+    // Validate video duration
+    setValidatingDuration(true);
+    try {
+      const metadata = await getVideoMetadata(file);
+      
+      if (!metadata.isValid) {
+        toast.error(metadata.error || 'Impossible de lire la vidéo.');
+        setValidatingDuration(false);
+        return;
+      }
+      
+      const durationCheck = validateVideoDuration(metadata.duration, effectiveMaxDuration);
+      if (!durationCheck.valid) {
+        // Video is too long - offer trim editor
+        setValidatingDuration(false);
+        setPendingFile(file);
+        setPendingVideoDuration(metadata.duration);
+        setShowTrimEditor(true);
+        toast.info(
+          `Vidéo trop longue (${formatDuration(metadata.duration)}). Utilisez l'éditeur pour la raccourcir.`,
+          { duration: 4000, icon: <Scissors className="h-4 w-4" /> }
+        );
+        return;
+      }
+    } catch (error) {
+      console.warn('Duration validation failed:', error);
+      // Continue anyway as fallback
+    } finally {
+      setValidatingDuration(false);
+    }
+
+    // Video duration is OK, proceed with upload
+    await processVideoUpload(file);
   };
 
   const handleExternalUrlSubmit = () => {
@@ -650,6 +691,18 @@ export function VideoUploader({
         className="hidden"
         disabled={disabled || uploadingThumbnail}
       />
+
+      {/* Trim editor modal */}
+      {pendingFile && (
+        <VideoTrimEditor
+          file={pendingFile}
+          maxDurationSeconds={effectiveMaxDuration}
+          videoDuration={pendingVideoDuration}
+          onTrimComplete={handleTrimComplete}
+          onCancel={handleTrimCancel}
+          open={showTrimEditor}
+        />
+      )}
     </div>
   );
 }
