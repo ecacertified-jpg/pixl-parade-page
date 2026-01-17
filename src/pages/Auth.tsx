@@ -580,7 +580,7 @@ const Auth = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/business-auth')}
+            onClick={() => navigate(`/business-auth?tab=${authMode}`)}
             className="mt-2 text-sm"
           >
             <Store className="h-4 w-4 mr-2" />

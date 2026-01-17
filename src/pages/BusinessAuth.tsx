@@ -243,7 +243,6 @@ const BusinessAuth = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [currentPhone, setCurrentPhone] = useState('');
   const [countdown, setCountdown] = useState(0);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [signupFormData, setSignupFormData] = useState<SignUpFormData | null>(null);
   const [otpValue, setOtpValue] = useState('');
   const [countryCode, setCountryCode] = useState(country.phonePrefix);
@@ -256,6 +255,8 @@ const BusinessAuth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const { user, setUserMode, refreshSession } = useAuth();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
 
@@ -1103,7 +1104,7 @@ const BusinessAuth = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate(`/auth?tab=${authMode}`)}
             className="mt-2 text-sm"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -1111,7 +1112,7 @@ const BusinessAuth = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin">
+          <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
               <TabsTrigger value="signup">Inscription Business</TabsTrigger>
