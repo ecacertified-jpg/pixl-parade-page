@@ -91,10 +91,16 @@ const Auth = () => {
     resolver: zodResolver(otpSchema),
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - check for returnUrl first
   useEffect(() => {
     if (user) {
-      handleSmartRedirect(user, navigate);
+      const returnUrl = localStorage.getItem('returnUrl');
+      if (returnUrl) {
+        localStorage.removeItem('returnUrl');
+        navigate(returnUrl);
+      } else {
+        handleSmartRedirect(user, navigate);
+      }
     }
   }, [user, navigate]);
 

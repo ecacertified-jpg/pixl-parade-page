@@ -27,7 +27,10 @@ export function ProductShareMenu({
 
   if (!product) return null;
 
-  const productUrl = `${window.location.origin}/shop?product=${product.id}`;
+  // Utiliser l'URL de la boutique spécifique si vendorId est disponible
+  const productUrl = product.vendorId
+    ? `${window.location.origin}/boutique/${product.vendorId}?product=${product.id}`
+    : `${window.location.origin}/shop?product=${product.id}`;
   const formattedPrice = `${product.price.toLocaleString()} ${product.currency}`;
   const shareText = `🎁 Découvre ce produit sur JOIE DE VIVRE !\n\n📦 ${product.name}\n💰 ${formattedPrice}\n🏪 ${product.vendor}`;
   const fullMessage = `${shareText}\n\n➡️ ${productUrl}`;
