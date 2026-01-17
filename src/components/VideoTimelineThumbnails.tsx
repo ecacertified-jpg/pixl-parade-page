@@ -8,6 +8,8 @@ interface VideoTimelineThumbnailsProps {
   thumbnailCount?: number;
   height?: number;
   className?: string;
+  visibleStartTime?: number;
+  visibleEndTime?: number;
 }
 
 export const VideoTimelineThumbnails = memo(function VideoTimelineThumbnails({
@@ -16,19 +18,24 @@ export const VideoTimelineThumbnails = memo(function VideoTimelineThumbnails({
   thumbnailCount = 10,
   height = 48,
   className,
+  visibleStartTime = 0,
+  visibleEndTime,
 }: VideoTimelineThumbnailsProps) {
+  const effectiveVisibleEnd = visibleEndTime ?? duration;
+  const visibleDuration = effectiveVisibleEnd - visibleStartTime;
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!videoUrl || duration <= 0) return;
+    if (!videoUrl || visibleDuration <= 0) return;
 
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    extractVideoThumbnails(videoUrl, duration, thumbnailCount)
+    // Extract thumbnails for the visible range only
+    extractVideoThumbnails(videoUrl, duration, thumbnailCount, 120, visibleStartTime, effectiveVisibleEnd)
       .then((result) => {
         if (!cancelled) {
           setThumbnails(result);
@@ -46,7 +53,7 @@ export const VideoTimelineThumbnails = memo(function VideoTimelineThumbnails({
     return () => {
       cancelled = true;
     };
-  }, [videoUrl, duration, thumbnailCount]);
+  }, [videoUrl, duration, thumbnailCount, visibleStartTime, effectiveVisibleEnd, visibleDuration]);
 
   if (error) {
     // Fallback to simple gradient on error
