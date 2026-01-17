@@ -1,0 +1,347 @@
+import { useState, useRef } from 'react';
+import { Upload, X, Video, Image, Play, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface VideoUploaderProps {
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+  onVideoChange: (videoUrl: string | null) => void;
+  onThumbnailChange: (thumbnailUrl: string | null) => void;
+  disabled?: boolean;
+}
+
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
+const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024; // 5 MB
+const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export function VideoUploader({
+  videoUrl,
+  thumbnailUrl,
+  onVideoChange,
+  onThumbnailChange,
+  disabled = false,
+}: VideoUploaderProps) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez MP4, MOV ou WebM.');
+      return;
+    }
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error('La vidéo ne doit pas dépasser 50 MB.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `videos/${fileName}`;
+
+      // Simulate progress (Supabase doesn't provide real upload progress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 90));
+      }, 200);
+
+      const { data, error } = await supabase.storage
+        .from('product-videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      clearInterval(progressInterval);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('product-videos')
+        .getPublicUrl(data.path);
+
+      setUploadProgress(100);
+      onVideoChange(urlData.publicUrl);
+      toast.success('Vidéo uploadée avec succès !');
+
+      // Auto-generate thumbnail if none exists
+      if (!thumbnailUrl) {
+        generateThumbnailFromVideo(urlData.publicUrl);
+      }
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast.error("Erreur lors de l'upload de la vidéo.");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (videoInputRef.current) {
+        videoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const generateThumbnailFromVideo = (url: string) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.src = url;
+    video.muted = true;
+    video.currentTime = 1; // Capture at 1 second
+
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            await uploadThumbnailBlob(blob);
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    };
+  };
+
+  const uploadThumbnailBlob = async (blob: Blob) => {
+    setUploadingThumbnail(true);
+    try {
+      const fileName = `thumbnails/${crypto.randomUUID()}.jpg`;
+      
+      const { data, error } = await supabase.storage
+        .from('product-videos')
+        .upload(fileName, blob, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: 'image/jpeg',
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('product-videos')
+        .getPublicUrl(data.path);
+
+      onThumbnailChange(urlData.publicUrl);
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const handleThumbnailSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez JPG, PNG ou WebP.');
+      return;
+    }
+
+    if (file.size > MAX_THUMBNAIL_SIZE) {
+      toast.error('La miniature ne doit pas dépasser 5 MB.');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `thumbnails/${crypto.randomUUID()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-videos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('product-videos')
+        .getPublicUrl(data.path);
+
+      onThumbnailChange(urlData.publicUrl);
+      toast.success('Miniature uploadée !');
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast.error("Erreur lors de l'upload de la miniature.");
+    } finally {
+      setUploadingThumbnail(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveVideo = async () => {
+    // Remove from storage if it's a Supabase URL
+    if (videoUrl?.includes('product-videos')) {
+      try {
+        const path = videoUrl.split('product-videos/')[1];
+        if (path) {
+          await supabase.storage.from('product-videos').remove([path]);
+        }
+      } catch (error) {
+        console.error('Error removing video:', error);
+      }
+    }
+    onVideoChange(null);
+    onThumbnailChange(null);
+  };
+
+  const handleRemoveThumbnail = async () => {
+    if (thumbnailUrl?.includes('product-videos')) {
+      try {
+        const path = thumbnailUrl.split('product-videos/')[1];
+        if (path) {
+          await supabase.storage.from('product-videos').remove([path]);
+        }
+      } catch (error) {
+        console.error('Error removing thumbnail:', error);
+      }
+    }
+    onThumbnailChange(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label className="text-sm font-medium">Vidéo du produit (optionnel)</Label>
+      
+      {/* Video upload/preview area */}
+      {!videoUrl ? (
+        <div
+          onClick={() => !disabled && !uploading && videoInputRef.current?.click()}
+          className={`
+            border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
+            transition-colors duration-200
+            ${disabled || uploading 
+              ? 'border-muted bg-muted/20 cursor-not-allowed' 
+              : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
+            }
+          `}
+        >
+          {uploading ? (
+            <div className="space-y-3">
+              <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">Upload en cours...</p>
+              <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
+            </div>
+          ) : (
+            <>
+              <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                MP4, MOV ou WebM • Max 50 MB
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Video preview */}
+          <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+            <video
+              ref={videoPreviewRef}
+              src={videoUrl}
+              className="w-full h-full object-contain"
+              controls
+              preload="metadata"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8"
+              onClick={handleRemoveVideo}
+              disabled={disabled}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Thumbnail section */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              Miniature de couverture (affichée dans la boutique)
+            </Label>
+            
+            {thumbnailUrl ? (
+              <div className="relative w-32 h-20 rounded-lg overflow-hidden border">
+                <img
+                  src={thumbnailUrl}
+                  alt="Miniature"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                  <Play className="h-6 w-6 text-white fill-white" />
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-1 right-1 h-5 w-5"
+                  onClick={handleRemoveThumbnail}
+                  disabled={disabled || uploadingThumbnail}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : uploadingThumbnail ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Génération de la miniature...</span>
+              </div>
+            ) : null}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => thumbnailInputRef.current?.click()}
+              disabled={disabled || uploadingThumbnail}
+              className="gap-2"
+            >
+              <Image className="h-4 w-4" />
+              {thumbnailUrl ? 'Changer la miniature' : 'Ajouter une miniature personnalisée'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/webm"
+        onChange={handleVideoSelect}
+        className="hidden"
+        disabled={disabled || uploading}
+      />
+      <input
+        ref={thumbnailInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleThumbnailSelect}
+        className="hidden"
+        disabled={disabled || uploadingThumbnail}
+      />
+    </div>
+  );
+}

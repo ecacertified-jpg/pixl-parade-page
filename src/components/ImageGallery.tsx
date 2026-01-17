@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Expand } from "lucide-react";
+import { ChevronLeft, ChevronRight, Expand, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ZoomableImage } from "@/components/ZoomableImage";
 import { FullscreenGallery } from "@/components/FullscreenGallery";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -11,14 +12,23 @@ interface ImageGalleryProps {
   images: string[];
   alt: string;
   className?: string;
+  videoUrl?: string | null;
+  videoThumbnailUrl?: string | null;
 }
 
-export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
+export function ImageGallery({ images, alt, className, videoUrl, videoThumbnailUrl }: ImageGalleryProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hasSwiped, setHasSwiped] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
   const isMobile = useIsMobile();
+  
+  // If video exists with thumbnail, use thumbnail as first image
+  const hasVideo = !!videoUrl;
+  const displayImages = hasVideo && videoThumbnailUrl 
+    ? [videoThumbnailUrl, ...images.filter(img => img !== videoThumbnailUrl)]
+    : images;
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -54,8 +64,8 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
     setIsFullscreen(false);
   }, []);
 
-  // If no images, show placeholder
-  if (!images || images.length === 0) {
+  // If no images, show placeholder or video thumbnail
+  if ((!images || images.length === 0) && !hasVideo) {
     return (
       <div className="relative">
         <ZoomableImage
@@ -82,23 +92,74 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
     );
   }
 
-  // Single image - show with fullscreen option
-  if (images.length === 1) {
+  // Video only (no images)
+  if (hasVideo && displayImages.length === 0) {
     return (
       <div className="relative">
-        <ZoomableImage
-          src={images[0]}
-          alt={alt}
-          className={className}
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8"
-          onClick={openFullscreen}
+        <div 
+          className="relative cursor-pointer"
+          onClick={() => setIsVideoOpen(true)}
         >
-          <Expand className="h-4 w-4" />
-        </Button>
+          <img
+            src={videoThumbnailUrl || "/lovable-uploads/placeholder.png"}
+            alt={alt}
+            className={cn(className, "w-full object-cover")}
+          />
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+              <Play className="h-8 w-8 text-white fill-white ml-1" />
+            </div>
+          </div>
+        </div>
+        <VideoPlayer
+          videoUrl={videoUrl}
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          title={alt}
+        />
+      </div>
+    );
+  }
+
+  // Single image (or video thumbnail as single item) - show with fullscreen option
+  if (displayImages.length === 1) {
+    const isVideoThumbnail = hasVideo && displayImages[0] === videoThumbnailUrl;
+    
+    return (
+      <div className="relative">
+        {isVideoThumbnail ? (
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => setIsVideoOpen(true)}
+          >
+            <img
+              src={displayImages[0]}
+              alt={alt}
+              className={cn(className, "w-full object-cover")}
+            />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                <Play className="h-8 w-8 text-white fill-white ml-1" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ZoomableImage
+            src={displayImages[0]}
+            alt={alt}
+            className={className}
+          />
+        )}
+        {!isVideoThumbnail && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-3 right-3 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8"
+            onClick={openFullscreen}
+          >
+            <Expand className="h-4 w-4" />
+          </Button>
+        )}
         <FullscreenGallery
           images={images}
           alt={alt}
@@ -106,6 +167,14 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
           isOpen={isFullscreen}
           onClose={closeFullscreen}
         />
+        {hasVideo && (
+          <VideoPlayer
+            videoUrl={videoUrl}
+            isOpen={isVideoOpen}
+            onClose={() => setIsVideoOpen(false)}
+            title={alt}
+          />
+        )}
       </div>
     );
   }
@@ -125,15 +194,37 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
       {/* Carousel container */}
       <div ref={emblaRef} className="overflow-hidden">
         <div className="flex">
-          {images.map((src, index) => (
-            <div key={index} className="flex-[0_0_100%] min-w-0">
-              <ZoomableImage
-                src={src}
-                alt={`${alt} - ${index + 1}`}
-                className={className}
-              />
-            </div>
-          ))}
+          {displayImages.map((src, index) => {
+            const isVideoThumbnail = hasVideo && index === 0 && src === videoThumbnailUrl;
+            
+            return (
+              <div key={index} className="flex-[0_0_100%] min-w-0">
+                {isVideoThumbnail ? (
+                  <div 
+                    className="relative cursor-pointer"
+                    onClick={() => setIsVideoOpen(true)}
+                  >
+                    <img
+                      src={src}
+                      alt={`${alt} - Vidéo`}
+                      className={cn(className, "w-full object-cover")}
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                        <Play className="h-8 w-8 text-white fill-white ml-1" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ZoomableImage
+                    src={src}
+                    alt={`${alt} - ${index + 1}`}
+                    className={className}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -172,7 +263,7 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
 
       {/* Pagination dots */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex gap-1.5">
-        {images.map((_, index) => (
+        {displayImages.map((_, index) => (
           <button
             key={index}
             className={cn(
@@ -189,7 +280,7 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
 
       {/* Image counter */}
       <div className="absolute top-3 left-3 z-30 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full pointer-events-none">
-        {selectedIndex + 1} / {images.length}
+        {selectedIndex + 1} / {displayImages.length}
       </div>
 
       {/* Fullscreen Gallery */}
@@ -200,6 +291,16 @@ export function ImageGallery({ images, alt, className }: ImageGalleryProps) {
         isOpen={isFullscreen}
         onClose={closeFullscreen}
       />
+
+      {/* Video Player */}
+      {hasVideo && (
+        <VideoPlayer
+          videoUrl={videoUrl}
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          title={alt}
+        />
+      )}
     </div>
   );
 }

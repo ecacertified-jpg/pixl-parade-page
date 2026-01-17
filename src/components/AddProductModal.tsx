@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, Tag, Loader2 } from "lucide-react";
 import { MultiImageUploader, ImageItem } from "@/components/MultiImageUploader";
+import { VideoUploader } from "@/components/VideoUploader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -29,6 +30,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
   const [loading, setLoading] = useState(false);
   const [productImages, setProductImages] = useState<ImageItem[]>([]);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -238,7 +241,7 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         }
       }
 
-      // Create product in database with country_code
+      // Create product in database with country_code and video
       const { data, error } = await supabase
         .from('products')
         .insert({
@@ -249,6 +252,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           image_url: imageUrl,
           images: uploadedUrls,
+          video_url: videoUrl,
+          video_thumbnail_url: videoThumbnailUrl,
           business_owner_id: user.id,
           business_account_id: selectedBusinessId || formData.business_id,
           business_id: formData.business_id,
@@ -283,6 +288,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       });
       setProductImages([]);
       setUseCustomCategory(false);
+      setVideoUrl(null);
+      setVideoThumbnailUrl(null);
       
       onProductAdded();
       onClose();
@@ -475,6 +482,16 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
                 disabled={loading}
               />
             </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <VideoUploader
+              videoUrl={videoUrl}
+              thumbnailUrl={videoThumbnailUrl}
+              onVideoChange={setVideoUrl}
+              onThumbnailChange={setVideoThumbnailUrl}
+              disabled={loading}
+            />
           </div>
         </div>
 

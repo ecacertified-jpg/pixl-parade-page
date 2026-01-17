@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Users, Package, DollarSign, Cake } from "lucide-react";
+import { Edit, Trash2, Users, Package, DollarSign, Cake, Play } from "lucide-react";
 import { BusinessCollaborativeGiftModal } from "./BusinessCollaborativeGiftModal";
 import { ProductRatingDisplay } from "./ProductRatingDisplay";
 import { RatingModal } from "./RatingModal";
 import { BirthdayAlertProductBadge } from "./BirthdayAlertProductBadge";
+import { VideoPlayer } from "./VideoPlayer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessBirthdayAlerts, BirthdayAlert } from "@/hooks/useBusinessBirthdayAlerts";
 
@@ -17,6 +18,8 @@ interface Product {
   price: number;
   currency: string;
   image_url?: string;
+  video_url?: string | null;
+  video_thumbnail_url?: string | null;
   business_owner_id: string;
   category_id?: string;
   category_name?: string;
@@ -40,6 +43,7 @@ export function BusinessProductCard({
   const { user, loading: authLoading } = useAuth();
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const { getAlertsForProduct, dismissAlert } = useBusinessBirthdayAlerts(businessId);
 
   // Get birthday alerts for this specific product
@@ -110,12 +114,24 @@ export function BusinessProductCard({
         
         {/* Product Image */}
         <div className="aspect-square bg-muted relative overflow-hidden border-b">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+          {product.video_thumbnail_url || product.image_url ? (
+            <div className="relative w-full h-full">
+              <img
+                src={product.video_thumbnail_url || product.image_url}
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+              {product.video_url && (
+                <div 
+                  className="absolute inset-0 bg-black/20 flex items-center justify-center cursor-pointer hover:bg-black/30 transition-colors"
+                  onClick={() => setShowVideoPlayer(true)}
+                >
+                  <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="h-7 w-7 text-white fill-white ml-1" />
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
               <Package className="h-16 w-16 text-muted-foreground/30" />
@@ -134,6 +150,11 @@ export function BusinessProductCard({
                 📦 Stock faible: {product.stock}
               </Badge>
             </div>
+          )}
+          {product.video_url && (
+            <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
+              🎬 Vidéo
+            </Badge>
           )}
         </div>
 
@@ -249,6 +270,15 @@ export function BusinessProductCard({
         productId={product.id}
         productName={product.name}
       />
+
+      {product.video_url && (
+        <VideoPlayer
+          videoUrl={product.video_url}
+          isOpen={showVideoPlayer}
+          onClose={() => setShowVideoPlayer(false)}
+          title={product.name}
+        />
+      )}
     </>
   );
 }
