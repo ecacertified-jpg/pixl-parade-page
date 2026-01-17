@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2, Clock, Scissors } from 'lucide-react';
+import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2, Clock, Scissors, Camera } from 'lucide-react';
+import { VideoFrameCapture } from '@/components/VideoFrameCapture';
+import { VideoFrameCapturePreview } from '@/components/VideoFrameCapturePreview';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -74,6 +76,12 @@ export function VideoUploader({
   const [showTrimEditor, setShowTrimEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingVideoDuration, setPendingVideoDuration] = useState(0);
+  
+  // Frame capture state
+  const [capturedFrame, setCapturedFrame] = useState<Blob | null>(null);
+  const [capturedTimestamp, setCapturedTimestamp] = useState(0);
+  const [showCapturePreview, setShowCapturePreview] = useState(false);
+  const [uploadingCapturedFrame, setUploadingCapturedFrame] = useState(false);
   
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
@@ -334,6 +342,40 @@ export function VideoUploader({
     }
   };
 
+  // Handle frame capture
+  const handleFrameCapture = (blob: Blob, timestamp: number) => {
+    setCapturedFrame(blob);
+    setCapturedTimestamp(timestamp);
+    setShowCapturePreview(true);
+  };
+
+  const handleCaptureConfirm = async () => {
+    if (!capturedFrame) return;
+    
+    setUploadingCapturedFrame(true);
+    try {
+      await uploadThumbnailBlob(capturedFrame);
+      toast.success('Miniature extraite avec succès !');
+      setShowCapturePreview(false);
+      setCapturedFrame(null);
+    } catch (error) {
+      console.error('Error uploading captured frame:', error);
+      toast.error("Erreur lors de l'upload de la miniature");
+    } finally {
+      setUploadingCapturedFrame(false);
+    }
+  };
+
+  const handleCaptureRetry = () => {
+    setShowCapturePreview(false);
+    setCapturedFrame(null);
+  };
+
+  const handleCaptureCancel = () => {
+    setShowCapturePreview(false);
+    setCapturedFrame(null);
+  };
+
   const handleThumbnailSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -507,18 +549,41 @@ export function VideoUploader({
             </div>
           ) : null}
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => thumbnailInputRef.current?.click()}
-            disabled={disabled || uploadingThumbnail}
-            className="gap-2"
-          >
-            <Image className="h-4 w-4" />
-            {thumbnailUrl ? 'Changer la miniature' : 'Ajouter une miniature personnalisée'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {/* Frame capture button - only for direct videos */}
+            {!isExternalVideo && (
+              <VideoFrameCapture
+                videoRef={videoPreviewRef}
+                videoUrl={videoUrl}
+                onCapture={handleFrameCapture}
+                disabled={disabled || uploadingThumbnail}
+              />
+            )}
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => thumbnailInputRef.current?.click()}
+              disabled={disabled || uploadingThumbnail}
+              className="gap-2"
+            >
+              <Image className="h-4 w-4" />
+              {thumbnailUrl ? 'Changer' : 'Importer une image'}
+            </Button>
+          </div>
         </div>
+
+        {/* Frame capture preview modal */}
+        <VideoFrameCapturePreview
+          imageBlob={capturedFrame}
+          timestamp={capturedTimestamp}
+          open={showCapturePreview}
+          onConfirm={handleCaptureConfirm}
+          onRetry={handleCaptureRetry}
+          onCancel={handleCaptureCancel}
+          isUploading={uploadingCapturedFrame}
+        />
       </div>
     );
   };
@@ -700,6 +765,7 @@ export function VideoUploader({
           videoDuration={pendingVideoDuration}
           onTrimComplete={handleTrimComplete}
           onCancel={handleTrimCancel}
+          onFrameCapture={handleFrameCapture}
           open={showTrimEditor}
         />
       )}
