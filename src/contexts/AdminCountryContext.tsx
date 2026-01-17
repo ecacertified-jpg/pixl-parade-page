@@ -91,8 +91,19 @@ export function AdminCountryProvider({ children }: { children: ReactNode }) {
 
 export function useAdminCountry() {
   const context = useContext(AdminCountryContext);
+  
+  // Return safe defaults if used outside provider (during initial render before AdminLayout mounts)
   if (!context) {
-    throw new Error('useAdminCountry must be used within AdminCountryProvider');
+    return {
+      selectedCountry: null,
+      setSelectedCountry: () => {},
+      allCountries: [],
+      accessibleCountries: [],
+      getCountryFilter: () => null,
+      canAccessCountry: () => true,
+      isRestricted: false,
+    };
   }
+  
   return context;
 }
