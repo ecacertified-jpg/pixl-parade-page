@@ -13,6 +13,8 @@ interface ProductData {
   price: number;
   currency: string;
   image_url: string | null;
+  images: string[] | null;
+  video_thumbnail_url: string | null;
   vendor_name: string;
   vendor_id: string | null;
 }
@@ -23,6 +25,7 @@ export default function ProductPreview() {
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -42,6 +45,8 @@ export default function ProductPreview() {
             price,
             currency,
             image_url,
+            images,
+            video_thumbnail_url,
             business_accounts!products_business_id_fkey (
               id,
               business_name
@@ -62,6 +67,20 @@ export default function ProductPreview() {
           return;
         }
 
+        // Parse images array if it's a JSON string
+        let imagesArray: string[] | null = null;
+        if (data.images) {
+          if (Array.isArray(data.images)) {
+            imagesArray = data.images as string[];
+          } else if (typeof data.images === 'string') {
+            try {
+              imagesArray = JSON.parse(data.images);
+            } catch {
+              imagesArray = null;
+            }
+          }
+        }
+
         setProduct({
           id: data.id,
           name: data.name,
@@ -69,6 +88,8 @@ export default function ProductPreview() {
           price: data.price,
           currency: data.currency || "XOF",
           image_url: data.image_url,
+          images: imagesArray,
+          video_thumbnail_url: data.video_thumbnail_url,
           vendor_name: data.business_accounts?.business_name || "Vendeur",
           vendor_id: data.business_accounts?.id || null,
         });
@@ -125,6 +146,11 @@ export default function ProductPreview() {
   }
 
   const formattedPrice = `${product.price.toLocaleString("fr-FR")} ${product.currency}`;
+  
+  // Priority: image_url > images[0] > video_thumbnail_url
+  const displayImageUrl = !imageError 
+    ? (product.image_url || product.images?.[0] || product.video_thumbnail_url || null)
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
@@ -148,15 +174,17 @@ export default function ProductPreview() {
         <Card className="overflow-hidden">
           {/* Product Image */}
           <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-secondary/50 to-primary/10">
-            {product.image_url ? (
+            {displayImageUrl ? (
               <img
-                src={product.image_url}
+                src={displayImageUrl}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Gift className="h-24 w-24 text-primary/30" />
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                <img src={logoRose} alt="Joie de Vivre" className="h-16 w-auto opacity-40" />
+                <span className="text-sm text-muted-foreground">Image bientôt disponible</span>
               </div>
             )}
           </div>
