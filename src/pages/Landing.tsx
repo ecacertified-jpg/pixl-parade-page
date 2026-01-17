@@ -62,10 +62,10 @@ const Landing = () => {
             </div>
             <div className="flex items-center gap-2">
               <CountrySelector variant="compact" />
-              <Button variant="ghost" onClick={() => navigate("/auth")}>
+              <Button variant="ghost" onClick={() => navigate("/auth?tab=signin")}>
                 Connexion
               </Button>
-              <Button variant="default" onClick={() => navigate("/auth")}>
+              <Button variant="default" onClick={() => navigate("/auth?tab=signup")}>
                 S'inscrire
               </Button>
             </div>
@@ -91,7 +91,7 @@ const Landing = () => {
                 Offrez et recevez des cadeaux pour les anniversaires, promotions, mariages et toutes les occasions qui comptent. Créez des cagnottes collectives et partagez la joie avec vos proches.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" onClick={() => navigate("/auth")} className="text-lg px-8">
+                <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
                   Commencer gratuitement
                   <Sparkles className="ml-2 h-5 w-5" />
                 </Button>
@@ -214,7 +214,7 @@ const Landing = () => {
               Rejoignez des centaines d'utilisateurs qui partagent déjà des moments de bonheur sur JOIE DE VIVRE
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate("/auth")} className="text-lg px-8">
+              <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
                 Créer mon compte
                 <Heart className="ml-2 h-5 w-5" />
               </Button>
@@ -242,7 +242,7 @@ const Landing = () => {
             <div>
               <h3 className="font-semibold text-foreground mb-3">Plateforme</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="/auth" className="hover:text-foreground transition-colors">S'inscrire</a></li>
+                <li><a href="/auth?tab=signup" className="hover:text-foreground transition-colors">S'inscrire</a></li>
                 <li><a href="/business-auth" className="hover:text-foreground transition-colors">Espace Vendeur</a></li>
               </ul>
             </div>
