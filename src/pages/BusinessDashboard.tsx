@@ -37,6 +37,7 @@ import { BusinessFinancialSummary } from "@/components/BusinessFinancialSummary"
 import { BusinessSelector } from "@/components/BusinessSelector";
 import { BirthdayOpportunitiesSection } from "@/components/BirthdayOpportunitiesSection";
 import { BusinessCollaborativeGiftModal } from "@/components/BusinessCollaborativeGiftModal";
+import { BusinessFollowersSection } from "@/components/BusinessFollowersSection";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -960,6 +961,11 @@ export default function BusinessDashboard() {
               platformName={String(getSetting('platform_name') || 'JOIE DE VIVRE')}
               commissionRate={Number(getSetting('commission_rate') || 15)}
             />
+
+            {/* Section Mes abonnés */}
+            {selectedBusinessId && (
+              <BusinessFollowersSection businessId={selectedBusinessId} />
+            )}
 
             {/* Commandes et Cagnottes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
