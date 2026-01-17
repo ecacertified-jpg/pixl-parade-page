@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles, Play, Share2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,9 @@ import { CountryBadge } from "@/components/CountryBadge";
 import { BusinessShareMenu } from "@/components/BusinessShareMenu";
 import { VendorOpeningHours } from "@/components/VendorOpeningHours";
 import { VendorLocationMap } from "@/components/VendorLocationMap";
-import { FollowBusinessButton } from "@/components/FollowBusinessButton";
+import { VendorHeaderCard } from "@/components/VendorHeaderCard";
+import { VendorContactCard } from "@/components/VendorContactCard";
+import { useVendorRatings } from "@/hooks/useVendorRatings";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -28,7 +30,8 @@ export default function VendorShop() {
   const [searchParams] = useSearchParams();
   const { products, vendor, loading, error } = useVendorProducts(businessId);
   const { itemCount } = useCart();
-  const { isFavorite, getFavoriteId, addFavorite, removeFavorite, stats } = useFavorites();
+  const { isFavorite, getFavoriteId, addFavorite, removeFavorite, stats: favoriteStats } = useFavorites();
+  const { stats: ratingStats } = useVendorRatings(businessId || "");
 
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
@@ -93,38 +96,35 @@ export default function VendorShop() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      {/* Header */}
+      {/* Header - Compact Navigation */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
-        <div className="max-w-md mx-auto px-4 py-4">
+        <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/shop')} className="p-2">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Avatar className="h-8 w-8 flex-shrink-0">
+              <Avatar className="h-7 w-7 flex-shrink-0">
                 <AvatarImage src={vendor.logoUrl || undefined} alt={vendor.businessName} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {vendor.businessName.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <h1 className="text-lg font-bold truncate">{vendor.businessName}</h1>
+              <h1 className="text-base font-semibold truncate">{vendor.businessName}</h1>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setShareMenuOpen(true)}>
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/favorites')}>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" onClick={() => navigate('/favorites')}>
                 <Heart className="h-4 w-4" />
-                {stats.total > 0 && (
-                  <Badge className="absolute -top-1 -right-1 bg-destructive text-white text-xs w-5 h-5 flex items-center justify-center p-0">
-                    {stats.total}
+                {favoriteStats.total > 0 && (
+                  <Badge className="absolute -top-1 -right-1 bg-destructive text-white text-[10px] w-4 h-4 flex items-center justify-center p-0">
+                    {favoriteStats.total}
                   </Badge>
                 )}
               </Button>
-              <Button variant="ghost" size="sm" className="relative" onClick={() => navigate('/cart')}>
+              <Button variant="ghost" size="sm" className="relative h-9 w-9 p-0" onClick={() => navigate('/cart')}>
                 <ShoppingCart className="h-4 w-4" />
                 {itemCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 flex items-center justify-center p-0">
+                  <Badge className="absolute -top-1 -right-1 bg-primary text-white text-[10px] w-4 h-4 flex items-center justify-center p-0">
                     {itemCount}
                   </Badge>
                 )}
@@ -134,104 +134,45 @@ export default function VendorShop() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-6 space-y-6">
-        {/* Vendor Header Card */}
-        <Card className="overflow-hidden">
-          <div className="bg-gradient-to-r from-primary/20 to-secondary/20 p-6">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
-                <AvatarImage src={vendor.logoUrl || undefined} alt={vendor.businessName} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                  {vendor.businessName.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-xl font-bold mb-1">{vendor.businessName}</h2>
-                    {vendor.businessType && (
-                      <Badge variant="secondary" className="mb-2">
-                        {vendor.businessType}
-                      </Badge>
-                    )}
-                  </div>
-                  <FollowBusinessButton 
-                    businessId={businessId!}
-                    businessName={vendor.businessName}
-                    showCount={true}
-                  />
-                </div>
-                {vendor.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {vendor.description}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Contact & Info */}
-          <div className="p-4 space-y-3">
-            {vendor.address && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">{vendor.address}</span>
-              </div>
-            )}
-            {vendor.phone && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 flex-shrink-0" />
-                <a href={`tel:${vendor.phone}`} className="hover:text-primary transition-colors">
-                  {vendor.phone}
-                </a>
-              </div>
-            )}
-            {vendor.email && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 flex-shrink-0" />
-                <a href={`mailto:${vendor.email}`} className="hover:text-primary transition-colors truncate">
-                  {vendor.email}
-                </a>
-              </div>
-            )}
-            
-            {/* Stats */}
-            <div className="flex items-center gap-4 pt-2 border-t border-border/50">
-              <div className="flex items-center gap-1 text-sm">
-                <Package className="h-4 w-4 text-primary" />
-                <span className="font-medium">{productCount}</span>
-                <span className="text-muted-foreground">produits</span>
-              </div>
-              {experienceCount > 0 && (
-                <div className="flex items-center gap-1 text-sm">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span className="font-medium">{experienceCount}</span>
-                  <span className="text-muted-foreground">expériences</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
+      <main className="max-w-md mx-auto px-4 py-4 space-y-4">
+        {/* Vendor Header Card - New harmonized design */}
+        <VendorHeaderCard
+          businessId={businessId!}
+          businessName={vendor.businessName}
+          businessType={vendor.businessType}
+          description={vendor.description}
+          logoUrl={vendor.logoUrl}
+          productCount={productCount}
+          experienceCount={experienceCount}
+          averageRating={ratingStats?.averageRating}
+          totalReviews={ratingStats?.totalRatings}
+          onShare={() => setShareMenuOpen(true)}
+        />
 
-        {/* Customer Reviews Section */}
-        <VendorReviewsSection businessId={businessId!} />
+        {/* Contact Card - Compact grid layout */}
+        <VendorContactCard
+          address={vendor.address}
+          phone={vendor.phone}
+          email={vendor.email}
+          countryCode={vendor.countryCode}
+        />
 
-        {/* Opening Hours & Location */}
-        {(vendor.openingHours || vendor.address) && (
-          <div className="space-y-4">
-            {vendor.openingHours && Object.keys(vendor.openingHours).length > 0 && (
-              <VendorOpeningHours openingHours={vendor.openingHours} />
-            )}
-            
-            {vendor.address && (
-              <VendorLocationMap 
-                address={vendor.address}
-                businessName={vendor.businessName}
-                countryCode={vendor.countryCode}
-              />
-            )}
-          </div>
+        {/* Opening Hours - Collapsible */}
+        {vendor.openingHours && Object.keys(vendor.openingHours).length > 0 && (
+          <VendorOpeningHours openingHours={vendor.openingHours} />
         )}
+
+        {/* Location Map */}
+        {vendor.address && (
+          <VendorLocationMap 
+            address={vendor.address}
+            businessName={vendor.businessName}
+            countryCode={vendor.countryCode}
+          />
+        )}
+
+        {/* Customer Reviews - Compact with expansion */}
+        <VendorReviewsSection businessId={businessId!} />
 
         {/* Products/Experiences Tabs */}
         <Tabs
