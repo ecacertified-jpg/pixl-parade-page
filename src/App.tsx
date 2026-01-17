@@ -80,6 +80,7 @@ import AccountLinking from "./pages/AccountLinking";
 import ProductPreview from "./pages/ProductPreview";
 import FundPreview from "./pages/FundPreview";
 import BusinessPreview from "./pages/BusinessPreview";
+import ExploreMap from "./pages/ExploreMap";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +148,11 @@ const App = () => (
             <Route path="/shop" element={
               <ProtectedRoute>
                 <Shop />
+              </ProtectedRoute>
+            } />
+            <Route path="/explore-map" element={
+              <ProtectedRoute>
+                <ExploreMap />
               </ProtectedRoute>
             } />
             <Route path="/boutique/:businessId" element={

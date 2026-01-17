@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2 } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map } from "lucide-react";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ProductShareCount } from "@/components/ProductShareCount";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
@@ -428,6 +428,14 @@ export default function Shop() {
               <span className="text-sm text-muted-foreground">🏷️</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/explore-map')}
+                title="Carte des boutiques"
+              >
+                <Map className="h-4 w-4" />
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
