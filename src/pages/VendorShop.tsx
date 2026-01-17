@@ -18,6 +18,8 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { cn } from "@/lib/utils";
 import { CountryBadge } from "@/components/CountryBadge";
 import { BusinessShareMenu } from "@/components/BusinessShareMenu";
+import { VendorOpeningHours } from "@/components/VendorOpeningHours";
+import { VendorLocationMap } from "@/components/VendorLocationMap";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -203,6 +205,23 @@ export default function VendorShop() {
 
         {/* Customer Reviews Section */}
         <VendorReviewsSection businessId={businessId!} />
+
+        {/* Opening Hours & Location */}
+        {(vendor.openingHours || vendor.address) && (
+          <div className="space-y-4">
+            {vendor.openingHours && Object.keys(vendor.openingHours).length > 0 && (
+              <VendorOpeningHours openingHours={vendor.openingHours} />
+            )}
+            
+            {vendor.address && (
+              <VendorLocationMap 
+                address={vendor.address}
+                businessName={vendor.businessName}
+                countryCode={vendor.countryCode}
+              />
+            )}
+          </div>
+        )}
 
         {/* Products/Experiences Tabs */}
         <Tabs
