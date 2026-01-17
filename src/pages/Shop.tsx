@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play } from "lucide-react";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -53,8 +54,11 @@ export default function Shop() {
     categoryName?: string;
     locationName?: string;
     videoUrl?: string | null;
-    videoThumbnail?: string | null;
+    videoThumbnailUrl?: string | null;
   }>>([]);
+  
+  // State for video playback modal
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
   const [popularShops, setPopularShops] = useState<Array<{
     id: string;
     name: string;
@@ -233,7 +237,7 @@ export default function Shop() {
           categoryName: product.category_name,
           locationName: product.location_name || "Non spécifié",
           videoUrl: product.video_url || null,
-          videoThumbnail: product.video_thumbnail_url || null
+          videoThumbnailUrl: product.video_thumbnail_url || null
         };
       });
       
@@ -648,7 +652,7 @@ export default function Shop() {
           ) : (
             filteredProducts.map(product => (
               <Card key={product.id} className="overflow-hidden">
-                {/* Clickable Image */}
+                {/* Clickable Image/Video */}
                 <div 
                   className="relative cursor-pointer"
                   onClick={() => {
@@ -656,23 +660,40 @@ export default function Shop() {
                     setIsDetailModalOpen(true);
                   }}
                 >
-                  <img src={product.image} alt={product.name} className="w-full h-40 object-cover" />
+                  <img 
+                    src={product.videoUrl ? (product.videoThumbnailUrl || product.image) : product.image} 
+                    alt={product.name} 
+                    className="w-full h-40 object-cover" 
+                  />
                   {product.isExperience && (
                     <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
                       ✨ EXPÉRIENCE
                     </Badge>
                   )}
+                  {/* Play button for video products */}
                   {product.videoUrl && (
-                    <Badge className="absolute bottom-2 left-2 bg-black/70 text-white text-xs flex items-center gap-1">
-                      <Video className="h-3 w-3" />
-                      Vidéo
-                    </Badge>
+                    <button
+                      className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedVideo({ url: product.videoUrl!, title: product.name });
+                      }}
+                      aria-label="Lire la vidéo"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <Play className="h-7 w-7 text-primary fill-primary ml-1" />
+                      </div>
+                      <Badge className="absolute bottom-2 left-2 bg-black/70 text-white text-xs flex items-center gap-1">
+                        <Video className="h-3 w-3" />
+                        Vidéo
+                      </Badge>
+                    </button>
                   )}
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     className={cn(
-                      "absolute top-2 right-2 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full",
+                      "absolute top-2 right-2 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10",
                       isFavorite(String(product.id)) && "text-destructive"
                     )}
                     onClick={async (e) => {
@@ -816,6 +837,14 @@ export default function Shop() {
           }
         }}
         isFavorite={detailProduct ? isFavorite(String(detailProduct.id)) : false}
+      />
+      
+      {/* Video Player Modal */}
+      <VideoPlayer 
+        videoUrl={selectedVideo?.url || ""} 
+        isOpen={!!selectedVideo} 
+        onClose={() => setSelectedVideo(null)} 
+        title={selectedVideo?.title}
       />
     </div>
   );
