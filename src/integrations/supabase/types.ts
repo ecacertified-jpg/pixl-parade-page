@@ -4218,27 +4218,135 @@ export type Database = {
           },
         ]
       }
-      product_shares: {
+      product_share_events: {
         Row: {
+          actor_user_id: string | null
+          conversion_value: number | null
           created_at: string
+          device_type: string | null
+          event_type: string
           id: string
+          landing_page: string | null
+          metadata: Json | null
           product_id: string
-          share_platform: string
-          user_id: string | null
+          referrer_url: string | null
+          share_id: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
         }
         Insert: {
+          actor_user_id?: string | null
+          conversion_value?: number | null
           created_at?: string
+          device_type?: string | null
+          event_type: string
           id?: string
+          landing_page?: string | null
+          metadata?: Json | null
           product_id: string
-          share_platform: string
-          user_id?: string | null
+          referrer_url?: string | null
+          share_id: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
         }
         Update: {
+          actor_user_id?: string | null
+          conversion_value?: number | null
           created_at?: string
+          device_type?: string | null
+          event_type?: string
           id?: string
+          landing_page?: string | null
+          metadata?: Json | null
           product_id?: string
-          share_platform?: string
+          referrer_url?: string | null
+          share_id?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_share_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_share_events_share_id_fkey"
+            columns: ["share_id"]
+            isOneToOne: false
+            referencedRelation: "product_shares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_shares: {
+        Row: {
+          click_count: number | null
+          conversion_count: number | null
+          created_at: string
+          first_clicked_at: string | null
+          first_converted_at: string | null
+          id: string
+          last_clicked_at: string | null
+          personal_message: string | null
+          product_id: string
+          referrer_url: string | null
+          share_platform: string
+          share_token: string | null
+          template_used: string | null
+          total_conversion_value: number | null
+          user_agent: string | null
+          user_id: string | null
+          view_count: number | null
+        }
+        Insert: {
+          click_count?: number | null
+          conversion_count?: number | null
+          created_at?: string
+          first_clicked_at?: string | null
+          first_converted_at?: string | null
+          id?: string
+          last_clicked_at?: string | null
+          personal_message?: string | null
+          product_id: string
+          referrer_url?: string | null
+          share_platform: string
+          share_token?: string | null
+          template_used?: string | null
+          total_conversion_value?: number | null
+          user_agent?: string | null
           user_id?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          click_count?: number | null
+          conversion_count?: number | null
+          created_at?: string
+          first_clicked_at?: string | null
+          first_converted_at?: string | null
+          id?: string
+          last_clicked_at?: string | null
+          personal_message?: string | null
+          product_id?: string
+          referrer_url?: string | null
+          share_platform?: string
+          share_token?: string | null
+          template_used?: string | null
+          total_conversion_value?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -6474,6 +6582,29 @@ export type Database = {
           },
         ]
       }
+      product_share_analytics: {
+        Row: {
+          avg_conversion_value: number | null
+          click_to_conversion_rate: number | null
+          product_id: string | null
+          share_platform: string | null
+          share_to_click_rate: number | null
+          total_clicks: number | null
+          total_conversions: number | null
+          total_revenue: number | null
+          total_shares: number | null
+          total_views: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_shares_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_share_stats: {
         Row: {
           email_shares: number | null
@@ -7059,6 +7190,14 @@ export type Database = {
       }
       increment_gratitude_reaction: {
         Args: { p_message_id: string }
+        Returns: undefined
+      }
+      increment_share_metrics: {
+        Args: {
+          p_conversion_value?: number
+          p_event_type: string
+          p_share_token: string
+        }
         Returns: undefined
       }
       is_active_admin: { Args: { user_uuid: string }; Returns: boolean }

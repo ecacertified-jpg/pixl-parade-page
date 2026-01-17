@@ -16,10 +16,15 @@ interface ProductShareStats {
   sharesToday: number;
 }
 
+interface RecordShareOptions {
+  template?: string;
+  message?: string;
+}
+
 interface UseProductSharesReturn {
   stats: ProductShareStats | null;
   loading: boolean;
-  recordShare: (platform: SharePlatform) => Promise<void>;
+  recordShare: (platform: SharePlatform, options?: RecordShareOptions) => Promise<string | null>;
   refetch: () => void;
 }
 
@@ -127,8 +132,11 @@ export function useProductShares(productId: string): UseProductSharesReturn {
     fetchStats();
   }, [fetchStats]);
 
-  const recordShare = useCallback(async (platform: SharePlatform) => {
-    if (!productId) return;
+  const recordShare = useCallback(async (
+    platform: SharePlatform,
+    options?: RecordShareOptions
+  ): Promise<string | null> => {
+    if (!productId) return null;
 
     try {
       // Optimistically update stats
@@ -145,21 +153,33 @@ export function useProductShares(productId: string): UseProductSharesReturn {
         };
       });
 
-      // Insert the share record
-      const { error } = await supabase.from('product_shares').insert({
-        product_id: productId,
-        user_id: user?.id || null,
-        share_platform: platform,
-      });
+      // Insert the share record with template and message
+      const { data, error } = await supabase
+        .from('product_shares')
+        .insert({
+          product_id: productId,
+          user_id: user?.id || null,
+          share_platform: platform,
+          template_used: options?.template || 'classic',
+          personal_message: options?.message || null,
+          user_agent: navigator.userAgent,
+          referrer_url: document.referrer || null,
+        })
+        .select('share_token')
+        .single();
 
       if (error) {
         console.error('Error recording share:', error);
         // Revert optimistic update on error
         fetchStats();
+        return null;
       }
+
+      return data?.share_token || null;
     } catch (error) {
       console.error('Error recording share:', error);
       fetchStats();
+      return null;
     }
   }, [productId, user?.id, fetchStats]);
 

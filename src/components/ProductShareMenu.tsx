@@ -82,7 +82,7 @@ export function ProductShareMenu({
 
   if (!product) return null;
 
-  const productUrl = `${window.location.origin}/p/${product.id}`;
+  const baseProductUrl = `${window.location.origin}/p/${product.id}`;
   const formattedPrice = `${product.price.toLocaleString()} ${product.currency}`;
   
   // Inclure le message personnalisé dans le texte de partage si présent
@@ -90,14 +90,27 @@ export function ProductShareMenu({
     ? `\n\n💬 "${customization.message.trim()}"` 
     : '';
   const shareText = `🎁 Découvre ce produit sur JOIE DE VIVRE !${personalMessageText}\n\n📦 ${product.name}\n💰 ${formattedPrice}\n🏪 ${product.vendor}`;
-  const fullMessage = `${shareText}\n\n➡️ ${productUrl}`;
+
+  // Créer une URL trackable avec le token de partage
+  const createTrackableUrl = (shareToken: string | null): string => {
+    if (shareToken) {
+      return `${baseProductUrl}?ref=${shareToken}`;
+    }
+    return baseProductUrl;
+  };
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(productUrl);
+      // Enregistrer le partage et obtenir le token
+      const shareToken = await recordShare('copy_link', {
+        template: customization.template,
+        message: customization.message,
+      });
+      const trackableUrl = createTrackableUrl(shareToken);
+      
+      await navigator.clipboard.writeText(trackableUrl);
       setCopied(true);
       toast.success("Lien copié !");
-      await recordShare('copy_link');
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Impossible de copier le lien");
@@ -105,29 +118,48 @@ export function ProductShareMenu({
   };
 
   const shareViaWhatsApp = async () => {
-    await recordShare('whatsapp');
+    const shareToken = await recordShare('whatsapp', {
+      template: customization.template,
+      message: customization.message,
+    });
+    const trackableUrl = createTrackableUrl(shareToken);
+    const fullMessage = `${shareText}\n\n➡️ ${trackableUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
     window.open(url, "_blank");
     onOpenChange(false);
   };
 
   const shareViaFacebook = async () => {
-    await recordShare('facebook');
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(productUrl)}&quote=${encodeURIComponent(shareText)}`;
+    const shareToken = await recordShare('facebook', {
+      template: customization.template,
+      message: customization.message,
+    });
+    const trackableUrl = createTrackableUrl(shareToken);
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(trackableUrl)}&quote=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank");
     onOpenChange(false);
   };
 
   const shareViaSMS = async () => {
-    await recordShare('sms');
+    const shareToken = await recordShare('sms', {
+      template: customization.template,
+      message: customization.message,
+    });
+    const trackableUrl = createTrackableUrl(shareToken);
+    const fullMessage = `${shareText}\n\n➡️ ${trackableUrl}`;
     const url = `sms:?body=${encodeURIComponent(fullMessage)}`;
     window.location.href = url;
     onOpenChange(false);
   };
 
   const shareViaEmail = async () => {
-    await recordShare('email');
+    const shareToken = await recordShare('email', {
+      template: customization.template,
+      message: customization.message,
+    });
+    const trackableUrl = createTrackableUrl(shareToken);
     const subject = encodeURIComponent(`Découvre ${product.name} sur JOIE DE VIVRE !`);
+    const fullMessage = `${shareText}\n\n➡️ ${trackableUrl}`;
     const body = encodeURIComponent(fullMessage);
     const url = `mailto:?subject=${subject}&body=${body}`;
     window.location.href = url;
@@ -137,14 +169,19 @@ export function ProductShareMenu({
   const shareNative = async () => {
     if (navigator.share) {
       try {
+        const shareToken = await recordShare('native', {
+          template: customization.template,
+          message: customization.message,
+        });
+        const trackableUrl = createTrackableUrl(shareToken);
+        
         if (shareImageUrl && navigator.canShare) {
           const file = await getShareFile(shareImageUrl, product.name);
           if (file && navigator.canShare({ files: [file] })) {
-            await recordShare('native');
             await navigator.share({
               title: `${product.name} - JOIE DE VIVRE`,
               text: shareText,
-              url: productUrl,
+              url: trackableUrl,
               files: [file],
             });
             onOpenChange(false);
@@ -152,11 +189,10 @@ export function ProductShareMenu({
           }
         }
         
-        await recordShare('native');
         await navigator.share({
           title: `${product.name} - JOIE DE VIVRE`,
           text: shareText,
-          url: productUrl,
+          url: trackableUrl,
         });
         onOpenChange(false);
       } catch (error) {
@@ -278,11 +314,11 @@ export function ProductShareMenu({
 
             {/* Copy link section */}
             <div className="border rounded-lg p-3 bg-muted/50">
-              <p className="text-xs text-muted-foreground mb-2">Lien du produit</p>
+              <p className="text-xs text-muted-foreground mb-2">Lien du produit (cliquez pour copier avec tracking)</p>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  value={productUrl}
+                  value={baseProductUrl}
                   readOnly
                   className="flex-1 text-sm bg-background border rounded px-3 py-2 truncate"
                 />
