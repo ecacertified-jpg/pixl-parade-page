@@ -1057,6 +1057,49 @@ export type Database = {
           },
         ]
       }
+      business_follows: {
+        Row: {
+          business_id: string
+          created_at: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_follows_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_follows_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_follows_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_locations: {
         Row: {
           commune: string | null

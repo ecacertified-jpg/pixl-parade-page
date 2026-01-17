@@ -279,6 +279,24 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
         return;
       }
 
+      // Notifier les followers du nouveau produit
+      if (data?.id) {
+        try {
+          await supabase.functions.invoke('notify-new-product', {
+            body: {
+              productId: data.id,
+              productName: formData.name,
+              businessId: selectedBusinessId || formData.business_id,
+              productImage: imageUrl
+            }
+          });
+          console.log('✅ Followers notifiés du nouveau produit');
+        } catch (notifyError) {
+          console.error('Error notifying followers:', notifyError);
+          // Ne pas bloquer si la notification échoue
+        }
+      }
+
       toast.success("Produit ajouté avec succès!");
       
       // Reset form

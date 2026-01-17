@@ -20,6 +20,7 @@ import { CountryBadge } from "@/components/CountryBadge";
 import { BusinessShareMenu } from "@/components/BusinessShareMenu";
 import { VendorOpeningHours } from "@/components/VendorOpeningHours";
 import { VendorLocationMap } from "@/components/VendorLocationMap";
+import { FollowBusinessButton } from "@/components/FollowBusinessButton";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -145,12 +146,21 @@ export default function VendorShop() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-bold mb-1">{vendor.businessName}</h2>
-                {vendor.businessType && (
-                  <Badge variant="secondary" className="mb-2">
-                    {vendor.businessType}
-                  </Badge>
-                )}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-xl font-bold mb-1">{vendor.businessName}</h2>
+                    {vendor.businessType && (
+                      <Badge variant="secondary" className="mb-2">
+                        {vendor.businessType}
+                      </Badge>
+                    )}
+                  </div>
+                  <FollowBusinessButton 
+                    businessId={businessId!}
+                    businessName={vendor.businessName}
+                    showCount={true}
+                  />
+                </div>
                 {vendor.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">
                     {vendor.description}
