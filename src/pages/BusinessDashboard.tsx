@@ -39,6 +39,7 @@ import { BirthdayOpportunitiesSection } from "@/components/BirthdayOpportunities
 import { BusinessCollaborativeGiftModal } from "@/components/BusinessCollaborativeGiftModal";
 import { BusinessFollowersSection } from "@/components/BusinessFollowersSection";
 import { MostSharedProducts } from "@/components/MostSharedProducts";
+import { BusinessShareAnalytics } from "@/components/BusinessShareAnalytics";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -1395,6 +1396,16 @@ export default function BusinessDashboard() {
                     </div>
                   </Card>
                 </div>
+
+                {/* Performance des partages */}
+                {selectedBusinessId && (
+                  <div className="mb-6">
+                    <BusinessShareAnalytics 
+                      businessId={selectedBusinessId}
+                      businessName={businessAccount?.business_name}
+                    />
+                  </div>
+                )}
 
                 {/* Graphique des ventes sur 30 jours */}
                 <Card className="p-4 mb-6">
