@@ -1,3 +1,4 @@
+import { useRef, useEffect, useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -13,10 +14,25 @@ import {
   Link as LinkIcon,
   Download,
   QrCode,
-  Share2
+  Share2,
+  Loader2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CollectiveFundShareCard } from './CollectiveFundShareCard';
+import { useFundShareCard } from '@/hooks/useFundShareCard';
+import { supabase } from '@/integrations/supabase/client';
+
+interface FundData {
+  title: string;
+  beneficiaryName: string;
+  targetAmount: number;
+  currentAmount: number;
+  currency: string;
+  productImage?: string;
+  productName?: string;
+  occasion?: string;
+}
 
 interface ShareFundModalProps {
   open: boolean;
@@ -24,6 +40,13 @@ interface ShareFundModalProps {
   fundId: string;
   fundTitle: string;
   fundDescription?: string;
+  targetAmount?: number;
+  currentAmount?: number;
+  currency?: string;
+  occasion?: string;
+  beneficiaryName?: string;
+  productImage?: string;
+  productName?: string;
 }
 
 export function ShareFundModal({ 
@@ -31,10 +54,111 @@ export function ShareFundModal({
   onOpenChange, 
   fundId, 
   fundTitle,
-  fundDescription 
+  fundDescription,
+  targetAmount,
+  currentAmount,
+  currency,
+  occasion,
+  beneficiaryName,
+  productImage,
+  productName,
 }: ShareFundModalProps) {
-  const fundUrl = `${window.location.origin}/fund/${fundId}`;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { generating, shareImageUrl, generateShareCard, getShareFile, reset } = useFundShareCard();
+  const [fundData, setFundData] = useState<FundData | null>(null);
+  const [loadingFundData, setLoadingFundData] = useState(false);
+
+  // Use new /f/ URL for sharing (Edge Function with OG meta tags)
+  const fundUrl = `${window.location.origin}/f/${fundId}`;
   const shareText = `🎁 Contribuez à cette cagnotte : ${fundTitle}${fundDescription ? ` - ${fundDescription.substring(0, 80)}` : ''}`;
+
+  // Fetch fund data if not provided via props
+  useEffect(() => {
+    async function fetchFundData() {
+      // If all data is provided via props, use it directly
+      if (targetAmount !== undefined && beneficiaryName) {
+        setFundData({
+          title: fundTitle,
+          beneficiaryName: beneficiaryName,
+          targetAmount: targetAmount,
+          currentAmount: currentAmount || 0,
+          currency: currency || 'XOF',
+          productImage,
+          productName,
+          occasion,
+        });
+        return;
+      }
+
+      // Otherwise, fetch from database
+      setLoadingFundData(true);
+      try {
+        const { data, error } = await supabase
+          .from('collective_funds')
+          .select(`
+            id,
+            title,
+            target_amount,
+            current_amount,
+            currency,
+            occasion,
+            products:business_product_id (
+              id,
+              name,
+              image_url
+            ),
+            contacts:beneficiary_contact_id (
+              id,
+              name
+            )
+          `)
+          .eq('id', fundId)
+          .single();
+
+        if (!error && data) {
+          const product = data.products as { id: string; name: string; image_url: string } | null;
+          const contact = data.contacts as { id: string; name: string } | null;
+
+          setFundData({
+            title: data.title,
+            beneficiaryName: contact?.name || beneficiaryName || 'un proche',
+            targetAmount: data.target_amount,
+            currentAmount: data.current_amount || 0,
+            currency: data.currency || 'XOF',
+            productImage: product?.image_url || productImage,
+            productName: product?.name || productName,
+            occasion: data.occasion || occasion,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching fund data for share card:', err);
+      } finally {
+        setLoadingFundData(false);
+      }
+    }
+
+    if (open) {
+      fetchFundData();
+    }
+  }, [open, fundId, fundTitle, targetAmount, currentAmount, currency, occasion, beneficiaryName, productImage, productName]);
+
+  // Generate share card when modal opens and data is ready
+  useEffect(() => {
+    if (open && fundData && cardRef.current && !shareImageUrl && !generating) {
+      // Small delay to ensure the card is rendered
+      const timer = setTimeout(() => {
+        generateShareCard(cardRef.current, fundId);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open, fundData, fundId, generateShareCard, shareImageUrl, generating]);
+
+  // Reset when modal closes
+  useEffect(() => {
+    if (!open) {
+      reset();
+    }
+  }, [open, reset]);
 
   const handleDownloadQR = () => {
     const svg = document.getElementById('fund-qr-code');
@@ -69,6 +193,23 @@ export function ShareFundModal({
   const nativeShare = async () => {
     if (navigator.share) {
       try {
+        // Try to share with image if available
+        if (shareImageUrl) {
+          const file = await getShareFile(shareImageUrl, fundTitle);
+          if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: fundTitle,
+              text: shareText,
+              url: fundUrl,
+              files: [file],
+            });
+            toast.success('Partage effectué avec succès !');
+            onOpenChange(false);
+            return;
+          }
+        }
+        
+        // Fallback to share without image
         await navigator.share({
           title: fundTitle,
           text: shareText,
@@ -133,89 +274,116 @@ export function ShareFundModal({
   ];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <SheetTitle>Partager cette cagnotte</SheetTitle>
-          <SheetDescription>
-            Partagez avec vos proches pour collecter plus rapidement
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      {/* Hidden share card for capture */}
+      {fundData && (
+        <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none">
+          <CollectiveFundShareCard ref={cardRef} fund={fundData} />
+        </div>
+      )}
 
-        <Tabs defaultValue="share" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="share">
-              <Share2 className="h-4 w-4 mr-2" />
-              Partager
-            </TabsTrigger>
-            <TabsTrigger value="qrcode">
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Code
-            </TabsTrigger>
-          </TabsList>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Partager cette cagnotte</SheetTitle>
+            <SheetDescription>
+              Partagez avec vos proches pour collecter plus rapidement
+            </SheetDescription>
+          </SheetHeader>
 
-          <TabsContent value="share" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {shareOptions.map((option) => {
-                const Icon = option.icon;
-                return (
-                  <Button
-                    key={option.name}
-                    variant="outline"
-                    onClick={option.action}
-                    className={`h-auto flex-col gap-2 p-4 ${option.bgColor} transition-colors`}
-                  >
-                    <div className={`p-3 rounded-full bg-background ${option.color}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <span className="text-sm font-medium">{option.name}</span>
-                  </Button>
-                );
-              })}
-            </div>
+          <Tabs defaultValue="share" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="share">
+                <Share2 className="h-4 w-4 mr-2" />
+                Partager
+              </TabsTrigger>
+              <TabsTrigger value="qrcode">
+                <QrCode className="h-4 w-4 mr-2" />
+                QR Code
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground mb-2">Aperçu du lien :</p>
-              <p className="text-xs font-mono text-foreground break-all">{fundUrl}</p>
-            </div>
-          </TabsContent>
+            <TabsContent value="share" className="space-y-4 mt-4">
+              {/* Share card preview */}
+              {(generating || loadingFundData) ? (
+                <div className="flex items-center justify-center py-8 bg-muted/30 rounded-lg">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                  <span className="text-sm text-muted-foreground">
+                    Génération de l'aperçu...
+                  </span>
+                </div>
+              ) : shareImageUrl ? (
+                <div className="rounded-lg overflow-hidden shadow-md">
+                  <img 
+                    src={shareImageUrl} 
+                    alt="Aperçu du partage" 
+                    className="w-full h-auto"
+                  />
+                </div>
+              ) : null}
 
-          <TabsContent value="qrcode" className="space-y-4 mt-4">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="p-4 bg-white rounded-lg shadow-sm">
-                <QRCodeSVG 
-                  id="fund-qr-code"
-                  value={fundUrl}
-                  size={256}
-                  level="H"
-                  includeMargin
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {shareOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <Button
+                      key={option.name}
+                      variant="outline"
+                      onClick={option.action}
+                      className={`h-auto flex-col gap-2 p-4 ${option.bgColor} transition-colors`}
+                    >
+                      <div className={`p-3 rounded-full bg-background ${option.color}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-sm font-medium">{option.name}</span>
+                    </Button>
+                  );
+                })}
               </div>
 
-              <div className="text-center space-y-2">
-                <p className="text-sm font-medium">{fundTitle}</p>
-                <p className="text-xs text-muted-foreground">
-                  Scannez ce QR code pour accéder à la cagnotte
-                </p>
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs text-muted-foreground mb-2">Aperçu du lien :</p>
+                <p className="text-xs font-mono text-foreground break-all">{fundUrl}</p>
               </div>
+            </TabsContent>
 
-              <Button 
-                onClick={handleDownloadQR}
-                className="w-full sm:w-auto"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger le QR Code
-              </Button>
+            <TabsContent value="qrcode" className="space-y-4 mt-4">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 bg-white rounded-lg shadow-sm">
+                  <QRCodeSVG 
+                    id="fund-qr-code"
+                    value={fundUrl}
+                    size={256}
+                    level="H"
+                    includeMargin
+                  />
+                </div>
 
-              <div className="w-full p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">
-                  💡 Astuce : Imprimez ce QR code sur vos invitations ou cartes pour faciliter les contributions
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium">{fundTitle}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Scannez ce QR code pour accéder à la cagnotte
+                  </p>
+                </div>
+
+                <Button 
+                  onClick={handleDownloadQR}
+                  className="w-full sm:w-auto"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger le QR Code
+                </Button>
+
+                <div className="w-full p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">
+                    💡 Astuce : Imprimez ce QR code sur vos invitations ou cartes pour faciliter les contributions
+                  </p>
+                </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </SheetContent>
-    </Sheet>
+            </TabsContent>
+          </Tabs>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

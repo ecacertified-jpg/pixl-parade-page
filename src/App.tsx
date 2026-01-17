@@ -77,6 +77,7 @@ import FAQ from "./pages/FAQ";
 import About from "./pages/About";
 import AccountLinking from "./pages/AccountLinking";
 import ProductPreview from "./pages/ProductPreview";
+import FundPreview from "./pages/FundPreview";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,8 @@ const App = () => (
 <Route path="/install" element={<Install />} />
 {/* Public product preview with OG meta tags */}
 <Route path="/p/:productId" element={<ProductPreview />} />
+{/* Public fund preview with OG meta tags */}
+<Route path="/f/:fundId" element={<FundPreview />} />
 <Route path="/auth" element={<Auth />} />
 <Route path="/business-auth" element={<BusinessAuth />} />
             {/* Redirects for removed waitlist/pending pages */}
