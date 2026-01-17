@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+interface ProductVideoData {
+  id: string;
+  url: string;
+  thumbnail_url: string | null;
+  source: 'direct' | 'youtube' | 'vimeo';
+  title?: string;
+  order: number;
+}
+
 interface VendorProduct {
   id: string;
   name: string;
@@ -18,6 +27,7 @@ interface VendorProduct {
   locationName: string;
   videoUrl: string | null;
   videoThumbnailUrl: string | null;
+  videos: ProductVideoData[];
 }
 
 interface VendorInfo {
@@ -86,24 +96,42 @@ export function useVendorProducts(businessId: string | undefined) {
         throw productsError;
       }
 
-      const formattedProducts: VendorProduct[] = (productsData || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        description: product.description || "Description non disponible",
-        price: product.price,
-        currency: product.currency || "F",
-        image: product.video_thumbnail_url || product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
-        images: product.images as string[] | undefined,
-        category: product.category_name || "Produit",
-        vendor: businessData.business_name,
-        businessAccountId: businessId,
-        inStock: (product.stock_quantity || 0) > 0,
-        isExperience: product.is_experience || false,
-        categoryName: product.category_name || "",
-        locationName: product.location_name || "Non spécifié",
-        videoUrl: product.video_url || null,
-        videoThumbnailUrl: product.video_thumbnail_url || null
-      }));
+      const formattedProducts: VendorProduct[] = (productsData || []).map(product => {
+        // Parse videos from JSONB
+        let parsedVideos: ProductVideoData[] = [];
+        if (product.videos && Array.isArray(product.videos)) {
+          parsedVideos = (product.videos as unknown as ProductVideoData[]).sort((a, b) => a.order - b.order);
+        } else if (product.video_url) {
+          // Fallback for old format
+          parsedVideos = [{
+            id: 'legacy',
+            url: product.video_url,
+            thumbnail_url: product.video_thumbnail_url,
+            source: 'direct',
+            order: 0
+          }];
+        }
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description || "Description non disponible",
+          price: product.price,
+          currency: product.currency || "F",
+          image: product.video_thumbnail_url || product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+          images: product.images as string[] | undefined,
+          category: product.category_name || "Produit",
+          vendor: businessData.business_name,
+          businessAccountId: businessId,
+          inStock: (product.stock_quantity || 0) > 0,
+          isExperience: product.is_experience || false,
+          categoryName: product.category_name || "",
+          locationName: product.location_name || "Non spécifié",
+          videoUrl: product.video_url || null,
+          videoThumbnailUrl: product.video_thumbnail_url || null,
+          videos: parsedVideos
+        };
+      });
 
       setProducts(formattedProducts);
     } catch (err) {
