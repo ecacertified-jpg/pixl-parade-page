@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Scissors, X, AlertTriangle, Volume2, VolumeX, Camera } from 'lucide-react';
+import { Play, Pause, RotateCcw, Scissors, X, AlertTriangle, Volume2, VolumeX, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { VideoTrimTimeline } from '@/components/VideoTrimTimeline';
@@ -34,6 +34,7 @@ export function VideoTrimEditor({
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isLoopMode, setIsLoopMode] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(Math.min(videoDuration, maxDurationSeconds));
@@ -78,24 +79,35 @@ export function VideoTrimEditor({
     }
   }, [open, videoDuration, maxDurationSeconds, resetZoom]);
 
-  // Update current time
+  // Update current time with loop mode support
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
-      // Loop within selection
+      // Handle end of selection
       if (video.currentTime >= endTime) {
+        if (isLoopMode) {
+          // Loop mode: restart from beginning of selection
+          video.currentTime = startTime;
+          // Continue playing automatically
+        } else {
+          // Normal mode: pause at end
+          video.currentTime = startTime;
+          video.pause();
+          setIsPlaying(false);
+        }
+      }
+      // Ensure we stay within selection during playback
+      if (isPlaying && video.currentTime < startTime) {
         video.currentTime = startTime;
-        video.pause();
-        setIsPlaying(false);
       }
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     return () => video.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [startTime, endTime]);
+  }, [startTime, endTime, isLoopMode, isPlaying]);
 
   const handlePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -112,6 +124,30 @@ export function VideoTrimEditor({
     }
     setIsPlaying(!isPlaying);
   }, [isPlaying, startTime, endTime]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      switch (e.key.toLowerCase()) {
+        case 'l':
+          setIsLoopMode(prev => !prev);
+          toast.info(isLoopMode ? 'Mode boucle désactivé' : 'Mode boucle activé');
+          break;
+        case ' ':
+          e.preventDefault();
+          handlePlayPause();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open, handlePlayPause, isLoopMode]);
 
   const handleSeek = useCallback((time: number) => {
     const video = videoRef.current;
@@ -214,6 +250,14 @@ export function VideoTrimEditor({
                 onPause={() => setIsPlaying(false)}
               />
 
+              {/* Loop mode indicator */}
+              {isLoopMode && isPlaying && (
+                <div className="absolute top-3 right-3 bg-primary/80 text-primary-foreground px-2 py-1 rounded-full text-xs flex items-center gap-1 animate-pulse">
+                  <Repeat className="h-3 w-3" />
+                  Boucle
+                </div>
+              )}
+
               {/* Video controls overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                 <div className="flex items-center gap-2">
@@ -243,6 +287,21 @@ export function VideoTrimEditor({
                     ) : (
                       <Volume2 className="h-4 w-4" />
                     )}
+                  </Button>
+
+                  {/* Loop mode toggle */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8 text-white hover:bg-white/20",
+                      isLoopMode && "bg-primary/50 text-primary-foreground"
+                    )}
+                    onClick={() => setIsLoopMode(!isLoopMode)}
+                    title={isLoopMode ? "Désactiver la boucle (L)" : "Activer la boucle (L)"}
+                  >
+                    <Repeat className="h-4 w-4" />
                   </Button>
 
                   {/* Frame capture button */}
@@ -311,8 +370,17 @@ export function VideoTrimEditor({
                     onClick={handlePreviewSelection}
                     className="gap-1.5"
                   >
-                    <Play className="h-3.5 w-3.5" />
-                    Prévisualiser
+                    {isPlaying ? (
+                      <>
+                        <Pause className="h-3.5 w-3.5" />
+                        Arrêter
+                      </>
+                    ) : (
+                      <>
+                        {isLoopMode ? <Repeat className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                        {isLoopMode ? "Prévisualiser en boucle" : "Prévisualiser"}
+                      </>
+                    )}
                   </Button>
                   <Button
                     type="button"
