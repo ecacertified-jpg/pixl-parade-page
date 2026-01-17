@@ -15,6 +15,14 @@ import {
   extractYouTubeId,
   extractVimeoId
 } from '@/utils/videoHelpers';
+import { 
+  shouldCompress, 
+  compressVideo, 
+  isCompressionSupported,
+  formatBytes,
+  CompressionProgress 
+} from '@/utils/videoCompressor';
+import { VideoCompressionProgress } from '@/components/VideoCompressionProgress';
 
 interface VideoUploaderProps {
   videoUrl: string | null;
@@ -44,6 +52,9 @@ export function VideoUploader({
   const [isValidatingUrl, setIsValidatingUrl] = useState(false);
   const [urlValidation, setUrlValidation] = useState<{ valid: boolean; platform?: string } | null>(null);
   const [autoThumbnail, setAutoThumbnail] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
+  const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -102,11 +113,40 @@ export function VideoUploader({
       return;
     }
 
+    let fileToUpload = file;
+    setOriginalFileSize(file.size);
+
+    // Compression if needed and supported
+    if (shouldCompress(file) && isCompressionSupported()) {
+      setIsCompressing(true);
+      setCompressionProgress({
+        stage: 'loading',
+        progress: 0,
+        message: 'Chargement du moteur de compression...',
+      });
+
+      try {
+        const result = await compressVideo(file, setCompressionProgress);
+        fileToUpload = result.compressedFile;
+        toast.success(
+          `Vidéo compressée : ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (-${Math.round(result.compressionRatio * 100)}%)`
+        );
+      } catch (error) {
+        console.warn('Compression failed, uploading original:', error);
+        toast.info('Compression impossible, upload du fichier original...');
+        // Fallback: upload original file
+      }
+      setIsCompressing(false);
+      setCompressionProgress(null);
+    } else if (shouldCompress(file) && !isCompressionSupported()) {
+      toast.info('Compression non disponible dans ce navigateur. Upload direct.');
+    }
+
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `videos/${fileName}`;
 
@@ -117,7 +157,7 @@ export function VideoUploader({
 
       const { data, error } = await supabase.storage
         .from('product-videos')
-        .upload(filePath, file, {
+        .upload(filePath, fileToUpload, {
           cacheControl: '3600',
           upsert: false,
         });
@@ -144,6 +184,7 @@ export function VideoUploader({
     } finally {
       setUploading(false);
       setUploadProgress(0);
+      setOriginalFileSize(null);
       if (videoInputRef.current) {
         videoInputRef.current.value = '';
       }
@@ -429,12 +470,22 @@ export function VideoUploader({
           </TabsList>
 
           <TabsContent value="upload" className="mt-4">
+            {/* Compression progress */}
+            {isCompressing && compressionProgress && (
+              <div className="mb-4">
+                <VideoCompressionProgress 
+                  progress={compressionProgress} 
+                  originalSize={originalFileSize ?? undefined}
+                />
+              </div>
+            )}
+
             <div
-              onClick={() => !disabled && !uploading && videoInputRef.current?.click()}
+              onClick={() => !disabled && !uploading && !isCompressing && videoInputRef.current?.click()}
               className={`
                 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
                 transition-colors duration-200
-                ${disabled || uploading 
+                ${disabled || uploading || isCompressing
                   ? 'border-muted bg-muted/20 cursor-not-allowed' 
                   : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
                 }
@@ -446,15 +497,18 @@ export function VideoUploader({
                   <p className="text-sm text-muted-foreground">Upload en cours...</p>
                   <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
                 </div>
-              ) : (
+              ) : !isCompressing ? (
                 <>
                   <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     MP4, MOV ou WebM • Max 50 MB
                   </p>
+                  <p className="text-xs text-primary/70 mt-2">
+                    ✨ Compression automatique pour les fichiers volumineux
+                  </p>
                 </>
-              )}
+              ) : null}
             </div>
           </TabsContent>
 
@@ -548,7 +602,7 @@ export function VideoUploader({
         accept="video/mp4,video/quicktime,video/webm"
         onChange={handleVideoSelect}
         className="hidden"
-        disabled={disabled || uploading}
+        disabled={disabled || uploading || isCompressing}
       />
       <input
         ref={thumbnailInputRef}
