@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video } from "lucide-react";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -52,6 +52,8 @@ export default function Shop() {
     isExperience?: boolean;
     categoryName?: string;
     locationName?: string;
+    videoUrl?: string | null;
+    videoThumbnail?: string | null;
   }>>([]);
   const [popularShops, setPopularShops] = useState<Array<{
     id: string;
@@ -204,7 +206,10 @@ export default function Shop() {
         const reviewCount = ratingInfo?.count || 0;
         
         // Construire le tableau d'images (image principale + images additionnelles)
-        const mainImage = product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png";
+        // Utiliser video_thumbnail_url comme fallback si pas d'image_url
+        const mainImage = product.image_url 
+          || product.video_thumbnail_url 
+          || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png";
         const additionalImages = Array.isArray(product.images) ? (product.images as string[]) : [];
         const allImages = [mainImage, ...additionalImages.filter(img => img !== mainImage)];
         
@@ -226,7 +231,9 @@ export default function Shop() {
           inStock: (product.stock_quantity || 0) > 0,
           isExperience: product.is_experience || false,
           categoryName: product.category_name,
-          locationName: product.location_name || "Non spécifié"
+          locationName: product.location_name || "Non spécifié",
+          videoUrl: product.video_url || null,
+          videoThumbnail: product.video_thumbnail_url || null
         };
       });
       
@@ -653,6 +660,12 @@ export default function Shop() {
                   {product.isExperience && (
                     <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
                       ✨ EXPÉRIENCE
+                    </Badge>
+                  )}
+                  {product.videoUrl && (
+                    <Badge className="absolute bottom-2 left-2 bg-black/70 text-white text-xs flex items-center gap-1">
+                      <Video className="h-3 w-3" />
+                      Vidéo
                     </Badge>
                   )}
                   <Button 
