@@ -44,6 +44,7 @@ import { AdminAddBusinessToOwnerModal } from '@/components/admin/AdminAddBusines
 import { AdminManageCategoriesModal } from '@/components/admin/AdminManageCategoriesModal';
 import { AdminOrdersModal } from '@/components/admin/AdminOrdersModal';
 import { CascadeDeleteBusinessModal } from '@/components/CascadeDeleteBusinessModal';
+import { AdminProductsModal } from '@/components/admin/AdminProductsModal';
 import { useAdmin } from '@/hooks/useAdmin';
 import { GitMerge, Package, UserPlus, Tag, ShoppingCart } from 'lucide-react';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
@@ -114,6 +115,8 @@ export default function BusinessManagement() {
   const [ordersBusiness, setOrdersBusiness] = useState<Business | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [businessToDelete, setBusinessToDelete] = useState<Business | null>(null);
+  const [productsModalOpen, setProductsModalOpen] = useState(false);
+  const [productsBusiness, setProductsBusiness] = useState<Business | null>(null);
 
   // Advanced filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -985,6 +988,13 @@ export default function BusinessManagement() {
                                 Ajouter un produit
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
+                                setProductsBusiness(business);
+                                setProductsModalOpen(true);
+                              }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Gérer les produits
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
                                 setBusinessToEdit(business);
                                 setEditBusinessModalOpen(true);
                               }}>
@@ -1124,6 +1134,17 @@ export default function BusinessManagement() {
             setOrdersModalOpen(open);
             if (!open) setOrdersBusiness(null);
           }}
+        />
+
+        <AdminProductsModal
+          businessId={productsBusiness?.id || null}
+          businessName={productsBusiness?.business_name || ''}
+          open={productsModalOpen}
+          onOpenChange={(open) => {
+            setProductsModalOpen(open);
+            if (!open) setProductsBusiness(null);
+          }}
+          onProductsUpdated={fetchBusinesses}
         />
 
         {businessToDelete && (
