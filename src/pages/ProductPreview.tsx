@@ -4,6 +4,7 @@ import { Gift, Store, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import logoRose from "@/assets/logo-jdv-rose.png";
 
 interface ProductData {
   id: string;
@@ -131,7 +132,7 @@ export default function ProductPreview() {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
+            <img src={logoRose} alt="Joie de Vivre" className="h-8 w-auto" />
             <span className="font-poppins font-semibold text-lg text-primary">
               JOIE DE VIVRE
             </span>
@@ -146,15 +147,19 @@ export default function ProductPreview() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="overflow-hidden">
           {/* Product Image */}
-          {product.image_url && (
-            <div className="aspect-square w-full overflow-hidden bg-muted">
+          <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-secondary/50 to-primary/10">
+            {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
-            </div>
-          )}
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Gift className="h-24 w-24 text-primary/30" />
+              </div>
+            )}
+          </div>
 
           <CardContent className="p-6 space-y-4">
             {/* Vendor */}
@@ -200,8 +205,8 @@ export default function ProductPreview() {
         </Card>
 
         {/* Footer branding */}
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          <Gift className="h-5 w-5 inline-block mr-2 text-primary" />
+        <div className="text-center mt-8 text-sm text-muted-foreground flex items-center justify-center gap-2">
+          <img src={logoRose} alt="" className="h-6 w-auto" />
           <span>La plateforme de cadeaux collaboratifs</span>
         </div>
       </main>
