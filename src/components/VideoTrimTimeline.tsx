@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { formatTimeDisplay } from '@/utils/videoTrimmer';
+import { VideoTimelineThumbnails } from './VideoTimelineThumbnails';
 
 interface VideoTrimTimelineProps {
   duration: number;
@@ -8,6 +9,7 @@ interface VideoTrimTimelineProps {
   endTime: number;
   currentTime: number;
   maxDuration: number;
+  videoUrl?: string;
   onStartChange: (time: number) => void;
   onEndChange: (time: number) => void;
   onSeek: (time: number) => void;
@@ -19,6 +21,7 @@ export function VideoTrimTimeline({
   endTime,
   currentTime,
   maxDuration,
+  videoUrl,
   onStartChange,
   onEndChange,
   onSeek,
@@ -122,34 +125,46 @@ export function VideoTrimTimeline({
       {/* Timeline */}
       <div
         ref={containerRef}
-        className="relative h-12 bg-muted rounded-lg cursor-pointer select-none"
+        className="relative h-12 bg-muted rounded-lg cursor-pointer select-none overflow-hidden"
         onClick={handleTimelineClick}
       >
-        {/* Background progress bar */}
-        <div className="absolute inset-0 rounded-lg overflow-hidden">
-          {/* Unselected regions */}
+        {/* Video thumbnails background */}
+        {videoUrl && (
+          <VideoTimelineThumbnails
+            videoUrl={videoUrl}
+            duration={duration}
+            thumbnailCount={12}
+            height={48}
+            className="absolute inset-0"
+          />
+        )}
+        
+        {/* Overlay for non-selected regions (darkens thumbnails) */}
+        <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+          {/* Left unselected region overlay */}
           <div 
-            className="absolute top-0 bottom-0 left-0 bg-muted-foreground/20"
+            className="absolute top-0 bottom-0 left-0 bg-background/70 backdrop-blur-[1px]"
             style={{ width: `${getPositionPercent(startTime)}%` }}
           />
+          {/* Right unselected region overlay */}
           <div 
-            className="absolute top-0 bottom-0 right-0 bg-muted-foreground/20"
+            className="absolute top-0 bottom-0 right-0 bg-background/70 backdrop-blur-[1px]"
             style={{ width: `${100 - getPositionPercent(endTime)}%` }}
           />
-          
-          {/* Selected region */}
-          <div
-            className={cn(
-              "absolute top-0 bottom-0 cursor-move transition-colors",
-              isOverLimit ? "bg-destructive/30" : "bg-primary/30"
-            )}
-            style={{
-              left: `${getPositionPercent(startTime)}%`,
-              width: `${getPositionPercent(endTime - startTime)}%`,
-            }}
-            onMouseDown={(e) => handleMouseDown(e, 'selection')}
-          />
         </div>
+        
+        {/* Selected region border */}
+        <div
+          className={cn(
+            "absolute top-0 bottom-0 cursor-move border-y-2 transition-colors",
+            isOverLimit ? "border-destructive bg-destructive/10" : "border-primary bg-primary/10"
+          )}
+          style={{
+            left: `${getPositionPercent(startTime)}%`,
+            width: `${getPositionPercent(endTime - startTime)}%`,
+          }}
+          onMouseDown={(e) => handleMouseDown(e, 'selection')}
+        />
 
         {/* Current time indicator */}
         <div

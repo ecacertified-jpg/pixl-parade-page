@@ -247,6 +247,7 @@ export function VideoTrimEditor({
                 endTime={endTime}
                 currentTime={currentTime}
                 maxDuration={maxDurationSeconds}
+                videoUrl={videoUrl}
                 onStartChange={handleStartChange}
                 onEndChange={handleEndChange}
                 onSeek={handleSeek}
