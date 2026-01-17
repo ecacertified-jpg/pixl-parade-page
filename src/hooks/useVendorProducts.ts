@@ -8,6 +8,7 @@ interface VendorProduct {
   price: number;
   currency: string;
   image: string;
+  images?: string[];
   category: string;
   vendor: string;
   businessAccountId: string;
@@ -15,6 +16,8 @@ interface VendorProduct {
   isExperience: boolean;
   categoryName: string;
   locationName: string;
+  videoUrl: string | null;
+  videoThumbnailUrl: string | null;
 }
 
 interface VendorInfo {
@@ -89,14 +92,17 @@ export function useVendorProducts(businessId: string | undefined) {
         description: product.description || "Description non disponible",
         price: product.price,
         currency: product.currency || "F",
-        image: product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+        image: product.video_thumbnail_url || product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
+        images: product.images as string[] | undefined,
         category: product.category_name || "Produit",
         vendor: businessData.business_name,
         businessAccountId: businessId,
         inStock: (product.stock_quantity || 0) > 0,
         isExperience: product.is_experience || false,
         categoryName: product.category_name || "",
-        locationName: product.location_name || "Non spécifié"
+        locationName: product.location_name || "Non spécifié",
+        videoUrl: product.video_url || null,
+        videoThumbnailUrl: product.video_thumbnail_url || null
       }));
 
       setProducts(formattedProducts);

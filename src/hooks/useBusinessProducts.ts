@@ -10,6 +10,9 @@ interface Product {
   price: number;
   currency: string;
   image_url?: string;
+  images?: string[];
+  video_url?: string | null;
+  video_thumbnail_url?: string | null;
   business_owner_id: string;
   category_id?: string;
   category_name?: string;

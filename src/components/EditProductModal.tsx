@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MultiImageUploader, ImageItem } from "@/components/MultiImageUploader";
+import { VideoUploader } from "@/components/VideoUploader";
 import { Loader2, Package, Trash2, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,8 @@ interface Product {
   is_active?: boolean;
   image_url?: string | null;
   images?: string[] | null;
+  video_url?: string | null;
+  video_thumbnail_url?: string | null;
   business_id?: string;
   business_account_id?: string;
 }
@@ -73,6 +76,8 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
   const [deleting, setDeleting] = useState(false);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [productImages, setProductImages] = useState<ImageItem[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -126,6 +131,10 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
         });
       }
       setProductImages(existingImages);
+      
+      // Load existing video
+      setVideoUrl(product.video_url || null);
+      setVideoThumbnailUrl(product.video_thumbnail_url || null);
     }
   }, [isOpen, product]);
 
@@ -184,6 +193,8 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
           is_active: formData.is_active,
           image_url: uploadedUrls[0] || null,
           images: uploadedUrls,
+          video_url: videoUrl,
+          video_thumbnail_url: videoThumbnailUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', product.id);
@@ -435,6 +446,17 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
               images={productImages}
               onChange={setProductImages}
               maxImages={5}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Video Upload */}
+          <div className="border-t pt-4">
+            <VideoUploader
+              videoUrl={videoUrl}
+              thumbnailUrl={videoThumbnailUrl}
+              onVideoChange={setVideoUrl}
+              onThumbnailChange={setVideoThumbnailUrl}
               disabled={loading}
             />
           </div>

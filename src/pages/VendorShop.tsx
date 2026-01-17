@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Star, MapPin, Phone, Mail, Clock, Store, Package, Sparkles, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useVendorProducts } from "@/hooks/useVendorProducts";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { VendorReviewsSection } from "@/components/VendorReviewsSection";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { cn } from "@/lib/utils";
 import { CountryBadge } from "@/components/CountryBadge";
 
@@ -319,6 +320,8 @@ interface ProductCardProps {
     inStock: boolean;
     isExperience: boolean;
     country_code?: string;
+    videoUrl?: string | null;
+    videoThumbnailUrl?: string | null;
   };
   isFavorite: boolean;
   onToggleFavorite: () => void;
@@ -327,19 +330,38 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, isFavorite, onToggleFavorite, onOrder, onRate }: ProductCardProps) {
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const hasVideo = !!product.videoUrl;
+  const displayImage = product.videoThumbnailUrl || product.image;
+
   return (
     <Card className="overflow-hidden">
       <div className="relative">
         <img 
-          src={product.image} 
+          src={displayImage} 
           alt={product.name} 
           className="w-full h-48 object-cover" 
         />
+        {hasVideo && (
+          <div 
+            className="absolute inset-0 bg-black/20 flex items-center justify-center cursor-pointer hover:bg-black/30 transition-colors"
+            onClick={() => setShowVideoPlayer(true)}
+          >
+            <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+              <Play className="h-7 w-7 text-white fill-white ml-1" />
+            </div>
+          </div>
+        )}
         <div className="absolute top-2 left-2 flex items-center gap-2">
           <CountryBadge countryCode={product.country_code} variant="compact" />
           {product.isExperience && (
             <Badge className="bg-purple-600 text-white">
               ✨ EXPÉRIENCE
+            </Badge>
+          )}
+          {hasVideo && (
+            <Badge className="bg-purple-600 text-white">
+              🎬 Vidéo
             </Badge>
           )}
         </div>
@@ -391,6 +413,15 @@ function ProductCard({ product, isFavorite, onToggleFavorite, onOrder, onRate }:
           {product.isExperience ? "Réserver" : "Commander"}
         </Button>
       </div>
+
+      {hasVideo && product.videoUrl && (
+        <VideoPlayer
+          videoUrl={product.videoUrl}
+          isOpen={showVideoPlayer}
+          onClose={() => setShowVideoPlayer(false)}
+          title={product.name}
+        />
+      )}
     </Card>
   );
 }

@@ -37,6 +37,8 @@ interface Product {
   isExperience?: boolean;
   categoryName?: string;
   locationName?: string;
+  videoUrl?: string | null;
+  videoThumbnailUrl?: string | null;
 }
 
 interface ProductDetailModalProps {
@@ -70,6 +72,8 @@ export function ProductDetailModal({
           images={product.images?.length ? product.images : [product.image]}
           alt={product.name}
           className="w-full h-56 sm:h-64 object-cover"
+          videoUrl={product.videoUrl}
+          videoThumbnailUrl={product.videoThumbnailUrl}
         />
         {product.isExperience && (
           <Badge className="absolute top-3 left-3 bg-purple-600 text-white z-40 pointer-events-none">

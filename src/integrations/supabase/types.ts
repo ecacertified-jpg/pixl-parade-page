@@ -4198,6 +4198,8 @@ export type Database = {
           price: number
           stock_quantity: number | null
           updated_at: string
+          video_thumbnail_url: string | null
+          video_url: string | null
         }
         Insert: {
           business_account_id?: string | null
@@ -4221,6 +4223,8 @@ export type Database = {
           price: number
           stock_quantity?: number | null
           updated_at?: string
+          video_thumbnail_url?: string | null
+          video_url?: string | null
         }
         Update: {
           business_account_id?: string | null
@@ -4244,6 +4248,8 @@ export type Database = {
           price?: number
           stock_quantity?: number | null
           updated_at?: string
+          video_thumbnail_url?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
