@@ -39,7 +39,8 @@ export function FeaturedVideoProductsCarousel() {
         .from("business_accounts")
         .select("id")
         .eq("country_code", countryCode)
-        .eq("status", "approved");
+        .eq("status", "active")
+        .eq("is_active", true);
 
       const businessIds = businesses?.map((b) => b.id) || [];
 
