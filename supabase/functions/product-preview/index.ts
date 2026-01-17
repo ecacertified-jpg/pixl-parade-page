@@ -87,6 +87,33 @@ Deno.serve(async (req) => {
       : `${appUrl}/shop?product=${productId}`;
     const previewUrl = `${appUrl}/p/${productId}`;
 
+    // Build Schema.org JSON-LD for Product
+    const schemaJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": productName,
+      "description": productDescription,
+      "image": imageUrl,
+      "url": fullProductUrl,
+      "offers": {
+        "@type": "Offer",
+        "price": product.price || 0,
+        "priceCurrency": product.currency || "XOF",
+        "availability": "https://schema.org/InStock",
+        "url": fullProductUrl,
+        "seller": {
+          "@type": "Organization",
+          "name": vendorName
+        }
+      },
+      "brand": {
+        "@type": "Brand",
+        "name": vendorName
+      },
+      "sku": productId,
+      "category": "Cadeaux"
+    });
+
     // Si c'est un crawler, retourner le HTML avec les meta tags OG
     if (isCrawler(userAgent)) {
       console.log(`Crawler detected: ${userAgent}`);
@@ -101,6 +128,7 @@ Deno.serve(async (req) => {
   <!-- Primary Meta Tags -->
   <meta name="title" content="${productName} - JOIE DE VIVRE">
   <meta name="description" content="${price} - ${vendorName}. ${productDescription.substring(0, 150)}">
+  <meta name="keywords" content="cadeau ${productName}, achat Abidjan, boutique Côte d'Ivoire, ${vendorName}">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="product">
@@ -118,6 +146,7 @@ Deno.serve(async (req) => {
   <meta property="product:price:amount" content="${product.price || 0}">
   <meta property="product:price:currency" content="${product.currency || 'XOF'}">
   <meta property="product:retailer_item_id" content="${productId}">
+  <meta property="product:availability" content="in stock">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
@@ -125,6 +154,21 @@ Deno.serve(async (req) => {
   <meta property="twitter:title" content="${productName}">
   <meta property="twitter:description" content="${price} - ${vendorName}">
   <meta property="twitter:image" content="${imageUrl}">
+  
+  <!-- Hreflang for African markets -->
+  <link rel="alternate" hreflang="fr-CI" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BJ" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-SN" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-ML" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BF" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-TG" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-CM" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr" href="${previewUrl}">
+  <link rel="alternate" hreflang="x-default" href="${previewUrl}">
+  <link rel="canonical" href="${previewUrl}">
+  
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">${schemaJsonLd}</script>
   
   <!-- Redirect for browsers that somehow get here -->
   <meta http-equiv="refresh" content="0;url=${fullProductUrl}">

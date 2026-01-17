@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
 import { APP_VERSION, APP_NAME, APP_TAGLINE, APP_DESCRIPTION, COMPANY_INFO, BUILD_DATE } from "@/config/appVersion";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 
 const features = [
   {
@@ -48,6 +49,8 @@ export default function About() {
   const currentYear = new Date().getFullYear();
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.about} />
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 shadow-sm">
@@ -269,5 +272,6 @@ export default function About() {
         </div>
       </main>
     </div>
+    </>
   );
 }

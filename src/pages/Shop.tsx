@@ -23,6 +23,7 @@ import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCar
 import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -412,6 +413,8 @@ export default function Shop() {
 
   const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.shop} />
     <div className="min-h-screen bg-gradient-background">
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />
@@ -904,5 +907,6 @@ export default function Shop() {
         product={shareProduct}
       />
     </div>
+    </>
   );
 }

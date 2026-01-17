@@ -189,6 +189,39 @@ Deno.serve(async (req) => {
       ? ogDescriptionParts.join(" • ") 
       : description.substring(0, 150);
 
+    // Build Schema.org JSON-LD for LocalBusiness
+    const schemaJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": businessName,
+      "description": description,
+      "image": logoUrl,
+      "url": fullBusinessUrl,
+      "@id": fullBusinessUrl,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": address || "",
+        "addressLocality": "Abidjan",
+        "addressCountry": "CI"
+      },
+      ...(totalRatings > 0 && {
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": averageRating.toFixed(1),
+          "reviewCount": totalRatings,
+          "bestRating": "5",
+          "worstRating": "1"
+        }
+      }),
+      "priceRange": "$$",
+      "servesCuisine": businessType || "Cadeaux",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Produits",
+        "numberOfItems": productsCount || 0
+      }
+    });
+
     // Si c'est un crawler, retourner le HTML avec les meta tags OG
     if (isCrawler(userAgent)) {
       console.log(`Crawler detected: ${userAgent}`);
@@ -198,11 +231,12 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏪 ${businessName} - JOIE DE VIVRE</title>
+  <title>🏪 ${businessName} - Boutique Cadeaux Abidjan | JOIE DE VIVRE</title>
   
   <!-- Primary Meta Tags -->
-  <meta name="title" content="${businessName} - JOIE DE VIVRE">
+  <meta name="title" content="${businessName} - Boutique Cadeaux Abidjan | JOIE DE VIVRE">
   <meta name="description" content="${ogDescription}">
+  <meta name="keywords" content="${businessName}, boutique Abidjan, ${businessType || 'cadeaux'}, commerce Côte d'Ivoire, artisanat local">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="business.business">
@@ -219,6 +253,8 @@ Deno.serve(async (req) => {
   <!-- Business specific -->
   ${address ? `<meta property="business:contact_data:locality" content="${address}">` : ''}
   ${ratingText ? `<meta property="og:rating" content="${averageRating.toFixed(1)}">` : ''}
+  <meta property="place:location:latitude" content="5.3600">
+  <meta property="place:location:longitude" content="-4.0083">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
@@ -226,6 +262,21 @@ Deno.serve(async (req) => {
   <meta property="twitter:title" content="🏪 ${businessName}">
   <meta property="twitter:description" content="${ogDescription}">
   <meta property="twitter:image" content="${logoUrl}">
+  
+  <!-- Hreflang for African markets -->
+  <link rel="alternate" hreflang="fr-CI" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BJ" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-SN" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-ML" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BF" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-TG" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-CM" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr" href="${previewUrl}">
+  <link rel="alternate" hreflang="x-default" href="${previewUrl}">
+  <link rel="canonical" href="${previewUrl}">
+  
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">${schemaJsonLd}</script>
   
   <!-- Redirect for browsers that somehow get here -->
   <meta http-equiv="refresh" content="0;url=${fullBusinessUrl}">

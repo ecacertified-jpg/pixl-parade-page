@@ -144,6 +144,39 @@ Deno.serve(async (req) => {
     // Default image if no product image
     const ogImage = productImage || `${appUrl}/og-image.png`;
 
+    // Build Schema.org JSON-LD for Event/FundingScheme
+    const schemaJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": fundTitle,
+      "description": description,
+      "image": ogImage,
+      "url": fullFundUrl,
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+      "organizer": {
+        "@type": "Organization",
+        "name": "JOIE DE VIVRE",
+        "url": appUrl
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": currency,
+        "availability": "https://schema.org/InStock",
+        "url": fullFundUrl,
+        "validFrom": new Date().toISOString()
+      },
+      "performer": {
+        "@type": "Person",
+        "name": beneficiaryName
+      },
+      "location": {
+        "@type": "VirtualLocation",
+        "url": fullFundUrl
+      }
+    });
+
     if (isCrawler(userAgent)) {
       // Return HTML with Open Graph meta tags for crawlers
       const html = `<!DOCTYPE html>
@@ -151,7 +184,12 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${occasionEmoji} ${fundTitle} - JOIE DE VIVRE</title>
+  <title>${occasionEmoji} ${fundTitle} - Cagnotte Collective | JOIE DE VIVRE</title>
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="${occasionEmoji} ${fundTitle} - Cagnotte Collective | JOIE DE VIVRE">
+  <meta name="description" content="${description}">
+  <meta name="keywords" content="cagnotte ${fund.occasion || 'collective'}, cadeau groupe, ${beneficiaryName}, contribution en ligne, Côte d'Ivoire">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
@@ -171,8 +209,22 @@ Deno.serve(async (req) => {
   <meta name="twitter:description" content="${ogDescription}">
   <meta name="twitter:image" content="${ogImage}">
   
+  <!-- Hreflang for African markets -->
+  <link rel="alternate" hreflang="fr-CI" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BJ" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-SN" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-ML" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-BF" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-TG" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr-CM" href="${previewUrl}">
+  <link rel="alternate" hreflang="fr" href="${previewUrl}">
+  <link rel="alternate" hreflang="x-default" href="${previewUrl}">
+  <link rel="canonical" href="${previewUrl}">
+  
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">${schemaJsonLd}</script>
+  
   <!-- Additional meta -->
-  <meta name="description" content="${description}">
   <meta name="theme-color" content="#7A5DC7">
   
   <!-- Redirect real users -->
