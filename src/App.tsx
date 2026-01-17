@@ -76,6 +76,7 @@ import LegalNotice from "./pages/LegalNotice";
 import FAQ from "./pages/FAQ";
 import About from "./pages/About";
 import AccountLinking from "./pages/AccountLinking";
+import ProductPreview from "./pages/ProductPreview";
 
 const queryClient = new QueryClient();
 
@@ -96,10 +97,12 @@ const App = () => (
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/legal-notice" element={<LegalNotice />} />
             <Route path="/faq" element={<FAQ />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/business-auth" element={<BusinessAuth />} />
+<Route path="/about" element={<About />} />
+<Route path="/install" element={<Install />} />
+{/* Public product preview with OG meta tags */}
+<Route path="/p/:productId" element={<ProductPreview />} />
+<Route path="/auth" element={<Auth />} />
+<Route path="/business-auth" element={<BusinessAuth />} />
             {/* Redirects for removed waitlist/pending pages */}
             <Route path="/business-waitlist" element={<Navigate to="/business-auth" replace />} />
             <Route path="/devenir-prestataire" element={<Navigate to="/business-auth" replace />} />
