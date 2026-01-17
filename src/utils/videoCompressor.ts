@@ -6,20 +6,34 @@ let ffmpeg: FFmpeg | null = null;
 let isLoading = false;
 let loadPromise: Promise<FFmpeg> | null = null;
 
-// Compression configuration
-const COMPRESSION_CONFIG = {
-  targetBitrate: '1M',      // 1 Mbps for quality/size balance
-  maxWidth: 1280,           // Max width
-  maxHeight: 720,           // 720p max
-  crf: 28,                  // Constant Rate Factor (quality)
-  preset: 'medium',         // Compression speed
-  audioBitrate: '128k',     // Audio quality
+// Abort controller for cancellation
+let currentAbortController: AbortController | null = null;
+
+export interface CompressionConfig {
+  crf: number;
+  maxWidth: number;
+  maxHeight: number;
+  preset: 'fast' | 'medium' | 'slow';
+  audioBitrate?: string;
+}
+
+// Default compression configuration
+const DEFAULT_CONFIG: CompressionConfig = {
+  crf: 28,
+  maxWidth: 1280,
+  maxHeight: 720,
+  preset: 'medium',
+  audioBitrate: '128k',
 };
 
 export interface CompressionProgress {
   stage: 'loading' | 'compressing' | 'done' | 'error';
   progress: number; // 0-100
   message: string;
+  estimatedTimeRemaining?: number; // in seconds
+  elapsedTime?: number; // in seconds
+  processedBytes?: number;
+  totalBytes?: number;
 }
 
 export interface CompressionResult {
@@ -27,6 +41,43 @@ export interface CompressionResult {
   originalSize: number;
   compressedSize: number;
   compressionRatio: number;
+  duration: number; // compression duration in seconds
+  resolution?: { width: number; height: number };
+}
+
+export interface TimeEstimation {
+  minSeconds: number;
+  maxSeconds: number;
+  formatted: string;
+}
+
+/**
+ * Estimate compression time based on file size
+ * Base estimation: ~2-5 seconds per MB depending on complexity
+ */
+export function estimateCompressionTime(fileSize: number): TimeEstimation {
+  const fileSizeMB = fileSize / (1024 * 1024);
+  
+  // Faster estimation for smaller files, slower for larger
+  const minSecondsPerMB = 2;
+  const maxSecondsPerMB = 5;
+  
+  const minSeconds = Math.max(10, Math.round(fileSizeMB * minSecondsPerMB));
+  const maxSeconds = Math.max(20, Math.round(fileSizeMB * maxSecondsPerMB));
+  
+  // Format the time range
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
+  };
+  
+  const formatted = minSeconds === maxSeconds
+    ? formatTime(minSeconds)
+    : `${formatTime(minSeconds)} - ${formatTime(maxSeconds)}`;
+  
+  return { minSeconds, maxSeconds, formatted };
 }
 
 /**
@@ -107,6 +158,16 @@ export function formatBytes(bytes: number): string {
 }
 
 /**
+ * Format duration in seconds to human readable string
+ */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.round(seconds % 60);
+  return secs > 0 ? `${mins}min ${secs}s` : `${mins}min`;
+}
+
+/**
  * Check if compression is needed for the file
  */
 export function shouldCompress(file: File): boolean {
@@ -124,37 +185,111 @@ export function shouldCompress(file: File): boolean {
 }
 
 /**
- * Compress a video file
+ * Cancel ongoing compression
+ */
+export function cancelCompression(): boolean {
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Check if compression is currently in progress
+ */
+export function isCompressionInProgress(): boolean {
+  return currentAbortController !== null;
+}
+
+/**
+ * Compress a video file with configurable settings
  */
 export async function compressVideo(
   file: File,
-  onProgress?: (progress: CompressionProgress) => void
+  onProgress?: (progress: CompressionProgress) => void,
+  config?: Partial<CompressionConfig>,
+  abortSignal?: AbortSignal
 ): Promise<CompressionResult> {
   const originalSize = file.size;
+  const startTime = Date.now();
+  
+  // Merge with default config
+  const finalConfig: CompressionConfig = { ...DEFAULT_CONFIG, ...config };
+  
+  // Set up abort controller
+  currentAbortController = new AbortController();
+  const internalSignal = currentAbortController.signal;
+  
+  // Link external abort signal if provided
+  if (abortSignal) {
+    abortSignal.addEventListener('abort', () => {
+      currentAbortController?.abort();
+    });
+  }
 
   // Check browser support
   if (!isCompressionSupported()) {
+    currentAbortController = null;
     throw new Error('Votre navigateur ne supporte pas la compression vidéo. La vidéo sera uploadée sans compression.');
   }
 
   try {
+    // Check if aborted before starting
+    if (internalSignal.aborted) {
+      throw new Error('Compression annulée');
+    }
+
     // Load FFmpeg
     const ffmpegInstance = await loadFFmpeg(onProgress);
+
+    if (internalSignal.aborted) {
+      throw new Error('Compression annulée');
+    }
+
+    const estimation = estimateCompressionTime(file.size);
+    let lastProgressUpdate = Date.now();
 
     onProgress?.({
       stage: 'compressing',
       progress: 0,
       message: 'Préparation de la vidéo...',
+      estimatedTimeRemaining: estimation.maxSeconds,
+      elapsedTime: 0,
+      totalBytes: originalSize,
+      processedBytes: 0,
     });
 
     // Set up progress tracking
     ffmpegInstance.on('progress', ({ progress }) => {
+      if (internalSignal.aborted) return;
+      
       const percent = Math.round(progress * 100);
-      onProgress?.({
-        stage: 'compressing',
-        progress: percent,
-        message: `Compression en cours... ${percent}%`,
-      });
+      const elapsedTime = (Date.now() - startTime) / 1000;
+      
+      // Estimate remaining time based on progress
+      let estimatedRemaining: number | undefined;
+      if (percent > 5) {
+        const totalEstimated = elapsedTime / (percent / 100);
+        estimatedRemaining = Math.max(0, totalEstimated - elapsedTime);
+      }
+      
+      // Throttle progress updates to avoid too many re-renders
+      const now = Date.now();
+      if (now - lastProgressUpdate > 200 || percent >= 100) {
+        lastProgressUpdate = now;
+        
+        onProgress?.({
+          stage: 'compressing',
+          progress: percent,
+          message: `Compression en cours... ${percent}%`,
+          estimatedTimeRemaining: estimatedRemaining,
+          elapsedTime,
+          totalBytes: originalSize,
+          processedBytes: Math.round(originalSize * (percent / 100)),
+        });
+      }
     });
 
     // Write input file to FFmpeg virtual filesystem
@@ -163,34 +298,52 @@ export async function compressVideo(
     
     await ffmpegInstance.writeFile(inputFileName, await fetchFile(file));
 
+    if (internalSignal.aborted) {
+      await ffmpegInstance.deleteFile(inputFileName);
+      throw new Error('Compression annulée');
+    }
+
     onProgress?.({
       stage: 'compressing',
       progress: 10,
       message: 'Compression en cours...',
+      elapsedTime: (Date.now() - startTime) / 1000,
+      totalBytes: originalSize,
     });
 
-    // Run compression with H.264/AAC
+    // Run compression with configurable settings
     await ffmpegInstance.exec([
       '-i', inputFileName,
       // Video codec
       '-c:v', 'libx264',
-      '-preset', COMPRESSION_CONFIG.preset,
-      '-crf', COMPRESSION_CONFIG.crf.toString(),
-      // Scale to max 720p while maintaining aspect ratio
-      '-vf', `scale='min(${COMPRESSION_CONFIG.maxWidth},iw)':'min(${COMPRESSION_CONFIG.maxHeight},ih)':force_original_aspect_ratio=decrease`,
+      '-preset', finalConfig.preset,
+      '-crf', finalConfig.crf.toString(),
+      // Scale to max resolution while maintaining aspect ratio
+      '-vf', `scale='min(${finalConfig.maxWidth},iw)':'min(${finalConfig.maxHeight},ih)':force_original_aspect_ratio=decrease`,
       // Audio codec
       '-c:a', 'aac',
-      '-b:a', COMPRESSION_CONFIG.audioBitrate,
+      '-b:a', finalConfig.audioBitrate || '128k',
       // Output settings
       '-movflags', '+faststart',
       '-y',
       outputFileName,
     ]);
 
+    if (internalSignal.aborted) {
+      await ffmpegInstance.deleteFile(inputFileName);
+      try {
+        await ffmpegInstance.deleteFile(outputFileName);
+      } catch {}
+      throw new Error('Compression annulée');
+    }
+
+    const elapsedTime = (Date.now() - startTime) / 1000;
+
     onProgress?.({
       stage: 'compressing',
       progress: 95,
       message: 'Finalisation...',
+      elapsedTime,
     });
 
     // Read compressed file
@@ -222,25 +375,36 @@ export async function compressVideo(
     );
 
     const compressionRatio = 1 - (compressedSize / originalSize);
+    const duration = (Date.now() - startTime) / 1000;
 
     onProgress?.({
       stage: 'done',
       progress: 100,
       message: `Compression terminée ! ${formatBytes(originalSize)} → ${formatBytes(compressedSize)} (-${Math.round(compressionRatio * 100)}%)`,
+      elapsedTime: duration,
     });
+
+    currentAbortController = null;
 
     return {
       compressedFile,
       originalSize,
       compressedSize,
       compressionRatio,
+      duration,
+      resolution: { width: finalConfig.maxWidth, height: finalConfig.maxHeight },
     };
   } catch (error) {
+    currentAbortController = null;
+    
+    const isAborted = error instanceof Error && error.message === 'Compression annulée';
+    
     onProgress?.({
       stage: 'error',
       progress: 0,
-      message: 'Erreur lors de la compression',
+      message: isAborted ? 'Compression annulée' : 'Erreur lors de la compression',
     });
+    
     throw error;
   }
 }

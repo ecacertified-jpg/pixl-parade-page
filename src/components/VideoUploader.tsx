@@ -18,13 +18,18 @@ import {
   extractVimeoId
 } from '@/utils/videoHelpers';
 import { 
-  shouldCompress, 
   compressVideo, 
   isCompressionSupported,
   formatBytes,
-  CompressionProgress 
+  cancelCompression,
+  CompressionProgress,
+  CompressionResult,
 } from '@/utils/videoCompressor';
 import { VideoCompressionProgress } from '@/components/VideoCompressionProgress';
+import { VideoCompressionSettings } from '@/components/VideoCompressionSettings';
+import { VideoCompressionPreview } from '@/components/VideoCompressionPreview';
+import { VideoCompressionStats } from '@/components/VideoCompressionStats';
+import { useCompressionSettings } from '@/hooks/useCompressionSettings';
 import { 
   getVideoMetadata, 
   validateVideoDuration, 
@@ -72,6 +77,21 @@ export function VideoUploader({
   const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
   const [validatingDuration, setValidatingDuration] = useState(false);
+  const [compressionResult, setCompressionResult] = useState<CompressionResult | null>(null);
+  
+  // Compression preview modal state
+  const [showCompressionPreview, setShowCompressionPreview] = useState(false);
+  const [pendingCompressionFile, setPendingCompressionFile] = useState<File | null>(null);
+  
+  // Compression settings hook
+  const { 
+    settings: compressionSettings, 
+    updateSettings: updateCompressionSettings, 
+    resetSettings: resetCompressionSettings,
+    getCompressionConfig,
+    shouldCompressFile,
+  } = useCompressionSettings();
+  
   // Trim editor state
   const [showTrimEditor, setShowTrimEditor] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -126,42 +146,21 @@ export function VideoUploader({
     return () => clearTimeout(debounce);
   }, [externalUrl]);
 
-  // Process video upload (after potential trim)
-  const processVideoUpload = async (file: File) => {
-    let fileToUpload = file;
-    setOriginalFileSize(file.size);
+  // Handle compression cancel
+  const handleCancelCompression = () => {
+    cancelCompression();
+    setIsCompressing(false);
+    setCompressionProgress(null);
+    toast.info('Compression annulée');
+  };
 
-    // Compression if needed and supported
-    if (shouldCompress(file) && isCompressionSupported()) {
-      setIsCompressing(true);
-      setCompressionProgress({
-        stage: 'loading',
-        progress: 0,
-        message: 'Chargement du moteur de compression...',
-      });
-
-      try {
-        const result = await compressVideo(file, setCompressionProgress);
-        fileToUpload = result.compressedFile;
-        toast.success(
-          `Vidéo compressée : ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (-${Math.round(result.compressionRatio * 100)}%)`
-        );
-      } catch (error) {
-        console.warn('Compression failed, uploading original:', error);
-        toast.info('Compression impossible, upload du fichier original...');
-        // Fallback: upload original file
-      }
-      setIsCompressing(false);
-      setCompressionProgress(null);
-    } else if (shouldCompress(file) && !isCompressionSupported()) {
-      toast.info('Compression non disponible dans ce navigateur. Upload direct.');
-    }
-
+  // Upload file directly without compression
+  const uploadFileDirectly = async (file: File) => {
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      const fileExt = fileToUpload.name.split('.').pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `videos/${fileName}`;
 
@@ -172,7 +171,7 @@ export function VideoUploader({
 
       const { data, error } = await supabase.storage
         .from('product-videos')
-        .upload(filePath, fileToUpload, {
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
         });
@@ -206,12 +205,88 @@ export function VideoUploader({
     }
   };
 
+  // Process video upload with compression
+  const processVideoUpload = async (file: File, skipCompression = false) => {
+    let fileToUpload = file;
+    setOriginalFileSize(file.size);
+    setCompressionResult(null);
+
+    // Check if compression should be applied
+    const shouldApplyCompression = !skipCompression && 
+      shouldCompressFile(file) && 
+      isCompressionSupported();
+
+    if (shouldApplyCompression) {
+      setIsCompressing(true);
+      setCompressionProgress({
+        stage: 'loading',
+        progress: 0,
+        message: 'Chargement du moteur de compression...',
+      });
+
+      try {
+        const config = getCompressionConfig();
+        const result = await compressVideo(file, setCompressionProgress, config);
+        fileToUpload = result.compressedFile;
+        setCompressionResult(result);
+        toast.success(
+          `Vidéo compressée : ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (-${Math.round(result.compressionRatio * 100)}%)`
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Compression annulée') {
+          return; // User cancelled, don't continue
+        }
+        console.warn('Compression failed, uploading original:', error);
+        toast.info('Compression impossible, upload du fichier original...');
+        // Fallback: upload original file
+      }
+      setIsCompressing(false);
+      setCompressionProgress(null);
+    } else if (shouldCompressFile(file) && !isCompressionSupported()) {
+      toast.info('Compression non disponible dans ce navigateur. Upload direct.');
+    }
+
+    await uploadFileDirectly(fileToUpload);
+  };
+
+  // Handle compression preview confirm
+  const handleCompressionConfirm = async () => {
+    if (!pendingCompressionFile) return;
+    setShowCompressionPreview(false);
+    await processVideoUpload(pendingCompressionFile, false);
+    setPendingCompressionFile(null);
+  };
+
+  // Handle compression skip
+  const handleCompressionSkip = async () => {
+    if (!pendingCompressionFile) return;
+    setShowCompressionPreview(false);
+    await processVideoUpload(pendingCompressionFile, true);
+    setPendingCompressionFile(null);
+  };
+
+  // Handle compression cancel
+  const handleCompressionPreviewCancel = () => {
+    setShowCompressionPreview(false);
+    setPendingCompressionFile(null);
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  };
+
   // Handle trim completion
   const handleTrimComplete = async (trimmedFile: File) => {
     setShowTrimEditor(false);
     setPendingFile(null);
     setPendingVideoDuration(0);
-    await processVideoUpload(trimmedFile);
+    
+    // After trimming, check if compression preview should be shown
+    if (shouldCompressFile(trimmedFile) && isCompressionSupported() && compressionSettings.mode !== 'never') {
+      setPendingCompressionFile(trimmedFile);
+      setShowCompressionPreview(true);
+    } else {
+      await processVideoUpload(trimmedFile);
+    }
   };
 
   // Cancel trim
@@ -269,8 +344,13 @@ export function VideoUploader({
       setValidatingDuration(false);
     }
 
-    // Video duration is OK, proceed with upload
-    await processVideoUpload(file);
+    // Video duration is OK - check if we should show compression preview
+    if (shouldCompressFile(file) && isCompressionSupported() && compressionSettings.mode !== 'never') {
+      setPendingCompressionFile(file);
+      setShowCompressionPreview(true);
+    } else {
+      await processVideoUpload(file);
+    }
   };
 
   const handleExternalUrlSubmit = () => {
@@ -436,6 +516,7 @@ export function VideoUploader({
     }
     onVideoChange(null);
     onThumbnailChange(null);
+    setCompressionResult(null);
   };
 
   const handleRemoveThumbnail = async () => {
@@ -460,6 +541,18 @@ export function VideoUploader({
 
     return (
       <div className="space-y-3">
+        {/* Compression stats if available */}
+        {compressionResult && (
+          <VideoCompressionStats
+            originalSize={compressionResult.originalSize}
+            compressedSize={compressionResult.compressedSize}
+            compressionRatio={compressionResult.compressionRatio}
+            duration={compressionResult.duration}
+            resolution={compressionResult.resolution}
+            compact
+          />
+        )}
+
         {/* Video preview */}
         <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
           {isExternalVideo ? (
@@ -590,7 +683,17 @@ export function VideoUploader({
 
   return (
     <div className="space-y-4">
-      <Label className="text-sm font-medium">Vidéo du produit (optionnel)</Label>
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium">Vidéo du produit (optionnel)</Label>
+        {!videoUrl && (
+          <VideoCompressionSettings
+            settings={compressionSettings}
+            onSettingsChange={updateCompressionSettings}
+            onReset={resetCompressionSettings}
+            disabled={disabled || uploading || isCompressing}
+          />
+        )}
+      </div>
       
       {/* Show video preview if we have a video */}
       {videoUrl ? (
@@ -615,6 +718,7 @@ export function VideoUploader({
                 <VideoCompressionProgress 
                   progress={compressionProgress} 
                   originalSize={originalFileSize ?? undefined}
+                  onCancel={handleCancelCompression}
                 />
               </div>
             )}
@@ -646,11 +750,16 @@ export function VideoUploader({
                   <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV ou WebM • Max 50 MB • Max 3 min
+                    MP4, MOV ou WebM • Max 50 MB • Max {maxDurationFormatted}
                   </p>
                   <p className="text-xs text-primary/70 mt-2">
                     ✨ Compression automatique pour les fichiers volumineux
                   </p>
+                  {compressionSettings.mode === 'never' && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ Compression désactivée
+                    </p>
+                  )}
                 </>
               ) : null}
             </div>
@@ -756,6 +865,18 @@ export function VideoUploader({
         className="hidden"
         disabled={disabled || uploadingThumbnail}
       />
+
+      {/* Compression preview modal */}
+      {pendingCompressionFile && (
+        <VideoCompressionPreview
+          file={pendingCompressionFile}
+          settings={compressionSettings}
+          open={showCompressionPreview}
+          onCompress={handleCompressionConfirm}
+          onSkip={handleCompressionSkip}
+          onCancel={handleCompressionPreviewCancel}
+        />
+      )}
 
       {/* Trim editor modal */}
       {pendingFile && (
