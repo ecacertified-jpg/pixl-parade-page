@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Video, X, Plus, GripVertical, Play, Link2, Upload, Loader2, CheckCircle2, Clock } from 'lucide-react';
+import { Video, X, Plus, GripVertical, Play, Link2, Upload, Loader2, CheckCircle2, Clock, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import {
   formatDuration,
   VIDEO_VALIDATION_CONFIG 
 } from '@/utils/videoValidation';
+import { VideoTrimEditor } from '@/components/VideoTrimEditor';
 
 interface MultiVideoUploaderProps {
   videos: VideoItem[];
@@ -70,6 +71,11 @@ export function MultiVideoUploader({
   const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
   const [validatingDuration, setValidatingDuration] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  // Trim editor state
+  const [showTrimEditor, setShowTrimEditor] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingVideoDuration, setPendingVideoDuration] = useState(0);
+  
   const videoInputRef = useRef<HTMLInputElement>(null);
   const canAddMore = videos.length < maxVideos;
 
@@ -132,47 +138,8 @@ export function MultiVideoUploader({
     setIsModalOpen(false);
   };
 
-  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
-      toast.error('Format non supporté. Utilisez MP4, MOV ou WebM.');
-      return;
-    }
-
-    if (file.size > MAX_VIDEO_SIZE) {
-      toast.error('La vidéo ne doit pas dépasser 50 MB.');
-      return;
-    }
-
-    // Validate video duration
-    setValidatingDuration(true);
-    try {
-      const metadata = await getVideoMetadata(file);
-      
-      if (!metadata.isValid) {
-        toast.error(metadata.error || 'Impossible de lire la vidéo.');
-        setValidatingDuration(false);
-        return;
-      }
-      
-      const durationCheck = validateVideoDurationWithConfig(metadata.duration, effectiveMaxDuration, productType);
-      if (!durationCheck.valid) {
-        toast.error(
-          durationCheck.error || `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${maxDurationFormatted}.`,
-          { duration: 5000 }
-        );
-        setValidatingDuration(false);
-        return;
-      }
-    } catch (error) {
-      console.warn('Duration validation failed:', error);
-      // Continue anyway as fallback
-    } finally {
-      setValidatingDuration(false);
-    }
-
+  // Process video upload (after potential trim)
+  const processVideoUpload = async (file: File) => {
     let fileToUpload = file;
     setOriginalFileSize(file.size);
 
@@ -254,6 +221,74 @@ export function MultiVideoUploader({
       }
     }
   };
+
+  // Handle trim completion
+  const handleTrimComplete = async (trimmedFile: File) => {
+    setShowTrimEditor(false);
+    setPendingFile(null);
+    setPendingVideoDuration(0);
+    await processVideoUpload(trimmedFile);
+  };
+
+  // Cancel trim
+  const handleTrimCancel = () => {
+    setShowTrimEditor(false);
+    setPendingFile(null);
+    setPendingVideoDuration(0);
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ACCEPTED_VIDEO_TYPES.includes(file.type)) {
+      toast.error('Format non supporté. Utilisez MP4, MOV ou WebM.');
+      return;
+    }
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      toast.error('La vidéo ne doit pas dépasser 50 MB.');
+      return;
+    }
+
+    // Validate video duration
+    setValidatingDuration(true);
+    try {
+      const metadata = await getVideoMetadata(file);
+      
+      if (!metadata.isValid) {
+        toast.error(metadata.error || 'Impossible de lire la vidéo.');
+        setValidatingDuration(false);
+        return;
+      }
+      
+      const durationCheck = validateVideoDurationWithConfig(metadata.duration, effectiveMaxDuration, productType);
+      if (!durationCheck.valid) {
+        // Video is too long - offer trim editor
+        setValidatingDuration(false);
+        setPendingFile(file);
+        setPendingVideoDuration(metadata.duration);
+        setShowTrimEditor(true);
+        toast.info(
+          `Vidéo trop longue (${formatDuration(metadata.duration)}). Utilisez l'éditeur pour la raccourcir.`,
+          { duration: 4000, icon: <Scissors className="h-4 w-4" /> }
+        );
+        return;
+      }
+    } catch (error) {
+      console.warn('Duration validation failed:', error);
+      // Continue anyway as fallback
+    } finally {
+      setValidatingDuration(false);
+    }
+
+    // Video duration is OK, proceed with upload
+    await processVideoUpload(file);
+  };
+
 
   const generateThumbnailFromVideo = async (url: string): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -582,6 +617,18 @@ export function MultiVideoUploader({
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Trim editor modal */}
+      {pendingFile && (
+        <VideoTrimEditor
+          file={pendingFile}
+          maxDurationSeconds={effectiveMaxDuration}
+          videoDuration={pendingVideoDuration}
+          onTrimComplete={handleTrimComplete}
+          onCancel={handleTrimCancel}
+          open={showTrimEditor}
+        />
+      )}
     </div>
   );
 }
