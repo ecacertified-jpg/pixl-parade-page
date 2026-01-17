@@ -84,6 +84,7 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
   const [addProductOpen, setAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+  const [videoFilter, setVideoFilter] = useState<'all' | 'with-video' | 'without-video'>('all');
   const [stats, setStats] = useState<BusinessStats>({
     productsCount: 0,
     activeProductsCount: 0,
@@ -220,6 +221,18 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
     }
     return product.video_url ? 1 : 0;
   };
+
+  // Filtered products based on video filter
+  const filteredProducts = products.filter(product => {
+    if (videoFilter === 'all') return true;
+    if (videoFilter === 'with-video') return hasVideos(product);
+    if (videoFilter === 'without-video') return !hasVideos(product);
+    return true;
+  });
+
+  // Video statistics
+  const productsWithVideo = products.filter(hasVideos).length;
+  const productsWithoutVideo = products.length - productsWithVideo;
   
   if (loading) {
     return (
@@ -334,20 +347,53 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
           <TabsContent value="products">
             <Card>
               <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span>Produits et services ({stats.productsCount})</span>
-                  </CardTitle>
-                  {isSuperAdmin && (
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button size="sm" variant="outline" onClick={() => setManageCategoriesOpen(true)}>
-                        <Tag className="h-4 w-4 mr-2" />
-                        Catégories
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary flex-shrink-0" />
+                      <span>Produits et services ({stats.productsCount})</span>
+                    </CardTitle>
+                    {isSuperAdmin && (
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button size="sm" variant="outline" onClick={() => setManageCategoriesOpen(true)}>
+                          <Tag className="h-4 w-4 mr-2" />
+                          Catégories
+                        </Button>
+                        <Button size="sm" onClick={() => setAddProductOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Ajouter
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Video filter buttons */}
+                  {products.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={videoFilter === 'all' ? 'default' : 'outline'}
+                        onClick={() => setVideoFilter('all')}
+                        className="text-xs"
+                      >
+                        Tous ({products.length})
                       </Button>
-                      <Button size="sm" onClick={() => setAddProductOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Ajouter
+                      <Button
+                        size="sm"
+                        variant={videoFilter === 'with-video' ? 'default' : 'outline'}
+                        onClick={() => setVideoFilter('with-video')}
+                        className="text-xs"
+                      >
+                        <Video className="h-3 w-3 mr-1" />
+                        Avec vidéo ({productsWithVideo})
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={videoFilter === 'without-video' ? 'default' : 'outline'}
+                        onClick={() => setVideoFilter('without-video')}
+                        className="text-xs"
+                      >
+                        Sans vidéo ({productsWithoutVideo})
                       </Button>
                     </div>
                   )}
@@ -369,9 +415,27 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
                       </Button>
                     )}
                   </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <Video className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {videoFilter === 'with-video' 
+                        ? "Aucun produit avec vidéo" 
+                        : "Tous les produits ont des vidéos"}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setVideoFilter('all')}
+                    >
+                      Voir tous les produits
+                    </Button>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.map((product) => (
+                    {filteredProducts.map((product) => (
                       <div 
                         key={product.id} 
                         className="flex gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow group"
