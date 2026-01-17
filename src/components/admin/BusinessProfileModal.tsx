@@ -6,10 +6,11 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { 
   Building2, Mail, Phone, MapPin, Globe, Package, TrendingUp, 
   Star, DollarSign, ShoppingCart, CheckCircle, Clock, XCircle,
-  AlertTriangle, Plus, Pencil, Settings, Tag
+  AlertTriangle, Plus, Pencil, Settings, Tag, Video
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { AdminAddProductModal } from "./AdminAddProductModal";
@@ -46,6 +47,9 @@ interface Product {
   experience_type: string | null;
   location_name: string | null;
   business_account_id: string;
+  videos?: Json | null;
+  video_url?: string | null;
+  video_thumbnail_url?: string | null;
 }
 
 interface BusinessStats {
@@ -126,7 +130,7 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
       // Fetch products with details
       const { data: productsData } = await supabase
         .from('products')
-        .select('id, name, description, price, currency, image_url, stock_quantity, is_active, category_id, is_experience, experience_type, location_name, business_account_id')
+        .select('id, name, description, price, currency, image_url, stock_quantity, is_active, category_id, is_experience, experience_type, location_name, business_account_id, videos, video_url, video_thumbnail_url')
         .eq('business_account_id', businessId);
       
       const productsList = productsData || [];
@@ -201,6 +205,20 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
     if (stock === 0) return <Badge variant="destructive" className="text-xs">Rupture</Badge>;
     if (stock <= 3) return <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">Stock faible</Badge>;
     return <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">En stock</Badge>;
+  };
+
+  const hasVideos = (product: Product): boolean => {
+    return !!(
+      (product.videos && Array.isArray(product.videos) && product.videos.length > 0) ||
+      product.video_url
+    );
+  };
+
+  const getVideoCount = (product: Product): number => {
+    if (product.videos && Array.isArray(product.videos)) {
+      return product.videos.length;
+    }
+    return product.video_url ? 1 : 0;
   };
   
   if (loading) {
@@ -358,13 +376,20 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
                         key={product.id} 
                         className="flex gap-3 p-3 rounded-lg border bg-card hover:shadow-sm transition-shadow group"
                       >
-                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                          {product.image_url ? (
-                            <img 
-                              src={product.image_url} 
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0 relative">
+                          {(product.video_thumbnail_url || product.image_url) ? (
+                            <>
+                              <img 
+                                src={product.video_thumbnail_url || product.image_url || ''} 
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                              {hasVideos(product) && (
+                                <div className="absolute bottom-0.5 right-0.5 bg-black/70 rounded p-0.5">
+                                  <Video className="h-2.5 w-2.5 text-white" />
+                                </div>
+                              )}
+                            </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <Package className="h-6 w-6 text-muted-foreground" />
@@ -393,11 +418,22 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
                           <p className="text-sm font-semibold text-primary mt-1">
                             {formatCurrency(product.price)}
                           </p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
                             {getStockBadge(product.stock_quantity)}
                             <span className="text-xs text-muted-foreground">
                               {product.stock_quantity} en stock
                             </span>
+                            {hasVideos(product) ? (
+                              <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-primary/10 text-primary">
+                                <Video className="h-3 w-3" />
+                                {getVideoCount(product)} vidéo{getVideoCount(product) > 1 ? 's' : ''}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs flex items-center gap-1 text-muted-foreground">
+                                <Video className="h-3 w-3" />
+                                Aucune
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -615,7 +651,7 @@ export function BusinessProfileModal({ businessId, open, onOpenChange, onBusines
       />
 
       <AdminEditProductModal
-        product={editingProduct}
+        product={editingProduct as any}
         open={!!editingProduct}
         onOpenChange={(open) => !open && setEditingProduct(null)}
         onProductUpdated={() => {
