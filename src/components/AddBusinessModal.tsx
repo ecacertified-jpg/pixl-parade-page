@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { toast } from "sonner";
-import { CitySelector } from "@/components/CitySelector";
+import { LocationPicker } from "@/components/LocationPicker";
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import type { Business } from "@/types/business";
 
@@ -54,6 +54,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
     logo_url: "",
     website_url: "",
     email: "",
+    latitude: null,
+    longitude: null,
     opening_hours: {
       lundi: { open: "09:00", close: "18:00" },
       mardi: { open: "09:00", close: "18:00" },
@@ -83,6 +85,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         logo_url: "",
         website_url: "",
         email: "",
+        latitude: null,
+        longitude: null,
         opening_hours: {
           lundi: { open: "09:00", close: "18:00" },
           mardi: { open: "09:00", close: "18:00" },
@@ -177,7 +181,9 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             opening_hours: formData.opening_hours,
             delivery_zones: formData.delivery_zones,
             payment_info: formData.payment_info,
-            delivery_settings: formData.delivery_settings
+            delivery_settings: formData.delivery_settings,
+            latitude: formData.latitude,
+            longitude: formData.longitude
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -203,6 +209,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             delivery_zones: formData.delivery_zones,
             payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -233,6 +241,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         logo_url: "",
         website_url: "",
         email: "",
+        latitude: null,
+        longitude: null,
         opening_hours: {
           lundi: { open: "09:00", close: "18:00" },
           mardi: { open: "09:00", close: "18:00" },
@@ -323,13 +333,17 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 </div>
               </div>
 
-              <CitySelector
-                value={formData.address}
-                onChange={(value) => handleInputChange('address', value)}
-                label="Adresse"
-                placeholder="Sélectionnez l'emplacement"
-                allowCustom
-                showRegions
+              <LocationPicker
+                address={formData.address || ""}
+                latitude={formData.latitude ?? null}
+                longitude={formData.longitude ?? null}
+                onAddressChange={(value) => handleInputChange('address', value)}
+                onCoordinatesChange={(lat, lng) => {
+                  handleInputChange('latitude', lat);
+                  handleInputChange('longitude', lng);
+                }}
+                countryCode={countryCode}
+                label="Emplacement de l'entreprise"
               />
 
               <div>

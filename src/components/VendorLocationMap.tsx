@@ -10,11 +10,19 @@ interface VendorLocationMapProps {
   address: string;
   businessName: string;
   countryCode?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 const MAPBOX_TOKEN_KEY = "joie_de_vivre_mapbox_token";
 
-export function VendorLocationMap({ address, businessName, countryCode = "CI" }: VendorLocationMapProps) {
+export function VendorLocationMap({ 
+  address, 
+  businessName, 
+  countryCode = "CI",
+  latitude,
+  longitude 
+}: VendorLocationMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
@@ -22,6 +30,7 @@ export function VendorLocationMap({ address, businessName, countryCode = "CI" }:
   const [mapboxToken, setMapboxToken] = useState<string>("");
   const [cityData, setCityData] = useState<CityCoordinates | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isExactLocation, setIsExactLocation] = useState(false);
 
   // Load token from localStorage
   useEffect(() => {
@@ -31,13 +40,22 @@ export function VendorLocationMap({ address, businessName, countryCode = "CI" }:
     }
   }, []);
 
-  // Find city coordinates from address
+  // Determine coordinates - prioritize provided lat/lng over address lookup
   useEffect(() => {
-    if (address) {
+    if (latitude !== null && latitude !== undefined && longitude !== null && longitude !== undefined) {
+      // Use provided GPS coordinates
+      setCityData({ lat: latitude, lng: longitude, name: address || "Position exacte", aliases: [] });
+      setIsExactLocation(true);
+    } else if (address) {
+      // Fallback to address lookup
       const found = findCityInCountry(address, countryCode);
       setCityData(found);
+      setIsExactLocation(false);
+    } else {
+      setCityData(null);
+      setIsExactLocation(false);
     }
-  }, [address, countryCode]);
+  }, [address, countryCode, latitude, longitude]);
 
   // Initialize map
   useEffect(() => {
@@ -144,6 +162,11 @@ export function VendorLocationMap({ address, businessName, countryCode = "CI" }:
         <CardTitle className="flex items-center gap-2 text-base">
           <MapPin className="h-5 w-5 text-primary" />
           Localisation
+          {isExactLocation && (
+            <span className="ml-auto text-xs font-normal bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+              Position exacte
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

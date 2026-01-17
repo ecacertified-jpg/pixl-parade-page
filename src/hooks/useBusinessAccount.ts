@@ -13,6 +13,8 @@ interface BusinessAccount {
   phone?: string;
   address?: string;
   website_url?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export const useBusinessAccount = () => {
@@ -35,7 +37,7 @@ export const useBusinessAccount = () => {
       // Use order + limit to avoid "multiple rows" error with maybeSingle
       const { data, error } = await supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url')
+        .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url, latitude, longitude')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(1)

@@ -9,9 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
+import { LocationPicker } from "@/components/LocationPicker";
 
 const BUSINESS_TYPES = [
   { value: "artisanat", label: "Artisanat" },
@@ -31,6 +33,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const BusinessProfileSettings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { countryCode } = useCountry();
   const { toast } = useToast();
   const { businessAccount, loading: businessLoading, refetch } = useBusinessAccount();
   const [saving, setSaving] = useState(false);
@@ -46,6 +49,8 @@ const BusinessProfileSettings = () => {
     phone: "",
     address: "",
     website_url: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   useEffect(() => {
@@ -59,6 +64,8 @@ const BusinessProfileSettings = () => {
         phone: businessAccount.phone || "",
         address: businessAccount.address || "",
         website_url: businessAccount.website_url || "",
+        latitude: (businessAccount as any).latitude ?? null,
+        longitude: (businessAccount as any).longitude ?? null,
       });
     }
   }, [businessAccount]);
@@ -193,6 +200,8 @@ const BusinessProfileSettings = () => {
           phone: business.phone,
           address: business.address,
           website_url: business.website_url,
+          latitude: business.latitude,
+          longitude: business.longitude,
         })
         .eq("id", businessAccount.id);
       
@@ -431,6 +440,17 @@ const BusinessProfileSettings = () => {
                     />
                   </div>
                 </div>
+
+                {/* Location Picker */}
+                <LocationPicker
+                  address={business.address}
+                  latitude={business.latitude}
+                  longitude={business.longitude}
+                  onAddressChange={(value) => setBusiness({ ...business, address: value })}
+                  onCoordinatesChange={(lat, lng) => setBusiness({ ...business, latitude: lat, longitude: lng })}
+                  countryCode={countryCode}
+                  label="Position GPS de l'entreprise"
+                />
 
                 <div className="space-y-2">
                   <Label htmlFor="website">Site web (optionnel)</Label>
