@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Copy, Mail, MessageCircle, Share2, X, Facebook, Smartphone } from "lucide-react";
+import { Copy, Mail, MessageCircle, Share2, Facebook, Smartphone, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useBusinessShareTracking, SharePlatform } from "@/hooks/useBusinessShareTracking";
 
 interface BusinessShareMenuProps {
   open: boolean;
@@ -20,61 +21,104 @@ export function BusinessShareMenu({
   businessType,
 }: BusinessShareMenuProps) {
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const { recordShare } = useBusinessShareTracking(businessId);
 
-  const businessUrl = `${window.location.origin}/b/${businessId}`;
+  const baseUrl = `${window.location.origin}/b/${businessId}`;
   const shareText = `Découvre ${businessName} sur JOIE DE VIVRE ! ${businessType ? `(${businessType})` : ''} 🎁`;
-  const fullMessage = `${shareText}\n\n${businessUrl}`;
+
+  const getTrackableUrl = async (platform: SharePlatform): Promise<string> => {
+    try {
+      const token = await recordShare(platform);
+      if (token) {
+        return `${baseUrl}?ref=${token}`;
+      }
+    } catch (err) {
+      console.error('Error creating trackable URL:', err);
+    }
+    return baseUrl;
+  };
 
   const copyLink = async () => {
+    setSharing(true);
     try {
-      await navigator.clipboard.writeText(businessUrl);
+      const url = await getTrackableUrl('copy');
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Lien copié !");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Impossible de copier le lien");
+    } finally {
+      setSharing(false);
     }
   };
 
-  const shareViaWhatsApp = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
-    window.open(url, "_blank");
-    onOpenChange(false);
+  const shareViaWhatsApp = async () => {
+    setSharing(true);
+    try {
+      const url = await getTrackableUrl('whatsapp');
+      const message = `${shareText}\n\n${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+      onOpenChange(false);
+    } finally {
+      setSharing(false);
+    }
   };
 
-  const shareViaFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(businessUrl)}&quote=${encodeURIComponent(shareText)}`;
-    window.open(url, "_blank");
-    onOpenChange(false);
+  const shareViaFacebook = async () => {
+    setSharing(true);
+    try {
+      const url = await getTrackableUrl('facebook');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(shareText)}`, "_blank");
+      onOpenChange(false);
+    } finally {
+      setSharing(false);
+    }
   };
 
-  const shareViaSMS = () => {
-    const url = `sms:?body=${encodeURIComponent(fullMessage)}`;
-    window.location.href = url;
-    onOpenChange(false);
+  const shareViaSMS = async () => {
+    setSharing(true);
+    try {
+      const url = await getTrackableUrl('sms');
+      const message = `${shareText}\n\n${url}`;
+      window.location.href = `sms:?body=${encodeURIComponent(message)}`;
+      onOpenChange(false);
+    } finally {
+      setSharing(false);
+    }
   };
 
-  const shareViaEmail = () => {
-    const subject = encodeURIComponent(`Découvre ${businessName} sur JOIE DE VIVRE !`);
-    const body = encodeURIComponent(fullMessage);
-    const url = `mailto:?subject=${subject}&body=${body}`;
-    window.location.href = url;
-    onOpenChange(false);
+  const shareViaEmail = async () => {
+    setSharing(true);
+    try {
+      const url = await getTrackableUrl('email');
+      const subject = encodeURIComponent(`Découvre ${businessName} sur JOIE DE VIVRE !`);
+      const body = encodeURIComponent(`${shareText}\n\n${url}`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      onOpenChange(false);
+    } finally {
+      setSharing(false);
+    }
   };
 
   const shareNative = async () => {
     if (navigator.share) {
+      setSharing(true);
       try {
+        const url = await getTrackableUrl('native');
         await navigator.share({
           title: `${businessName} - JOIE DE VIVRE`,
           text: shareText,
-          url: businessUrl,
+          url: url,
         });
         onOpenChange(false);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           toast.error("Erreur lors du partage");
         }
+      } finally {
+        setSharing(false);
       }
     } else {
       copyLink();
@@ -98,8 +142,9 @@ export function BusinessShareMenu({
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-green-50 hover:border-green-500 hover:text-green-600"
               onClick={shareViaWhatsApp}
+              disabled={sharing}
             >
-              <MessageCircle className="h-6 w-6" />
+              {sharing ? <Loader2 className="h-6 w-6 animate-spin" /> : <MessageCircle className="h-6 w-6" />}
               <span className="text-xs">WhatsApp</span>
             </Button>
 
@@ -107,8 +152,9 @@ export function BusinessShareMenu({
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-600"
               onClick={shareViaFacebook}
+              disabled={sharing}
             >
-              <Facebook className="h-6 w-6" />
+              {sharing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Facebook className="h-6 w-6" />}
               <span className="text-xs">Facebook</span>
             </Button>
 
@@ -116,8 +162,9 @@ export function BusinessShareMenu({
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-purple-50 hover:border-purple-500 hover:text-purple-600"
               onClick={shareViaSMS}
+              disabled={sharing}
             >
-              <Smartphone className="h-6 w-6" />
+              {sharing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Smartphone className="h-6 w-6" />}
               <span className="text-xs">SMS</span>
             </Button>
 
@@ -125,8 +172,9 @@ export function BusinessShareMenu({
               variant="outline"
               className="flex flex-col items-center gap-2 h-auto py-4 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-600"
               onClick={shareViaEmail}
+              disabled={sharing}
             >
-              <Mail className="h-6 w-6" />
+              {sharing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Mail className="h-6 w-6" />}
               <span className="text-xs">Email</span>
             </Button>
           </div>
@@ -137,7 +185,7 @@ export function BusinessShareMenu({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={businessUrl}
+                value={baseUrl}
                 readOnly
                 className="flex-1 text-sm bg-background border rounded px-3 py-2 truncate"
               />
@@ -146,8 +194,9 @@ export function BusinessShareMenu({
                 variant={copied ? "default" : "outline"}
                 onClick={copyLink}
                 className="shrink-0"
+                disabled={sharing}
               >
-                <Copy className="h-4 w-4" />
+                {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -158,8 +207,9 @@ export function BusinessShareMenu({
               className="w-full"
               variant="gradient"
               onClick={shareNative}
+              disabled={sharing}
             >
-              <Share2 className="h-4 w-4 mr-2" />
+              {sharing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Share2 className="h-4 w-4 mr-2" />}
               Partager via...
             </Button>
           )}

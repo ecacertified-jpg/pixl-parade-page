@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Gift, Store, ArrowRight, Loader2, AlertCircle, MapPin, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { trackBusinessShareEvent } from "@/hooks/useBusinessShareTracking";
 
 interface BusinessData {
   id: string;
@@ -18,10 +19,40 @@ interface BusinessData {
 
 export default function BusinessPreview() {
   const { businessId } = useParams<{ businessId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [business, setBusiness] = useState<BusinessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasTrackedRef = useRef(false);
+
+  // Track view from share link
+  useEffect(() => {
+    const shareRef = searchParams.get('ref');
+    
+    if (shareRef && businessId && !hasTrackedRef.current) {
+      hasTrackedRef.current = true;
+      
+      // Store ref in session for follow attribution
+      sessionStorage.setItem(`business_share_ref_${businessId}`, shareRef);
+      
+      // Track the view event
+      trackBusinessShareEvent({
+        shareToken: shareRef,
+        eventType: 'view',
+        businessId: businessId,
+      }).then(success => {
+        if (success) {
+          console.log('Business share view tracked');
+        }
+      });
+      
+      // Clean the URL (remove ref param)
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('ref');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [businessId, searchParams, setSearchParams]);
 
   useEffect(() => {
     async function fetchBusiness() {
