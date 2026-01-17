@@ -8,8 +8,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Package, Upload, X } from 'lucide-react';
+import { Loader2, Package, Image as ImageIcon, Video } from 'lucide-react';
 import { logAdminAction } from '@/utils/auditLogger';
+import { MultiImageUploader, ImageItem } from '@/components/MultiImageUploader';
+import { MultiVideoUploader } from '@/components/MultiVideoUploader';
+import { VideoItem, videoItemToProductVideo } from '@/types/video';
 
 interface Business {
   id: string;
@@ -39,8 +42,12 @@ export function AdminAddProductModal({
   const [loading, setLoading] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Multi image uploader state
+  const [productImages, setProductImages] = useState<ImageItem[]>([]);
+  
+  // Multi video uploader state
+  const [productVideos, setProductVideos] = useState<VideoItem[]>([]);
   
   const [formData, setFormData] = useState({
     business_id: preselectedBusinessId || '',
@@ -88,19 +95,6 @@ export function AdminAddProductModal({
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -117,26 +111,38 @@ export function AdminAddProductModal({
         throw new Error('Business non trouvé');
       }
 
-      let imageUrl = null;
+      // Upload all images to storage
+      const uploadedImageUrls: string[] = [];
       
-      // Upload image if provided
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `products/${formData.business_id}/${fileName}`;
+      for (const image of productImages) {
+        if (image.file) {
+          // Upload new image
+          const fileExt = image.file.name.split('.').pop();
+          const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `products/${formData.business_id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(filePath, imageFile);
+          const { error: uploadError } = await supabase.storage
+            .from('products')
+            .upload(filePath, image.file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('products')
-          .getPublicUrl(filePath);
-        
-        imageUrl = urlData.publicUrl;
+          const { data: urlData } = supabase.storage
+            .from('products')
+            .getPublicUrl(filePath);
+          
+          uploadedImageUrls.push(urlData.publicUrl);
+        } else if (image.url) {
+          // Use existing URL (e.g., from existing image)
+          uploadedImageUrls.push(image.url);
+        }
       }
+
+      // Convert videos to database format
+      const videosForDb = productVideos.map(videoItemToProductVideo);
+      
+      // Get first video info for display
+      const firstVideo = productVideos[0];
 
       // Create product - business_id is required, business_account_id is the same
       const { error: insertError } = await supabase
@@ -154,7 +160,13 @@ export function AdminAddProductModal({
           experience_type: formData.is_experience ? formData.experience_type : null,
           location_name: formData.is_experience ? formData.location_name : null,
           is_active: formData.is_active,
-          image_url: imageUrl,
+          // Images
+          image_url: uploadedImageUrls[0] || null,
+          images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null,
+          // Videos
+          videos: videosForDb.length > 0 ? videosForDb : null,
+          video_url: firstVideo?.url || null,
+          video_thumbnail_url: firstVideo?.thumbnailUrl || null,
           currency: 'XOF',
         });
 
@@ -166,7 +178,12 @@ export function AdminAddProductModal({
         'product',
         null,
         `Produit "${formData.name}" créé pour ${selectedBusiness.business_name}`,
-        { business_id: formData.business_id, product_name: formData.name }
+        { 
+          business_id: formData.business_id, 
+          product_name: formData.name,
+          images_count: uploadedImageUrls.length,
+          videos_count: productVideos.length
+        }
       );
 
       toast.success('Produit ajouté avec succès');
@@ -194,13 +211,13 @@ export function AdminAddProductModal({
       location_name: '',
       is_active: true,
     });
-    setImageFile(null);
-    setImagePreview(null);
+    setProductImages([]);
+    setProductVideos([]);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -330,34 +347,36 @@ export function AdminAddProductModal({
             </div>
           )}
 
-          {/* Image Upload */}
+          {/* Images Upload Section */}
           <div className="space-y-2">
-            <Label>Image du produit</Label>
-            {imagePreview ? (
-              <div className="relative w-full h-40 rounded-lg overflow-hidden">
-                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={removeImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <span className="text-sm text-muted-foreground">Cliquer pour ajouter une image</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            )}
+            <Label className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Images du produit
+            </Label>
+            <MultiImageUploader
+              images={productImages}
+              onChange={setProductImages}
+              maxImages={5}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Videos Upload Section */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Video className="h-4 w-4" />
+              Vidéos du produit
+            </Label>
+            <div className="text-xs text-muted-foreground mb-2">
+              Ajoutez des vidéos avec miniatures personnalisées. La miniature de la première vidéo sera utilisée comme couverture dans la boutique.
+            </div>
+            <MultiVideoUploader
+              videos={productVideos}
+              onChange={setProductVideos}
+              maxVideos={5}
+              productType={formData.is_experience ? 'experience' : 'product'}
+              disabled={loading}
+            />
           </div>
 
           {/* Active Toggle */}
