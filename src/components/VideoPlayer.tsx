@@ -5,6 +5,13 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { 
+  getVideoSource, 
+  extractYouTubeId, 
+  extractVimeoId,
+  getYouTubeEmbedUrl,
+  getVimeoEmbedUrl
+} from '@/utils/videoHelpers';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -14,6 +21,125 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ videoUrl, isOpen, onClose, title }: VideoPlayerProps) {
+  const videoSource = getVideoSource(videoUrl);
+
+  // For YouTube/Vimeo, use embed player
+  if (videoSource === 'youtube' || videoSource === 'vimeo') {
+    return (
+      <EmbedVideoPlayer
+        videoUrl={videoUrl}
+        isOpen={isOpen}
+        onClose={onClose}
+        title={title}
+        source={videoSource}
+      />
+    );
+  }
+
+  // For direct videos, use HTML5 player
+  return (
+    <DirectVideoPlayer
+      videoUrl={videoUrl}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+    />
+  );
+}
+
+// Embed player for YouTube and Vimeo
+interface EmbedVideoPlayerProps {
+  videoUrl: string;
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  source: 'youtube' | 'vimeo';
+}
+
+function EmbedVideoPlayer({ videoUrl, isOpen, onClose, title, source }: EmbedVideoPlayerProps) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  const getEmbedUrl = () => {
+    if (source === 'youtube') {
+      const videoId = extractYouTubeId(videoUrl);
+      return videoId ? getYouTubeEmbedUrl(videoId) : '';
+    }
+    if (source === 'vimeo') {
+      const videoId = extractVimeoId(videoUrl);
+      return videoId ? getVimeoEmbedUrl(videoId) : '';
+    }
+    return '';
+  };
+
+  const embedUrl = getEmbedUrl();
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+    }
+  }, [isOpen, videoUrl]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent 
+        className="max-w-4xl w-full p-0 bg-black border-none overflow-hidden"
+        onPointerDownOutside={onClose}
+      >
+        <VisuallyHidden>
+          <DialogTitle>{title || 'Lecteur vidéo'}</DialogTitle>
+        </VisuallyHidden>
+        
+        <div className="relative w-full aspect-video">
+          {/* Loading spinner */}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+              <Loader2 className="h-10 w-10 text-white animate-spin" />
+            </div>
+          )}
+
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 text-white hover:bg-white/20 z-20"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+
+          {/* Platform badge */}
+          <div className={cn(
+            "absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white z-20",
+            source === 'youtube' ? "bg-red-600" : "bg-[#1AB7EA]"
+          )}>
+            {source === 'youtube' ? 'YouTube' : 'Vimeo'}
+          </div>
+
+          {/* Embed iframe */}
+          {embedUrl && (
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              onLoad={() => setIsLoading(false)}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Direct HTML5 video player (existing implementation)
+interface DirectVideoPlayerProps {
+  videoUrl: string;
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+}
+
+function DirectVideoPlayer({ videoUrl, isOpen, onClose, title }: DirectVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);

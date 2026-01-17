@@ -1,10 +1,20 @@
-import { useState, useRef } from 'react';
-import { Upload, X, Video, Image, Play, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  getVideoSource, 
+  isValidVideoUrl, 
+  getVideoThumbnail,
+  getVideoPlatformInfo,
+  extractYouTubeId,
+  extractVimeoId
+} from '@/utils/videoHelpers';
 
 interface VideoUploaderProps {
   videoUrl: string | null;
@@ -29,9 +39,54 @@ export function VideoUploader({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('upload');
+  const [externalUrl, setExternalUrl] = useState('');
+  const [isValidatingUrl, setIsValidatingUrl] = useState(false);
+  const [urlValidation, setUrlValidation] = useState<{ valid: boolean; platform?: string } | null>(null);
+  const [autoThumbnail, setAutoThumbnail] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
+
+  // Determine current video source type
+  const currentSource = videoUrl ? getVideoSource(videoUrl) : null;
+  const isExternalVideo = currentSource === 'youtube' || currentSource === 'vimeo';
+
+  // Validate external URL when it changes
+  useEffect(() => {
+    if (!externalUrl) {
+      setUrlValidation(null);
+      setAutoThumbnail(null);
+      return;
+    }
+
+    const validateUrl = async () => {
+      setIsValidatingUrl(true);
+      
+      const source = getVideoSource(externalUrl);
+      const isValid = isValidVideoUrl(externalUrl);
+      
+      if (isValid && (source === 'youtube' || source === 'vimeo')) {
+        const platformInfo = getVideoPlatformInfo(externalUrl);
+        setUrlValidation({ valid: true, platform: platformInfo.name });
+        
+        // Fetch auto thumbnail
+        const thumbnail = await getVideoThumbnail(externalUrl);
+        setAutoThumbnail(thumbnail);
+      } else if (externalUrl.length > 10) {
+        setUrlValidation({ valid: false });
+        setAutoThumbnail(null);
+      } else {
+        setUrlValidation(null);
+        setAutoThumbnail(null);
+      }
+      
+      setIsValidatingUrl(false);
+    };
+
+    const debounce = setTimeout(validateUrl, 500);
+    return () => clearTimeout(debounce);
+  }, [externalUrl]);
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,6 +148,25 @@ export function VideoUploader({
         videoInputRef.current.value = '';
       }
     }
+  };
+
+  const handleExternalUrlSubmit = () => {
+    if (!urlValidation?.valid) {
+      toast.error('URL invalide. Utilisez une URL YouTube ou Vimeo.');
+      return;
+    }
+
+    onVideoChange(externalUrl);
+    
+    // Use auto-generated thumbnail if available and no custom thumbnail
+    if (autoThumbnail && !thumbnailUrl) {
+      onThumbnailChange(autoThumbnail);
+    }
+    
+    toast.success(`Vidéo ${urlValidation.platform} ajoutée !`);
+    setExternalUrl('');
+    setUrlValidation(null);
+    setAutoThumbnail(null);
   };
 
   const generateThumbnailFromVideo = (url: string) => {
@@ -221,43 +295,48 @@ export function VideoUploader({
     onThumbnailChange(null);
   };
 
-  return (
-    <div className="space-y-4">
-      <Label className="text-sm font-medium">Vidéo du produit (optionnel)</Label>
-      
-      {/* Video upload/preview area */}
-      {!videoUrl ? (
-        <div
-          onClick={() => !disabled && !uploading && videoInputRef.current?.click()}
-          className={`
-            border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
-            transition-colors duration-200
-            ${disabled || uploading 
-              ? 'border-muted bg-muted/20 cursor-not-allowed' 
-              : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
-            }
-          `}
-        >
-          {uploading ? (
-            <div className="space-y-3">
-              <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
-              <p className="text-sm text-muted-foreground">Upload en cours...</p>
-              <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
+  // Render video preview based on source type
+  const renderVideoPreview = () => {
+    if (!videoUrl) return null;
+
+    const platformInfo = getVideoPlatformInfo(videoUrl);
+
+    return (
+      <div className="space-y-3">
+        {/* Video preview */}
+        <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+          {isExternalVideo ? (
+            // External video preview (thumbnail with platform badge)
+            <div className="relative w-full h-full">
+              {thumbnailUrl ? (
+                <img
+                  src={thumbnailUrl}
+                  alt="Aperçu vidéo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+                  <Video className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+              
+              {/* Play icon overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                  <Play className="h-7 w-7 text-white fill-white ml-1" />
+                </div>
+              </div>
+              
+              {/* Platform badge */}
+              <div 
+                className="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium text-white"
+                style={{ backgroundColor: platformInfo.color }}
+              >
+                {platformInfo.name}
+              </div>
             </div>
           ) : (
-            <>
-              <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                MP4, MOV ou WebM • Max 50 MB
-              </p>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Video preview */}
-          <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+            // Direct video preview
             <video
               ref={videoPreviewRef}
               src={videoUrl}
@@ -265,65 +344,202 @@ export function VideoUploader({
               controls
               preload="metadata"
             />
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2 h-8 w-8"
-              onClick={handleRemoveVideo}
-              disabled={disabled}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          )}
+          
+          <Button
+            type="button"
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2 h-8 w-8"
+            onClick={handleRemoveVideo}
+            disabled={disabled}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
-          {/* Thumbnail section */}
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Miniature de couverture (affichée dans la boutique)
-            </Label>
-            
-            {thumbnailUrl ? (
-              <div className="relative w-32 h-20 rounded-lg overflow-hidden border">
-                <img
-                  src={thumbnailUrl}
-                  alt="Miniature"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <Play className="h-6 w-6 text-white fill-white" />
+        {/* Thumbnail section */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">
+            Miniature de couverture (affichée dans la boutique)
+          </Label>
+          
+          {thumbnailUrl ? (
+            <div className="relative w-32 h-20 rounded-lg overflow-hidden border">
+              <img
+                src={thumbnailUrl}
+                alt="Miniature"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <Play className="h-6 w-6 text-white fill-white" />
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 h-5 w-5"
+                onClick={handleRemoveThumbnail}
+                disabled={disabled || uploadingThumbnail}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : uploadingThumbnail ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Génération de la miniature...</span>
+            </div>
+          ) : null}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => thumbnailInputRef.current?.click()}
+            disabled={disabled || uploadingThumbnail}
+            className="gap-2"
+          >
+            <Image className="h-4 w-4" />
+            {thumbnailUrl ? 'Changer la miniature' : 'Ajouter une miniature personnalisée'}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label className="text-sm font-medium">Vidéo du produit (optionnel)</Label>
+      
+      {/* Show video preview if we have a video */}
+      {videoUrl ? (
+        renderVideoPreview()
+      ) : (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload" className="gap-2">
+              <Upload className="h-4 w-4" />
+              Uploader
+            </TabsTrigger>
+            <TabsTrigger value="external" className="gap-2">
+              <Link2 className="h-4 w-4" />
+              Lien externe
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upload" className="mt-4">
+            <div
+              onClick={() => !disabled && !uploading && videoInputRef.current?.click()}
+              className={`
+                border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
+                transition-colors duration-200
+                ${disabled || uploading 
+                  ? 'border-muted bg-muted/20 cursor-not-allowed' 
+                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
+                }
+              `}
+            >
+              {uploading ? (
+                <div className="space-y-3">
+                  <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">Upload en cours...</p>
+                  <Progress value={uploadProgress} className="w-full max-w-xs mx-auto" />
+                </div>
+              ) : (
+                <>
+                  <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    MP4, MOV ou WebM • Max 50 MB
+                  </p>
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="external" className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Collez l'URL de votre vidéo YouTube ou Vimeo
+              </Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
+                    value={externalUrl}
+                    onChange={(e) => setExternalUrl(e.target.value)}
+                    disabled={disabled}
+                    className="pr-10"
+                  />
+                  {isValidatingUrl && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  {urlValidation?.valid && !isValidatingUrl && (
+                    <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                  )}
                 </div>
                 <Button
                   type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-1 right-1 h-5 w-5"
-                  onClick={handleRemoveThumbnail}
-                  disabled={disabled || uploadingThumbnail}
+                  onClick={handleExternalUrlSubmit}
+                  disabled={!urlValidation?.valid || disabled}
                 >
-                  <X className="h-3 w-3" />
+                  Ajouter
                 </Button>
               </div>
-            ) : uploadingThumbnail ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Génération de la miniature...</span>
-              </div>
-            ) : null}
+            </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => thumbnailInputRef.current?.click()}
-              disabled={disabled || uploadingThumbnail}
-              className="gap-2"
-            >
-              <Image className="h-4 w-4" />
-              {thumbnailUrl ? 'Changer la miniature' : 'Ajouter une miniature personnalisée'}
-            </Button>
-          </div>
-        </div>
+            {/* Platform detection feedback */}
+            {urlValidation && (
+              <div className={`flex items-center gap-2 text-sm ${urlValidation.valid ? 'text-green-600' : 'text-destructive'}`}>
+                {urlValidation.valid ? (
+                  <>
+                    <div 
+                      className="w-4 h-4 rounded-full"
+                      style={{ 
+                        backgroundColor: urlValidation.platform === 'YouTube' ? '#FF0000' : '#1AB7EA' 
+                      }}
+                    />
+                    <span>Vidéo {urlValidation.platform} détectée</span>
+                  </>
+                ) : (
+                  <span>URL non reconnue. Utilisez YouTube ou Vimeo.</span>
+                )}
+              </div>
+            )}
+
+            {/* Auto thumbnail preview */}
+            {autoThumbnail && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Aperçu de la miniature automatique
+                </Label>
+                <div className="relative w-40 h-24 rounded-lg overflow-hidden border">
+                  <img
+                    src={autoThumbnail}
+                    alt="Miniature automatique"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                    <Play className="h-6 w-6 text-white fill-white" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Supported platforms info */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-red-600" />
+                YouTube
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-[#1AB7EA]" />
+                Vimeo
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
 
       <input
