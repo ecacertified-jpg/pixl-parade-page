@@ -145,7 +145,7 @@ export function AdminAddProductModal({
       const firstVideo = productVideos[0];
 
       // Create product - business_id is required, business_account_id is the same
-      const { error: insertError } = await supabase
+      const { data: insertedProduct, error: insertError } = await supabase
         .from('products')
         .insert({
           business_id: formData.business_id,
@@ -168,15 +168,36 @@ export function AdminAddProductModal({
           video_url: firstVideo?.url || null,
           video_thumbnail_url: firstVideo?.thumbnailUrl || null,
           currency: 'XOF',
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // Notifier les followers du nouveau produit
+      if (insertedProduct?.id && formData.is_active) {
+        try {
+          await supabase.functions.invoke('notify-new-product', {
+            body: {
+              productId: insertedProduct.id,
+              productName: formData.name,
+              businessId: formData.business_id,
+              businessName: selectedBusiness.business_name,
+              productImage: uploadedImageUrls[0] || null
+            }
+          });
+          console.log('✅ Followers notifiés du nouveau produit');
+        } catch (notifyError) {
+          console.error('Error notifying followers:', notifyError);
+          // Ne pas bloquer si la notification échoue
+        }
+      }
 
       // Log admin action
       await logAdminAction(
         'create_product',
         'product',
-        null,
+        insertedProduct?.id || null,
         `Produit "${formData.name}" créé pour ${selectedBusiness.business_name}`,
         { 
           business_id: formData.business_id, 
