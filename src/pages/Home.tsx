@@ -6,6 +6,7 @@ import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { WhatDoYouWantCard } from "@/components/WhatDoYouWantCard";
 import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
+import { FeaturedVideoProductsCarousel } from "@/components/FeaturedVideoProductsCarousel";
 import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
 import { TikTokFeed } from "@/components/TikTokFeed";
@@ -105,7 +106,10 @@ const Home = () => {
         {/* Section 3: Public Funds Carousel */}
         <PublicFundsCarousel />
 
-        {/* Section 4: Featured Experiences Carousel */}
+        {/* Section 4: Featured Video Products */}
+        <FeaturedVideoProductsCarousel />
+
+        {/* Section 5: Featured Experiences Carousel */}
         <FeaturedExperiencesCarousel />
 
         {/* Section 5: News Feed with mode toggle */}
