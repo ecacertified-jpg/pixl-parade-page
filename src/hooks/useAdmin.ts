@@ -14,8 +14,6 @@ export interface AdminPermissions {
 export type AdminRole = 'super_admin' | 'regional_admin' | 'moderator' | null;
 
 export const useAdmin = () => {
-  console.warn('⚠️⚠️⚠️ useAdmin HOOK CALLED ⚠️⚠️⚠️');
-  
   const [adminRole, setAdminRole] = useState<AdminRole>(null);
   const [permissions, setPermissions] = useState<AdminPermissions>({
     manage_users: false,
@@ -28,43 +26,42 @@ export const useAdmin = () => {
   const [assignedCountries, setAssignedCountries] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
-  
-  console.warn('⚠️ useAdmin - Current user:', user?.id, 'AuthContext loading:', authLoading);
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.error('⏱️ [ADMIN] Safety timeout reached - forcing loading to stop');
+        setLoading(false);
+      }
+    }, 10000);
+    
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   useEffect(() => {
     if (user) {
       checkAdminStatus();
     } else if (!authLoading) {
-      // Seulement si AuthContext a fini de charger et qu'il n'y a pas d'utilisateur
-      console.warn('⚠️ useAdmin - No user found after auth loading complete');
       setAdminRole(null);
       setAssignedCountries(null);
       setLoading(false);
     }
-    // Si authLoading = true, on garde loading = true
   }, [user, authLoading]);
 
   const checkAdminStatus = async () => {
     try {
       setLoading(true);
       
-      console.warn('🔍 [ADMIN DEBUG] Checking admin status for user:', user?.id);
-      
-      // Fallback direct: interroger directement la table admin_users
       const { data: adminData, error: adminError } = await supabase
         .from('admin_users')
         .select('role, permissions, is_active, assigned_countries')
         .eq('user_id', user?.id)
         .single();
 
-      console.warn('🔍 [ADMIN DEBUG] Admin data query result:', { adminData, adminError });
-
       if (adminError) {
-        if (adminError.code === 'PGRST116') {
-          // No rows found - user is not an admin
-          console.warn('🔍 [ADMIN DEBUG] User is not an admin (no record found)');
-        } else {
-          console.error('🔍 [ADMIN DEBUG] Error fetching admin data:', adminError);
+        if (adminError.code !== 'PGRST116') {
+          console.error('[ADMIN] Error fetching admin data:', adminError);
         }
         setAdminRole(null);
         setAssignedCountries(null);
@@ -73,18 +70,15 @@ export const useAdmin = () => {
       }
 
       if (!adminData || !adminData.is_active) {
-        console.warn('🔍 [ADMIN DEBUG] Admin account exists but is not active:', adminData);
         setAdminRole(null);
         setAssignedCountries(null);
         setLoading(false);
         return;
       }
 
-      console.warn('✅ [ADMIN DEBUG] User is admin with role:', adminData.role);
       setAdminRole(adminData.role as AdminRole);
       setAssignedCountries(adminData.assigned_countries as string[] | null);
       
-      // Safely parse permissions with defaults
       const perms = adminData.permissions as any || {};
       setPermissions({
         manage_users: perms.manage_users ?? false,
@@ -94,11 +88,8 @@ export const useAdmin = () => {
         view_analytics: perms.view_analytics ?? false,
         manage_settings: perms.manage_settings ?? false,
       });
-      
-      console.warn('✅ [ADMIN DEBUG] Permissions set:', perms);
-      console.warn('✅ [ADMIN DEBUG] Assigned countries:', adminData.assigned_countries);
     } catch (error) {
-      console.error('❌ [ADMIN DEBUG] Error checking admin status:', error);
+      console.error('[ADMIN] Error checking admin status:', error);
       setAdminRole(null);
       setAssignedCountries(null);
     } finally {

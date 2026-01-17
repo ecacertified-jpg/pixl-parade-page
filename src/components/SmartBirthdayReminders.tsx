@@ -42,7 +42,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
         .select('id, metadata, priority, created_at')
         .eq('user_id', user.id)
         .eq('notification_type', 'birthday_reminder_with_suggestions')
-        .eq('is_sent', false)
+        .eq('status', 'pending')
         .eq('is_archived', false)
         .order('priority', { ascending: false })
         .limit(5);
@@ -162,7 +162,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
     if (!notificationId.startsWith('contact-')) {
       await supabase
         .from('scheduled_notifications')
-        .update({ is_sent: true, sent_at: new Date().toISOString() })
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
         .eq('id', notificationId);
     }
   };
