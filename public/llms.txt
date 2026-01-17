@@ -1,0 +1,108 @@
+# Joie de Vivre - Plateforme de Cadeaux Collaboratifs
+
+> Joie de Vivre est la première plateforme de cadeaux collectifs en Afrique francophone, permettant de créer des cagnottes pour les anniversaires, mariages, promotions et autres célébrations. Elle connecte les utilisateurs avec des boutiques artisanales locales en Côte d'Ivoire, au Bénin, au Sénégal et dans toute l'Afrique francophone.
+
+## À Propos
+
+- **Nom**: Joie de Vivre (JDV)
+- **Type**: Application web progressive (PWA)
+- **Marché principal**: Côte d'Ivoire (Abidjan), Bénin (Cotonou), Sénégal (Dakar)
+- **Marchés secondaires**: Afrique francophone (Mali, Cameroun, Togo, Burkina Faso, etc.)
+- **Langue**: Français
+- **Devise**: Franc CFA (XOF)
+- **Catégorie**: E-commerce, Cadeaux, Célébrations, Fintech, Social
+
+## Fonctionnalités Principales
+
+### 1. Cagnottes Collectives
+Créez une cagnotte pour rassembler des contributions de proches pour un cadeau commun.
+- Occasions: anniversaires, mariages, naissances, promotions, diplômes
+- Cagnottes surprises avec date de révélation programmée
+- Suivi des contributions en temps réel
+- Partage via WhatsApp, Facebook, SMS
+
+### 2. Marketplace de Boutiques Locales
+Découvrez des boutiques artisanales africaines proposant des cadeaux uniques.
+- Catégories: Mode, Bijoux, Décoration, Gastronomie, Expériences, Artisanat
+- Types de boutiques: Fleuristes, Pâtisseries, Créateurs de mode, Joailliers
+- Livraison locale (Abidjan, Cotonou, Dakar)
+- Paiement Mobile Money (Orange Money, MTN Money, Wave)
+
+### 3. Rappels d'Anniversaires
+Ne manquez plus jamais un anniversaire important.
+- Notifications intelligentes avant les dates importantes
+- Suggestions de cadeaux personnalisées
+- Carnet de contacts avec dates de naissance
+
+### 4. Célébrations Sociales
+Partagez vos moments de joie avec votre communauté.
+- Publications de gratitude
+- Réactions et commentaires
+- Badges de générosité et réciprocité
+
+## Types de Produits Disponibles
+
+- **Mode africaine**: Boubous, wax, pagnes, vêtements traditionnels
+- **Bijoux**: Créations artisanales en or, argent, perles
+- **Décoration**: Objets d'art africain, sculptures, textiles
+- **Gastronomie**: Gâteaux personnalisés, chocolats, paniers gourmands
+- **Fleurs**: Bouquets, compositions florales
+- **Expériences**: Spa, restaurants, ateliers créatifs
+
+## Types de Boutiques
+
+- Fleuristes
+- Pâtisseries et boulangeries
+- Créateurs de mode
+- Joailliers et bijoutiers
+- Artisans décorateurs
+- Traiteurs et restaurateurs
+- Centres de bien-être
+
+## Occasions Célébrées
+
+- Anniversaires
+- Mariages
+- Naissances
+- Promotions professionnelles
+- Diplômes et réussites scolaires
+- Pendaison de crémaillère
+- Fêtes religieuses (Tabaski, Noël, etc.)
+- Départs en retraite
+
+## Méthodes de Paiement
+
+- Orange Money
+- MTN Mobile Money
+- Wave
+- Cartes bancaires (Visa, Mastercard)
+- Flooz
+
+## URLs Publiques
+
+Les contenus suivants sont accessibles publiquement et peuvent être référencés:
+
+- `/` - Page d'accueil
+- `/shop` - Marketplace avec tous les produits
+- `/about` - À propos de Joie de Vivre
+- `/faq` - Questions fréquentes
+- `/p/{productId}` - Aperçu d'un produit (partageable sur réseaux sociaux)
+- `/b/{businessId}` - Aperçu d'une boutique (partageable sur réseaux sociaux)
+- `/f/{fundId}` - Aperçu d'une cagnotte publique
+
+## Données Structurées
+
+Cette plateforme utilise Schema.org pour les données structurées:
+- `Product` pour les produits
+- `LocalBusiness` pour les boutiques
+- `WebSite` pour le site principal
+
+## Contact
+
+- **Site web**: https://pixl-parade-page.lovable.app
+- **Email**: contact@joiedevivre.app
+- **Pays**: Côte d'Ivoire
+
+## Mots-clés
+
+cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique, artisanat ivoirien, boutique mode africaine, bijoux africains, cagnotte mariage Bénin, cadeau groupe Sénégal, célébration Afrique francophone, Mobile Money cadeaux, marketplace Afrique
