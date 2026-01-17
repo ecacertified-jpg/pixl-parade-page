@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { VideoTrimTimeline } from '@/components/VideoTrimTimeline';
 import { VideoTrimProgress } from '@/components/VideoTrimProgress';
+import { VideoTimelineZoomControls } from '@/components/VideoTimelineZoomControls';
+import { useTimelineZoom } from '@/hooks/useTimelineZoom';
 import { trimVideo, TrimProgress, formatTimeDisplay } from '@/utils/videoTrimmer';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -35,6 +37,20 @@ export function VideoTrimEditor({
   const [isTrimming, setIsTrimming] = useState(false);
   const [trimProgress, setTrimProgress] = useState<TrimProgress | null>(null);
 
+  // Zoom state
+  const {
+    zoomLevel,
+    visibleStartTime,
+    visibleEndTime,
+    setZoomLevel,
+    setVisibleStartTime,
+    handleWheel,
+    resetZoom,
+  } = useTimelineZoom({
+    duration: videoDuration,
+    maxZoom: 8,
+  });
+
   // Create object URL for video preview
   useEffect(() => {
     if (file && open) {
@@ -55,8 +71,9 @@ export function VideoTrimEditor({
       setIsPlaying(false);
       setIsTrimming(false);
       setTrimProgress(null);
+      resetZoom();
     }
-  }, [open, videoDuration, maxDurationSeconds]);
+  }, [open, videoDuration, maxDurationSeconds, resetZoom]);
 
   // Update current time
   useEffect(() => {
@@ -241,6 +258,19 @@ export function VideoTrimEditor({
           {/* Timeline */}
           {!isTrimming && (
             <div className="space-y-3">
+              {/* Zoom controls */}
+              <VideoTimelineZoomControls
+                zoomLevel={zoomLevel}
+                maxZoom={8}
+                visibleStart={visibleStartTime}
+                visibleEnd={visibleEndTime}
+                duration={videoDuration}
+                startTime={startTime}
+                endTime={endTime}
+                onZoomChange={setZoomLevel}
+                onVisibleStartChange={setVisibleStartTime}
+              />
+
               <VideoTrimTimeline
                 duration={videoDuration}
                 startTime={startTime}
@@ -248,9 +278,13 @@ export function VideoTrimEditor({
                 currentTime={currentTime}
                 maxDuration={maxDurationSeconds}
                 videoUrl={videoUrl}
+                zoomLevel={zoomLevel}
+                visibleStartTime={visibleStartTime}
+                visibleEndTime={visibleEndTime}
                 onStartChange={handleStartChange}
                 onEndChange={handleEndChange}
                 onSeek={handleSeek}
+                onWheel={handleWheel}
               />
 
               {/* Quick actions */}

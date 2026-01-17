@@ -10,9 +10,13 @@ interface VideoTrimTimelineProps {
   currentTime: number;
   maxDuration: number;
   videoUrl?: string;
+  zoomLevel?: number;
+  visibleStartTime?: number;
+  visibleEndTime?: number;
   onStartChange: (time: number) => void;
   onEndChange: (time: number) => void;
   onSeek: (time: number) => void;
+  onWheel?: (e: React.WheelEvent, cursorTime: number) => void;
 }
 
 export function VideoTrimTimeline({
@@ -22,26 +26,37 @@ export function VideoTrimTimeline({
   currentTime,
   maxDuration,
   videoUrl,
+  zoomLevel = 1,
+  visibleStartTime = 0,
+  visibleEndTime,
   onStartChange,
   onEndChange,
   onSeek,
+  onWheel,
 }: VideoTrimTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState<'start' | 'end' | 'selection' | null>(null);
+  const [isDragging, setIsDragging] = useState<'start' | 'end' | 'selection' | 'pan' | null>(null);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartValue, setDragStartValue] = useState({ start: 0, end: 0 });
 
+  // Calculate visible range
+  const effectiveVisibleEnd = visibleEndTime ?? duration;
+  const visibleDuration = effectiveVisibleEnd - visibleStartTime;
+
+  // Convert time to position percent within visible range
+  const getPositionPercent = useCallback((time: number): number => {
+    const relativeTime = time - visibleStartTime;
+    return (relativeTime / visibleDuration) * 100;
+  }, [visibleStartTime, visibleDuration]);
+
+  // Convert position to time within visible range
   const getTimeFromPosition = useCallback((clientX: number): number => {
     if (!containerRef.current) return 0;
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const percent = Math.max(0, Math.min(1, x / rect.width));
-    return percent * duration;
-  }, [duration]);
-
-  const getPositionPercent = useCallback((time: number): number => {
-    return (time / duration) * 100;
-  }, [duration]);
+    return visibleStartTime + percent * visibleDuration;
+  }, [visibleStartTime, visibleDuration]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent, type: 'start' | 'end' | 'selection') => {
     e.preventDefault();
@@ -57,7 +72,7 @@ export function VideoTrimTimeline({
     const rect = containerRef.current.getBoundingClientRect();
     const deltaX = e.clientX - dragStartX;
     const deltaPercent = deltaX / rect.width;
-    const deltaTime = deltaPercent * duration;
+    const deltaTime = deltaPercent * visibleDuration;
 
     if (isDragging === 'start') {
       let newStart = dragStartValue.start + deltaTime;
@@ -93,7 +108,7 @@ export function VideoTrimTimeline({
       onStartChange(newStart);
       onEndChange(newEnd);
     }
-  }, [isDragging, dragStartX, dragStartValue, duration, startTime, endTime, maxDuration, onStartChange, onEndChange]);
+  }, [isDragging, dragStartX, dragStartValue, duration, visibleDuration, startTime, endTime, maxDuration, onStartChange, onEndChange]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(null);
@@ -117,8 +132,27 @@ export function VideoTrimTimeline({
     onSeek(time);
   }, [isDragging, getTimeFromPosition, onSeek]);
 
+  const handleWheelEvent = useCallback((e: React.WheelEvent) => {
+    if (onWheel) {
+      const cursorTime = getTimeFromPosition(e.clientX);
+      onWheel(e, cursorTime);
+    }
+  }, [onWheel, getTimeFromPosition]);
+
+  // Check if elements are visible in current zoom
+  const isStartVisible = startTime >= visibleStartTime && startTime <= effectiveVisibleEnd;
+  const isEndVisible = endTime >= visibleStartTime && endTime <= effectiveVisibleEnd;
+  const isSelectionPartiallyVisible = 
+    (startTime < effectiveVisibleEnd && endTime > visibleStartTime);
+  const isCurrentTimeVisible = currentTime >= visibleStartTime && currentTime <= effectiveVisibleEnd;
+
   const selectedDuration = endTime - startTime;
   const isOverLimit = selectedDuration > maxDuration;
+
+  // Calculate clamped positions for selection overlay
+  const selectionLeftPercent = Math.max(0, getPositionPercent(startTime));
+  const selectionRightPercent = Math.min(100, getPositionPercent(endTime));
+  const selectionWidth = selectionRightPercent - selectionLeftPercent;
 
   return (
     <div className="space-y-2">
@@ -127,87 +161,109 @@ export function VideoTrimTimeline({
         ref={containerRef}
         className="relative h-12 bg-muted rounded-lg cursor-pointer select-none overflow-hidden"
         onClick={handleTimelineClick}
+        onWheel={handleWheelEvent}
       >
         {/* Video thumbnails background */}
         {videoUrl && (
           <VideoTimelineThumbnails
             videoUrl={videoUrl}
             duration={duration}
-            thumbnailCount={12}
+            thumbnailCount={Math.round(12 * zoomLevel)}
             height={48}
             className="absolute inset-0"
+            visibleStartTime={visibleStartTime}
+            visibleEndTime={effectiveVisibleEnd}
           />
         )}
         
         {/* Overlay for non-selected regions (darkens thumbnails) */}
         <div className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
           {/* Left unselected region overlay */}
-          <div 
-            className="absolute top-0 bottom-0 left-0 bg-background/70 backdrop-blur-[1px]"
-            style={{ width: `${getPositionPercent(startTime)}%` }}
-          />
+          {selectionLeftPercent > 0 && (
+            <div 
+              className="absolute top-0 bottom-0 left-0 bg-background/70 backdrop-blur-[1px]"
+              style={{ width: `${selectionLeftPercent}%` }}
+            />
+          )}
           {/* Right unselected region overlay */}
-          <div 
-            className="absolute top-0 bottom-0 right-0 bg-background/70 backdrop-blur-[1px]"
-            style={{ width: `${100 - getPositionPercent(endTime)}%` }}
-          />
+          {selectionRightPercent < 100 && (
+            <div 
+              className="absolute top-0 bottom-0 right-0 bg-background/70 backdrop-blur-[1px]"
+              style={{ width: `${100 - selectionRightPercent}%` }}
+            />
+          )}
         </div>
         
         {/* Selected region border */}
-        <div
-          className={cn(
-            "absolute top-0 bottom-0 cursor-move border-y-2 transition-colors",
-            isOverLimit ? "border-destructive bg-destructive/10" : "border-primary bg-primary/10"
-          )}
-          style={{
-            left: `${getPositionPercent(startTime)}%`,
-            width: `${getPositionPercent(endTime - startTime)}%`,
-          }}
-          onMouseDown={(e) => handleMouseDown(e, 'selection')}
-        />
+        {isSelectionPartiallyVisible && (
+          <div
+            className={cn(
+              "absolute top-0 bottom-0 cursor-move border-y-2 transition-colors",
+              isOverLimit ? "border-destructive bg-destructive/10" : "border-primary bg-primary/10"
+            )}
+            style={{
+              left: `${selectionLeftPercent}%`,
+              width: `${selectionWidth}%`,
+            }}
+            onMouseDown={(e) => handleMouseDown(e, 'selection')}
+          />
+        )}
 
         {/* Current time indicator */}
-        <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg z-20 pointer-events-none"
-          style={{ left: `${getPositionPercent(currentTime)}%` }}
-        />
+        {isCurrentTimeVisible && (
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg z-20 pointer-events-none"
+            style={{ left: `${getPositionPercent(currentTime)}%` }}
+          />
+        )}
 
         {/* Start handle */}
-        <div
-          className={cn(
-            "absolute top-0 bottom-0 w-3 cursor-ew-resize z-30 flex items-center justify-center",
-            "group"
-          )}
-          style={{ left: `calc(${getPositionPercent(startTime)}% - 6px)` }}
-          onMouseDown={(e) => handleMouseDown(e, 'start')}
-        >
-          <div className={cn(
-            "w-1.5 h-8 rounded-full transition-colors",
-            isOverLimit ? "bg-destructive" : "bg-primary",
-            "group-hover:scale-110"
-          )} />
-        </div>
+        {isStartVisible && (
+          <div
+            className={cn(
+              "absolute top-0 bottom-0 w-3 cursor-ew-resize z-30 flex items-center justify-center",
+              "group"
+            )}
+            style={{ left: `calc(${getPositionPercent(startTime)}% - 6px)` }}
+            onMouseDown={(e) => handleMouseDown(e, 'start')}
+          >
+            <div className={cn(
+              "w-1.5 h-8 rounded-full transition-colors",
+              isOverLimit ? "bg-destructive" : "bg-primary",
+              "group-hover:scale-110"
+            )} />
+          </div>
+        )}
 
         {/* End handle */}
-        <div
-          className={cn(
-            "absolute top-0 bottom-0 w-3 cursor-ew-resize z-30 flex items-center justify-center",
-            "group"
-          )}
-          style={{ left: `calc(${getPositionPercent(endTime)}% - 6px)` }}
-          onMouseDown={(e) => handleMouseDown(e, 'end')}
-        >
-          <div className={cn(
-            "w-1.5 h-8 rounded-full transition-colors",
-            isOverLimit ? "bg-destructive" : "bg-primary",
-            "group-hover:scale-110"
-          )} />
-        </div>
+        {isEndVisible && (
+          <div
+            className={cn(
+              "absolute top-0 bottom-0 w-3 cursor-ew-resize z-30 flex items-center justify-center",
+              "group"
+            )}
+            style={{ left: `calc(${getPositionPercent(endTime)}% - 6px)` }}
+            onMouseDown={(e) => handleMouseDown(e, 'end')}
+          >
+            <div className={cn(
+              "w-1.5 h-8 rounded-full transition-colors",
+              isOverLimit ? "bg-destructive" : "bg-primary",
+              "group-hover:scale-110"
+            )} />
+          </div>
+        )}
+
+        {/* Zoom level indicator */}
+        {zoomLevel > 1 && (
+          <div className="absolute top-1 right-1 bg-background/80 text-[10px] px-1.5 py-0.5 rounded text-muted-foreground pointer-events-none">
+            {zoomLevel.toFixed(1)}x
+          </div>
+        )}
       </div>
 
       {/* Time labels */}
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>0:00</span>
+        <span>{formatTimeDisplay(visibleStartTime)}</span>
         <span className="flex items-center gap-2">
           <span className={cn(
             "font-medium",
@@ -222,7 +278,7 @@ export function VideoTrimTimeline({
             {formatTimeDisplay(selectedDuration)}
           </span>
         </span>
-        <span>{formatTimeDisplay(duration)}</span>
+        <span>{formatTimeDisplay(effectiveVisibleEnd)}</span>
       </div>
     </div>
   );

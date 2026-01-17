@@ -14,14 +14,21 @@ export interface ThumbnailResult {
  * @param duration - Total duration of the video in seconds
  * @param thumbnailCount - Number of thumbnails to extract (default: 10)
  * @param thumbnailWidth - Width of each thumbnail in pixels (default: 120)
+ * @param rangeStart - Start of the visible range (default: 0)
+ * @param rangeEnd - End of the visible range (default: duration)
  * @returns Promise resolving to array of base64 data URLs
  */
 export async function extractVideoThumbnails(
   videoUrl: string,
   duration: number,
   thumbnailCount: number = 10,
-  thumbnailWidth: number = 120
+  thumbnailWidth: number = 120,
+  rangeStart: number = 0,
+  rangeEnd?: number
 ): Promise<string[]> {
+  const effectiveRangeEnd = rangeEnd ?? duration;
+  const rangeDuration = effectiveRangeEnd - rangeStart;
+  
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
     const canvas = document.createElement('canvas');
@@ -35,9 +42,9 @@ export async function extractVideoThumbnails(
     const thumbnails: string[] = [];
     let currentIndex = 0;
 
-    // Calculate time intervals for thumbnails
-    const interval = duration / thumbnailCount;
-    const times = Array.from({ length: thumbnailCount }, (_, i) => i * interval + interval / 2);
+    // Calculate time intervals for thumbnails within the visible range
+    const interval = rangeDuration / thumbnailCount;
+    const times = Array.from({ length: thumbnailCount }, (_, i) => rangeStart + i * interval + interval / 2);
 
     video.crossOrigin = 'anonymous';
     video.muted = true;
