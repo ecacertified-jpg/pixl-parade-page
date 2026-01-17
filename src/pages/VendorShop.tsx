@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,8 @@ import { VendorLocationMap } from "@/components/VendorLocationMap";
 import { VendorHeaderCard } from "@/components/VendorHeaderCard";
 import { VendorContactCard } from "@/components/VendorContactCard";
 import { useVendorRatings } from "@/hooks/useVendorRatings";
+import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
+import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -32,6 +34,51 @@ export default function VendorShop() {
   const { itemCount } = useCart();
   const { isFavorite, getFavoriteId, addFavorite, removeFavorite, stats: favoriteStats } = useFavorites();
   const { stats: ratingStats } = useVendorRatings(businessId || "");
+  const { items: galleryItems, loading: galleryLoading } = useVendorGallery(businessId);
+
+  // Build gallery items: use dedicated gallery if available, fallback to product images
+  const displayGalleryItems = useMemo((): GalleryMediaItem[] => {
+    // If dedicated gallery exists, use it
+    if (galleryItems.length > 0) {
+      return galleryItems.map(item => ({
+        id: item.id,
+        mediaUrl: item.mediaUrl,
+        mediaType: item.mediaType,
+        thumbnailUrl: item.thumbnailUrl,
+        title: item.title,
+      }));
+    }
+
+    // Fallback: use product images (max 8)
+    const fallbackItems: GalleryMediaItem[] = [];
+    for (const product of products) {
+      if (fallbackItems.length >= 8) break;
+      
+      // Add video if exists
+      if (product.videoUrl && fallbackItems.length < 8) {
+        fallbackItems.push({
+          id: `video-${product.id}`,
+          mediaUrl: product.videoUrl,
+          mediaType: 'video',
+          thumbnailUrl: product.videoThumbnailUrl || product.image,
+          title: product.name,
+        });
+      }
+      
+      // Add main image
+      if (product.image && fallbackItems.length < 8) {
+        fallbackItems.push({
+          id: `product-${product.id}`,
+          mediaUrl: product.image,
+          mediaType: 'image',
+          thumbnailUrl: null,
+          title: product.name,
+        });
+      }
+    }
+    
+    return fallbackItems;
+  }, [galleryItems, products]);
 
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
@@ -135,6 +182,14 @@ export default function VendorShop() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-4 space-y-4">
+        {/* Vendor Gallery Carousel - New immersive gallery */}
+        {displayGalleryItems.length > 0 && (
+          <VendorGalleryCarousel
+            items={displayGalleryItems}
+            businessName={vendor.businessName}
+          />
+        )}
+
         {/* Vendor Header Card - New harmonized design */}
         <VendorHeaderCard
           businessId={businessId!}
