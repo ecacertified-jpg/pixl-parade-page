@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2 } from 'lucide-react';
+import { Upload, X, Video, Image, Play, Loader2, Link2, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -23,6 +23,12 @@ import {
   CompressionProgress 
 } from '@/utils/videoCompressor';
 import { VideoCompressionProgress } from '@/components/VideoCompressionProgress';
+import { 
+  getVideoMetadata, 
+  validateVideoDuration, 
+  formatDuration,
+  VIDEO_VALIDATION_CONFIG 
+} from '@/utils/videoValidation';
 
 interface VideoUploaderProps {
   videoUrl: string | null;
@@ -55,10 +61,10 @@ export function VideoUploader({
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [originalFileSize, setOriginalFileSize] = useState<number | null>(null);
+  const [validatingDuration, setValidatingDuration] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
-
   // Determine current video source type
   const currentSource = videoUrl ? getVideoSource(videoUrl) : null;
   const isExternalVideo = currentSource === 'youtube' || currentSource === 'vimeo';
@@ -111,6 +117,33 @@ export function VideoUploader({
     if (file.size > MAX_VIDEO_SIZE) {
       toast.error('La vidéo ne doit pas dépasser 50 MB.');
       return;
+    }
+
+    // Validate video duration
+    setValidatingDuration(true);
+    try {
+      const metadata = await getVideoMetadata(file);
+      
+      if (!metadata.isValid) {
+        toast.error(metadata.error || 'Impossible de lire la vidéo.');
+        setValidatingDuration(false);
+        return;
+      }
+      
+      const durationCheck = validateVideoDuration(metadata.duration);
+      if (!durationCheck.valid) {
+        toast.error(
+          `Vidéo trop longue (${formatDuration(metadata.duration)}). Maximum : ${VIDEO_VALIDATION_CONFIG.maxDurationFormatted}.`,
+          { duration: 5000 }
+        );
+        setValidatingDuration(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('Duration validation failed:', error);
+      // Continue anyway as fallback
+    } finally {
+      setValidatingDuration(false);
     }
 
     let fileToUpload = file;
@@ -481,17 +514,22 @@ export function VideoUploader({
             )}
 
             <div
-              onClick={() => !disabled && !uploading && !isCompressing && videoInputRef.current?.click()}
+              onClick={() => !disabled && !uploading && !isCompressing && !validatingDuration && videoInputRef.current?.click()}
               className={`
                 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
                 transition-colors duration-200
-                ${disabled || uploading || isCompressing
+                ${disabled || uploading || isCompressing || validatingDuration
                   ? 'border-muted bg-muted/20 cursor-not-allowed' 
                   : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
                 }
               `}
             >
-              {uploading ? (
+              {validatingDuration ? (
+                <div className="space-y-3">
+                  <Clock className="h-10 w-10 mx-auto text-primary animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Vérification de la durée...</p>
+                </div>
+              ) : uploading ? (
                 <div className="space-y-3">
                   <Loader2 className="h-10 w-10 mx-auto text-primary animate-spin" />
                   <p className="text-sm text-muted-foreground">Upload en cours...</p>
@@ -502,7 +540,7 @@ export function VideoUploader({
                   <Video className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm font-medium">Cliquez pour ajouter une vidéo</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    MP4, MOV ou WebM • Max 50 MB
+                    MP4, MOV ou WebM • Max 50 MB • Max 3 min
                   </p>
                   <p className="text-xs text-primary/70 mt-2">
                     ✨ Compression automatique pour les fichiers volumineux
