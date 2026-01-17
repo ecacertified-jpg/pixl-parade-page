@@ -19,11 +19,12 @@ import { useBusinessOrderNotifications } from "@/hooks/useBusinessOrderNotificat
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { useBusinessBirthdayAlerts, BirthdayAlert } from "@/hooks/useBusinessBirthdayAlerts";
-import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift, Cake } from "lucide-react";
+import { ArrowLeft, BarChart3, Package, ShoppingCart, Eye, Upload, Save, Loader2, Store, Edit, Trash2, Phone, MapPin, Truck, DollarSign, TrendingUp, Users, Bell, Download, Plus, Check, X, AlertCircle, Star, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, User, Gift, Cake, Image as ImageIcon } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart as RechartsPC, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 import DeliveryZoneManager from "@/components/DeliveryZoneManager";
 import { AddBusinessModal } from "@/components/AddBusinessModal";
+import { BusinessGalleryManager } from "@/components/BusinessGalleryManager";
 import { BusinessCard } from "@/components/BusinessCard";
 import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessCard";
 import { BusinessProductCard } from "@/components/BusinessProductCard";
@@ -934,7 +935,7 @@ export default function BusinessDashboard() {
         )}
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid grid-cols-4 text-xs">
+          <TabsList className="grid grid-cols-5 text-xs">
             <TabsTrigger value="overview" className="flex flex-col gap-1">
               <Eye className="h-4 w-4" />
               <span>Vue d'ensemble</span>
@@ -946,6 +947,10 @@ export default function BusinessDashboard() {
             <TabsTrigger value="orders" className="flex flex-col gap-1">
               <ShoppingCart className="h-4 w-4" />
               <span>Commandes</span>
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="flex flex-col gap-1">
+              <ImageIcon className="h-4 w-4" />
+              <span>Galerie</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
@@ -1549,6 +1554,19 @@ export default function BusinessDashboard() {
                   </Card>
                 )}
               </>
+            )}
+          </TabsContent>
+
+          {/* Galerie */}
+          <TabsContent value="gallery" className="mt-6">
+            {selectedBusinessId ? (
+              <BusinessGalleryManager businessId={selectedBusinessId} />
+            ) : (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  Veuillez sélectionner un business pour gérer sa galerie
+                </p>
+              </Card>
             )}
           </TabsContent>
 
