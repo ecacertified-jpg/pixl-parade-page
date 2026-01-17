@@ -15,6 +15,8 @@ interface BusinessData {
   logo_url: string | null;
   address: string | null;
   products_count: number;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export default function BusinessPreview() {
@@ -72,7 +74,9 @@ export default function BusinessPreview() {
             business_type,
             description,
             logo_url,
-            address
+            address,
+            latitude,
+            longitude
           `)
           .eq("id", businessId)
           .eq("is_active", true)
@@ -105,6 +109,8 @@ export default function BusinessPreview() {
           logo_url: data.logo_url,
           address: data.address,
           products_count: count || 0,
+          latitude: data.latitude,
+          longitude: data.longitude,
         });
       } catch (err) {
         console.error("Error:", err);
