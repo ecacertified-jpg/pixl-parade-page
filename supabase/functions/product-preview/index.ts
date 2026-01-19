@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       return new Response("Product not found", { status: 404, headers: corsHeaders });
     }
 
-    const appUrl = "https://pixl-parade-page.lovable.app";
+    const appUrl = "https://joiedevivre-africa.com";
     const productName = product.name || "Produit";
     const productDescription = product.description || `Découvrez ${productName} sur JOIE DE VIVRE`;
     const price = product.price ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}` : "";

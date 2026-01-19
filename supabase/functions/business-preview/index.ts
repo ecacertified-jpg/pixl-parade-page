@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       averageRating = ratingData.reduce((acc, r) => acc + (r.rating || 0), 0) / totalRatings;
     }
 
-    const appUrl = "https://pixl-parade-page.lovable.app";
+    const appUrl = "https://joiedevivre-africa.com";
     const businessName = business.business_name || "Boutique";
     const businessType = business.business_type || "";
     const description = business.description || `Découvrez ${businessName} sur JOIE DE VIVRE`;

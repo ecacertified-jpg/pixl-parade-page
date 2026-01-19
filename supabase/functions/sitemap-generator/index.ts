@@ -6,7 +6,7 @@ const corsHeaders = {
   'Content-Type': 'application/xml; charset=utf-8',
 };
 
-const BASE_URL = 'https://pixl-parade-page.lovable.app';
+const BASE_URL = 'https://joiedevivre-africa.com';
 const SUPABASE_URL = 'https://vaimfeurvzokepqqqrsl.supabase.co';
 
 // Static pages with their priorities and change frequencies

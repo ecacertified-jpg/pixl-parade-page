@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       : origin.replace(/supabase\.co.*/, "lovable.app").replace(/functions\/v1.*/, "");
     
     // Try to get the actual app URL from referer or use a default
-    const appUrl = Deno.env.get("APP_URL") || "https://pixl-parade-page.lovable.app";
+    const appUrl = Deno.env.get("APP_URL") || "https://joiedevivre-africa.com";
     const fullFundUrl = `${appUrl}/fund/${fundId}`;
     const previewUrl = `${appUrl}/f/${fundId}`;
 
