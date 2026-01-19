@@ -11,8 +11,8 @@ export interface SEOHeadProps {
 }
 
 const APP_NAME = "JOIE DE VIVRE";
-const DEFAULT_IMAGE = "https://pixl-parade-page.lovable.app/og-image.png";
-const BASE_URL = "https://pixl-parade-page.lovable.app";
+const DEFAULT_IMAGE = "https://joiedevivre-africa.com/og-image.png";
+const BASE_URL = "https://joiedevivre-africa.com";
 
 /**
  * Updates or creates a meta tag in the document head
