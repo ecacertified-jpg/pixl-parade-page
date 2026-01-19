@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useDuplicateAccountDetection, type DuplicateCheckResult, type MatchingProfile } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
+import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -72,6 +73,7 @@ const Auth = () => {
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
   const { checkExistingAccount } = useAccountLinking();
+  const { trackSignUp, trackLogin } = useGoogleAnalytics();
   const [isServerChecking, setIsServerChecking] = useState(false);
 
   // Liste des pays depuis la configuration
@@ -395,6 +397,13 @@ const Auth = () => {
               // Don't block signup if email fails
             }
           }
+        }
+
+        // Track signup or login in Google Analytics
+        if (isNewSignup || authMode === 'signup') {
+          trackSignUp('phone');
+        } else {
+          trackLogin('phone');
         }
 
         toast({

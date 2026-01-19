@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 
 interface CheckoutItem {
   id: number | string;
@@ -28,6 +29,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, ensureValidSession } = useAuth();
+  const { trackConversion } = useGoogleAnalytics();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
   const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
@@ -357,6 +359,9 @@ export default function Checkout() {
       } else {
         console.log('ℹ️ No business items found in this order.');
       }
+
+      // Track purchase conversion in Google Analytics
+      trackConversion('purchase', total, 'XOF');
 
       // Store order details for confirmation page
       localStorage.setItem('lastOrderDetails', JSON.stringify({
