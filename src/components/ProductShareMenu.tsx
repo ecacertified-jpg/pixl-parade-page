@@ -9,6 +9,7 @@ import { ProductShareCardCustomizer, type ShareCardCustomization } from "./Produ
 import { useProductShareCard } from "@/hooks/useProductShareCard";
 import { useProductShares } from "@/hooks/useProductShares";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 
 interface ProductShareMenuProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ProductShareMenu({
   const { generating, shareImageUrl, generateShareCard, getShareFile, reset } = useProductShareCard();
   const { stats, recordShare } = useProductShares(product ? String(product.id) : '');
   const regenerateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { trackSocialShare } = useGoogleAnalytics();
 
   // Régénérer l'image avec debounce quand la customisation change
   const regenerateCard = useCallback(() => {
@@ -109,6 +111,7 @@ export function ProductShareMenu({
       const trackableUrl = createTrackableUrl(shareToken);
       
       await navigator.clipboard.writeText(trackableUrl);
+      trackSocialShare('copy_link', 'product', String(product.id));
       setCopied(true);
       toast.success("Lien copié !");
       setTimeout(() => setCopied(false), 2000);
@@ -126,6 +129,7 @@ export function ProductShareMenu({
     const fullMessage = `${shareText}\n\n➡️ ${trackableUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
     window.open(url, "_blank");
+    trackSocialShare('whatsapp', 'product', String(product.id));
     onOpenChange(false);
   };
 
@@ -137,6 +141,7 @@ export function ProductShareMenu({
     const trackableUrl = createTrackableUrl(shareToken);
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(trackableUrl)}&quote=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank");
+    trackSocialShare('facebook', 'product', String(product.id));
     onOpenChange(false);
   };
 
@@ -149,6 +154,7 @@ export function ProductShareMenu({
     const fullMessage = `${shareText}\n\n➡️ ${trackableUrl}`;
     const url = `sms:?body=${encodeURIComponent(fullMessage)}`;
     window.location.href = url;
+    trackSocialShare('sms', 'product', String(product.id));
     onOpenChange(false);
   };
 
@@ -163,6 +169,7 @@ export function ProductShareMenu({
     const body = encodeURIComponent(fullMessage);
     const url = `mailto:?subject=${subject}&body=${body}`;
     window.location.href = url;
+    trackSocialShare('email', 'product', String(product.id));
     onOpenChange(false);
   };
 
@@ -184,6 +191,7 @@ export function ProductShareMenu({
               url: trackableUrl,
               files: [file],
             });
+            trackSocialShare('native', 'product', String(product.id));
             onOpenChange(false);
             return;
           }
@@ -194,6 +202,7 @@ export function ProductShareMenu({
           text: shareText,
           url: trackableUrl,
         });
+        trackSocialShare('native', 'product', String(product.id));
         onOpenChange(false);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
