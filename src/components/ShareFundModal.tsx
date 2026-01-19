@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CollectiveFundShareCard } from './CollectiveFundShareCard';
 import { useFundShareCard } from '@/hooks/useFundShareCard';
 import { supabase } from '@/integrations/supabase/client';
+import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 
 interface FundData {
   title: string;
@@ -67,6 +68,7 @@ export function ShareFundModal({
   const { generating, shareImageUrl, generateShareCard, getShareFile, reset } = useFundShareCard();
   const [fundData, setFundData] = useState<FundData | null>(null);
   const [loadingFundData, setLoadingFundData] = useState(false);
+  const { trackSocialShare } = useGoogleAnalytics();
 
   // Use new /f/ URL for sharing (Edge Function with OG meta tags)
   const fundUrl = `${window.location.origin}/f/${fundId}`;
@@ -203,6 +205,7 @@ export function ShareFundModal({
               url: fundUrl,
               files: [file],
             });
+            trackSocialShare('native', 'fund', fundId);
             toast.success('Partage effectué avec succès !');
             onOpenChange(false);
             return;
@@ -215,6 +218,7 @@ export function ShareFundModal({
           text: shareText,
           url: fundUrl,
         });
+        trackSocialShare('native', 'fund', fundId);
         toast.success('Partage effectué avec succès !');
         onOpenChange(false);
       } catch (error) {
@@ -242,6 +246,7 @@ export function ShareFundModal({
         const message = encodeURIComponent(shareText + '\n' + fundUrl);
         const url = `https://wa.me/?text=${message}`;
         window.open(url, '_blank', 'noopener,noreferrer');
+        trackSocialShare('whatsapp', 'fund', fundId);
         toast.success('Ouverture de WhatsApp...');
       },
     },
@@ -253,6 +258,7 @@ export function ShareFundModal({
       action: () => {
         const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fundUrl)}`;
         window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
+        trackSocialShare('facebook', 'fund', fundId);
         toast.success('Ouverture de Facebook...');
       },
     },
@@ -264,6 +270,7 @@ export function ShareFundModal({
       action: async () => {
         try {
           await navigator.clipboard.writeText(fundUrl);
+          trackSocialShare('copy_link', 'fund', fundId);
           toast.success('Lien copié dans le presse-papier ! 📋');
           onOpenChange(false);
         } catch (error) {
