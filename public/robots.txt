@@ -58,7 +58,7 @@ User-agent: anthropic-ai
 Allow: /
 
 # Sitemap location
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator
+Sitemap: https://joiedevivre-africa.com/sitemap.xml
 
 # AI-friendly documentation
 # See /llms.txt for structured information about this platform
