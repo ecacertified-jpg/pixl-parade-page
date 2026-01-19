@@ -43,6 +43,7 @@ import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -475,10 +476,9 @@ export default function Dashboard() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-  useEffect(() => {
-    document.title = "Mon Tableau de Bord | JOIE DE VIVRE";
-  }, []);
-  return <div className="min-h-screen bg-gradient-background">
+  return <>
+    <SEOHead {...SEO_CONFIGS.dashboard} />
+    <div className="min-h-screen bg-gradient-background">
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
@@ -873,5 +873,6 @@ export default function Dashboard() {
         />
         
         <BottomNavigation />
-    </div>;
+    </div>
+  </>;
 }

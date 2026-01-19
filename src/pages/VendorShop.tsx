@@ -25,6 +25,7 @@ import { VendorContactCard } from "@/components/VendorContactCard";
 import { useVendorRatings } from "@/hooks/useVendorRatings";
 import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
+import { SEOHead } from "@/components/SEOHead";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -142,6 +143,14 @@ export default function VendorShop() {
   }
 
   return (
+    <>
+    <SEOHead 
+      title={`${vendor.businessName} | Boutique sur JOIE DE VIVRE`}
+      description={vendor.description || `Découvrez ${vendor.businessName} - ${vendor.businessType || 'Boutique'} à Abidjan. Produits artisanaux et cadeaux uniques.`}
+      image={vendor.logoUrl || undefined}
+      type="business.business"
+      keywords={`${vendor.businessName}, ${vendor.businessType || 'boutique'}, boutique Abidjan, artisanat ivoirien`}
+    />
     <div className="min-h-screen bg-gradient-background">
       {/* Header - Compact Navigation */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
@@ -356,6 +365,7 @@ export default function VendorShop() {
         businessType={vendor.businessType}
       />
     </div>
+    </>
   );
 }
 

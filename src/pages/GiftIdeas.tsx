@@ -12,6 +12,7 @@ import { useContactGiftHistory } from "@/hooks/useContactGiftHistory";
 import { AIRecommendationsSection } from "@/components/AIRecommendationsSection";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -115,6 +116,12 @@ export default function GiftIdeas() {
   }
 
   return (
+    <>
+    <SEOHead 
+      {...SEO_CONFIGS.giftIdeas}
+      title={`Idées cadeaux pour ${contact.name} | JOIE DE VIVRE`}
+      description={`Trouvez le cadeau parfait pour ${contact.name}. Suggestions personnalisées basées sur l'historique et les préférences.`}
+    />
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b p-4">
@@ -253,5 +260,6 @@ export default function GiftIdeas() {
         />
       </div>
     </div>
+    </>
   );
 }
