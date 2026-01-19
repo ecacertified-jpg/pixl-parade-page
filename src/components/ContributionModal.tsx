@@ -12,6 +12,7 @@ import { AddGratitudeModal } from "@/components/AddGratitudeModal";
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartAmountSuggestions } from "@/components/SmartAmountSuggestions";
 import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
+import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { z } from "zod";
 
 interface ContributionModalProps {
@@ -60,6 +61,7 @@ export function ContributionModal({
   const [beneficiaryId, setBeneficiaryId] = useState<string>("");
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackConversion } = useGoogleAnalytics();
 
   // Hook pour les suggestions intelligentes
   const smartSuggestions = useSmartAmountSuggestions(
@@ -319,6 +321,9 @@ export function ContributionModal({
         title: "Contribution ajoutée !",
         description: `Vous avez contribué ${contributionAmount.toLocaleString()} ${currency} à "${fundTitle}"`,
       });
+
+      // Track contribution conversion in Google Analytics
+      trackConversion('contribution', contributionAmount, currency);
 
       // Trigger badge check after successful contribution
       triggerBadgeCheckAfterAction('contribution', user.id);

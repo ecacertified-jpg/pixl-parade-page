@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
+import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -260,6 +261,7 @@ const BusinessAuth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const { user, setUserMode, refreshSession } = useAuth();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  const { trackSignUp } = useGoogleAnalytics();
 
   // Forms
   const signInForm = useForm<SignInFormData>({
@@ -793,6 +795,10 @@ const BusinessAuth = () => {
       }
 
       setUserMode('business');
+      
+      // Track business signup in Google Analytics
+      trackSignUp('phone_business');
+      
       toast({
         title: 'Bienvenue !',
         description: 'Votre espace business est maintenant prêt.',
