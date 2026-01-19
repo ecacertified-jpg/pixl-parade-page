@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Gift, Store, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import logoRose from "@/assets/logo-jdv-rose.png";
+import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 
 interface ProductData {
   id: string;
@@ -21,11 +22,28 @@ interface ProductData {
 
 export default function ProductPreview() {
   const { productId } = useParams<{ productId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  
+  const { detectAndStoreShareToken, trackViewFromShare, cleanShareRefFromUrl } = useShareConversionTracking();
+
+  // Detect and store share token from URL
+  useEffect(() => {
+    if (productId) {
+      const shareRef = searchParams.get('ref');
+      if (shareRef) {
+        detectAndStoreShareToken('product', productId);
+        // Track view event from share
+        trackViewFromShare(shareRef, productId);
+        // Clean ref from URL
+        cleanShareRefFromUrl();
+      }
+    }
+  }, [productId, searchParams, detectAndStoreShareToken, trackViewFromShare, cleanShareRefFromUrl]);
 
   useEffect(() => {
     async function fetchProduct() {
