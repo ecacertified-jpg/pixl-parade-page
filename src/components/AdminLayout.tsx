@@ -25,7 +25,8 @@ import {
   Globe,
   Target,
   GitCompare,
-  Sparkles
+  Sparkles,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },
   { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { title: 'Stats Partages', href: '/admin/share-analytics', icon: Share2 },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
