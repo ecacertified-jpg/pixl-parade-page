@@ -2,9 +2,10 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Building2, MapPin, FileCheck, CreditCard, Mail, Phone, Globe, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import logoJV from "@/assets/logo-jv.svg";
 import { useCountry } from "@/contexts/CountryContext";
 import { CountrySelector } from "@/components/CountrySelector";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import logoJV from "@/assets/logo-jv.svg";
 
 const LegalNotice = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const LegalNotice = () => {
   const legal = country.legalEntity;
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.legal} />
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/10">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -247,6 +250,7 @@ const LegalNotice = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 

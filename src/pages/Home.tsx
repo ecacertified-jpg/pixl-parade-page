@@ -19,6 +19,7 @@ import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCar
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 import { CountrySelector } from "@/components/CountrySelector";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import logoJV from "@/assets/logo-jv.svg";
 
 const Home = () => {
@@ -63,6 +64,8 @@ const Home = () => {
   }
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.home} />
     <div className="min-h-screen bg-gradient-to-b from-background via-violet-50/30 to-rose-50/20">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -129,6 +132,7 @@ const Home = () => {
         onClose={closeCelebration}
       />
     </div>
+    </>
   );
 };
 

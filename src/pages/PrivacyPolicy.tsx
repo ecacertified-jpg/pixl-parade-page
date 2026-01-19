@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink, Building2, CreditCard, FileCheck } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import logoJV from "@/assets/logo-jv.svg";
 
 const PrivacyPolicy = () => {
@@ -31,6 +32,8 @@ const PrivacyPolicy = () => {
   };
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.privacy} />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -462,6 +465,7 @@ const PrivacyPolicy = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 

@@ -25,6 +25,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import logoJV from "@/assets/logo-jv.svg";
 
 const TermsOfService = () => {
@@ -58,6 +59,8 @@ const TermsOfService = () => {
   };
 
   return (
+    <>
+    <SEOHead {...SEO_CONFIGS.terms} />
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
@@ -727,6 +730,7 @@ const TermsOfService = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 
