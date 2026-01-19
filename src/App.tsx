@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
 import { CountryProvider } from "@/contexts/CountryContext";
@@ -95,6 +96,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <GoogleAnalytics />
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
