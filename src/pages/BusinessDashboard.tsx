@@ -41,6 +41,7 @@ import { BusinessCollaborativeGiftModal } from "@/components/BusinessCollaborati
 import { BusinessFollowersSection } from "@/components/BusinessFollowersSection";
 import { MostSharedProducts } from "@/components/MostSharedProducts";
 import { BusinessShareAnalytics } from "@/components/BusinessShareAnalytics";
+import { BusinessShareWidget } from "@/components/BusinessShareWidget";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -968,6 +969,19 @@ export default function BusinessDashboard() {
               platformName={String(getSetting('platform_name') || 'JOIE DE VIVRE')}
               commissionRate={Number(getSetting('commission_rate') || 15)}
             />
+
+            {/* Widget Impact des Partages */}
+            {selectedBusinessId && (
+              <div className="mb-6">
+                <BusinessShareWidget 
+                  businessId={selectedBusinessId}
+                  onViewDetails={() => {
+                    const analyticsTab = document.querySelector('[value="analytics"]') as HTMLElement;
+                    if (analyticsTab) analyticsTab.click();
+                  }}
+                />
+              </div>
+            )}
 
             {/* Section Mes abonnés et Produits les plus partagés */}
             {selectedBusinessId && (
