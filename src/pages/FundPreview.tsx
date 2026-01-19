@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
+import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 
 interface FundData {
   id: string;
@@ -30,10 +31,25 @@ interface FundData {
 
 export default function FundPreview() {
   const { fundId } = useParams<{ fundId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [fund, setFund] = useState<FundData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { detectAndStoreShareToken, cleanShareRefFromUrl } = useShareConversionTracking();
+
+  // Detect and store share token from URL
+  useEffect(() => {
+    if (fundId) {
+      const shareRef = searchParams.get('ref');
+      if (shareRef) {
+        detectAndStoreShareToken('fund', fundId);
+        // Clean ref from URL
+        cleanShareRefFromUrl();
+      }
+    }
+  }, [fundId, searchParams, detectAndStoreShareToken, cleanShareRefFromUrl]);
 
   useEffect(() => {
     async function fetchFund() {

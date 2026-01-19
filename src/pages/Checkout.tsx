@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 
 interface CheckoutItem {
   id: number | string;
@@ -30,6 +31,7 @@ export default function Checkout() {
   const { toast } = useToast();
   const { user, ensureValidSession } = useAuth();
   const { trackConversion } = useGoogleAnalytics();
+  const { trackPurchaseConversion } = useShareConversionTracking();
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
   const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
@@ -362,6 +364,15 @@ export default function Checkout() {
 
       // Track purchase conversion in Google Analytics
       trackConversion('purchase', total, 'XOF');
+
+      // Track share conversion if products came from share links
+      const productIdsForConversion = orderItems
+        .filter(item => item.productId || item.id)
+        .map(item => String(item.productId || item.id));
+      
+      if (productIdsForConversion.length > 0) {
+        await trackPurchaseConversion(productIdsForConversion, total);
+      }
 
       // Store order details for confirmation page
       localStorage.setItem('lastOrderDetails', JSON.stringify({

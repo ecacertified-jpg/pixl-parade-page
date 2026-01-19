@@ -13,6 +13,7 @@ import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartAmountSuggestions } from "@/components/SmartAmountSuggestions";
 import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { z } from "zod";
 
 interface ContributionModalProps {
@@ -62,6 +63,7 @@ export function ContributionModal({
   const { user } = useAuth();
   const { toast } = useToast();
   const { trackConversion } = useGoogleAnalytics();
+  const { trackContributionConversion } = useShareConversionTracking();
 
   // Hook pour les suggestions intelligentes
   const smartSuggestions = useSmartAmountSuggestions(
@@ -324,6 +326,9 @@ export function ContributionModal({
 
       // Track contribution conversion in Google Analytics
       trackConversion('contribution', contributionAmount, currency);
+
+      // Track share conversion if contribution came from share link
+      await trackContributionConversion(fundId, contributionAmount);
 
       // Trigger badge check after successful contribution
       triggerBadgeCheckAfterAction('contribution', user.id);
