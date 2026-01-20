@@ -9,10 +9,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://pixl-parade-page.lovable.app/openapi.yaml",
+    "url": "https://joiedevivre-africa.com/openapi.yaml",
     "is_user_authenticated": false
   },
-  "logo_url": "https://pixl-parade-page.lovable.app/pwa-512x512.png",
+  "logo_url": "https://joiedevivre-africa.com/pwa-512x512.png",
   "contact_email": "contact@joiedevivre.app",
-  "legal_info_url": "https://pixl-parade-page.lovable.app/terms-of-service"
+  "legal_info_url": "https://joiedevivre-africa.com/terms-of-service"
 }

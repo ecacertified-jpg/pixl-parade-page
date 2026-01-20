@@ -99,7 +99,7 @@ Cette plateforme utilise Schema.org pour les données structurées:
 
 ## Contact
 
-- **Site web**: https://pixl-parade-page.lovable.app
+- **Site web**: https://joiedevivre-africa.com
 - **Email**: contact@joiedevivre.app
 - **Pays**: Côte d'Ivoire
 
