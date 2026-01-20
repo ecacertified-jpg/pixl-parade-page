@@ -26,6 +26,8 @@ import { useVendorRatings } from "@/hooks/useVendorRatings";
 import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
+import { LocalBusinessSchema } from "@/components/SchemaOrg";
+import type { DBOpeningHours } from "@/utils/schemaHelpers";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -150,6 +152,25 @@ export default function VendorShop() {
       image={vendor.logoUrl || undefined}
       type="business.business"
       keywords={`${vendor.businessName}, ${vendor.businessType || 'boutique'}, boutique Abidjan, artisanat ivoirien`}
+    />
+    <LocalBusinessSchema
+      id={businessId!}
+      name={vendor.businessName}
+      description={vendor.description || `${vendor.businessType || 'Boutique'} proposant des produits et cadeaux uniques.`}
+      image={vendor.logoUrl || undefined}
+      telephone={vendor.phone || undefined}
+      email={vendor.email || undefined}
+      address={vendor.address || undefined}
+      countryCode={vendor.countryCode || 'CI'}
+      openingHours={vendor.openingHours as DBOpeningHours | null}
+      aggregateRating={ratingStats?.totalRatings > 0 ? {
+        ratingValue: ratingStats.averageRating,
+        reviewCount: ratingStats.totalRatings
+      } : undefined}
+      hasOfferCatalog={{
+        name: "Produits et Expériences",
+        numberOfItems: productCount + experienceCount
+      }}
     />
     <div className="min-h-screen bg-gradient-background">
       {/* Header - Compact Navigation */}
