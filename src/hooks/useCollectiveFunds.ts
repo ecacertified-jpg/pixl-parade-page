@@ -305,10 +305,37 @@ export function useCollectiveFunds() {
         };
       });
 
+      // Filtrer pour n'afficher que les cagnottes pertinentes pour l'utilisateur
+      const relevantFunds = transformedFunds.filter(fund => {
+        // Toujours afficher mes propres cagnottes
+        if (fund.creatorId === user.id) return true;
+        
+        // Toujours afficher les cagnottes auxquelles j'ai contribué
+        if (fund.contributors.some(c => c.id === user.id)) return true;
+        
+        // Toujours afficher les cagnottes créées par un ami (priorité 1)
+        if (fund.priority === 1) return true;
+        
+        // Toujours afficher les cagnottes créées POUR un ami (priorité 1.5)
+        if (fund.priority === 1.5) return true;
+        
+        // Afficher les cagnottes initiées par un commerce (pour découverte produits)
+        if (fund.isBusinessInitiated) return true;
+        
+        // Exclure les cagnottes publiques d'utilisateurs inconnus (priorité 4)
+        return false;
+      });
+
       // Trier par priorité (plus petite = plus prioritaire)
-      transformedFunds.sort((a, b) => (a.priority || 4) - (b.priority || 4));
+      relevantFunds.sort((a, b) => (a.priority || 4) - (b.priority || 4));
       
-      setFunds(transformedFunds);
+      console.log('📋 [DEBUG] Cagnottes filtrées:', {
+        total: transformedFunds.length,
+        relevant: relevantFunds.length,
+        excluded: transformedFunds.length - relevantFunds.length
+      });
+      
+      setFunds(relevantFunds);
     } catch (error) {
       console.error('Erreur lors du chargement des cagnottes:', error);
       toast({
