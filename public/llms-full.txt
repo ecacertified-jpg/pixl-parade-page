@@ -149,6 +149,17 @@ cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique,
 - **Email** : contact@joiedevivre.app
 - **Pays d'origine** : Côte d'Ivoire
 
+## Documentation Markdown (Contenu Textuel Pur)
+
+Pour les LLMs qui préfèrent ingérer du contenu textuel sans HTML/JavaScript :
+
+| Fichier | URL | Description |
+|---------|-----|-------------|
+| about.md | https://joiedevivre-africa.com/content/about.md | Mission, fonctionnalités, informations entreprise |
+| faq.md | https://joiedevivre-africa.com/content/faq.md | 25+ questions/réponses par catégorie |
+
+Ces fichiers Markdown contiennent le même contenu que les pages HTML correspondantes, mais dans un format léger et directement parsable.
+
 ## Fichiers pour Crawlers IA
 
 - **llms.txt** : https://joiedevivre-africa.com/llms.txt (version concise)
@@ -156,3 +167,5 @@ cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique,
 - **ai-plugin.json** : https://joiedevivre-africa.com/.well-known/ai-plugin.json
 - **sitemap.xml** : https://joiedevivre-africa.com/sitemap.xml
 - **robots.txt** : https://joiedevivre-africa.com/robots.txt
+- **about.md** : https://joiedevivre-africa.com/content/about.md
+- **faq.md** : https://joiedevivre-africa.com/content/faq.md
