@@ -46,6 +46,15 @@ function escapeXml(text: string): string {
     .replace(/'/g, '&apos;');
 }
 
+// Calculer la priorité dynamique basée sur le score de popularité
+function calculateProductPriority(popularityScore: number): string {
+  if (popularityScore >= 100) return '0.8';
+  if (popularityScore >= 50) return '0.75';
+  if (popularityScore >= 20) return '0.7';
+  if (popularityScore >= 10) return '0.65';
+  return '0.6';
+}
+
 // Générer le sitemap complet
 async function generateAISitemap(
   supabaseAdmin: ReturnType<typeof createClient>,
@@ -59,6 +68,7 @@ async function generateAISitemap(
   
   Ce sitemap est généré dynamiquement pour les crawlers IA.
   Il inclut les produits et boutiques populaires de la plateforme.
+  Produits triés par score de popularité (vues, commandes, favoris, notes, partages).
   
   Pour le sitemap SEO standard: /sitemap.xml
   Pour le sitemap IA statique: /sitemap-ai.xml
@@ -82,11 +92,22 @@ async function generateAISitemap(
 `;
   }
 
-  // Récupérer les top 50 produits populaires (récents + actifs)
+  // Récupérer les top 50 produits par score de popularité
   const { data: products, error: productsError } = await supabaseAdmin
     .from('products')
-    .select('id, name, updated_at, price, category_id')
+    .select(`
+      id, 
+      name, 
+      updated_at, 
+      price, 
+      category_id,
+      view_count,
+      order_count,
+      favorites_count,
+      popularity_score
+    `)
     .eq('is_active', true)
+    .order('popularity_score', { ascending: false })
     .order('updated_at', { ascending: false })
     .limit(50);
 
@@ -97,21 +118,24 @@ async function generateAISitemap(
   if (products && products.length > 0) {
     sitemap += `
   <!-- ========================================= -->
-  <!-- POPULAR PRODUCTS (Top ${products.length})              -->
-  <!-- Priority 0.6 - Updated content for LLMs  -->
+  <!-- POPULAR PRODUCTS (Top ${String(products.length).padEnd(2, ' ')} by popularity)   -->
+  <!-- Sorted by: popularity_score DESC         -->
+  <!-- Priority: 0.6-0.8 based on score         -->
   <!-- ========================================= -->
 `;
     for (const product of products) {
       const lastmod = product.updated_at
         ? new Date(product.updated_at).toISOString().split('T')[0]
         : today;
+      const priority = calculateProductPriority(product.popularity_score || 0);
       
       sitemap += `  <url>
     <loc>${BASE_URL}/p/${product.id}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <priority>${priority}</priority>
     <!-- product: ${escapeXml(product.name || 'Unknown')} | ${product.price} FCFA -->
+    <!-- popularity: score=${product.popularity_score || 0} views=${product.view_count || 0} orders=${product.order_count || 0} favorites=${product.favorites_count || 0} -->
   </url>
 `;
     }

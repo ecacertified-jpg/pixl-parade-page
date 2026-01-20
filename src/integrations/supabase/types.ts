@@ -4587,6 +4587,44 @@ export type Database = {
           },
         ]
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          viewed_at: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_virality_alerts: {
         Row: {
           alert_date: string | null
@@ -4701,6 +4739,7 @@ export type Database = {
           currency: string | null
           description: string | null
           experience_type: string | null
+          favorites_count: number | null
           id: string
           image_url: string | null
           images: Json | null
@@ -4708,12 +4747,15 @@ export type Database = {
           is_experience: boolean | null
           location_name: string | null
           name: string
+          order_count: number | null
+          popularity_score: number | null
           price: number
           stock_quantity: number | null
           updated_at: string
           video_thumbnail_url: string | null
           video_url: string | null
           videos: Json | null
+          view_count: number | null
         }
         Insert: {
           business_account_id?: string | null
@@ -4727,6 +4769,7 @@ export type Database = {
           currency?: string | null
           description?: string | null
           experience_type?: string | null
+          favorites_count?: number | null
           id?: string
           image_url?: string | null
           images?: Json | null
@@ -4734,12 +4777,15 @@ export type Database = {
           is_experience?: boolean | null
           location_name?: string | null
           name: string
+          order_count?: number | null
+          popularity_score?: number | null
           price: number
           stock_quantity?: number | null
           updated_at?: string
           video_thumbnail_url?: string | null
           video_url?: string | null
           videos?: Json | null
+          view_count?: number | null
         }
         Update: {
           business_account_id?: string | null
@@ -4753,6 +4799,7 @@ export type Database = {
           currency?: string | null
           description?: string | null
           experience_type?: string | null
+          favorites_count?: number | null
           id?: string
           image_url?: string | null
           images?: Json | null
@@ -4760,12 +4807,15 @@ export type Database = {
           is_experience?: boolean | null
           location_name?: string | null
           name?: string
+          order_count?: number | null
+          popularity_score?: number | null
           price?: number
           stock_quantity?: number | null
           updated_at?: string
           video_thumbnail_url?: string | null
           video_url?: string | null
           videos?: Json | null
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -7198,6 +7248,17 @@ export type Database = {
         Args: { p_activity_type: string; p_amount?: number }
         Returns: number
       }
+      calculate_product_popularity_score: {
+        Args: {
+          p_avg_rating: number
+          p_favorites_count: number
+          p_order_count: number
+          p_rating_count: number
+          p_share_count: number
+          p_view_count: number
+        }
+        Returns: number
+      }
       can_access_business_fund_data: {
         Args: { fund_uuid: string; user_uuid: string }
         Returns: boolean
@@ -7704,6 +7765,10 @@ export type Database = {
           p_reactions_delta?: number
           p_user_id: string
         }
+        Returns: undefined
+      }
+      update_product_metrics: {
+        Args: { p_product_id: string }
         Returns: undefined
       }
       update_reciprocity_score: {
