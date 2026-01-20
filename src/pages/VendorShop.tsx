@@ -27,6 +27,7 @@ import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
 import { LocalBusinessSchema, BreadcrumbListSchema, type DBOpeningHours, type ReviewItem } from "@/components/schema";
+import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
 
 export default function VendorShop() {
@@ -176,6 +177,10 @@ export default function VendorShop() {
       email={vendor.email || undefined}
       address={vendor.address || undefined}
       countryCode={vendor.countryCode || 'CI'}
+      latitude={vendor.latitude || undefined}
+      longitude={vendor.longitude || undefined}
+      websiteUrl={vendor.websiteUrl || undefined}
+      additionalType={getSchemaBusinessType(vendor.businessType)}
       openingHours={vendor.openingHours as DBOpeningHours | null}
       aggregateRating={ratingStats?.totalRatings > 0 ? {
         ratingValue: ratingStats.averageRating,
