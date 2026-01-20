@@ -88,6 +88,7 @@ import ExploreMap from "./pages/ExploreMap";
 // AI-only pages (lazy loaded)
 const AIInfo = lazy(() => import("./pages/AIInfo"));
 const AICatalog = lazy(() => import("./pages/AICatalog"));
+const AIProducts = lazy(() => import("./pages/AIProducts"));
 
 const queryClient = new QueryClient();
 
@@ -127,6 +128,12 @@ const App = () => (
 <Route path="/api/ai-catalog" element={
   <Suspense fallback={<pre style={{ padding: "20px", fontFamily: "monospace" }}>Loading catalog...</pre>}>
     <AICatalog />
+  </Suspense>
+} />
+{/* AI Products API with filters for AI agents */}
+<Route path="/api/products" element={
+  <Suspense fallback={<pre style={{ padding: "20px", fontFamily: "monospace" }}>Loading products...</pre>}>
+    <AIProducts />
   </Suspense>
 } />
 <Route path="/auth" element={<Auth />} />

@@ -214,6 +214,53 @@ JSON avec markup Schema.org (ItemList, Product, LocalBusiness)
 
 ---
 
+## Endpoint Products API (JSON avec filtres)
+
+### URL
+`https://joiedevivre-africa.com/api/products`
+
+### Paramètres de filtrage
+
+| Paramètre | Type | Description | Exemple |
+|-----------|------|-------------|---------|
+| category | string | Filtrer par nom de catégorie | `?category=mode` |
+| min_price | number | Prix minimum en XOF | `?min_price=10000` |
+| max_price | number | Prix maximum en XOF | `?max_price=50000` |
+| sort | string | Tri: popularity, price_asc, price_desc, newest | `?sort=popularity` |
+| limit | number | Nombre de résultats (max 100, défaut 50) | `?limit=20` |
+| offset | number | Pour pagination | `?offset=20` |
+| business_id | uuid | Filtrer par boutique | `?business_id=xxx` |
+
+### Exemples d'utilisation
+
+```
+# Tous les produits populaires
+/api/products
+
+# Produits entre 10000 et 50000 FCFA
+/api/products?min_price=10000&max_price=50000
+
+# Produits triés par prix croissant
+/api/products?sort=price_asc
+
+# Nouveaux produits (limit 10)
+/api/products?sort=newest&limit=10
+
+# Produits d'une boutique spécifique
+/api/products?business_id=xxx-xxx-xxx
+```
+
+### Format de réponse
+JSON avec markup Schema.org ItemList, incluant:
+- Filtres appliqués
+- Pagination (limit, offset, hasMore)
+- Liste de produits avec prix, popularité, vendeur
+
+### Cache
+5 minutes (max-age=300)
+
+---
+
 ## Endpoint Dynamique Sitemap IA (XML)
 
 ### URL
