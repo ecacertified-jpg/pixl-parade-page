@@ -173,3 +173,6 @@ verify_jwt = false
 
 [functions.ai-catalog]
 verify_jwt = false
+
+[functions.ai-products]
+verify_jwt = false

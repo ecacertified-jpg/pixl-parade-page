@@ -196,6 +196,65 @@ paths:
               schema:
                 $ref: '#/components/schemas/AICatalog'
 
+  /api/products:
+    get:
+      tags:
+        - AI Integration
+      summary: Filtered Products API for AI Agents
+      description: |
+        JSON endpoint returning products with filtering, sorting, and pagination.
+        Optimized for AI agents with Schema.org ItemList markup.
+        Cache: 5 minutes.
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category name (partial match)
+        - name: min_price
+          in: query
+          schema:
+            type: number
+          description: Minimum price in XOF
+        - name: max_price
+          in: query
+          schema:
+            type: number
+          description: Maximum price in XOF
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [popularity, price_asc, price_desc, newest]
+            default: popularity
+          description: Sort order
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: Number of results (max 100)
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+        - name: business_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by business ID
+      responses:
+        '200':
+          description: JSON with filtered products in Schema.org ItemList format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductsResponse'
+
 components:
   schemas:
     Product:
@@ -400,3 +459,51 @@ components:
           type: boolean
         updatedAt:
           type: string
+
+    ProductsResponse:
+      type: object
+      description: Filtered products response for AI agents
+      properties:
+        '@context':
+          type: string
+          example: 'https://schema.org'
+        '@type':
+          type: string
+          example: 'ItemList'
+        name:
+          type: string
+        numberOfItems:
+          type: integer
+        generatedAt:
+          type: string
+          format: date-time
+        filters:
+          type: object
+          properties:
+            category:
+              type: string
+              nullable: true
+            minPrice:
+              type: number
+              nullable: true
+            maxPrice:
+              type: number
+              nullable: true
+            sort:
+              type: string
+            businessId:
+              type: string
+              nullable: true
+        pagination:
+          type: object
+          properties:
+            limit:
+              type: integer
+            offset:
+              type: integer
+            hasMore:
+              type: boolean
+        itemListElement:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCatalogItem'
