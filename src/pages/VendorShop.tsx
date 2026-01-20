@@ -26,7 +26,7 @@ import { useVendorRatings } from "@/hooks/useVendorRatings";
 import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
-import { LocalBusinessSchema, BreadcrumbListSchema, type DBOpeningHours, type ReviewItem } from "@/components/schema";
+import { LocalBusinessSchema, BreadcrumbListSchema, VideoSchema, formatDurationISO8601, type DBOpeningHours, type ReviewItem } from "@/components/schema";
 import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
 
@@ -192,6 +192,23 @@ export default function VendorShop() {
       }}
       reviews={formattedReviews.length > 0 ? formattedReviews : undefined}
     />
+    {/* VideoSchema for vendor product videos (max 3) */}
+    {products
+      .filter(p => p.videoUrl && p.videoThumbnailUrl)
+      .slice(0, 3)
+      .map(product => (
+        <VideoSchema
+          key={`video-schema-${product.id}`}
+          id={`vendor-${businessId}-product-${product.id}`}
+          name={`${product.name} - ${vendor.businessName}`}
+          description={`${product.description?.slice(0, 150) || product.name}. Disponible chez ${vendor.businessName}.`}
+          thumbnailUrl={product.videoThumbnailUrl!}
+          uploadDate={new Date().toISOString().split('T')[0]}
+          contentUrl={product.videoUrl!}
+          duration={formatDurationISO8601(30)}
+          regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
+        />
+      ))}
     <div className="min-h-screen bg-gradient-background">
       {/* Header - Compact Navigation */}
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
