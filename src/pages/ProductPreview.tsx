@@ -19,6 +19,8 @@ interface ProductData {
   images: string[] | null;
   video_url: string | null;
   video_thumbnail_url: string | null;
+  video_uploaded_at: string | null;
+  created_at: string;
   vendor_name: string;
   vendor_id: string | null;
 }
@@ -72,6 +74,8 @@ export default function ProductPreview() {
             images,
             video_url,
             video_thumbnail_url,
+            video_uploaded_at,
+            created_at,
             business_accounts!products_business_id_fkey (
               id,
               business_name
@@ -116,6 +120,8 @@ export default function ProductPreview() {
           images: imagesArray,
           video_url: data.video_url,
           video_thumbnail_url: data.video_thumbnail_url,
+          video_uploaded_at: data.video_uploaded_at,
+          created_at: data.created_at,
           vendor_name: data.business_accounts?.business_name || "Vendeur",
           vendor_id: data.business_accounts?.id || null,
         });
@@ -187,7 +193,7 @@ export default function ProductPreview() {
           name={`${product.name} - JOIE DE VIVRE`}
           description={product.description || `Découvrez ${product.name} sur JOIE DE VIVRE, la plateforme de cadeaux collaboratifs en Afrique.`}
           thumbnailUrl={product.video_thumbnail_url}
-          uploadDate={new Date().toISOString().split('T')[0]}
+          uploadDate={(product.video_uploaded_at || product.created_at || new Date().toISOString()).split('T')[0]}
           contentUrl={product.video_url}
           duration={formatDurationISO8601(30)}
           regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}

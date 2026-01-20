@@ -167,6 +167,7 @@ export function AdminAddProductModal({
           videos: videosForDb.length > 0 ? videosForDb : null,
           video_url: firstVideo?.url || null,
           video_thumbnail_url: firstVideo?.thumbnailUrl || null,
+          video_uploaded_at: firstVideo ? new Date().toISOString() : null,
           currency: 'XOF',
         })
         .select('id')

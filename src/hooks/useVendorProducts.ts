@@ -27,7 +27,9 @@ interface VendorProduct {
   locationName: string;
   videoUrl: string | null;
   videoThumbnailUrl: string | null;
+  videoUploadedAt: string | null;
   videos: ProductVideoData[];
+  createdAt: string;
 }
 
 interface VendorInfo {
@@ -137,7 +139,9 @@ export function useVendorProducts(businessId: string | undefined) {
           locationName: product.location_name || "Non spécifié",
           videoUrl: product.video_url || null,
           videoThumbnailUrl: product.video_thumbnail_url || null,
-          videos: parsedVideos
+          videoUploadedAt: product.video_uploaded_at || null,
+          videos: parsedVideos,
+          createdAt: product.created_at
         };
       });
 

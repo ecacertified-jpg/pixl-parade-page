@@ -22,6 +22,7 @@ interface Product {
   images?: string[];
   video_url?: string | null;
   video_thumbnail_url?: string | null;
+  video_uploaded_at?: string | null;
   videos?: ProductVideo[];
   business_owner_id: string;
   category_id?: string;
