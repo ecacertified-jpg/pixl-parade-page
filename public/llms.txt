@@ -70,7 +70,8 @@ Notes importantes :
 ## Optional
 
 - [Documentation étendue](https://joiedevivre-africa.com/llms-full.txt): Version complète pour LLMs avec contexte détaillé
-- [Sitemap](https://joiedevivre-africa.com/sitemap.xml): Index des pages pour crawlers
+- [Sitemap Standard](https://joiedevivre-africa.com/sitemap.xml): Index des pages pour Google/Bing
+- [Sitemap IA](https://joiedevivre-africa.com/sitemap-ai.xml): Sitemap optimisé pour crawlers IA (GPTBot, ClaudeBot, etc.)
 - [Installer l'application](https://joiedevivre-africa.com/install): Guide d'installation PWA
 
 ## Contact

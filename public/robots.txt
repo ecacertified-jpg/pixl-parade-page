@@ -96,6 +96,10 @@ Allow: /
 # Sitemap
 Sitemap: https://joiedevivre-africa.com/sitemap.xml
 
+# AI-Specific Sitemap (optimized for LLM crawlers)
+# Priorise les contenus textuels : llms.txt, Markdown, JSON-LD
+Sitemap: https://joiedevivre-africa.com/sitemap-ai.xml
+
 # Dynamic Sitemaps
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=index
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=pages
