@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play } from "lucide-react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
 import { LocalBusinessSchema, BreadcrumbListSchema, type DBOpeningHours, type ReviewItem } from "@/components/schema";
+import { CITY_PAGES } from "@/data/city-pages";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -255,6 +256,28 @@ export default function VendorShop() {
           email={vendor.email}
           countryCode={vendor.countryCode}
         />
+
+        {/* City page link for SEO internal linking */}
+        {(() => {
+          const vendorCity = vendor.address 
+            ? Object.values(CITY_PAGES).find(city => 
+                vendor.address!.toLowerCase().includes(city.city.toLowerCase())
+              )
+            : null;
+          
+          if (vendorCity) {
+            return (
+              <Link 
+                to={`/${vendorCity.slug}`}
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline px-1"
+              >
+                <MapPin className="w-4 h-4" />
+                Découvrir plus de boutiques à {vendorCity.city}
+              </Link>
+            );
+          }
+          return null;
+        })()}
 
         {/* Opening Hours - Collapsible */}
         {vendor.openingHours && Object.keys(vendor.openingHours).length > 0 && (

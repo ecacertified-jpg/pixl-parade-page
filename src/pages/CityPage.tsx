@@ -5,6 +5,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { SEOHead } from "@/components/SEOHead";
 import { LocalBusinessSchema, BreadcrumbListSchema, FAQPageSchema } from "@/components/schema/SchemaOrg";
 import { CITY_PAGES, type CityPageData } from "@/data/city-pages";
+import { LocalShopsSection } from "@/components/city/LocalShopsSection";
+import { OtherCitiesSection } from "@/components/city/OtherCitiesSection";
 import { 
   Gift, Users, MapPin, CreditCard, Calendar, Sparkles, 
   Heart, Star, ArrowRight, CheckCircle2, Quote
@@ -378,11 +380,13 @@ export default function CityPage() {
       {/* Page Sections */}
       <HeroSection city={cityData} />
       <HowItWorksSection city={cityData} />
+      <LocalShopsSection city={cityData} />
       <NeighborhoodsSection city={cityData} />
       <PaymentSection city={cityData} />
       <OccasionsSection city={cityData} />
       <TestimonialsSection city={cityData} />
       <FAQSection city={cityData} />
+      <OtherCitiesSection currentCity={cityData} />
       <CTASection city={cityData} />
       <CityFooter city={cityData} />
     </div>
