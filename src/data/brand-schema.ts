@@ -8,12 +8,11 @@ export const organizationData: OrganizationSchemaProps = {
   logo: `${DOMAIN}/logo-jv.png`,
   description: "Plateforme #1 de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et promotions avec vos proches.",
   socialLinks: [
-    'https://www.facebook.com/joiedevivre.africa',
-    'https://www.instagram.com/joiedevivre_africa',
-    'https://wa.me/22505465666',
+    'https://www.tiktok.com/@joiedevivre_46',
+    'https://wa.me/22546566646',
   ],
   contactEmail: 'contact@joiedevivre-africa.com',
-  contactPhone: '+225 05 465 666 46',
+  contactPhone: '+225 46 566 646',
 };
 
 export const websiteData: WebSiteSchemaProps = {
