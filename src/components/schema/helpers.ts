@@ -172,6 +172,52 @@ export function getEventTypeFromOccasion(occasion: string | null | undefined): s
 /**
  * Get event status from fund status
  */
+/**
+ * Map French business types to Schema.org LocalBusiness subtypes
+ */
+export const BUSINESS_TYPE_MAPPING: Record<string, string> = {
+  'Pâtisserie': 'Bakery',
+  'Boulangerie': 'Bakery',
+  'Restaurant': 'Restaurant',
+  'Café': 'CafeOrCoffeeShop',
+  'Traiteur': 'FoodEstablishment',
+  'Fleuriste': 'Florist',
+  'Bijouterie': 'JewelryStore',
+  'Mode': 'ClothingStore',
+  'Chaussures': 'ShoeStore',
+  'Décoration': 'HomeGoodsStore',
+  'Alimentation': 'GroceryStore',
+  'Spa': 'HealthAndBeautyBusiness',
+  'Coiffure': 'HairSalon',
+  'Beauté': 'BeautySalon',
+  'Électronique': 'ElectronicsStore',
+  'Librairie': 'BookStore',
+  'Jouets': 'ToyStore',
+  'Sport': 'SportingGoodsStore',
+};
+
+/**
+ * Get Schema.org business type from French business type
+ */
+export function getSchemaBusinessType(businessType: string | null): string {
+  if (!businessType) return 'LocalBusiness';
+  
+  // Exact match
+  if (BUSINESS_TYPE_MAPPING[businessType]) {
+    return BUSINESS_TYPE_MAPPING[businessType];
+  }
+  
+  // Partial match (case insensitive)
+  const lowerType = businessType.toLowerCase();
+  for (const [key, value] of Object.entries(BUSINESS_TYPE_MAPPING)) {
+    if (lowerType.includes(key.toLowerCase())) {
+      return value;
+    }
+  }
+  
+  return 'LocalBusiness';
+}
+
 export function getEventStatusFromFundStatus(
   status: string | null | undefined
 ): 'EventScheduled' | 'EventCompleted' | 'EventCancelled' {

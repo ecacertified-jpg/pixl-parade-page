@@ -10,6 +10,7 @@ import {
   formatOpeningHoursForSchema,
   getCityFromCountryCode,
   getCountryFromCode,
+  getSchemaBusinessType,
   SUPPORTED_COUNTRIES,
 } from './helpers';
 import {
@@ -87,15 +88,18 @@ export function LocalBusinessSchema({
   aggregateRating,
   hasOfferCatalog,
   reviews,
+  websiteUrl,
+  additionalType,
 }: LocalBusinessSchemaProps) {
   const schema = useMemo(() => {
     const url = `${SCHEMA_DOMAIN}/boutique/${id}`;
     const city = getCityFromCountryCode(countryCode);
     const formattedHours = formatOpeningHoursForSchema(openingHours);
+    const schemaType = additionalType || 'LocalBusiness';
 
     const schemaObj: Record<string, unknown> = {
       '@context': 'https://schema.org',
-      '@type': 'LocalBusiness',
+      '@type': schemaType,
       '@id': url,
       name,
       description,
@@ -104,6 +108,11 @@ export function LocalBusinessSchema({
       paymentAccepted: 'Mobile Money, Orange Money, MTN, Wave',
       currenciesAccepted: 'XOF',
     };
+
+    // Add official website link
+    if (websiteUrl) {
+      schemaObj.sameAs = [websiteUrl];
+    }
 
     if (image) schemaObj.image = image;
     if (telephone) schemaObj.telephone = telephone;
@@ -156,7 +165,7 @@ export function LocalBusinessSchema({
     schemaObj.areaServed = SUPPORTED_COUNTRIES;
 
     return schemaObj;
-  }, [id, name, description, image, telephone, email, address, countryCode, latitude, longitude, priceRange, openingHours, aggregateRating, hasOfferCatalog, reviews]);
+  }, [id, name, description, image, telephone, email, address, countryCode, latitude, longitude, priceRange, openingHours, aggregateRating, hasOfferCatalog, reviews, websiteUrl, additionalType]);
 
   useSchemaInjector(`local-business-${id}`, schema);
   return null;

@@ -77,6 +77,8 @@ export interface LocalBusinessSchemaProps {
     numberOfItems: number;
   };
   reviews?: ReviewItem[];
+  websiteUrl?: string;
+  additionalType?: string;
 }
 
 // ============ Product Types ============

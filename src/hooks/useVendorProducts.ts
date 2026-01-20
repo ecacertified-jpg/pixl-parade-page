@@ -42,6 +42,9 @@ interface VendorInfo {
   deliveryZones: any;
   openingHours: any;
   countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  websiteUrl: string | null;
 }
 
 export function useVendorProducts(businessId: string | undefined) {
@@ -84,6 +87,9 @@ export function useVendorProducts(businessId: string | undefined) {
         deliveryZones: businessData.delivery_zones,
         openingHours: businessData.opening_hours,
         countryCode: businessData.country_code || 'CI',
+        latitude: businessData.latitude || null,
+        longitude: businessData.longitude || null,
+        websiteUrl: businessData.website_url || null,
       });
 
       // Charger les produits du prestataire
