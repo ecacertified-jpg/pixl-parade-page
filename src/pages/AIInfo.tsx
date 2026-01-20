@@ -1,23 +1,25 @@
 import { useEffect } from "react";
 import { ExternalLink, Bot, FileJson, FileText, Code, Globe } from "lucide-react";
+import { organizationData } from "@/data/brand-schema";
 
-const DOMAIN = "https://joiedevivre-africa.com";
+// Use centralized brand data as source of truth
+const DOMAIN = organizationData.url;
 
 /**
  * AI Info Page - Structured data entry point for AI crawlers
  * Contains comprehensive JSON-LD Schema.org structured data
  */
 const AIInfo = () => {
-  // Organization Schema
+  // Organization Schema - dynamically built from brand-schema.ts
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "@id": `${DOMAIN}/#organization`,
-    name: "Joie de Vivre",
+    name: organizationData.name,
     alternateName: ["JDV", "JOIE DE VIVRE"],
     url: DOMAIN,
-    logo: `${DOMAIN}/pwa-512x512.png`,
-    description: "Première plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et célébrations avec paiement Mobile Money.",
+    logo: organizationData.logo,
+    description: organizationData.description,
     slogan: "Célébrer les moments de bonheur",
     foundingDate: "2024",
     foundingLocation: {
@@ -35,9 +37,9 @@ const AIInfo = () => {
     contactPoint: [
       {
         "@type": "ContactPoint",
-        telephone: "+225 05 46 56 6646",
+        telephone: organizationData.contactPhone,
         contactType: "customer service",
-        email: "contact@joiedevivre-africa.com",
+        email: organizationData.contactEmail,
         availableLanguage: ["French"],
         hoursAvailable: {
           "@type": "OpeningHoursSpecification",
@@ -56,11 +58,7 @@ const AIInfo = () => {
       { "@type": "Country", "name": "Togo", "alternateName": "TG" },
       { "@type": "Country", "name": "Burkina Faso", "alternateName": "BF" }
     ],
-    sameAs: [
-      "https://web.facebook.com/profile.php?id=61579100215241",
-      "https://www.tiktok.com/@joiedevivre_46",
-      "https://wa.me/22546566646"
-    ]
+    sameAs: organizationData.socialLinks
   };
 
   // WebApplication Schema
@@ -304,7 +302,7 @@ const AIInfo = () => {
         name: "Comment contacter le support ?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Par email à contact@joiedevivre-africa.com, par téléphone au +225 05 46 56 6646, ou via WhatsApp."
+          text: `Par email à ${organizationData.contactEmail}, par téléphone au ${organizationData.contactPhone}, ou via WhatsApp.`
         }
       },
       {
