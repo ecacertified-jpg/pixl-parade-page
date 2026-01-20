@@ -185,8 +185,9 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 
 ## Endpoint AI Catalog (JSON)
 
-### URL
-`https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-catalog`
+### URLs
+- **Page lisible** : `https://joiedevivre-africa.com/api/ai-catalog`
+- **API directe** : `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-catalog`
 
 ### Format
 JSON avec markup Schema.org (ItemList, Product, LocalBusiness)

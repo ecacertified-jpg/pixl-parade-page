@@ -180,13 +180,14 @@ paths:
     get:
       tags:
         - AI Integration
-      summary: AI Product & Business Catalog (JSON)
+      summary: AI Product & Business Catalog (JSON-LD)
       description: |
-        JSON catalog of popular products and businesses optimized for AI agents.
-        Returns Schema.org structured data (ItemList, Product, LocalBusiness).
-        Products sorted by popularity score. Cached for 1 hour.
+        HTML page with embedded JSON-LD catalog of popular products and businesses.
+        Optimized for AI agents with Schema.org structured data (ItemList, Product, LocalBusiness).
+        Products sorted by popularity score. Data fetched from edge function cached for 1 hour.
         
-        Use this endpoint if you prefer JSON over XML sitemap.
+        The JSON-LD is injected in the document head for easy parsing by AI crawlers.
+        Raw JSON is also displayed in the page body for human readability.
       responses:
         '200':
           description: JSON catalog with products, businesses, and categories
