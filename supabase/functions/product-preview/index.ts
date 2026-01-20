@@ -114,10 +114,13 @@ Deno.serve(async (req) => {
       : null;
 
     const appUrl = "https://joiedevivre-africa.com";
+    const supabaseProjectUrl = Deno.env.get("SUPABASE_URL")!;
     const productName = product.name || "Produit";
     const productDescription = product.description || `Découvrez ${productName} sur JOIE DE VIVRE`;
     const price = product.price ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}` : "";
-    const imageUrl = product.image_url || `${appUrl}/og-image.png`;
+    const fallbackImageUrl = product.image_url || `${appUrl}/og-image.png`;
+    // Image OG dynamique générée par l'Edge Function
+    const ogImageUrl = `${supabaseProjectUrl}/functions/v1/generate-og-image?id=${productId}`;
     const vendorName = product.business_accounts?.business_name || "JOIE DE VIVRE";
     const vendorId = product.business_accounts?.id;
     const fullProductUrl = vendorId 
@@ -201,11 +204,12 @@ Deno.serve(async (req) => {
   <meta property="og:url" content="${previewUrl}">
   <meta property="og:title" content="${productName} - ${price}">
   <meta property="og:description" content="${ratingCount > 0 ? `${generateStarRating(parseFloat(averageRating!))} ${averageRating}/5 (${ratingCount} avis) - ` : ''}${price} par ${vendorName}. ${productDescription.substring(0, 100)}">
-  <meta property="og:image" content="${imageUrl}">
+  <meta property="og:image" content="${ogImageUrl}">
+  <meta property="og:image:secure_url" content="${ogImageUrl}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/png">
   <meta property="og:image:alt" content="${productName} - ${vendorName}">
-  <meta property="og:site_name" content="JOIE DE VIVRE">
   <meta property="og:locale" content="fr_FR">
   <meta property="og:updated_time" content="${new Date().toISOString()}">
   
@@ -227,7 +231,7 @@ Deno.serve(async (req) => {
   <meta property="twitter:url" content="${previewUrl}">
   <meta property="twitter:title" content="${productName} - ${price}">
   <meta property="twitter:description" content="${ratingCount > 0 ? `${generateStarRating(parseFloat(averageRating!))} ${averageRating}/5 - ` : ''}${price} par ${vendorName}">
-  <meta property="twitter:image" content="${imageUrl}">
+  <meta property="twitter:image" content="${ogImageUrl}">
   <meta property="twitter:image:alt" content="${productName}">
   
   <!-- Hreflang for African markets -->
