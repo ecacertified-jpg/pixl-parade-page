@@ -2,14 +2,17 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Users, Package, DollarSign, Cake, Play } from "lucide-react";
+import { Edit, Trash2, Users, Package, DollarSign, Cake, Play, Share2 } from "lucide-react";
 import { BusinessCollaborativeGiftModal } from "./BusinessCollaborativeGiftModal";
 import { ProductRatingDisplay } from "./ProductRatingDisplay";
 import { RatingModal } from "./RatingModal";
 import { BirthdayAlertProductBadge } from "./BirthdayAlertProductBadge";
 import { VideoPlayer } from "./VideoPlayer";
+import { QuickBusinessShareMenu } from "./QuickBusinessShareMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessBirthdayAlerts, BirthdayAlert } from "@/hooks/useBusinessBirthdayAlerts";
+import { useProductShares } from "@/hooks/useProductShares";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -44,8 +47,10 @@ export function BusinessProductCard({
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const { getAlertsForProduct, dismissAlert } = useBusinessBirthdayAlerts(businessId);
-
+  const { stats: shareStats } = useProductShares(product.id);
+  const [businessName, setBusinessName] = useState<string>("Ma Boutique");
   // Get birthday alerts for this specific product
   const productAlerts = getAlertsForProduct(product.id);
   const hasAlert = productAlerts.length > 0;
@@ -53,18 +58,21 @@ export function BusinessProductCard({
   // Use user.id as primary businessId, businessId prop as fallback
   const effectiveBusinessId = businessId || user?.id;
 
-  // Debug logs - comprehensive
+  // Fetch business name for share menu
   useEffect(() => {
-    console.log('🔘 [BusinessProductCard] === COMPREHENSIVE DEBUG ===');
-    console.log('🔘 [BusinessProductCard] Product:', product.name);
-    console.log('🔘 [BusinessProductCard] businessId prop:', businessId);
-    console.log('🔘 [BusinessProductCard] user?.id:', user?.id);
-    console.log('🔘 [BusinessProductCard] effectiveBusinessId:', effectiveBusinessId);
-    console.log('🔘 [BusinessProductCard] authLoading:', authLoading);
-    console.log('🔘 [BusinessProductCard] user object:', user);
-    console.log('🔘 [BusinessProductCard] Button should be enabled:', !authLoading && !!effectiveBusinessId);
-    console.log('🔘 [BusinessProductCard] === END DEBUG ===');
-  }, [businessId, user?.id, effectiveBusinessId, authLoading, product.name]);
+    const fetchBusinessName = async () => {
+      if (!effectiveBusinessId) return;
+      const { data } = await supabase
+        .from('business_accounts')
+        .select('business_name')
+        .eq('user_id', effectiveBusinessId)
+        .single();
+      if (data?.business_name) {
+        setBusinessName(data.business_name);
+      }
+    };
+    fetchBusinessName();
+  }, [effectiveBusinessId]);
 
   // Don't render if still loading auth
   if (authLoading) {
@@ -164,6 +172,20 @@ export function BusinessProductCard({
             <div className="flex items-start justify-between">
               <h3 className="font-semibold leading-tight">{product.name}</h3>
               <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowShareMenu(true)}
+                  className="h-8 w-8 text-primary hover:text-primary relative"
+                  title="Partager ce produit"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {shareStats && shareStats.totalShares > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-4 min-w-4 p-0 text-[10px] flex items-center justify-center">
+                      {shareStats.totalShares > 99 ? '99+' : shareStats.totalShares}
+                    </Badge>
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -279,6 +301,20 @@ export function BusinessProductCard({
           title={product.name}
         />
       )}
+
+      <QuickBusinessShareMenu
+        open={showShareMenu}
+        onOpenChange={setShowShareMenu}
+        product={{
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          currency: product.currency,
+          image_url: product.image_url,
+        }}
+        businessName={businessName}
+        businessId={effectiveBusinessId || ''}
+      />
     </>
   );
 }
