@@ -92,6 +92,7 @@ const AIProducts = lazy(() => import("./pages/AIProducts"));
 
 // SEO City pages (lazy loaded)
 const CityPage = lazy(() => import("./pages/CityPage"));
+const CitiesOverview = lazy(() => import("./pages/CitiesOverview"));
 
 const queryClient = new QueryClient();
 
@@ -137,6 +138,12 @@ const App = () => (
 <Route path="/api/products" element={
   <Suspense fallback={<pre style={{ padding: "20px", fontFamily: "monospace" }}>Loading products...</pre>}>
     <AIProducts />
+  </Suspense>
+} />
+{/* Cities Overview with Interactive Map */}
+<Route path="/villes" element={
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+    <CitiesOverview />
   </Suspense>
 } />
 {/* SEO City Landing Pages */}

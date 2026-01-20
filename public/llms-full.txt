@@ -96,6 +96,7 @@ Partagez vos moments de joie avec votre communauté.
 
 ### Pages Statiques
 - `/` - Page d'accueil
+- `/villes` - Carte interactive de toutes les villes couvertes avec statistiques
 - `/shop` - Marketplace avec tous les produits
 - `/about` - À propos de Joie de Vivre
 - `/faq` - Questions fréquentes
