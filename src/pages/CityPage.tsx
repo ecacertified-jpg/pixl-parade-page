@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SEOHead } from "@/components/SEOHead";
-import { LocalBusinessSchema, BreadcrumbListSchema, FAQPageSchema } from "@/components/schema/SchemaOrg";
+import { LocalBusinessSchema, BreadcrumbListSchema, FAQPageSchema, HowToSchema } from "@/components/schema/SchemaOrg";
 import { CITY_PAGES, type CityPageData } from "@/data/city-pages";
 import { LocalShopsSection } from "@/components/city/LocalShopsSection";
 import { OtherCitiesSection } from "@/components/city/OtherCitiesSection";
@@ -375,6 +375,48 @@ export default function CityPage() {
           question: faq.question,
           answer: faq.answer
         }))} 
+      />
+      
+      {/* HowTo Schema - Localized guide for creating a fund in this city */}
+      <HowToSchema
+        id={`creer-cagnotte-${cityData.slug}`}
+        name={`Comment créer une cagnotte à ${cityData.city}`}
+        description={`Guide étape par étape pour créer une cagnotte collective et offrir un cadeau de groupe à ${cityData.city}, ${cityData.country}. Paiement via ${cityData.paymentMethods.slice(0, 2).map(p => p.name).join(' ou ')}.`}
+        totalTime="PT5M"
+        steps={[
+          {
+            name: 'Inscrivez-vous gratuitement',
+            text: `Créez votre compte JOIE DE VIVRE en 30 secondes avec votre email ou Google. Aucun frais d'inscription à ${cityData.city}.`,
+          },
+          {
+            name: 'Créez votre cagnotte',
+            text: `Choisissez l'occasion (${cityData.occasions.slice(0, 3).join(', ')}...), définissez un objectif et personnalisez votre page avec une photo.`,
+          },
+          {
+            name: 'Invitez vos proches',
+            text: `Partagez le lien de votre cagnotte par WhatsApp, SMS ou email. Vos proches à ${cityData.city} et à l'étranger peuvent contribuer.`,
+          },
+          {
+            name: 'Recevez les contributions',
+            text: `Les participants contribuent via ${cityData.paymentMethods.map(p => p.name).join(', ')} ou carte bancaire. Suivi en temps réel.`,
+          },
+          {
+            name: 'Offrez le cadeau',
+            text: `Choisissez parmi nos ${cityData.stats.businesses} artisans partenaires à ${cityData.city} (${cityData.neighborhoods.slice(0, 3).join(', ')}...) ou retirez l'argent collecté.`,
+          },
+        ]}
+        tool={[
+          { name: 'Smartphone ou ordinateur' },
+          { name: 'Connexion internet' },
+        ]}
+        supply={[
+          { name: 'Compte JOIE DE VIVRE (gratuit)' },
+          { name: `Compte ${cityData.paymentMethods[0]?.name || 'Mobile Money'}` },
+        ]}
+        estimatedCost={{
+          value: 0,
+          currency: 'XOF',
+        }}
       />
 
       {/* Page Sections */}
