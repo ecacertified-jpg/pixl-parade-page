@@ -183,7 +183,37 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 - **terms.md** : https://joiedevivre-africa.com/content/terms.md
 - **legal-notice.md** : https://joiedevivre-africa.com/content/legal-notice.md
 
-## Endpoint Dynamique Sitemap IA
+## Endpoint AI Catalog (JSON)
+
+### URL
+`https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-catalog`
+
+### Format
+JSON avec markup Schema.org (ItemList, Product, LocalBusiness)
+
+### Cache
+1 heure (max-age=3600)
+
+### Contenu
+- **Platform info** : Nom, URL, marchés, devise, langue, méthodes de paiement
+- **Products** (Top 50) : Triés par score de popularité
+  - Nom, description, prix, image, catégorie
+  - Métriques : score, vues, commandes, favoris, rang
+  - Vendeur avec nom et ID
+- **Businesses** (Top 20) : Boutiques approuvées
+  - Nom, type, logo, localisation, nombre de produits
+  - Statut de vérification
+- **Categories** : Agrégation des catégories avec nombre de produits
+
+### Utilisation Recommandée
+- Agents IA préférant JSON au XML
+- Plugins ChatGPT, Claude artifacts
+- Recherche sémantique de produits
+- Recommandations personnalisées
+
+---
+
+## Endpoint Dynamique Sitemap IA (XML)
 
 ### URL
 `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator`
@@ -198,7 +228,7 @@ XML (Sitemap Protocol 0.9)
 | Type | Quantité | Priorité | Description |
 |------|----------|----------|-------------|
 | Pages statiques | 14 | 0.6-1.0 | llms.txt, Markdown, HTML |
-| Produits populaires | Top 50 | 0.6 | Produits actifs récemment mis à jour |
+| Produits populaires | Top 50 | 0.6-0.8 | Produits actifs triés par popularité |
 | Boutiques approuvées | Top 20 | 0.6 | Boutiques vérifiées actives |
 | Cagnottes publiques | Top 30 | 0.5 | Cagnottes actives ouvertes |
 

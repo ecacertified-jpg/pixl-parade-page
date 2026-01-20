@@ -67,6 +67,11 @@ Notes importantes :
 - [Conditions Générales (Markdown)](https://joiedevivre-africa.com/content/terms.md): CGU complètes, règles d'utilisation, responsabilités
 - [Mentions Légales (Markdown)](https://joiedevivre-africa.com/content/legal-notice.md): Informations légales multi-pays (CI, BJ, SN), hébergement
 
+## API pour Agents IA
+
+- [Catalogue IA (JSON)](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-catalog): Top 50 produits et 20 boutiques populaires en JSON Schema.org
+- [Sitemap IA (XML)](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator): Sitemap dynamique optimisé LLMs
+
 ## Sitemaps
 
 - [Sitemap IA Statique](https://joiedevivre-africa.com/sitemap-ai.xml): Pages optimisées LLMs avec priorités
