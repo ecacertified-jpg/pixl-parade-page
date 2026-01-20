@@ -23,8 +23,7 @@ import {
 } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-import { FAQPageSchema } from "@/components/schema/FAQPageSchema";
-import { BreadcrumbListSchema } from "@/components/schema/BreadcrumbListSchema";
+import { FAQPageSchema, BreadcrumbListSchema } from "@/components/schema";
 import { faqCategories as faqData, type FAQCategory as FAQCategoryData } from "@/data/faq-data";
 
 // Map icon names to actual icon components

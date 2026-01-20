@@ -7,7 +7,7 @@ import { ProductShareCount } from "@/components/ProductShareCount";
 import { RatingModal } from "@/components/RatingModal";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ImageGallery } from "@/components/ImageGallery";
-import { ProductSchema } from "@/components/SchemaOrg";
+import { ProductSchema } from "@/components/schema";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {

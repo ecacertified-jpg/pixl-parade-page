@@ -24,7 +24,7 @@ import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-import { BreadcrumbListSchema } from "@/components/schema/BreadcrumbListSchema";
+import { BreadcrumbListSchema } from "@/components/schema";
 
 export default function Shop() {
   const navigate = useNavigate();

@@ -26,10 +26,7 @@ import { useVendorRatings } from "@/hooks/useVendorRatings";
 import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
-import { LocalBusinessSchema } from "@/components/SchemaOrg";
-import { BreadcrumbListSchema } from "@/components/schema/BreadcrumbListSchema";
-import type { DBOpeningHours } from "@/utils/schemaHelpers";
-import type { ReviewItem } from "@/components/schema/ReviewSchema";
+import { LocalBusinessSchema, BreadcrumbListSchema, type DBOpeningHours, type ReviewItem } from "@/components/schema";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();

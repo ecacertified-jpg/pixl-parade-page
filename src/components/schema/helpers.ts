@@ -2,6 +2,8 @@
  * Helper functions for Schema.org structured data formatting
  */
 
+import type { ReviewItem, DBOpeningHours, OpeningHoursSpec } from './types';
+
 // Day mapping from French to English for Schema.org
 const DAY_MAPPING: Record<string, string> = {
   lundi: 'Monday',
@@ -13,19 +15,58 @@ const DAY_MAPPING: Record<string, string> = {
   dimanche: 'Sunday',
 };
 
-export interface OpeningHoursSpec {
-  '@type': 'OpeningHoursSpecification';
-  dayOfWeek: string;
-  opens: string;
-  closes: string;
+/**
+ * Anonymize author name: "Koffi Atta" -> "Koffi A."
+ */
+export function anonymizeAuthorName(fullName: string): string {
+  if (!fullName) return 'Utilisateur';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  const firstName = parts[0];
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  return `${firstName} ${lastInitial}.`;
 }
 
-export interface DBOpeningHours {
-  [day: string]: {
-    open?: string;
-    close?: string;
-    closed?: boolean;
-  };
+/**
+ * Format date to ISO format for Schema.org
+ */
+export function formatDateForSchema(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+  } catch {
+    return dateString;
+  }
+}
+
+/**
+ * Generates an array of Review schema objects for embedding in LocalBusiness or Product schemas.
+ */
+export function formatReviewsForSchema(reviews: ReviewItem[]): Record<string, unknown>[] {
+  return reviews
+    .filter(review => review.reviewBody) // Only include reviews with text
+    .slice(0, 5) // Limit to 5 reviews
+    .map(review => ({
+      '@type': 'Review',
+      author: {
+        '@type': 'Person',
+        name: anonymizeAuthorName(review.authorName),
+      },
+      reviewRating: {
+        '@type': 'Rating',
+        ratingValue: review.rating.toString(),
+        bestRating: '5',
+        worstRating: '1',
+      },
+      reviewBody: review.reviewBody,
+      datePublished: formatDateForSchema(review.datePublished),
+      ...(review.productName && {
+        itemReviewed: {
+          '@type': 'Product',
+          name: review.productName,
+        },
+      }),
+    }));
 }
 
 /**
@@ -98,3 +139,16 @@ export function truncateForCaption(text: string | undefined, maxLength: number =
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';
 }
+
+/**
+ * Supported countries for area served
+ */
+export const SUPPORTED_COUNTRIES = [
+  { '@type': 'Country', name: "Côte d'Ivoire" },
+  { '@type': 'Country', name: 'Bénin' },
+  { '@type': 'Country', name: 'Sénégal' },
+  { '@type': 'Country', name: 'Mali' },
+  { '@type': 'Country', name: 'Togo' },
+  { '@type': 'Country', name: 'Burkina Faso' },
+  { '@type': 'Country', name: 'Niger' },
+];
