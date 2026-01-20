@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
+import { SEOHead } from "@/components/SEOHead";
 
 interface FundData {
   id: string;
@@ -184,8 +185,30 @@ export default function FundPreview() {
     ? `${fund.creator.first_name || ''} ${fund.creator.last_name || ''}`.trim()
     : undefined;
 
+  // Build SEO description
+  const seoDescription = `${progressPercent}% collecté - ${formatAmount(currentAmount)} / ${formatAmount(targetAmount)} ${currency}. ${fund.description || 'Participez à cette cagnotte collective!'}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* SEOHead for client-side meta tags */}
+      <SEOHead
+        title={`${getOccasionEmoji(fund.occasion)} ${fund.title} - Cagnotte`}
+        description={seoDescription}
+        image={fund.product?.image_url || undefined}
+        imageAlt={fund.title}
+        type="website"
+        keywords={`cagnotte ${fund.occasion || 'collective'}, cadeau groupe, contribution en ligne, ${fund.contact?.name || ''}`}
+        aiContentType="fund"
+        aiSummary={`Cagnotte: ${fund.title}. Objectif: ${formatAmount(targetAmount)} ${currency}. Collecté: ${formatAmount(currentAmount)} ${currency} (${progressPercent}%). Pour: ${fund.contact?.name || 'un proche'}.`}
+        audience="gift-givers"
+        contentRegion="CI,BJ,SN"
+        fundTargetAmount={targetAmount}
+        fundCurrentAmount={currentAmount}
+        fundCurrency={currency}
+        fundProgress={progressPercent}
+        fundOccasion={fund.occasion || undefined}
+      />
+
       {/* EventSchema for SEO */}
       <EventSchema
         id={fund.id}

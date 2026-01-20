@@ -29,6 +29,12 @@ export interface SEOHeadProps {
   productBrand?: string;
   productRating?: number;
   productReviewCount?: number;
+  // Fund-specific meta tags (for aiContentType='fund')
+  fundTargetAmount?: number;
+  fundCurrentAmount?: number;
+  fundCurrency?: string;
+  fundProgress?: number;
+  fundOccasion?: string;
 }
 
 const APP_NAME = "JOIE DE VIVRE";
@@ -106,7 +112,12 @@ export function SEOHead({
   productAvailability,
   productBrand,
   productRating,
-  productReviewCount
+  productReviewCount,
+  fundTargetAmount,
+  fundCurrentAmount,
+  fundCurrency,
+  fundProgress,
+  fundOccasion
 }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
@@ -205,6 +216,25 @@ export function SEOHead({
       updateMetaTag('ai-keywords', aiKeywords, false);
     }
     
+    // Fund-specific meta tags
+    if (aiContentType === 'fund') {
+      if (fundTargetAmount !== undefined) {
+        updateMetaTag('fund:target_amount', String(fundTargetAmount), false);
+      }
+      if (fundCurrentAmount !== undefined) {
+        updateMetaTag('fund:current_amount', String(fundCurrentAmount), false);
+      }
+      if (fundProgress !== undefined) {
+        updateMetaTag('fund:progress', String(fundProgress), false);
+      }
+      if (fundCurrency) {
+        updateMetaTag('fund:currency', fundCurrency, false);
+      }
+      if (fundOccasion) {
+        updateMetaTag('fund:occasion', fundOccasion, false);
+      }
+    }
+    
     // AI Resource Links
     updateLinkTag('ai-resource', `${BASE_URL}/llms.txt`);
     updateLinkTag('ai-documentation', `${BASE_URL}/llms-full.txt`);
@@ -213,7 +243,7 @@ export function SEOHead({
     return () => {
       document.title = `${APP_NAME} - Cadeaux Collectifs Côte d'Ivoire`;
     };
-  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords, productPrice, productCurrency, productAvailability, productBrand, productRating, productReviewCount]);
+  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords, productPrice, productCurrency, productAvailability, productBrand, productRating, productReviewCount, fundTargetAmount, fundCurrentAmount, fundCurrency, fundProgress, fundOccasion]);
   
   return null;
 }
