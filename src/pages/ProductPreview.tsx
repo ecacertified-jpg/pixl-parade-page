@@ -9,6 +9,7 @@ import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { useProductView } from "@/hooks/useProductView";
 import { useProductRatings } from "@/hooks/useProductRatings";
 import { VideoSchema, ProductSchema, formatDurationISO8601 } from "@/components/schema";
+import { SEOHead } from "@/components/SEOHead";
 interface ProductData {
   id: string;
   name: string;
@@ -187,8 +188,44 @@ export default function ProductPreview() {
     ? (product.image_url || product.images?.[0] || product.video_thumbnail_url || null)
     : null;
 
+  // Generate Unicode star rating for meta description
+  const generateStarRating = (rating: number): string => {
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    let stars = '★'.repeat(fullStars);
+    if (hasHalf && fullStars < 5) stars += '☆';
+    stars += '☆'.repeat(5 - fullStars - (hasHalf ? 1 : 0));
+    return stars;
+  };
+
+  // Build SEO description with ratings
+  const seoDescription = stats && stats.rating_count > 0
+    ? `${generateStarRating(stats.average_rating)} ${stats.average_rating.toFixed(1)}/5 (${stats.rating_count} avis) - ${formattedPrice} par ${product.vendor_name}. ${product.description?.substring(0, 100) || ''}`
+    : `${formattedPrice} par ${product.vendor_name}. ${product.description?.substring(0, 120) || 'Découvrez ce produit sur JOIE DE VIVRE'}`;
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* SEOHead for dynamic Open Graph meta tags */}
+      <SEOHead
+        title={`${product.name} - ${formattedPrice}`}
+        description={seoDescription}
+        image={displayImageUrl || undefined}
+        imageAlt={`${product.name} - ${product.vendor_name}`}
+        type="product"
+        keywords={`${product.name}, cadeau Abidjan, ${product.vendor_name}, boutique Côte d'Ivoire, cadeaux Afrique`}
+        aiContentType="product"
+        aiSummary={`Produit: ${product.name}. Prix: ${formattedPrice}. Vendeur: ${product.vendor_name}. ${stats?.rating_count ? `Note: ${stats.average_rating.toFixed(1)}/5 (${stats.rating_count} avis).` : ''}`}
+        audience="gift-givers"
+        contentRegion="CI,BJ,SN,ML,TG,BF"
+        productPrice={product.price}
+        productCurrency={product.currency}
+        productAvailability="in stock"
+        productBrand={product.vendor_name}
+        productRating={stats?.average_rating}
+        productReviewCount={stats?.rating_count}
+      />
+
       {/* ProductSchema for SEO - Rich Results with ratings */}
       <ProductSchema
         id={product.id}

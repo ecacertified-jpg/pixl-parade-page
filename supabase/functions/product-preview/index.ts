@@ -27,6 +27,16 @@ const isCrawler = (userAgent: string): boolean => {
   return crawlerUserAgents.some((bot) => ua.includes(bot.toLowerCase()));
 };
 
+// Generate Unicode star rating display
+const generateStarRating = (rating: number): string => {
+  const fullStars = Math.floor(rating);
+  const hasHalf = rating % 1 >= 0.5;
+  let stars = '★'.repeat(fullStars);
+  if (hasHalf && fullStars < 5) stars += '☆';
+  stars += '☆'.repeat(5 - fullStars - (hasHalf ? 1 : 0));
+  return stars;
+};
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -182,34 +192,43 @@ Deno.serve(async (req) => {
   <title>${productName} - JOIE DE VIVRE</title>
   
   <!-- Primary Meta Tags -->
-  <meta name="title" content="${productName} - JOIE DE VIVRE">
-  <meta name="description" content="${price} - ${vendorName}. ${productDescription.substring(0, 150)}">
-  <meta name="keywords" content="cadeau ${productName}, achat Abidjan, boutique Côte d'Ivoire, ${vendorName}">
+  <meta name="title" content="${productName} - ${price} | JOIE DE VIVRE">
+  <meta name="description" content="${ratingCount > 0 ? `${generateStarRating(parseFloat(averageRating!))} ${averageRating}/5 (${ratingCount} avis) - ` : ''}${price} par ${vendorName}. ${productDescription.substring(0, 120)}">
+  <meta name="keywords" content="cadeau ${productName}, achat Abidjan, boutique Côte d'Ivoire, ${vendorName}, cadeaux Afrique">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="product">
   <meta property="og:url" content="${previewUrl}">
-  <meta property="og:title" content="${productName}">
-  <meta property="og:description" content="${price} - ${vendorName}">
+  <meta property="og:title" content="${productName} - ${price}">
+  <meta property="og:description" content="${ratingCount > 0 ? `${generateStarRating(parseFloat(averageRating!))} ${averageRating}/5 (${ratingCount} avis) - ` : ''}${price} par ${vendorName}. ${productDescription.substring(0, 100)}">
   <meta property="og:image" content="${imageUrl}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="${productName}">
+  <meta property="og:image:alt" content="${productName} - ${vendorName}">
   <meta property="og:site_name" content="JOIE DE VIVRE">
   <meta property="og:locale" content="fr_FR">
+  <meta property="og:updated_time" content="${new Date().toISOString()}">
   
-  <!-- Product specific -->
+  <!-- Product specific Open Graph -->
   <meta property="product:price:amount" content="${product.price || 0}">
   <meta property="product:price:currency" content="${product.currency || 'XOF'}">
   <meta property="product:retailer_item_id" content="${productId}">
   <meta property="product:availability" content="in stock">
+  <meta property="product:brand" content="${vendorName}">
+  <meta property="product:condition" content="new">
+  <meta property="og:price:amount" content="${product.price || 0}">
+  <meta property="og:price:currency" content="${product.currency || 'XOF'}">
+  
+  <!-- Pinterest Rich Pin -->
+  <meta name="pinterest-rich-pin" content="true">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="${previewUrl}">
-  <meta property="twitter:title" content="${productName}">
-  <meta property="twitter:description" content="${price} - ${vendorName}">
+  <meta property="twitter:title" content="${productName} - ${price}">
+  <meta property="twitter:description" content="${ratingCount > 0 ? `${generateStarRating(parseFloat(averageRating!))} ${averageRating}/5 - ` : ''}${price} par ${vendorName}">
   <meta property="twitter:image" content="${imageUrl}">
+  <meta property="twitter:image:alt" content="${productName}">
   
   <!-- Hreflang for African markets -->
   <link rel="alternate" hreflang="fr-CI" href="${previewUrl}">
