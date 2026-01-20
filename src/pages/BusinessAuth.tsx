@@ -24,6 +24,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
+import { SEOHead } from '@/components/SEOHead';
+import { HowToSchema } from '@/components/schema';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -1099,6 +1101,59 @@ const BusinessAuth = () => {
   // Formulaire principal (connexion / inscription)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
+      {/* SEO Head for Business Registration */}
+      <SEOHead
+        title="Devenir Vendeur Partenaire | JOIE DE VIVRE"
+        description="Inscrivez-vous comme vendeur partenaire sur JOIE DE VIVRE. Créez votre boutique en ligne et vendez vos produits à travers la plateforme de cadeaux collaboratifs en Afrique."
+      />
+
+      {/* HowTo Schema - Guide pour devenir vendeur partenaire */}
+      <HowToSchema
+        id="devenir-vendeur-partenaire"
+        name="Comment devenir vendeur partenaire sur JOIE DE VIVRE"
+        description="Guide complet étape par étape pour créer votre compte vendeur, configurer votre boutique et commencer à vendre vos produits sur la plateforme de cadeaux collaboratifs."
+        totalTime="PT10M"
+        steps={[
+          {
+            name: "Accédez à l'espace vendeur",
+            text: "Rendez-vous sur la page d'inscription vendeur via le lien 'Devenir vendeur' ou 'Espace vendeur' depuis le menu principal de JOIE DE VIVRE.",
+          },
+          {
+            name: "Renseignez vos informations personnelles",
+            text: "Entrez votre prénom et votre nom. Ces informations seront utilisées pour identifier le responsable du compte vendeur.",
+          },
+          {
+            name: "Créez votre profil business",
+            text: "Indiquez le nom de votre entreprise ou boutique ainsi que votre type d'activité (pâtisserie, fleuriste, décoration, etc.). Le nom d'entreprise doit être unique sur la plateforme.",
+          },
+          {
+            name: "Vérifiez votre numéro de téléphone",
+            text: "Entrez votre numéro de téléphone mobile. Vous recevrez un code de vérification par SMS à 6 chiffres que vous devrez saisir pour confirmer votre identité.",
+          },
+          {
+            name: "Soumettez votre demande",
+            text: "Après vérification de votre téléphone, votre demande d'inscription est automatiquement soumise à notre équipe de validation.",
+          },
+          {
+            name: "Attendez la validation",
+            text: "Notre équipe examine votre demande sous 24 à 48 heures. Vous recevrez une notification par SMS et email une fois votre compte approuvé.",
+          },
+          {
+            name: "Configurez votre boutique",
+            text: "Une fois approuvé, accédez à votre tableau de bord vendeur pour ajouter votre logo, configurer vos zones de livraison et commencer à ajouter vos produits.",
+          },
+        ]}
+        tool={[
+          { name: "Smartphone ou ordinateur" },
+          { name: "Connexion internet" },
+          { name: "Application SMS pour recevoir le code de vérification" },
+        ]}
+        supply={[
+          { name: "Numéro de téléphone mobile valide" },
+          { name: "Nom d'entreprise unique" },
+          { name: "Informations sur votre activité" },
+        ]}
+      />
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
