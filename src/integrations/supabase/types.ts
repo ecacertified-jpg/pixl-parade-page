@@ -4587,6 +4587,107 @@ export type Database = {
           },
         ]
       }
+      product_virality_alerts: {
+        Row: {
+          alert_date: string | null
+          alert_type: string
+          business_id: string
+          conversion_rate: number | null
+          conversion_value: number | null
+          created_at: string | null
+          current_clicks: number
+          current_conversions: number
+          current_shares: number
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          milestone_value: number | null
+          period_type: string | null
+          previous_shares: number | null
+          product_id: string
+          read_at: string | null
+          severity: string
+          share_growth_percentage: number | null
+        }
+        Insert: {
+          alert_date?: string | null
+          alert_type: string
+          business_id: string
+          conversion_rate?: number | null
+          conversion_value?: number | null
+          created_at?: string | null
+          current_clicks?: number
+          current_conversions?: number
+          current_shares?: number
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          milestone_value?: number | null
+          period_type?: string | null
+          previous_shares?: number | null
+          product_id: string
+          read_at?: string | null
+          severity?: string
+          share_growth_percentage?: number | null
+        }
+        Update: {
+          alert_date?: string | null
+          alert_type?: string
+          business_id?: string
+          conversion_rate?: number | null
+          conversion_value?: number | null
+          created_at?: string | null
+          current_clicks?: number
+          current_conversions?: number
+          current_shares?: number
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          milestone_value?: number | null
+          period_type?: string | null
+          previous_shares?: number | null
+          product_id?: string
+          read_at?: string | null
+          severity?: string
+          share_growth_percentage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_virality_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_virality_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_virality_alerts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_virality_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           business_account_id: string | null
@@ -6364,6 +6465,54 @@ export type Database = {
           sync_funds?: boolean | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      virality_alert_thresholds: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          metric_type: string
+          milestone_values: number[] | null
+          min_conversion_rate: number | null
+          min_delay_hours: number | null
+          notify_admin: boolean | null
+          notify_business: boolean | null
+          period_type: string | null
+          spike_percentage: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type: string
+          milestone_values?: number[] | null
+          min_conversion_rate?: number | null
+          min_delay_hours?: number | null
+          notify_admin?: boolean | null
+          notify_business?: boolean | null
+          period_type?: string | null
+          spike_percentage?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric_type?: string
+          milestone_values?: number[] | null
+          min_conversion_rate?: number | null
+          min_delay_hours?: number | null
+          notify_admin?: boolean | null
+          notify_business?: boolean | null
+          period_type?: string | null
+          spike_percentage?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
