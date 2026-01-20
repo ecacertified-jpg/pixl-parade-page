@@ -85,8 +85,9 @@ import FundPreview from "./pages/FundPreview";
 import BusinessPreview from "./pages/BusinessPreview";
 import ExploreMap from "./pages/ExploreMap";
 
-// AI-only page (lazy loaded)
+// AI-only pages (lazy loaded)
 const AIInfo = lazy(() => import("./pages/AIInfo"));
+const AICatalog = lazy(() => import("./pages/AICatalog"));
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,12 @@ const App = () => (
 <Route path="/ai-info" element={
   <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
     <AIInfo />
+  </Suspense>
+} />
+{/* AI Catalog JSON endpoint for AI agents */}
+<Route path="/api/ai-catalog" element={
+  <Suspense fallback={<pre style={{ padding: "20px", fontFamily: "monospace" }}>Loading catalog...</pre>}>
+    <AICatalog />
   </Suspense>
 } />
 <Route path="/auth" element={<Auth />} />
