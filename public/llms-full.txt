@@ -157,6 +157,8 @@ Pour les LLMs qui préfèrent ingérer du contenu textuel sans HTML/JavaScript :
 |---------|-----|-------------|
 | about.md | https://joiedevivre-africa.com/content/about.md | Mission, fonctionnalités, informations entreprise |
 | faq.md | https://joiedevivre-africa.com/content/faq.md | 25+ questions/réponses par catégorie |
+| privacy-policy.md | https://joiedevivre-africa.com/content/privacy-policy.md | Politique de confidentialité complète |
+| terms.md | https://joiedevivre-africa.com/content/terms.md | Conditions générales d'utilisation |
 
 Ces fichiers Markdown contiennent le même contenu que les pages HTML correspondantes, mais dans un format léger et directement parsable.
 
@@ -169,3 +171,5 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 - **robots.txt** : https://joiedevivre-africa.com/robots.txt
 - **about.md** : https://joiedevivre-africa.com/content/about.md
 - **faq.md** : https://joiedevivre-africa.com/content/faq.md
+- **privacy-policy.md** : https://joiedevivre-africa.com/content/privacy-policy.md
+- **terms.md** : https://joiedevivre-africa.com/content/terms.md
