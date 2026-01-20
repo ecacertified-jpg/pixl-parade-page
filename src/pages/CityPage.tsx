@@ -7,6 +7,7 @@ import { LocalBusinessSchema, BreadcrumbListSchema, FAQPageSchema, HowToSchema }
 import { CITY_PAGES, type CityPageData } from "@/data/city-pages";
 import { LocalShopsSection } from "@/components/city/LocalShopsSection";
 import { OtherCitiesSection } from "@/components/city/OtherCitiesSection";
+import { HOWTO_STEP_IMAGES, getHowToStepImageAbsoluteUrl } from "@/data/howto-step-images";
 import { 
   Gift, Users, MapPin, CreditCard, Calendar, Sparkles, 
   Heart, Star, ArrowRight, CheckCircle2, Quote
@@ -382,27 +383,33 @@ export default function CityPage() {
         id={`creer-cagnotte-${cityData.slug}`}
         name={`Comment créer une cagnotte à ${cityData.city}`}
         description={`Guide étape par étape pour créer une cagnotte collective et offrir un cadeau de groupe à ${cityData.city}, ${cityData.country}. Paiement via ${cityData.paymentMethods.slice(0, 2).map(p => p.name).join(' ou ')}.`}
+        image={getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.creationCagnotte)}
         totalTime="PT5M"
         steps={[
           {
             name: 'Inscrivez-vous gratuitement',
             text: `Créez votre compte JOIE DE VIVRE en 30 secondes avec votre email ou Google. Aucun frais d'inscription à ${cityData.city}.`,
+            image: getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.inscription),
           },
           {
             name: 'Créez votre cagnotte',
             text: `Choisissez l'occasion (${cityData.occasions.slice(0, 3).join(', ')}...), définissez un objectif et personnalisez votre page avec une photo.`,
+            image: getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.creationCagnotte),
           },
           {
             name: 'Invitez vos proches',
             text: `Partagez le lien de votre cagnotte par WhatsApp, SMS ou email. Vos proches à ${cityData.city} et à l'étranger peuvent contribuer.`,
+            image: getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.invitationProches),
           },
           {
             name: 'Recevez les contributions',
             text: `Les participants contribuent via ${cityData.paymentMethods.map(p => p.name).join(', ')} ou carte bancaire. Suivi en temps réel.`,
+            image: getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.contributions),
           },
           {
             name: 'Offrez le cadeau',
             text: `Choisissez parmi nos ${cityData.stats.businesses} artisans partenaires à ${cityData.city} (${cityData.neighborhoods.slice(0, 3).join(', ')}...) ou retirez l'argent collecté.`,
+            image: getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.offrirCadeau),
           },
         ]}
         tool={[
