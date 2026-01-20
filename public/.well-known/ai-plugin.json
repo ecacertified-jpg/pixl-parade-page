@@ -7,6 +7,10 @@
   "auth": {
     "type": "none"
   },
+  "api": {
+    "type": "openapi",
+    "url": "https://joiedevivre-africa.com/openapi.yaml"
+  },
   "logo_url": "https://joiedevivre-africa.com/pwa-512x512.png",
   "contact_email": "contact@joiedevivre.app",
   "legal_info_url": "https://joiedevivre-africa.com/terms-of-service"

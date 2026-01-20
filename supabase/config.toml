@@ -170,3 +170,6 @@ verify_jwt = false
 
 [functions.sitemap-ai-generator]
 verify_jwt = false
+
+[functions.ai-catalog]
+verify_jwt = false

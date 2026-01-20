@@ -176,6 +176,25 @@ paths:
               schema:
                 type: string
 
+  /api/ai-catalog:
+    get:
+      tags:
+        - AI Integration
+      summary: AI Product & Business Catalog (JSON)
+      description: |
+        JSON catalog of popular products and businesses optimized for AI agents.
+        Returns Schema.org structured data (ItemList, Product, LocalBusiness).
+        Products sorted by popularity score. Cached for 1 hour.
+        
+        Use this endpoint if you prefer JSON over XML sitemap.
+      responses:
+        '200':
+          description: JSON catalog with products, businesses, and categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AICatalog'
+
 components:
   schemas:
     Product:
@@ -240,3 +259,143 @@ components:
           type: string
         is_public:
           type: boolean
+
+    AICatalog:
+      type: object
+      description: JSON catalog optimized for AI agents with Schema.org markup
+      properties:
+        '@context':
+          type: string
+          example: 'https://schema.org'
+        '@type':
+          type: string
+          example: 'ItemList'
+        name:
+          type: string
+          example: 'Joie de Vivre - AI Catalog'
+        numberOfItems:
+          type: integer
+        generatedAt:
+          type: string
+          format: date-time
+        platform:
+          type: object
+          properties:
+            name:
+              type: string
+            url:
+              type: string
+            markets:
+              type: array
+              items:
+                type: string
+            currency:
+              type: string
+            language:
+              type: string
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCatalogItem'
+        businesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/BusinessCatalogItem'
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              productCount:
+                type: integer
+        metadata:
+          type: object
+          properties:
+            totalProducts:
+              type: integer
+            totalBusinesses:
+              type: integer
+            cacheMaxAge:
+              type: integer
+
+    ProductCatalogItem:
+      type: object
+      properties:
+        '@type':
+          type: string
+          example: 'Product'
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+          format: uri
+        price:
+          type: number
+        currency:
+          type: string
+        image:
+          type: string
+          format: uri
+        category:
+          type: string
+        seller:
+          type: object
+          properties:
+            name:
+              type: string
+            id:
+              type: string
+        popularity:
+          type: object
+          properties:
+            score:
+              type: number
+            views:
+              type: integer
+            orders:
+              type: integer
+            favorites:
+              type: integer
+            rank:
+              type: integer
+        availability:
+          type: string
+        updatedAt:
+          type: string
+
+    BusinessCatalogItem:
+      type: object
+      properties:
+        '@type':
+          type: string
+          example: 'LocalBusiness'
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+        description:
+          type: string
+        businessType:
+          type: string
+        logo:
+          type: string
+          format: uri
+        location:
+          type: string
+        productCount:
+          type: integer
+        isVerified:
+          type: boolean
+        updatedAt:
+          type: string
