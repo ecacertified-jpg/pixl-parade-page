@@ -11,6 +11,7 @@
     - products: All active products with images
     - businesses: All approved vendor shops with logos
     - funds: All public collective funds
+    - cities: Local SEO landing pages (Abidjan, Cotonou, Dakar)
   -->
   
   <sitemap>
@@ -28,4 +29,21 @@
   <sitemap>
     <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds</loc>
   </sitemap>
+  
+  <!-- Local SEO City Pages -->
+  <url>
+    <loc>https://joiedevivre-africa.com/abidjan</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joiedevivre-africa.com/cotonou</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://joiedevivre-africa.com/dakar</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </sitemapindex>
