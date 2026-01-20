@@ -426,6 +426,53 @@ export default function CityPage() {
         }}
       />
 
+      {/* HowTo Schema - Localized guide for contributing to a fund in this city */}
+      <HowToSchema
+        id={`contribuer-cagnotte-${cityData.slug}`}
+        name={`Comment contribuer à une cagnotte à ${cityData.city}`}
+        description={`Guide simple pour participer à une cagnotte collective à ${cityData.city}, ${cityData.country}. Contribuez facilement via ${cityData.paymentMethods.slice(0, 2).map(p => p.name).join(' ou ')} en quelques clics.`}
+        image={getHowToStepImageAbsoluteUrl(HOWTO_STEP_IMAGES.contributions)}
+        totalTime="PT2M"
+        steps={[
+          {
+            name: 'Ouvrez le lien de la cagnotte',
+            text: `Cliquez sur le lien reçu par WhatsApp, SMS ou email. La page de la cagnotte s'ouvre directement dans votre navigateur à ${cityData.city}.`,
+          },
+          {
+            name: 'Découvrez la cagnotte',
+            text: `Consultez les détails : occasion célébrée, objectif de collecte, montant déjà atteint et messages des autres contributeurs.`,
+          },
+          {
+            name: 'Choisissez votre montant',
+            text: `Sélectionnez un montant suggéré ou entrez un montant personnalisé en XOF. Aucun minimum requis !`,
+          },
+          {
+            name: 'Payez avec Mobile Money',
+            text: `Choisissez votre moyen de paiement préféré : ${cityData.paymentMethods.map(p => p.name).join(', ')}. Validez avec votre code secret.`,
+          },
+          {
+            name: 'Ajoutez un message (optionnel)',
+            text: `Écrivez un message personnel pour accompagner votre contribution. Il sera visible par l'organisateur et les autres participants.`,
+          },
+          {
+            name: 'Confirmation instantanée',
+            text: `Recevez une confirmation par SMS et email. Votre contribution apparaît immédiatement sur la cagnotte. Merci pour votre générosité !`,
+          },
+        ]}
+        tool={[
+          { name: 'Smartphone avec navigateur internet' },
+          { name: `Application ${cityData.paymentMethods[0]?.name || 'Mobile Money'}` },
+        ]}
+        supply={[
+          { name: `Compte ${cityData.paymentMethods[0]?.name || 'Mobile Money'} approvisionné` },
+          { name: 'Lien de la cagnotte (reçu par WhatsApp/SMS/email)' },
+        ]}
+        estimatedCost={{
+          value: 0,
+          currency: 'XOF',
+        }}
+      />
+
       {/* Page Sections */}
       <HeroSection city={cityData} />
       <HowItWorksSection city={cityData} />
