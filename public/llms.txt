@@ -67,11 +67,15 @@ Notes importantes :
 - [Conditions Générales (Markdown)](https://joiedevivre-africa.com/content/terms.md): CGU complètes, règles d'utilisation, responsabilités
 - [Mentions Légales (Markdown)](https://joiedevivre-africa.com/content/legal-notice.md): Informations légales multi-pays (CI, BJ, SN), hébergement
 
+## Sitemaps
+
+- [Sitemap IA Statique](https://joiedevivre-africa.com/sitemap-ai.xml): Pages optimisées LLMs avec priorités
+- [Sitemap IA Dynamique](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator): Inclut top 50 produits et top 20 boutiques populaires (temps réel)
+- [Sitemap SEO](https://joiedevivre-africa.com/sitemap.xml): Index standard pour Google/Bing
+
 ## Optional
 
 - [Documentation étendue](https://joiedevivre-africa.com/llms-full.txt): Version complète pour LLMs avec contexte détaillé
-- [Sitemap Standard](https://joiedevivre-africa.com/sitemap.xml): Index des pages pour Google/Bing
-- [Sitemap IA](https://joiedevivre-africa.com/sitemap-ai.xml): Sitemap optimisé pour crawlers IA (GPTBot, ClaudeBot, etc.)
 - [Installer l'application](https://joiedevivre-africa.com/install): Guide d'installation PWA
 
 ## Contact

@@ -173,7 +173,8 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 - **llms-full.txt** : https://joiedevivre-africa.com/llms-full.txt (ce document)
 - **ai-info** : https://joiedevivre-africa.com/ai-info (page JSON-LD structurée)
 - **ai-plugin.json** : https://joiedevivre-africa.com/.well-known/ai-plugin.json
-- **sitemap-ai.xml** : https://joiedevivre-africa.com/sitemap-ai.xml (optimisé LLMs)
+- **sitemap-ai.xml** : https://joiedevivre-africa.com/sitemap-ai.xml (statique, optimisé LLMs)
+- **sitemap-ai-generator** : https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator (dynamique, inclut produits/boutiques populaires)
 - **sitemap.xml** : https://joiedevivre-africa.com/sitemap.xml (standard SEO)
 - **robots.txt** : https://joiedevivre-africa.com/robots.txt
 - **about.md** : https://joiedevivre-africa.com/content/about.md
@@ -181,3 +182,28 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 - **privacy-policy.md** : https://joiedevivre-africa.com/content/privacy-policy.md
 - **terms.md** : https://joiedevivre-africa.com/content/terms.md
 - **legal-notice.md** : https://joiedevivre-africa.com/content/legal-notice.md
+
+## Endpoint Dynamique Sitemap IA
+
+### URL
+`https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator`
+
+### Format
+XML (Sitemap Protocol 0.9)
+
+### Cache
+1 heure (max-age=3600)
+
+### Contenu Dynamique
+| Type | Quantité | Priorité | Description |
+|------|----------|----------|-------------|
+| Pages statiques | 14 | 0.6-1.0 | llms.txt, Markdown, HTML |
+| Produits populaires | Top 50 | 0.6 | Produits actifs récemment mis à jour |
+| Boutiques approuvées | Top 20 | 0.6 | Boutiques vérifiées actives |
+| Cagnottes publiques | Top 30 | 0.5 | Cagnottes actives ouvertes |
+
+### Commentaires XML
+Chaque URL inclut des métadonnées en commentaire XML :
+- Produits : nom et prix en FCFA
+- Boutiques : nom de l'établissement
+- Cagnottes : titre de la cagnotte
