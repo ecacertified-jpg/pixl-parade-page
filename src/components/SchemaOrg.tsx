@@ -6,7 +6,7 @@ import {
   type OpeningHoursSpec,
   type DBOpeningHours 
 } from '@/utils/schemaHelpers';
-
+import { formatReviewsForSchema, type ReviewItem } from '@/components/schema/ReviewSchema';
 const DOMAIN = 'https://joiedevivre-africa.com';
 
 // ============================================
@@ -34,6 +34,7 @@ export interface LocalBusinessSchemaProps {
     name: string;
     numberOfItems: number;
   };
+  reviews?: ReviewItem[];
 }
 
 export function LocalBusinessSchema({
@@ -51,6 +52,7 @@ export function LocalBusinessSchema({
   openingHours,
   aggregateRating,
   hasOfferCatalog,
+  reviews,
 }: LocalBusinessSchemaProps) {
   const url = `${DOMAIN}/boutique/${id}`;
   const city = getCityFromCountryCode(countryCode);
@@ -124,6 +126,14 @@ export function LocalBusinessSchema({
     };
   }
 
+  // Add individual reviews if available
+  if (reviews && reviews.length > 0) {
+    const formattedReviews = formatReviewsForSchema(reviews);
+    if (formattedReviews.length > 0) {
+      schema.review = formattedReviews;
+    }
+  }
+
   // Add area served (all supported countries)
   schema.areaServed = [
     { '@type': 'Country', name: "Côte d'Ivoire" },
@@ -164,7 +174,7 @@ export function LocalBusinessSchema({
 }
 
 // ============================================
-// Product Schema Component (for future use)
+// Product Schema Component (enhanced)
 // ============================================
 
 export interface ProductSchemaProps {
@@ -172,14 +182,22 @@ export interface ProductSchemaProps {
   name: string;
   description: string;
   image: string;
+  images?: string[];
   price: number;
   currency?: string;
   availability?: 'InStock' | 'OutOfStock';
   brand?: string;
+  seller?: {
+    name: string;
+    url: string;
+  };
+  category?: string;
+  sku?: string;
   aggregateRating?: {
     ratingValue: number;
     reviewCount: number;
   };
+  reviews?: ReviewItem[];
 }
 
 export function ProductSchema({
@@ -187,11 +205,16 @@ export function ProductSchema({
   name,
   description,
   image,
+  images,
   price,
   currency = 'XOF',
   availability = 'InStock',
   brand,
+  seller,
+  category,
+  sku,
   aggregateRating,
+  reviews,
 }: ProductSchemaProps) {
   const url = `${DOMAIN}/p/${id}`;
 
@@ -201,7 +224,6 @@ export function ProductSchema({
     '@id': url,
     name,
     description,
-    image,
     url,
     offers: {
       '@type': 'Offer',
@@ -212,6 +234,24 @@ export function ProductSchema({
     },
   };
 
+  // Add images (array if multiple, single if one)
+  if (images && images.length > 1) {
+    schema.image = images;
+  } else {
+    schema.image = image;
+  }
+
+  // Add SKU
+  if (sku) {
+    schema.sku = sku;
+  }
+
+  // Add category
+  if (category) {
+    schema.category = category;
+  }
+
+  // Add brand
   if (brand) {
     schema.brand = {
       '@type': 'Brand',
@@ -219,6 +259,16 @@ export function ProductSchema({
     };
   }
 
+  // Add seller
+  if (seller) {
+    (schema.offers as Record<string, unknown>).seller = {
+      '@type': 'Organization',
+      name: seller.name,
+      url: seller.url,
+    };
+  }
+
+  // Add aggregate rating
   if (aggregateRating && aggregateRating.reviewCount > 0) {
     schema.aggregateRating = {
       '@type': 'AggregateRating',
@@ -227,6 +277,14 @@ export function ProductSchema({
       bestRating: '5',
       worstRating: '1',
     };
+  }
+
+  // Add individual reviews
+  if (reviews && reviews.length > 0) {
+    const formattedReviews = formatReviewsForSchema(reviews);
+    if (formattedReviews.length > 0) {
+      schema.review = formattedReviews;
+    }
   }
 
   useEffect(() => {
@@ -249,7 +307,7 @@ export function ProductSchema({
         scriptToRemove.remove();
       }
     };
-  }, [id, name, description, image, price, currency, availability, brand, aggregateRating?.ratingValue, aggregateRating?.reviewCount]);
+  }, [id, name, description, image, images, price, currency, availability, brand, seller, category, sku, aggregateRating?.ratingValue, aggregateRating?.reviewCount, reviews]);
 
   return null;
 }
