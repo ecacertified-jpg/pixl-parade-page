@@ -51,6 +51,11 @@ Notes importantes :
 - [Conditions d'utilisation](https://joiedevivre-africa.com/terms-of-service): Règles d'utilisation de la plateforme
 - [Mentions légales](https://joiedevivre-africa.com/legal-notice): Informations légales
 
+## Documentation Markdown
+
+- [À Propos (Markdown)](https://joiedevivre-africa.com/content/about.md): Mission, fonctionnalités et informations sur l'entreprise en texte pur
+- [FAQ (Markdown)](https://joiedevivre-africa.com/content/faq.md): 25+ questions/réponses organisées par catégorie en texte pur
+
 ## Optional
 
 - [Documentation étendue](https://joiedevivre-africa.com/llms-full.txt): Version complète pour LLMs avec contexte détaillé
