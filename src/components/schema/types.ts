@@ -183,3 +183,32 @@ export interface HowToSchemaProps {
   supply?: HowToSupply[];        // Matériels nécessaires
   tool?: HowToTool[];            // Outils nécessaires
 }
+
+// ============ Article Types (NEW) ============
+export interface ArticleAuthor {
+  name: string;
+  url?: string;
+  image?: string;
+}
+
+export interface ArticleSchemaProps {
+  id: string;                          // Identifiant unique (slug)
+  type?: 'Article' | 'BlogPosting' | 'NewsArticle';  // Type d'article
+  headline: string;                    // Titre de l'article (max 110 caractères)
+  description: string;                 // Résumé (meta description)
+  image: string;                       // Image principale
+  images?: string[];                   // Images additionnelles
+  datePublished: string;               // Date de publication ISO 8601
+  dateModified?: string;               // Date de modification ISO 8601
+  author: ArticleAuthor;               // Auteur de l'article
+  publisher?: {                        // Organisation (défaut: JOIE DE VIVRE)
+    name: string;
+    logo: string;
+  };
+  articleSection?: string;             // Catégorie (ex: "Guides", "Actualités")
+  keywords?: string[];                 // Mots-clés SEO
+  wordCount?: number;                  // Nombre de mots
+  inLanguage?: string;                 // Langue (défaut: "fr")
+  isAccessibleForFree?: boolean;       // Contenu gratuit
+  mainEntityOfPage?: string;           // URL canonique
+}
