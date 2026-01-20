@@ -1,6 +1,13 @@
 import React from "https://esm.sh/react@18.2.0";
 import { ImageResponse } from "https://deno.land/x/og_edge@0.0.4/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  hashData,
+  getCachedImage,
+  cacheImage,
+  createCacheRedirectResponse,
+  getCacheClients,
+} from "../_shared/og-cache-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,14 +63,23 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const businessId = url.searchParams.get("id");
+    const forceRefresh = url.searchParams.get("refresh") === "true";
 
     if (!businessId) {
       return new Response("Business ID required", { status: 400, headers: corsHeaders });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get Supabase clients
+    const { supabase, supabaseAdmin } = getCacheClients();
+    const cacheKey = `business_${businessId}`;
+
+    // Check for cached image (unless force refresh)
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
 
     // Fetch business data
     const { data: business, error } = await supabase
@@ -111,6 +127,24 @@ Deno.serve(async (req) => {
       averageRating = ratingData.reduce((acc, r) => acc + (r.rating || 0), 0) / totalRatings;
     }
 
+    // Generate data hash for cache invalidation
+    const dataHash = hashData(JSON.stringify({
+      name: business.business_name,
+      type: business.business_type,
+      logo_url: business.logo_url,
+      products_count: productsCount,
+      rating: averageRating.toFixed(1),
+      total_ratings: totalRatings,
+    }));
+
+    // Check if data has changed (smart invalidation)
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached && cached.dataHash === dataHash) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
+
     // Extract data
     const businessName = business.business_name || "Boutique";
     const businessType = business.business_type || "";
@@ -123,7 +157,7 @@ Deno.serve(async (req) => {
     ).then((res) => res.arrayBuffer());
 
     // Generate OG image
-    return new ImageResponse(
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -297,11 +331,23 @@ Deno.serve(async (req) => {
             weight: 700,
           },
         ],
-        headers: {
-          "Cache-Control": "public, max-age=3600",
-        },
       }
     );
+
+    // Get image buffer
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // Cache the generated image
+    await cacheImage(supabaseAdmin, "business", businessId, cacheKey, imageBuffer, dataHash);
+
+    // Return the freshly generated image
+    return new Response(imageBuffer, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800",
+        ...corsHeaders,
+      },
+    });
   } catch (error) {
     console.error("Error generating business OG image:", error);
     return new Response("Error generating image", { status: 500, headers: corsHeaders });

@@ -1,6 +1,13 @@
 import React from "https://esm.sh/react@18.2.0";
 import { ImageResponse } from "https://deno.land/x/og_edge@0.0.4/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  hashData,
+  getCachedImage,
+  cacheImage,
+  createCacheRedirectResponse,
+  getCacheClients,
+} from "../_shared/og-cache-utils.ts";
 
 // Couleurs JOIE DE VIVRE
 const COLORS = {
@@ -44,16 +51,25 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const productId = url.searchParams.get("id");
+    const forceRefresh = url.searchParams.get("refresh") === "true";
 
     if (!productId) {
       return new Response("Product ID required", { status: 400 });
     }
 
-    // Récupérer les données produit depuis Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get Supabase clients
+    const { supabase, supabaseAdmin } = getCacheClients();
+    const cacheKey = `product_${productId}`;
 
+    // Check for cached image (unless force refresh)
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
+
+    // Fetch product data
     const { data: product, error } = await supabase
       .from("products")
       .select(`
@@ -73,7 +89,7 @@ Deno.serve(async (req) => {
       return new Response("Product not found", { status: 404 });
     }
 
-    // Récupérer les ratings
+    // Fetch ratings
     const { data: ratingsData } = await supabase
       .from("product_ratings")
       .select("rating")
@@ -84,19 +100,34 @@ Deno.serve(async (req) => {
       ? ratingsData!.reduce((sum, r) => sum + r.rating, 0) / ratingCount
       : 0;
 
-    // Formater le prix
+    // Generate data hash for cache invalidation
+    const dataHash = hashData(JSON.stringify({
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+      rating_count: ratingCount,
+      average_rating: averageRating.toFixed(1),
+    }));
+
+    // Check if data has changed (smart invalidation)
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached && cached.dataHash === dataHash) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
+
+    // Prepare display data
     const formattedPrice = product.price
       ? `${product.price.toLocaleString("fr-FR")} ${product.currency || "XOF"}`
       : "";
     const vendorName = product.business_accounts?.business_name || "JOIE DE VIVRE";
     const productImage = product.image_url || "https://joiedevivre-africa.com/og-image.png";
-    
-    // Tronquer le nom si trop long
     const displayName = product.name.length > 45
       ? product.name.substring(0, 42) + "..."
       : product.name;
 
-    // Charger la police Poppins depuis Google Fonts
+    // Load Poppins font
     let fontData: ArrayBuffer;
     try {
       const fontResponse = await fetch(
@@ -105,11 +136,10 @@ Deno.serve(async (req) => {
       fontData = await fontResponse.arrayBuffer();
     } catch (fontError) {
       console.error("Error loading font:", fontError);
-      // Continuer sans police custom
       fontData = new ArrayBuffer(0);
     }
 
-    // Générer l'image OG avec React
+    // Generate OG image with React
     const imageResponse = new ImageResponse(
       (
         <div
@@ -123,9 +153,9 @@ Deno.serve(async (req) => {
             fontFamily: "Poppins, sans-serif",
           }}
         >
-          {/* Contenu principal */}
+          {/* Main content */}
           <div style={{ display: "flex", flex: 1, gap: "40px", alignItems: "center" }}>
-            {/* Image produit */}
+            {/* Product image */}
             <div
               style={{
                 width: "380px",
@@ -149,7 +179,7 @@ Deno.serve(async (req) => {
               />
             </div>
 
-            {/* Informations produit */}
+            {/* Product info */}
             <div
               style={{
                 flex: 1,
@@ -159,7 +189,7 @@ Deno.serve(async (req) => {
                 gap: "20px",
               }}
             >
-              {/* Nom du produit */}
+              {/* Product name */}
               <div
                 style={{
                   fontSize: "44px",
@@ -172,7 +202,7 @@ Deno.serve(async (req) => {
                 {displayName}
               </div>
 
-              {/* Étoiles et avis */}
+              {/* Stars and reviews */}
               {ratingCount > 0 && (
                 <div
                   style={{
@@ -191,7 +221,7 @@ Deno.serve(async (req) => {
                 </div>
               )}
 
-              {/* Prix */}
+              {/* Price */}
               <div
                 style={{
                   fontSize: "52px",
@@ -203,7 +233,7 @@ Deno.serve(async (req) => {
                 {formattedPrice}
               </div>
 
-              {/* Vendeur */}
+              {/* Vendor */}
               <div
                 style={{
                   fontSize: "24px",
@@ -216,7 +246,7 @@ Deno.serve(async (req) => {
             </div>
           </div>
 
-          {/* Footer avec branding */}
+          {/* Footer with branding */}
           <div
             style={{
               display: "flex",
@@ -274,14 +304,19 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Ajouter les headers de cache
-    const headers = new Headers(imageResponse.headers);
-    headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
-    headers.set("Access-Control-Allow-Origin", "*");
+    // Get image buffer
+    const imageBuffer = await imageResponse.arrayBuffer();
 
-    return new Response(imageResponse.body, {
-      status: imageResponse.status,
-      headers,
+    // Cache the generated image
+    await cacheImage(supabaseAdmin, "product", productId, cacheKey, imageBuffer, dataHash);
+
+    // Return the freshly generated image
+    return new Response(imageBuffer, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800",
+        "Access-Control-Allow-Origin": "*",
+      },
     });
   } catch (error) {
     console.error("Error generating OG image:", error);

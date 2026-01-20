@@ -3947,6 +3947,39 @@ export type Database = {
           },
         ]
       }
+      og_image_cache_metadata: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          data_hash: string
+          entity_id: string
+          entity_type: string
+          expires_at: string | null
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          data_hash: string
+          entity_id: string
+          entity_type: string
+          expires_at?: string | null
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          data_hash?: string
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string | null
+          id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -7292,6 +7325,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_og_cache: { Args: never; Returns: undefined }
       cleanup_expired_pending_registrations: { Args: never; Returns: number }
       create_birthday_celebration: {
         Args: {

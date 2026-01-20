@@ -1,6 +1,14 @@
 import React from "https://esm.sh/react@18.2.0";
 import { ImageResponse } from "https://deno.land/x/og_edge@0.0.4/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  hashData,
+  getCachedImage,
+  cacheImage,
+  createCacheRedirectResponse,
+  getCacheClients,
+  calculateProgressBucket,
+} from "../_shared/og-cache-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,14 +46,14 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const fundId = url.searchParams.get("id");
+    const forceRefresh = url.searchParams.get("refresh") === "true";
 
     if (!fundId) {
       return new Response("Fund ID required", { status: 400, headers: corsHeaders });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Get Supabase clients
+    const { supabase, supabaseAdmin } = getCacheClients();
 
     // Fetch fund data with product and contact
     const { data: fund, error } = await supabase
@@ -78,16 +86,44 @@ Deno.serve(async (req) => {
       return new Response("Fund not found", { status: 404, headers: corsHeaders });
     }
 
+    // Calculate progress for cache key (bucket system)
+    const currentAmount = fund.current_amount || 0;
+    const targetAmount = fund.target_amount || 1;
+    const progressBucket = calculateProgressBucket(currentAmount, targetAmount);
+    const progressPercent = Math.min(Math.round((currentAmount / targetAmount) * 100), 100);
+
+    // Cache key includes progress bucket to reduce regeneration
+    const cacheKey = `fund_${fundId}_progress${progressBucket}`;
+
+    // Check for cached image (unless force refresh)
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
+
     // Get contributor count
     const { count: contributorCount } = await supabase
       .from("fund_contributions")
       .select("*", { count: "exact", head: true })
       .eq("fund_id", fundId);
 
-    // Calculate progress
-    const currentAmount = fund.current_amount || 0;
-    const targetAmount = fund.target_amount || 1;
-    const progressPercent = Math.min(Math.round((currentAmount / targetAmount) * 100), 100);
+    // Generate data hash
+    const dataHash = hashData(JSON.stringify({
+      title: fund.title,
+      progress_bucket: progressBucket,
+      occasion: fund.occasion,
+      contributor_count: contributorCount,
+    }));
+
+    // Check if data has changed
+    if (!forceRefresh) {
+      const cached = await getCachedImage(supabase, cacheKey);
+      if (cached && cached.dataHash === dataHash) {
+        return createCacheRedirectResponse(cached.url);
+      }
+    }
 
     // Extract data
     const product = fund.products as { id: string; name: string; image_url: string } | null;
@@ -108,7 +144,7 @@ Deno.serve(async (req) => {
     ).then((res) => res.arrayBuffer());
 
     // Generate OG image
-    return new ImageResponse(
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -327,11 +363,23 @@ Deno.serve(async (req) => {
             weight: 700,
           },
         ],
-        headers: {
-          "Cache-Control": "public, max-age=3600",
-        },
       }
     );
+
+    // Get image buffer
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // Cache the generated image
+    await cacheImage(supabaseAdmin, "fund", fundId, cacheKey, imageBuffer, dataHash);
+
+    // Return the freshly generated image
+    return new Response(imageBuffer, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800",
+        ...corsHeaders,
+      },
+    });
   } catch (error) {
     console.error("Error generating fund OG image:", error);
     return new Response("Error generating image", { status: 500, headers: corsHeaders });
