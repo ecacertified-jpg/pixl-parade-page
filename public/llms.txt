@@ -57,6 +57,7 @@ Notes importantes :
 - [FAQ (Markdown)](https://joiedevivre-africa.com/content/faq.md): 25+ questions/réponses organisées par catégorie en texte pur
 - [Politique de Confidentialité (Markdown)](https://joiedevivre-africa.com/content/privacy-policy.md): Protection des données personnelles, droits RGPD, cookies
 - [Conditions Générales (Markdown)](https://joiedevivre-africa.com/content/terms.md): CGU complètes, règles d'utilisation, responsabilités
+- [Mentions Légales (Markdown)](https://joiedevivre-africa.com/content/legal-notice.md): Informations légales multi-pays (CI, BJ, SN), hébergement
 
 ## Optional
 
