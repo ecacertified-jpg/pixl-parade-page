@@ -8,6 +8,7 @@ export const organizationData: OrganizationSchemaProps = {
   logo: `${DOMAIN}/logo-jv.png`,
   description: "Plateforme #1 de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et promotions avec vos proches.",
   socialLinks: [
+    'https://web.facebook.com/profile.php?id=61579100215241',
     'https://www.tiktok.com/@joiedevivre_46',
     'https://wa.me/22546566646',
   ],
