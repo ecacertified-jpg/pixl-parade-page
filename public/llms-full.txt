@@ -100,6 +100,11 @@ Partagez vos moments de joie avec votre communauté.
 - `/about` - À propos de Joie de Vivre
 - `/faq` - Questions fréquentes
 
+### Pages Locales SEO
+- `/abidjan` - Page dédiée Abidjan (Côte d'Ivoire) avec quartiers, paiements locaux, FAQ locale
+- `/cotonou` - Page dédiée Cotonou (Bénin) avec artisans Dantokpa, MTN/Moov Money
+- `/dakar` - Page dédiée Dakar (Sénégal) avec teranga, Wave/Orange Money, Soumbédioune
+
 ### Pages Dynamiques (Partageables)
 - `/p/{productId}` - Aperçu d'un produit (OG meta tags, Schema.org Product)
 - `/b/{businessId}` - Aperçu d'une boutique (Schema.org LocalBusiness)
