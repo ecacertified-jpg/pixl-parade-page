@@ -2,6 +2,10 @@
 
 > Joie de Vivre est la première plateforme de cadeaux collaboratifs en Afrique francophone. Elle permet de créer des cagnottes collectives pour les anniversaires, mariages, promotions et autres célébrations, tout en connectant les utilisateurs avec des boutiques artisanales locales en Côte d'Ivoire, au Bénin, au Sénégal et dans toute l'Afrique francophone.
 
+## AI Information Page
+
+- **[/ai-info](https://joiedevivre-africa.com/ai-info)** : Page dédiée avec données structurées JSON-LD Schema.org complètes (Organization, WebApplication, FAQPage, Service, ItemList)
+
 ## Informations Générales
 
 | Attribut | Valeur |

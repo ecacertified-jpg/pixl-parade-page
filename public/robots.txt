@@ -5,6 +5,9 @@
 User-agent: *
 Allow: /
 
+# AI Information Page (structured JSON-LD for AI agents)
+Allow: /ai-info
+
 # Google
 User-agent: Googlebot
 Allow: /

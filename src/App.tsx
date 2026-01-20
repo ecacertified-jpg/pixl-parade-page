@@ -1,3 +1,4 @@
+import React, { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import AdminAuth from "./pages/AdminAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -84,6 +85,9 @@ import FundPreview from "./pages/FundPreview";
 import BusinessPreview from "./pages/BusinessPreview";
 import ExploreMap from "./pages/ExploreMap";
 
+// AI-only page (lazy loaded)
+const AIInfo = lazy(() => import("./pages/AIInfo"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -112,6 +116,12 @@ const App = () => (
 <Route path="/f/:fundId" element={<FundPreview />} />
 {/* Public business preview with OG meta tags */}
 <Route path="/b/:businessId" element={<BusinessPreview />} />
+{/* AI Information page with structured JSON-LD data */}
+<Route path="/ai-info" element={
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+    <AIInfo />
+  </Suspense>
+} />
 <Route path="/auth" element={<Auth />} />
 <Route path="/business-auth" element={<BusinessAuth />} />
             {/* Redirects for removed waitlist/pending pages */}
