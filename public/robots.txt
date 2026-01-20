@@ -100,12 +100,15 @@ Sitemap: https://joiedevivre-africa.com/sitemap.xml
 # Priorise les contenus textuels : llms.txt, Markdown, JSON-LD
 Sitemap: https://joiedevivre-africa.com/sitemap-ai.xml
 
-# Dynamic Sitemaps
+# Dynamic Sitemaps (SEO)
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=index
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=pages
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=products
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=businesses
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds
+
+# Dynamic AI Sitemap (LLM-optimized with popular products & businesses)
+Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator
 
 # ============================================
 # AI-FRIENDLY DOCUMENTATION (LLM Optimization)
