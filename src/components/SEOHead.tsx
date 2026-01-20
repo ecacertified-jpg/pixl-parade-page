@@ -35,6 +35,12 @@ export interface SEOHeadProps {
   fundCurrency?: string;
   fundProgress?: number;
   fundOccasion?: string;
+  // Business-specific meta tags (for aiContentType='business-profile')
+  businessProductsCount?: number;
+  businessRating?: number;
+  businessReviewCount?: number;
+  businessType?: string;
+  businessAddress?: string;
 }
 
 const APP_NAME = "JOIE DE VIVRE";
@@ -117,7 +123,12 @@ export function SEOHead({
   fundCurrentAmount,
   fundCurrency,
   fundProgress,
-  fundOccasion
+  fundOccasion,
+  businessProductsCount,
+  businessRating,
+  businessReviewCount,
+  businessType,
+  businessAddress
 }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
@@ -235,6 +246,25 @@ export function SEOHead({
       }
     }
     
+    // Business-specific meta tags
+    if (aiContentType === 'business-profile' || type === 'business.business') {
+      if (businessProductsCount !== undefined) {
+        updateMetaTag('business:products_count', String(businessProductsCount), false);
+      }
+      if (businessRating !== undefined) {
+        updateMetaTag('business:average_rating', String(businessRating), false);
+      }
+      if (businessReviewCount !== undefined) {
+        updateMetaTag('business:review_count', String(businessReviewCount), false);
+      }
+      if (businessType) {
+        updateMetaTag('business:type', businessType, false);
+      }
+      if (businessAddress) {
+        updateMetaTag('business:address', businessAddress, false);
+      }
+    }
+    
     // AI Resource Links
     updateLinkTag('ai-resource', `${BASE_URL}/llms.txt`);
     updateLinkTag('ai-documentation', `${BASE_URL}/llms-full.txt`);
@@ -243,7 +273,7 @@ export function SEOHead({
     return () => {
       document.title = `${APP_NAME} - Cadeaux Collectifs Côte d'Ivoire`;
     };
-  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords, productPrice, productCurrency, productAvailability, productBrand, productRating, productReviewCount, fundTargetAmount, fundCurrentAmount, fundCurrency, fundProgress, fundOccasion]);
+  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords, productPrice, productCurrency, productAvailability, productBrand, productRating, productReviewCount, fundTargetAmount, fundCurrentAmount, fundCurrency, fundProgress, fundOccasion, businessProductsCount, businessRating, businessReviewCount, businessType, businessAddress]);
   
   return null;
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trackBusinessShareEvent } from "@/hooks/useBusinessShareTracking";
-
+import { SEOHead } from "@/components/SEOHead";
 interface BusinessData {
   id: string;
   business_name: string;
@@ -162,6 +162,22 @@ export default function BusinessPreview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* SEO Meta Tags */}
+      <SEOHead
+        title={`${business.business_name} - Boutique Cadeaux`}
+        description={`${business.business_type || 'Boutique'} • ${business.products_count} produit${business.products_count > 1 ? 's' : ''} disponibles${business.address ? ` • ${business.address}` : ''}`}
+        image={business.logo_url || undefined}
+        imageAlt={business.business_name}
+        type="business.business"
+        keywords={`${business.business_name}, boutique cadeaux, ${business.business_type || 'artisanat'}, Abidjan`}
+        aiContentType="business-profile"
+        aiSummary={`Boutique ${business.business_name}. Type: ${business.business_type || 'Non spécifié'}. ${business.products_count} produits. ${business.description?.substring(0, 100) || ''}`}
+        audience="gift-givers"
+        contentRegion="CI,BJ,SN"
+        businessProductsCount={business.products_count}
+        businessType={business.business_type || undefined}
+        businessAddress={business.address || undefined}
+      />
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

@@ -243,9 +243,15 @@ Deno.serve(async (req) => {
   <meta property="og:url" content="${previewUrl}">
   <meta property="og:title" content="🏪 ${businessName}">
   <meta property="og:description" content="${ogDescription}">
-  <meta property="og:image" content="${logoUrl}">
+  <meta property="og:image" content="${supabaseUrl}/functions/v1/generate-business-og-image?id=${businessId}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
+  <meta property="og:updated_time" content="${new Date().toISOString()}">
+  
+  <!-- Business specific custom meta tags -->
+  <meta name="business:products_count" content="${productsCount || 0}">
+  <meta name="business:average_rating" content="${averageRating.toFixed(1)}">
+  <meta name="business:review_count" content="${totalRatings}">
   <meta property="og:image:alt" content="${businessName}">
   <meta property="og:site_name" content="JOIE DE VIVRE">
   <meta property="og:locale" content="fr_FR">
@@ -261,6 +267,7 @@ Deno.serve(async (req) => {
   <meta property="twitter:url" content="${previewUrl}">
   <meta property="twitter:title" content="🏪 ${businessName}">
   <meta property="twitter:description" content="${ogDescription}">
+  <meta property="twitter:image" content="${supabaseUrl}/functions/v1/generate-business-og-image?id=${businessId}">
   <meta property="twitter:image" content="${logoUrl}">
   
   <!-- Hreflang for African markets -->
