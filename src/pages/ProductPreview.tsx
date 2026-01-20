@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import logoRose from "@/assets/logo-jdv-rose.png";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
+import { useProductView } from "@/hooks/useProductView";
 
 interface ProductData {
   id: string;
@@ -30,6 +31,9 @@ export default function ProductPreview() {
   const [imageError, setImageError] = useState(false);
   
   const { detectAndStoreShareToken, trackViewFromShare, cleanShareRefFromUrl } = useShareConversionTracking();
+  
+  // Track product view for popularity metrics
+  useProductView(productId);
 
   // Detect and store share token from URL
   useEffect(() => {
