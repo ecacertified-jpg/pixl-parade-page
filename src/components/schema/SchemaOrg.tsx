@@ -11,6 +11,7 @@ import {
   getCityFromCountryCode,
   getCountryFromCode,
   getSchemaBusinessType,
+  getEmbedUrlForSchema,
   SUPPORTED_COUNTRIES,
 } from './helpers';
 import {
@@ -25,6 +26,7 @@ import {
   type ReviewSchemaProps,
   type HowToSchemaProps,
   type ArticleSchemaProps,
+  type VideoSchemaProps,
 } from './types';
 import { organizationData } from '@/data/brand-schema';
 
@@ -602,5 +604,120 @@ export function ArticleSchema({
   }, [id, type, headline, description, image, images, datePublished, dateModified, author, publisher, articleSection, keywords, wordCount, inLanguage, isAccessibleForFree, mainEntityOfPage]);
 
   useSchemaInjector(`article-${id}`, schema);
+  return null;
+}
+
+// ============================================
+// Video Schema Component (for Rich Snippets vidéo)
+// ============================================
+
+export function VideoSchema({
+  id,
+  name,
+  description,
+  thumbnailUrl,
+  uploadDate,
+  contentUrl,
+  embedUrl,
+  duration,
+  expires,
+  hasPart,
+  interactionStatistic,
+  regionsAllowed,
+  publisher,
+  inLanguage = 'fr',
+  isFamilyFriendly = true,
+}: VideoSchemaProps) {
+  const schema = useMemo(() => {
+    const url = `${SCHEMA_DOMAIN}/video/${id}`;
+    
+    // Default publisher = JOIE DE VIVRE
+    const publisherData = publisher || {
+      name: organizationData.name,
+      logo: organizationData.logo,
+    };
+
+    const schemaObj: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'VideoObject',
+      '@id': url,
+      name,
+      description,
+      thumbnailUrl,
+      uploadDate,
+      inLanguage,
+      isFamilyFriendly,
+      
+      // Publisher
+      publisher: {
+        '@type': 'Organization',
+        name: publisherData.name,
+        logo: {
+          '@type': 'ImageObject',
+          url: publisherData.logo,
+        },
+      },
+    };
+
+    // Content URLs (at least one required)
+    if (contentUrl) schemaObj.contentUrl = contentUrl;
+    if (embedUrl) {
+      schemaObj.embedUrl = embedUrl;
+    } else if (contentUrl) {
+      // Try to generate embed URL from content URL
+      const generatedEmbed = getEmbedUrlForSchema(contentUrl);
+      if (generatedEmbed) schemaObj.embedUrl = generatedEmbed;
+    }
+
+    // Duration (format ISO 8601)
+    if (duration) schemaObj.duration = duration;
+
+    // Expiration
+    if (expires) schemaObj.expires = expires;
+
+    // Video chapters (Seek to action)
+    if (hasPart && hasPart.length > 0) {
+      schemaObj.hasPart = hasPart.map((clip, index) => ({
+        '@type': 'Clip',
+        name: clip.name,
+        startOffset: clip.startOffset,
+        endOffset: clip.endOffset,
+        position: index + 1,
+        ...(clip.url && { url: clip.url }),
+      }));
+    }
+
+    // Engagement statistics
+    if (interactionStatistic) {
+      const stats: Record<string, unknown>[] = [];
+      
+      if (interactionStatistic.viewCount !== undefined) {
+        stats.push({
+          '@type': 'InteractionCounter',
+          interactionType: { '@type': 'WatchAction' },
+          userInteractionCount: interactionStatistic.viewCount,
+        });
+      }
+      
+      if (interactionStatistic.likeCount !== undefined) {
+        stats.push({
+          '@type': 'InteractionCounter',
+          interactionType: { '@type': 'LikeAction' },
+          userInteractionCount: interactionStatistic.likeCount,
+        });
+      }
+      
+      if (stats.length > 0) schemaObj.interactionStatistic = stats;
+    }
+
+    // Regions allowed
+    if (regionsAllowed && regionsAllowed.length > 0) {
+      schemaObj.regionsAllowed = regionsAllowed;
+    }
+
+    return schemaObj;
+  }, [id, name, description, thumbnailUrl, uploadDate, contentUrl, embedUrl, duration, expires, hasPart, interactionStatistic, regionsAllowed, publisher, inLanguage, isFamilyFriendly]);
+
+  useSchemaInjector(`video-${id}`, schema);
   return null;
 }

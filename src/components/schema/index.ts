@@ -18,6 +18,7 @@ export {
   EventSchema,
   HowToSchema,
   ArticleSchema,
+  VideoSchema,
 } from './SchemaOrg';
 
 // Types
@@ -41,6 +42,8 @@ export type {
   HowToTool,
   ArticleAuthor,
   ArticleSchemaProps,
+  VideoSchemaProps,
+  VideoClip,
 } from './types';
 
 export { SCHEMA_DOMAIN } from './types';
@@ -56,5 +59,7 @@ export {
   truncateForCaption,
   getEventTypeFromOccasion,
   getEventStatusFromFundStatus,
+  formatDurationISO8601,
+  getEmbedUrlForSchema,
   SUPPORTED_COUNTRIES,
 } from './helpers';
