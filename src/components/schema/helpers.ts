@@ -231,3 +231,46 @@ export function getEventStatusFromFundStatus(
       return 'EventScheduled';
   }
 }
+
+/**
+ * Convertit une durée en secondes vers le format ISO 8601
+ * @param seconds - Durée en secondes
+ * @returns Format ISO 8601 (ex: "PT1M30S")
+ */
+export function formatDurationISO8601(seconds: number): string {
+  if (seconds <= 0) return 'PT0S';
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  let duration = 'PT';
+  if (hours > 0) duration += `${hours}H`;
+  if (minutes > 0) duration += `${minutes}M`;
+  if (secs > 0 || duration === 'PT') duration += `${secs}S`;
+  
+  return duration;
+}
+
+/**
+ * Génère l'URL d'embed pour YouTube ou Vimeo
+ * @param url - URL de la vidéo
+ * @returns URL d'embed ou undefined
+ */
+export function getEmbedUrlForSchema(url: string): string | undefined {
+  if (!url) return undefined;
+  
+  // YouTube
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+  }
+  
+  // Vimeo
+  if (url.includes('vimeo.com')) {
+    const match = url.match(/vimeo\.com\/(\d+)/);
+    if (match) return `https://player.vimeo.com/video/${match[1]}`;
+  }
+  
+  return undefined;
+}

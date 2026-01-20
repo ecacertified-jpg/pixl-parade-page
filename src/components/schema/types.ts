@@ -212,3 +212,35 @@ export interface ArticleSchemaProps {
   isAccessibleForFree?: boolean;       // Contenu gratuit
   mainEntityOfPage?: string;           // URL canonique
 }
+
+// ============ Video Types (NEW) ============
+export interface VideoSchemaProps {
+  id: string;                          // Identifiant unique (slug ou product ID)
+  name: string;                        // Titre de la vidéo
+  description: string;                 // Description
+  thumbnailUrl: string;                // Image de prévisualisation (REQUIS par Google)
+  uploadDate: string;                  // Date de publication ISO 8601
+  contentUrl?: string;                 // URL directe du fichier vidéo
+  embedUrl?: string;                   // URL d'embed (YouTube/Vimeo)
+  duration?: string;                   // Durée ISO 8601 (ex: "PT1M30S" = 1min30)
+  expires?: string;                    // Date d'expiration (optionnel)
+  hasPart?: VideoClip[];               // Chapitres/segments (Seek to actions)
+  interactionStatistic?: {             // Statistiques d'engagement
+    viewCount?: number;
+    likeCount?: number;
+  };
+  regionsAllowed?: string[];           // Codes pays où la vidéo est disponible
+  publisher?: {                        // Éditeur (défaut: JOIE DE VIVRE)
+    name: string;
+    logo: string;
+  };
+  inLanguage?: string;                 // Langue (défaut: "fr")
+  isFamilyFriendly?: boolean;          // Contenu familial
+}
+
+export interface VideoClip {
+  name: string;                        // Nom du chapitre
+  startOffset: number;                 // Début en secondes
+  endOffset: number;                   // Fin en secondes
+  url?: string;                        // URL avec timestamp
+}
