@@ -1,6 +1,14 @@
 # Joie de Vivre
 
-> Plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour les anniversaires, mariages et célébrations. Découvrez des boutiques artisanales locales en Côte d'Ivoire, Bénin et Sénégal.
+> Plateforme de cadeaux collaboratifs pour l'Afrique francophone.
+
+## AI Information Page
+
+- **[/ai-info](https://joiedevivre-africa.com/ai-info)** : Page structurée avec JSON-LD Schema.org pour agents IA
+
+## Description courte
+
+Joie de Vivre permet de créer des cagnottes collectives pour offrir des cadeaux à vos proches lors d'occasions spéciales (anniversaires, mariages, promotions). La marketplace propose des produits d'artisans locaux avec paiement Mobile Money.
 
 Notes importantes :
 - Marché principal : Côte d'Ivoire (Abidjan), Bénin (Cotonou), Sénégal (Dakar)
