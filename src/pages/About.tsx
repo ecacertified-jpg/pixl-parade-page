@@ -21,28 +21,22 @@ import logoJV from "@/assets/logo-jv.svg";
 import { APP_VERSION, APP_NAME, APP_TAGLINE, APP_DESCRIPTION, COMPANY_INFO, BUILD_DATE } from "@/config/appVersion";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 
-const features = [
-  {
-    icon: Gift,
-    title: "Cagnottes collectives",
-    description: "Organisez des cadeaux de groupe pour toutes les occasions",
-  },
-  {
-    icon: Bell,
-    title: "Rappels d'anniversaires",
-    description: "Ne manquez plus jamais une date importante",
-  },
-  {
-    icon: ShoppingBag,
-    title: "Boutique de cadeaux",
-    description: "Découvrez des idées de cadeaux locaux et personnalisés",
-  },
-  {
-    icon: Users,
-    title: "Communauté",
-    description: "Partagez vos moments de joie avec vos proches",
-  },
-];
+import { features as featureData } from "@/data/about-data";
+
+// Map icon names to actual icon components
+const iconMap: Record<string, React.ElementType> = {
+  Gift,
+  Bell,
+  ShoppingBag,
+  Users,
+  Heart,
+};
+
+// Transform data to include actual icon components
+const features = featureData.map(feature => ({
+  ...feature,
+  icon: iconMap[feature.iconName] || Gift,
+}));
 
 export default function About() {
   const navigate = useNavigate();
