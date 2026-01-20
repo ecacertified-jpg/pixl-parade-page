@@ -35,7 +35,7 @@ const AIInfo = () => {
     contactPoint: [
       {
         "@type": "ContactPoint",
-        telephone: "+225-05-465-666-46",
+        telephone: "+225 05 46 56 6646",
         contactType: "customer service",
         email: "contact@joiedevivre-africa.com",
         availableLanguage: ["French"],
@@ -57,9 +57,9 @@ const AIInfo = () => {
       { "@type": "Country", "name": "Burkina Faso", "alternateName": "BF" }
     ],
     sameAs: [
-      "https://facebook.com/joiedevivre",
-      "https://instagram.com/joiedevivre",
-      "https://twitter.com/joiedevivre"
+      "https://web.facebook.com/profile.php?id=61579100215241",
+      "https://www.tiktok.com/@joiedevivre_46",
+      "https://wa.me/22546566646"
     ]
   };
 
@@ -304,7 +304,7 @@ const AIInfo = () => {
         name: "Comment contacter le support ?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Par email à contact@joiedevivre-africa.com, par téléphone au +225 05 465 666 46, ou via le chat intégré à l'application."
+          text: "Par email à contact@joiedevivre-africa.com, par téléphone au +225 05 46 56 6646, ou via WhatsApp."
         }
       },
       {

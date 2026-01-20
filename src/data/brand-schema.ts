@@ -13,7 +13,7 @@ export const organizationData: OrganizationSchemaProps = {
     'https://wa.me/22546566646',
   ],
   contactEmail: 'contact@joiedevivre-africa.com',
-  contactPhone: '+225 46 566 646',
+  contactPhone: '+225 05 46 56 6646',
 };
 
 export const websiteData: WebSiteSchemaProps = {
