@@ -108,6 +108,12 @@ Deno.serve(async (req) => {
       return new Intl.NumberFormat("fr-FR").format(amount);
     };
 
+    // Get contributor count
+    const { count: contributorCount } = await supabase
+      .from("fund_contributions")
+      .select("*", { count: "exact", head: true })
+      .eq("fund_id", fundId);
+
     // Build OG data
     const fundTitle = fund.title || "Cagnotte collective";
     const beneficiaryName = contact?.name || "un proche";
@@ -116,8 +122,11 @@ Deno.serve(async (req) => {
     const currency = fund.currency || "XOF";
     const description = fund.description || `Participez à cette cagnotte pour ${beneficiaryName}`;
 
-    // OG description with progress
-    const ogDescription = `${progressPercent}% collecté • ${formatAmount(currentAmount)} / ${formatAmount(targetAmount)} ${currency}${productName ? ` • ${productName}` : ""}`;
+    // OG description with progress and contributors
+    const contributorText = (contributorCount || 0) > 0 
+      ? ` (${contributorCount} contributeur${(contributorCount || 0) > 1 ? 's' : ''})`
+      : '';
+    const ogDescription = `${progressPercent}% collecté${contributorText} • ${formatAmount(currentAmount)} / ${formatAmount(targetAmount)} ${currency}${productName ? ` • ${productName}` : ''}. Participez à cette cagnotte ${fund.occasion || 'collective'}!`;
 
     // Get occasion emoji
     const occasionEmojis: Record<string, string> = {
@@ -141,8 +150,10 @@ Deno.serve(async (req) => {
     const fullFundUrl = `${appUrl}/fund/${fundId}`;
     const previewUrl = `${appUrl}/f/${fundId}`;
 
-    // Default image if no product image
-    const ogImage = productImage || `${appUrl}/og-image.png`;
+    // Dynamic OG image URL using generate-fund-og-image function
+    const supabaseProjectUrl = Deno.env.get("SUPABASE_URL")!;
+    const ogImage = `${supabaseProjectUrl}/functions/v1/generate-fund-og-image?id=${fundId}`;
+    const fallbackImage = productImage || `${appUrl}/og-image.png`;
 
     // Build Schema.org JSON-LD for Event/FundingScheme
     const schemaJsonLd = JSON.stringify({
@@ -197,10 +208,20 @@ Deno.serve(async (req) => {
   <meta property="og:title" content="${occasionEmoji} ${fundTitle}">
   <meta property="og:description" content="${ogDescription}">
   <meta property="og:image" content="${ogImage}">
+  <meta property="og:image:alt" content="Cagnotte ${fundTitle} - ${progressPercent}% collecté">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="JOIE DE VIVRE">
   <meta property="og:locale" content="fr_FR">
+  <meta property="og:updated_time" content="${new Date().toISOString()}">
+  
+  <!-- Fund-specific meta tags -->
+  <meta name="fund:target_amount" content="${targetAmount}">
+  <meta name="fund:current_amount" content="${currentAmount}">
+  <meta name="fund:progress" content="${progressPercent}">
+  <meta name="fund:currency" content="${currency}">
+  <meta name="fund:occasion" content="${fund.occasion || 'other'}">
+  <meta name="fund:contributors" content="${contributorCount || 0}">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
