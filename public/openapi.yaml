@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Joie de Vivre Public API
+  description: |
+    Public endpoints for accessing Joie de Vivre content.
+    Joie de Vivre is a collaborative gift platform for French-speaking Africa.
+    
+    **Note**: These are public preview pages, not REST API endpoints.
+    They return HTML with Open Graph meta tags and Schema.org structured data.
+  version: 1.0.0
+  contact:
+    email: contact@joiedevivre.app
+    url: https://joiedevivre-africa.com
+  license:
+    name: Proprietary
+    url: https://joiedevivre-africa.com/terms-of-service
+
+servers:
+  - url: https://joiedevivre-africa.com
+    description: Production server
+
+tags:
+  - name: Products
+    description: Product preview pages
+  - name: Businesses
+    description: Business/vendor preview pages
+  - name: Funds
+    description: Collective fund preview pages
+  - name: Static Pages
+    description: Static content pages
+
+paths:
+  /:
+    get:
+      tags:
+        - Static Pages
+      summary: Homepage
+      description: Main landing page with platform overview and features
+      responses:
+        '200':
+          description: HTML page with WebSite schema
+
+  /shop:
+    get:
+      tags:
+        - Static Pages
+      summary: Marketplace
+      description: Browse all products from local African artisan shops
+      responses:
+        '200':
+          description: HTML page with product listings
+
+  /faq:
+    get:
+      tags:
+        - Static Pages
+      summary: FAQ Page
+      description: Frequently asked questions about the platform
+      responses:
+        '200':
+          description: HTML page with FAQPage schema
+
+  /about:
+    get:
+      tags:
+        - Static Pages
+      summary: About Page
+      description: Information about Joie de Vivre mission and story
+      responses:
+        '200':
+          description: HTML page with Organization schema
+
+  /p/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Product Preview
+      description: |
+        Public product preview page with rich metadata.
+        Includes Open Graph tags for social sharing and Schema.org Product markup.
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Unique product identifier (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: HTML page with Product schema
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Product not found
+
+  /b/{businessId}:
+    get:
+      tags:
+        - Businesses
+      summary: Business Preview
+      description: |
+        Public business/vendor preview page.
+        Includes LocalBusiness schema with opening hours, location, and reviews.
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          description: Unique business identifier (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: HTML page with LocalBusiness schema
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Business not found
+
+  /f/{fundId}:
+    get:
+      tags:
+        - Funds
+      summary: Public Fund Preview
+      description: |
+        Public collective fund page (only for public funds).
+        Shows fund progress, occasion, and contribution count.
+      parameters:
+        - name: fundId
+          in: path
+          required: true
+          description: Unique fund identifier (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: HTML page with Event schema
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Fund not found or not public
+
+  /llms.txt:
+    get:
+      tags:
+        - Static Pages
+      summary: LLM Context File
+      description: Structured information for Large Language Models (ChatGPT, Claude, Perplexity)
+      responses:
+        '200':
+          description: Plain text file with platform information
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /llms-full.txt:
+    get:
+      tags:
+        - Static Pages
+      summary: Extended LLM Context File
+      description: Comprehensive documentation for LLMs with full context
+      responses:
+        '200':
+          description: Plain text file with detailed platform information
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+          default: XOF
+        image_url:
+          type: string
+          format: uri
+        business_name:
+          type: string
+
+    Business:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        business_name:
+          type: string
+        business_type:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        logo_url:
+          type: string
+          format: uri
+
+    Fund:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        target_amount:
+          type: number
+        current_amount:
+          type: number
+        currency:
+          type: string
+          default: XOF
+        occasion:
+          type: string
+        is_public:
+          type: boolean

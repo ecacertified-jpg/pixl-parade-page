@@ -86,16 +86,33 @@ Allow: /
 User-agent: YouBot
 Allow: /
 
-# Sitemap Index (Multi-Index Architecture)
+# Applebot (Siri, Spotlight)
+User-agent: Applebot
+Allow: /
+
+# Sitemap
 Sitemap: https://joiedevivre-africa.com/sitemap.xml
 
-# Individual Dynamic Sitemaps
+# Dynamic Sitemaps
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=index
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=pages
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=products
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=businesses
 Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds
 
-# AI-friendly documentation
-# llms.txt: https://joiedevivre-africa.com/llms.txt
-# ai-plugin.json: https://joiedevivre-africa.com/.well-known/ai-plugin.json
+# ============================================
+# AI-FRIENDLY DOCUMENTATION (LLM Optimization)
+# ============================================
+# 
+# Primary LLM context file (concise):
+# https://joiedevivre-africa.com/llms.txt
+#
+# Extended LLM context file (comprehensive):
+# https://joiedevivre-africa.com/llms-full.txt
+#
+# AI Plugin manifest:
+# https://joiedevivre-africa.com/.well-known/ai-plugin.json
+#
+# OpenAPI specification:
+# https://joiedevivre-africa.com/openapi.yaml
+# ============================================
