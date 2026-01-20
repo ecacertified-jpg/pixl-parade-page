@@ -1,0 +1,158 @@
+# Joie de Vivre - Documentation Complète pour LLMs
+
+> Joie de Vivre est la première plateforme de cadeaux collaboratifs en Afrique francophone. Elle permet de créer des cagnottes collectives pour les anniversaires, mariages, promotions et autres célébrations, tout en connectant les utilisateurs avec des boutiques artisanales locales en Côte d'Ivoire, au Bénin, au Sénégal et dans toute l'Afrique francophone.
+
+## Informations Générales
+
+| Attribut | Valeur |
+|----------|--------|
+| Nom | Joie de Vivre (JDV) |
+| Type | Application web progressive (PWA) |
+| Marché principal | Côte d'Ivoire (Abidjan), Bénin (Cotonou), Sénégal (Dakar) |
+| Marchés secondaires | Mali, Cameroun, Togo, Burkina Faso, Niger |
+| Langue | Français |
+| Devise | Franc CFA (XOF) |
+| Catégorie | E-commerce, Cadeaux, Célébrations, Fintech, Social |
+
+## Fonctionnalités Principales
+
+### 1. Cagnottes Collectives (Core Feature)
+Créez une cagnotte pour rassembler des contributions de proches pour un cadeau commun.
+
+**Caractéristiques :**
+- Occasions supportées : anniversaires, mariages, naissances, promotions, diplômes
+- Cagnottes surprises avec date de révélation programmée
+- Suivi des contributions en temps réel
+- Partage via WhatsApp, Facebook, SMS
+- Contributions anonymes optionnelles
+- Liaison avec un produit d'une boutique locale
+
+**Flux utilisateur :**
+1. Créer une cagnotte avec titre, description, montant cible
+2. Sélectionner un bénéficiaire (contact ou utilisateur)
+3. Optionnellement lier un produit d'une boutique
+4. Partager le lien avec les contributeurs
+5. Suivre les contributions en temps réel
+6. À l'atteinte de l'objectif, commander le cadeau
+
+### 2. Marketplace de Boutiques Locales
+Découvrez des boutiques artisanales africaines proposant des cadeaux uniques.
+
+**Catégories de produits :**
+- Mode africaine : Boubous, wax, pagnes, vêtements traditionnels
+- Bijoux : Créations artisanales en or, argent, perles
+- Décoration : Objets d'art africain, sculptures, textiles
+- Gastronomie : Gâteaux personnalisés, chocolats, paniers gourmands
+- Fleurs : Bouquets, compositions florales
+- Expériences : Spa, restaurants, ateliers créatifs
+
+**Types de boutiques :**
+- Fleuristes
+- Pâtisseries et boulangeries
+- Créateurs de mode africaine
+- Joailliers et bijoutiers
+- Artisans décorateurs
+- Traiteurs et restaurateurs
+- Centres de bien-être
+
+**Zones de livraison :**
+- Abidjan (toutes communes)
+- Cotonou
+- Dakar
+
+### 3. Rappels d'Anniversaires
+Ne manquez plus jamais un anniversaire important.
+
+**Fonctionnalités :**
+- Notifications intelligentes 7 jours, 3 jours, 1 jour avant
+- Suggestions de cadeaux personnalisées
+- Carnet de contacts avec dates de naissance
+- Création rapide de cagnotte depuis le rappel
+
+### 4. Célébrations Sociales
+Partagez vos moments de joie avec votre communauté.
+
+**Fonctionnalités :**
+- Publications de gratitude
+- Réactions et commentaires
+- Badges de générosité et réciprocité
+- Score de communauté
+
+## Méthodes de Paiement
+
+| Méthode | Disponibilité |
+|---------|---------------|
+| Orange Money | Côte d'Ivoire, Sénégal, Mali |
+| MTN Mobile Money | Côte d'Ivoire, Bénin, Cameroun |
+| Wave | Sénégal, Côte d'Ivoire |
+| Flooz | Togo, Bénin |
+| Cartes bancaires | Visa, Mastercard (limité) |
+
+## URLs Publiques
+
+### Pages Statiques
+- `/` - Page d'accueil
+- `/shop` - Marketplace avec tous les produits
+- `/about` - À propos de Joie de Vivre
+- `/faq` - Questions fréquentes
+
+### Pages Dynamiques (Partageables)
+- `/p/{productId}` - Aperçu d'un produit (OG meta tags, Schema.org Product)
+- `/b/{businessId}` - Aperçu d'une boutique (Schema.org LocalBusiness)
+- `/f/{fundId}` - Aperçu d'une cagnotte publique
+
+### Pages Légales
+- `/privacy-policy` - Politique de confidentialité
+- `/terms-of-service` - Conditions d'utilisation
+- `/legal-notice` - Mentions légales
+
+## Données Structurées (Schema.org)
+
+La plateforme utilise les schemas suivants pour le SEO :
+- `Product` : Produits avec prix, disponibilité, avis
+- `LocalBusiness` : Boutiques avec horaires, localisation, avis
+- `FAQPage` : Page FAQ avec questions/réponses
+- `BreadcrumbList` : Navigation fil d'Ariane
+- `Review` : Avis individuels avec auteur et note
+
+## Occasions Célébrées
+
+| Occasion | Fréquence |
+|----------|-----------|
+| Anniversaires | Très fréquent |
+| Mariages | Fréquent |
+| Naissances | Fréquent |
+| Promotions professionnelles | Modéré |
+| Diplômes et réussites scolaires | Modéré |
+| Pendaison de crémaillère | Occasionnel |
+| Fêtes religieuses (Tabaski, Noël) | Saisonnier |
+| Départs en retraite | Occasionnel |
+
+## Contexte Culturel
+
+### Importance de la réciprocité
+En Afrique francophone, la réciprocité dans les cadeaux est culturellement importante. Joie de Vivre intègre un système de "score de réciprocité" pour encourager l'équilibre entre donner et recevoir.
+
+### Célébrations communautaires
+Les célébrations impliquent souvent des réseaux familiaux et amicaux étendus. Les cagnottes collectives permettent à 10-50 personnes de contribuer à un même cadeau.
+
+### Mobile Money
+Le Mobile Money est le mode de paiement dominant en Afrique francophone, bien plus répandu que les cartes bancaires. Orange Money et MTN sont les opérateurs principaux.
+
+## Mots-clés SEO
+
+cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique, artisanat ivoirien, boutique mode africaine, bijoux africains, cagnotte mariage Bénin, cadeau groupe Sénégal, célébration Afrique francophone, Mobile Money cadeaux, marketplace Afrique, cadeau personnalisé Dakar, pâtisserie Abidjan, fleuriste Cotonou
+
+## Contact et Support
+
+- **Site web** : https://joiedevivre-africa.com
+- **Email** : contact@joiedevivre.app
+- **Pays d'origine** : Côte d'Ivoire
+
+## Fichiers pour Crawlers IA
+
+- **llms.txt** : https://joiedevivre-africa.com/llms.txt (version concise)
+- **llms-full.txt** : https://joiedevivre-africa.com/llms-full.txt (ce document)
+- **ai-plugin.json** : https://joiedevivre-africa.com/.well-known/ai-plugin.json
+- **sitemap.xml** : https://joiedevivre-africa.com/sitemap.xml
+- **robots.txt** : https://joiedevivre-africa.com/robots.txt
