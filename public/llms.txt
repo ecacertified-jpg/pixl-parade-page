@@ -55,6 +55,8 @@ Notes importantes :
 
 - [À Propos (Markdown)](https://joiedevivre-africa.com/content/about.md): Mission, fonctionnalités et informations sur l'entreprise en texte pur
 - [FAQ (Markdown)](https://joiedevivre-africa.com/content/faq.md): 25+ questions/réponses organisées par catégorie en texte pur
+- [Politique de Confidentialité (Markdown)](https://joiedevivre-africa.com/content/privacy-policy.md): Protection des données personnelles, droits RGPD, cookies
+- [Conditions Générales (Markdown)](https://joiedevivre-africa.com/content/terms.md): CGU complètes, règles d'utilisation, responsabilités
 
 ## Optional
 

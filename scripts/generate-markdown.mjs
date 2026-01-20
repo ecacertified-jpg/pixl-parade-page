@@ -167,6 +167,92 @@ function getFeatureEmoji(iconName) {
 }
 
 /**
+ * Generate Privacy Policy markdown content
+ */
+function generatePrivacyPolicyMarkdown() {
+  const { app, company, companyLegal, privacyPolicy } = data;
+  const lastUpdated = getFormattedDate();
+  
+  let md = `# ${app.name} - Politique de Confidentialité\n\n`;
+  md += `> Dernière mise à jour : ${privacyPolicy.lastUpdated}\n\n`;
+  md += `---\n\n`;
+  
+  // Company info table
+  md += `## Informations Légales\n\n`;
+  md += `| Attribut | Valeur |\n`;
+  md += `|----------|--------|\n`;
+  md += `| **Raison sociale** | ${company.name} |\n`;
+  md += `| **Forme juridique** | ${company.type} |\n`;
+  md += `| **Capital social** | ${companyLegal.capital} |\n`;
+  md += `| **Siège social** | ${companyLegal.fullAddress} |\n`;
+  md += `| **N° RCCM** | ${companyLegal.rccm} |\n`;
+  md += `| **Email** | ${company.email} |\n`;
+  md += `| **Téléphone** | ${company.phone} |\n\n`;
+  md += `---\n\n`;
+  
+  // Content sections
+  for (const section of privacyPolicy.sections) {
+    md += `## ${section.title}\n\n`;
+    md += `${section.content}\n\n`;
+    
+    if (section.items) {
+      for (const item of section.items) {
+        md += `- **${item.name}** : ${item.details}\n`;
+      }
+      md += `\n`;
+    }
+    
+    if (section.note) {
+      md += `> ${section.note}\n\n`;
+    }
+  }
+  
+  // Footer
+  md += `---\n\n`;
+  md += `*Cette politique est régie par les lois de la République de Côte d'Ivoire, notamment la loi n°2013-450 du 19 juin 2013 relative à la protection des données à caractère personnel.*\n\n`;
+  md += `*© 2026 ${app.name} - ${company.name} ${company.type}. Tous droits réservés.*\n`;
+  
+  return md;
+}
+
+/**
+ * Generate Terms of Service markdown content
+ */
+function generateTermsMarkdown() {
+  const { app, company, companyLegal, termsOfService } = data;
+  const lastUpdated = getFormattedDate();
+  
+  let md = `# ${app.name} - Conditions Générales d'Utilisation\n\n`;
+  md += `> Dernière mise à jour : ${termsOfService.lastUpdated}\n\n`;
+  md += `---\n\n`;
+  
+  // Company info table
+  md += `## Informations Légales\n\n`;
+  md += `| Attribut | Valeur |\n`;
+  md += `|----------|--------|\n`;
+  md += `| **Raison sociale** | ${company.name} |\n`;
+  md += `| **Forme juridique** | ${company.type} (Société à Responsabilité Limitée Unipersonnelle) |\n`;
+  md += `| **Capital social** | ${companyLegal.capital} |\n`;
+  md += `| **Siège social** | ${companyLegal.fullAddress} |\n`;
+  md += `| **N° RCCM** | ${companyLegal.rccm} |\n`;
+  md += `| **Site web** | ${company.website} |\n\n`;
+  md += `---\n\n`;
+  
+  // Content sections
+  for (const section of termsOfService.sections) {
+    md += `## ${section.title}\n\n`;
+    md += `${section.content}\n\n`;
+  }
+  
+  // Footer
+  md += `---\n\n`;
+  md += `*© 2026 ${app.name} - ${company.name} ${company.type}. Tous droits réservés.*\n\n`;
+  md += `*Conformément à la législation ivoirienne relative au commerce électronique.*\n`;
+  
+  return md;
+}
+
+/**
  * Main entry point
  */
 function main() {
@@ -190,8 +276,21 @@ function main() {
   fs.writeFileSync(aboutPath, aboutContent, 'utf8');
   console.log(`✅ Généré: public/content/about.md (${aboutContent.length} caractères)`);
   
+  // Generate privacy-policy.md
+  const privacyContent = generatePrivacyPolicyMarkdown();
+  const privacyPath = path.join(CONTENT_DIR, 'privacy-policy.md');
+  fs.writeFileSync(privacyPath, privacyContent, 'utf8');
+  console.log(`✅ Généré: public/content/privacy-policy.md (${privacyContent.length} caractères)`);
+  
+  // Generate terms.md
+  const termsContent = generateTermsMarkdown();
+  const termsPath = path.join(CONTENT_DIR, 'terms.md');
+  fs.writeFileSync(termsPath, termsContent, 'utf8');
+  console.log(`✅ Généré: public/content/terms.md (${termsContent.length} caractères)`);
+  
   console.log('\n✨ Génération terminée avec succès !');
   console.log(`📅 Date de mise à jour: ${getFormattedDate()}`);
+  console.log('📝 Fichiers générés: faq.md, about.md, privacy-policy.md, terms.md');
 }
 
 main();

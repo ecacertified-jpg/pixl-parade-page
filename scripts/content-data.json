@@ -230,8 +230,204 @@
         {
           "question": "Comment sécuriser mon compte ?",
           "answer": "Utilisez un mot de passe fort et unique. Activez l'authentification à deux facteurs si disponible. Ne partagez jamais vos identifiants et déconnectez-vous des appareils partagés."
-        }
+      }
+    ]
+  }
+],
+"privacyPolicy": {
+  "lastUpdated": "27 décembre 2024",
+  "sections": [
+    {
+      "id": "presentation",
+      "title": "1. Présentation",
+      "content": "JOIE DE VIVRE est une plateforme de partage de cadeaux et de célébration des moments de bonheur, opérant principalement en Côte d'Ivoire. Nous nous engageons à protéger la vie privée de nos utilisateurs conformément à la loi n°2013-450 du 19 juin 2013 relative à la protection des données à caractère personnel."
+    },
+    {
+      "id": "donnees-collectees",
+      "title": "2. Données collectées",
+      "content": "Nous collectons les catégories de données suivantes :",
+      "items": [
+        { "name": "Données d'identité", "details": "Nom, prénom, date de naissance, photo de profil" },
+        { "name": "Coordonnées", "details": "Adresse e-mail, numéro de téléphone, adresse de livraison" },
+        { "name": "Préférences de cadeaux", "details": "Wishlist, préférences de couleurs, tailles, allergies" },
+        { "name": "Données de transaction", "details": "Historique des contributions, commandes, montants" },
+        { "name": "Relations", "details": "Liste de contacts, relations (famille, amis), dates importantes" }
       ]
+    },
+    {
+      "id": "utilisation",
+      "title": "3. Utilisation des données",
+      "content": "Vos données sont utilisées pour :",
+      "items": [
+        { "name": "Fourniture des services", "details": "Création de cagnottes, notifications d'anniversaires, livraison de commandes" },
+        { "name": "Personnalisation", "details": "Suggestions de cadeaux adaptées, rappels intelligents" },
+        { "name": "Communication", "details": "Notifications sur l'activité de vos cagnottes, confirmations de commandes" },
+        { "name": "Amélioration", "details": "Analyse anonymisée pour améliorer nos services" },
+        { "name": "Sécurité", "details": "Prévention de la fraude et protection de votre compte" }
+      ]
+    },
+    {
+      "id": "partage",
+      "title": "4. Partage des données",
+      "content": "Vos données peuvent être partagées avec :",
+      "items": [
+        { "name": "Vendeurs partenaires", "details": "Uniquement les informations nécessaires à la livraison (nom, adresse, téléphone du destinataire)" },
+        { "name": "Prestataires de paiement", "details": "Orange Money, MTN Mobile Money, Wave (références de transaction uniquement)" },
+        { "name": "Hébergeur", "details": "Supabase (données chiffrées, serveurs sécurisés)" }
+      ],
+      "note": "Nous ne vendons JAMAIS vos données à des tiers à des fins publicitaires."
+    },
+    {
+      "id": "droits",
+      "title": "5. Vos droits",
+      "content": "Conformément à la réglementation, vous disposez des droits suivants :",
+      "items": [
+        { "name": "Droit d'accès", "details": "Consultez toutes vos données via les paramètres du profil" },
+        { "name": "Droit de rectification", "details": "Modifiez vos informations à tout moment" },
+        { "name": "Droit à l'effacement", "details": "Demandez la suppression de votre compte et données" },
+        { "name": "Droit à la portabilité", "details": "Exportez vos données dans un format lisible" },
+        { "name": "Droit d'opposition", "details": "Refusez certains traitements de vos données" }
+      ],
+      "note": "Pour exercer ces droits, contactez-nous à contact@joiedevivre-africa.com"
+    },
+    {
+      "id": "conservation",
+      "title": "6. Conservation des données",
+      "content": "Durées de conservation :",
+      "items": [
+        { "name": "Compte actif", "details": "Données conservées tant que le compte est actif" },
+        { "name": "Compte supprimé", "details": "Anonymisation après 30 jours" },
+        { "name": "Transactions", "details": "Conservation 5 ans (obligation légale)" },
+        { "name": "Logs de sécurité", "details": "Conservation 1 an" }
+      ]
+    },
+    {
+      "id": "securite",
+      "title": "7. Sécurité",
+      "content": "Mesures de sécurité mises en œuvre :",
+      "items": [
+        { "name": "Chiffrement en transit", "details": "HTTPS/TLS pour toutes les communications" },
+        { "name": "Chiffrement au repos", "details": "Données stockées de manière chiffrée" },
+        { "name": "Authentification sécurisée", "details": "Validation par e-mail, mots de passe hashés" },
+        { "name": "Politiques RLS", "details": "Sécurité au niveau des lignes en base de données" },
+        { "name": "Audits réguliers", "details": "Contrôles de sécurité périodiques" }
+      ]
+    },
+    {
+      "id": "cookies",
+      "title": "8. Cookies",
+      "content": "Nous utilisons des cookies pour :",
+      "items": [
+        { "name": "Cookies essentiels", "details": "Authentification et sécurité de session" },
+        { "name": "Cookies de préférences", "details": "Mémorisation de vos choix (langue, thème)" },
+        { "name": "Cookies analytiques", "details": "Amélioration de l'expérience (anonymisés)" }
+      ]
+    },
+    {
+      "id": "mineurs",
+      "title": "9. Protection des mineurs",
+      "content": "JOIE DE VIVRE est destiné aux personnes de 18 ans et plus. Nous ne collectons pas sciemment de données concernant les mineurs. Si vous êtes parent et pensez que votre enfant nous a fourni des données, contactez-nous immédiatement."
+    },
+    {
+      "id": "modifications",
+      "title": "10. Modifications",
+      "content": "En cas de modifications significatives de cette politique, nous vous informerons par notification dans l'application, e-mail à l'adresse associée à votre compte, et bannière sur notre site web."
+    },
+    {
+      "id": "contact",
+      "title": "11. Nous contacter",
+      "content": "Pour toute question relative à cette politique ou à vos données personnelles, contactez-nous à contact@joiedevivre-africa.com ou par téléphone au +225 0546566646."
     }
   ]
+},
+"termsOfService": {
+  "lastUpdated": "27 décembre 2024",
+  "sections": [
+    {
+      "id": "presentation",
+      "title": "1. Présentation du Service",
+      "content": "JOIE DE VIVRE est une plateforme numérique exploitée par AMTEY'S SARLU permettant de créer et participer à des cagnottes collectives pour offrir des cadeaux, gérer un carnet d'adresses avec les dates importantes, recevoir des rappels pour les anniversaires et occasions spéciales, acheter des cadeaux auprès de vendeurs partenaires, et partager des moments de célébration avec sa communauté."
+    },
+    {
+      "id": "acceptation",
+      "title": "2. Acceptation des Conditions",
+      "content": "En accédant à JOIE DE VIVRE, vous acceptez d'être lié par les présentes Conditions Générales d'Utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser le service."
+    },
+    {
+      "id": "inscription",
+      "title": "3. Inscription et Compte",
+      "content": "Pour utiliser les services, vous devez être âgé d'au moins 18 ans, fournir des informations exactes et complètes, et disposer d'une adresse e-mail valide ou d'un numéro de téléphone. Vous êtes responsable de la confidentialité de vos identifiants et de toute activité sur votre compte."
+    },
+    {
+      "id": "services",
+      "title": "4. Services Proposés",
+      "content": "Services gratuits : création d'un profil utilisateur, gestion d'un carnet de contacts, rappels d'anniversaires, création et participation aux cagnottes, publication de messages de gratitude, consultation de la boutique. Services payants : contributions aux cagnottes collectives, achats de produits, frais de livraison."
+    },
+    {
+      "id": "cagnottes",
+      "title": "5. Cagnottes Collectives",
+      "content": "Les contributions sont volontaires et non remboursables sauf cas exceptionnels. Le montant minimum de contribution est de 500 FCFA. L'option de contribution anonyme est disponible. Les cagnottes surprises restent cachées au bénéficiaire jusqu'à la date de révélation définie par le créateur."
+    },
+    {
+      "id": "paiements",
+      "title": "6. Achats et Paiements",
+      "content": "Moyens de paiement acceptés : Orange Money, MTN Mobile Money, Wave, paiement à la livraison (selon disponibilité). Tous les prix sont en Francs CFA (XOF), taxes incluses. Les frais de transaction sont affichés avant confirmation du paiement."
+    },
+    {
+      "id": "livraison",
+      "title": "7. Livraison",
+      "content": "Les livraisons sont effectuées principalement en Côte d'Ivoire. Les délais sont généralement de 24 à 72 heures pour Abidjan. Le retrait en magasin est possible selon les vendeurs. Les zones et délais exacts sont indiqués sur chaque fiche produit."
+    },
+    {
+      "id": "retractation",
+      "title": "8. Droit de Rétractation et Retours",
+      "content": "Vous disposez d'un délai de 14 jours pour les produits non personnalisés. Sont exclus du droit de rétractation : les produits personnalisés, les denrées périssables (gâteaux, fleurs), et les contributions aux cagnottes."
+    },
+    {
+      "id": "contenu",
+      "title": "9. Contenu Utilisateur",
+      "content": "Est interdit tout contenu illégal ou diffamatoire, discriminatoire ou haineux, spam ou publicité non autorisée, et toute usurpation d'identité. Nous nous réservons le droit de supprimer tout contenu inapproprié."
+    },
+    {
+      "id": "propriete",
+      "title": "10. Propriété Intellectuelle",
+      "content": "La marque JOIE DE VIVRE, le logo, et tous les éléments visuels et textuels de la plateforme sont la propriété exclusive d'AMTEY'S SARLU. Toute reproduction sans autorisation est interdite."
+    },
+    {
+      "id": "responsabilite",
+      "title": "11. Limitation de Responsabilité",
+      "content": "JOIE DE VIVRE ne peut être tenu responsable des actes des utilisateurs ou vendeurs, de l'utilisation des fonds des cagnottes par les bénéficiaires, des interruptions de service indépendantes de notre volonté, des dommages indirects résultant de l'utilisation du service."
+    },
+    {
+      "id": "donnees",
+      "title": "12. Protection des Données",
+      "content": "Le traitement de vos données personnelles est régi par notre Politique de Confidentialité accessible à l'adresse https://joiedevivre-africa.com/privacy-policy."
+    },
+    {
+      "id": "litiges",
+      "title": "13. Règlement des Litiges",
+      "content": "En cas de litige, nous vous invitons à contacter notre service client en premier lieu. Les tribunaux d'Abidjan (Côte d'Ivoire) sont seuls compétents pour tout litige relatif à l'utilisation du service."
+    },
+    {
+      "id": "modifications",
+      "title": "14. Modifications des CGU",
+      "content": "Les modifications prennent effet dès leur publication sur la plateforme. Une notification 15 jours avant sera envoyée pour les modifications substantielles. La poursuite de l'utilisation vaut acceptation des nouvelles conditions."
+    },
+    {
+      "id": "dispositions",
+      "title": "15. Dispositions Générales",
+      "content": "Si une disposition des présentes CGU est déclarée nulle, les autres dispositions restent en vigueur. Ces CGU constituent l'intégralité de l'accord entre vous et JOIE DE VIVRE."
+    },
+    {
+      "id": "contact",
+      "title": "16. Contact",
+      "content": "Pour toute question concernant ces conditions, contactez-nous à contact@joiedevivre-africa.com, par téléphone au +225 0546566646, ou par courrier à Anyama, Abidjan, Côte d'Ivoire."
+    }
+  ]
+},
+"companyLegal": {
+  "rccm": "CI-ABJ-03-2026-B13-00031",
+  "capital": "1 000 000 F CFA",
+  "fullAddress": "Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama"
+}
 }
