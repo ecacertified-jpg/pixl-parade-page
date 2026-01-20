@@ -46,5 +46,7 @@ export {
   getCityFromCountryCode,
   getCountryFromCode,
   truncateForCaption,
+  getEventTypeFromOccasion,
+  getEventStatusFromFundStatus,
   SUPPORTED_COUNTRIES,
 } from './helpers';

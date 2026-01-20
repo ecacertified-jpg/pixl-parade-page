@@ -152,3 +152,36 @@ export const SUPPORTED_COUNTRIES = [
   { '@type': 'Country', name: 'Burkina Faso' },
   { '@type': 'Country', name: 'Niger' },
 ];
+
+/**
+ * Map fund occasion to human-readable event type (French)
+ */
+export function getEventTypeFromOccasion(occasion: string | null | undefined): string {
+  const occasionMap: Record<string, string> = {
+    birthday: "Fête d'anniversaire",
+    wedding: 'Mariage',
+    graduation: 'Remise de diplôme',
+    baby: 'Baby shower',
+    retirement: 'Départ à la retraite',
+    promotion: 'Célébration de promotion',
+    other: 'Événement cadeau',
+  };
+  return occasionMap[occasion || 'other'] || occasionMap.other;
+}
+
+/**
+ * Get event status from fund status
+ */
+export function getEventStatusFromFundStatus(
+  status: string | null | undefined
+): 'EventScheduled' | 'EventCompleted' | 'EventCancelled' {
+  switch (status) {
+    case 'completed':
+      return 'EventCompleted';
+    case 'expired':
+    case 'cancelled':
+      return 'EventCancelled';
+    default:
+      return 'EventScheduled';
+  }
+}

@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CountryBadge } from "@/components/CountryBadge";
+import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 
 interface Contributor {
   id: string;
@@ -207,6 +208,24 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
 
   return (
     <>
+      {/* EventSchema for SEO */}
+      <EventSchema
+        id={fund.id}
+        name={fund.title}
+        description={`Cagnotte ${getEventTypeFromOccasion(fund.occasion)} pour ${fund.beneficiaryName || 'un proche'}`}
+        startDate={new Date().toISOString()}
+        image={fund.productImage || undefined}
+        eventStatus={getEventStatusFromFundStatus(fund.status)}
+        eventAttendanceMode="OnlineEventAttendanceMode"
+        offers={{
+          price: fund.targetAmount,
+          priceCurrency: fund.currency,
+          availability: fund.status === 'completed' ? 'SoldOut' : 'InStock',
+        }}
+        about={fund.beneficiaryName ? { name: fund.beneficiaryName } : undefined}
+        isAccessibleForFree={false}
+      />
+
       <Card className="p-4 space-y-4">
         {/* Badge cotisation business */}
         {fund.isBusinessInitiated && (
