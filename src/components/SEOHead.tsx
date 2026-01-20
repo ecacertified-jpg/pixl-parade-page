@@ -22,6 +22,13 @@ export interface SEOHeadProps {
   audience?: AIAudience;
   contentRegion?: string;
   aiKeywords?: string;
+  // Product-specific meta tags (for type='product')
+  productPrice?: number;
+  productCurrency?: string;
+  productAvailability?: 'in stock' | 'out of stock' | 'preorder';
+  productBrand?: string;
+  productRating?: number;
+  productReviewCount?: number;
 }
 
 const APP_NAME = "JOIE DE VIVRE";
@@ -93,7 +100,13 @@ export function SEOHead({
   aiSummary,
   audience,
   contentRegion,
-  aiKeywords
+  aiKeywords,
+  productPrice,
+  productCurrency,
+  productAvailability,
+  productBrand,
+  productRating,
+  productReviewCount
 }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
@@ -134,6 +147,29 @@ export function SEOHead({
     // Article specific
     if (type === 'article' && publishedTime) {
       updateMetaTag('article:published_time', publishedTime);
+    }
+    
+    // Product-specific Open Graph meta tags
+    if (type === 'product') {
+      if (productPrice !== undefined) {
+        updateMetaTag('product:price:amount', String(productPrice));
+        updateMetaTag('og:price:amount', String(productPrice));
+      }
+      if (productCurrency) {
+        updateMetaTag('product:price:currency', productCurrency);
+        updateMetaTag('og:price:currency', productCurrency);
+      }
+      if (productAvailability) {
+        updateMetaTag('product:availability', productAvailability);
+      }
+      if (productBrand) {
+        updateMetaTag('product:brand', productBrand);
+      }
+      updateMetaTag('product:condition', 'new');
+      updateMetaTag('og:updated_time', new Date().toISOString());
+      
+      // Pinterest Rich Pin support
+      updateMetaTag('pinterest-rich-pin', 'true', false);
     }
     
     // Twitter Card
@@ -177,7 +213,7 @@ export function SEOHead({
     return () => {
       document.title = `${APP_NAME} - Cadeaux Collectifs Côte d'Ivoire`;
     };
-  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords]);
+  }, [title, description, image, imageWidth, imageHeight, imageAlt, url, type, keywords, noIndex, publishedTime, twitterCreator, aiContentType, aiSummary, audience, contentRegion, aiKeywords, productPrice, productCurrency, productAvailability, productBrand, productRating, productReviewCount]);
   
   return null;
 }
