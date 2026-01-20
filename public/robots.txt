@@ -29,6 +29,13 @@ Allow: /
 User-agent: WhatsApp
 Allow: /
 
+# Pinterest
+User-agent: Pinterest
+Allow: /
+
+User-agent: Pinterestbot
+Allow: /
+
 # AI Crawlers - Explicitly allowed
 User-agent: GPTBot
 Allow: /
@@ -57,8 +64,31 @@ Allow: /
 User-agent: anthropic-ai
 Allow: /
 
+# DeepSeek AI
+User-agent: DeepSeekBot
+Allow: /
+
+User-agent: Deepseek
+Allow: /
+
+# Mistral AI
+User-agent: MistralBot
+Allow: /
+
+# Meta AI (Llama)
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+# YouChat
+User-agent: YouBot
+Allow: /
+
 # Sitemap location
 Sitemap: https://joiedevivre-africa.com/sitemap.xml
 
 # AI-friendly documentation
-# See /llms.txt for structured information about this platform
+# llms.txt: https://joiedevivre-africa.com/llms.txt
+# ai-plugin.json: https://joiedevivre-africa.com/.well-known/ai-plugin.json
