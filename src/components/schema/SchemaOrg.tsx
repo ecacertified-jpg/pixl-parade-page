@@ -349,7 +349,7 @@ export function WebSiteSchema({
 }
 
 // ============================================
-// Event Schema Component (NEW)
+// Event Schema Component (Enriched for Cagnottes)
 // ============================================
 
 export function EventSchema({
@@ -362,7 +362,11 @@ export function EventSchema({
   image,
   organizer,
   eventStatus = 'EventScheduled',
-  eventAttendanceMode = 'OfflineEventAttendanceMode',
+  eventAttendanceMode = 'OnlineEventAttendanceMode',
+  offers,
+  about,
+  isAccessibleForFree = false,
+  virtualLocation,
 }: EventSchemaProps) {
   const schema = useMemo(() => {
     const url = `${SCHEMA_DOMAIN}/cagnotte/${id}`;
@@ -377,12 +381,19 @@ export function EventSchema({
       startDate,
       eventStatus: `https://schema.org/${eventStatus}`,
       eventAttendanceMode: `https://schema.org/${eventAttendanceMode}`,
+      isAccessibleForFree,
     };
 
     if (endDate) schemaObj.endDate = endDate;
     if (image) schemaObj.image = image;
 
-    if (location) {
+    // Virtual location for online events (cagnottes)
+    if (virtualLocation || eventAttendanceMode === 'OnlineEventAttendanceMode') {
+      schemaObj.location = {
+        '@type': 'VirtualLocation',
+        url: virtualLocation || url,
+      };
+    } else if (location) {
       schemaObj.location = {
         '@type': 'Place',
         name: location,
@@ -393,6 +404,7 @@ export function EventSchema({
       };
     }
 
+    // Organizer
     if (organizer) {
       schemaObj.organizer = {
         '@type': 'Person',
@@ -401,8 +413,27 @@ export function EventSchema({
       };
     }
 
+    // Offer (target amount for cagnotte)
+    if (offers) {
+      schemaObj.offers = {
+        '@type': 'Offer',
+        price: offers.price.toString(),
+        priceCurrency: offers.priceCurrency,
+        availability: `https://schema.org/${offers.availability || 'InStock'}`,
+        url,
+      };
+    }
+
+    // Beneficiary (about)
+    if (about) {
+      schemaObj.about = {
+        '@type': about.type || 'Person',
+        name: about.name,
+      };
+    }
+
     return schemaObj;
-  }, [id, name, description, startDate, endDate, location, image, organizer, eventStatus, eventAttendanceMode]);
+  }, [id, name, description, startDate, endDate, location, image, organizer, eventStatus, eventAttendanceMode, offers, about, isAccessibleForFree, virtualLocation]);
 
   useSchemaInjector(`event-${id}`, schema);
   return null;

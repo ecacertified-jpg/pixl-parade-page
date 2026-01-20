@@ -122,7 +122,7 @@ export interface WebSiteSchemaProps {
   searchUrl?: string;
 }
 
-// ============ Event Types (NEW) ============
+// ============ Event Types (Enriched for Cagnottes) ============
 export interface EventSchemaProps {
   id: string;
   name: string;
@@ -135,6 +135,18 @@ export interface EventSchemaProps {
     name: string;
     url?: string;
   };
-  eventStatus?: 'EventScheduled' | 'EventCancelled' | 'EventPostponed';
+  eventStatus?: 'EventScheduled' | 'EventCancelled' | 'EventPostponed' | 'EventCompleted';
   eventAttendanceMode?: 'OfflineEventAttendanceMode' | 'OnlineEventAttendanceMode' | 'MixedEventAttendanceMode';
+  // Cagnotte-specific properties
+  offers?: {
+    price: number;
+    priceCurrency: string;
+    availability?: 'InStock' | 'SoldOut';
+  };
+  about?: {
+    name: string;
+    type?: 'Person' | 'Organization';
+  };
+  isAccessibleForFree?: boolean;
+  virtualLocation?: string;
 }

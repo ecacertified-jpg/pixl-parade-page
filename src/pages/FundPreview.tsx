@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
+import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 
 interface FundData {
   id: string;
@@ -16,6 +17,8 @@ interface FundData {
   currency: string | null;
   occasion: string | null;
   status: string | null;
+  deadline_date: string | null;
+  created_at: string;
   product?: {
     id: string;
     name: string;
@@ -26,6 +29,10 @@ interface FundData {
     id: string;
     name: string;
     avatar_url: string | null;
+  } | null;
+  creator?: {
+    first_name: string | null;
+    last_name: string | null;
   } | null;
 }
 
@@ -71,6 +78,8 @@ export default function FundPreview() {
             currency,
             occasion,
             status,
+            deadline_date,
+            created_at,
             products:business_product_id (
               id,
               name,
@@ -81,6 +90,10 @@ export default function FundPreview() {
               id,
               name,
               avatar_url
+            ),
+            profiles:creator_id (
+              first_name,
+              last_name
             )
           `)
           .eq("id", fundId)
@@ -96,6 +109,7 @@ export default function FundPreview() {
           ...data,
           product: data.products as FundData["product"],
           contact: data.contacts as FundData["contact"],
+          creator: data.profiles as FundData["creator"],
         });
       } catch (err) {
         console.error("Error fetching fund:", err);
@@ -165,8 +179,36 @@ export default function FundPreview() {
   );
   const currency = fund.currency || "XOF";
 
+  // Build organizer name
+  const organizerName = fund.creator
+    ? `${fund.creator.first_name || ''} ${fund.creator.last_name || ''}`.trim()
+    : undefined;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* EventSchema for SEO */}
+      <EventSchema
+        id={fund.id}
+        name={fund.title}
+        description={
+          fund.description ||
+          `Cagnotte collective ${getEventTypeFromOccasion(fund.occasion)} pour ${fund.contact?.name || 'un proche'}`
+        }
+        startDate={fund.created_at}
+        endDate={fund.deadline_date || undefined}
+        image={fund.product?.image_url || undefined}
+        organizer={organizerName ? { name: organizerName } : undefined}
+        eventStatus={getEventStatusFromFundStatus(fund.status)}
+        eventAttendanceMode="OnlineEventAttendanceMode"
+        offers={{
+          price: fund.target_amount,
+          priceCurrency: currency,
+          availability: fund.status === 'completed' ? 'SoldOut' : 'InStock',
+        }}
+        about={fund.contact ? { name: fund.contact.name } : undefined}
+        isAccessibleForFree={false}
+      />
+
       {/* Header */}
       <header className="p-4 flex items-center justify-center border-b bg-background/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
