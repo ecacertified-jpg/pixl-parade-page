@@ -27,7 +27,9 @@ import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
 import { LocalBusinessSchema } from "@/components/SchemaOrg";
+import { BreadcrumbListSchema } from "@/components/schema/BreadcrumbListSchema";
 import type { DBOpeningHours } from "@/utils/schemaHelpers";
+import type { ReviewItem } from "@/components/schema/ReviewSchema";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -36,7 +38,7 @@ export default function VendorShop() {
   const { products, vendor, loading, error } = useVendorProducts(businessId);
   const { itemCount } = useCart();
   const { isFavorite, getFavoriteId, addFavorite, removeFavorite, stats: favoriteStats } = useFavorites();
-  const { stats: ratingStats } = useVendorRatings(businessId || "");
+  const { ratings, stats: ratingStats } = useVendorRatings(businessId || "");
   const { items: galleryItems, loading: galleryLoading } = useVendorGallery(businessId);
 
   // Build gallery items: use dedicated gallery if available, fallback to product images
@@ -144,6 +146,15 @@ export default function VendorShop() {
     );
   }
 
+  // Format ratings for ReviewSchema
+  const formattedReviews: ReviewItem[] = ratings.slice(0, 5).map(r => ({
+    authorName: r.user?.first_name || 'Utilisateur',
+    rating: r.rating,
+    reviewBody: r.review_text,
+    datePublished: r.created_at,
+    productName: r.product?.name,
+  }));
+
   return (
     <>
     <SEOHead 
@@ -153,6 +164,11 @@ export default function VendorShop() {
       type="business.business"
       keywords={`${vendor.businessName}, ${vendor.businessType || 'boutique'}, boutique Abidjan, artisanat ivoirien`}
     />
+    <BreadcrumbListSchema items={[
+      { name: "Accueil", path: "/" },
+      { name: "Boutique", path: "/shop" },
+      { name: vendor.businessName, path: `/boutique/${businessId}` }
+    ]} />
     <LocalBusinessSchema
       id={businessId!}
       name={vendor.businessName}
@@ -171,6 +187,7 @@ export default function VendorShop() {
         name: "Produits et Expériences",
         numberOfItems: productCount + experienceCount
       }}
+      reviews={formattedReviews.length > 0 ? formattedReviews : undefined}
     />
     <div className="min-h-screen bg-gradient-background">
       {/* Header - Compact Navigation */}

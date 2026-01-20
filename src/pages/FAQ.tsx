@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-
+import { FAQPageSchema } from "@/components/schema/FAQPageSchema";
+import { BreadcrumbListSchema } from "@/components/schema/BreadcrumbListSchema";
 interface FAQItem {
   question: string;
   answer: string;
@@ -209,9 +210,17 @@ export default function FAQ() {
     0
   );
 
+  // Extract all FAQ items for schema
+  const allFaqs = faqCategories.flatMap(cat => cat.items);
+
   return (
     <>
     <SEOHead {...SEO_CONFIGS.faq} />
+    <FAQPageSchema faqs={allFaqs} />
+    <BreadcrumbListSchema items={[
+      { name: "Accueil", path: "/" },
+      { name: "Aide & FAQ", path: "/faq" }
+    ]} />
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 shadow-sm">

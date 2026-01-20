@@ -7,6 +7,7 @@ import { ProductShareCount } from "@/components/ProductShareCount";
 import { RatingModal } from "@/components/RatingModal";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ImageGallery } from "@/components/ImageGallery";
+import { ProductSchema } from "@/components/SchemaOrg";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
@@ -67,8 +68,31 @@ export function ProductDetailModal({
 
   if (!product) return null;
 
+  const DOMAIN = 'https://joiedevivre-africa.com';
+
   const ModalContent = () => (
     <div className="flex flex-col max-h-[85vh] overflow-hidden">
+      {/* ProductSchema for SEO */}
+      <ProductSchema
+        id={String(product.id)}
+        name={product.name}
+        description={product.description}
+        image={product.image}
+        images={product.images}
+        price={product.price}
+        currency={product.currency === 'F' ? 'XOF' : product.currency}
+        availability={product.inStock ? 'InStock' : 'OutOfStock'}
+        category={product.categoryName}
+        sku={String(product.id)}
+        seller={product.vendorId ? {
+          name: product.vendor,
+          url: `${DOMAIN}/boutique/${product.vendorId}`
+        } : undefined}
+        aggregateRating={product.reviews > 0 ? {
+          ratingValue: product.rating,
+          reviewCount: product.reviews
+        } : undefined}
+      />
       {/* Image Gallery Section */}
       <div className="relative flex-shrink-0">
         <ImageGallery
