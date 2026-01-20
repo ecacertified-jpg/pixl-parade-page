@@ -100,10 +100,23 @@ Partagez vos moments de joie avec votre communauté.
 - `/about` - À propos de Joie de Vivre
 - `/faq` - Questions fréquentes
 
-### Pages Locales SEO
+### Pages Locales SEO - Villes Principales
 - `/abidjan` - Page dédiée Abidjan (Côte d'Ivoire) avec quartiers, paiements locaux, FAQ locale
 - `/cotonou` - Page dédiée Cotonou (Bénin) avec artisans Dantokpa, MTN/Moov Money
 - `/dakar` - Page dédiée Dakar (Sénégal) avec teranga, Wave/Orange Money, Soumbédioune
+
+### Pages Locales SEO - Villes Secondaires Côte d'Ivoire
+- `/bouake` - 2ème ville, région Gbêkê, artisanat baoulé, Fête du Dipri
+- `/yamoussoukro` - Capitale politique, Basilique Notre-Dame de la Paix
+- `/san-pedro` - Port du sud-ouest, cité balnéaire, artisanat côtier
+- `/daloa` - Région cacaoyère, Haut-Sassandra, artisanat bété
+- `/korhogo` - Capitale du Nord, toiles de Korhogo, art Sénoufo, Fête du Poro
+
+### Pages Locales SEO - Villes Secondaires Bénin
+- `/porto-novo` - Capitale administrative, artisanat vodoun, masques Gèlèdé
+
+### Pages Locales SEO - Villes Secondaires Sénégal
+- `/thies` - Cité du Rail, célèbres tapisseries de Thiès, artisanat wolof
 
 ### Pages Dynamiques (Partageables)
 - `/p/{productId}` - Aperçu d'un produit (OG meta tags, Schema.org Product)
