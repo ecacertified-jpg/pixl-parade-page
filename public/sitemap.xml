@@ -30,6 +30,13 @@
     <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds</loc>
   </sitemap>
   
+  <!-- Cities Overview Map -->
+  <url>
+    <loc>https://joiedevivre-africa.com/villes</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
   <!-- Local SEO City Pages - Villes Principales -->
   <url>
     <loc>https://joiedevivre-africa.com/abidjan</loc>
