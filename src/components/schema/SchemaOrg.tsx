@@ -24,7 +24,9 @@ import {
   type EventSchemaProps,
   type ReviewSchemaProps,
   type HowToSchemaProps,
+  type ArticleSchemaProps,
 } from './types';
+import { organizationData } from '@/data/brand-schema';
 
 // ============================================
 // FAQPage Schema Component
@@ -513,5 +515,92 @@ export function HowToSchema({
   }, [id, name, description, steps, image, estimatedCost, totalTime, supply, tool]);
 
   useSchemaInjector(`howto-${id}`, schema);
+  return null;
+}
+
+// ============================================
+// Article Schema Component (for Blog/Guides)
+// ============================================
+
+export function ArticleSchema({
+  id,
+  type = 'BlogPosting',
+  headline,
+  description,
+  image,
+  images,
+  datePublished,
+  dateModified,
+  author,
+  publisher,
+  articleSection,
+  keywords,
+  wordCount,
+  inLanguage = 'fr',
+  isAccessibleForFree = true,
+  mainEntityOfPage,
+}: ArticleSchemaProps) {
+  const schema = useMemo(() => {
+    const url = mainEntityOfPage || `${SCHEMA_DOMAIN}/blog/${id}`;
+    
+    // Default publisher = JOIE DE VIVRE
+    const publisherData = publisher || {
+      name: organizationData.name,
+      logo: organizationData.logo,
+    };
+
+    const schemaObj: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': type,
+      '@id': url,
+      headline,
+      description,
+      url,
+      datePublished,
+      inLanguage,
+      isAccessibleForFree,
+      
+      // Author
+      author: {
+        '@type': 'Person',
+        name: author.name,
+        ...(author.url && { url: author.url }),
+        ...(author.image && { image: author.image }),
+      },
+      
+      // Publisher (Organization)
+      publisher: {
+        '@type': 'Organization',
+        name: publisherData.name,
+        logo: {
+          '@type': 'ImageObject',
+          url: publisherData.logo,
+        },
+      },
+      
+      // Main entity
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': url,
+      },
+    };
+
+    // Image(s)
+    if (images && images.length > 1) {
+      schemaObj.image = images;
+    } else {
+      schemaObj.image = image;
+    }
+
+    // Optional fields
+    if (dateModified) schemaObj.dateModified = dateModified;
+    if (articleSection) schemaObj.articleSection = articleSection;
+    if (keywords && keywords.length > 0) schemaObj.keywords = keywords.join(', ');
+    if (wordCount) schemaObj.wordCount = wordCount;
+
+    return schemaObj;
+  }, [id, type, headline, description, image, images, datePublished, dateModified, author, publisher, articleSection, keywords, wordCount, inLanguage, isAccessibleForFree, mainEntityOfPage]);
+
+  useSchemaInjector(`article-${id}`, schema);
   return null;
 }

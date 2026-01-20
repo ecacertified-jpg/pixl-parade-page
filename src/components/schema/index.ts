@@ -17,6 +17,7 @@ export {
   WebSiteSchema,
   EventSchema,
   HowToSchema,
+  ArticleSchema,
 } from './SchemaOrg';
 
 // Types
@@ -38,6 +39,8 @@ export type {
   HowToStep,
   HowToSupply,
   HowToTool,
+  ArticleAuthor,
+  ArticleSchemaProps,
 } from './types';
 
 export { SCHEMA_DOMAIN } from './types';
