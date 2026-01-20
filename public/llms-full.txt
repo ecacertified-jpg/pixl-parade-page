@@ -171,8 +171,10 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 
 - **llms.txt** : https://joiedevivre-africa.com/llms.txt (version concise)
 - **llms-full.txt** : https://joiedevivre-africa.com/llms-full.txt (ce document)
+- **ai-info** : https://joiedevivre-africa.com/ai-info (page JSON-LD structurée)
 - **ai-plugin.json** : https://joiedevivre-africa.com/.well-known/ai-plugin.json
-- **sitemap.xml** : https://joiedevivre-africa.com/sitemap.xml
+- **sitemap-ai.xml** : https://joiedevivre-africa.com/sitemap-ai.xml (optimisé LLMs)
+- **sitemap.xml** : https://joiedevivre-africa.com/sitemap.xml (standard SEO)
 - **robots.txt** : https://joiedevivre-africa.com/robots.txt
 - **about.md** : https://joiedevivre-africa.com/content/about.md
 - **faq.md** : https://joiedevivre-africa.com/content/faq.md
