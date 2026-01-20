@@ -75,6 +75,34 @@ Deno.serve(async (req) => {
       return new Response("Product not found", { status: 404, headers: corsHeaders });
     }
 
+    // Fetch product ratings for Schema.org aggregateRating
+    const { data: ratingsData } = await supabase
+      .from("product_ratings")
+      .select("rating, review_text, created_at, user_id")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    // Fetch profiles for reviewer names
+    let profilesMap: Record<string, string> = {};
+    if (ratingsData && ratingsData.length > 0) {
+      const userIds = [...new Set(ratingsData.map(r => r.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, first_name")
+        .in("user_id", userIds);
+      
+      profiles?.forEach(p => {
+        profilesMap[p.user_id] = p.first_name || "Utilisateur";
+      });
+    }
+
+    // Calculate rating stats
+    const ratingCount = ratingsData?.length || 0;
+    const averageRating = ratingCount > 0 
+      ? (ratingsData!.reduce((sum, r) => sum + r.rating, 0) / ratingCount).toFixed(1)
+      : null;
+
     const appUrl = "https://joiedevivre-africa.com";
     const productName = product.name || "Produit";
     const productDescription = product.description || `Découvrez ${productName} sur JOIE DE VIVRE`;
@@ -87,7 +115,7 @@ Deno.serve(async (req) => {
       : `${appUrl}/shop?product=${productId}`;
     const previewUrl = `${appUrl}/p/${productId}`;
 
-    // Build Schema.org JSON-LD for Product
+    // Build Schema.org JSON-LD for Product with ratings
     const schemaJsonLd = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "Product",
@@ -111,7 +139,35 @@ Deno.serve(async (req) => {
         "name": vendorName
       },
       "sku": productId,
-      "category": "Cadeaux"
+      "category": "Cadeaux",
+      // AggregateRating for star ratings in search results
+      ...(ratingCount > 0 && {
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": averageRating,
+          "reviewCount": ratingCount,
+          "bestRating": "5",
+          "worstRating": "1"
+        }
+      }),
+      // Individual reviews (max 5 for crawlers)
+      ...(ratingsData && ratingsData.length > 0 && {
+        "review": ratingsData.slice(0, 5).map(r => ({
+          "@type": "Review",
+          "author": {
+            "@type": "Person",
+            "name": (profilesMap[r.user_id] || "Client").charAt(0) + "."
+          },
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": r.rating,
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          ...(r.review_text && { "reviewBody": r.review_text }),
+          "datePublished": r.created_at.split("T")[0]
+        }))
+      })
     });
 
     // Si c'est un crawler, retourner le HTML avec les meta tags OG

@@ -7,8 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import logoRose from "@/assets/logo-jdv-rose.png";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { useProductView } from "@/hooks/useProductView";
-import { VideoSchema, formatDurationISO8601 } from "@/components/schema";
-
+import { useProductRatings } from "@/hooks/useProductRatings";
+import { VideoSchema, ProductSchema, formatDurationISO8601 } from "@/components/schema";
 interface ProductData {
   id: string;
   name: string;
@@ -38,6 +38,9 @@ export default function ProductPreview() {
   
   // Track product view for popularity metrics
   useProductView(productId);
+  
+  // Fetch product ratings for Schema.org structured data
+  const { ratings, stats } = useProductRatings(productId || "");
 
   // Detect and store share token from URL
   useEffect(() => {
@@ -186,6 +189,36 @@ export default function ProductPreview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* ProductSchema for SEO - Rich Results with ratings */}
+      <ProductSchema
+        id={product.id}
+        name={product.name}
+        description={product.description || `Découvrez ${product.name} sur JOIE DE VIVRE`}
+        image={displayImageUrl || "https://joiedevivre-africa.com/og-image.png"}
+        images={product.images || undefined}
+        price={product.price}
+        currency={product.currency}
+        availability="InStock"
+        seller={{
+          name: product.vendor_name,
+          url: product.vendor_id 
+            ? `https://joiedevivre-africa.com/boutique/${product.vendor_id}`
+            : "https://joiedevivre-africa.com/shop"
+        }}
+        category="Cadeaux"
+        sku={product.id}
+        aggregateRating={stats && stats.rating_count > 0 ? {
+          ratingValue: stats.average_rating,
+          reviewCount: stats.rating_count
+        } : undefined}
+        reviews={ratings.length > 0 ? ratings.map(r => ({
+          authorName: r.user?.first_name || "Utilisateur",
+          rating: r.rating,
+          reviewBody: r.review_text,
+          datePublished: r.created_at
+        })) : undefined}
+      />
+      
       {/* VideoSchema for SEO - Public product video */}
       {product.video_url && product.video_thumbnail_url && (
         <VideoSchema
