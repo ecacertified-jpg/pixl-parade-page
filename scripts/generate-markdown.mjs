@@ -253,6 +253,67 @@ function generateTermsMarkdown() {
 }
 
 /**
+ * Generate Legal Notice markdown content (multi-country)
+ */
+function generateLegalNoticeMarkdown() {
+  const { app, company, legalNotice } = data;
+  
+  let md = `# ${app.name} - Mentions Légales\n\n`;
+  md += `> Dernière mise à jour : ${legalNotice.lastUpdated}\n\n`;
+  md += `---\n\n`;
+  
+  // Intro
+  md += `## Présentation\n\n`;
+  md += `${app.name} est une plateforme de cadeaux collaboratifs opérant en Afrique francophone. `;
+  md += `Les informations légales ci-dessous sont spécifiques à chaque pays d'opération.\n\n`;
+  
+  // Loop through countries
+  for (const country of legalNotice.countries) {
+    md += `---\n\n`;
+    md += `## ${country.flag} ${country.name}\n\n`;
+    
+    md += `### Éditeur du Site\n\n`;
+    md += `| Attribut | Valeur |\n`;
+    md += `|----------|--------|\n`;
+    md += `| **Raison sociale** | ${country.companyName} |\n`;
+    md += `| **Forme juridique** | ${country.legalForm} |\n`;
+    md += `| **Capital social** | ${country.capital} |\n`;
+    md += `| **N° RCCM** | ${country.registrationNumber} |\n`;
+    md += `| **Autorité d'enregistrement** | ${country.registrationAuthority} |\n`;
+    md += `| **Siège social** | ${country.address} |\n\n`;
+    
+    md += `### Contact\n\n`;
+    md += `- **Email** : ${country.email}\n`;
+    md += `- **Téléphone** : ${country.phone}\n\n`;
+    
+    md += `### Directeur de la Publication\n\n`;
+    md += `${country.director}\n\n`;
+    
+    md += `### Législation Applicable\n\n`;
+    md += `${country.ecommerceLaw}\n\n`;
+  }
+  
+  // Hosting section
+  md += `---\n\n`;
+  md += `## Hébergement\n\n`;
+  md += `| Service | Hébergeur | Site web |\n`;
+  md += `|---------|-----------|----------|\n`;
+  md += `| **Frontend** | ${legalNotice.hosting.frontend.name} | ${legalNotice.hosting.frontend.url} |\n`;
+  md += `| **Backend & Base de données** | ${legalNotice.hosting.backend.name} | ${legalNotice.hosting.backend.url} |\n\n`;
+  
+  // Legal documents links
+  md += `## Documents Légaux\n\n`;
+  md += `- [Conditions Générales d'Utilisation](${company.website}/terms-of-service)\n`;
+  md += `- [Politique de Confidentialité](${company.website}/privacy-policy)\n\n`;
+  
+  // Footer
+  md += `---\n\n`;
+  md += `*© 2026 ${app.name}. Tous droits réservés.*\n`;
+  
+  return md;
+}
+
+/**
  * Main entry point
  */
 function main() {
@@ -288,9 +349,15 @@ function main() {
   fs.writeFileSync(termsPath, termsContent, 'utf8');
   console.log(`✅ Généré: public/content/terms.md (${termsContent.length} caractères)`);
   
+  // Generate legal-notice.md
+  const legalContent = generateLegalNoticeMarkdown();
+  const legalPath = path.join(CONTENT_DIR, 'legal-notice.md');
+  fs.writeFileSync(legalPath, legalContent, 'utf8');
+  console.log(`✅ Généré: public/content/legal-notice.md (${legalContent.length} caractères)`);
+  
   console.log('\n✨ Génération terminée avec succès !');
   console.log(`📅 Date de mise à jour: ${getFormattedDate()}`);
-  console.log('📝 Fichiers générés: faq.md, about.md, privacy-policy.md, terms.md');
+  console.log('📝 Fichiers générés: faq.md, about.md, privacy-policy.md, terms.md, legal-notice.md');
 }
 
 main();
