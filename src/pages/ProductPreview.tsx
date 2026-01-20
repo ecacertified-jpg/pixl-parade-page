@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import logoRose from "@/assets/logo-jdv-rose.png";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { useProductView } from "@/hooks/useProductView";
+import { VideoSchema, formatDurationISO8601 } from "@/components/schema";
 
 interface ProductData {
   id: string;
@@ -16,6 +17,7 @@ interface ProductData {
   currency: string;
   image_url: string | null;
   images: string[] | null;
+  video_url: string | null;
   video_thumbnail_url: string | null;
   vendor_name: string;
   vendor_id: string | null;
@@ -68,6 +70,7 @@ export default function ProductPreview() {
             currency,
             image_url,
             images,
+            video_url,
             video_thumbnail_url,
             business_accounts!products_business_id_fkey (
               id,
@@ -111,6 +114,7 @@ export default function ProductPreview() {
           currency: data.currency || "XOF",
           image_url: data.image_url,
           images: imagesArray,
+          video_url: data.video_url,
           video_thumbnail_url: data.video_thumbnail_url,
           vendor_name: data.business_accounts?.business_name || "Vendeur",
           vendor_id: data.business_accounts?.id || null,
@@ -176,6 +180,19 @@ export default function ProductPreview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
+      {/* VideoSchema for SEO - Public product video */}
+      {product.video_url && product.video_thumbnail_url && (
+        <VideoSchema
+          id={`preview-product-${product.id}`}
+          name={`${product.name} - JOIE DE VIVRE`}
+          description={product.description || `Découvrez ${product.name} sur JOIE DE VIVRE, la plateforme de cadeaux collaboratifs en Afrique.`}
+          thumbnailUrl={product.video_thumbnail_url}
+          uploadDate={new Date().toISOString().split('T')[0]}
+          contentUrl={product.video_url}
+          duration={formatDurationISO8601(30)}
+          regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
+        />
+      )}
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

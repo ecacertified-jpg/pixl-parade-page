@@ -7,7 +7,7 @@ import { ProductShareCount } from "@/components/ProductShareCount";
 import { RatingModal } from "@/components/RatingModal";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ImageGallery } from "@/components/ImageGallery";
-import { ProductSchema } from "@/components/schema";
+import { ProductSchema, VideoSchema, formatDurationISO8601 } from "@/components/schema";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import {
@@ -93,6 +93,19 @@ export function ProductDetailModal({
           reviewCount: product.reviews
         } : undefined}
       />
+      {/* VideoSchema for products with video */}
+      {product.videoUrl && product.videoThumbnailUrl && (
+        <VideoSchema
+          id={`product-video-${product.id}`}
+          name={`${product.name} - Présentation vidéo`}
+          description={`Découvrez ${product.name} en vidéo. ${product.description?.slice(0, 150) || ''}`}
+          thumbnailUrl={product.videoThumbnailUrl}
+          uploadDate={new Date().toISOString().split('T')[0]}
+          contentUrl={product.videoUrl}
+          duration={formatDurationISO8601(30)}
+          regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
+        />
+      )}
       {/* Image Gallery Section */}
       <div className="relative flex-shrink-0">
         <ImageGallery

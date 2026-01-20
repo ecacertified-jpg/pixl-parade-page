@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { VideoSchema, formatDurationISO8601 } from "@/components/schema";
 import {
   Carousel,
   CarouselContent,
@@ -94,6 +95,21 @@ export function FeaturedVideoProductsCarousel() {
 
   return (
     <section className="space-y-4">
+      {/* VideoSchema for featured video products (max 5 for SEO) */}
+      {videoProducts.slice(0, 5).map(product => (
+        <VideoSchema
+          key={`featured-video-${product.id}`}
+          id={`featured-${product.id}`}
+          name={`${product.name} - Produit vedette`}
+          description={product.description || `Découvrez ${product.name} en vidéo sur JOIE DE VIVRE.`}
+          thumbnailUrl={product.video_thumbnail_url || product.image_url || ''}
+          uploadDate={new Date().toISOString().split('T')[0]}
+          contentUrl={product.video_url}
+          duration={formatDurationISO8601(30)}
+          regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
+        />
+      ))}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
