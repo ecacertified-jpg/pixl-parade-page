@@ -42,6 +42,7 @@ import { BusinessFollowersSection } from "@/components/BusinessFollowersSection"
 import { MostSharedProducts } from "@/components/MostSharedProducts";
 import { BusinessShareAnalytics } from "@/components/BusinessShareAnalytics";
 import { BusinessShareWidget } from "@/components/BusinessShareWidget";
+import { ViralityAlertsBanner } from "@/components/ViralityAlertsBanner";
 interface OrderItem {
   id: string;
   orderId: string;
@@ -980,6 +981,13 @@ export default function BusinessDashboard() {
                     if (analyticsTab) analyticsTab.click();
                   }}
                 />
+              </div>
+            )}
+
+            {/* Alertes de viralité */}
+            {selectedBusinessId && (
+              <div className="mb-6">
+                <ViralityAlertsBanner businessId={selectedBusinessId} />
               </div>
             )}
 
