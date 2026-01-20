@@ -4753,6 +4753,7 @@ export type Database = {
           stock_quantity: number | null
           updated_at: string
           video_thumbnail_url: string | null
+          video_uploaded_at: string | null
           video_url: string | null
           videos: Json | null
           view_count: number | null
@@ -4783,6 +4784,7 @@ export type Database = {
           stock_quantity?: number | null
           updated_at?: string
           video_thumbnail_url?: string | null
+          video_uploaded_at?: string | null
           video_url?: string | null
           videos?: Json | null
           view_count?: number | null
@@ -4813,6 +4815,7 @@ export type Database = {
           stock_quantity?: number | null
           updated_at?: string
           video_thumbnail_url?: string | null
+          video_uploaded_at?: string | null
           video_url?: string | null
           videos?: Json | null
           view_count?: number | null

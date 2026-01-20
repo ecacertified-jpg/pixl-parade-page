@@ -31,6 +31,7 @@ interface Product {
   videos?: ProductVideo[] | null;
   video_url?: string | null;
   video_thumbnail_url?: string | null;
+  video_uploaded_at?: string | null;
   business_account_id: string;
 }
 
@@ -179,6 +180,11 @@ export function AdminEditProductModal({
       // Convert videos to database format
       const videosForDb = productVideos.map(videoItemToProductVideo) as unknown as import('@/integrations/supabase/types').Json;
       const firstVideo = productVideos[0];
+      
+      // Check if video has changed (new video added or first video changed)
+      const originalFirstVideoUrl = product.video_url;
+      const newFirstVideoUrl = firstVideo?.url;
+      const videoHasChanged = originalFirstVideoUrl !== newFirstVideoUrl;
 
       // Update product
       const { error: updateError } = await supabase
@@ -198,6 +204,7 @@ export function AdminEditProductModal({
           videos: videosForDb,
           video_url: firstVideo?.url || null,
           video_thumbnail_url: firstVideo?.thumbnailUrl || null,
+          video_uploaded_at: videoHasChanged && firstVideo ? new Date().toISOString() : product.video_uploaded_at,
         })
         .eq('id', product.id);
 

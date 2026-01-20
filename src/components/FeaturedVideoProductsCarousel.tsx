@@ -24,6 +24,8 @@ interface VideoProduct {
   image_url: string | null;
   video_url: string;
   video_thumbnail_url: string | null;
+  video_uploaded_at: string | null;
+  created_at: string;
   business_id: string;
 }
 
@@ -53,7 +55,7 @@ export function FeaturedVideoProductsCarousel() {
         .select(`
           id, name, description, price, currency,
           image_url, video_url, video_thumbnail_url,
-          business_id
+          video_uploaded_at, created_at, business_id
         `)
         .not("video_url", "is", null)
         .eq("is_active", true)
@@ -103,7 +105,7 @@ export function FeaturedVideoProductsCarousel() {
           name={`${product.name} - Produit vedette`}
           description={product.description || `Découvrez ${product.name} en vidéo sur JOIE DE VIVRE.`}
           thumbnailUrl={product.video_thumbnail_url || product.image_url || ''}
-          uploadDate={new Date().toISOString().split('T')[0]}
+          uploadDate={(product.video_uploaded_at || product.created_at || new Date().toISOString()).split('T')[0]}
           contentUrl={product.video_url}
           duration={formatDurationISO8601(30)}
           regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}

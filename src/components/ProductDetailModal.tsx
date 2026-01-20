@@ -42,6 +42,8 @@ interface Product {
   locationName?: string;
   videoUrl?: string | null;
   videoThumbnailUrl?: string | null;
+  videoUploadedAt?: string | null;
+  createdAt?: string;
 }
 
 interface ProductDetailModalProps {
@@ -100,7 +102,7 @@ export function ProductDetailModal({
           name={`${product.name} - Présentation vidéo`}
           description={`Découvrez ${product.name} en vidéo. ${product.description?.slice(0, 150) || ''}`}
           thumbnailUrl={product.videoThumbnailUrl}
-          uploadDate={new Date().toISOString().split('T')[0]}
+          uploadDate={(product.videoUploadedAt || product.createdAt || new Date().toISOString()).split('T')[0]}
           contentUrl={product.videoUrl}
           duration={formatDurationISO8601(30)}
           regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}

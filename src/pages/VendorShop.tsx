@@ -203,7 +203,7 @@ export default function VendorShop() {
           name={`${product.name} - ${vendor.businessName}`}
           description={`${product.description?.slice(0, 150) || product.name}. Disponible chez ${vendor.businessName}.`}
           thumbnailUrl={product.videoThumbnailUrl!}
-          uploadDate={new Date().toISOString().split('T')[0]}
+          uploadDate={(product.videoUploadedAt || product.createdAt || new Date().toISOString()).split('T')[0]}
           contentUrl={product.videoUrl!}
           duration={formatDurationISO8601(30)}
           regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
