@@ -16,6 +16,7 @@ export {
   OrganizationSchema,
   WebSiteSchema,
   EventSchema,
+  HowToSchema,
 } from './SchemaOrg';
 
 // Types
@@ -33,6 +34,10 @@ export type {
   EventSchemaProps,
   DBOpeningHours,
   OpeningHoursSpec,
+  HowToSchemaProps,
+  HowToStep,
+  HowToSupply,
+  HowToTool,
 } from './types';
 
 export { SCHEMA_DOMAIN } from './types';

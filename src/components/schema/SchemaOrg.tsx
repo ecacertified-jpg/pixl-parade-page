@@ -22,6 +22,7 @@ import {
   type WebSiteSchemaProps,
   type EventSchemaProps,
   type ReviewSchemaProps,
+  type HowToSchemaProps,
 } from './types';
 
 // ============================================
@@ -436,5 +437,72 @@ export function EventSchema({
   }, [id, name, description, startDate, endDate, location, image, organizer, eventStatus, eventAttendanceMode, offers, about, isAccessibleForFree, virtualLocation]);
 
   useSchemaInjector(`event-${id}`, schema);
+  return null;
+}
+
+// ============================================
+// HowTo Schema Component (NEW)
+// ============================================
+
+export function HowToSchema({
+  id,
+  name,
+  description,
+  steps,
+  image,
+  estimatedCost,
+  totalTime,
+  supply,
+  tool,
+}: HowToSchemaProps) {
+  const schema = useMemo(() => {
+    const url = `${SCHEMA_DOMAIN}/guides/${id}`;
+
+    const schemaObj: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      '@id': url,
+      name,
+      description,
+      url,
+      step: steps.map((step, index) => ({
+        '@type': 'HowToStep',
+        position: index + 1,
+        name: step.name,
+        text: step.text,
+        ...(step.image && { image: step.image }),
+        ...(step.url && { url: step.url }),
+      })),
+    };
+
+    if (image) schemaObj.image = image;
+    if (totalTime) schemaObj.totalTime = totalTime;
+
+    if (estimatedCost) {
+      schemaObj.estimatedCost = {
+        '@type': 'MonetaryAmount',
+        value: estimatedCost.value.toString(),
+        currency: estimatedCost.currency,
+      };
+    }
+
+    if (supply && supply.length > 0) {
+      schemaObj.supply = supply.map(s => ({
+        '@type': 'HowToSupply',
+        name: s.name,
+      }));
+    }
+
+    if (tool && tool.length > 0) {
+      schemaObj.tool = tool.map(t => ({
+        '@type': 'HowToTool',
+        name: t.name,
+      }));
+    }
+
+    return schemaObj;
+  }, [id, name, description, steps, image, estimatedCost, totalTime, supply, tool]);
+
+  useSchemaInjector(`howto-${id}`, schema);
   return null;
 }

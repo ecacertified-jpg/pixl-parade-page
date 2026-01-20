@@ -150,3 +150,34 @@ export interface EventSchemaProps {
   isAccessibleForFree?: boolean;
   virtualLocation?: string;
 }
+
+// ============ HowTo Types (NEW) ============
+export interface HowToStep {
+  name: string;           // Titre court de l'étape
+  text: string;           // Description détaillée
+  image?: string;         // Image illustrative (optionnel)
+  url?: string;           // Lien vers section spécifique
+}
+
+export interface HowToSupply {
+  name: string;           // Nom du matériel/prérequis
+}
+
+export interface HowToTool {
+  name: string;           // Nom de l'outil nécessaire
+}
+
+export interface HowToSchemaProps {
+  id: string;                    // Identifiant unique
+  name: string;                  // Titre du guide
+  description: string;           // Description courte
+  steps: HowToStep[];            // Étapes du guide
+  image?: string;                // Image principale
+  estimatedCost?: {              // Coût estimé (optionnel)
+    value: number;
+    currency: string;
+  };
+  totalTime?: string;            // Durée ISO 8601 (ex: "PT15M")
+  supply?: HowToSupply[];        // Matériels nécessaires
+  tool?: HowToTool[];            // Outils nécessaires
+}

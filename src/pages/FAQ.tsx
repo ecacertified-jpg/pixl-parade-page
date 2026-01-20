@@ -23,8 +23,9 @@ import {
 } from "lucide-react";
 import logoJV from "@/assets/logo-jv.svg";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-import { FAQPageSchema, BreadcrumbListSchema } from "@/components/schema";
+import { FAQPageSchema, BreadcrumbListSchema, HowToSchema } from "@/components/schema";
 import { faqCategories as faqData, type FAQCategory as FAQCategoryData } from "@/data/faq-data";
+import { howToGuides } from "@/data/howto-guides";
 
 // Map icon names to actual icon components
 const iconMap: Record<string, React.ElementType> = {
@@ -77,6 +78,10 @@ export default function FAQ() {
       { name: "Accueil", path: "/" },
       { name: "Aide & FAQ", path: "/faq" }
     ]} />
+    {/* HowTo Schemas for Rich Snippets */}
+    {howToGuides.map(guide => (
+      <HowToSchema key={guide.id} {...guide} />
+    ))}
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 shadow-sm">
