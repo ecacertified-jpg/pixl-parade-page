@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Gift, Store, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Gift, Store, ArrowRight, Loader2, AlertCircle, Home } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -310,6 +318,49 @@ export default function ProductPreview() {
           </Button>
         </div>
       </header>
+
+      {/* Visual Breadcrumb Navigation */}
+      <div className="container mx-auto px-4 py-3 max-w-2xl">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/" className="flex items-center gap-1">
+                  <Home className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only">Accueil</span>
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/shop">Boutique</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            
+            {product.vendor_id && (
+              <>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to={`/boutique/${product.vendor_id}`}>
+                      {product.vendor_name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+              </>
+            )}
+            
+            <BreadcrumbItem>
+              <BreadcrumbPage className="max-w-[150px] truncate">
+                {product.name}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
       {/* Product Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
