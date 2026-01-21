@@ -8,7 +8,7 @@ import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
-import { FundBreadcrumb } from "@/components/FundBreadcrumb";
+import { FundBreadcrumb } from "@/components/breadcrumbs";
 
 interface FundData {
   id: string;

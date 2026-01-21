@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SEOHead } from "@/components/SEOHead";
-import { CategoryBreadcrumb } from "@/components/CategoryBreadcrumb";
+import { CategoryBreadcrumb } from "@/components/breadcrumbs";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { useCategoryProducts, CategoryProduct } from "@/hooks/useCategoryProducts";
 import { useCart } from "@/hooks/useCart";

@@ -27,7 +27,7 @@ import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
 import { LocalBusinessSchema, VideoSchema, formatDurationISO8601, type DBOpeningHours, type ReviewItem } from "@/components/schema";
-import { VendorBreadcrumb } from "@/components/VendorBreadcrumb";
+import { VendorBreadcrumb } from "@/components/breadcrumbs";
 import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
 

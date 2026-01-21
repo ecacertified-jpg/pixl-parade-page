@@ -24,8 +24,7 @@ import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-import { ShopBreadcrumb } from "@/components/ShopBreadcrumb";
-import { CategoryBreadcrumb } from "@/components/CategoryBreadcrumb";
+import { ShopBreadcrumb, CategoryBreadcrumb } from "@/components/breadcrumbs";
 import { getCategoryByName } from "@/data/product-categories";
 
 export default function Shop() {
