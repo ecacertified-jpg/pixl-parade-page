@@ -8,7 +8,7 @@ import logoRose from "@/assets/logo-jdv-rose.png";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { useProductView } from "@/hooks/useProductView";
 import { useProductRatings } from "@/hooks/useProductRatings";
-import { VideoSchema, ProductSchema, formatDurationISO8601 } from "@/components/schema";
+import { VideoSchema, ProductSchema, BreadcrumbListSchema, formatDurationISO8601 } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
 interface ProductData {
   id: string;
@@ -283,6 +283,19 @@ export default function ProductPreview() {
           regionsAllowed={['CI', 'SN', 'ML', 'BF', 'TG', 'NE', 'BJ', 'FR']}
         />
       )}
+
+      {/* BreadcrumbSchema for SEO - Breadcrumb navigation in Google */}
+      <BreadcrumbListSchema 
+        items={[
+          { name: "Accueil", path: "/" },
+          { name: "Boutique", path: "/shop" },
+          ...(product.vendor_id ? [{
+            name: product.vendor_name,
+            path: `/boutique/${product.vendor_id}`
+          }] : []),
+          { name: product.name, path: `/p/${product.id}` }
+        ]} 
+      />
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
