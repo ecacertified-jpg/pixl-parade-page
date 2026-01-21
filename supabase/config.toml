@@ -191,3 +191,6 @@ verify_jwt = false
 
 [functions.sitemap-full]
 verify_jwt = false
+
+[functions.sitemap-sync]
+verify_jwt = false
