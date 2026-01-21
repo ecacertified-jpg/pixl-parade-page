@@ -6,6 +6,18 @@ const corsHeaders = {
   'Content-Type': 'application/xml; charset=utf-8',
 };
 
+// Cache headers optimized for AI crawlers (less frequent but deeper crawls)
+const AI_CACHE_HEADERS = {
+  'Cache-Control': 'public, max-age=7200, s-maxage=14400, stale-while-revalidate=3600, stale-if-error=86400',
+};
+
+// Generate ETag for conditional requests (304 Not Modified)
+function generateETag(content: string): string {
+  const len = content.length;
+  const sample = content.slice(0, 100) + content.slice(-100);
+  return `${len}-${btoa(sample).slice(0, 12)}`;
+}
+
 const BASE_URL = 'https://joiedevivre-africa.com';
 const SUPABASE_URL = 'https://vaimfeurvzokepqqqrsl.supabase.co';
 
@@ -252,11 +264,29 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const sitemap = await generateAISitemap(supabaseAdmin, today);
 
+    // Generate ETag for conditional requests
+    const etag = generateETag(sitemap);
+    const ifNoneMatch = req.headers.get('If-None-Match');
+
+    // Return 304 Not Modified if content hasn't changed
+    if (ifNoneMatch === `"${etag}"`) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          ...corsHeaders,
+          ...AI_CACHE_HEADERS,
+        },
+      });
+    }
+
     return new Response(sitemap, {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Cache-Control': 'public, max-age=3600', // Cache 1 heure
+        ...AI_CACHE_HEADERS,
+        'ETag': `"${etag}"`,
+        'Last-Modified': new Date().toUTCString(),
+        'X-Robots-Tag': 'noindex', // AI sitemap should not be indexed by Google
       },
     });
   } catch (error) {
@@ -266,7 +296,13 @@ Deno.serve(async (req) => {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Error generating AI sitemap: ${error instanceof Error ? escapeXml(error.message) : 'Unknown error'} -->
 </urlset>`,
-      { status: 500, headers: corsHeaders }
+      { 
+        status: 500, 
+        headers: {
+          ...corsHeaders,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      }
     );
   }
 });
