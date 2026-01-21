@@ -10,7 +10,7 @@ import { useProductView } from "@/hooks/useProductView";
 import { useProductRatings } from "@/hooks/useProductRatings";
 import { VideoSchema, ProductSchema, formatDurationISO8601 } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
-import { ProductBreadcrumb } from "@/components/ProductBreadcrumb";
+import { ProductBreadcrumb } from "@/components/breadcrumbs";
 
 interface ProductData {
   id: string;
