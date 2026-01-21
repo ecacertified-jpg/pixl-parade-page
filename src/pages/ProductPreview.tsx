@@ -24,6 +24,7 @@ interface ProductData {
   created_at: string;
   vendor_name: string;
   vendor_id: string | null;
+  stock_quantity: number | null;
 }
 
 export default function ProductPreview() {
@@ -80,6 +81,7 @@ export default function ProductPreview() {
             video_thumbnail_url,
             video_uploaded_at,
             created_at,
+            stock_quantity,
             business_accounts!products_business_id_fkey (
               id,
               business_name
@@ -128,6 +130,7 @@ export default function ProductPreview() {
           created_at: data.created_at,
           vendor_name: data.business_accounts?.business_name || "Vendeur",
           vendor_id: data.business_accounts?.id || null,
+          stock_quantity: data.stock_quantity,
         });
       } catch (err) {
         console.error("Error:", err);
@@ -226,7 +229,7 @@ export default function ProductPreview() {
         productReviewCount={stats?.rating_count}
       />
 
-      {/* ProductSchema for SEO - Rich Results with ratings */}
+      {/* ProductSchema for SEO - Rich Results with ratings, dynamic availability */}
       <ProductSchema
         id={product.id}
         name={product.name}
@@ -235,7 +238,14 @@ export default function ProductPreview() {
         images={product.images || undefined}
         price={product.price}
         currency={product.currency}
-        availability="InStock"
+        availability={
+          product.stock_quantity === null 
+            ? 'InStock'  // Pas de gestion de stock = toujours disponible
+            : product.stock_quantity > 0 
+              ? 'InStock' 
+              : 'OutOfStock'
+        }
+        itemCondition="NewCondition"
         seller={{
           name: product.vendor_name,
           url: product.vendor_id 
@@ -254,6 +264,10 @@ export default function ProductPreview() {
           reviewBody: r.review_text,
           datePublished: r.created_at
         })) : undefined}
+        shippingDetails={{
+          deliveryTime: "1-3 jours",
+          shippingCost: 2000,
+        }}
       />
       
       {/* VideoSchema for SEO - Public product video */}
