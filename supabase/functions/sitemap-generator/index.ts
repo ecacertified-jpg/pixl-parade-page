@@ -6,6 +6,22 @@ const corsHeaders = {
   'Content-Type': 'application/xml; charset=utf-8',
 };
 
+// Cache durations by sitemap type (optimized for Google crawls)
+const CACHE_HEADERS: Record<string, string> = {
+  index: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=600',
+  pages: 'public, max-age=21600, s-maxage=21600, stale-while-revalidate=3600',
+  products: 'public, max-age=3600, s-maxage=7200, stale-while-revalidate=1800',
+  businesses: 'public, max-age=7200, s-maxage=14400, stale-while-revalidate=3600',
+  funds: 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=600',
+};
+
+// Generate ETag for conditional requests
+function generateETag(content: string): string {
+  const len = content.length;
+  const sample = content.slice(0, 100) + content.slice(-100);
+  return `${len}-${btoa(sample).slice(0, 12)}`;
+}
+
 const BASE_URL = 'https://joiedevivre-africa.com';
 const SUPABASE_URL = 'https://vaimfeurvzokepqqqrsl.supabase.co';
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/sitemap-generator`;
@@ -315,15 +331,41 @@ Deno.serve(async (req) => {
         console.log('Default: Sitemap index generated');
     }
 
+    // Generate ETag for conditional requests
+    const etag = generateETag(sitemap);
+    const ifNoneMatch = req.headers.get('If-None-Match');
+
+    // Return 304 Not Modified if content hasn't changed
+    if (ifNoneMatch === `"${etag}"`) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          ...corsHeaders,
+          'Cache-Control': CACHE_HEADERS[type] || CACHE_HEADERS.index,
+        },
+      });
+    }
+
     return new Response(sitemap, {
       status: 200,
-      headers: corsHeaders,
+      headers: {
+        ...corsHeaders,
+        'Cache-Control': CACHE_HEADERS[type] || CACHE_HEADERS.index,
+        'ETag': `"${etag}"`,
+        'Last-Modified': new Date().toUTCString(),
+      },
     });
   } catch (error) {
     console.error('Sitemap generation error:', error);
     return new Response(
       `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`,
-      { status: 500, headers: corsHeaders }
+      { 
+        status: 500, 
+        headers: {
+          ...corsHeaders,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      }
     );
   }
 });
