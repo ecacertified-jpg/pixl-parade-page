@@ -8,6 +8,7 @@ import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
+import { FundBreadcrumb } from "@/components/FundBreadcrumb";
 
 interface FundData {
   id: string;
@@ -239,6 +240,13 @@ export default function FundPreview() {
           <span className="font-poppins font-semibold text-lg">JOIE DE VIVRE</span>
         </div>
       </header>
+
+      {/* Unified Breadcrumb - SEO + UI */}
+      <FundBreadcrumb
+        fundId={fund.id}
+        fundTitle={fund.title}
+        occasion={fund.occasion}
+      />
 
       {/* Main content */}
       <main className="max-w-lg mx-auto p-4 py-8 space-y-6">
