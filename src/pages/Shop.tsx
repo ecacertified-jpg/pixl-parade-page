@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map } from "lucide-react";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ProductShareCount } from "@/components/ProductShareCount";
@@ -25,6 +25,8 @@ import { useCountry } from "@/contexts/CountryContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { ShopBreadcrumb } from "@/components/ShopBreadcrumb";
+import { CategoryBreadcrumb } from "@/components/CategoryBreadcrumb";
+import { getCategoryByName } from "@/data/product-categories";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -413,10 +415,33 @@ export default function Shop() {
   ];
 
   const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
+
+  // Dynamic breadcrumb based on selected category
+  const categoryBreadcrumbData = useMemo(() => {
+    if (selectedCategory === "Tous") return null;
+    
+    const categoryDef = getCategoryByName(selectedCategory);
+    const CategoryIcon = categoryDef?.icon;
+    
+    return {
+      slug: categoryDef?.slug || selectedCategory.toLowerCase().replace(/\s+/g, '-'),
+      name: selectedCategory,
+      icon: CategoryIcon ? <CategoryIcon className="h-3.5 w-3.5" /> : undefined
+    };
+  }, [selectedCategory]);
+
   return (
     <>
     <SEOHead {...SEO_CONFIGS.shop} />
-    <ShopBreadcrumb />
+    {categoryBreadcrumbData ? (
+      <CategoryBreadcrumb
+        categorySlug={categoryBreadcrumbData.slug}
+        categoryName={categoryBreadcrumbData.name}
+        categoryIcon={categoryBreadcrumbData.icon}
+      />
+    ) : (
+      <ShopBreadcrumb />
+    )}
     <div className="min-h-screen bg-gradient-background">
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />
