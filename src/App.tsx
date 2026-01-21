@@ -94,6 +94,9 @@ const AIProducts = lazy(() => import("./pages/AIProducts"));
 const CityPage = lazy(() => import("./pages/CityPage"));
 const CitiesOverview = lazy(() => import("./pages/CitiesOverview"));
 
+// Category page (lazy loaded for SEO)
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -191,6 +194,13 @@ const App = () => (
             <Route path="/shop" element={
               <ProtectedRoute>
                 <Shop />
+              </ProtectedRoute>
+            } />
+            <Route path="/category/:slug" element={
+              <ProtectedRoute>
+                <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+                  <CategoryPage />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/explore-map" element={
