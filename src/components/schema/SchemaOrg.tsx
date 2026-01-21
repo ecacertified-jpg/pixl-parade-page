@@ -194,9 +194,28 @@ export function ProductSchema({
   sku,
   aggregateRating,
   reviews,
+  itemCondition = 'NewCondition',
+  gtin,
+  mpn,
+  priceValidUntil,
+  returnPolicy,
+  shippingDetails,
 }: ProductSchemaProps) {
   const schema = useMemo(() => {
     const url = `${SCHEMA_DOMAIN}/p/${id}`;
+    
+    // Calculate default priceValidUntil (30 days from now)
+    const defaultPriceValidUntil = new Date();
+    defaultPriceValidUntil.setDate(defaultPriceValidUntil.getDate() + 30);
+
+    const offersObj: Record<string, unknown> = {
+      '@type': 'Offer',
+      price: price.toString(),
+      priceCurrency: currency,
+      availability: `https://schema.org/${availability}`,
+      priceValidUntil: priceValidUntil || defaultPriceValidUntil.toISOString().split('T')[0],
+      url,
+    };
 
     const schemaObj: Record<string, unknown> = {
       '@context': 'https://schema.org',
@@ -205,13 +224,8 @@ export function ProductSchema({
       name,
       description,
       url,
-      offers: {
-        '@type': 'Offer',
-        price: price.toString(),
-        priceCurrency: currency,
-        availability: `https://schema.org/${availability}`,
-        url,
-      },
+      itemCondition: `https://schema.org/${itemCondition}`,
+      offers: offersObj,
     };
 
     // Add images (array if multiple, single if one)
@@ -223,6 +237,8 @@ export function ProductSchema({
 
     if (sku) schemaObj.sku = sku;
     if (category) schemaObj.category = category;
+    if (gtin) schemaObj.gtin = gtin;
+    if (mpn) schemaObj.mpn = mpn;
 
     if (brand) {
       schemaObj.brand = {
@@ -232,10 +248,46 @@ export function ProductSchema({
     }
 
     if (seller) {
-      (schemaObj.offers as Record<string, unknown>).seller = {
+      offersObj.seller = {
         '@type': 'Organization',
         name: seller.name,
         url: seller.url,
+      };
+    }
+
+    // Add shipping details for Rich Results
+    if (shippingDetails) {
+      offersObj.shippingDetails = {
+        '@type': 'OfferShippingDetails',
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'CI',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 3,
+            unitCode: 'DAY',
+          },
+        },
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: shippingDetails.shippingCost.toString(),
+          currency: shippingDetails.shippingCurrency || 'XOF',
+        },
+      };
+    }
+
+    // Add return policy for Rich Results
+    if (returnPolicy) {
+      offersObj.hasMerchantReturnPolicy = {
+        '@type': 'MerchantReturnPolicy',
+        returnPolicyCategory: `https://schema.org/${returnPolicy.returnPolicyCategory}`,
+        ...(returnPolicy.returnDays && {
+          merchantReturnDays: returnPolicy.returnDays,
+        }),
       };
     }
 
@@ -257,7 +309,7 @@ export function ProductSchema({
     }
 
     return schemaObj;
-  }, [id, name, description, image, images, price, currency, availability, brand, seller, category, sku, aggregateRating, reviews]);
+  }, [id, name, description, image, images, price, currency, availability, brand, seller, category, sku, aggregateRating, reviews, itemCondition, gtin, mpn, priceValidUntil, returnPolicy, shippingDetails]);
 
   useSchemaInjector(`product-${id}`, schema);
   return null;

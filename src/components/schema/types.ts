@@ -82,6 +82,17 @@ export interface LocalBusinessSchemaProps {
 }
 
 // ============ Product Types ============
+export interface ProductShippingDetails {
+  deliveryTime: string;           // Ex: "1-3 jours"
+  shippingCost: number;           // Montant en devise locale
+  shippingCurrency?: string;      // Défaut: XOF
+}
+
+export interface ProductReturnPolicy {
+  returnPolicyCategory: 'MerchantReturnFiniteReturnWindow' | 'MerchantReturnNotPermitted';
+  returnDays?: number;            // Nombre de jours pour retour
+}
+
 export interface ProductSchemaProps {
   id: string;
   name: string;
@@ -90,7 +101,7 @@ export interface ProductSchemaProps {
   images?: string[];
   price: number;
   currency?: string;
-  availability?: 'InStock' | 'OutOfStock';
+  availability?: 'InStock' | 'OutOfStock' | 'PreOrder' | 'BackOrder';
   brand?: string;
   seller?: {
     name: string;
@@ -103,6 +114,13 @@ export interface ProductSchemaProps {
     reviewCount: number;
   };
   reviews?: ReviewItem[];
+  // Nouvelles propriétés pour Rich Results optimisés
+  itemCondition?: 'NewCondition' | 'UsedCondition' | 'RefurbishedCondition';
+  gtin?: string;                  // Code-barres (si disponible)
+  mpn?: string;                   // Numéro fabricant
+  priceValidUntil?: string;       // Date ISO 8601
+  returnPolicy?: ProductReturnPolicy;
+  shippingDetails?: ProductShippingDetails;
 }
 
 // ============ Organization Types (NEW) ============

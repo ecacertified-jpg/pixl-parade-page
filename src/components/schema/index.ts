@@ -31,6 +31,8 @@ export type {
   ReviewSchemaProps,
   LocalBusinessSchemaProps,
   ProductSchemaProps,
+  ProductShippingDetails,
+  ProductReturnPolicy,
   OrganizationSchemaProps,
   WebSiteSchemaProps,
   EventSchemaProps,
