@@ -1,14 +1,5 @@
-import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { BreadcrumbListSchema } from "@/components/schema";
+import { BaseBreadcrumb, BreadcrumbItemConfig } from "./BaseBreadcrumb";
 
 interface ProductBreadcrumbProps {
   productId: string;
@@ -21,11 +12,10 @@ interface ProductBreadcrumbProps {
 }
 
 /**
- * ProductBreadcrumb - Composant réutilisable combinant SEO (Schema.org) et UI visuel
+ * ProductBreadcrumb - Fil d'Ariane pour les pages produits
  * 
- * Affiche un fil d'Ariane pour les pages produits avec:
- * - BreadcrumbListSchema pour le SEO (données structurées JSON-LD)
- * - UI Breadcrumb visuel pour la navigation utilisateur
+ * Affiche: Accueil > Boutique > [Vendeur] > Produit
+ * Utilise BaseBreadcrumb pour la logique SEO + UI
  */
 export function ProductBreadcrumb({
   productId,
@@ -36,68 +26,25 @@ export function ProductBreadcrumb({
   showHomeIcon = true,
   containerClassName = "container mx-auto px-4 py-3 max-w-2xl",
 }: ProductBreadcrumbProps) {
-  // Construire le fil d'Ariane dynamiquement
-  const breadcrumbItems = [
-    { name: "Accueil", path: "/" },
-    { name: "Boutique", path: "/shop" },
-    ...(vendorId ? [{ name: vendorName, path: `/boutique/${vendorId}` }] : []),
-    { name: productName, path: `/p/${productId}` },
+  const items: BreadcrumbItemConfig[] = [
+    {
+      label: "Accueil",
+      path: "/",
+      icon: showHomeIcon ? <Home className="h-3.5 w-3.5" /> : undefined,
+      hideTextOnMobile: showHomeIcon,
+    },
+    { label: "Boutique", path: "/shop" },
+    ...(vendorId
+      ? [{ label: vendorName, path: `/boutique/${vendorId}` }]
+      : []),
+    { label: productName, path: `/p/${productId}`, isCurrent: true },
   ];
 
   return (
-    <>
-      {/* SEO Schema (invisible) */}
-      <BreadcrumbListSchema items={breadcrumbItems} />
-
-      {/* UI Visuel */}
-      <div className={containerClassName}>
-        <Breadcrumb>
-          <BreadcrumbList>
-            {/* Accueil */}
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/" className="flex items-center gap-1">
-                  {showHomeIcon && <Home className="h-3.5 w-3.5" />}
-                  <span className={showHomeIcon ? "sr-only sm:not-sr-only" : ""}>
-                    Accueil
-                  </span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-
-            {/* Boutique */}
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/shop">Boutique</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-
-            {/* Vendeur (conditionnel) */}
-            {vendorId && (
-              <>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to={`/boutique/${vendorId}`}>{vendorName}</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </>
-            )}
-
-            {/* Page actuelle (produit) */}
-            <BreadcrumbItem>
-              <BreadcrumbPage 
-                className="truncate" 
-                style={{ maxWidth }}
-              >
-                {productName}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-    </>
+    <BaseBreadcrumb
+      items={items}
+      containerClassName={containerClassName}
+      maxWidth={maxWidth}
+    />
   );
 }
