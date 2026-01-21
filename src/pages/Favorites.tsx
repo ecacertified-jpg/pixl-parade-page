@@ -12,6 +12,7 @@ import { FavoriteStatsBar } from "@/components/favorites/FavoriteStatsBar";
 import { FavoriteFilters } from "@/components/favorites/FavoriteFilters";
 import { EnrichedFavoriteCard } from "@/components/favorites/EnrichedFavoriteCard";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
+import { AccountBreadcrumb } from "@/components/breadcrumbs";
 
 export default function Favorites() {
   const navigate = useNavigate();
@@ -104,6 +105,13 @@ export default function Favorites() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      {/* Breadcrumb */}
+      <AccountBreadcrumb 
+        currentPage="Mes Favoris" 
+        currentPath="/favorites" 
+        icon={<Heart className="h-3.5 w-3.5" />} 
+      />
+
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />
       

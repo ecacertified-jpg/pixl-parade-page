@@ -20,6 +20,7 @@ import {
 import logoJV from "@/assets/logo-jv.svg";
 import { APP_VERSION, APP_NAME, APP_TAGLINE, APP_DESCRIPTION, COMPANY_INFO, BUILD_DATE } from "@/config/appVersion";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { LegalBreadcrumb } from "@/components/breadcrumbs";
 
 import { features as featureData } from "@/data/about-data";
 
@@ -46,6 +47,9 @@ export default function About() {
     <>
     <SEOHead {...SEO_CONFIGS.about} />
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+      {/* Breadcrumb */}
+      <LegalBreadcrumb page="about" />
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">

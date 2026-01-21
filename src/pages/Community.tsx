@@ -16,6 +16,7 @@ import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useCart } from "@/hooks/useCart";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { CommunityBreadcrumb } from "@/components/breadcrumbs";
 import logoJV from "@/assets/logo-jv.svg";
 
 const Community = () => {
@@ -65,6 +66,9 @@ const Community = () => {
           </div>
         </div>
       </header>
+
+      {/* Breadcrumb */}
+      <CommunityBreadcrumb />
 
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />

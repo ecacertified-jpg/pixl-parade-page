@@ -14,6 +14,7 @@ import { ConfirmDeliveryModal } from "@/components/ConfirmDeliveryModal";
 import { EditRatingModal } from "@/components/EditRatingModal";
 import { useOrderConfirmation } from "@/hooks/useOrderConfirmation";
 import { useEditRating } from "@/hooks/useEditRating";
+import { AccountBreadcrumb } from "@/components/breadcrumbs";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -227,6 +228,13 @@ const Orders = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Breadcrumb */}
+      <AccountBreadcrumb 
+        currentPage="Mes Commandes" 
+        currentPath="/orders" 
+        icon={<ShoppingBag className="h-3.5 w-3.5" />} 
+      />
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">

@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink, Building2, CreditCard, FileCheck } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { LegalBreadcrumb } from "@/components/breadcrumbs";
 import logoJV from "@/assets/logo-jv.svg";
 
 const PrivacyPolicy = () => {
@@ -35,6 +36,9 @@ const PrivacyPolicy = () => {
     <>
     <SEOHead {...SEO_CONFIGS.privacy} />
     <div className="min-h-screen bg-background">
+      {/* Breadcrumb */}
+      <LegalBreadcrumb page="privacy" />
+      
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">

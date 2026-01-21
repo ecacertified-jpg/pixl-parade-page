@@ -24,6 +24,7 @@ import {
 import logoJV from "@/assets/logo-jv.svg";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { FAQPageSchema, BreadcrumbListSchema, HowToSchema } from "@/components/schema";
+import { LegalBreadcrumb } from "@/components/breadcrumbs";
 import { faqCategories as faqData, type FAQCategory as FAQCategoryData } from "@/data/faq-data";
 import { howToGuides } from "@/data/howto-guides";
 
