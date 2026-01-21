@@ -26,7 +26,8 @@ import { useVendorRatings } from "@/hooks/useVendorRatings";
 import { useVendorGallery, GalleryItem } from "@/hooks/useVendorGallery";
 import { VendorGalleryCarousel, GalleryMediaItem } from "@/components/VendorGalleryCarousel";
 import { SEOHead } from "@/components/SEOHead";
-import { LocalBusinessSchema, BreadcrumbListSchema, VideoSchema, formatDurationISO8601, type DBOpeningHours, type ReviewItem } from "@/components/schema";
+import { LocalBusinessSchema, VideoSchema, formatDurationISO8601, type DBOpeningHours, type ReviewItem } from "@/components/schema";
+import { VendorBreadcrumb } from "@/components/VendorBreadcrumb";
 import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
 
@@ -163,11 +164,6 @@ export default function VendorShop() {
       type="business.business"
       keywords={`${vendor.businessName}, ${vendor.businessType || 'boutique'}, boutique Abidjan, artisanat ivoirien`}
     />
-    <BreadcrumbListSchema items={[
-      { name: "Accueil", path: "/" },
-      { name: "Boutique", path: "/shop" },
-      { name: vendor.businessName, path: `/boutique/${businessId}` }
-    ]} />
     <LocalBusinessSchema
       id={businessId!}
       name={vendor.businessName}
@@ -247,6 +243,12 @@ export default function VendorShop() {
           </div>
         </div>
       </header>
+
+      {/* Unified Breadcrumb - SEO + UI */}
+      <VendorBreadcrumb
+        vendorId={businessId!}
+        vendorName={vendor.businessName}
+      />
 
       <main className="max-w-md mx-auto px-4 py-4 space-y-4">
         {/* Vendor Gallery Carousel - New immersive gallery */}
