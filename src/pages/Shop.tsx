@@ -24,7 +24,7 @@ import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
-import { BreadcrumbListSchema } from "@/components/schema";
+import { ShopBreadcrumb } from "@/components/ShopBreadcrumb";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -416,10 +416,7 @@ export default function Shop() {
   return (
     <>
     <SEOHead {...SEO_CONFIGS.shop} />
-    <BreadcrumbListSchema items={[
-      { name: "Accueil", path: "/" },
-      { name: "Boutique", path: "/shop" }
-    ]} />
+    <ShopBreadcrumb />
     <div className="min-h-screen bg-gradient-background">
       {/* Global Friends Circle Reminder */}
       <FriendsCircleReminderCard compact />
