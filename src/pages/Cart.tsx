@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -47,6 +48,9 @@ export default function Cart() {
   return <>
     <SEOHead {...SEO_CONFIGS.cart} />
     <div className="min-h-screen bg-gradient-background">
+      {/* Breadcrumb */}
+      <CheckoutBreadcrumb step="cart" />
+      
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">

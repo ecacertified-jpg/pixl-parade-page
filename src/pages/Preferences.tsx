@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Palette, Ruler, AlertCircle, DollarSign, Lock } from "lucide-react";
+import { ArrowLeft, Palette, Ruler, AlertCircle, DollarSign, Lock, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -9,6 +9,7 @@ import { ColorsSection } from "@/components/preferences/ColorsSection";
 import { BudgetRangesSection } from "@/components/preferences/BudgetRangesSection";
 import { PrivacySection } from "@/components/preferences/PrivacySection";
 import { Progress } from "@/components/ui/progress";
+import { AccountBreadcrumb } from "@/components/breadcrumbs";
 
 const Preferences = () => {
   const navigate = useNavigate();
@@ -58,6 +59,13 @@ const Preferences = () => {
           </div>
         </div>
       </div>
+
+      {/* Breadcrumb */}
+      <AccountBreadcrumb 
+        currentPage="Mes Préférences" 
+        currentPath="/preferences" 
+        icon={<Gift className="h-3.5 w-3.5" />} 
+      />
 
       {/* Content */}
       <div className="container max-w-6xl mx-auto px-4 py-6">

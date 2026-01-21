@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { usePosts } from "@/hooks/usePosts";
@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { PostCard } from "@/components/PostCard";
+import { AccountBreadcrumb } from "@/components/breadcrumbs";
 
 const Publications = () => {
   const navigate = useNavigate();
@@ -34,6 +35,13 @@ const Publications = () => {
           </h1>
         </div>
       </header>
+
+      {/* Breadcrumb */}
+      <AccountBreadcrumb 
+        currentPage="Mes Publications" 
+        currentPath="/publications" 
+        icon={<FileText className="h-3.5 w-3.5" />} 
+      />
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6">

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
 export default function OrderConfirmation() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -26,8 +27,10 @@ export default function OrderConfirmation() {
   const viewOrders = () => {
     navigate("/orders");
   };
-  return <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-50">
+  return <div className="min-h-screen bg-gradient-background">
+      <CheckoutBreadcrumb step="confirmation" />
+      <div className="flex items-center justify-center p-4 min-h-[calc(100vh-60px)]">
+      <div className="max-w-md w-full bg-gray-50 p-6 rounded-xl">
         {/* Success icon */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -65,6 +68,7 @@ export default function OrderConfirmation() {
               </Button>
             </>}
         </div>
+      </div>
       </div>
     </div>;
 }

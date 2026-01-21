@@ -19,6 +19,7 @@ import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { format, parse, isValid } from "date-fns";
+import { AccountBreadcrumb } from "@/components/breadcrumbs";
 
 // Validation functions
 const validatePhone = (phone: string): string | null => {
@@ -283,6 +284,13 @@ const ProfileSettings = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Breadcrumb */}
+      <AccountBreadcrumb 
+        currentPage="Paramètres" 
+        currentPath="/profile-settings" 
+        icon={<Settings className="h-3.5 w-3.5" />} 
+      />
+      
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10">
         <div className="container max-w-2xl mx-auto px-4 py-4">

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
+import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
 
 interface CheckoutItem {
   id: number | string;
@@ -453,6 +454,9 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      {/* Breadcrumb */}
+      <CheckoutBreadcrumb step="checkout" />
+      
       <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-50 border-b border-border/50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
