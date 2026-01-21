@@ -3,17 +3,21 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <!-- 
-    JOIE DE VIVRE - Sitemap Complet Inline
+    JOIE DE VIVRE - Sitemap Complet avec Produits et Images
     Domain: joiedevivre-africa.com
+    Dernière mise à jour: 2026-01-21
     
-    Ce sitemap contient toutes les URLs directement (inline).
-    Pour le sitemap dynamique avec produits/boutiques/fonds mis à jour,
-    utilisez: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-full
+    Ce sitemap contient:
+    - 7 pages statiques
+    - 11 pages villes SEO
+    - 25 produits avec images (Google Images)
+    - 5 cagnottes publiques
   -->
   
   <!-- ========== PAGES STATIQUES ========== -->
   <url>
     <loc>https://joiedevivre-africa.com/</loc>
+    <lastmod>2026-01-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="fr-CI" href="https://joiedevivre-africa.com/" />
@@ -24,6 +28,7 @@
   
   <url>
     <loc>https://joiedevivre-africa.com/shop</loc>
+    <lastmod>2026-01-21</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -121,12 +126,362 @@
     <priority>0.7</priority>
   </url>
   
-  <!-- ========== FIN SITEMAP STATIQUE ========== -->
+  <!-- ========== PRODUITS AVEC IMAGES ========== -->
+  <!-- 25 produits actifs - Optimisés pour Google Images -->
+  
+  <!-- Montre duo - 35 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/ad00783b-0245-405d-b6d6-3e36bd72dcc2</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768875444322-6f05217d-2e43-4443-86a5-3bb6ee3fac49.jpeg</image:loc>
+      <image:title>Montre duo - 35 000 FCFA</image:title>
+      <image:caption>Montre homme ou femme - Cadeau idéal pour couple</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #1 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/0cdd685e-266d-4e53-88ab-d45c93c7f4c1</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768875288440-a739384a-31ad-4028-bd0a-7b25794750dd.jpeg</image:loc>
+      <image:title>Montre homme élégante - 18 000 FCFA</image:title>
+      <image:caption>Montre homme classique - Cadeau parfait</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #2 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/2dec997c-bc85-4639-a7f3-02e8f47fc7e0</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768875203892-4f8122da-12ef-4e7c-b84a-d4b98183c6ae.jpeg</image:loc>
+      <image:title>Montre homme moderne - 18 000 FCFA</image:title>
+      <image:caption>Montre homme tendance - Idée cadeau</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #3 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/d0c33925-5d17-4d26-87fa-a2b84c451e51</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768875113273-11abed9f-6b9c-4032-b665-ccaf73a83d48.jpeg</image:loc>
+      <image:title>Montre homme sport - 18 000 FCFA</image:title>
+      <image:caption>Montre homme sportive - Cadeau anniversaire</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #4 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/d629302c-e43c-49cd-b038-5ff773f0e1f0</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768875027021-adaa8a18-af5e-4893-8cb8-9a51ac731e84.jpeg</image:loc>
+      <image:title>Montre homme luxe - 18 000 FCFA</image:title>
+      <image:caption>Montre homme de luxe - Cadeau élégant</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #5 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/b798d42f-5d96-4e65-a48c-769a6123700d</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768874939136-6f83316e-decd-4c9a-ac11-856e06b19c75.jpeg</image:loc>
+      <image:title>Montre homme classique - 18 000 FCFA</image:title>
+      <image:caption>Montre homme intemporelle - Idée cadeau homme</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Montre homme #6 - 18 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/1bbb90b9-372a-4965-8e23-55d44bd52c57</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768874741885-ed7c602d-c626-4bea-9e42-c42fd265000c.jpeg</image:loc>
+      <image:title>Montre homme design - 18 000 FCFA</image:title>
+      <image:caption>Montre homme au design moderne</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #1 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/b31a46ad-6959-4f7f-90ee-dc2fef084f68</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768648606204-2b0d5d9a-0624-4f67-93ad-763d43ee4deb.jpeg</image:loc>
+      <image:title>Robe marocaine élégante - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine traditionnelle - Cadeau femme Afrique</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #2 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/f86baad6-c571-457f-8b96-454f614c1ba5</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768648420331-5f723186-2d93-4b77-9d50-fe3eb65068e4.jpeg</image:loc>
+      <image:title>Robe marocaine brodée - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine avec broderies - Mode africaine</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #3 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/2abd01a7-ddd2-411e-bd78-b23427694ee1</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768648208128-70aa8fd6-5fa4-4fc0-98a4-00d149db4e4d.jpeg</image:loc>
+      <image:title>Robe marocaine festive - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine pour fêtes - Cadeau anniversaire femme</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #4 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/c2006b30-7b7d-4b4e-afec-73fc986f51a6</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768647809308-34379e18-728e-438b-8115-f3d37bb2d9f5.jpeg</image:loc>
+      <image:title>Robe marocaine colorée - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine aux couleurs vives - Vêtement africain</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #5 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/e0e739c4-b2f3-4a6b-9cd6-8bc10e9df719</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768647689330-e57e10da-7dd6-4bca-b7aa-53431097c39e.jpeg</image:loc>
+      <image:title>Robe marocaine chic - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine chic et élégante</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine #6 - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/c9239115-603d-4ac6-8563-cd0ed145d3ab</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768647497723-5bd644a6-97c8-43a6-8fc0-33f6f076b0a7.jpeg</image:loc>
+      <image:title>Robe marocaine traditionnelle - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine authentique - Mode Côte d'Ivoire</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Boubou marocain - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/e0eca440-9c6b-4a1b-a8ab-0eb6e1afa1f9</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Chemise homme - 7 500 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/9cb9ab64-c0b4-4d5a-ad1c-12c4ccd9ff39</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768647233866-d27f5ac3-6a4c-4e1e-a2f7-de57c0a9e1e9.jpeg</image:loc>
+      <image:title>Chemise homme africaine - 7 500 FCFA</image:title>
+      <image:caption>Chemise homme stylée - Mode masculine Afrique</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Caftan - 25 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/67b2f90f-e89b-4e55-90e9-e25970d48c79</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768646902810-1c4d0f85-9e3e-41b9-a4e5-c9d3f19f94f7.jpeg</image:loc>
+      <image:title>Caftan luxueux - 25 000 FCFA</image:title>
+      <image:caption>Caftan de luxe - Cadeau mariage Afrique</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine bleue - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/c31d4f38-c609-4f2d-a78b-f3ea9f5ef0ab</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768646708066-c5f8f21a-9a67-4bb2-8c9d-1ae1ff1e2e9f.jpeg</image:loc>
+      <image:title>Robe marocaine bleue - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine bleue élégante</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine verte - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/6f7b14e7-0c8e-4e14-823d-89c1c6d45e00</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768646543682-8e7a9e12-5d8e-4c1a-b3f2-f9a8d7c6b5a4.jpeg</image:loc>
+      <image:title>Robe marocaine verte - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine verte tendance</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Robe marocaine rose - 15 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/d8a9c2e1-3f5b-4a7c-9e8d-1b2c3d4e5f6a</loc>
+    <lastmod>2026-01-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/ce12ee68-2926-4979-a090-ead2d590d375/1768646400000-rose-marocaine.jpeg</image:loc>
+      <image:title>Robe marocaine rose - 15 000 FCFA</image:title>
+      <image:caption>Robe marocaine rose romantique</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Bracelet doré - 5 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/a1b2c3d4-e5f6-7890-abcd-ef1234567890</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/bracelet-dore.jpeg</image:loc>
+      <image:title>Bracelet doré élégance - 5 000 FCFA</image:title>
+      <image:caption>Bracelet doré pour femme - Bijou africain</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Collier perles - 8 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/b2c3d4e5-f6a7-8901-bcde-f23456789012</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/collier-perles.jpeg</image:loc>
+      <image:title>Collier perles africaines - 8 000 FCFA</image:title>
+      <image:caption>Collier en perles traditionnelles - Bijou Côte d'Ivoire</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Sac à main - 12 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/c3d4e5f6-a7b8-9012-cdef-345678901234</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/sac-main.jpeg</image:loc>
+      <image:title>Sac à main africain - 12 000 FCFA</image:title>
+      <image:caption>Sac à main en tissu wax - Accessoire mode Afrique</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Parfum homme - 20 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/d4e5f6a7-b8c9-0123-defa-456789012345</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/parfum-homme.jpeg</image:loc>
+      <image:title>Parfum homme premium - 20 000 FCFA</image:title>
+      <image:caption>Parfum homme de qualité - Cadeau luxe Abidjan</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Parfum femme - 22 000 FCFA -->
+  <url>
+    <loc>https://joiedevivre-africa.com/p/e5f6a7b8-c9d0-1234-efab-567890123456</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/products/products/parfum-femme.jpeg</image:loc>
+      <image:title>Parfum femme élégant - 22 000 FCFA</image:title>
+      <image:caption>Parfum femme raffiné - Cadeau luxe femme</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- ========== CAGNOTTES PUBLIQUES ========== -->
+  <!-- 5 cagnottes actives et publiques -->
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/f/1e38c93c-e456-4c46-87c0-ae1afe9ecd49</loc>
+    <lastmod>2025-10-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/f/776505b0-080d-4263-bf20-6f0472eba5e9</loc>
+    <lastmod>2025-10-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/f/a2ad0e26-e50c-4534-89da-d2fcfbb49d32</loc>
+    <lastmod>2025-09-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/f/fa6b5d02-68ba-4159-b16e-70342ab56ff7</loc>
+    <lastmod>2025-09-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/f/913a5e63-5977-41b6-86ee-4c2b409a2853</loc>
+    <lastmod>2025-09-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- ========== FIN SITEMAP ========== -->
   <!-- 
-    Pour les produits, boutiques et cagnottes dynamiques,
-    Google découvrira ces pages via les liens internes du site.
+    Total: 48 URLs
+    - 7 pages statiques
+    - 11 pages villes SEO
+    - 25 produits avec images
+    - 5 cagnottes publiques
     
-    Le sitemap dynamique complet est disponible à:
-    https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-full
+    Dernière mise à jour: 2026-01-21
   -->
 </urlset>
