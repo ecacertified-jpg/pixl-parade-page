@@ -4,7 +4,7 @@ import { ArrowLeft, ShoppingCart, Star, Package, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 import { SEOHead } from "@/components/SEOHead";
 import { CategoryBreadcrumb } from "@/components/breadcrumbs";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
@@ -155,20 +155,7 @@ export default function CategoryPage() {
           )}
 
           {/* Loading State */}
-          {loading && (
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map(i => (
-                <Card key={i} className="overflow-hidden">
-                  <Skeleton className="w-full aspect-square" />
-                  <div className="p-3 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-5 w-1/3" />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          {loading && <ProductGridSkeleton count={4} columns={2} />}
 
           {/* Empty State */}
           {!loading && products.length === 0 && (
