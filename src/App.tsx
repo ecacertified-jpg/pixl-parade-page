@@ -4,7 +4,8 @@ import AdminAuth from "./pages/AdminAuth";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Navigate } from "react-router-dom";
+import { AnimatedRoutes } from "@/components/transitions";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
@@ -111,7 +112,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <GoogleAnalytics />
-            <Routes>
+            <AnimatedRoutes>
             <Route path="/" element={<Landing />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -458,7 +459,7 @@ const App = () => (
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
+          </AnimatedRoutes>
             <AIChatWidget />
           </BrowserRouter>
           </TooltipProvider>
