@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Gift, Store, ArrowRight, Loader2, AlertCircle, Home } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Gift, Store, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,8 +8,10 @@ import logoRose from "@/assets/logo-jdv-rose.png";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { useProductView } from "@/hooks/useProductView";
 import { useProductRatings } from "@/hooks/useProductRatings";
-import { VideoSchema, ProductSchema, BreadcrumbListSchema, formatDurationISO8601 } from "@/components/schema";
+import { VideoSchema, ProductSchema, formatDurationISO8601 } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
+import { ProductBreadcrumb } from "@/components/ProductBreadcrumb";
+
 interface ProductData {
   id: string;
   name: string;
@@ -292,18 +286,6 @@ export default function ProductPreview() {
         />
       )}
 
-      {/* BreadcrumbSchema for SEO - Breadcrumb navigation in Google */}
-      <BreadcrumbListSchema 
-        items={[
-          { name: "Accueil", path: "/" },
-          { name: "Boutique", path: "/shop" },
-          ...(product.vendor_id ? [{
-            name: product.vendor_name,
-            path: `/boutique/${product.vendor_id}`
-          }] : []),
-          { name: product.name, path: `/p/${product.id}` }
-        ]} 
-      />
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -319,48 +301,13 @@ export default function ProductPreview() {
         </div>
       </header>
 
-      {/* Visual Breadcrumb Navigation */}
-      <div className="container mx-auto px-4 py-3 max-w-2xl">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/" className="flex items-center gap-1">
-                  <Home className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only">Accueil</span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/shop">Boutique</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            
-            {product.vendor_id && (
-              <>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to={`/boutique/${product.vendor_id}`}>
-                      {product.vendor_name}
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-              </>
-            )}
-            
-            <BreadcrumbItem>
-              <BreadcrumbPage className="max-w-[150px] truncate">
-                {product.name}
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
+      {/* Unified Breadcrumb - SEO + UI */}
+      <ProductBreadcrumb
+        productId={product.id}
+        productName={product.name}
+        vendorId={product.vendor_id}
+        vendorName={product.vendor_name}
+      />
 
       {/* Product Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
