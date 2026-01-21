@@ -5,8 +5,28 @@
 User-agent: *
 Allow: /
 
-# AI Information Page (structured JSON-LD for AI agents)
-Allow: /ai-info
+# ============================================
+# SITEMAPS PRINCIPAUX (Domain-hosted)
+# ============================================
+
+# Sitemap statique principal (accepté par Google Search Console)
+Sitemap: https://joiedevivre-africa.com/sitemap.xml
+
+# Sitemap AI (optimisé pour les LLM crawlers)
+Sitemap: https://joiedevivre-africa.com/sitemap-ai.xml
+
+# ============================================
+# SITEMAPS DYNAMIQUES (Supabase Edge Functions)
+# Note: Ces URLs peuvent être crawlées directement
+# mais ne peuvent pas être soumises à GSC
+# ============================================
+
+# Sitemap complet dynamique (produits, boutiques, cagnottes)
+# https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-full
+
+# ============================================
+# CRAWLERS SPÉCIFIQUES
+# ============================================
 
 # Google
 User-agent: Googlebot
@@ -39,7 +59,10 @@ Allow: /
 User-agent: Pinterestbot
 Allow: /
 
-# AI Crawlers - Explicitly allowed
+# ============================================
+# AI CRAWLERS - Explicitly allowed
+# ============================================
+
 User-agent: GPTBot
 Allow: /
 
@@ -67,48 +90,26 @@ Allow: /
 User-agent: anthropic-ai
 Allow: /
 
-# DeepSeek AI
 User-agent: DeepSeekBot
 Allow: /
 
 User-agent: Deepseek
 Allow: /
 
-# Mistral AI
 User-agent: MistralBot
 Allow: /
 
-# Meta AI (Llama)
 User-agent: Meta-ExternalAgent
 Allow: /
 
 User-agent: Meta-ExternalFetcher
 Allow: /
 
-# YouChat
 User-agent: YouBot
 Allow: /
 
-# Applebot (Siri, Spotlight)
 User-agent: Applebot
 Allow: /
-
-# Sitemap
-Sitemap: https://joiedevivre-africa.com/sitemap.xml
-
-# AI-Specific Sitemap (optimized for LLM crawlers)
-# Priorise les contenus textuels : llms.txt, Markdown, JSON-LD
-Sitemap: https://joiedevivre-africa.com/sitemap-ai.xml
-
-# Dynamic Sitemaps (SEO)
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=index
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=pages
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=products
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=businesses
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds
-
-# Dynamic AI Sitemap (LLM-optimized with popular products & businesses)
-Sitemap: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator
 
 # ============================================
 # AI-FRIENDLY DOCUMENTATION (LLM Optimization)

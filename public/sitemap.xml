@@ -1,43 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <!-- 
-    JOIE DE VIVRE - Multi-Index Sitemap
+    JOIE DE VIVRE - Sitemap Complet Inline
+    Domain: joiedevivre-africa.com
     
-    This sitemap index points to dynamically generated sitemaps
-    for optimal Google indexing including Google Images.
-    
-    Individual sitemaps:
-    - pages: Static pages (home, about, faq, etc.)
-    - products: All active products with images
-    - businesses: All approved vendor shops with logos
-    - funds: All public collective funds
-    - cities: Local SEO landing pages (Abidjan, Cotonou, Dakar)
+    Ce sitemap contient toutes les URLs directement (inline).
+    Pour le sitemap dynamique avec produits/boutiques/fonds mis à jour,
+    utilisez: https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-full
   -->
   
-  <sitemap>
-    <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=pages</loc>
-  </sitemap>
+  <!-- ========== PAGES STATIQUES ========== -->
+  <url>
+    <loc>https://joiedevivre-africa.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="fr-CI" href="https://joiedevivre-africa.com/" />
+    <xhtml:link rel="alternate" hreflang="fr-BJ" href="https://joiedevivre-africa.com/" />
+    <xhtml:link rel="alternate" hreflang="fr-SN" href="https://joiedevivre-africa.com/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://joiedevivre-africa.com/" />
+  </url>
   
-  <sitemap>
-    <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=products</loc>
-  </sitemap>
+  <url>
+    <loc>https://joiedevivre-africa.com/shop</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
   
-  <sitemap>
-    <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=businesses</loc>
-  </sitemap>
+  <url>
+    <loc>https://joiedevivre-africa.com/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
   
-  <sitemap>
-    <loc>https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-generator?type=funds</loc>
-  </sitemap>
+  <url>
+    <loc>https://joiedevivre-africa.com/faq</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
   
-  <!-- Cities Overview Map -->
+  <url>
+    <loc>https://joiedevivre-africa.com/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/privacy-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <url>
+    <loc>https://joiedevivre-africa.com/terms-of-service</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  
+  <!-- ========== PAGES SEO VILLES ========== -->
   <url>
     <loc>https://joiedevivre-africa.com/villes</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
-  <!-- Local SEO City Pages - Villes Principales -->
+  <!-- Villes principales -->
   <url>
     <loc>https://joiedevivre-africa.com/abidjan</loc>
     <changefreq>monthly</changefreq>
@@ -54,7 +82,7 @@
     <priority>0.8</priority>
   </url>
   
-  <!-- Local SEO City Pages - Côte d'Ivoire Secondaires -->
+  <!-- Villes secondaires Côte d'Ivoire -->
   <url>
     <loc>https://joiedevivre-africa.com/bouake</loc>
     <changefreq>monthly</changefreq>
@@ -81,17 +109,24 @@
     <priority>0.7</priority>
   </url>
   
-  <!-- Local SEO City Pages - Bénin Secondaire -->
+  <!-- Villes secondaires Bénin & Sénégal -->
   <url>
     <loc>https://joiedevivre-africa.com/porto-novo</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  
-  <!-- Local SEO City Pages - Sénégal Secondaire -->
   <url>
     <loc>https://joiedevivre-africa.com/thies</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-</sitemapindex>
+  
+  <!-- ========== FIN SITEMAP STATIQUE ========== -->
+  <!-- 
+    Pour les produits, boutiques et cagnottes dynamiques,
+    Google découvrira ces pages via les liens internes du site.
+    
+    Le sitemap dynamique complet est disponible à:
+    https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-full
+  -->
+</urlset>
