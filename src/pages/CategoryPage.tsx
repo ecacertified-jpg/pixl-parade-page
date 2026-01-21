@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Star, Package, Sparkles } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Star, Package, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AnimatedProductCard } from "@/components/AnimatedProductCard";
+import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
+import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -183,78 +186,80 @@ export default function CategoryPage() {
 
           {/* Products Grid */}
           {!loading && products.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
-              {products.map(product => (
-                <Card 
-                  key={product.id} 
-                  className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+            <AnimatedProductGrid 
+              className="grid grid-cols-2 gap-3"
+              keyId={slug}
+            >
+              {products.map((product, index) => (
+                <AnimatedProductCard
+                  key={product.id}
+                  index={index}
                   onClick={() => handleProductClick(product)}
                 >
-                  {/* Image */}
-                  <div className="relative aspect-square">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    {/* Favorite Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleFavorite(product);
-                      }}
-                      className={cn(
-                        "absolute top-2 right-2 p-1.5 rounded-full bg-background/80 backdrop-blur-sm transition-colors",
-                        isFavorite(product.id) ? "text-destructive" : "text-muted-foreground hover:text-destructive"
-                      )}
-                    >
-                      <Heart className={cn("h-4 w-4", isFavorite(product.id) && "fill-current")} />
-                    </button>
-                    {/* Out of Stock */}
-                    {!product.inStock && (
-                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                        <Badge variant="destructive" className="text-xs">Rupture</Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3">
-                    <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-1 truncate">{product.vendor}</p>
-                    
-                    {/* Rating */}
-                    {product.reviews > 0 && (
-                      <div className="flex items-center gap-1 mb-2">
-                        <Star className="h-3 w-3 fill-primary text-primary" />
-                        <span className="text-xs">{product.rating}</span>
-                        <span className="text-xs text-muted-foreground">({product.reviews})</span>
-                      </div>
-                    )}
-
-                    {/* Price & Add to Cart */}
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary">
-                        {product.price.toLocaleString()} {product.currency}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0"
-                        disabled={!product.inStock}
+                  <Card className="overflow-hidden h-full">
+                    {/* Image */}
+                    <div className="relative aspect-square">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Favorite Button */}
+                      <AnimatedFavoriteButton
+                        isFavorite={isFavorite(product.id)}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddToCart(product);
+                          handleToggleFavorite(product);
                         }}
-                      >
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                      </Button>
+                        className="absolute top-2 right-2"
+                        size="sm"
+                      />
+                      {/* Out of Stock */}
+                      {!product.inStock && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                          <Badge variant="destructive" className="text-xs">Rupture</Badge>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </Card>
+
+                    {/* Info */}
+                    <div className="p-3">
+                      <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-1 truncate">{product.vendor}</p>
+                      
+                      {/* Rating */}
+                      {product.reviews > 0 && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Star className="h-3 w-3 fill-primary text-primary" />
+                          <span className="text-xs">{product.rating}</span>
+                          <span className="text-xs text-muted-foreground">({product.reviews})</span>
+                        </div>
+                      )}
+
+                      {/* Price & Add to Cart */}
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-primary">
+                          {product.price.toLocaleString()} {product.currency}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          disabled={!product.inStock}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(product);
+                          }}
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </AnimatedProductCard>
               ))}
-            </div>
+            </AnimatedProductGrid>
           )}
         </main>
       </div>

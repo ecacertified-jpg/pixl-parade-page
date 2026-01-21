@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ProductShareCount } from "@/components/ProductShareCount";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
@@ -26,6 +27,9 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { ShopBreadcrumb, CategoryBreadcrumb } from "@/components/breadcrumbs";
 import { getCategoryByName } from "@/data/product-categories";
+import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
+import { AnimatedProductCard } from "@/components/AnimatedProductCard";
+import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -706,90 +710,86 @@ export default function Shop() {
         </Card>
 
         {/* Products Grid */}
-        <div className="space-y-4">
+        <AnimatedProductGrid 
+          className="space-y-4"
+          keyId={`${selectedCategory}-${activeTab}`}
+        >
           {filteredProducts.length === 0 ? (
             <Card className="p-8 text-center">
               <p className="text-muted-foreground">Aucun {activeTab === "products" ? "produit" : "expérience"} trouvé(e) dans cette catégorie.</p>
             </Card>
           ) : (
-            filteredProducts.map(product => (
-              <Card key={product.id} className="overflow-hidden">
-                {/* Clickable Image/Video */}
-                <div 
-                  className="relative cursor-pointer"
-                  onClick={() => {
-                    setDetailProduct(product);
-                    setIsDetailModalOpen(true);
-                  }}
-                >
-                  <img 
-                    src={product.videoUrl ? (product.videoThumbnailUrl || product.image) : product.image} 
-                    alt={product.name} 
-                    className="w-full h-40 object-cover" 
-                  />
-                  {product.isExperience && (
-                    <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
-                      ✨ EXPÉRIENCE
-                    </Badge>
-                  )}
-                  {/* Play button for video products */}
-                  {product.videoUrl && (
-                    <button
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+            filteredProducts.map((product, index) => (
+              <AnimatedProductCard
+                key={product.id}
+                index={index}
+                onClick={() => {
+                  setDetailProduct(product);
+                  setIsDetailModalOpen(true);
+                }}
+              >
+                <Card className="overflow-hidden">
+                  {/* Clickable Image/Video */}
+                  <div className="relative cursor-pointer">
+                    <img 
+                      src={product.videoUrl ? (product.videoThumbnailUrl || product.image) : product.image} 
+                      alt={product.name} 
+                      className="w-full h-40 object-cover" 
+                    />
+                    {product.isExperience && (
+                      <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
+                        ✨ EXPÉRIENCE
+                      </Badge>
+                    )}
+                    {/* Play button for video products */}
+                    {product.videoUrl && (
+                      <button
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVideo({ url: product.videoUrl!, title: product.name });
+                        }}
+                        aria-label="Lire la vidéo"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Play className="h-7 w-7 text-primary fill-primary ml-1" />
+                        </div>
+                        <Badge className="absolute bottom-2 left-2 bg-black/70 text-white text-xs flex items-center gap-1">
+                          <Video className="h-3 w-3" />
+                          Vidéo
+                        </Badge>
+                      </button>
+                    )}
+                    {/* Share Button */}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-12 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedVideo({ url: product.videoUrl!, title: product.name });
+                        setShareProduct(product);
                       }}
-                      aria-label="Lire la vidéo"
                     >
-                      <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <Play className="h-7 w-7 text-primary fill-primary ml-1" />
-                      </div>
-                      <Badge className="absolute bottom-2 left-2 bg-black/70 text-white text-xs flex items-center gap-1">
-                        <Video className="h-3 w-3" />
-                        Vidéo
-                      </Badge>
-                    </button>
-                  )}
-                  {/* Share Button */}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-2 right-12 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShareProduct(product);
-                    }}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                  {/* Favorite Button */}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={cn(
-                      "absolute top-2 right-2 bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10",
-                      isFavorite(String(product.id)) && "text-destructive"
-                    )}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const productIdStr = String(product.id);
-                      if (isFavorite(productIdStr)) {
-                        const favoriteId = getFavoriteId(productIdStr);
-                        if (favoriteId) {
-                          await removeFavorite(favoriteId);
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    {/* Favorite Button */}
+                    <AnimatedFavoriteButton
+                      isFavorite={isFavorite(String(product.id))}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const productIdStr = String(product.id);
+                        if (isFavorite(productIdStr)) {
+                          const favoriteId = getFavoriteId(productIdStr);
+                          if (favoriteId) {
+                            await removeFavorite(favoriteId);
+                          }
+                        } else {
+                          await addFavorite(productIdStr);
                         }
-                      } else {
-                        await addFavorite(productIdStr);
-                      }
-                    }}
-                  >
-                    <Heart className={cn(
-                      "h-4 w-4 transition-all",
-                      isFavorite(String(product.id)) && "fill-current"
-                    )} />
-                  </Button>
-                </div>
+                      }}
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white h-8 w-8 z-10"
+                    />
+                  </div>
                 
                 <div className="p-3">
                   {/* Name + Vendor on same line */}
@@ -867,10 +867,11 @@ export default function Shop() {
                     {product.isExperience ? "Réserver" : "Commander"}
                   </Button>
                 </div>
-              </Card>
+                </Card>
+              </AnimatedProductCard>
             ))
           )}
-        </div>
+        </AnimatedProductGrid>
 
         <div className="pb-20" />
       </main>
