@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { 
   COUNTRIES, 
   DEFAULT_COUNTRY_CODE, 
@@ -9,14 +9,15 @@ import {
 import { getCitiesForCountry, type CityCoordinates } from "@/utils/countryCities";
 import { detectUserCountry } from "@/utils/countryDetection";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const STORAGE_KEY = "joiedevivre_country";
-const AUTO_DETECTED_KEY = "joiedevivre_country_auto_detected";
+const NAV_STORAGE_KEY = "joiedevivre_nav_country";
+const SESSION_DETECTED_KEY = "joiedevivre_session_detected";
 
 interface CountryContextType {
   country: CountryConfig;
   countryCode: string;
-  setCountryCode: (code: string) => void;
+  setCountryCode: (code: string, updateProfile?: boolean) => void;
   cities: CityCoordinates[];
   allCountries: CountryConfig[];
   isDetecting: boolean;
@@ -25,9 +26,13 @@ interface CountryContextType {
   setShowAllCountries: (value: boolean) => void;
   effectiveCountryFilter: string | null; // null = all countries
   
-  // New: Profile country for hybrid filtering
+  // Profile country for hybrid filtering
   profileCountryCode: string | null;
   isVisiting: boolean; // true if current country differs from profile country
+  
+  // New: Manual detection trigger
+  detectCurrentLocation: () => Promise<void>;
+  setAsHomeCountry: () => Promise<void>;
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -39,9 +44,10 @@ interface CountryProviderProps {
 export function CountryProvider({ children }: CountryProviderProps) {
   const [countryCode, setCountryCodeState] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored && isValidCountryCode(stored)) {
-        return stored;
+      // Check sessionStorage first for current session navigation
+      const sessionNav = sessionStorage.getItem(NAV_STORAGE_KEY);
+      if (sessionNav && isValidCountryCode(sessionNav)) {
+        return sessionNav;
       }
     }
     return DEFAULT_COUNTRY_CODE;
@@ -71,43 +77,78 @@ export function CountryProvider({ children }: CountryProviderProps) {
           .from('profiles')
           .update({ country_code: code })
           .eq('user_id', user.id);
+        setProfileCountryCode(code);
       }
     } catch (error) {
       console.error('Error syncing country to profile:', error);
     }
   };
 
-  const setCountryCode = (code: string) => {
+  // Set country code for navigation (does not update profile by default)
+  const setCountryCode = useCallback((code: string, updateProfile = false) => {
     if (isValidCountryCode(code)) {
       setCountryCodeState(code);
-      localStorage.setItem(STORAGE_KEY, code);
-      // Sync to database
-      syncCountryToProfile(code);
+      sessionStorage.setItem(NAV_STORAGE_KEY, code);
+      
+      // Only sync to profile if explicitly requested
+      if (updateProfile) {
+        syncCountryToProfile(code);
+      }
     }
-  };
+  }, []);
 
-  // Auto-detect country on first visit
+  // Manual detection trigger
+  const detectCurrentLocation = useCallback(async () => {
+    setIsDetecting(true);
+    try {
+      const detectedCode = await detectUserCountry(false);
+      if (isValidCountryCode(detectedCode)) {
+        const detectedCountry = getCountryConfig(detectedCode);
+        setCountryCodeState(detectedCode);
+        sessionStorage.setItem(NAV_STORAGE_KEY, detectedCode);
+        toast.success(`Position détectée : ${detectedCountry.flag} ${detectedCountry.name}`);
+      }
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+
+  // Set current navigation country as home country
+  const setAsHomeCountry = useCallback(async () => {
+    await syncCountryToProfile(countryCode);
+    const currentCountry = getCountryConfig(countryCode);
+    toast.success(`${currentCountry.flag} ${currentCountry.name} défini comme pays d'origine`);
+  }, [countryCode]);
+
+  // Auto-detect country on each session (not just first visit)
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const alreadyDetected = localStorage.getItem(AUTO_DETECTED_KEY);
+    const sessionDetected = sessionStorage.getItem(SESSION_DETECTED_KEY);
 
-    // Only auto-detect if no stored preference and not already attempted
-    if (!stored && !alreadyDetected) {
+    // Detect on each new session
+    if (!sessionDetected) {
       setIsDetecting(true);
       
       detectUserCountry(false).then((detectedCode) => {
         if (isValidCountryCode(detectedCode)) {
-          setCountryCodeState(detectedCode);
-          localStorage.setItem(STORAGE_KEY, detectedCode);
+          const previousCountry = sessionStorage.getItem(NAV_STORAGE_KEY);
           
-          // Only mark as auto-detected if it's different from default
-          if (detectedCode !== DEFAULT_COUNTRY_CODE) {
+          setCountryCodeState(detectedCode);
+          sessionStorage.setItem(NAV_STORAGE_KEY, detectedCode);
+          
+          // Show welcome toast if country changed
+          if (previousCountry && previousCountry !== detectedCode) {
+            const detectedCountry = getCountryConfig(detectedCode);
+            toast.success(`Bienvenue ${detectedCountry.flag} ${detectedCountry.name} !`, {
+              description: "Contenu adapté à votre localisation"
+            });
+            setWasAutoDetected(true);
+          } else if (detectedCode !== DEFAULT_COUNTRY_CODE) {
             setWasAutoDetected(true);
           }
         }
         
-        // Mark that we've attempted detection
-        localStorage.setItem(AUTO_DETECTED_KEY, 'true');
+        // Mark that we've detected for this session
+        sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
         setIsDetecting(false);
       });
     }
@@ -162,7 +203,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
         setShowAllCountries,
         effectiveCountryFilter,
         profileCountryCode,
-        isVisiting
+        isVisiting,
+        detectCurrentLocation,
+        setAsHomeCountry
       }}
     >
       {children}

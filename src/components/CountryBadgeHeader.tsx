@@ -1,4 +1,4 @@
-import { ChevronDown, Home, MapPin } from "lucide-react";
+import { ChevronDown, Home, LocateFixed, MapPin, MapPinHouse } from "lucide-react";
 import { useCountry } from "@/contexts/CountryContext";
 import { getCountryConfig } from "@/config/countries";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 interface CountryBadgeHeaderProps {
   className?: string;
@@ -28,7 +29,9 @@ export function CountryBadgeHeader({ className }: CountryBadgeHeaderProps) {
     allCountries, 
     isVisiting, 
     profileCountryCode,
-    isDetecting 
+    isDetecting,
+    detectCurrentLocation,
+    setAsHomeCountry
   } = useCountry();
 
   if (isDetecting) {
@@ -37,8 +40,8 @@ export function CountryBadgeHeader({ className }: CountryBadgeHeaderProps) {
         "flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 animate-pulse",
         className
       )}>
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">...</span>
+        <LocateFixed className="h-4 w-4 text-muted-foreground animate-spin" />
+        <span className="text-xs text-muted-foreground">Détection...</span>
       </div>
     );
   }
@@ -73,7 +76,7 @@ export function CountryBadgeHeader({ className }: CountryBadgeHeaderProps) {
               <MapPin className="h-4 w-4 text-primary" />
               Vous naviguez depuis
             </div>
-            <Select value={countryCode} onValueChange={setCountryCode}>
+            <Select value={countryCode} onValueChange={(code) => setCountryCode(code)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -90,26 +93,63 @@ export function CountryBadgeHeader({ className }: CountryBadgeHeaderProps) {
             </Select>
           </div>
 
-          {/* Home country link when visiting */}
-          {isVisiting && homeCountry && (
-            <div className="pt-3 border-t border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Home className="h-4 w-4" />
-                  <span>Votre pays d'origine</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCountryCode(profileCountryCode!)}
-                  className="h-8 gap-1.5"
-                >
-                  <span>{homeCountry.flag}</span>
-                  <span className="text-xs">{homeCountry.name}</span>
-                </Button>
-              </div>
+          {/* Detection button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={detectCurrentLocation}
+            disabled={isDetecting}
+            className="w-full gap-2"
+          >
+            <LocateFixed className="h-4 w-4" />
+            Détecter ma position
+          </Button>
+
+          <Separator />
+
+          {/* Home country section */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Home className="h-4 w-4 text-muted-foreground" />
+              Pays d'origine
             </div>
-          )}
+            
+            {homeCountry ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm">
+                  <span>{homeCountry.flag}</span>
+                  <span>{homeCountry.name}</span>
+                </div>
+                {isVisiting && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCountryCode(profileCountryCode!)}
+                    className="h-7 text-xs"
+                  >
+                    Y aller
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Non défini</p>
+            )}
+            
+            {/* Set as home button (if visiting or no home set) */}
+            {(isVisiting || !homeCountry) && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={setAsHomeCountry}
+                className="w-full gap-2 mt-2"
+              >
+                <MapPinHouse className="h-4 w-4" />
+                Définir {country.flag} comme origine
+              </Button>
+            )}
+          </div>
+
+          <Separator />
 
           {/* Info text */}
           <p className="text-xs text-muted-foreground">
