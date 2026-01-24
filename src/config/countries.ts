@@ -12,6 +12,9 @@ export interface LegalEntity {
   ecommerceLaw: string;
 }
 
+// SMS reliability status for OTP delivery
+export type SmsReliability = 'reliable' | 'unreliable' | 'unavailable';
+
 export interface CountryConfig {
   code: string;
   name: string;
@@ -27,6 +30,9 @@ export interface CountryConfig {
   mobileMoneyProviders: string[];
   dateFormat: string;
   language: string;
+  // SMS/OTP settings
+  smsReliability: SmsReliability;
+  whatsappFallbackEnabled: boolean;
 }
 
 export const COUNTRIES: Record<string, CountryConfig> = {
@@ -54,7 +60,10 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     },
     mobileMoneyProviders: ["Orange Money", "MTN Mobile Money", "Moov Money", "Wave"],
     dateFormat: "DD/MM/YYYY",
-    language: "fr"
+    language: "fr",
+    // SMS fonctionne bien en Côte d'Ivoire via Twilio
+    smsReliability: "reliable",
+    whatsappFallbackEnabled: false
   },
   BJ: {
     code: "BJ",
@@ -80,7 +89,10 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     },
     mobileMoneyProviders: ["MTN Mobile Money", "Moov Money", "Celtiis Cash"],
     dateFormat: "DD/MM/YYYY",
-    language: "fr"
+    language: "fr",
+    // SMS non configuré via Twilio pour le Bénin - utiliser WhatsApp
+    smsReliability: "unavailable",
+    whatsappFallbackEnabled: true
   },
   SN: {
     code: "SN",
@@ -106,7 +118,10 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     },
     mobileMoneyProviders: ["Orange Money", "Wave", "Free Money", "Wari", "Joni Joni"],
     dateFormat: "DD/MM/YYYY",
-    language: "fr"
+    language: "fr",
+    // SMS peut être lent au Sénégal - proposer WhatsApp en alternative
+    smsReliability: "unreliable",
+    whatsappFallbackEnabled: true
   }
 };
 

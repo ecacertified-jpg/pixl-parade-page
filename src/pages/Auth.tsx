@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Store, Gift, Loader2, Shield } from 'lucide-react';
-import { getAllCountries } from '@/config/countries';
+import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
@@ -24,6 +24,7 @@ import { useDuplicateAccountDetection, type DuplicateCheckResult, type MatchingP
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
+import { OtpMethodSelector, useWhatsAppFallback, type OtpMethod } from '@/components/auth/OtpMethodSelector';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -60,6 +61,10 @@ const Auth = () => {
   const [countdown, setCountdown] = useState(0);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  
+  // États pour WhatsApp OTP fallback
+  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(null);
+  const [pendingFormData, setPendingFormData] = useState<SignUpFormData | SignInFormData | null>(null);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -141,24 +146,42 @@ const Auth = () => {
     }
   }, [countdown]);
 
+  // Check if WhatsApp fallback should be shown
+  const currentCountryCode = signInForm.watch('countryCode') || signUpForm.watch('countryCode') || country.phonePrefix;
+  const { showFallback, defaultMethod, smsAvailable } = useWhatsAppFallback(currentCountryCode);
+
   const sendOtpSignIn = async (data: SignInFormData) => {
+    const fullPhone = `${data.countryCode}${data.phone}`;
+    
+    // Check if we need to show method selector
+    if (showFallback && !otpMethod) {
+      setPendingFormData(data);
+      return;
+    }
+    
+    // Use selected method or default
+    const method = otpMethod || defaultMethod;
+    
+    if (method === 'whatsapp') {
+      await sendWhatsAppOtp(fullPhone, 'signin');
+    } else {
+      await sendSmsOtp(fullPhone, 'signin');
+    }
+  };
+
+  const sendSmsOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
     try {
       setIsLoading(true);
-      const fullPhone = `${data.countryCode}${data.phone}`;
       
-      console.log('📱 [OTP Sign-In] Sending OTP to:', fullPhone);
+      console.log('📱 [SMS OTP] Sending OTP to:', fullPhone);
       
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
+        options: metadata ? { data: metadata } : undefined,
       });
 
       if (error) {
-        console.error('❌ [OTP Sign-In] Send error:', {
-          message: error.message,
-          status: error.status,
-          code: error.code,
-          name: error.name,
-        });
+        console.error('❌ [SMS OTP] Send error:', error);
         toast({
           title: 'Erreur',
           description: error.message,
@@ -167,7 +190,7 @@ const Auth = () => {
         return;
       }
 
-      console.log('✅ [OTP Sign-In] OTP sent successfully to:', fullPhone);
+      console.log('✅ [SMS OTP] OTP sent successfully to:', fullPhone);
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(60);
@@ -176,7 +199,51 @@ const Auth = () => {
         description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
       });
     } catch (error: any) {
-      console.error('💥 [OTP Sign-In] Unexpected error:', error);
+      console.error('💥 [SMS OTP] Unexpected error:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
+    try {
+      setIsLoading(true);
+      
+      console.log('📱 [WhatsApp OTP] Sending OTP to:', fullPhone);
+      
+      const { data: result, error } = await supabase.functions.invoke('send-whatsapp-otp', {
+        body: {
+          phone: fullPhone,
+          purpose,
+          user_metadata: metadata,
+        },
+      });
+
+      if (error || !result?.success) {
+        console.error('❌ [WhatsApp OTP] Send error:', error || result?.error);
+        toast({
+          title: 'Erreur',
+          description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      console.log('✅ [WhatsApp OTP] OTP sent successfully to:', fullPhone);
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setCountdown(60);
+      toast({
+        title: 'Code envoyé via WhatsApp',
+        description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
+      });
+    } catch (error: any) {
+      console.error('💥 [WhatsApp OTP] Unexpected error:', error);
       toast({
         title: 'Erreur',
         description: 'Une erreur inattendue s\'est produite',
@@ -188,7 +255,52 @@ const Auth = () => {
   };
 
   const handleSignUpSubmit = async (data: SignUpFormData) => {
+    const fullPhone = `${data.countryCode}${data.phone}`;
+    
+    // Check if we need to show method selector
+    if (showFallback && !otpMethod) {
+      setPendingFormData(data);
+      setAuthMode('signup');
+      return;
+    }
+    
     await sendOtpSignUp(data, false);
+  };
+
+  // Handle method selection
+  const handleMethodSelect = async (method: OtpMethod) => {
+    setOtpMethod(method);
+    
+    if (pendingFormData) {
+      if ('firstName' in pendingFormData) {
+        // It's a signup form
+        const data = pendingFormData as SignUpFormData;
+        const fullPhone = `${data.countryCode}${data.phone}`;
+        const metadata = {
+          first_name: data.firstName,
+          birthday: data.birthday,
+          city: data.city,
+          phone: fullPhone,
+        };
+        
+        if (method === 'whatsapp') {
+          await sendWhatsAppOtp(fullPhone, 'signup', metadata);
+        } else {
+          await sendSmsOtp(fullPhone, 'signup', metadata);
+        }
+      } else {
+        // It's a signin form
+        const data = pendingFormData as SignInFormData;
+        const fullPhone = `${data.countryCode}${data.phone}`;
+        
+        if (method === 'whatsapp') {
+          await sendWhatsAppOtp(fullPhone, 'signin');
+        } else {
+          await sendSmsOtp(fullPhone, 'signin');
+        }
+      }
+      setPendingFormData(null);
+    }
   };
 
   const sendOtpSignUp = async (data: SignUpFormData, skipDuplicateCheck: boolean) => {
@@ -249,47 +361,22 @@ const Auth = () => {
         }
       }
       
-      console.log('📱 [OTP Sign-Up] Sending OTP to:', fullPhone, 'with metadata:', {
+      // Use selected method or default
+      const method = otpMethod || defaultMethod;
+      const metadata = {
         first_name: data.firstName,
+        birthday: data.birthday,
         city: data.city,
-      });
-      
-      const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
-        options: {
-          data: {
-            first_name: data.firstName,
-            birthday: data.birthday,
-            city: data.city,
-            phone: fullPhone,
-          },
-        },
-      });
-
-      if (error) {
-        console.error('❌ [OTP Sign-Up] Send error:', {
-          message: error.message,
-          status: error.status,
-          code: error.code,
-          name: error.name,
-        });
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return;
+      };
+      
+      if (method === 'whatsapp') {
+        await sendWhatsAppOtp(fullPhone, 'signup', metadata);
+      } else {
+        await sendSmsOtp(fullPhone, 'signup', metadata);
       }
-
-      console.log('✅ [OTP Sign-Up] OTP sent successfully to:', fullPhone);
-      setCurrentPhone(fullPhone);
-      setOtpSent(true);
+      
       setAuthMode('signup');
-      setCountdown(60);
-      toast({
-        title: 'Code envoyé',
-        description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
-      });
     } catch (error: any) {
       console.error('💥 [OTP Sign-Up] Unexpected error:', error);
       toast({
@@ -338,7 +425,99 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      console.log('🔐 [OTP Verify] Verifying OTP:', {
+      // Check if we're using WhatsApp OTP
+      const method = otpMethod || defaultMethod;
+      
+      if (method === 'whatsapp') {
+        // Verify via WhatsApp edge function
+        console.log('🔐 [WhatsApp OTP Verify] Verifying code for:', currentPhone);
+        
+        const { data: result, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
+          body: {
+            phone: currentPhone,
+            code: data.otp,
+          },
+        });
+
+        if (error || !result?.success) {
+          console.error('❌ [WhatsApp OTP Verify] Failed:', error || result?.error);
+          toast({
+            title: 'Code invalide',
+            description: result?.message || 'Le code saisi est incorrect ou expiré',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        console.log('✅ [WhatsApp OTP Verify] Success, user:', result.user_id);
+
+        // If we got tokens, set the session
+        if (result.access_token && result.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+          });
+        } else if (result.requires_reauth) {
+          // Fallback: user exists but we couldn't create session
+          // Try SMS-based signin for this user
+          toast({
+            title: 'Vérification réussie',
+            description: 'Votre compte est vérifié. Connexion en cours...',
+          });
+          
+          // Trigger SMS OTP for this phone to complete auth
+          const { error: smsError } = await supabase.auth.signInWithOtp({
+            phone: currentPhone,
+          });
+          
+          if (smsError) {
+            toast({
+              title: 'Connexion',
+              description: 'Compte vérifié. Veuillez vous reconnecter via SMS.',
+            });
+            resetOtpFlow();
+            return;
+          }
+          
+          toast({
+            title: 'Code SMS envoyé',
+            description: 'Un code SMS vous a été envoyé pour finaliser la connexion.',
+          });
+          setOtpMethod('sms');
+          setCountdown(60);
+          return;
+        }
+
+        // Track signup or login
+        if (result.is_new_user || authMode === 'signup') {
+          trackSignUp('whatsapp');
+          
+          // Send welcome email
+          try {
+            await supabase.functions.invoke('send-welcome-email', {
+              body: {
+                user_email: currentPhone,
+                user_name: 'utilisateur',
+              }
+            });
+          } catch (e) {
+            console.error('Error sending welcome email:', e);
+          }
+        } else {
+          trackLogin('whatsapp');
+        }
+
+        toast({
+          title: authMode === 'signup' ? 'Compte créé' : 'Connexion réussie',
+          description: authMode === 'signup' ? 'Votre compte a été créé avec succès' : 'Vous êtes maintenant connecté',
+        });
+
+        navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
+        return;
+      }
+      
+      // Standard SMS OTP verification
+      console.log('🔐 [SMS OTP Verify] Verifying OTP:', {
         phone: currentPhone,
         tokenLength: data.otp.length,
         tokenPreview: data.otp.substring(0, 2) + '****',
@@ -351,7 +530,7 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('❌ [OTP Verify] Verification failed:', {
+        console.error('❌ [SMS OTP Verify] Verification failed:', {
           message: error.message,
           status: error.status,
           code: error.code,
@@ -365,7 +544,7 @@ const Auth = () => {
         return;
       }
 
-      console.log('✅ [OTP Verify] Verification successful, user:', authData.user?.id);
+      console.log('✅ [SMS OTP Verify] Verification successful, user:', authData.user?.id);
 
       if (authData.user) {
         // Check if this is a new signup by checking profile creation time

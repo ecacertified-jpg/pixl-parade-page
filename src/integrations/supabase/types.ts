@@ -6682,6 +6682,45 @@ export type Database = {
           },
         ]
       }
+      whatsapp_otp_codes: {
+        Row: {
+          attempts: number | null
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          max_attempts: number | null
+          phone: string
+          purpose: string
+          user_metadata: Json | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          max_attempts?: number | null
+          phone: string
+          purpose?: string
+          user_metadata?: Json | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          max_attempts?: number | null
+          phone?: string
+          purpose?: string
+          user_metadata?: Json | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       wishlist_views: {
         Row: {
           id: string
@@ -7327,6 +7366,7 @@ export type Database = {
       }
       cleanup_expired_og_cache: { Args: never; Returns: undefined }
       cleanup_expired_pending_registrations: { Args: never; Returns: number }
+      cleanup_expired_whatsapp_otp: { Args: never; Returns: number }
       create_birthday_celebration: {
         Args: {
           p_age_at_celebration?: number

@@ -194,3 +194,9 @@ verify_jwt = false
 
 [functions.sitemap-sync]
 verify_jwt = false
+
+[functions.send-whatsapp-otp]
+verify_jwt = false
+
+[functions.verify-whatsapp-otp]
+verify_jwt = false
