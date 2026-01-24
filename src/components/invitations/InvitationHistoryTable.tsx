@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Mail, Calendar, RefreshCw, Trash2, Search } from 'lucide-react';
 import { Invitation } from '@/hooks/useInvitations';
 import { formatDistanceToNow } from 'date-fns';
@@ -77,10 +78,15 @@ export function InvitationHistoryTable({
             ))}
           </div>
         ) : filteredInvitations.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Aucune invitation trouvée</p>
-          </div>
+          <EmptyState
+            icon={Mail}
+            title="Aucune invitation trouvée"
+            description={search ? "Essayez avec d'autres termes de recherche" : undefined}
+            iconColor="text-primary"
+            showDecorations={false}
+            size="sm"
+            className="py-8"
+          />
         ) : (
           <div className="space-y-3">
             {filteredInvitations.map((invitation) => (

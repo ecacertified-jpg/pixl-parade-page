@@ -1,4 +1,5 @@
 import { ArrowLeft, Store, BellOff, Package, Loader2, ShoppingBag } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -56,19 +57,18 @@ export default function FollowedShops() {
 
         {/* Empty state */}
         {shops.length === 0 && (
-          <Card className="p-8 text-center">
-            <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Store className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Aucune boutique suivie</h3>
-            <p className="text-muted-foreground text-sm mb-4">
-              Suivez vos boutiques préférées pour recevoir des notifications sur leurs nouveaux produits
-            </p>
-            <Button onClick={() => navigate('/shop')}>
-              <ShoppingBag className="h-4 w-4 mr-2" />
-              Découvrir des boutiques
-            </Button>
-          </Card>
+          <EmptyState
+            icon={Store}
+            title="Aucune boutique suivie"
+            description="Suivez vos boutiques préférées pour recevoir des notifications sur leurs nouveaux produits"
+            actionLabel="Découvrir des boutiques"
+            actionIcon={ShoppingBag}
+            onAction={() => navigate('/shop')}
+            iconColor="text-purple-500"
+            pulseGradient="bg-purple-500/30"
+            showDecorations={false}
+            size="md"
+          />
         )}
 
         {/* Shop list */}
