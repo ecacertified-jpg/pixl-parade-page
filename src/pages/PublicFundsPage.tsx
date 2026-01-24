@@ -22,6 +22,7 @@ import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { LoadMoreTrigger } from "@/components/LoadMoreTrigger";
+import { ScrollToTopButton } from "@/components/ui/scroll-to-top-button";
 
 // Options de tri
 const SORT_OPTIONS = [
@@ -297,6 +298,7 @@ export default function PublicFundsPage() {
           )}
         </main>
         
+        <ScrollToTopButton threshold={400} />
         <BottomNavigation />
       </div>
 
