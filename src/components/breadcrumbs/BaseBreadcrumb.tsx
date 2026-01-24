@@ -11,7 +11,8 @@ import {
 import { BreadcrumbListSchema } from "@/components/schema";
 
 export interface BreadcrumbItemConfig {
-  label: string;
+  label: string;           // Label affiché dans l'UI (peut contenir des emojis)
+  seoLabel?: string;       // Label pour le Schema SEO (sans emojis, optionnel)
   path: string;
   icon?: React.ReactNode;
   isCurrent?: boolean;
@@ -94,9 +95,9 @@ export function BaseBreadcrumb({
   const activeSeparatorVariants = shouldReduceMotion ? noMotionVariants : separatorVariants;
   const activeIconVariants = shouldReduceMotion ? noMotionVariants : iconVariants;
 
-  // Convertir les items pour le schema SEO
+  // Convertir les items pour le schema SEO (utiliser seoLabel si disponible, sans emojis)
   const schemaItems = items.map((item) => ({
-    name: item.label,
+    name: item.seoLabel || item.label,
     path: item.path,
   }));
 

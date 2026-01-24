@@ -65,7 +65,8 @@ export function FundBreadcrumb({
       icon: showFundsIcon ? <Gift className="h-3.5 w-3.5" /> : undefined,
     },
     {
-      label: `${occasionEmoji} ${occasionLabel}`,
+      label: `${occasionEmoji} ${occasionLabel}`,  // UI avec emoji
+      seoLabel: occasionLabel,                      // SEO sans emoji
       path: `/dashboard?occasion=${occasionKey}`,
     },
     {
