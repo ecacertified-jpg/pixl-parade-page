@@ -1,19 +1,33 @@
 import { useState, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Heart, Plus, ArrowLeft, Gift, Loader2 } from "lucide-react";
+import { Heart, Plus, ArrowLeft, Gift, Loader2, Clock, Target, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-import { usePublicFundsInfinite } from "@/hooks/usePublicFundsInfinite";
+import { usePublicFundsInfinite, type SortOption } from "@/hooks/usePublicFundsInfinite";
 import { type PublicFund } from "@/hooks/usePublicFunds";
 import { FundsBreadcrumb } from "@/components/breadcrumbs/FundsBreadcrumb";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { PublicFundCard } from "@/components/funds/PublicFundCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { LoadMoreTrigger } from "@/components/LoadMoreTrigger";
+
+// Options de tri
+const SORT_OPTIONS = [
+  { key: "recent" as SortOption, label: "Plus récentes", icon: Clock },
+  { key: "progress" as SortOption, label: "Proches de l'objectif", icon: Target },
+  { key: "popular" as SortOption, label: "Plus populaires", icon: TrendingUp },
+];
 
 // Occasions disponibles pour le filtrage
 const OCCASIONS = [
@@ -28,6 +42,7 @@ const OCCASIONS = [
 export default function PublicFundsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const occasionFilter = searchParams.get("occasion") || "all";
+  const sortBy = (searchParams.get("sort") as SortOption) || "recent";
   
   // Modal states
   const [showValueModal, setShowValueModal] = useState(false);
@@ -46,6 +61,7 @@ export default function PublicFundsPage() {
   } = usePublicFundsInfinite({
     occasionFilter: occasionFilter === "all" ? undefined : occasionFilter,
     statusFilter: "active",
+    sortBy,
   });
 
   // Flatten pages into single array
@@ -61,11 +77,25 @@ export default function PublicFundsPage() {
 
   // Handle occasion filter change
   const handleOccasionChange = (occasion: string) => {
-    if (occasion === "all") {
-      setSearchParams({});
-    } else {
-      setSearchParams({ occasion });
+    const newParams = new URLSearchParams();
+    if (occasion !== "all") {
+      newParams.set("occasion", occasion);
     }
+    if (sortBy !== "recent") {
+      newParams.set("sort", sortBy);
+    }
+    setSearchParams(newParams);
+  };
+
+  // Handle sort change
+  const handleSortChange = (newSort: SortOption) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (newSort === "recent") {
+      newParams.delete("sort");
+    } else {
+      newParams.set("sort", newSort);
+    }
+    setSearchParams(newParams);
   };
 
   // Handle contribution click
@@ -176,12 +206,30 @@ export default function PublicFundsPage() {
             </button>
           </motion.div>
 
-          {/* Results count */}
+          {/* Results count + Sort selector */}
           {!isLoading && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {funds.length} sur {totalCount} cagnotte{totalCount !== 1 ? 's' : ''} 
-              {occasionFilter !== "all" && ` pour ${OCCASIONS.find(o => o.key === occasionFilter)?.label.toLowerCase()}`}
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-muted-foreground">
+                {funds.length} sur {totalCount} cagnotte{totalCount !== 1 ? 's' : ''} 
+                {occasionFilter !== "all" && ` pour ${OCCASIONS.find(o => o.key === occasionFilter)?.label.toLowerCase()}`}
+              </p>
+              
+              <Select value={sortBy} onValueChange={(value) => handleSortChange(value as SortOption)}>
+                <SelectTrigger className="w-[165px] h-9 text-sm bg-card border-border/50">
+                  <SelectValue placeholder="Trier par" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.key} value={option.key} className="text-sm">
+                      <div className="flex items-center gap-2">
+                        <option.icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
           
           {/* Funds Grid */}

@@ -5,10 +5,13 @@ import type { PublicFund } from './usePublicFunds';
 
 const PAGE_SIZE = 12;
 
+export type SortOption = 'recent' | 'progress' | 'popular';
+
 interface FetchPublicFundsParams {
   occasionFilter?: string;
   statusFilter?: 'active' | 'completed' | 'all';
   countryFilter?: string;
+  sortBy?: SortOption;
   pageParam?: number;
 }
 
@@ -22,6 +25,7 @@ async function fetchPublicFundsPage({
   occasionFilter,
   statusFilter = 'active',
   countryFilter,
+  sortBy = 'recent',
   pageParam = 0,
 }: FetchPublicFundsParams): Promise<PublicFundsPage> {
   // Build query for public funds
@@ -97,7 +101,7 @@ async function fetchPublicFundsPage({
   }
 
   // Transform data
-  const transformedFunds: PublicFund[] = (data || []).map((fund: any) => ({
+  let transformedFunds: PublicFund[] = (data || []).map((fund: any) => ({
     id: fund.id,
     title: fund.title,
     beneficiaryName: fund.contacts?.name || 'Bénéficiaire',
@@ -115,6 +119,17 @@ async function fetchPublicFundsPage({
     beneficiaryBirthday: fund.contacts?.birthday,
   }));
 
+  // Apply client-side sorting for progress and popular
+  if (sortBy === 'progress') {
+    transformedFunds.sort((a, b) => {
+      const progressA = a.targetAmount > 0 ? (a.currentAmount / a.targetAmount) : 0;
+      const progressB = b.targetAmount > 0 ? (b.currentAmount / b.targetAmount) : 0;
+      return progressB - progressA;
+    });
+  } else if (sortBy === 'popular') {
+    transformedFunds.sort((a, b) => b.contributorsCount - a.contributorsCount);
+  }
+
   // Calculate next offset
   const totalCount = count || 0;
   const hasMore = (pageParam + PAGE_SIZE) < totalCount;
@@ -129,16 +144,18 @@ async function fetchPublicFundsPage({
 interface UsePublicFundsInfiniteOptions {
   occasionFilter?: string;
   statusFilter?: 'active' | 'completed' | 'all';
+  sortBy?: SortOption;
 }
 
 export function usePublicFundsInfinite(options: UsePublicFundsInfiniteOptions = {}) {
   const { effectiveCountryFilter } = useCountry();
   
   return useInfiniteQuery({
-    queryKey: ['public-funds-infinite', options.occasionFilter, options.statusFilter, effectiveCountryFilter],
+    queryKey: ['public-funds-infinite', options.occasionFilter, options.statusFilter, options.sortBy, effectiveCountryFilter],
     queryFn: ({ pageParam }) => fetchPublicFundsPage({
       occasionFilter: options.occasionFilter,
       statusFilter: options.statusFilter,
+      sortBy: options.sortBy,
       countryFilter: effectiveCountryFilter,
       pageParam,
     }),
