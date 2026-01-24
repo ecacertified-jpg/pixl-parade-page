@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getCountryConfig } from '@/config/countries';
+import { getCountryConfig, getCountryCodeByPhonePrefix } from '@/config/countries';
 import { cn } from '@/lib/utils';
 
 // WhatsApp icon component
@@ -29,7 +29,9 @@ export function OtpMethodSelector({
   onSelectMethod, 
   disabled = false 
 }: OtpMethodSelectorProps) {
-  const country = getCountryConfig(countryCode.replace('+', ''));
+  // Convertir le préfixe téléphonique (+229) en code pays ISO (BJ)
+  const isoCode = getCountryCodeByPhonePrefix(countryCode);
+  const country = getCountryConfig(isoCode);
   
   // If SMS is reliable for this country, don't show the selector
   if (country?.smsReliability === 'reliable') {
@@ -98,14 +100,8 @@ export function useWhatsAppFallback(phonePrefix: string): {
   defaultMethod: OtpMethod;
   smsAvailable: boolean;
 } {
-  // Extract country code from phone prefix (e.g., "+225" -> "CI")
-  const countryCodeMap: Record<string, string> = {
-    '+225': 'CI',
-    '+229': 'BJ', 
-    '+221': 'SN',
-  };
-  
-  const countryCode = countryCodeMap[phonePrefix] || 'CI';
+  // Utiliser la fonction centralisée pour convertir le préfixe en code pays
+  const countryCode = getCountryCodeByPhonePrefix(phonePrefix);
   const country = getCountryConfig(countryCode);
   
   if (!country) {
