@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle, Settings } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle, Settings, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -204,29 +205,35 @@ export default function Favorites() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : filteredAndSorted.length === 0 ? (
-          <div className="text-center py-12">
-            <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">
-              {favorites.length === 0 
-                ? "Aucun favori pour le moment" 
-                : "Aucun résultat pour ces filtres"}
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              {favorites.length === 0
-                ? "Explorez notre boutique et créez votre liste de souhaits !"
-                : "Essayez de modifier vos filtres pour voir plus d'articles"}
-            </p>
-            <div className="flex gap-3 justify-center">
-              <Button onClick={() => navigate('/shop')}>
-                Découvrir la boutique
-              </Button>
-              {favorites.length > 0 && (
+          <EmptyState
+            icon={Heart}
+            title={favorites.length === 0 
+              ? "Aucun favori pour le moment" 
+              : "Aucun résultat pour ces filtres"}
+            description={favorites.length === 0
+              ? "Explorez notre boutique et créez votre liste de souhaits !"
+              : "Essayez de modifier vos filtres pour voir plus d'articles"}
+            actionLabel={favorites.length === 0 ? "Découvrir la boutique" : undefined}
+            actionIcon={favorites.length === 0 ? ShoppingBag : undefined}
+            onAction={favorites.length === 0 ? () => navigate('/shop') : undefined}
+            iconColor="text-heart"
+            pulseGradient="bg-heart/30"
+            showDecorations={true}
+            decorationTopIcon={Sparkles}
+            size="md"
+          >
+            {favorites.length > 0 && (
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => navigate('/shop')}>
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Découvrir la boutique
+                </Button>
                 <Button variant="outline" onClick={() => { setSelectedOccasion('all'); setSortBy('priority'); }}>
                   Réinitialiser les filtres
                 </Button>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </EmptyState>
         ) : (
           <div className="space-y-4 mt-6">
             {filteredAndSorted.map((favorite) => (
