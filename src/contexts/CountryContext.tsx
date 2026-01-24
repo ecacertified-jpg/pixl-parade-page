@@ -24,6 +24,10 @@ interface CountryContextType {
   showAllCountries: boolean;
   setShowAllCountries: (value: boolean) => void;
   effectiveCountryFilter: string | null; // null = all countries
+  
+  // New: Profile country for hybrid filtering
+  profileCountryCode: string | null;
+  isVisiting: boolean; // true if current country differs from profile country
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -46,6 +50,7 @@ export function CountryProvider({ children }: CountryProviderProps) {
   const [isDetecting, setIsDetecting] = useState(false);
   const [wasAutoDetected, setWasAutoDetected] = useState(false);
   const [showAllCountries, setShowAllCountries] = useState(false);
+  const [profileCountryCode, setProfileCountryCode] = useState<string | null>(null);
 
   const country = getCountryConfig(countryCode);
   const cities = getCitiesForCountry(countryCode);
@@ -53,6 +58,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
   
   // effectiveCountryFilter returns null when showing all countries, otherwise the current countryCode
   const effectiveCountryFilter = showAllCountries ? null : countryCode;
+  
+  // isVisiting is true when the navigation country differs from the user's profile country
+  const isVisiting = profileCountryCode !== null && countryCode !== profileCountryCode;
 
   // Synchronize country code with user profile in database
   const syncCountryToProfile = async (code: string) => {
@@ -105,6 +113,41 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, []);
 
+  // Load profile country code for authenticated users
+  useEffect(() => {
+    const loadProfileCountry = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('country_code')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (data?.country_code && isValidCountryCode(data.country_code)) {
+            setProfileCountryCode(data.country_code);
+          }
+        } else {
+          setProfileCountryCode(null);
+        }
+      } catch (error) {
+        console.error('Error loading profile country:', error);
+      }
+    };
+
+    loadProfileCountry();
+
+    // Listen to auth changes to update profile country
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadProfileCountry();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <CountryContext.Provider 
       value={{ 
@@ -117,7 +160,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
         wasAutoDetected,
         showAllCountries,
         setShowAllCountries,
-        effectiveCountryFilter
+        effectiveCountryFilter,
+        profileCountryCode,
+        isVisiting
       }}
     >
       {children}

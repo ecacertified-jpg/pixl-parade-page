@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCountry } from '@/contexts/CountryContext';
+import { useCountryFilters } from '@/hooks/useCountryFilters';
 
 export interface PostData {
   id: string;
@@ -32,7 +32,7 @@ export interface PostData {
 
 export function usePosts(filterFollowing: boolean = false) {
   const { user } = useAuth();
-  const { effectiveCountryFilter } = useCountry();
+  const { localFilter, socialFollowingFilter } = useCountryFilters();
   const [posts, setPosts] = useState<PostData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,15 +58,17 @@ export function usePosts(filterFollowing: boolean = false) {
           return;
         }
 
-        // Fetch posts only from followed users - filtered by country if not showing all
+        // Fetch posts from followed users - NO COUNTRY FILTER
+        // Users see posts from ALL their friends regardless of location
         let followingQuery = supabase
           .from('posts')
           .select('*')
           .eq('is_published', true)
           .in('user_id', followedUserIds);
         
-        if (effectiveCountryFilter) {
-          followingQuery = followingQuery.eq('country_code', effectiveCountryFilter);
+        // socialFollowingFilter is always null - no country filtering for friends
+        if (socialFollowingFilter) {
+          followingQuery = followingQuery.eq('country_code', socialFollowingFilter);
         }
         
         const { data, error: postsError } = await followingQuery.order('created_at', { ascending: false });
@@ -74,14 +76,15 @@ export function usePosts(filterFollowing: boolean = false) {
         if (postsError) throw postsError;
         postsData = data;
       } else {
-        // Fetch all published posts - filtered by country if not showing all
+        // Fetch all published posts - filtered by current navigation country
         let allQuery = supabase
           .from('posts')
           .select('*')
           .eq('is_published', true);
         
-        if (effectiveCountryFilter) {
-          allQuery = allQuery.eq('country_code', effectiveCountryFilter);
+        // localFilter uses the current navigation country for discovery content
+        if (localFilter) {
+          allQuery = allQuery.eq('country_code', localFilter);
         }
         
         const { data, error: postsError } = await allQuery.order('created_at', { ascending: false });
@@ -89,6 +92,7 @@ export function usePosts(filterFollowing: boolean = false) {
         if (postsError) throw postsError;
         postsData = data;
       }
+
 
       // Fetch profiles for all unique user IDs
       const userIds = [...new Set(postsData?.map((post) => post.user_id) || [])];
@@ -212,7 +216,7 @@ export function usePosts(filterFollowing: boolean = false) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, filterFollowing, effectiveCountryFilter]);
+  }, [user?.id, filterFollowing, localFilter, socialFollowingFilter]);
 
   const toggleReaction = async (postId: string, reactionType: 'love' | 'gift' | 'like') => {
     if (!user?.id) return;
