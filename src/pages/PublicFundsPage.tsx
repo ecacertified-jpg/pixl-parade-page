@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Heart, Plus, ArrowLeft, Gift, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { usePublicFunds, type PublicFund } from "@/hooks/usePublicFunds";
+import { usePublicFundsInfinite } from "@/hooks/usePublicFundsInfinite";
+import { type PublicFund } from "@/hooks/usePublicFunds";
 import { FundsBreadcrumb } from "@/components/breadcrumbs/FundsBreadcrumb";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { PublicFundCard } from "@/components/funds/PublicFundCard";
@@ -12,6 +13,7 @@ import { BottomNavigation } from "@/components/RecentActivitySection";
 import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
+import { LoadMoreTrigger } from "@/components/LoadMoreTrigger";
 
 // Occasions disponibles pour le filtrage
 const OCCASIONS = [
@@ -34,11 +36,28 @@ export default function PublicFundsPage() {
   const [showShopForCollectiveGift, setShowShopForCollectiveGift] = useState(false);
   const [selectedFund, setSelectedFund] = useState<PublicFund | null>(null);
   
-  const { funds, loading, totalCount, refreshFunds } = usePublicFunds({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+  } = usePublicFundsInfinite({
     occasionFilter: occasionFilter === "all" ? undefined : occasionFilter,
     statusFilter: "active",
-    limit: 50,
   });
+
+  // Flatten pages into single array
+  const funds = data?.pages.flatMap(page => page.funds) ?? [];
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+
+  // Handle load more
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Handle occasion filter change
   const handleOccasionChange = (occasion: string) => {
@@ -158,15 +177,15 @@ export default function PublicFundsPage() {
           </motion.div>
 
           {/* Results count */}
-          {!loading && (
+          {!isLoading && (
             <p className="text-sm text-muted-foreground mb-4">
-              {totalCount} cagnotte{totalCount !== 1 ? 's' : ''} 
+              {funds.length} sur {totalCount} cagnotte{totalCount !== 1 ? 's' : ''} 
               {occasionFilter !== "all" && ` pour ${OCCASIONS.find(o => o.key === occasionFilter)?.label.toLowerCase()}`}
             </p>
           )}
           
           {/* Funds Grid */}
-          {loading ? (
+          {isLoading ? (
             <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="space-y-2">
@@ -215,7 +234,7 @@ export default function PublicFundsPage() {
                   key={fund.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: Math.min(index * 0.05, 0.5) }}
                 >
                   <PublicFundCard 
                     fund={fund} 
@@ -224,6 +243,28 @@ export default function PublicFundsPage() {
                 </motion.div>
               ))}
             </motion.div>
+          )}
+
+          {/* Load More Trigger */}
+          <LoadMoreTrigger
+            onLoadMore={handleLoadMore}
+            hasMore={!!hasNextPage}
+            isLoading={isFetchingNextPage}
+          />
+
+          {/* Loading indicator for next page */}
+          {isFetchingNextPage && (
+            <div className="flex items-center justify-center py-6 gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Chargement...</span>
+            </div>
+          )}
+
+          {/* End of list indicator */}
+          {!hasNextPage && funds.length > 0 && !isLoading && (
+            <p className="text-center text-sm text-muted-foreground py-6">
+              Vous avez tout vu ! 🎉
+            </p>
           )}
         </main>
         
@@ -253,7 +294,7 @@ export default function PublicFundsPage() {
             fundCreatorId={selectedFund.creatorId}
             occasion={selectedFund.occasion || undefined}
             onContributionSuccess={() => {
-              refreshFunds();
+              refetch();
               setShowContributionModal(false);
             }}
           />
