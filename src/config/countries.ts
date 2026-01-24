@@ -138,3 +138,16 @@ export function getAllCountries(): CountryConfig[] {
 export function isValidCountryCode(code: string): boolean {
   return code in COUNTRIES;
 }
+
+// Convertit un préfixe téléphonique (+225, +229, etc.) en code pays ISO (CI, BJ, etc.)
+export function getCountryCodeByPhonePrefix(phonePrefix: string): string {
+  const prefix = phonePrefix.replace('+', '');
+  
+  for (const [code, config] of Object.entries(COUNTRIES)) {
+    if (config.phonePrefix.replace('+', '') === prefix) {
+      return code;
+    }
+  }
+  
+  return DEFAULT_COUNTRY_CODE;
+}
