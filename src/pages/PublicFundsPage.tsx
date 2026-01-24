@@ -7,6 +7,7 @@ import { type PublicFund } from "@/hooks/usePublicFunds";
 import { FundsBreadcrumb } from "@/components/breadcrumbs/FundsBreadcrumb";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { PublicFundCard } from "@/components/funds/PublicFundCard";
+import { EmptyFundsState } from "@/components/funds/EmptyFundsState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -246,31 +247,11 @@ export default function PublicFundsPage() {
               ))}
             </div>
           ) : funds.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <div className="bg-muted/50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <Gift className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                Aucune cagnotte trouvée
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {occasionFilter !== "all" 
-                  ? `Aucune cagnotte pour ${OCCASIONS.find(o => o.key === occasionFilter)?.label.toLowerCase()} n'est disponible pour le moment.`
-                  : "Aucune cagnotte publique n'est disponible pour le moment."
-                }
-              </p>
-              <Button 
-                onClick={() => setShowValueModalForNewFund(true)}
-                className="bg-gradient-primary"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Créer la première
-              </Button>
-            </motion.div>
+            <EmptyFundsState
+              occasionFilter={occasionFilter !== "all" ? occasionFilter : null}
+              occasionLabel={OCCASIONS.find(o => o.key === occasionFilter)?.label}
+              onCreateFund={() => setShowValueModalForNewFund(true)}
+            />
           ) : (
             <motion.div 
               initial={{ opacity: 0 }}
