@@ -61,7 +61,7 @@ export function FundBreadcrumb({
     },
     {
       label: "Cagnottes",
-      path: "/dashboard",
+      path: "/cagnottes",
       icon: showFundsIcon ? <Gift className="h-3.5 w-3.5" /> : undefined,
     },
     {

@@ -394,6 +394,14 @@ export const SEO_CONFIGS = {
     aiSummary: "Mentions légales: AMTEY'S SARLU, Abidjan, Côte d'Ivoire. Éditeur et hébergeur du site joiedevivre-africa.com.",
     audience: 'all' as AIAudience,
   },
+  funds: {
+    title: "Cagnottes Publiques - Offrez ensemble | JOIE DE VIVRE",
+    description: "Découvrez et contribuez aux cagnottes collectives pour les anniversaires, mariages, naissances et autres occasions spéciales. Participez à la joie de donner en groupe.",
+    keywords: "cagnotte collective, cadeau groupe, anniversaire, mariage, contribution, Côte d'Ivoire, Bénin",
+    aiContentType: 'fund' as AIContentType,
+    aiSummary: "Liste des cagnottes publiques pour cadeaux collectifs. Filtrable par occasion: anniversaires, mariages, naissances, diplômes, promotions.",
+    audience: 'gift-givers' as AIAudience,
+  },
 } as const;
 
 export default SEOHead;
