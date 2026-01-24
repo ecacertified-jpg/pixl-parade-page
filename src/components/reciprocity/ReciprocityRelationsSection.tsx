@@ -3,7 +3,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, ArrowRight, Scale } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Users, ArrowRight, Scale, Sparkles, Gift } from 'lucide-react';
 import { ReciprocityRelation } from '@/hooks/useReciprocityHistory';
 
 interface ReciprocityRelationsSectionProps {
@@ -58,13 +59,17 @@ export function ReciprocityRelationsSection({ relations }: ReciprocityRelationsS
       <CardContent>
         <ScrollArea className="h-[500px] pr-4">
           {relations.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Aucune relation d'échange pour le moment</p>
-              <p className="text-sm mt-1">
-                Commencez à contribuer pour voir vos relations
-              </p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="Aucune relation d'échange"
+              description="Commencez à contribuer pour voir vos relations"
+              iconColor="text-primary"
+              showDecorations={true}
+              decorationTopIcon={Sparkles}
+              decorationBottomIcon={Gift}
+              size="sm"
+              className="py-8"
+            />
           ) : (
             <div className="space-y-4">
               {relations.map((relation) => (
