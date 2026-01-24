@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star, Pencil } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -271,20 +272,20 @@ const Orders = () => {
         {isLoading ? (
           <OrdersSkeleton />
         ) : filteredOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <ShoppingBag className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">Aucune commande</h3>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              {activeTab === "all"
-                ? "Vous n'avez pas encore passé de commande."
-                : "Aucune commande dans cette catégorie."}
-            </p>
-            <Button onClick={() => navigate("/shop")} className="mt-6">
-              Découvrir la boutique
-            </Button>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="Aucune commande"
+            description={activeTab === "all"
+              ? "Vous n'avez pas encore passé de commande."
+              : "Aucune commande dans cette catégorie."}
+            actionLabel="Découvrir la boutique"
+            actionIcon={Package}
+            onAction={() => navigate("/shop")}
+            iconColor="text-primary"
+            pulseGradient="bg-primary/30"
+            showDecorations={false}
+            size="md"
+          />
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => (
