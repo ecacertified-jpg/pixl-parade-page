@@ -783,7 +783,56 @@ const Auth = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {!otpSent ? (
+          {/* Étape 1: Sélection de méthode OTP (pour pays avec fallback WhatsApp) */}
+          {!otpSent && pendingFormData && showFallback ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold">Mode de vérification</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choisissez comment recevoir votre code de vérification
+                </p>
+              </div>
+              
+              <OtpMethodSelector
+                countryCode={currentCountryCode}
+                selectedMethod={otpMethod}
+                onSelectMethod={handleMethodSelect}
+                disabled={isLoading}
+              />
+              
+              {otpMethod && (
+                <Button
+                  onClick={() => handleMethodSelect(otpMethod)}
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    `Recevoir le code par ${otpMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'}`
+                  )}
+                </Button>
+              )}
+              
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setPendingFormData(null);
+                  setOtpMethod(null);
+                }}
+                className="w-full"
+              >
+                ← Retour au formulaire
+              </Button>
+            </motion.div>
+          ) : !otpSent ? (
             <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Connexion</TabsTrigger>
