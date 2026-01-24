@@ -19,6 +19,7 @@ import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCar
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 import { CountrySelector } from "@/components/CountrySelector";
+import { CountryBadgeHeader } from "@/components/CountryBadgeHeader";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { OrganizationSchema, WebSiteSchema } from "@/components/schema";
 import { organizationData, websiteData } from "@/data/brand-schema";
@@ -74,11 +75,9 @@ const Home = () => {
       {/* Header */}
       <header className="bg-card/90 backdrop-blur-md sticky top-0 z-50 border-b border-border/30 shadow-sm">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logoJV} alt="Joie de Vivre" className="h-12 w-auto" />
-            <h1 className="text-xl font-poppins font-semibold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
-              Joie de Vivre
-            </h1>
+          <div className="flex items-center gap-2">
+            <img src={logoJV} alt="Joie de Vivre" className="h-10 w-auto" />
+            <CountryBadgeHeader />
           </div>
           
           <div className="flex items-center gap-2">
