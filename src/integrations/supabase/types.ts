@@ -3188,6 +3188,42 @@ export type Database = {
           },
         ]
       }
+      indexnow_submissions: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          id: string
+          response_code: number | null
+          status: string | null
+          submitted_to: string[] | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          response_code?: number | null
+          status?: string | null
+          submitted_to?: string[] | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          response_code?: number | null
+          status?: string | null
+          submitted_to?: string[] | null
+          url?: string
+        }
+        Relationships: []
+      }
       instagram_connections: {
         Row: {
           access_token_encrypted: string | null

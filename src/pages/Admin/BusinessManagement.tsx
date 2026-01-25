@@ -237,6 +237,23 @@ export default function BusinessManagement() {
             metadata: { business_name: business.business_name, business_type: business.business_type }
           }
         });
+
+        // IndexNow: Soumettre la boutique pour indexation rapide si activée
+        if (active) {
+          try {
+            await supabase.functions.invoke('indexnow-notify', {
+              body: {
+                urls: [`https://joiedevivre-africa.com/boutique/${businessId}`],
+                entityType: 'business',
+                entityId: businessId,
+                priority: 'high'
+              }
+            });
+            console.log('✅ IndexNow: Boutique soumise pour indexation');
+          } catch (indexNowError) {
+            console.error('IndexNow notification failed:', indexNowError);
+          }
+        }
       }
       
       fetchBusinesses();

@@ -211,6 +211,23 @@ export function AdminEditProductModal({
       if (updateError) throw updateError;
 
       // Log admin action
+      // IndexNow: Soumettre le produit pour indexation si activé
+      if (formData.is_active) {
+        try {
+          await supabase.functions.invoke('indexnow-notify', {
+            body: {
+              urls: [`https://joiedevivre-africa.com/product/${product.id}`],
+              entityType: 'product',
+              entityId: product.id,
+              priority: 'normal'
+            }
+          });
+          console.log('✅ IndexNow: Produit soumis pour indexation');
+        } catch (indexNowError) {
+          console.error('IndexNow notification failed:', indexNowError);
+        }
+      }
+
       await logAdminAction(
         'update_product',
         'product',

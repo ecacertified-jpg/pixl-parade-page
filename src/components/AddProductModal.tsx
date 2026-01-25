@@ -295,6 +295,22 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
           console.error('Error notifying followers:', notifyError);
           // Ne pas bloquer si la notification échoue
         }
+
+        // IndexNow: Soumettre le produit pour indexation rapide
+        try {
+          await supabase.functions.invoke('indexnow-notify', {
+            body: {
+              urls: [`https://joiedevivre-africa.com/product/${data.id}`],
+              entityType: 'product',
+              entityId: data.id,
+              priority: 'high'
+            }
+          });
+          console.log('✅ IndexNow: Produit soumis pour indexation');
+        } catch (indexNowError) {
+          console.error('IndexNow notification failed:', indexNowError);
+          // Ne pas bloquer si IndexNow échoue
+        }
       }
 
       toast.success("Produit ajouté avec succès!");
