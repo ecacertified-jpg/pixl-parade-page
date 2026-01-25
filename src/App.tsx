@@ -64,6 +64,7 @@ import ForecastPage from "./pages/Admin/ForecastPage";
 import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ShareAnalytics from "./pages/Admin/ShareAnalytics";
+import IndexNowAnalytics from "./pages/Admin/IndexNowAnalytics";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -416,6 +417,11 @@ const App = () => (
             <Route path="/admin/share-analytics" element={
               <AdminRoute>
                 <ShareAnalytics />
+              </AdminRoute>
+            } />
+            <Route path="/admin/indexnow" element={
+              <AdminRoute>
+                <IndexNowAnalytics />
               </AdminRoute>
             } />
             <Route path="/admin/reciprocity" element={
