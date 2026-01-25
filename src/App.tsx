@@ -80,6 +80,7 @@ import TermsOfService from "./pages/TermsOfService";
 import LegalNotice from "./pages/LegalNotice";
 import FAQ from "./pages/FAQ";
 import About from "./pages/About";
+import Contact from "./pages/Contact";
 import AccountLinking from "./pages/AccountLinking";
 import ProductPreview from "./pages/ProductPreview";
 import FundPreview from "./pages/FundPreview";
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="/legal-notice" element={<LegalNotice />} />
             <Route path="/faq" element={<FAQ />} />
 <Route path="/about" element={<About />} />
+<Route path="/contact" element={<Contact />} />
 <Route path="/install" element={<Install />} />
 {/* Public product preview with OG meta tags */}
 <Route path="/p/:productId" element={<ProductPreview />} />
