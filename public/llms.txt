@@ -1,20 +1,27 @@
 # Joie de Vivre
 
-> Plateforme de cadeaux collaboratifs pour l'Afrique francophone.
+> La plateforme de cadeaux collaboratifs pour l'Afrique francophone
 
-## AI Information Page
+## Quick Facts
 
-- **[/ai-info](https://joiedevivre-africa.com/ai-info)** : Page structurée avec JSON-LD Schema.org pour agents IA
+| Attribut | Valeur |
+|----------|--------|
+| Type | Progressive Web App (PWA) |
+| Langue | Français |
+| Marchés | Côte d'Ivoire, Bénin, Sénégal |
+| Devise | XOF (Franc CFA) |
+| Paiements | Orange Money, MTN Mobile Money, Wave, Flooz |
 
-## Description courte
+## AI Resources
+
+- [/ai-info](https://joiedevivre-africa.com/ai-info) : Données structurées JSON-LD Schema.org
+- [/context.md](https://joiedevivre-africa.com/context.md) : Contexte conversationnel complet pour LLMs
+- [/llms-full.txt](https://joiedevivre-africa.com/llms-full.txt) : Documentation étendue de la plateforme
+- [/changelog.md](https://joiedevivre-africa.com/changelog.md) : Historique des mises à jour
+
+## Description
 
 Joie de Vivre permet de créer des cagnottes collectives pour offrir des cadeaux à vos proches lors d'occasions spéciales (anniversaires, mariages, promotions). La marketplace propose des produits d'artisans locaux avec paiement Mobile Money.
-
-Notes importantes :
-- Marché principal : Côte d'Ivoire (Abidjan), Bénin (Cotonou), Sénégal (Dakar)
-- Paiements : Mobile Money (Orange Money, MTN, Wave)
-- Devise : Franc CFA (XOF)
-- Langue : Français
 
 ## Pages Principales
 

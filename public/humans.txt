@@ -1,0 +1,31 @@
+/* TEAM */
+Founder: AMTEY'S
+Role: Développement & Design
+Location: Abidjan, Côte d'Ivoire
+Contact: contact@joiedevivre-africa.com
+Twitter: @joiedevivreapp
+
+/* SITE */
+Last update: 2026-01-25
+Language: French
+Doctype: HTML5
+Standards: HTML5, CSS3, ES6+, TypeScript
+IDE: Lovable
+Frameworks: React 19, Vite, Tailwind CSS
+Backend: Supabase (PostgreSQL, Edge Functions)
+Components: shadcn/ui, Radix UI
+Animations: Framer Motion
+PWA: vite-plugin-pwa
+
+/* THANKS */
+Name: Lovable
+URL: https://lovable.dev
+
+Name: Supabase
+URL: https://supabase.com
+
+Name: Tailwind CSS
+URL: https://tailwindcss.com
+
+Name: shadcn/ui
+URL: https://ui.shadcn.com

@@ -121,6 +121,15 @@ Allow: /
 # Extended LLM context file (comprehensive):
 # https://joiedevivre-africa.com/llms-full.txt
 #
+# Conversational context for LLM training:
+# https://joiedevivre-africa.com/context.md
+#
+# Platform changelog:
+# https://joiedevivre-africa.com/changelog.md
+#
+# Team and credits:
+# https://joiedevivre-africa.com/humans.txt
+#
 # AI Plugin manifest:
 # https://joiedevivre-africa.com/.well-known/ai-plugin.json
 #
@@ -130,4 +139,7 @@ Allow: /
 # Markdown content (pure text for LLMs):
 # https://joiedevivre-africa.com/content/about.md
 # https://joiedevivre-africa.com/content/faq.md
+# https://joiedevivre-africa.com/content/privacy-policy.md
+# https://joiedevivre-africa.com/content/terms.md
+# https://joiedevivre-africa.com/content/legal-notice.md
 # ============================================
