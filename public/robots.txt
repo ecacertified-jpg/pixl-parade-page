@@ -143,3 +143,13 @@ Allow: /
 # https://joiedevivre-africa.com/content/terms.md
 # https://joiedevivre-africa.com/content/legal-notice.md
 # ============================================
+
+# ============================================
+# INDEXNOW VERIFICATION
+# ============================================
+# IndexNow API Key verification file for instant indexing:
+# https://joiedevivre-africa.com/indexnow-key.txt
+#
+# IndexNow allows instant notification of new/updated content
+# to Bing, Yandex, and AI-powered search engines.
+# ============================================

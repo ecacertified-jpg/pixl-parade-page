@@ -194,6 +194,24 @@ export function AdminAddProductModal({
         }
       }
 
+      // IndexNow: Soumettre le produit pour indexation rapide
+      if (insertedProduct?.id && formData.is_active) {
+        try {
+          await supabase.functions.invoke('indexnow-notify', {
+            body: {
+              urls: [`https://joiedevivre-africa.com/product/${insertedProduct.id}`],
+              entityType: 'product',
+              entityId: insertedProduct.id,
+              priority: 'high'
+            }
+          });
+          console.log('✅ IndexNow: Produit soumis pour indexation');
+        } catch (indexNowError) {
+          console.error('IndexNow notification failed:', indexNowError);
+          // Ne pas bloquer si IndexNow échoue
+        }
+      }
+
       // Log admin action
       await logAdminAction(
         'create_product',

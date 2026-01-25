@@ -17,6 +17,7 @@ import { useUserBusinessStats } from '@/hooks/useUserBusinessStats';
 import { GrowthAlertsBanner } from '@/components/admin/GrowthAlertsBanner';
 import { CountryStatsCards } from '@/components/admin/CountryStatsCards';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
+import { IndexNowSubmitButton } from '@/components/admin/IndexNowSubmitButton';
 
 interface DashboardStats {
   totalUsers: number;
@@ -197,14 +198,17 @@ function AdminDashboardContent() {
 
   return (
     <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
-          <p className="text-muted-foreground mt-2">
-            Vue d'ensemble de la plateforme JOIE DE VIVRE
-            {selectedCountry && (
-              <span className="text-primary font-medium"> — Filtre actif</span>
-            )}
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Tableau de bord administrateur</h1>
+            <p className="text-muted-foreground mt-2">
+              Vue d'ensemble de la plateforme JOIE DE VIVRE
+              {selectedCountry && (
+                <span className="text-primary font-medium"> — Filtre actif</span>
+              )}
+            </p>
+          </div>
+          <IndexNowSubmitButton />
         </div>
 
         {/* Country Stats Cards - Only show when viewing all countries */}
