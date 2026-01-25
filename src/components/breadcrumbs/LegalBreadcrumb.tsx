@@ -1,7 +1,7 @@
-import { Home, Info, Shield, FileText, Building2, HelpCircle } from "lucide-react";
+import { Home, Info, Shield, FileText, Building2, HelpCircle, Mail } from "lucide-react";
 import { BaseBreadcrumb, BreadcrumbItemConfig } from "./BaseBreadcrumb";
 
-type LegalPage = "about" | "privacy" | "terms" | "legal" | "faq";
+type LegalPage = "about" | "privacy" | "terms" | "legal" | "faq" | "contact";
 
 interface LegalBreadcrumbProps {
   page: LegalPage;
@@ -32,6 +32,11 @@ const LEGAL_PAGES: Record<LegalPage, { label: string; path: string; icon: React.
     label: "FAQ", 
     path: "/faq", 
     icon: <HelpCircle className="h-3.5 w-3.5" /> 
+  },
+  contact: { 
+    label: "Contact", 
+    path: "/contact", 
+    icon: <Mail className="h-3.5 w-3.5" /> 
   }
 };
 
