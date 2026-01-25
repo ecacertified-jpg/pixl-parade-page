@@ -1,5 +1,8 @@
 project_id = "vaimfeurvzokepqqqrsl"
 
+[functions.indexnow-notify]
+verify_jwt = false
+
 [functions.admin-create-user]
 verify_jwt = false
 
