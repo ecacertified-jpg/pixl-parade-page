@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -367,36 +369,39 @@ export default function ContentModeration() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Modération du contenu</h1>
-            <p className="text-muted-foreground mt-2">
-              Gérer les publications, commentaires et signalements
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={createTestReport}
-              disabled={creatingTest}
-            >
-              <TestTube className="mr-2 h-4 w-4" />
-              {creatingTest ? 'Création...' : 'Créer un signalement test'}
-            </Button>
-            {reportedPosts.length > 0 && (
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
+        {/* Header */}
+        <AdminPageHeader
+          title="Modération du contenu"
+          description="Gérer les publications, commentaires et signalements"
+          showCountryIndicator={false}
+          actions={
+            <div className="flex gap-2">
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
-                onClick={() => setDeleteDialogOpen(true)}
-                disabled={deleting}
+                onClick={createTestReport}
+                disabled={creatingTest}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Nettoyer les signalements
+                <TestTube className="mr-2 h-4 w-4" />
+                {creatingTest ? 'Création...' : 'Créer un signalement test'}
               </Button>
-            )}
-          </div>
-        </div>
+              {reportedPosts.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  disabled={deleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Nettoyer les signalements
+                </Button>
+              )}
+            </div>
+          }
+        />
         
         <Tabs defaultValue="reports" className="w-full">
           <TabsList>

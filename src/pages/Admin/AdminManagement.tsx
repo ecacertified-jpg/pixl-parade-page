@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -167,20 +168,19 @@ export default function AdminManagement() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold font-poppins">Gestion des administrateurs</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Gérer les accès administrateurs (Super Admin uniquement)
-            </p>
-          </div>
-          <Button onClick={() => setAddAdminOpen(true)} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            <span className="sm:hidden">Ajouter</span>
-            <span className="hidden sm:inline">Ajouter un administrateur</span>
-          </Button>
-        </div>
+        {/* Header */}
+        <AdminPageHeader
+          title="Gestion des administrateurs"
+          description="Gérer les accès administrateurs (Super Admin uniquement)"
+          showCountryIndicator={false}
+          actions={
+            <Button onClick={() => setAddAdminOpen(true)} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              <span className="sm:hidden">Ajouter</span>
+              <span className="hidden sm:inline">Ajouter un administrateur</span>
+            </Button>
+          }
+        />
 
         <Card>
           <CardHeader>

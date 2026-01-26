@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -350,67 +352,55 @@ export default function UserManagement() {
   return (
     <AdminLayout>
       <div className="space-y-4 sm:space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate('/admin')}
-              className="mt-0.5 flex-shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
-                Gestion des utilisateurs
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Gérer tous les comptes utilisateurs
-              </p>
+        <AdminPageHeader
+          title="Gestion des utilisateurs"
+          description="Gérer tous les comptes utilisateurs"
+          actions={
+            <div className="flex gap-2 flex-wrap">
+              {isSuperAdmin && (
+                <Button 
+                  onClick={() => setAddClientModalOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Ajouter un client</span>
+                  <span className="sm:hidden">Ajouter</span>
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setUnifyClientModalOpen(true)}
+                >
+                  <Users2 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Unifier clients</span>
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSelectedUserForMerge(null);
+                    setMergeModalOpen(true);
+                  }}
+                >
+                  <GitMerge className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Fusionner comptes</span>
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={fetchUsers}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Actualiser</span>
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex gap-2 self-start sm:self-auto">
-            {isSuperAdmin && (
-              <Button 
-                onClick={() => setAddClientModalOpen(true)}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Ajouter un client</span>
-                <span className="sm:hidden">Ajouter</span>
-              </Button>
-            )}
-            {isSuperAdmin && (
-              <Button 
-                variant="outline" 
-                onClick={() => setUnifyClientModalOpen(true)}
-              >
-                <Users2 className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Unifier clients</span>
-              </Button>
-            )}
-            {isSuperAdmin && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSelectedUserForMerge(null);
-                  setMergeModalOpen(true);
-                }}
-              >
-                <GitMerge className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Fusionner comptes</span>
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={fetchUsers}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Actualiser</span>
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Statistics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

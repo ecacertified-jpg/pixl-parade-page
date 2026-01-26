@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { useNotificationAnalytics, Period } from '@/hooks/useNotificationAnalytics';
 import { NotificationStatsCards } from '@/components/admin/NotificationStatsCards';
 import { NotificationTrendsChart } from '@/components/admin/NotificationTrendsChart';
@@ -18,23 +19,19 @@ export default function NotificationAnalytics() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="h-6 w-6 text-primary" />
-              Performance des Notifications
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Analysez les taux d'ouverture, clics et conversions de vos notifications push
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <SimplePeriodSelector value={period} onChange={setPeriod} />
-            <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
+        <AdminPageHeader
+          title="🔔 Performance des Notifications"
+          description="Analysez les taux d'ouverture, clics et conversions de vos notifications push"
+          showCountryIndicator={false}
+          actions={
+            <div className="flex items-center gap-3">
+              <SimplePeriodSelector value={period} onChange={setPeriod} />
+              <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          }
+        />
 
         {/* Error state */}
         {error && (
