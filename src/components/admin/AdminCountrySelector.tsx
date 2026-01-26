@@ -1,5 +1,6 @@
-import { Globe } from 'lucide-react';
+import { Globe, Lock } from 'lucide-react';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import {
   Select,
   SelectContent,
@@ -9,7 +10,20 @@ import {
 } from '@/components/ui/select';
 
 export function AdminCountrySelector() {
-  const { selectedCountry, setSelectedCountry, allCountries } = useAdminCountry();
+  const { selectedCountry, setSelectedCountry, accessibleCountries, isRestricted } = useAdminCountry();
+  const { isSuperAdmin } = useAdmin();
+
+  // Si l'admin n'a qu'un seul pays accessible, afficher juste le badge sans sélecteur
+  if (isRestricted && accessibleCountries.length === 1) {
+    const country = accessibleCountries[0];
+    return (
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md text-sm">
+        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-lg">{country.flag}</span>
+        <span className="font-medium">{country.name}</span>
+      </div>
+    );
+  }
 
   return (
     <Select
@@ -20,7 +34,7 @@ export function AdminCountrySelector() {
         <div className="flex items-center gap-2">
           {selectedCountry ? (
             <>
-              <span className="text-lg">{allCountries.find(c => c.code === selectedCountry)?.flag}</span>
+              <span className="text-lg">{accessibleCountries.find(c => c.code === selectedCountry)?.flag}</span>
               <SelectValue />
             </>
           ) : (
@@ -32,13 +46,17 @@ export function AdminCountrySelector() {
         </div>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            <span>Tous les pays</span>
-          </div>
-        </SelectItem>
-        {allCountries.map((country) => (
+        {/* Option "Tous les pays" uniquement pour Super Admin */}
+        {isSuperAdmin && (
+          <SelectItem value="all">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span>Tous les pays</span>
+            </div>
+          </SelectItem>
+        )}
+        {/* Pays accessibles selon les permissions */}
+        {accessibleCountries.map((country) => (
           <SelectItem key={country.code} value={country.code}>
             <div className="flex items-center gap-2">
               <span className="text-lg">{country.flag}</span>

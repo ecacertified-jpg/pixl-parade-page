@@ -40,6 +40,7 @@ import { AlertsCenter } from '@/components/admin/AlertsCenter';
 import { AdminNotificationsCenter } from '@/components/admin/AdminNotificationsCenter';
 import { AdminCountryProvider } from '@/contexts/AdminCountryContext';
 import { AdminCountrySelector } from '@/components/admin/AdminCountrySelector';
+import { AdminCountryRestrictionBadge } from '@/components/admin/AdminCountryRestrictionBadge';
 import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 
 interface AdminLayoutProps {
@@ -115,11 +116,14 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <p className="text-sm text-muted-foreground mt-1">
           Panneau d'administration
         </p>
-        <div className="flex items-center justify-between gap-2 mt-2">
-          <div className="px-2 py-1 bg-primary/10 rounded text-xs font-medium text-primary">
-            {adminRole === 'super_admin' ? 'Super Admin' : 'Modérateur'}
+        <div className="flex flex-col gap-2 mt-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="px-2 py-1 bg-primary/10 rounded text-xs font-medium text-primary">
+              {adminRole === 'super_admin' ? 'Super Admin' : adminRole === 'regional_admin' ? 'Admin Régional' : 'Modérateur'}
+            </div>
+            <AdminCountryRestrictionBadge />
           </div>
-          {isSuperAdmin && <AdminCountrySelector />}
+          <AdminCountrySelector />
         </div>
       </div>
       
