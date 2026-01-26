@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -29,6 +29,30 @@ interface Metrics {
   activeAlerts: number;
   topPerformers: { name: string; revenue: number }[];
 }
+
+interface AdminRecipient {
+  email: string;
+  prefs: {
+    include_kpis: boolean;
+    include_charts_summary: boolean;
+    include_alerts: boolean;
+    include_top_performers: boolean;
+  };
+  role: string;
+  assignedCountries: string[] | null;
+}
+
+// Country name mapping for report titles
+const COUNTRY_NAMES: Record<string, string> = {
+  'CI': "Côte d'Ivoire",
+  'BJ': 'Bénin',
+  'SN': 'Sénégal'
+};
+
+const getCountryNames = (codes: string[] | null): string => {
+  if (!codes || codes.length === 0) return 'Global';
+  return codes.map(code => COUNTRY_NAMES[code] || code).join(', ');
+};
 
 const getDateRange = (reportType: string) => {
   const now = new Date();
@@ -111,7 +135,217 @@ const getPeriodLabel = (reportType: string): string => {
   }
 };
 
-const generateEmailHTML = (metrics: Metrics, reportType: string, prefs: any): string => {
+/**
+ * Fetch metrics filtered by country codes
+ * If countryFilter is null/empty, fetch global metrics (for super_admins)
+ */
+const fetchMetricsForCountries = async (
+  supabase: SupabaseClient,
+  currentStart: Date,
+  currentEnd: Date,
+  previousStart: Date,
+  previousEnd: Date,
+  reportType: string,
+  countryFilter: string[] | null
+): Promise<Metrics> => {
+  const hasCountryFilter = countryFilter && countryFilter.length > 0;
+  console.log(`Fetching metrics with country filter: ${hasCountryFilter ? countryFilter.join(', ') : 'GLOBAL'}`);
+
+  // New Users - filter by profile.country_code
+  let currentUsersQuery = supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', currentStart.toISOString())
+    .lte('created_at', currentEnd.toISOString());
+  
+  let previousUsersQuery = supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', previousStart.toISOString())
+    .lte('created_at', previousEnd.toISOString());
+
+  if (hasCountryFilter) {
+    currentUsersQuery = currentUsersQuery.in('country_code', countryFilter!);
+    previousUsersQuery = previousUsersQuery.in('country_code', countryFilter!);
+  }
+
+  const [{ count: currentUsers }, { count: previousUsers }] = await Promise.all([
+    currentUsersQuery,
+    previousUsersQuery
+  ]);
+
+  // New Funds - filter by collective_funds.country_code
+  let currentFundsQuery = supabase
+    .from('collective_funds')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', currentStart.toISOString())
+    .lte('created_at', currentEnd.toISOString());
+  
+  let previousFundsQuery = supabase
+    .from('collective_funds')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', previousStart.toISOString())
+    .lte('created_at', previousEnd.toISOString());
+
+  if (hasCountryFilter) {
+    currentFundsQuery = currentFundsQuery.in('country_code', countryFilter!);
+    previousFundsQuery = previousFundsQuery.in('country_code', countryFilter!);
+  }
+
+  const [{ count: currentFunds }, { count: previousFunds }] = await Promise.all([
+    currentFundsQuery,
+    previousFundsQuery
+  ]);
+
+  // Contributions - need to join with collective_funds to filter by country
+  // For simplicity, we'll fetch contributions and filter by fund's country
+  let currentContributionsQuery = supabase
+    .from('fund_contributions')
+    .select('amount, collective_funds!inner(country_code)')
+    .gte('created_at', currentStart.toISOString())
+    .lte('created_at', currentEnd.toISOString());
+  
+  let previousContributionsQuery = supabase
+    .from('fund_contributions')
+    .select('amount, collective_funds!inner(country_code)')
+    .gte('created_at', previousStart.toISOString())
+    .lte('created_at', previousEnd.toISOString());
+
+  if (hasCountryFilter) {
+    currentContributionsQuery = currentContributionsQuery.in('collective_funds.country_code', countryFilter!);
+    previousContributionsQuery = previousContributionsQuery.in('collective_funds.country_code', countryFilter!);
+  }
+
+  const [{ data: currentContributions }, { data: previousContributions }] = await Promise.all([
+    currentContributionsQuery,
+    previousContributionsQuery
+  ]);
+
+  const currentAmount = currentContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+  const previousAmount = previousContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+  // New Businesses - filter by business_accounts.country_code
+  let currentBusinessesQuery = supabase
+    .from('business_accounts')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', currentStart.toISOString())
+    .lte('created_at', currentEnd.toISOString());
+  
+  let previousBusinessesQuery = supabase
+    .from('business_accounts')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', previousStart.toISOString())
+    .lte('created_at', previousEnd.toISOString());
+
+  if (hasCountryFilter) {
+    currentBusinessesQuery = currentBusinessesQuery.in('country_code', countryFilter!);
+    previousBusinessesQuery = previousBusinessesQuery.in('country_code', countryFilter!);
+  }
+
+  const [{ count: currentBusinesses }, { count: previousBusinesses }] = await Promise.all([
+    currentBusinessesQuery,
+    previousBusinessesQuery
+  ]);
+
+  // Orders - need to join with business_accounts to filter by country
+  let currentOrdersQuery = supabase
+    .from('business_orders')
+    .select('*, business_accounts!inner(country_code)', { count: 'exact', head: true })
+    .gte('created_at', currentStart.toISOString())
+    .lte('created_at', currentEnd.toISOString());
+  
+  let previousOrdersQuery = supabase
+    .from('business_orders')
+    .select('*, business_accounts!inner(country_code)', { count: 'exact', head: true })
+    .gte('created_at', previousStart.toISOString())
+    .lte('created_at', previousEnd.toISOString());
+
+  if (hasCountryFilter) {
+    currentOrdersQuery = currentOrdersQuery.in('business_accounts.country_code', countryFilter!);
+    previousOrdersQuery = previousOrdersQuery.in('business_accounts.country_code', countryFilter!);
+  }
+
+  const [{ count: currentOrders }, { count: previousOrders }] = await Promise.all([
+    currentOrdersQuery,
+    previousOrdersQuery
+  ]);
+
+  // Active Alerts - these are global for now (admins need to see all alerts in their scope)
+  const { count: growthAlerts } = await supabase
+    .from('admin_growth_alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_dismissed', false);
+
+  const { count: businessAlerts } = await supabase
+    .from('business_performance_alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_dismissed', false);
+
+  // Top Performers - filter by business country
+  let topPerformers: { name: string; revenue: number }[] = [];
+  if (reportType !== 'daily') {
+    let ordersQuery = supabase
+      .from('business_orders')
+      .select('business_account_id, total_amount, business_accounts!inner(country_code)')
+      .gte('created_at', currentStart.toISOString())
+      .lte('created_at', currentEnd.toISOString());
+
+    if (hasCountryFilter) {
+      ordersQuery = ordersQuery.in('business_accounts.country_code', countryFilter!);
+    }
+
+    const { data: orders } = await ordersQuery;
+
+    // Get business names - with country filter if applicable
+    let businessQuery = supabase
+      .from('business_accounts')
+      .select('id, business_name, country_code');
+    
+    if (hasCountryFilter) {
+      businessQuery = businessQuery.in('country_code', countryFilter!);
+    }
+
+    const { data: businesses } = await businessQuery;
+
+    if (orders && businesses) {
+      const revenueByBusiness: Record<string, number> = {};
+      orders.forEach(order => {
+        revenueByBusiness[order.business_account_id] = 
+          (revenueByBusiness[order.business_account_id] || 0) + Number(order.total_amount);
+      });
+
+      topPerformers = Object.entries(revenueByBusiness)
+        .map(([id, revenue]) => ({
+          name: businesses.find(b => b.id === id)?.business_name || 'Inconnu',
+          revenue
+        }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+    }
+  }
+
+  return {
+    newUsers: currentUsers || 0,
+    newUsersDiff: calculateDiff(currentUsers || 0, previousUsers || 0),
+    newFunds: currentFunds || 0,
+    newFundsDiff: calculateDiff(currentFunds || 0, previousFunds || 0),
+    amountCollected: currentAmount,
+    amountDiff: calculateDiff(currentAmount, previousAmount),
+    newBusinesses: currentBusinesses || 0,
+    businessDiff: calculateDiff(currentBusinesses || 0, previousBusinesses || 0),
+    newOrders: currentOrders || 0,
+    ordersDiff: calculateDiff(currentOrders || 0, previousOrders || 0),
+    activeAlerts: (growthAlerts || 0) + (businessAlerts || 0),
+    topPerformers
+  };
+};
+
+const generateEmailHTML = (
+  metrics: Metrics, 
+  reportType: string, 
+  prefs: AdminRecipient['prefs'],
+  countryScope: string
+): string => {
   const diffIcon = (diff: number) => diff >= 0 ? '↑' : '↓';
   const diffColor = (diff: number) => diff >= 0 ? '#22c55e' : '#ef4444';
   
@@ -184,6 +418,15 @@ const generateEmailHTML = (metrics: Metrics, reportType: string, prefs: any): st
     </div>
   ` : '';
 
+  // Add scope indicator in the report
+  const scopeIndicator = countryScope !== 'Global' ? `
+    <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 12px 16px; margin-bottom: 20px; border-radius: 0 8px 8px 0;">
+      <div style="font-size: 14px; color: #1e40af;">
+        📍 <strong>Périmètre :</strong> ${countryScope}
+      </div>
+    </div>
+  ` : '';
+
   return `
     <!DOCTYPE html>
     <html>
@@ -198,10 +441,12 @@ const generateEmailHTML = (metrics: Metrics, reportType: string, prefs: any): st
           <h1 style="color: white; margin: 0; font-size: 24px;">🎁 JOIE DE VIVRE</h1>
           <div style="color: rgba(255,255,255,0.9); margin-top: 8px; font-size: 18px;">${getReportTitle(reportType)}</div>
           <div style="color: rgba(255,255,255,0.8); margin-top: 4px; font-size: 14px;">📅 ${getPeriodLabel(reportType)}</div>
+          ${countryScope !== 'Global' ? `<div style="color: rgba(255,255,255,0.9); margin-top: 8px; font-size: 14px; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; display: inline-block;">📍 ${countryScope}</div>` : ''}
         </div>
 
         <!-- Content -->
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px;">
+          ${scopeIndicator}
           ${kpisSection}
           ${alertsSection}
           ${topPerformersSection}
@@ -246,133 +491,11 @@ const handler = async (req: Request): Promise<Response> => {
     const { currentStart, currentEnd, previousStart, previousEnd } = getDateRange(report_type);
     console.log(`Date range: ${currentStart.toISOString()} to ${currentEnd.toISOString()}`);
 
-    // Fetch metrics for current period
-    const { count: currentUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', currentStart.toISOString())
-      .lte('created_at', currentEnd.toISOString());
-
-    const { count: previousUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', previousStart.toISOString())
-      .lte('created_at', previousEnd.toISOString());
-
-    const { count: currentFunds } = await supabase
-      .from('collective_funds')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', currentStart.toISOString())
-      .lte('created_at', currentEnd.toISOString());
-
-    const { count: previousFunds } = await supabase
-      .from('collective_funds')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', previousStart.toISOString())
-      .lte('created_at', previousEnd.toISOString());
-
-    const { data: currentContributions } = await supabase
-      .from('fund_contributions')
-      .select('amount')
-      .gte('created_at', currentStart.toISOString())
-      .lte('created_at', currentEnd.toISOString());
-
-    const { data: previousContributions } = await supabase
-      .from('fund_contributions')
-      .select('amount')
-      .gte('created_at', previousStart.toISOString())
-      .lte('created_at', previousEnd.toISOString());
-
-    const currentAmount = currentContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-    const previousAmount = previousContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
-
-    const { count: currentBusinesses } = await supabase
-      .from('business_accounts')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', currentStart.toISOString())
-      .lte('created_at', currentEnd.toISOString());
-
-    const { count: previousBusinesses } = await supabase
-      .from('business_accounts')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', previousStart.toISOString())
-      .lte('created_at', previousEnd.toISOString());
-
-    const { count: currentOrders } = await supabase
-      .from('business_orders')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', currentStart.toISOString())
-      .lte('created_at', currentEnd.toISOString());
-
-    const { count: previousOrders } = await supabase
-      .from('business_orders')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', previousStart.toISOString())
-      .lte('created_at', previousEnd.toISOString());
-
-    // Count active alerts
-    const { count: growthAlerts } = await supabase
-      .from('admin_growth_alerts')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_dismissed', false);
-
-    const { count: businessAlerts } = await supabase
-      .from('business_performance_alerts')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_dismissed', false);
-
-    // Get top performers (for weekly/monthly)
-    let topPerformers: { name: string; revenue: number }[] = [];
-    if (report_type !== 'daily') {
-      const { data: orders } = await supabase
-        .from('business_orders')
-        .select('business_account_id, total_amount')
-        .gte('created_at', currentStart.toISOString())
-        .lte('created_at', currentEnd.toISOString());
-
-      const { data: businesses } = await supabase
-        .from('business_accounts')
-        .select('id, business_name');
-
-      if (orders && businesses) {
-        const revenueByBusiness: Record<string, number> = {};
-        orders.forEach(order => {
-          revenueByBusiness[order.business_account_id] = 
-            (revenueByBusiness[order.business_account_id] || 0) + Number(order.total_amount);
-        });
-
-        topPerformers = Object.entries(revenueByBusiness)
-          .map(([id, revenue]) => ({
-            name: businesses.find(b => b.id === id)?.business_name || 'Inconnu',
-            revenue
-          }))
-          .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 5);
-      }
-    }
-
-    const metrics: Metrics = {
-      newUsers: currentUsers || 0,
-      newUsersDiff: calculateDiff(currentUsers || 0, previousUsers || 0),
-      newFunds: currentFunds || 0,
-      newFundsDiff: calculateDiff(currentFunds || 0, previousFunds || 0),
-      amountCollected: currentAmount,
-      amountDiff: calculateDiff(currentAmount, previousAmount),
-      newBusinesses: currentBusinesses || 0,
-      businessDiff: calculateDiff(currentBusinesses || 0, previousBusinesses || 0),
-      newOrders: currentOrders || 0,
-      ordersDiff: calculateDiff(currentOrders || 0, previousOrders || 0),
-      activeAlerts: (growthAlerts || 0) + (businessAlerts || 0),
-      topPerformers
-    };
-
-    console.log("Metrics calculated:", JSON.stringify(metrics));
-
-    // Get recipients
-    let recipients: { email: string; prefs: any }[] = [];
+    // Get recipients with their admin info (including assigned_countries)
+    let recipients: AdminRecipient[] = [];
 
     if (test_mode && test_email) {
-      // Test mode: send to specified email
+      // Test mode: send to specified email with global metrics
       recipients = [{
         email: test_email,
         prefs: {
@@ -380,10 +503,12 @@ const handler = async (req: Request): Promise<Response> => {
           include_charts_summary: true,
           include_alerts: true,
           include_top_performers: true
-        }
+        },
+        role: 'super_admin',
+        assignedCountries: null
       }];
     } else {
-      // Normal mode: get subscribed admins
+      // Normal mode: get subscribed admins with their country assignments
       const { data: adminPrefs } = await supabase
         .from('admin_report_preferences')
         .select(`
@@ -399,18 +524,19 @@ const handler = async (req: Request): Promise<Response> => {
         .contains('report_types', [report_type]);
 
       if (adminPrefs && adminPrefs.length > 0) {
-        // Get admin emails
         const adminUserIds = adminPrefs.map(p => p.admin_user_id);
         
-        // Get profiles for these users
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, first_name, last_name')
-          .in('user_id', adminUserIds);
+        // Get admin users with their roles and assigned countries
+        const { data: adminUsers } = await supabase
+          .from('admin_users')
+          .select('user_id, role, assigned_countries, is_active')
+          .in('user_id', adminUserIds)
+          .eq('is_active', true);
 
-        // Get auth emails (we need to use admin API or store email in admin_users)
-        // For now, use email_override or fetch from auth.users via service role
         for (const pref of adminPrefs) {
+          const adminUser = adminUsers?.find(a => a.user_id === pref.admin_user_id);
+          if (!adminUser) continue;
+
           let email = pref.email_override;
           
           if (!email) {
@@ -422,7 +548,14 @@ const handler = async (req: Request): Promise<Response> => {
           if (email) {
             recipients.push({
               email,
-              prefs: pref
+              prefs: {
+                include_kpis: pref.include_kpis,
+                include_charts_summary: pref.include_charts_summary,
+                include_alerts: pref.include_alerts,
+                include_top_performers: pref.include_top_performers
+              },
+              role: adminUser.role,
+              assignedCountries: adminUser.assigned_countries as string[] | null
             });
           }
         }
@@ -434,14 +567,51 @@ const handler = async (req: Request): Promise<Response> => {
     let successCount = 0;
     let errorMessages: string[] = [];
 
+    // Cache metrics by country filter to avoid re-fetching
+    const metricsCache: Map<string, Metrics> = new Map();
+
     for (const recipient of recipients) {
       try {
-        const html = generateEmailHTML(metrics, report_type, recipient.prefs);
+        // Determine country filter for this recipient
+        const isSuperAdmin = recipient.role === 'super_admin';
+        const hasCountryRestriction = !isSuperAdmin && 
+          recipient.assignedCountries && 
+          recipient.assignedCountries.length > 0;
+        
+        const countryFilter = hasCountryRestriction ? recipient.assignedCountries : null;
+        const cacheKey = countryFilter ? countryFilter.sort().join(',') : 'GLOBAL';
+        const countryScope = getCountryNames(countryFilter);
+
+        console.log(`Processing report for ${recipient.email}: scope=${countryScope}, filter=${cacheKey}`);
+
+        // Get metrics from cache or fetch
+        let metrics: Metrics;
+        if (metricsCache.has(cacheKey)) {
+          metrics = metricsCache.get(cacheKey)!;
+          console.log(`Using cached metrics for ${cacheKey}`);
+        } else {
+          metrics = await fetchMetricsForCountries(
+            supabase,
+            currentStart,
+            currentEnd,
+            previousStart,
+            previousEnd,
+            report_type,
+            countryFilter
+          );
+          metricsCache.set(cacheKey, metrics);
+          console.log(`Fetched and cached metrics for ${cacheKey}`);
+        }
+
+        const html = generateEmailHTML(metrics, report_type, recipient.prefs, countryScope);
+        
+        // Build subject with country scope
+        const subjectSuffix = countryScope !== 'Global' ? ` - ${countryScope}` : '';
         
         const { error } = await resend.emails.send({
           from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
           to: [recipient.email],
-          subject: `🎁 ${getReportTitle(report_type)} - JOIE DE VIVRE`,
+          subject: `🎁 ${getReportTitle(report_type)}${subjectSuffix} - JOIE DE VIVRE`,
           html
         });
 
@@ -449,10 +619,10 @@ const handler = async (req: Request): Promise<Response> => {
           console.error(`Failed to send to ${recipient.email}:`, error);
           errorMessages.push(`${recipient.email}: ${error.message}`);
         } else {
-          console.log(`Report sent to ${recipient.email}`);
+          console.log(`Report sent to ${recipient.email} (scope: ${countryScope})`);
           successCount++;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Error sending to ${recipient.email}:`, err);
         errorMessages.push(`${recipient.email}: ${err.message}`);
       }
@@ -463,6 +633,13 @@ const handler = async (req: Request): Promise<Response> => {
       const status = successCount === recipients.length ? 'sent' : 
                      successCount > 0 ? 'partial' : 'failed';
       
+      // Build a summary of recipients by scope
+      const scopeSummary: Record<string, number> = {};
+      recipients.forEach(r => {
+        const scope = getCountryNames(r.assignedCountries);
+        scopeSummary[scope] = (scopeSummary[scope] || 0) + 1;
+      });
+
       await supabase.from('admin_report_logs').insert({
         report_type,
         recipients_count: successCount,
@@ -470,12 +647,8 @@ const handler = async (req: Request): Promise<Response> => {
         error_message: errorMessages.length > 0 ? errorMessages.join('; ') : null,
         metadata: {
           total_recipients: recipients.length,
-          metrics_summary: {
-            users: metrics.newUsers,
-            funds: metrics.newFunds,
-            amount: metrics.amountCollected,
-            orders: metrics.newOrders
-          }
+          recipients_by_scope: scopeSummary,
+          metrics_scopes: Array.from(metricsCache.keys())
         }
       });
     }
@@ -493,7 +666,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in send-admin-report:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
