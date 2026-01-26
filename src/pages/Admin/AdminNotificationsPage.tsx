@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
 import { useAdminNotificationPreferences } from '@/hooks/useAdminNotificationPreferences';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { AdminNotificationItem } from '@/components/admin/AdminNotificationItem';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +45,7 @@ const typeLabels: Record<string, { label: string; icon: any }> = {
 
 export default function AdminNotificationsPage() {
   const { preferences } = useAdminNotificationPreferences();
-  
+  const { selectedCountry, accessibleCountries, isRestricted } = useAdminCountry();
   const {
     notifications,
     loading,
@@ -63,6 +65,15 @@ export default function AdminNotificationsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
+
+  // Sync with AdminCountryContext
+  useEffect(() => {
+    if (selectedCountry) {
+      setCountryFilter(selectedCountry);
+    } else if (!isRestricted) {
+      setCountryFilter('all');
+    }
+  }, [selectedCountry, isRestricted]);
 
   const filteredNotifications = notifications.filter((n) => {
     const matchesSearch = 
@@ -94,6 +105,7 @@ export default function AdminNotificationsPage() {
             <p className="text-muted-foreground">
               Gérez les alertes et notifications de la plateforme
             </p>
+            <CountryFilterIndicator className="mt-2" />
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={refreshNotifications}>

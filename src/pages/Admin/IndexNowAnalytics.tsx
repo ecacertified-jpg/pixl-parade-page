@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { IndexNowDashboard } from '@/components/admin/IndexNowDashboard';
 import { IndexNowSubmitButton } from '@/components/admin/IndexNowSubmitButton';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Rocket } from 'lucide-react';
 
 export default function IndexNowAnalytics() {
   const [days, setDays] = useState(30);
+  const { getCountryFilter } = useAdminCountry();
+  const countryFilter = getCountryFilter();
 
   return (
     <AdminLayout>
@@ -21,6 +25,7 @@ export default function IndexNowAnalytics() {
             <p className="text-muted-foreground mt-1">
               Suivi des soumissions d'indexation en temps réel
             </p>
+            <CountryFilterIndicator className="mt-2" />
           </div>
           
           <div className="flex items-center gap-3">
@@ -40,7 +45,7 @@ export default function IndexNowAnalytics() {
         </div>
 
         {/* Dashboard */}
-        <IndexNowDashboard days={days} />
+        <IndexNowDashboard days={days} countryCode={countryFilter} />
       </div>
     </AdminLayout>
   );

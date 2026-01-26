@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useBusinessDetailedStats } from '@/hooks/useBusinessDetailedStats';
 import { useBusinessReportPDF } from '@/hooks/useBusinessReportPDF';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { BusinessKPICards } from '@/components/admin/BusinessKPICards';
 import { RevenueByTypeChart } from '@/components/admin/RevenueByTypeChart';
 import { BusinessTrendsChart } from '@/components/admin/BusinessTrendsChart';
@@ -10,12 +11,15 @@ import { BusinessPerformanceTable } from '@/components/admin/BusinessPerformance
 import { ProductCategoryChart } from '@/components/admin/ProductCategoryChart';
 import { BusinessReportPreview } from '@/components/admin/BusinessReportPreview';
 import { ExportReportModal } from '@/components/admin/ExportReportModal';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, FileText } from 'lucide-react';
 
 export default function BusinessAnalytics() {
   const navigate = useNavigate();
-  const { stats, loading, refresh } = useBusinessDetailedStats();
+  const { getCountryFilter } = useAdminCountry();
+  const countryFilter = getCountryFilter();
+  const { stats, loading, refresh } = useBusinessDetailedStats(countryFilter);
   const { generateReport, generating, progress } = useBusinessReportPDF(stats);
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
@@ -40,6 +44,7 @@ export default function BusinessAnalytics() {
               <p className="text-sm text-muted-foreground mt-1">
                 Analyse détaillée des comptes business
               </p>
+              <CountryFilterIndicator className="mt-2" />
             </div>
           </div>
           

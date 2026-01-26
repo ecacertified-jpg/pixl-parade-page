@@ -58,13 +58,13 @@ interface ReciprocityAnalyticsData {
   trends: TrendData[];
 }
 
-export function useReciprocityAnalytics(period: Period) {
+export function useReciprocityAnalytics(period: Period, countryCode?: string | null) {
   const [data, setData] = useState<ReciprocityAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period]);
+  }, [period, countryCode]);
 
   const getDateRange = () => {
     const endDate = new Date();
@@ -97,10 +97,16 @@ export function useReciprocityAnalytics(period: Period) {
     try {
       const { startDate, endDate } = getDateRange();
 
-      // Fetch global stats
-      const { data: globalData } = await supabase
+      // Fetch global stats - filter by country via profiles join if needed
+      let globalQuery = supabase
         .from('reciprocity_scores')
-        .select('generosity_score, total_contributions_count, total_amount_given, badge_level');
+        .select('generosity_score, total_contributions_count, total_amount_given, badge_level, profiles!inner(country_code)');
+      
+      if (countryCode) {
+        globalQuery = globalQuery.eq('profiles.country_code', countryCode);
+      }
+      
+      const { data: globalData } = await globalQuery;
 
       const totalUsersWithScore = globalData?.length || 0;
       const avgGenerosity = globalData?.reduce((sum, item) => sum + Number(item.generosity_score), 0) / totalUsersWithScore || 0;
@@ -117,7 +123,7 @@ export function useReciprocityAnalytics(period: Period) {
         : 0;
 
       // Fetch top contributors
-      const { data: topContributorsData } = await supabase
+      let topContributorsQuery = supabase
         .from('reciprocity_scores')
         .select(`
           user_id,
@@ -125,10 +131,16 @@ export function useReciprocityAnalytics(period: Period) {
           total_amount_given,
           generosity_score,
           badge_level,
-          profiles!inner(first_name, last_name, avatar_url)
+          profiles!inner(first_name, last_name, avatar_url, country_code)
         `)
         .order('generosity_score', { ascending: false })
         .limit(20);
+      
+      if (countryCode) {
+        topContributorsQuery = topContributorsQuery.eq('profiles.country_code', countryCode);
+      }
+      
+      const { data: topContributorsData } = await topContributorsQuery;
 
       const topContributors = topContributorsData?.map((item: any) => ({
         user_id: item.user_id,
@@ -200,18 +212,30 @@ export function useReciprocityAnalytics(period: Period) {
         }
       });
 
-      // Fetch occasion breakdown
-      const { data: occasionData } = await supabase
+      // Fetch occasion breakdown - filter by collective_funds.country_code
+      let occasionQuery = supabase
         .from('collective_funds')
-        .select('occasion')
+        .select('occasion, country_code')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+      
+      if (countryCode) {
+        occasionQuery = occasionQuery.eq('country_code', countryCode);
+      }
+      
+      const { data: occasionData } = await occasionQuery;
 
-      const { data: contributionsData } = await supabase
+      let contributionsQuery = supabase
         .from('fund_contributions')
-        .select('amount, fund_id, collective_funds!inner(occasion)')
+        .select('amount, fund_id, collective_funds!inner(occasion, country_code)')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
+      
+      if (countryCode) {
+        contributionsQuery = contributionsQuery.eq('collective_funds.country_code', countryCode);
+      }
+      
+      const { data: contributionsData } = await contributionsQuery;
 
       const occasionMap = new Map<string, OccasionData>();
 

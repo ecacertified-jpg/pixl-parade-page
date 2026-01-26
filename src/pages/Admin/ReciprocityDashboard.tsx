@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useReciprocityAnalytics, Period } from '@/hooks/useReciprocityAnalytics';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { ReciprocityStatsCards } from '@/components/admin/ReciprocityStatsCards';
 import { TopContributorsTable } from '@/components/admin/TopContributorsTable';
 import { ReciprocityNetworkChart } from '@/components/admin/ReciprocityNetworkChart';
@@ -8,6 +9,7 @@ import { BadgeDistributionChart } from '@/components/admin/BadgeDistributionChar
 import { ReciprocityTrendsChart } from '@/components/admin/ReciprocityTrendsChart';
 import { OccasionBreakdownChart } from '@/components/admin/OccasionBreakdownChart';
 import { ImbalanceAlertsSection } from '@/components/admin/ImbalanceAlertsSection';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -15,7 +17,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ReciprocityDashboard() {
   const [period, setPeriod] = useState<Period>('30days');
-  const { data, loading, refresh } = useReciprocityAnalytics(period);
+  const { getCountryFilter } = useAdminCountry();
+  const countryFilter = getCountryFilter();
+  const { data, loading, refresh } = useReciprocityAnalytics(period, countryFilter);
 
   return (
     <AdminLayout>
@@ -27,6 +31,7 @@ export default function ReciprocityDashboard() {
             <p className="text-muted-foreground mt-1">
               Analyse du réseau de contributions et d'entraide
             </p>
+            <CountryFilterIndicator className="mt-2" />
           </div>
           <div className="flex items-center gap-3">
             <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>

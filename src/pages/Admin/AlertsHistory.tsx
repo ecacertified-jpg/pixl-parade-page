@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAllAlerts, UnifiedAlert } from '@/hooks/useAllAlerts';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
@@ -125,6 +127,7 @@ function EscalationBadge({ alert }: { alert: UnifiedAlert }) {
 
 export default function AlertsHistory() {
   const { alerts, loading, unreadCount, criticalCount, escalatedCount, objectiveAlertCount, markAsRead, dismissAlert } = useAllAlerts();
+  const { selectedCountry, accessibleCountries, isRestricted } = useAdminCountry();
   
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -132,6 +135,15 @@ export default function AlertsHistory() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Sync country filter with AdminCountryContext
+  useEffect(() => {
+    if (selectedCountry) {
+      setCountryFilter(selectedCountry);
+    } else if (!isRestricted) {
+      setCountryFilter('all');
+    }
+  }, [selectedCountry, isRestricted]);
 
   const filteredAlerts = useMemo(() => {
     return alerts.filter(alert => {
@@ -236,6 +248,7 @@ export default function AlertsHistory() {
             <p className="text-muted-foreground mt-1">
               {unreadCount} non lue(s) • {criticalCount} critique(s) • {escalatedCount} escaladée(s) • {alerts.length} total
             </p>
+            <CountryFilterIndicator className="mt-2" />
           </div>
           <Button variant="outline" onClick={exportCSV}>
             <Download className="mr-2 h-4 w-4" />
