@@ -4,10 +4,11 @@ import { useAdminNotifications } from '@/hooks/useAdminNotifications';
 import { useAdminNotificationPreferences } from '@/hooks/useAdminNotificationPreferences';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { AdminNotificationItem } from '@/components/admin/AdminNotificationItem';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -98,34 +99,34 @@ export default function AdminNotificationsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Centre de Notifications</h1>
-            <p className="text-muted-foreground">
-              Gérez les alertes et notifications de la plateforme
-            </p>
-            <CountryFilterIndicator className="mt-2" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={refreshNotifications}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Actualiser
-            </Button>
-            {unreadCount > 0 && (
-              <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                <CheckCheck className="h-4 w-4 mr-2" />
-                Tout marquer lu
+        <AdminPageHeader
+          title="Centre de Notifications"
+          description="Gérez les alertes et notifications de la plateforme"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refreshNotifications}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Actualiser
               </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button variant="outline" size="sm" onClick={dismissAll}>
-                <Archive className="h-4 w-4 mr-2" />
-                Tout archiver
-              </Button>
-            )}
-          </div>
-        </div>
+              {unreadCount > 0 && (
+                <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                  <CheckCheck className="h-4 w-4 mr-2" />
+                  Tout marquer lu
+                </Button>
+              )}
+              {notifications.length > 0 && (
+                <Button variant="outline" size="sm" onClick={dismissAll}>
+                  <Archive className="h-4 w-4 mr-2" />
+                  Tout archiver
+                </Button>
+              )}
+            </div>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

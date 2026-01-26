@@ -15,6 +15,7 @@ import { AdminReportSettings } from '@/components/admin/AdminReportSettings';
 import { ProfileReminderSettings } from '@/components/admin/ProfileReminderSettings';
 import { AdminNotificationPreferencesSettings } from '@/components/admin/AdminNotificationPreferencesSettings';
 import { VideoDurationLimitsSettings } from '@/components/admin/VideoDurationLimitsSettings';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
@@ -101,12 +102,12 @@ export default function Settings() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Paramètres de la plateforme</h1>
-          <p className="text-muted-foreground mt-2">
-            Configuration globale de JOIE DE VIVRE (Super Admin uniquement)
-          </p>
-        </div>
+        {/* Header */}
+        <AdminPageHeader
+          title="Paramètres de la plateforme"
+          description="Configuration globale de JOIE DE VIVRE (Super Admin uniquement)"
+          showCountryIndicator={false}
+        />
 
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="flex-wrap">

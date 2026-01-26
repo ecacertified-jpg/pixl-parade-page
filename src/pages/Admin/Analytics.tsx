@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAdminAnalytics, Period } from '@/hooks/useAdminAnalytics';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Download, Calendar, TrendingUp, Users, DollarSign, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MonthlyComparisonTable } from '@/components/admin/MonthlyComparisonTable';
@@ -53,33 +55,35 @@ export default function Analytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground mt-2">
-              Statistiques et rapports détaillés
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Select value={period} onValueChange={(v: Period) => setPeriod(v)}>
-              <SelectTrigger className="w-40">
-                <Calendar className="mr-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Aujourd'hui</SelectItem>
-                <SelectItem value="7days">7 derniers jours</SelectItem>
-                <SelectItem value="30days">30 derniers jours</SelectItem>
-                <SelectItem value="90days">90 derniers jours</SelectItem>
-                <SelectItem value="year">Cette année</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="mr-2 h-4 w-4" />
-              Exporter CSV
-            </Button>
-          </div>
-        </div>
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
+        {/* Header */}
+        <AdminPageHeader
+          title="Analytics"
+          description="Statistiques et rapports détaillés"
+          actions={
+            <div className="flex gap-2">
+              <Select value={period} onValueChange={(v: Period) => setPeriod(v)}>
+                <SelectTrigger className="w-40">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Aujourd'hui</SelectItem>
+                  <SelectItem value="7days">7 derniers jours</SelectItem>
+                  <SelectItem value="30days">30 derniers jours</SelectItem>
+                  <SelectItem value="90days">90 derniers jours</SelectItem>
+                  <SelectItem value="year">Cette année</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={exportToCSV}>
+                <Download className="mr-2 h-4 w-4" />
+                Exporter CSV
+              </Button>
+            </div>
+          }
+        />
         
         {/* KPIs Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

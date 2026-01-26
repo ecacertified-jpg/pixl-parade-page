@@ -10,11 +10,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAllAlerts, UnifiedAlert } from '@/hooks/useAllAlerts';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
-  Bell, 
+  Bell,
   CheckCheck, 
   X, 
   Download, 
@@ -238,23 +239,20 @@ export default function AlertsHistory() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Bell className="h-6 w-6 text-primary" />
-              Historique des Alertes
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {unreadCount} non lue(s) • {criticalCount} critique(s) • {escalatedCount} escaladée(s) • {alerts.length} total
-            </p>
-            <CountryFilterIndicator className="mt-2" />
-          </div>
-          <Button variant="outline" onClick={exportCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            Exporter CSV
-          </Button>
-        </div>
+        <AdminPageHeader
+          title="🔔 Historique des Alertes"
+          description={`${unreadCount} non lue(s) • ${criticalCount} critique(s) • ${escalatedCount} escaladée(s) • ${alerts.length} total`}
+          actions={
+            <Button variant="outline" onClick={exportCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Exporter CSV
+            </Button>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

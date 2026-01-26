@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useBusinessDetailedStats } from '@/hooks/useBusinessDetailedStats';
 import { useBusinessReportPDF } from '@/hooks/useBusinessReportPDF';
@@ -11,12 +10,12 @@ import { BusinessPerformanceTable } from '@/components/admin/BusinessPerformance
 import { ProductCategoryChart } from '@/components/admin/ProductCategoryChart';
 import { BusinessReportPreview } from '@/components/admin/BusinessReportPreview';
 import { ExportReportModal } from '@/components/admin/ExportReportModal';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, FileText } from 'lucide-react';
+import { RefreshCw, FileText } from 'lucide-react';
 
 export default function BusinessAnalytics() {
-  const navigate = useNavigate();
   const { getCountryFilter } = useAdminCountry();
   const countryFilter = getCountryFilter();
   const { stats, loading, refresh } = useBusinessDetailedStats(countryFilter);
@@ -26,49 +25,36 @@ export default function BusinessAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-start gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate('/admin')}
-              className="shrink-0 mt-0.5"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-poppins">
-                📊 Statistiques Business
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Analyse détaillée des comptes business
-              </p>
-              <CountryFilterIndicator className="mt-2" />
+        <AdminPageHeader
+          title="📊 Statistiques Business"
+          description="Analyse détaillée des comptes business"
+          actions={
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setExportModalOpen(true)}
+                disabled={loading || !stats}
+              >
+                <FileText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Exporter PDF</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={refresh}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Actualiser</span>
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex gap-2 justify-end">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setExportModalOpen(true)}
-              disabled={loading || !stats}
-            >
-              <FileText className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Exporter PDF</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={refresh}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Actualiser</span>
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* KPI Cards */}
         <BusinessKPICards stats={stats} loading={loading} />

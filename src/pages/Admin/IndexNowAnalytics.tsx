@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { IndexNowDashboard } from '@/components/admin/IndexNowDashboard';
 import { IndexNowSubmitButton } from '@/components/admin/IndexNowSubmitButton';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Rocket } from 'lucide-react';
 
 export default function IndexNowAnalytics() {
   const [days, setDays] = useState(30);
@@ -15,34 +15,29 @@ export default function IndexNowAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Rocket className="h-6 w-6 text-primary" />
-              IndexNow Analytics
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Suivi des soumissions d'indexation en temps réel
-            </p>
-            <CountryFilterIndicator className="mt-2" />
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">7 derniers jours</SelectItem>
-                <SelectItem value="30">30 derniers jours</SelectItem>
-                <SelectItem value="90">90 derniers jours</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <IndexNowSubmitButton />
-          </div>
-        </div>
+        <AdminPageHeader
+          title="🚀 IndexNow Analytics"
+          description="Suivi des soumissions d'indexation en temps réel"
+          actions={
+            <div className="flex items-center gap-3">
+              <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">7 derniers jours</SelectItem>
+                  <SelectItem value="30">30 derniers jours</SelectItem>
+                  <SelectItem value="90">90 derniers jours</SelectItem>
+                </SelectContent>
+              </Select>
+              <IndexNowSubmitButton />
+            </div>
+          }
+        />
 
         {/* Dashboard */}
         <IndexNowDashboard days={days} countryCode={countryFilter} />
