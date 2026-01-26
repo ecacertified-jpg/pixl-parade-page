@@ -8,10 +8,11 @@ import { RefreshCw } from 'lucide-react';
 
 interface IndexNowDashboardProps {
   days?: number;
+  countryCode?: string | null;
 }
 
-export function IndexNowDashboard({ days = 30 }: IndexNowDashboardProps) {
-  const { stats, loading, refetch } = useIndexNowStats({ days, limit: 100 });
+export function IndexNowDashboard({ days = 30, countryCode }: IndexNowDashboardProps) {
+  const { stats, loading, refetch } = useIndexNowStats({ days, limit: 100, countryCode });
 
   return (
     <div className="space-y-6">

@@ -54,7 +54,7 @@ export interface BusinessDetailedStats {
   topBusinessByOrders: BusinessPerformance[];
 }
 
-export function useBusinessDetailedStats() {
+export function useBusinessDetailedStats(countryCode?: string | null) {
   const [stats, setStats] = useState<BusinessDetailedStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,10 +62,16 @@ export function useBusinessDetailedStats() {
     try {
       setLoading(true);
 
-      // Fetch all business accounts
-      const { data: businesses, error: businessError } = await supabase
+      // Fetch all business accounts with optional country filter
+      let businessQuery = supabase
         .from('business_accounts')
         .select('*');
+      
+      if (countryCode) {
+        businessQuery = businessQuery.eq('country_code', countryCode);
+      }
+      
+      const { data: businesses, error: businessError } = await businessQuery;
 
       if (businessError) throw businessError;
 
@@ -249,7 +255,7 @@ export function useBusinessDetailedStats() {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [countryCode]);
 
   return { stats, loading, refresh: fetchStats };
 }

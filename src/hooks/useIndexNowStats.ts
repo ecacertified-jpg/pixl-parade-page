@@ -30,10 +30,11 @@ export interface IndexNowStats {
 interface UseIndexNowStatsOptions {
   days?: number;
   limit?: number;
+  countryCode?: string | null;
 }
 
 export function useIndexNowStats(options: UseIndexNowStatsOptions = {}) {
-  const { days = 30, limit = 50 } = options;
+  const { days = 30, limit = 50, countryCode } = options;
   
   const [stats, setStats] = useState<IndexNowStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,31 @@ export function useIndexNowStats(options: UseIndexNowStatsOptions = {}) {
       const startDate = subDays(new Date(), days);
       const today = startOfDay(new Date());
 
+      // If country filter is active, first get entity IDs from that country
+      let allowedProductIds: string[] | null = null;
+      let allowedBusinessIds: string[] | null = null;
+
+      if (countryCode) {
+        // Get products from businesses in this country
+        const { data: countryBusinesses } = await supabase
+          .from('business_accounts')
+          .select('id, user_id')
+          .eq('country_code', countryCode);
+        
+        if (countryBusinesses) {
+          allowedBusinessIds = countryBusinesses.map(b => b.id);
+          
+          const { data: countryProducts } = await supabase
+            .from('products')
+            .select('id')
+            .in('business_owner_id', countryBusinesses.map(b => b.user_id));
+          
+          if (countryProducts) {
+            allowedProductIds = countryProducts.map(p => p.id);
+          }
+        }
+      }
+
       // Fetch all submissions in the period
       const { data: submissions, error: submissionsError } = await supabase
         .from('indexnow_submissions')
@@ -56,7 +82,23 @@ export function useIndexNowStats(options: UseIndexNowStatsOptions = {}) {
 
       if (submissionsError) throw submissionsError;
 
-      const allSubmissions = submissions || [];
+      // Filter by country if needed
+      let filteredSubmissions = submissions || [];
+      
+      if (countryCode && (allowedProductIds || allowedBusinessIds)) {
+        filteredSubmissions = filteredSubmissions.filter(s => {
+          if (!s.entity_id) return false;
+          if (s.entity_type === 'product' && allowedProductIds) {
+            return allowedProductIds.includes(s.entity_id);
+          }
+          if (s.entity_type === 'business' && allowedBusinessIds) {
+            return allowedBusinessIds.includes(s.entity_id);
+          }
+          return false;
+        });
+      }
+
+      const allSubmissions = filteredSubmissions;
 
       // Calculate basic stats
       const totalSubmissions = allSubmissions.length;
@@ -140,7 +182,7 @@ export function useIndexNowStats(options: UseIndexNowStatsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [days, limit]);
+  }, [days, limit, countryCode]);
 
   useEffect(() => {
     fetchStats();

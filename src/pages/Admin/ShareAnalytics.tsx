@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useShareAnalytics, Period } from '@/hooks/useShareAnalytics';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { ShareKPICards } from '@/components/admin/ShareKPICards';
 import { ShareFunnelChart } from '@/components/admin/ShareFunnelChart';
 import { PlatformPerformanceChart } from '@/components/admin/PlatformPerformanceChart';
@@ -9,6 +10,7 @@ import { TopSharedProductsTable } from '@/components/admin/TopSharedProductsTabl
 import { TopSharedBusinessesTable } from '@/components/admin/TopSharedBusinessesTable';
 import { UTMSourcesChart } from '@/components/admin/UTMSourcesChart';
 import { DeviceBreakdownChart } from '@/components/admin/DeviceBreakdownChart';
+import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Download, Share2 } from 'lucide-react';
@@ -18,10 +20,12 @@ import { fr } from 'date-fns/locale';
 export default function ShareAnalytics() {
   const [period, setPeriod] = useState<Period>('30days');
   const { data, loading, fetchAnalytics } = useShareAnalytics();
+  const { getCountryFilter } = useAdminCountry();
+  const countryFilter = getCountryFilter();
 
   useEffect(() => {
-    fetchAnalytics(period);
-  }, [period, fetchAnalytics]);
+    fetchAnalytics(period, countryFilter);
+  }, [period, countryFilter, fetchAnalytics]);
 
   const handleExportCSV = () => {
     // Export daily stats as CSV
@@ -62,6 +66,7 @@ export default function ShareAnalytics() {
               <p className="text-sm text-muted-foreground">
                 Analysez l'impact des partages sociaux sur les conversions
               </p>
+              <CountryFilterIndicator className="mt-2" />
             </div>
           </div>
           
@@ -81,7 +86,7 @@ export default function ShareAnalytics() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => fetchAnalytics(period)}
+              onClick={() => fetchAnalytics(period, countryFilter)}
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />

@@ -108,26 +108,64 @@ export function useShareAnalytics() {
     return { start, end };
   };
 
-  const fetchAnalytics = useCallback(async (period: Period = '30days') => {
+  const fetchAnalytics = useCallback(async (period: Period = '30days', countryCode?: string | null) => {
     setLoading(true);
     try {
       const { start, end } = getDateRange(period);
       const startStr = start.toISOString();
       const endStr = end.toISOString();
 
+      // First fetch products and businesses to filter by country if needed
+      let productsForFilter: string[] | null = null;
+      let businessesForFilter: string[] | null = null;
+
+      if (countryCode) {
+        // Get products from businesses in this country
+        const { data: countryBusinesses } = await supabase
+          .from('business_accounts')
+          .select('id, user_id')
+          .eq('country_code', countryCode);
+        
+        if (countryBusinesses) {
+          businessesForFilter = countryBusinesses.map(b => b.id);
+          
+          // Get products from these businesses
+          const { data: countryProducts } = await supabase
+            .from('products')
+            .select('id')
+            .in('business_owner_id', countryBusinesses.map(b => b.user_id));
+          
+          if (countryProducts) {
+            productsForFilter = countryProducts.map(p => p.id);
+          }
+        }
+      }
+
       // Fetch product shares
-      const { data: productShares } = await supabase
+      let productSharesQuery = supabase
         .from('product_shares')
         .select('*')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
+      
+      if (productsForFilter !== null) {
+        productSharesQuery = productSharesQuery.in('product_id', productsForFilter.length > 0 ? productsForFilter : ['00000000-0000-0000-0000-000000000000']);
+      }
+      
+      const { data: productShares } = await productSharesQuery;
 
       // Fetch business shares
-      const { data: businessShares } = await supabase
+      let businessSharesQuery = supabase
         .from('business_shares')
         .select('*')
         .gte('created_at', startStr)
         .lte('created_at', endStr);
+      
+      if (businessesForFilter !== null) {
+        businessSharesQuery = businessSharesQuery.in('business_id', businessesForFilter.length > 0 ? businessesForFilter : ['00000000-0000-0000-0000-000000000000']);
+      }
+      
+      const { data: businessShares } = await businessSharesQuery;
 
       // Fetch product share events
       const { data: productEvents } = await supabase
