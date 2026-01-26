@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify admin status
+    // Verify admin status with country restrictions
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('admin_users')
-      .select('role, permissions, is_active')
+      .select('role, permissions, is_active, assigned_countries')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
@@ -70,6 +70,18 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    // Helper function for country access validation
+    const canAccessCountry = (targetCountryCode: string | null): boolean => {
+      // Super admins can access all countries (already verified above)
+      if (adminUser.role === 'super_admin') return true;
+      // If target has no country, allow access
+      if (!targetCountryCode) return true;
+      // If admin has no country restrictions, allow all
+      const assignedCountries = adminUser.assigned_countries as string[] | null;
+      if (!assignedCountries || assignedCountries.length === 0) return true;
+      return assignedCountries.includes(targetCountryCode);
+    };
 
     const { primary_user_id, secondary_user_id }: MergeRequest = await req.json();
 
@@ -87,16 +99,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify both users exist
+    // Verify both users exist and get their country codes
     const { data: primaryProfile } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, first_name, last_name')
+      .select('user_id, first_name, last_name, country_code')
       .eq('user_id', primary_user_id)
       .single();
 
     const { data: secondaryProfile } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, first_name, last_name')
+      .select('user_id, first_name, last_name, country_code')
       .eq('user_id', secondary_user_id)
       .single();
 
@@ -104,6 +116,42 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'One or both user profiles not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // COUNTRY ACCESS VALIDATION - Admin must have access to both users' countries
+    const primaryCountryAccess = canAccessCountry(primaryProfile.country_code);
+    const secondaryCountryAccess = canAccessCountry(secondaryProfile.country_code);
+    
+    if (!primaryCountryAccess || !secondaryCountryAccess) {
+      const blockedCountry = !primaryCountryAccess ? primaryProfile.country_code : secondaryProfile.country_code;
+      const assignedCountries = adminUser.assigned_countries as string[] | null;
+      
+      console.error(`Admin ${user.id} attempted merge with user from restricted country: ${blockedCountry}`);
+      
+      // Log unauthorized attempt
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        admin_user_id: user.id,
+        action_type: 'unauthorized_country_access',
+        target_type: 'user',
+        target_id: !primaryCountryAccess ? primary_user_id : secondary_user_id,
+        description: `Attempted account merge involving user from restricted country: ${blockedCountry}`,
+        metadata: {
+          attempted_action: 'merge_accounts',
+          primary_user_id,
+          secondary_user_id,
+          primary_country: primaryProfile.country_code,
+          secondary_country: secondaryProfile.country_code,
+          admin_assigned_countries: assignedCountries,
+          blocked: true
+        }
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `Forbidden - Access denied for country: ${blockedCountry}` 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
