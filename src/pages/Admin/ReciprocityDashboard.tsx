@@ -9,7 +9,8 @@ import { BadgeDistributionChart } from '@/components/admin/BadgeDistributionChar
 import { ReciprocityTrendsChart } from '@/components/admin/ReciprocityTrendsChart';
 import { OccasionBreakdownChart } from '@/components/admin/OccasionBreakdownChart';
 import { ImbalanceAlertsSection } from '@/components/admin/ImbalanceAlertsSection';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -24,33 +25,33 @@ export default function ReciprocityDashboard() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Statistiques de Réciprocité</h1>
-            <p className="text-muted-foreground mt-1">
-              Analyse du réseau de contributions et d'entraide
-            </p>
-            <CountryFilterIndicator className="mt-2" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Période" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Aujourd'hui</SelectItem>
-                <SelectItem value="7days">7 derniers jours</SelectItem>
-                <SelectItem value="30days">30 derniers jours</SelectItem>
-                <SelectItem value="90days">90 derniers jours</SelectItem>
-                <SelectItem value="year">Dernière année</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
+        <AdminPageHeader
+          title="Statistiques de Réciprocité"
+          description="Analyse du réseau de contributions et d'entraide"
+          actions={
+            <div className="flex items-center gap-3">
+              <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Période" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Aujourd'hui</SelectItem>
+                  <SelectItem value="7days">7 derniers jours</SelectItem>
+                  <SelectItem value="30days">30 derniers jours</SelectItem>
+                  <SelectItem value="90days">90 derniers jours</SelectItem>
+                  <SelectItem value="year">Dernière année</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={refresh} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          }
+        />
 
         {loading ? (
           <div className="space-y-6">

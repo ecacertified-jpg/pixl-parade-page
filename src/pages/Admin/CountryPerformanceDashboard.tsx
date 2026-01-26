@@ -5,8 +5,10 @@ import { CountryPerformanceCard } from '@/components/admin/CountryPerformanceCar
 import { CountryComparisonChart } from '@/components/admin/CountryComparisonChart';
 import { CountryTrendsChart } from '@/components/admin/CountryTrendsChart';
 import { StrugglingCountryLiveBanner } from '@/components/admin/StrugglingCountryLiveBanner';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download, Globe, GitCompare } from 'lucide-react';
+import { RefreshCw, Download, GitCompare } from 'lucide-react';
 import { exportToCSV, formatNumberFr, formatCurrencyXOF } from '@/utils/exportUtils';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,49 +38,48 @@ const CountryPerformanceDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Struggling Countries Banner */}
         <StrugglingCountryLiveBanner />
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <Globe className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold">Performance par pays</h1>
+        <AdminPageHeader
+          title="🌍 Performance par pays"
+          description="Analyse des marchés et KPIs clés par région"
+          showCountryIndicator={false}
+          actions={
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refresh}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualiser
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/admin/countries/comparison')}
+              >
+                <GitCompare className="h-4 w-4 mr-2" />
+                Comparaison
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={loading || countries.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exporter CSV
+              </Button>
             </div>
-            <p className="text-muted-foreground mt-1">
-              Analyse des marchés et KPIs clés par région
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refresh}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => navigate('/admin/countries/comparison')}
-            >
-              <GitCompare className="h-4 w-4 mr-2" />
-              Comparaison
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={loading || countries.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exporter CSV
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Global Summary */}
         <section>

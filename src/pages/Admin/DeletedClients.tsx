@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { 
   Trash2, 
   RotateCcw, 
@@ -305,12 +307,15 @@ export default function DeletedClients() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">🗑️ Corbeille Clients</h1>
-          <p className="text-muted-foreground mt-1">
-            Les clients supprimés sont conservés 30 jours avant suppression définitive
-          </p>
-        </div>
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
+        {/* Header */}
+        <AdminPageHeader
+          title="🗑️ Corbeille Clients"
+          description="Les clients supprimés sont conservés 30 jours avant suppression définitive"
+          showCountryIndicator={false}
+        />
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">

@@ -4,7 +4,9 @@ import { useDuplicateAccountsDashboard, DuplicateGroup } from '@/hooks/useDuplic
 import { DuplicateGroupCard } from '@/components/admin/DuplicateGroupCard';
 import { UnifyClientAccountsModal } from '@/components/admin/UnifyClientAccountsModal';
 import { UnifyBusinessAccountsModal } from '@/components/admin/UnifyBusinessAccountsModal';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +25,6 @@ import {
   Search,
   RefreshCw,
   Loader2,
-  Copy,
-  XCircle,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -78,30 +78,29 @@ export default function DuplicateAccountsDashboard() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Copy className="h-6 w-6 text-primary" />
-              Comptes en double
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Détection et unification des comptes dupliqués
-            </p>
-          </div>
-          <Button
-            onClick={runScan}
-            disabled={scanning}
-            className="gap-2"
-          >
-            {scanning ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {scanning ? 'Scan en cours...' : 'Lancer un scan'}
-          </Button>
-        </div>
+        <AdminPageHeader
+          title="📋 Comptes en double"
+          description="Détection et unification des comptes dupliqués"
+          showCountryIndicator={false}
+          actions={
+            <Button
+              onClick={runScan}
+              disabled={scanning}
+              className="gap-2"
+            >
+              {scanning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              {scanning ? 'Scan en cours...' : 'Lancer un scan'}
+            </Button>
+          }
+        />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

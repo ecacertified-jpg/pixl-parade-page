@@ -5,10 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CountryForecastPanel } from '@/components/admin/CountryForecastPanel';
 import { MLForecastPanel } from '@/components/admin/MLForecastPanel';
 import { ForecastComparisonView } from '@/components/admin/ForecastComparisonView';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { useMLForecast, MetricType } from '@/hooks/useMLForecast';
 import { useForecastEngine, ForecastResult } from '@/hooks/useForecastEngine';
 import { useCountryPerformance } from '@/hooks/useCountryPerformance';
-import { Sparkles, Brain, GitCompare, TrendingUp } from 'lucide-react';
+import { Brain, GitCompare, TrendingUp } from 'lucide-react';
 
 const COUNTRIES = [
   { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
@@ -79,34 +81,32 @@ export default function ForecastPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              Prévisions automatiques
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Suggestions d'objectifs basées sur les tendances historiques et ML
-            </p>
-          </div>
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
 
-          <Select
-            value={selectedYear.toString()}
-            onValueChange={(v) => setSelectedYear(parseInt(v))}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {YEARS.map(year => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Header */}
+        <AdminPageHeader
+          title="✨ Prévisions automatiques"
+          description="Suggestions d'objectifs basées sur les tendances historiques et ML"
+          showCountryIndicator={false}
+          actions={
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(v) => setSelectedYear(parseInt(v))}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          }
+        />
 
         {/* Forecast Mode Tabs */}
         <Tabs value={forecastMode} onValueChange={(v) => setForecastMode(v as typeof forecastMode)}>

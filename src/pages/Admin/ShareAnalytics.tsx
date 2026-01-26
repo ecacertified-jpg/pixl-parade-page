@@ -10,12 +10,12 @@ import { TopSharedProductsTable } from '@/components/admin/TopSharedProductsTabl
 import { TopSharedBusinessesTable } from '@/components/admin/TopSharedBusinessesTable';
 import { UTMSourcesChart } from '@/components/admin/UTMSourcesChart';
 import { DeviceBreakdownChart } from '@/components/admin/DeviceBreakdownChart';
-import { CountryFilterIndicator } from '@/components/admin/CountryFilterIndicator';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download, Share2 } from 'lucide-react';
+import { RefreshCw, Download } from 'lucide-react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 export default function ShareAnalytics() {
   const [period, setPeriod] = useState<Period>('30days');
@@ -55,53 +55,47 @@ export default function ShareAnalytics() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Share2 className="h-6 w-6 text-primary" />
+        <AdminPageHeader
+          title="📤 Statistiques de Partage"
+          description="Analysez l'impact des partages sociaux sur les conversions"
+          actions={
+            <div className="flex items-center gap-2">
+              <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Période" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7days">7 derniers jours</SelectItem>
+                  <SelectItem value="30days">30 derniers jours</SelectItem>
+                  <SelectItem value="90days">90 derniers jours</SelectItem>
+                  <SelectItem value="year">12 derniers mois</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => fetchAnalytics(period, countryFilter)}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleExportCSV}
+                disabled={loading || data.dailyStats.length === 0}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">Statistiques de Partage</h1>
-              <p className="text-sm text-muted-foreground">
-                Analysez l'impact des partages sociaux sur les conversions
-              </p>
-              <CountryFilterIndicator className="mt-2" />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Période" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7days">7 derniers jours</SelectItem>
-                <SelectItem value="30days">30 derniers jours</SelectItem>
-                <SelectItem value="90days">90 derniers jours</SelectItem>
-                <SelectItem value="year">12 derniers mois</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => fetchAnalytics(period, countryFilter)}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleExportCSV}
-              disabled={loading || data.dailyStats.length === 0}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* KPI Cards */}
         <ShareKPICards data={data} loading={loading} />

@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 export default function AuditLogs() {
   const [actionTypeFilter, setActionTypeFilter] = useState<string>('');
@@ -34,12 +36,14 @@ export default function AuditLogs() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Logs d'audit</h1>
-          <p className="text-muted-foreground mt-2">
-            Historique complet des actions de modération effectuées par les administrateurs
-          </p>
-        </div>
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
+        {/* Header */}
+        <AdminPageHeader
+          title="Logs d'audit"
+          description="Historique complet des actions de modération effectuées par les administrateurs"
+        />
 
         <Card>
           <CardHeader>
