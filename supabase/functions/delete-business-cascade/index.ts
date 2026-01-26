@@ -60,6 +60,63 @@ serve(async (req) => {
 
     console.log(`[delete-business-cascade] Starting deletion for: ${business_name} (${business_id})`);
 
+    // COUNTRY ACCESS VALIDATION for admin-initiated deletions
+    if (admin_user_id && action_type !== 'auto_purge') {
+      // Fetch admin info with country restrictions
+      const { data: adminUser, error: adminError } = await supabaseAdmin
+        .from('admin_users')
+        .select('user_id, role, assigned_countries, is_active')
+        .eq('user_id', admin_user_id)
+        .eq('is_active', true)
+        .single();
+
+      if (adminError || !adminUser) {
+        console.error(`[delete-business-cascade] Admin validation failed:`, adminError);
+        throw new Error("Admin access required for business deletion");
+      }
+
+      // Fetch business country_code
+      const { data: businessData } = await supabaseAdmin
+        .from('business_accounts')
+        .select('country_code')
+        .eq('id', business_id)
+        .single();
+
+      const businessCountryCode = businessData?.country_code;
+      const assignedCountries = adminUser.assigned_countries as string[] | null;
+
+      // Check country access (super_admin bypasses this check)
+      if (adminUser.role !== 'super_admin' && businessCountryCode) {
+        const hasCountryAccess = !assignedCountries || 
+          assignedCountries.length === 0 || 
+          assignedCountries.includes(businessCountryCode);
+
+        if (!hasCountryAccess) {
+          console.error(`[delete-business-cascade] Country access denied for admin ${admin_user_id} - business country: ${businessCountryCode}, admin countries: ${assignedCountries?.join(', ')}`);
+          
+          // Log unauthorized attempt
+          await supabaseAdmin.from('admin_audit_logs').insert({
+            admin_user_id,
+            action_type: 'unauthorized_country_access',
+            target_type: 'business',
+            target_id: business_id,
+            description: `Attempted cascade delete on business from restricted country: ${businessCountryCode}`,
+            metadata: {
+              attempted_action: 'delete_business_cascade',
+              target_country: businessCountryCode,
+              admin_assigned_countries: assignedCountries,
+              business_name,
+              blocked: true
+            }
+          });
+
+          throw new Error(`Access denied: Cannot delete business from country ${businessCountryCode}`);
+        }
+      }
+
+      console.log(`[delete-business-cascade] Country access validated for admin ${admin_user_id}`);
+    }
+
     const stats: DeleteStats = {
       products: 0,
       product_ratings: 0,

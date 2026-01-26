@@ -275,10 +275,10 @@ Deno.serve(async (req) => {
 
     console.log(`User ${user.id} attempting user management action`)
 
-    // SERVER-SIDE ADMIN VALIDATION
+    // SERVER-SIDE ADMIN VALIDATION with country restrictions
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('admin_users')
-      .select('id, user_id, role, is_active, permissions')
+      .select('id, user_id, role, is_active, permissions, assigned_countries')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single()
@@ -303,6 +303,19 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+    
+    // Helper function for country access validation
+    const canAccessCountry = (targetCountryCode: string | null): boolean => {
+      // Super admins can access all countries
+      if (adminUser.role === 'super_admin') return true;
+      // If target has no country, allow access (legacy data)
+      if (!targetCountryCode) return true;
+      // If admin has no country restrictions, allow all
+      const assignedCountries = adminUser.assigned_countries as string[] | null;
+      if (!assignedCountries || assignedCountries.length === 0) return true;
+      // Check if target country is in admin's assigned countries
+      return assignedCountries.includes(targetCountryCode);
+    };
 
     // Parse request body
     const body: ManageUserRequest = await req.json()
@@ -346,10 +359,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get target user profile
+    // Get target user profile with country_code for access validation
     const { data: targetProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('user_id, first_name, last_name')
+      .select('user_id, first_name, last_name, country_code')
       .eq('user_id', body.user_id)
       .single()
 
@@ -361,12 +374,40 @@ Deno.serve(async (req) => {
       )
     }
 
+    // COUNTRY ACCESS VALIDATION - Check if admin can manage this user's country
+    if (!canAccessCountry(targetProfile.country_code)) {
+      const assignedCountries = adminUser.assigned_countries as string[] | null;
+      console.error(`Admin ${user.id} attempted to manage user from restricted country: ${targetProfile.country_code}`);
+      
+      // Log unauthorized attempt
+      await supabaseAdmin.from('admin_audit_logs').insert({
+        admin_user_id: user.id,
+        action_type: 'unauthorized_country_access',
+        target_type: 'user',
+        target_id: body.user_id,
+        description: `Attempted ${body.action} on user from restricted country: ${targetProfile.country_code}`,
+        metadata: {
+          attempted_action: body.action,
+          target_country: targetProfile.country_code,
+          admin_assigned_countries: assignedCountries,
+          blocked: true
+        }
+      });
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `Forbidden - Access denied for country: ${targetProfile.country_code}` 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Build full name from first_name and last_name
     const targetFullName = [targetProfile.first_name, targetProfile.last_name]
       .filter(Boolean)
       .join(' ') || 'Unknown User'
 
-    console.log(`Admin ${user.id} performing ${body.action} on user ${body.user_id}`)
+    console.log(`Admin ${user.id} performing ${body.action} on user ${body.user_id} (country: ${targetProfile.country_code || 'N/A'})`)
 
     let actionDescription = ''
     let metadata: Record<string, unknown> = {
