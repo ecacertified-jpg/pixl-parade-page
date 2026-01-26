@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -66,39 +67,34 @@ export default function AdminPerformanceDashboard() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-7 w-7 text-primary" />
-              Performance des administrateurs
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Tableau de bord des KPIs de gestion par admin régional
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODS.map(p => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-            
-            <Button variant="outline" onClick={handleExport} disabled={loading || adminPerformance.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
-          </div>
-        </div>
+        <AdminPageHeader
+          title="📊 Performance des administrateurs"
+          description="Tableau de bord des KPIs de gestion par admin régional"
+          showCountryIndicator={false}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={period} onValueChange={(v) => setPeriod(v as typeof period)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button variant="outline" size="icon" onClick={refetch} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              
+              <Button variant="outline" onClick={handleExport} disabled={loading || adminPerformance.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+            </div>
+          }
+        />
 
         {/* KPI Cards */}
         <AdminPerformanceKPICards kpis={kpis} loading={loading} />

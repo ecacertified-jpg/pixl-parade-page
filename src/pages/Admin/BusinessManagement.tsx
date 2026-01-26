@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
+import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -590,34 +592,36 @@ export default function BusinessManagement() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Gestion des prestataires</h1>
-            <p className="text-muted-foreground mt-2">
-              Gérer et valider les comptes business
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {isSuperAdmin && (
-              <Button variant="outline" onClick={() => setAddBusinessToOwnerModalOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Ajouter à un prestataire</span>
-              </Button>
-            )}
-            {isSuperAdmin && (
-              <Button variant="outline" onClick={() => setUnifyBusinessModalOpen(true)}>
-                <GitMerge className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Unifier</span>
-              </Button>
-            )}
-            {isSuperAdmin && (
-              <Button onClick={() => setAddBusinessModalOpen(true)}>
-                <Building2 className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Nouveau prestataire</span>
-              </Button>
-            )}
-          </div>
-        </div>
+        {/* Country Restriction Alert */}
+        <AdminCountryRestrictionAlert />
+
+        {/* Header */}
+        <AdminPageHeader
+          title="Gestion des prestataires"
+          description="Gérer et valider les comptes business"
+          actions={
+            <div className="flex flex-wrap gap-2">
+              {isSuperAdmin && (
+                <Button variant="outline" onClick={() => setAddBusinessToOwnerModalOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Ajouter à un prestataire</span>
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button variant="outline" onClick={() => setUnifyBusinessModalOpen(true)}>
+                  <GitMerge className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Unifier</span>
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button onClick={() => setAddBusinessModalOpen(true)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Nouveau prestataire</span>
+                </Button>
+              )}
+            </div>
+          }
+        />
 
         {/* Performance Alerts Banner */}
         <BusinessPerformanceAlertsBanner />
