@@ -96,7 +96,7 @@ export function AdminProductsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -114,7 +114,7 @@ export function AdminProductsModal({
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 max-h-[60vh] pr-4">
+          <ScrollArea className="min-h-0 flex-1 max-h-[60vh] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
