@@ -114,7 +114,7 @@ export function AdminProductsModal({
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 max-h-[60vh] pr-4">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -133,7 +133,7 @@ export function AdminProductsModal({
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                 {products.map((product) => {
                   const hasVideo = !!(product.video_url || (product.videos && product.videos.length > 0));
                   const thumbnail = product.video_thumbnail_url || product.image_url;
