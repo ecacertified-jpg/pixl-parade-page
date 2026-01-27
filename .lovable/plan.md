@@ -1,81 +1,43 @@
 
-# Correction de l'affichage des produits dans AdminProductsModal
+Contexte et constat (d’après votre capture)
+- Le modal “Produits de LUNE & LOOK” affiche bien “4 produits”, mais le dernier est coupé et on ne peut pas scroller correctement.
+- Nous avons déjà ajouté `max-h-[60vh]` au `ScrollArea` et `pb-4` à la grille. Malgré ça, le scroll peut rester “cassé” à cause de deux points fréquents avec Radix + flex:
+  1) Le `DialogContent` de shadcn ajoute par défaut `overflow-y-auto` (voir `src/components/ui/dialog.tsx`). Si on n’écrase pas ce style, c’est le contenu global du modal qui essaie de scroller, pas le `ScrollArea`, ce qui crée un comportement incohérent (double scroll / scroll capturé au mauvais niveau).
+  2) En layout flex, un enfant scrollable doit souvent avoir `min-h-0` (sinon il ne “rétrécit” pas correctement et déborde au lieu d’activer le scroll).
 
-## Problème identifié
+Objectif
+- Faire en sorte que la zone centrale (liste de produits) soit la seule zone scrollable, et que le footer (“4 produits” + bouton Fermer) reste toujours visible.
+- Assurer que le dernier produit soit entièrement accessible.
 
-Le modal "Produits de LUNE & LOOK" affiche 4 produits mais le 4ème produit en bas est partiellement visible et non accessible par scroll. L'image montre que le produit est coupé en bas du modal.
+Changements proposés (ciblés, sans refactor global)
+1) Forcer le modal à ne pas scroller globalement (éviter le conflit avec ScrollArea)
+   - Fichier: `src/components/admin/AdminProductsModal.tsx`
+   - Modifier `DialogContent` pour écraser le `overflow-y-auto` par défaut de shadcn:
+     - Ajouter `overflow-hidden`
+     - Conserver le layout `flex flex-col` (déjà présent)
+   - Exemple attendu:
+     - Avant: `className="max-w-4xl max-h-[90vh] flex flex-col"`
+     - Après: `className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"`
 
-### Cause technique
+2) Rendre la zone ScrollArea “flex-compatible” et réellement scrollable
+   - Fichier: `src/components/admin/AdminProductsModal.tsx`
+   - Ajouter `min-h-0` sur le `ScrollArea` (très important en flex)
+   - Conserver `flex-1` et éventuellement garder `max-h-[60vh]` si nécessaire (mais une fois `overflow-hidden` + `min-h-0` en place, `max-h` peut devenir optionnel).
+   - Exemple attendu:
+     - `className="min-h-0 flex-1 max-h-[60vh] pr-4"`
 
-Le composant `ScrollArea` de Radix UI ne fonctionne pas correctement avec `flex-1` seul. Le composant nécessite une **hauteur explicite ou calculable** pour que le scroll interne fonctionne. Actuellement :
+3) Vérification visuelle
+   - Ouvrir le modal prestataire dans Super Admin
+   - Vérifier:
+     - Le footer reste visible (ne scrolle pas)
+     - La grille scrolle correctement
+     - Le 4e produit est entièrement visible en bas (le `pb-4` aide à éviter qu’il soit collé/coupé)
 
-```text
-DialogContent (max-h-[90vh], flex flex-col)
-  └── DialogHeader
-  └── Button container (mb-4)
-  └── ScrollArea (flex-1, pr-4)  <-- Manque de hauteur définie
-        └── Grid de produits
-  └── Footer (pt-4, border-t)
-```
+Risques / impacts
+- Impact limité à `AdminProductsModal` (pas de changement global dans le composant Dialog partagé).
+- Améliore la cohérence UX sur mobile/desktop, évite le double-scroll.
 
-Le `flex-1` sans contrainte de hauteur sur le parent ne permet pas au `ScrollArea.Viewport` de calculer sa zone de scroll.
-
----
-
-## Solution proposée
-
-Modifier le `ScrollArea` pour lui donner une hauteur maximale explicite et ajouter un padding bottom pour garantir que le dernier élément soit entièrement visible.
-
-### Modifications dans `AdminProductsModal.tsx`
-
-**Ligne 117** - Remplacer :
-```typescript
-<ScrollArea className="flex-1 pr-4">
-```
-
-Par :
-```typescript
-<ScrollArea className="flex-1 max-h-[60vh] pr-4">
-```
-
-**Alternative plus robuste** - Utiliser une approche avec `overflow-y-auto` natif :
-
-```typescript
-<div className="flex-1 overflow-y-auto pr-4 max-h-[60vh]">
-  {/* contenu de la grille */}
-</div>
-```
-
-Et ajouter un padding-bottom à la grille pour éviter que le dernier produit soit coupé :
-
-**Ligne 136** - Modifier la grille :
-```typescript
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-```
-
----
-
-## Changements détaillés
-
-| Fichier | Ligne | Modification |
-|---------|-------|--------------|
-| `AdminProductsModal.tsx` | 117 | Ajouter `max-h-[60vh]` au ScrollArea |
-| `AdminProductsModal.tsx` | 136 | Ajouter `pb-4` à la grille pour padding en bas |
-
----
-
-## Résultat attendu
-
-Après cette correction :
-- Le 4ème produit sera visible en scrollant vers le bas
-- Une barre de scroll verticale apparaîtra quand il y a plus de 3 produits (sur les écrans standards)
-- Le dernier produit aura suffisamment d'espace en bas pour être entièrement visible
-- L'expérience utilisateur sera améliorée avec un scroll fluide
-
----
-
-## Impact
-
-- Fichier unique modifié : `AdminProductsModal.tsx`
-- Pas d'impact sur les autres composants
-- Correction applicable immédiatement
+Critères d’acceptation
+- Quand il y a 4+ produits, une barre de scroll apparaît dans la zone centrale et permet d’atteindre le dernier produit.
+- Aucun produit n’est tronqué.
+- Le bouton “Fermer” reste accessible sans scroller tout le modal.
