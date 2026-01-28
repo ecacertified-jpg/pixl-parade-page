@@ -710,6 +710,72 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_contact_alerts: {
+        Row: {
+          alert_type: string
+          channel: string
+          contact_id: string
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          days_before: number
+          error_message: string | null
+          id: string
+          opted_out: boolean | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          channel: string
+          contact_id: string
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          days_before?: number
+          error_message?: string | null
+          id?: string
+          opted_out?: boolean | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          channel?: string
+          contact_id?: string
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          days_before?: number
+          error_message?: string | null
+          id?: string
+          opted_out?: boolean | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_contact_alerts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_contact_alerts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_accounts: {
         Row: {
           address: string | null
