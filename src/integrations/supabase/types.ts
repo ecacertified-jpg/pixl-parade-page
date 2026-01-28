@@ -2102,6 +2102,54 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_alert_preferences: {
+        Row: {
+          alert_10_days_daily: boolean
+          alert_14_days: boolean
+          alert_30_days: boolean
+          alert_on_contact_add: boolean
+          alerts_enabled: boolean
+          created_at: string
+          custom_message: string | null
+          email_enabled: boolean
+          id: string
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+          whatsapp_enabled: boolean
+        }
+        Insert: {
+          alert_10_days_daily?: boolean
+          alert_14_days?: boolean
+          alert_30_days?: boolean
+          alert_on_contact_add?: boolean
+          alerts_enabled?: boolean
+          created_at?: string
+          custom_message?: string | null
+          email_enabled?: boolean
+          id?: string
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          whatsapp_enabled?: boolean
+        }
+        Update: {
+          alert_10_days_daily?: boolean
+          alert_14_days?: boolean
+          alert_30_days?: boolean
+          alert_on_contact_add?: boolean
+          alerts_enabled?: boolean
+          created_at?: string
+          custom_message?: string | null
+          email_enabled?: boolean
+          id?: string
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          whatsapp_enabled?: boolean
+        }
+        Relationships: []
+      }
       contact_events: {
         Row: {
           contact_id: string

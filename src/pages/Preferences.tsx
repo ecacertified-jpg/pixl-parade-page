@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Palette, Ruler, AlertCircle, DollarSign, Lock, Gift } from "lucide-react";
+import { ArrowLeft, Palette, Ruler, AlertCircle, DollarSign, Lock, Gift, Bell } from "lucide-react";
+import { ContactAlertPreferencesSection } from "@/components/preferences/ContactAlertPreferencesSection";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -70,7 +71,7 @@ const Preferences = () => {
       {/* Content */}
       <div className="container max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="sizes" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white">
+          <TabsList className="grid w-full grid-cols-6 bg-white">
             <TabsTrigger value="sizes" className="flex gap-1 text-xs">
               <Ruler className="h-3 w-3" aria-hidden />
               <span className="hidden sm:inline">Tailles</span>
@@ -90,6 +91,10 @@ const Preferences = () => {
             <TabsTrigger value="privacy" className="flex gap-1 text-xs">
               <Lock className="h-3 w-3" aria-hidden />
               <span className="hidden sm:inline">Confidentialité</span>
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="flex gap-1 text-xs">
+              <Bell className="h-3 w-3" aria-hidden />
+              <span className="hidden sm:inline">Alertes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -111,6 +116,10 @@ const Preferences = () => {
 
           <TabsContent value="privacy" className="mt-6">
             <PrivacySection preferences={preferences} onUpdate={updatePreferences} />
+          </TabsContent>
+
+          <TabsContent value="alerts" className="mt-6">
+            <ContactAlertPreferencesSection />
           </TabsContent>
         </Tabs>
 
