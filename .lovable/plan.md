@@ -1,43 +1,176 @@
 
-Contexte et constat (d’après votre capture)
-- Le modal “Produits de LUNE & LOOK” affiche bien “4 produits”, mais le dernier est coupé et on ne peut pas scroller correctement.
-- Nous avons déjà ajouté `max-h-[60vh]` au `ScrollArea` et `pb-4` à la grille. Malgré ça, le scroll peut rester “cassé” à cause de deux points fréquents avec Radix + flex:
-  1) Le `DialogContent` de shadcn ajoute par défaut `overflow-y-auto` (voir `src/components/ui/dialog.tsx`). Si on n’écrase pas ce style, c’est le contenu global du modal qui essaie de scroller, pas le `ScrollArea`, ce qui crée un comportement incohérent (double scroll / scroll capturé au mauvais niveau).
-  2) En layout flex, un enfant scrollable doit souvent avoir `min-h-0` (sinon il ne “rétrécit” pas correctement et déborde au lieu d’activer le scroll).
+# Système de Notifications SMS/WhatsApp pour les Anniversaires Utilisateur
 
-Objectif
-- Faire en sorte que la zone centrale (liste de produits) soit la seule zone scrollable, et que le footer (“4 produits” + bouton Fermer) reste toujours visible.
-- Assurer que le dernier produit soit entièrement accessible.
+## Objectif
+Créer un système qui envoie automatiquement des notifications SMS ou WhatsApp aux contacts ajoutés par un utilisateur pour les informer de son prochain anniversaire, selon un calendrier progressif.
 
-Changements proposés (ciblés, sans refactor global)
-1) Forcer le modal à ne pas scroller globalement (éviter le conflit avec ScrollArea)
-   - Fichier: `src/components/admin/AdminProductsModal.tsx`
-   - Modifier `DialogContent` pour écraser le `overflow-y-auto` par défaut de shadcn:
-     - Ajouter `overflow-hidden`
-     - Conserver le layout `flex flex-col` (déjà présent)
-   - Exemple attendu:
-     - Avant: `className="max-w-4xl max-h-[90vh] flex flex-col"`
-     - Après: `className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"`
+## Calendrier des Rappels
 
-2) Rendre la zone ScrollArea “flex-compatible” et réellement scrollable
-   - Fichier: `src/components/admin/AdminProductsModal.tsx`
-   - Ajouter `min-h-0` sur le `ScrollArea` (très important en flex)
-   - Conserver `flex-1` et éventuellement garder `max-h-[60vh]` si nécessaire (mais une fois `overflow-hidden` + `min-h-0` en place, `max-h` peut devenir optionnel).
-   - Exemple attendu:
-     - `className="min-h-0 flex-1 max-h-[60vh] pr-4"`
+| Moment | Type | Priorité |
+|--------|------|----------|
+| À l'ajout du contact | Notification immédiate | Low |
+| 1 mois avant (J-30) | Rappel anticipé | Low |
+| 2 semaines avant (J-14) | Rappel standard | Medium |
+| 10 jours avant (J-10) | Début rappels quotidiens | High |
+| J-9 à J-1 | Rappel quotidien | High → Critical |
 
-3) Vérification visuelle
-   - Ouvrir le modal prestataire dans Super Admin
-   - Vérifier:
-     - Le footer reste visible (ne scrolle pas)
-     - La grille scrolle correctement
-     - Le 4e produit est entièrement visible en bas (le `pb-4` aide à éviter qu’il soit collé/coupé)
+## Architecture Technique
 
-Risques / impacts
-- Impact limité à `AdminProductsModal` (pas de changement global dans le composant Dialog partagé).
-- Améliore la cohérence UX sur mobile/desktop, évite le double-scroll.
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                      FLUX D'EXÉCUTION                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Ajout d'un contact                                             │
+│       │                                                         │
+│       ▼                                                         │
+│  [Dashboard.tsx] ──► [send-birthday-alert-to-contact]           │
+│       │              (notification immédiate)                   │
+│       │                                                         │
+│       ▼                                                         │
+│  [birthday_contact_alerts] ◄── Table de suivi                   │
+│       │                                                         │
+│       │                                                         │
+│  Cron Job quotidien (00:30 UTC)                                 │
+│       │                                                         │
+│       ▼                                                         │
+│  [check-birthday-alerts-for-contacts]                           │
+│       │                                                         │
+│       ├── Vérifie J-30, J-14, J-10 à J-1                        │
+│       │                                                         │
+│       ▼                                                         │
+│  [send-birthday-alert-to-contact]                               │
+│       │                                                         │
+│       ├── SMS (via Twilio - si smsReliability = reliable)       │
+│       └── WhatsApp (si whatsappFallbackEnabled = true)          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-Critères d’acceptation
-- Quand il y a 4+ produits, une barre de scroll apparaît dans la zone centrale et permet d’atteindre le dernier produit.
-- Aucun produit n’est tronqué.
-- Le bouton “Fermer” reste accessible sans scroller tout le modal.
+---
+
+## Détails Techniques
+
+### 1. Nouvelle Table: `birthday_contact_alerts`
+
+Cette table suit les alertes envoyées pour éviter les doublons.
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid | Clé primaire |
+| user_id | uuid | Propriétaire du contact (celui qui fête son anniv) |
+| contact_id | uuid | Contact notifié |
+| contact_phone | text | Téléphone du contact |
+| alert_type | text | 'immediate', 'month', 'two_weeks', 'daily' |
+| days_before | integer | Nombre de jours avant l'anniversaire |
+| channel | text | 'sms' ou 'whatsapp' |
+| status | text | 'pending', 'sent', 'failed' |
+| sent_at | timestamp | Quand l'alerte a été envoyée |
+| error_message | text | Message d'erreur si échec |
+| created_at | timestamp | Date de création |
+
+### 2. Edge Function: `send-birthday-alert-to-contact`
+
+**Responsabilités:**
+- Recevoir les infos: user_id, contact (phone, name), days_before, alert_type
+- Déterminer le canal (SMS ou WhatsApp) basé sur le pays du contact
+- Envoyer le message personnalisé
+- Enregistrer le résultat dans `birthday_contact_alerts`
+
+**Messages par type:**
+
+| Type | Message |
+|------|---------|
+| Immediate | "🎂 [Prénom] vous a ajouté(e) comme ami(e) sur JOIE DE VIVRE ! Son anniversaire est le [date]. Inscrivez-vous pour lui préparer une surprise : [lien]" |
+| J-30 | "📅 L'anniversaire de [Prénom] approche (le [date]) ! Pensez à lui préparer quelque chose de spécial sur joiedevivre.ci 🎁" |
+| J-14 | "🎉 Plus que 2 semaines avant l'anniversaire de [Prénom] ! Rejoignez sa cagnotte ou offrez-lui un cadeau : [lien]" |
+| J-10 à J-1 | "⏰ L'anniversaire de [Prénom] est dans [X] jour(s) ! Ne manquez pas cette occasion 🎁 → [lien]" |
+
+### 3. Edge Function: `check-birthday-alerts-for-contacts`
+
+**Exécution:** Cron job quotidien à 00:30 UTC (1h30 en Côte d'Ivoire)
+
+**Logique:**
+1. Récupérer tous les utilisateurs avec un anniversaire configuré
+2. Pour chaque utilisateur, vérifier les contacts avec téléphone
+3. Calculer les jours restants avant l'anniversaire
+4. Si correspond à J-30, J-14, ou J-10 à J-1:
+   - Vérifier si alerte déjà envoyée (via `birthday_contact_alerts`)
+   - Si non, appeler `send-birthday-alert-to-contact`
+
+### 4. Modifications Frontend: `Dashboard.tsx`
+
+Après l'ajout d'un contact avec téléphone:
+- Appeler `send-birthday-alert-to-contact` avec alert_type = 'immediate'
+- Uniquement si l'utilisateur a un anniversaire configuré dans son profil
+
+### 5. Intégration SMS (Twilio)
+
+**Nouveau secret nécessaire:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+
+- Pour la Côte d'Ivoire (smsReliability = 'reliable'): SMS via Twilio
+- Pour le Bénin/Sénégal (smsReliability != 'reliable'): WhatsApp via Meta Cloud API
+
+### 6. Intégration WhatsApp (existante)
+
+Utilise les credentials déjà configurés:
+- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+
+**Template suggéré pour Meta Business:**
+- Nom: `birthday_reminder`
+- Catégorie: Marketing
+- Variables: `{{1}}` = Prénom utilisateur, `{{2}}` = Date anniversaire
+
+---
+
+## Fichiers à Créer/Modifier
+
+| Action | Fichier | Description |
+|--------|---------|-------------|
+| Créer | `supabase/functions/send-birthday-alert-to-contact/index.ts` | Envoi SMS/WhatsApp |
+| Créer | `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Cron quotidien |
+| Modifier | `src/pages/Dashboard.tsx` | Appel après ajout de contact |
+| Créer | Migration SQL | Table `birthday_contact_alerts` |
+| Modifier | `supabase/config.toml` | Ajouter cron job |
+
+---
+
+## Sécurité et Limites
+
+### Rate Limiting
+- Maximum 100 SMS/WhatsApp par jour par utilisateur (éviter le spam)
+- Délai minimum de 1 heure entre deux messages au même contact
+
+### Opt-out
+- Les contacts peuvent répondre "STOP" pour ne plus recevoir de messages
+- Géré via la colonne `opted_out` dans `birthday_contact_alerts`
+
+### Confidentialité
+- Les numéros de téléphone ne sont pas exposés côté client
+- RLS sur `birthday_contact_alerts` : accès limité à l'utilisateur propriétaire
+
+---
+
+## Prérequis
+
+### Secrets Manquants
+Pour activer les SMS via Twilio, il faudra ajouter :
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `TWILIO_PHONE_NUMBER`
+
+Les secrets WhatsApp sont déjà configurés.
+
+### Template WhatsApp
+Un template "birthday_reminder" devra être créé et approuvé dans Meta Business Manager pour les messages de rappel (hors fenêtre des 24h).
+
+---
+
+## Estimation
+
+- **Complexité:** Moyenne
+- **Tables:** 1 nouvelle
+- **Edge Functions:** 2 nouvelles
+- **Modifications Frontend:** 1 fichier
+- **Dépendances externes:** Twilio (optionnel), WhatsApp Cloud API (existant)
