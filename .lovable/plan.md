@@ -1,126 +1,162 @@
 
-# Système de Notifications SMS/WhatsApp pour les Anniversaires Utilisateur
+# Page de Préférences de Notification pour Alertes Anniversaire Contacts
 
-## Objectif
-Créer un système qui envoie automatiquement des notifications SMS ou WhatsApp aux contacts ajoutés par un utilisateur pour les informer de son prochain anniversaire, selon un calendrier progressif.
+## Contexte
 
-## Calendrier des Rappels
+L'utilisateur souhaite pouvoir configurer comment et quand ses **contacts** reçoivent des alertes SMS/WhatsApp pour son propre anniversaire. C'est l'inverse du système actuel qui notifie l'utilisateur des anniversaires de ses contacts.
 
-| Moment | Type | Priorité |
-|--------|------|----------|
-| À l'ajout du contact | Notification immédiate | Low |
-| 1 mois avant (J-30) | Rappel anticipé | Low |
-| 2 semaines avant (J-14) | Rappel standard | Medium |
-| 10 jours avant (J-10) | Début rappels quotidiens | High |
-| J-9 à J-1 | Rappel quotidien | High → Critical |
+## Architecture Existante
 
-## Architecture Technique
+### Ce qui existe déjà
+- Table `notification_preferences` : préférences pour les notifications reçues par l'utilisateur
+- Table `birthday_contact_alerts` : suivi des alertes envoyées aux contacts (créée récemment)
+- Page `/notification-settings` : configuration des notifications personnelles
+- Composant `BirthdayReminderTimingSettings` : sélection des jours de rappel
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                      FLUX D'EXÉCUTION                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Ajout d'un contact                                             │
-│       │                                                         │
-│       ▼                                                         │
-│  [Dashboard.tsx] ──► [send-birthday-alert-to-contact]           │
-│       │              (notification immédiate)                   │
-│       │                                                         │
-│       ▼                                                         │
-│  [birthday_contact_alerts] ◄── Table de suivi                   │
-│       │                                                         │
-│       │                                                         │
-│  Cron Job quotidien (00:30 UTC)                                 │
-│       │                                                         │
-│       ▼                                                         │
-│  [check-birthday-alerts-for-contacts]                           │
-│       │                                                         │
-│       ├── Vérifie J-30, J-14, J-10 à J-1                        │
-│       │                                                         │
-│       ▼                                                         │
-│  [send-birthday-alert-to-contact]                               │
-│       │                                                         │
-│       ├── SMS (via Twilio - si smsReliability = reliable)       │
-│       └── WhatsApp (si whatsappFallbackEnabled = true)          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+### Ce qui manque
+- Aucune table pour les préférences d'alertes vers les contacts
+- Aucune interface utilisateur pour configurer ces alertes
+
+---
+
+## Plan d'Implémentation
+
+### 1. Migration Base de Données
+
+Créer une nouvelle table `contact_alert_preferences` pour stocker les préférences de l'utilisateur concernant les alertes envoyées à ses contacts.
+
+**Colonnes :**
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid | Clé primaire |
+| user_id | uuid | FK vers auth.users (unique) |
+| alerts_enabled | boolean | Activer/désactiver les alertes |
+| sms_enabled | boolean | Utiliser le canal SMS |
+| whatsapp_enabled | boolean | Utiliser le canal WhatsApp |
+| email_enabled | boolean | Utiliser le canal Email |
+| alert_on_contact_add | boolean | Alerter immédiatement à l'ajout |
+| alert_30_days | boolean | Rappel à J-30 |
+| alert_14_days | boolean | Rappel à J-14 |
+| alert_10_days_daily | boolean | Rappels quotidiens J-10 à J-1 |
+| custom_message | text | Message personnalisé (optionnel) |
+| created_at | timestamp | Date de création |
+| updated_at | timestamp | Date de mise à jour |
+
+**Politiques RLS :**
+- SELECT : utilisateur peut voir ses propres préférences
+- INSERT/UPDATE : utilisateur peut modifier ses propres préférences
+
+---
+
+### 2. Hook React : `useContactAlertPreferences`
+
+**Fichier :** `src/hooks/useContactAlertPreferences.ts`
+
+**Fonctionnalités :**
+- Charger les préférences de l'utilisateur connecté
+- Créer les préférences par défaut si absentes
+- Mettre à jour les préférences avec feedback toast
+- Retourner l'état de chargement et sauvegarde
+
+**Valeurs par défaut :**
+```typescript
+const defaultPreferences = {
+  alerts_enabled: true,
+  sms_enabled: true,
+  whatsapp_enabled: true,
+  email_enabled: false,
+  alert_on_contact_add: true,
+  alert_30_days: true,
+  alert_14_days: true,
+  alert_10_days_daily: true,
+  custom_message: null,
+};
 ```
 
 ---
 
-## Détails Techniques
+### 3. Composant : `ContactAlertPreferencesSection`
 
-### 1. Nouvelle Table: `birthday_contact_alerts`
+**Fichier :** `src/components/preferences/ContactAlertPreferencesSection.tsx`
 
-Cette table suit les alertes envoyées pour éviter les doublons.
+**Interface utilisateur :**
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Clé primaire |
-| user_id | uuid | Propriétaire du contact (celui qui fête son anniv) |
-| contact_id | uuid | Contact notifié |
-| contact_phone | text | Téléphone du contact |
-| alert_type | text | 'immediate', 'month', 'two_weeks', 'daily' |
-| days_before | integer | Nombre de jours avant l'anniversaire |
-| channel | text | 'sms' ou 'whatsapp' |
-| status | text | 'pending', 'sent', 'failed' |
-| sent_at | timestamp | Quand l'alerte a été envoyée |
-| error_message | text | Message d'erreur si échec |
-| created_at | timestamp | Date de création |
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  📲 Alertes pour vos contacts                                │
+│  Configurez comment vos amis sont informés de votre          │
+│  anniversaire                                                │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  [Switch] Activer les alertes anniversaire pour mes contacts │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  CANAUX DE COMMUNICATION                                     │
+│                                                              │
+│  [Switch] SMS      │  [Switch] WhatsApp  │  [Switch] Email   │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  CALENDRIER DES RAPPELS                                      │
+│                                                              │
+│  [Checkbox] À l'ajout d'un contact                           │
+│             "Notification immédiate quand vous ajoutez       │
+│              un ami avec numéro de téléphone"                │
+│                                                              │
+│  [Checkbox] 1 mois avant (J-30)                              │
+│             "Premier rappel pour planifier"                  │
+│                                                              │
+│  [Checkbox] 2 semaines avant (J-14)                          │
+│             "Rappel pour commander un cadeau"                │
+│                                                              │
+│  [Checkbox] 10 jours avant → Veille (quotidien)              │
+│             "Rappels quotidiens intensifs"                   │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  MESSAGE PERSONNALISÉ (optionnel)                            │
+│                                                              │
+│  [Textarea]                                                  │
+│  "Ce message sera inclus dans les notifications..."          │
+│                                                              │
+│  ─────────────────────────────────────────────────────────── │
+│                                                              │
+│  💡 Info: Les messages sont envoyés via SMS en Côte d'Ivoire │
+│     et via WhatsApp dans les autres pays.                    │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### 2. Edge Function: `send-birthday-alert-to-contact`
+---
 
-**Responsabilités:**
-- Recevoir les infos: user_id, contact (phone, name), days_before, alert_type
-- Déterminer le canal (SMS ou WhatsApp) basé sur le pays du contact
-- Envoyer le message personnalisé
-- Enregistrer le résultat dans `birthday_contact_alerts`
+### 4. Intégration dans la Page Preferences
 
-**Messages par type:**
+**Fichier :** `src/pages/Preferences.tsx`
 
-| Type | Message |
-|------|---------|
-| Immediate | "🎂 [Prénom] vous a ajouté(e) comme ami(e) sur JOIE DE VIVRE ! Son anniversaire est le [date]. Inscrivez-vous pour lui préparer une surprise : [lien]" |
-| J-30 | "📅 L'anniversaire de [Prénom] approche (le [date]) ! Pensez à lui préparer quelque chose de spécial sur joiedevivre.ci 🎁" |
-| J-14 | "🎉 Plus que 2 semaines avant l'anniversaire de [Prénom] ! Rejoignez sa cagnotte ou offrez-lui un cadeau : [lien]" |
-| J-10 à J-1 | "⏰ L'anniversaire de [Prénom] est dans [X] jour(s) ! Ne manquez pas cette occasion 🎁 → [lien]" |
+**Modifications :**
+- Ajouter un nouvel onglet "Alertes" avec l'icône `Bell`
+- Intégrer le composant `ContactAlertPreferencesSection`
+- Mettre à jour le TabsList pour 6 onglets
 
-### 3. Edge Function: `check-birthday-alerts-for-contacts`
+```typescript
+<TabsTrigger value="alerts" className="flex gap-1 text-xs">
+  <Bell className="h-3 w-3" aria-hidden />
+  <span className="hidden sm:inline">Alertes</span>
+</TabsTrigger>
 
-**Exécution:** Cron job quotidien à 00:30 UTC (1h30 en Côte d'Ivoire)
+// ...
 
-**Logique:**
-1. Récupérer tous les utilisateurs avec un anniversaire configuré
-2. Pour chaque utilisateur, vérifier les contacts avec téléphone
-3. Calculer les jours restants avant l'anniversaire
-4. Si correspond à J-30, J-14, ou J-10 à J-1:
-   - Vérifier si alerte déjà envoyée (via `birthday_contact_alerts`)
-   - Si non, appeler `send-birthday-alert-to-contact`
+<TabsContent value="alerts" className="mt-6">
+  <ContactAlertPreferencesSection />
+</TabsContent>
+```
 
-### 4. Modifications Frontend: `Dashboard.tsx`
+---
 
-Après l'ajout d'un contact avec téléphone:
-- Appeler `send-birthday-alert-to-contact` avec alert_type = 'immediate'
-- Uniquement si l'utilisateur a un anniversaire configuré dans son profil
+### 5. Mise à jour du Hook Notification
 
-### 5. Intégration SMS (Twilio)
-
-**Nouveau secret nécessaire:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
-
-- Pour la Côte d'Ivoire (smsReliability = 'reliable'): SMS via Twilio
-- Pour le Bénin/Sénégal (smsReliability != 'reliable'): WhatsApp via Meta Cloud API
-
-### 6. Intégration WhatsApp (existante)
-
-Utilise les credentials déjà configurés:
-- `WHATSAPP_ACCESS_TOKEN`
-- `WHATSAPP_PHONE_NUMBER_ID`
-
-**Template suggéré pour Meta Business:**
-- Nom: `birthday_reminder`
-- Catégorie: Marketing
-- Variables: `{{1}}` = Prénom utilisateur, `{{2}}` = Date anniversaire
+Le hook existant `useNotificationPreferences` restera inchangé car il gère les notifications **reçues** par l'utilisateur. Le nouveau hook `useContactAlertPreferences` gère les alertes **envoyées** aux contacts.
 
 ---
 
@@ -128,49 +164,36 @@ Utilise les credentials déjà configurés:
 
 | Action | Fichier | Description |
 |--------|---------|-------------|
-| Créer | `supabase/functions/send-birthday-alert-to-contact/index.ts` | Envoi SMS/WhatsApp |
-| Créer | `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Cron quotidien |
-| Modifier | `src/pages/Dashboard.tsx` | Appel après ajout de contact |
-| Créer | Migration SQL | Table `birthday_contact_alerts` |
-| Modifier | `supabase/config.toml` | Ajouter cron job |
+| Créer | Migration SQL | Table `contact_alert_preferences` avec RLS |
+| Créer | `src/hooks/useContactAlertPreferences.ts` | Hook de gestion des préférences |
+| Créer | `src/components/preferences/ContactAlertPreferencesSection.tsx` | UI du composant |
+| Modifier | `src/pages/Preferences.tsx` | Ajouter onglet "Alertes" |
 
 ---
 
-## Sécurité et Limites
+## Points Techniques
 
-### Rate Limiting
-- Maximum 100 SMS/WhatsApp par jour par utilisateur (éviter le spam)
-- Délai minimum de 1 heure entre deux messages au même contact
+### Gestion des Canaux
 
-### Opt-out
-- Les contacts peuvent répondre "STOP" pour ne plus recevoir de messages
-- Géré via la colonne `opted_out` dans `birthday_contact_alerts`
+L'interface permet de choisir plusieurs canaux simultanément. La logique d'envoi dans l'Edge Function déterminera automatiquement le canal optimal selon :
+1. Le pays du contact (SMS fiable en CI, WhatsApp ailleurs)
+2. Les préférences de l'utilisateur
+3. La disponibilité du canal
 
-### Confidentialité
-- Les numéros de téléphone ne sont pas exposés côté client
-- RLS sur `birthday_contact_alerts` : accès limité à l'utilisateur propriétaire
+### Sauvegarde Automatique
 
----
+Chaque modification déclenche une sauvegarde immédiate (comme les autres sections de préférences) avec un toast de confirmation.
 
-## Prérequis
+### Désactivation des Options
 
-### Secrets Manquants
-Pour activer les SMS via Twilio, il faudra ajouter :
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE_NUMBER`
-
-Les secrets WhatsApp sont déjà configurés.
-
-### Template WhatsApp
-Un template "birthday_reminder" devra être créé et approuvé dans Meta Business Manager pour les messages de rappel (hors fenêtre des 24h).
+Quand `alerts_enabled` est `false`, toutes les autres options sont visuellement désactivées (grisées) mais conservent leur état pour réactivation ultérieure.
 
 ---
 
 ## Estimation
 
-- **Complexité:** Moyenne
-- **Tables:** 1 nouvelle
-- **Edge Functions:** 2 nouvelles
-- **Modifications Frontend:** 1 fichier
-- **Dépendances externes:** Twilio (optionnel), WhatsApp Cloud API (existant)
+- **Complexité** : Faible à moyenne
+- **Nouvelles tables** : 1
+- **Nouveaux composants** : 1
+- **Nouveaux hooks** : 1
+- **Fichiers modifiés** : 1 (Preferences.tsx)
