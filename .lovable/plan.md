@@ -1,364 +1,284 @@
 
 
-# Stratégie de Contenu Réseaux Sociaux - JOIE DE VIVRE
-
-## Objectif
-
-Créer un système centralisé de templates de posts et hashtags pour faciliter le partage cohérent sur les réseaux sociaux par les utilisateurs, vendeurs et l'équipe marketing.
-
----
+# Ajout de Pages SEO pour les Villes Secondaires Supplémentaires
 
 ## Analyse de l'Existant
 
-### Points forts actuels
-- `seo-keywords.ts` : Base centralisée de mots-clés (core, occasions, villes, produits, paiements)
-- Composants de partage : `ProductShareMenu`, `BusinessShareMenu`, `ShareFundModal`
-- Messages pré-configurés dans `QuickBusinessShareMenu` (6 suggestions)
-- Templates de cartes : `ProductShareCard`, `CollectiveFundShareCard`
-- Tracking des partages avec analytics Google
+### Pages de villes déjà créées (10 villes)
+| Pays | Villes avec page SEO |
+|------|---------------------|
+| Côte d'Ivoire | Abidjan, Bouaké, Yamoussoukro, San-Pédro, Daloa, Korhogo |
+| Bénin | Cotonou, Porto-Novo |
+| Sénégal | Dakar, Thiès |
 
-### Lacunes identifiées
-| Élément | Problème |
-|---------|----------|
-| **Hashtags** | Aucune base centralisée de hashtags |
-| **Templates posts** | Pas de templates variés par occasion/plateforme |
-| **Calendrier contenu** | Pas de suggestions par événement du calendrier |
-| **Emojis standardisés** | Utilisation inconsistante |
-| **Appels à l'action** | CTAs génériques, pas adaptés par plateforme |
-| **Vendeurs** | Templates limités (6), pas par catégorie produit |
+### Architecture existante
+- **`src/data/city-pages.ts`** : Données complètes par ville (SEO, quartiers, moyens de paiement, FAQs, témoignages)
+- **`src/pages/CityPage.tsx`** : Composant de rendu avec Schema.org (LocalBusiness, FAQ, HowTo, Breadcrumbs)
+- **`src/pages/CitiesOverview.tsx`** : Page d'aperçu avec carte interactive
+- **Routing** : `/:citySlug` capture automatiquement toute nouvelle ville ajoutée
+
+### Système automatique
+Le routing existant gère automatiquement les nouvelles villes :
+- Ajouter une entrée dans `CITY_PAGES` → La page devient accessible à `/{slug}`
+- Pas besoin de modifier `App.tsx` ou de créer de nouveaux fichiers
+
+---
+
+## Nouvelles Villes à Ajouter
+
+### Côte d'Ivoire (3 villes)
+
+| Ville | Population | Intérêt SEO |
+|-------|------------|-------------|
+| **Man** | 200,000 | Région Ouest, tourisme (dent de Man), artisanat Dan |
+| **Gagnoa** | 180,000 | Région Gôh, zone cacaoyère, artisanat bété |
+| **Grand-Bassam** | 100,000 | Patrimoine UNESCO, tourisme, artisanat balnéaire |
+
+### Bénin (3 villes)
+
+| Ville | Population | Intérêt SEO |
+|-------|------------|-------------|
+| **Parakou** | 300,000 | 2ème ville du Bénin, hub commercial nord |
+| **Abomey** | 100,000 | Capitale historique, bronzes d'Abomey, UNESCO |
+| **Ouidah** | 90,000 | Tourisme vodoun, Route des Esclaves, Fête du Vodoun |
+
+### Sénégal (4 villes)
+
+| Ville | Population | Intérêt SEO |
+|-------|------------|-------------|
+| **Saint-Louis** | 250,000 | Patrimoine UNESCO, ancienne capitale, tourisme |
+| **Touba** | 1,000,000 | Ville sainte, Magal, tourisme religieux |
+| **Kaolack** | 200,000 | Marché d'arachides, carrefour commercial |
+| **Ziguinchor** | 250,000 | Capitale de Casamance, artisanat diola |
+
+---
+
+## Données à Créer par Ville
+
+Chaque entrée suit la structure `CityPageData` :
+
+```typescript
+{
+  slug: string;                    // URL (ex: "saint-louis")
+  city: string;                    // Nom affiché
+  country: string;                 // Pays
+  countryCode: string;             // CI, BJ, SN
+  population: string;              // Population formatée
+  nicknames: string[];             // Surnoms locaux
+  coordinates: { lat, lng };       // Pour la carte
+  heroTitle: string;               // Titre SEO H1
+  heroSubtitle: string;            // Accroche avec quartiers
+  description: string;             // Description complète
+  metaDescription: string;         // Meta description (160 chars)
+  keywords: string[];              // Mots-clés SEO (10-15)
+  neighborhoods: string[];         // Quartiers livrés (8-12)
+  paymentMethods: [];              // Moyens de paiement locaux
+  currency: string;                // Monnaie
+  occasions: string[];             // Occasions célébrées
+  localProducts: string[];         // Artisanat local
+  testimonials: [];                // 2-3 témoignages fictifs
+  stats: { businesses, gifts, users }; // Statistiques
+  faqs: [];                        // 4 questions-réponses localisées
+}
+```
 
 ---
 
 ## Plan d'Implémentation
 
-### 1. Créer `src/data/social-media-content.ts`
-
-Fichier central contenant :
-
-**1.1 Base de Hashtags par catégorie**
-```typescript
-export const HASHTAGS = {
-  // Hashtags de marque (toujours inclus)
-  brand: ['#JoieDeVivre', '#JDVAfrica', '#CadeauxCollaboratifs'],
-  
-  // Par plateforme
-  instagram: ['#CadeauxAbidjan', '#ArtisanatAfricain', '#MadeInAfrica'],
-  twitter: ['#GiftPooling', '#AfricaGifts'],
-  facebook: ['#CadeauxGroupe', '#FêteAfrique'],
-  tiktok: ['#AfricanGifts', '#CadeauTikTok', '#GiftTok'],
-  linkedin: ['#FintechAfrica', '#Ecommerce', '#StartupCI'],
-  
-  // Par occasion
-  birthday: ['#AnniversaireAfrique', '#CagnotteAnniversaire', '#SurpriseParty'],
-  wedding: ['#MariageAfricain', '#CagnotteMariage', '#ListeDeMariage'],
-  baby: ['#BabyShowerAfrique', '#CagnotteNaissance'],
-  graduation: ['#Diplomé', '#RéussiteExamen', '#FiertéAfricaine'],
-  promotion: ['#Promotion', '#RéussitePro', '#PotDeDépart'],
-  tabaski: ['#Tabaski', '#AidElKebir', '#FêteDesProches'],
-  
-  // Par ville
-  abidjan: ['#Abidjan', '#CIV', '#TeamCI', '#Babi'],
-  cotonou: ['#Cotonou', '#Benin', '#BeninTourism'],
-  dakar: ['#Dakar', '#Senegal', '#Teranga'],
-  
-  // Par catégorie produit
-  mode: ['#ModeAfricaine', '#WaxPrint', '#AfricanFashion'],
-  bijoux: ['#BijouxAfricains', '#Handmade', '#AfricanJewelry'],
-  gastronomie: ['#FoodAbidjan', '#GâteauPersonnalisé', '#TraiteurCI'],
-}
-```
-
-**1.2 Templates de Posts par Type**
-```typescript
-export const POST_TEMPLATES = {
-  // Templates pour produits (vendeurs)
-  product: {
-    nouveau: {
-      text: "🆕 Nouveau produit disponible !\n\n{product_name}\n💰 {price} {currency}\n\n📍 Livraison à {city}\n💳 Paiement {payment}\n\n👉 {url}",
-      emoji: "🆕",
-    },
-    promotion: {
-      text: "🔥 Offre spéciale !\n\n{product_name}\n💰 {price} {currency}\n\n⏰ Offre limitée\n📍 {city}\n\n👉 {url}",
-      emoji: "🔥",
-    },
-    bestseller: {
-      text: "⭐ Notre best-seller !\n\n{product_name}\n💰 {price} {currency}\n\n❤️ Adoré par nos clients\n📍 {city}\n\n👉 {url}",
-      emoji: "⭐",
-    },
-    // ... autres templates
-  },
-  
-  // Templates pour cagnottes
-  fund: {
-    creation: {
-      text: "🎁 J'organise une cagnotte pour {beneficiary} !\n\n{occasion_emoji} {occasion}\n🎯 Objectif : {target} {currency}\n\n💝 Chaque contribution compte !\n\n👉 Participez ici : {url}",
-      emoji: "🎁",
-    },
-    milestone: {
-      text: "🎉 Déjà {percent}% de notre objectif atteint !\n\n🎁 Cagnotte pour {beneficiary}\n💰 {current}/{target} {currency}\n\n🙏 Merci à tous les contributeurs !\n\n👉 {url}",
-      emoji: "🎉",
-    },
-    lastChance: {
-      text: "⏰ Derniers jours pour contribuer !\n\n🎁 Cagnotte pour {beneficiary}\n📅 Fin : {deadline}\n💰 Il manque {remaining} {currency}\n\n👉 {url}",
-      emoji: "⏰",
-    },
-  },
-  
-  // Templates par occasion
-  occasions: {
-    birthday: {
-      text: "🎂 L'anniversaire de {name} approche !\n\nCréons ensemble une belle surprise 🎁\n\n💝 Chaque contribution compte\n📅 Le {date}\n\n👉 {url}",
-      hashtags: ['birthday', 'brand'],
-    },
-    wedding: {
-      text: "💒 {names} se marient !\n\nContribuez à leur liste de mariage ✨\n\n🎁 Offrons-leur un cadeau inoubliable\n📅 {date}\n\n👉 {url}",
-      hashtags: ['wedding', 'brand'],
-    },
-    // ... autres occasions
-  },
-}
-```
-
-**1.3 Calendrier Marketing**
-```typescript
-export const MARKETING_CALENDAR = {
-  // Événements récurrents Afrique de l'Ouest
-  january: [
-    { day: 1, event: "Nouvel An", template: "celebration", hashtags: ['brand'] },
-  ],
-  february: [
-    { day: 14, event: "Saint-Valentin", template: "love", hashtags: ['#Love', '#Valentine'] },
-  ],
-  march: [
-    { day: 8, event: "Journée de la Femme", template: "women", hashtags: ['#8Mars', '#WomenPower'] },
-  ],
-  may: [
-    { day: null, event: "Fête des Mères", template: "mothersDay", hashtags: ['mothersDay', 'brand'] },
-  ],
-  june: [
-    { day: null, event: "Fête des Pères", template: "fathersDay", hashtags: ['#FêteDesPères', '#Papa'] },
-    { day: null, event: "Korité/Eid al-Fitr", template: "religious", hashtags: ['#Korité', '#EidMubarak'] },
-  ],
-  december: [
-    { day: 25, event: "Noël", template: "christmas", hashtags: ['#Noël', '#Christmas'] },
-    { day: 31, event: "Réveillon", template: "newYear", hashtags: ['#Réveillon', '#NewYear'] },
-  ],
-  // Tabaski - Date variable
-  variable: [
-    { event: "Tabaski/Eid al-Adha", template: "tabaski", hashtags: ['tabaski', 'brand'] },
-    { event: "Rentrée Scolaire", template: "backToSchool", hashtags: ['#RentréeScolaire', '#École'] },
-  ],
-};
-```
-
-**1.4 Helper Functions**
-```typescript
-// Génère les hashtags pour un post
-export function buildHashtags(
-  categories: (keyof typeof HASHTAGS)[],
-  limit = 10
-): string {
-  return categories
-    .flatMap(cat => HASHTAGS[cat] || [])
-    .slice(0, limit)
-    .join(' ');
-}
-
-// Génère un post complet avec template
-export function generatePost(
-  templateType: keyof typeof POST_TEMPLATES,
-  templateName: string,
-  variables: Record<string, string>,
-  platform: 'instagram' | 'facebook' | 'twitter' | 'whatsapp' = 'instagram'
-): { text: string; hashtags: string } {
-  // ... logique de génération
-}
-
-// Adapte un post par plateforme
-export function adaptForPlatform(
-  text: string,
-  platform: string
-): string {
-  // Twitter: tronquer à 280 caractères
-  // WhatsApp: format simple sans hashtags
-  // Instagram: limite 30 hashtags
-  // ...
-}
-```
-
-### 2. Créer `src/components/SocialPostGenerator.tsx`
-
-Composant UI pour générer des posts (accessible aux vendeurs et équipe marketing) :
-
-```typescript
-interface SocialPostGeneratorProps {
-  type: 'product' | 'fund' | 'general';
-  data: ProductData | FundData;
-  onCopy: (text: string) => void;
-}
-```
-
-**Fonctionnalités :**
-- Sélection de template par catégorie
-- Preview du post généré
-- Sélection des hashtags à inclure
-- Boutons de copie par plateforme
-- Compteur de caractères (utile pour Twitter)
-
-### 3. Modifier les Composants de Partage Existants
-
-**3.1 `ProductShareMenu.tsx`**
-- Intégrer les nouveaux templates de `social-media-content.ts`
-- Ajouter bouton "Copier avec hashtags"
-- Preview avec hashtags suggérés
-
-**3.2 `QuickBusinessShareMenu.tsx`**
-- Remplacer les 6 suggestions statiques par les templates dynamiques
-- Ajouter sélection de hashtags par catégorie produit
-- Suggestion intelligente basée sur la catégorie
-
-**3.3 `ShareFundModal.tsx`**
-- Intégrer les templates de cagnottes
-- Hashtags automatiques par occasion
-
-### 4. Enrichir les Hooks de Partage
-
-**4.1 `useProductShares.ts`**
-```typescript
-// Ajouter méthode pour générer le message complet
-const getFullShareMessage = (
-  template: string = 'nouveau',
-  includeHashtags: boolean = true
-) => {
-  // Utilise social-media-content.ts
-};
-```
-
-### 5. Créer Section Marketing dans Dashboard Admin
-
-**Fichier** : `src/pages/Admin/MarketingContent.tsx`
-
-Dashboard pour l'équipe marketing :
-- Visualiser les templates disponibles
-- Prévisualiser les posts par plateforme
-- Calendrier des événements avec templates suggérés
-- Statistiques des hashtags les plus performants
-
----
-
-## Fichiers à Créer/Modifier
+### Fichiers à Modifier
 
 | Action | Fichier | Description |
 |--------|---------|-------------|
-| **Créer** | `src/data/social-media-content.ts` | Base centralisée hashtags + templates |
-| **Créer** | `src/components/SocialPostGenerator.tsx` | Générateur de posts UI |
-| Modifier | `src/components/ProductShareMenu.tsx` | Intégrer templates + hashtags |
-| Modifier | `src/components/QuickBusinessShareMenu.tsx` | Templates par catégorie |
-| Modifier | `src/components/ShareFundModal.tsx` | Templates par occasion |
-| **Créer** | `src/hooks/useSocialPost.ts` | Hook pour générer posts |
-| Optionnel | `src/pages/Admin/MarketingContent.tsx` | Dashboard marketing |
+| Modifier | `src/data/city-pages.ts` | Ajouter 10 nouvelles entrées de villes |
+| Modifier | `src/data/seo-keywords.ts` | Ajouter keywords pour nouvelles villes |
+
+### Aucun fichier à créer
+Le système existant est conçu pour être extensible :
+- Le composant `CityPage.tsx` fonctionne avec n'importe quelle ville de `CITY_PAGES`
+- Le routing `/:citySlug` capture automatiquement les nouveaux slugs
+- La page `CitiesOverview.tsx` affiche dynamiquement toutes les villes
 
 ---
 
-## Exemples de Contenus Générés
+## Exemples de Données pour Nouvelles Villes
 
-### Template Produit - Instagram
+### Saint-Louis (Sénégal)
+```typescript
+'saint-louis': {
+  slug: 'saint-louis',
+  city: 'Saint-Louis',
+  country: 'Sénégal',
+  countryCode: 'SN',
+  population: '250,000',
+  nicknames: ['Ndar', 'Venise africaine'],
+  coordinates: { lat: 16.0167, lng: -16.5000 },
+  heroTitle: 'Cadeaux Collectifs à Saint-Louis',
+  heroSubtitle: 'Célébrez à Sor, Guet Ndar, Langue de Barbarie et dans toute la Venise africaine',
+  metaDescription: 'Plateforme de cadeaux collectifs à Saint-Louis, Sénégal. Cagnottes mariages, artisanat Ndar, patrimoine UNESCO. Paiement Orange Money, Wave.',
+  keywords: [
+    'cadeaux Saint-Louis',
+    'cagnotte Ndar',
+    'patrimoine UNESCO Sénégal',
+    'artisanat Saint-Louis',
+    'Venise africaine cadeaux',
+    'cagnotte Festival Jazz',
+    'fleuve Sénégal tourisme'
+  ],
+  neighborhoods: ['Sor', 'Guet Ndar', 'Langue de Barbarie', 'Nord', 'Sud', 'Île', 'Eaux Claires', 'Ndiolofène'],
+  // ... autres données
+}
 ```
-🆕 Nouveau produit disponible !
 
-Collier en perles Akwaba ✨
-💰 15 000 XOF
-
-📍 Livraison Abidjan
-💳 Paiement Orange Money, MTN
-
-👉 joiedevivre-africa.com/p/123
-
-#JoieDeVivre #JDVAfrica #BijouxAfricains #MadeInAfrica #Abidjan #CadeauxAbidjan
+### Touba (Sénégal - Ville sainte)
+```typescript
+'touba': {
+  slug: 'touba',
+  city: 'Touba',
+  country: 'Sénégal',
+  countryCode: 'SN',
+  population: '1,000,000+',
+  nicknames: ['La Ville Sainte', 'Capitale du Mouridisme'],
+  heroTitle: 'Cadeaux Collectifs à Touba',
+  heroSubtitle: 'Célébrez le Magal, les mariages et moments de foi avec vos proches',
+  metaDescription: 'Plateforme de cadeaux collectifs à Touba, Sénégal. Cagnottes Magal, mariages religieux, artisanat mouride. Paiement Wave, Orange Money.',
+  keywords: [
+    'cadeaux Touba',
+    'cagnotte Magal',
+    'Mouridisme cadeaux',
+    'Grande Mosquée Touba',
+    'cadeau religieux Sénégal',
+    'artisanat mouride'
+  ],
+  occasions: ['Magal', 'Mariages', 'Baptêmes', 'Korité', 'Tabaski', 'Ziarra'],
+  // ... autres données
+}
 ```
 
-### Template Cagnotte - WhatsApp
+### Abomey (Bénin - Patrimoine UNESCO)
+```typescript
+'abomey': {
+  slug: 'abomey',
+  city: 'Abomey',
+  country: 'Bénin',
+  countryCode: 'BJ',
+  population: '100,000',
+  nicknames: ['Capitale historique', 'Cité des Palais Royaux'],
+  heroTitle: 'Cadeaux Collectifs à Abomey',
+  heroSubtitle: 'Célébrez près des Palais Royaux, à Djimè, Zounzonmè et dans la capitale du Dahomey',
+  metaDescription: 'Plateforme de cadeaux collectifs à Abomey, Bénin. Cagnottes anniversaires, bronzes d\'Abomey UNESCO, artisanat royal. Paiement MTN, Moov.',
+  keywords: [
+    'cadeaux Abomey',
+    'bronzes Abomey',
+    'Palais Royaux UNESCO',
+    'artisanat Dahomey',
+    'cagnotte anniversaire Abomey',
+    'sculptures traditionnelles Bénin'
+  ],
+  localProducts: ['Bronzes d\'Abomey', 'Tissus Aplawoué', 'Sculptures royales', 'Tentures applicées', 'Poterie traditionnelle'],
+  // ... autres données
+}
 ```
-🎂 L'anniversaire de Fatou approche !
 
-Créons ensemble une belle surprise 🎁
-
-💝 Chaque contribution compte
-📅 Le 15 février
-
-👉 joiedevivre-africa.com/f/abc123
-```
-
-### Template Mariage - Facebook
-```
-💒 Aminata & Koffi se marient !
-
-Contribuez à leur liste de mariage ✨
-
-🎁 Offrons-leur un cadeau inoubliable
-📅 25 mars 2026
-
-👉 joiedevivre-africa.com/f/wedding123
-
-#JoieDeVivre #MariageAfricain #CagnotteMariage #Abidjan
+### Grand-Bassam (Côte d'Ivoire - UNESCO)
+```typescript
+'grand-bassam': {
+  slug: 'grand-bassam',
+  city: 'Grand-Bassam',
+  country: 'Côte d\'Ivoire',
+  countryCode: 'CI',
+  population: '100,000',
+  nicknames: ['Bassam', 'Première capitale'],
+  heroTitle: 'Cadeaux Collectifs à Grand-Bassam',
+  heroSubtitle: 'Célébrez au Quartier France, Moossou, Azuretti et sur toute la côte UNESCO',
+  metaDescription: 'Plateforme de cadeaux collectifs à Grand-Bassam, Côte d\'Ivoire. Cagnottes anniversaires, artisanat colonial, plages UNESCO. Paiement Orange Money.',
+  keywords: [
+    'cadeaux Grand-Bassam',
+    'patrimoine UNESCO Côte d\'Ivoire',
+    'artisanat Bassam',
+    'Fête de l\'Abissa',
+    'plages Bassam',
+    'quartier France cadeaux'
+  ],
+  occasions: ['Anniversaires', 'Mariages', 'Fête de l\'Abissa', 'Pâques', 'Week-ends plage'],
+  // ... autres données
+}
 ```
 
 ---
 
-## Hashtags Clés par Catégorie
+## Mots-Clés SEO à Ajouter
 
-### Marque (obligatoires)
-- `#JoieDeVivre`
-- `#JDVAfrica`
-- `#CadeauxCollaboratifs`
+Enrichir `src/data/seo-keywords.ts` avec :
 
-### Occasions
-| Occasion | Hashtags |
-|----------|----------|
-| Anniversaire | `#AnniversaireAfrique` `#Surprise` `#CagnotteAnniversaire` |
-| Mariage | `#MariageAfricain` `#WeddingCI` `#ListeDeMariage` |
-| Naissance | `#BabyShowerAfrique` `#NouveauNé` `#CagnotteNaissance` |
-| Tabaski | `#Tabaski2026` `#AidElKebir` `#EidMubarak` |
-| Fête des Mères | `#FêteDesMères` `#MamanJeTaime` `#MothersDay` |
-
-### Villes
-| Ville | Hashtags |
-|-------|----------|
-| Abidjan | `#Abidjan` `#TeamCI` `#Babi` `#CIV225` |
-| Cotonou | `#Cotonou` `#Benin229` `#BeninTourism` |
-| Dakar | `#Dakar` `#Senegal` `#Teranga` `#Kebetu` |
-
-### Produits
-| Catégorie | Hashtags |
-|-----------|----------|
-| Mode | `#ModeAfricaine` `#AfricanFashion` `#WaxPrint` `#Bazin` |
-| Bijoux | `#BijouxAfricains` `#AfricanJewelry` `#Handmade` `#OrArtisanal` |
-| Gastronomie | `#FoodAbidjan` `#PâtisserieCI` `#TraiteurAbidjan` |
-
-### Plateformes Spécifiques
-| Plateforme | Hashtags recommandés |
-|------------|----------------------|
-| TikTok | `#GiftTok` `#AfricaTikTok` `#FYP` `#PourtToi` |
-| Instagram | `#InstaGift` `#AfricaGram` `#ExplorePage` |
-| LinkedIn | `#FintechAfrica` `#StartupAfrique` `#EcommerceCI` |
+```typescript
+// Nouvelles villes dans CITY_KEYWORDS
+saintLouis: [
+  "cadeaux Saint-Louis",
+  "Ndar artisanat",
+  "patrimoine UNESCO Sénégal",
+  "Festival Jazz Saint-Louis",
+  "cagnotte Venise africaine",
+],
+touba: [
+  "cadeaux Touba",
+  "cagnotte Magal",
+  "ville sainte Sénégal",
+  "Mouridisme cadeaux",
+  "Grande Mosquée Touba",
+],
+abomey: [
+  "cadeaux Abomey",
+  "bronzes Abomey UNESCO",
+  "Palais Royaux Dahomey",
+  "artisanat royal Bénin",
+],
+grandBassam: [
+  "cadeaux Grand-Bassam",
+  "patrimoine UNESCO Bassam",
+  "Fête Abissa",
+  "quartier France artisanat",
+],
+// ... autres villes
+```
 
 ---
 
-## Impact Attendu
+## Impact SEO Attendu
 
-- **Cohérence de marque** : Messages uniformes sur toutes les plateformes
-- **Gain de temps** : Vendeurs génèrent posts en 1 clic
-- **SEO Social** : Hashtags optimisés pour la découvrabilité
-- **Engagement** : Templates testés et optimisés par occasion
-- **Marketing** : Calendrier prêt pour les événements clés
+### Nouvelles URLs indexables
+- `/saint-louis` - Patrimoine UNESCO, tourisme
+- `/touba` - Ville sainte, Magal (1M+ pèlerins/an)
+- `/kaolack` - Hub commercial
+- `/ziguinchor` - Casamance, artisanat diola
+- `/parakou` - 2ème ville Bénin
+- `/abomey` - UNESCO, bronzes célèbres
+- `/ouidah` - Tourisme vodoun international
+- `/man` - Tourisme montagne, artisanat Dan
+- `/gagnoa` - Zone cacaoyère
+- `/grand-bassam` - UNESCO, tourisme
+
+### Requêtes ciblées (exemples)
+- "cadeaux Saint-Louis Sénégal"
+- "cagnotte Magal Touba"
+- "artisanat bronzes Abomey"
+- "où acheter cadeau Grand-Bassam"
+- "pot commun mariage Ziguinchor"
+
+### Structured Data générée automatiquement
+Pour chaque nouvelle ville :
+- `LocalBusiness` Schema.org
+- `FAQPage` avec 4 questions localisées
+- `HowTo` guide de création de cagnotte
+- `BreadcrumbList` pour navigation
 
 ---
 
 ## Estimation
 
-- **Complexité** : Moyenne
-- **Fichiers créés** : 3 (data, composant, hook)
-- **Fichiers modifiés** : 3 (menus de partage)
-- **Nouveaux hashtags** : 60+
-- **Nouveaux templates** : 20+
+- **Complexité** : Faible (extension de données existantes)
+- **Fichiers modifiés** : 2
+- **Nouvelles entrées** : 10 villes
+- **Nouveaux mots-clés** : 50+
+- **Nouvelles URLs SEO** : 10
 
