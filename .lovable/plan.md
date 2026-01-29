@@ -1,69 +1,69 @@
 
-# Corriger le Scroll du Modal "Gérer les Produits" sur Mobile
+
+# Améliorer l'Accessibilité du Bouton de Fermeture du Chat AI
 
 ## Problème
 
-Dans le modal `AdminProductsModal`, il est impossible de scroller pour voir les produits en bas de liste sur mobile. L'utilisateur voit les premiers produits mais ne peut pas accéder aux suivants.
-
-## Diagnostic
-
-| Élément | Problème identifié |
-|---------|-------------------|
-| `DialogContent` | Utilise `overflow-hidden` qui bloque le scroll |
-| `ScrollArea` | Hauteur max de `60vh` trop restrictive sur mobile |
-| Structure flex | Le `flex-1` et `min-h-0` ne fonctionnent pas correctement avec la hauteur fixe |
+Le bouton de fermeture (X) de la bulle de bienvenue du chat AI est difficile à toucher sur mobile :
+- Position trop proche du bord (`top-1 right-1`)
+- Zone de toucher visuellement petite malgré les dimensions min-w/min-h
+- L'icône X est petite (`h-4 w-4`)
+- Le fond semi-transparent (`bg-muted/80`) rend le bouton peu visible
 
 ## Solution
 
-Restructurer le modal pour permettre un scroll natif fiable sur mobile :
+Agrandir et repositionner le bouton de fermeture pour une meilleure accessibilité tactile :
 
-1. **Retirer `overflow-hidden`** du DialogContent
-2. **Ajuster la hauteur du ScrollArea** pour mobile avec des classes responsive
-3. **Ajouter un conteneur scrollable** avec une hauteur calculée qui s'adapte mieux à l'espace disponible
+| Aspect | Avant | Après |
+|--------|-------|-------|
+| Position | `top-1 right-1` | `top-2 right-2` |
+| Padding | `p-2.5` | `p-2` |
+| Taille icône | `h-4 w-4` | `h-5 w-5` |
+| Fond | `bg-muted/80` | `bg-gray-100 dark:bg-gray-800` (plus visible) |
+| Dimensions min | `min-w-[44px] min-h-[44px]` | `w-8 h-8` avec zone tactile élargie |
+| Bordure | Aucune | `border border-gray-200` pour meilleure visibilité |
 
-## Modifications Techniques
+## Modification Technique
 
-### Fichier : `src/components/admin/AdminProductsModal.tsx`
+### Fichier : `src/components/AIChatWidget.tsx`
 
-**Ligne 99 - DialogContent** : Changer les classes pour permettre le scroll
+**Lignes 203-209** - Améliorer le bouton de fermeture :
 
-```typescript
+```tsx
 // Avant
-<DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+<button
+  onClick={() => setShowWelcome(false)}
+  className="absolute top-1 right-1 p-2.5 rounded-full bg-muted/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center"
+  aria-label="Fermer le message de bienvenue"
+>
+  <X className="h-4 w-4 text-muted-foreground" />
+</button>
 
 // Après
-<DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setShowWelcome(false);
+  }}
+  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
+  aria-label="Fermer le message de bienvenue"
+>
+  <X className="h-4 w-4" />
+</button>
 ```
 
-**Ligne 117 - ScrollArea** : Améliorer les classes de hauteur pour mobile
+## Design Résultant
 
-```typescript
-// Avant
-<ScrollArea className="min-h-0 flex-1 max-h-[60vh] pr-4">
-
-// Après  
-<ScrollArea className="min-h-0 flex-1 max-h-[50vh] sm:max-h-[60vh] pr-4 overflow-y-auto">
-```
-
-**Alternative plus robuste** : Remplacer ScrollArea par un div scrollable natif pour mobile
-
-```typescript
-// Solution plus robuste pour mobile
-<div className="min-h-0 flex-1 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2">
-  {/* Contenu de la grille */}
-</div>
-```
-
-## Comportement Attendu
-
-| Device | Résultat |
-|--------|----------|
-| Mobile | Scroll tactile fluide, peut voir tous les produits |
-| Tablet | Scroll adapté à la taille d'écran |
-| Desktop | Scroll avec molette/trackpad + scrollbar visible |
+Le bouton de fermeture sera :
+- **Plus visible** : Fond blanc opaque avec bordure et ombre
+- **Mieux positionné** : Légèrement en dehors de la carte (`-top-2 -right-2`) comme un badge
+- **Plus facile à toucher** : Zone de 32x32px clairement visible
+- **Feedback visuel** : Change de couleur au hover (rouge destructive)
+- **z-index élevé** : `z-20` pour s'assurer qu'il est au-dessus de tout
 
 ## Fichier à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/admin/AdminProductsModal.tsx` | Ajuster les classes de hauteur et overflow |
+| `src/components/AIChatWidget.tsx` | Améliorer le style et la position du bouton X |
+
