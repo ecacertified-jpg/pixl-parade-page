@@ -1,69 +1,77 @@
 
 
-# Améliorer l'Accessibilité du Bouton de Fermeture du Chat AI
+# Corriger le Bouton de Fermeture Masqué du Chat AI
 
 ## Problème
 
-Le bouton de fermeture (X) de la bulle de bienvenue du chat AI est difficile à toucher sur mobile :
-- Position trop proche du bord (`top-1 right-1`)
-- Zone de toucher visuellement petite malgré les dimensions min-w/min-h
-- L'icône X est petite (`h-4 w-4`)
-- Le fond semi-transparent (`bg-muted/80`) rend le bouton peu visible
+Le bouton X de fermeture du chat AI est partiellement masqué car :
+- Le bouton est positionné à `-top-2 -right-2` (en dehors du conteneur)
+- Le conteneur parent (Glassmorphism Card) a `overflow-hidden` qui coupe tout ce qui dépasse
 
 ## Solution
 
-Agrandir et repositionner le bouton de fermeture pour une meilleure accessibilité tactile :
-
-| Aspect | Avant | Après |
-|--------|-------|-------|
-| Position | `top-1 right-1` | `top-2 right-2` |
-| Padding | `p-2.5` | `p-2` |
-| Taille icône | `h-4 w-4` | `h-5 w-5` |
-| Fond | `bg-muted/80` | `bg-gray-100 dark:bg-gray-800` (plus visible) |
-| Dimensions min | `min-w-[44px] min-h-[44px]` | `w-8 h-8` avec zone tactile élargie |
-| Bordure | Aucune | `border border-gray-200` pour meilleure visibilité |
+Déplacer le bouton de fermeture **en dehors** de la carte avec `overflow-hidden`, et le placer dans le conteneur `motion.div` parent qui n'a pas de contrainte d'overflow.
 
 ## Modification Technique
 
 ### Fichier : `src/components/AIChatWidget.tsx`
 
-**Lignes 203-209** - Améliorer le bouton de fermeture :
+**Restructuration du code** (lignes 196-212) :
 
-```tsx
-// Avant
-<button
-  onClick={() => setShowWelcome(false)}
-  className="absolute top-1 right-1 p-2.5 rounded-full bg-muted/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center"
-  aria-label="Fermer le message de bienvenue"
->
-  <X className="h-4 w-4 text-muted-foreground" />
-</button>
+```text
+AVANT (structure actuelle) :
+├── motion.div (conteneur draggable)
+│   └── div.overflow-hidden (Glassmorphism Card)
+│       ├── button X (MASQUÉ par overflow-hidden)
+│       └── contenu
 
-// Après
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    setShowWelcome(false);
-  }}
-  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
-  aria-label="Fermer le message de bienvenue"
->
-  <X className="h-4 w-4" />
-</button>
+APRÈS (nouvelle structure) :
+├── motion.div (conteneur draggable)
+│   ├── button X (VISIBLE, en dehors de la carte)
+│   └── div.overflow-hidden (Glassmorphism Card)
+│       └── contenu
 ```
 
-## Design Résultant
+**Code modifié** :
 
-Le bouton de fermeture sera :
-- **Plus visible** : Fond blanc opaque avec bordure et ombre
-- **Mieux positionné** : Légèrement en dehors de la carte (`-top-2 -right-2`) comme un badge
-- **Plus facile à toucher** : Zone de 32x32px clairement visible
-- **Feedback visuel** : Change de couleur au hover (rouge destructive)
-- **z-index élevé** : `z-20` pour s'assurer qu'il est au-dessus de tout
+1. **Ligne 196** - Après l'ouverture de `motion.div`, ajouter le bouton de fermeture **avant** la carte :
+
+```tsx
+<motion.div
+  // ... props existantes
+  className="absolute bottom-20 right-0 mr-2 touch-pan-y"
+  // ... autres props
+>
+  {/* Close button - Positionné en dehors de la carte pour être visible */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      setShowWelcome(false);
+    }}
+    className="absolute -top-2 right-0 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
+    aria-label="Fermer le message de bienvenue"
+  >
+    <X className="h-4 w-4" />
+  </button>
+
+  {/* Glassmorphism Card */}
+  <div className="relative bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-500/20 border border-violet-200/50 dark:border-violet-500/20 p-4 max-w-[280px] overflow-hidden">
+    {/* ... reste du contenu sans le bouton */}
+```
+
+2. **Supprimer** le bouton de fermeture de son emplacement actuel (lignes 202-212)
+
+## Résultat Attendu
+
+| Aspect | Avant | Après |
+|--------|-------|-------|
+| Visibilité | Partiellement masqué | Entièrement visible |
+| Position | Coupé par overflow-hidden | Flottant au-dessus de la carte |
+| Accessibilité | Difficile à toucher | Zone de 32x32px complètement accessible |
 
 ## Fichier à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/components/AIChatWidget.tsx` | Améliorer le style et la position du bouton X |
+| `src/components/AIChatWidget.tsx` | Déplacer le bouton X en dehors de la div overflow-hidden |
 
