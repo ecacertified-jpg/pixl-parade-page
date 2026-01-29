@@ -151,6 +151,77 @@ export const CITY_KEYWORDS = {
     "tapisseries de Thiès",
     "artisanat wolof",
   ],
+  // ============= NOUVELLES VILLES =============
+  man: [
+    "cadeaux Man",
+    "Dent de Man tourisme",
+    "artisanat Dan",
+    "masques Dan",
+    "région 18 montagnes",
+  ],
+  gagnoa: [
+    "cadeaux Gagnoa",
+    "région Gôh",
+    "artisanat bété",
+    "zone cacaoyère",
+    "cagnotte Gagnoa",
+  ],
+  grandBassam: [
+    "cadeaux Grand-Bassam",
+    "patrimoine UNESCO Bassam",
+    "Fête Abissa",
+    "quartier France artisanat",
+    "plages Bassam",
+  ],
+  parakou: [
+    "cadeaux Parakou",
+    "deuxième ville Bénin",
+    "artisanat bariba",
+    "marché Arzèkè",
+    "Kobourou Parakou",
+  ],
+  abomey: [
+    "cadeaux Abomey",
+    "bronzes Abomey UNESCO",
+    "Palais Royaux Dahomey",
+    "artisanat royal Bénin",
+    "tissus applicués",
+  ],
+  ouidah: [
+    "cadeaux Ouidah",
+    "Fête du Vodoun",
+    "Route des Esclaves",
+    "Temple des Pythons",
+    "artisanat vodoun",
+  ],
+  saintLouis: [
+    "cadeaux Saint-Louis",
+    "Ndar artisanat",
+    "patrimoine UNESCO Sénégal",
+    "Festival Jazz Saint-Louis",
+    "Venise africaine cadeaux",
+  ],
+  touba: [
+    "cadeaux Touba",
+    "cagnotte Magal",
+    "ville sainte Sénégal",
+    "Mouridisme cadeaux",
+    "Grande Mosquée Touba",
+  ],
+  kaolack: [
+    "cadeaux Kaolack",
+    "marché arachides Sénégal",
+    "carrefour Saloum",
+    "Médina Baye",
+    "artisanat sérère",
+  ],
+  ziguinchor: [
+    "cadeaux Ziguinchor",
+    "artisanat diola",
+    "Casamance Sénégal",
+    "culture diola",
+    "Perle du Sud",
+  ],
 };
 
 // ============= PRODUCT CATEGORIES =============
@@ -324,6 +395,21 @@ export function getCityKeywords(city: string): string[] {
     'porto-novo': 'portoNovo',
     thiès: 'thies',
     thies: 'thies',
+    // Nouvelles villes
+    man: 'man',
+    gagnoa: 'gagnoa',
+    'grand-bassam': 'grandBassam',
+    grandbassam: 'grandBassam',
+    parakou: 'parakou',
+    abomey: 'abomey',
+    ouidah: 'ouidah',
+    'saint-louis': 'saintLouis',
+    saintlouis: 'saintLouis',
+    ndar: 'saintLouis',
+    touba: 'touba',
+    kaolack: 'kaolack',
+    ziguinchor: 'ziguinchor',
+    ziggy: 'ziguinchor',
   };
   
   const key = cityMap[city.toLowerCase()] || 'abidjan';

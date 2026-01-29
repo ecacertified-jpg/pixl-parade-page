@@ -779,6 +779,692 @@ export const CITY_PAGES: Record<string, CityPageData> = {
         answer: 'Bien sûr ! Créez une cagnotte pour le Magal, la Tabaski ou la Korité. Rassemblez les contributions de vos proches partout dans le monde.'
       }
     ]
+  },
+
+  // ============= CÔTE D'IVOIRE - NOUVELLES VILLES =============
+
+  man: {
+    slug: 'man',
+    city: 'Man',
+    country: 'Côte d\'Ivoire',
+    countryCode: 'CI',
+    population: '200,000',
+    nicknames: ['La Cité des 18 Montagnes', 'Man la Belle'],
+    coordinates: { lat: 7.4125, lng: -7.5539 },
+    heroTitle: 'Cadeaux Collectifs à Man',
+    heroSubtitle: 'Célébrez à Libreville, Doyagouiné, Grand Gbapleu et au pied des montagnes Dan',
+    description: 'JOIE DE VIVRE dans la région des 18 montagnes ! Créez des cagnottes à Man pour vos célébrations. Artisanat Dan, masques traditionnels et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Man, Côte d\'Ivoire. Cagnottes anniversaires, artisanat Dan, Dent de Man tourisme. Paiement Orange Money, MTN.',
+    keywords: [
+      'cadeaux Man',
+      'Dent de Man tourisme',
+      'artisanat Dan',
+      'cagnotte anniversaire 18 montagnes',
+      'masques Dan',
+      'cagnotte mariage Man',
+      'région Ouest Côte d\'Ivoire'
+    ],
+    neighborhoods: ['Libreville', 'Doyagouiné', 'Grand Gbapleu', 'Commerce', 'Gbêpleu', 'Domoraud', 'Bleu', 'Djipoudrou', 'Kpangbassou'],
+    paymentMethods: [
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Moov Money', icon: '🟣' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Anniversaires', 'Mariages', 'Fête des Masques', 'Promotions', 'Baptêmes', 'Diplômes'],
+    localProducts: ['Masques Dan', 'Sculptures traditionnelles', 'Tissus wê', 'Poterie montagneuse', 'Café des montagnes'],
+    testimonials: [
+      {
+        name: 'Didier G.',
+        text: 'Pour la Fête des Masques, notre famille a créé une cagnotte collective. Un succès qui honore nos traditions Dan !',
+        occasion: 'Fête traditionnelle'
+      },
+      {
+        name: 'Clarisse T.',
+        text: 'Anniversaire surprise à Libreville ! Mes amis d\'Abidjan ont contribué facilement via l\'appli.',
+        occasion: 'Anniversaire'
+      },
+    ],
+    stats: {
+      businesses: '8+',
+      gifts: '100+',
+      users: '200+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE livre-t-il à Man ?',
+        answer: 'Oui ! Nous livrons à Libreville, Doyagouiné, Grand Gbapleu, Commerce et tous les quartiers de Man.'
+      },
+      {
+        question: 'Proposez-vous des masques Dan authentiques ?',
+        answer: 'Nos artisans partenaires créent des masques Dan traditionnels sculptés à la main, respectant les techniques ancestrales.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour la Fête des Masques ?',
+        answer: 'Absolument ! Célébrez vos traditions Dan avec une cagnotte collective et rassemblez vos proches.'
+      },
+      {
+        question: 'Comment payer depuis Man ?',
+        answer: 'Orange Money, MTN, Wave et Moov Money fonctionnent parfaitement dans la région des 18 montagnes.'
+      }
+    ]
+  },
+
+  gagnoa: {
+    slug: 'gagnoa',
+    city: 'Gagnoa',
+    country: 'Côte d\'Ivoire',
+    countryCode: 'CI',
+    population: '180,000',
+    nicknames: ['La Capitale du Gôh', 'Cité du Café'],
+    coordinates: { lat: 6.1319, lng: -5.9503 },
+    heroTitle: 'Cadeaux Collectifs à Gagnoa',
+    heroSubtitle: 'Célébrez à Dioulabougou, Soleil, Garahio et dans toute la région cacaoyère du Gôh',
+    description: 'JOIE DE VIVRE au cœur du pays bété ! Créez des cagnottes à Gagnoa pour vos célébrations. Artisanat bété, cacao artisanal et paiement Mobile Money facile.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Gagnoa, Côte d\'Ivoire. Cagnottes anniversaires, artisanat bété, région cacao. Paiement Orange Money, MTN.',
+    keywords: [
+      'cadeaux Gagnoa',
+      'région Gôh',
+      'artisanat bété',
+      'cagnotte anniversaire Gagnoa',
+      'zone cacaoyère',
+      'cagnotte mariage Gagnoa',
+      'café cacao Côte d\'Ivoire'
+    ],
+    neighborhoods: ['Dioulabougou', 'Soleil', 'Garahio', 'Kennedy', 'Résidentiel', 'Commerce', 'Nahi', 'Babré', 'Zébré'],
+    paymentMethods: [
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Moov Money', icon: '🟣' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Anniversaires', 'Mariages', 'Récoltes', 'Promotions', 'Baptêmes', 'Funérailles bété'],
+    localProducts: ['Cacao artisanal', 'Café local', 'Tissus bété', 'Sculptures bois', 'Huile de palme'],
+    testimonials: [
+      {
+        name: 'Patrice B.',
+        text: 'Après la récolte du cacao, on a célébré en famille. La cagnotte JOIE DE VIVRE a rassemblé tous les cousins !',
+        occasion: 'Célébration récolte'
+      },
+      {
+        name: 'Yvonne Z.',
+        text: 'Pour le mariage traditionnel bété à Dioulabougou, les contributions venaient de partout. Merci JOIE DE VIVRE !',
+        occasion: 'Mariage'
+      },
+    ],
+    stats: {
+      businesses: '7+',
+      gifts: '90+',
+      users: '180+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE est-il disponible à Gagnoa ?',
+        answer: 'Oui ! Nous livrons à Dioulabougou, Soleil, Garahio, Kennedy et tous les quartiers de Gagnoa.'
+      },
+      {
+        question: 'Proposez-vous des produits du terroir ?',
+        answer: 'Nos partenaires proposent cacao artisanal, café local, huile de palme et artisanat bété authentique.'
+      },
+      {
+        question: 'Comment les planteurs peuvent contribuer ?',
+        answer: 'Via Orange Money ou MTN depuis leur téléphone. Simple et rapide, même sans aller en ville !'
+      },
+      {
+        question: 'Peut-on organiser une cagnotte pour les funérailles ?',
+        answer: 'Oui, les cagnottes sont parfaites pour accompagner les familles dans les moments de deuil et rassembler les contributions.'
+      }
+    ]
+  },
+
+  'grand-bassam': {
+    slug: 'grand-bassam',
+    city: 'Grand-Bassam',
+    country: 'Côte d\'Ivoire',
+    countryCode: 'CI',
+    population: '100,000',
+    nicknames: ['Bassam', 'Première Capitale', 'Cité UNESCO'],
+    coordinates: { lat: 5.2139, lng: -3.7486 },
+    heroTitle: 'Cadeaux Collectifs à Grand-Bassam',
+    heroSubtitle: 'Célébrez au Quartier France, Moossou, Azuretti et sur toute la côte classée UNESCO',
+    description: 'JOIE DE VIVRE dans la première capitale ! Créez des cagnottes à Grand-Bassam. Patrimoine UNESCO, artisanat colonial, plages et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Grand-Bassam, patrimoine UNESCO Côte d\'Ivoire. Cagnottes anniversaires, Fête de l\'Abissa. Paiement Orange Money.',
+    keywords: [
+      'cadeaux Grand-Bassam',
+      'patrimoine UNESCO Côte d\'Ivoire',
+      'Fête de l\'Abissa',
+      'artisanat Bassam',
+      'cagnotte anniversaire Bassam',
+      'quartier France colonial',
+      'plages Bassam'
+    ],
+    neighborhoods: ['Quartier France', 'Moossou', 'Azuretti', 'Impérial', 'Ancien Bassam', 'Modeste', 'Phare', 'Jean Folly', 'Mondoukou'],
+    paymentMethods: [
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Moov Money', icon: '🟣' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Anniversaires', 'Mariages', 'Fête de l\'Abissa', 'Pâques', 'Week-ends plage', 'Baptêmes'],
+    localProducts: ['Artisanat colonial', 'Bijoux de plage', 'Sculptures bois', 'Tissus N\'zima', 'Pagnes traditionnels'],
+    testimonials: [
+      {
+        name: 'Eric M.',
+        text: 'Pour la Fête de l\'Abissa, notre communauté N\'zima a créé une cagnotte. Un succès culturel !',
+        occasion: 'Fête de l\'Abissa'
+      },
+      {
+        name: 'Sandrine A.',
+        text: 'Week-end anniversaire surprise à Bassam ! La cagnotte a permis de louer une villa sur la plage.',
+        occasion: 'Anniversaire'
+      },
+    ],
+    stats: {
+      businesses: '12+',
+      gifts: '150+',
+      users: '300+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE livre-t-il à Grand-Bassam ?',
+        answer: 'Oui ! Nous livrons au Quartier France, Moossou, Azuretti, Impérial et tous les quartiers historiques.'
+      },
+      {
+        question: 'Proposez-vous des produits liés au patrimoine UNESCO ?',
+        answer: 'Nos artisans créent des objets inspirés de l\'architecture coloniale et de la culture N\'zima.'
+      },
+      {
+        question: 'Peut-on organiser une cagnotte pour l\'Abissa ?',
+        answer: 'Absolument ! La Fête de l\'Abissa est l\'occasion parfaite pour une cagnotte collective communautaire.'
+      },
+      {
+        question: 'Livrez-vous le week-end pour les touristes ?',
+        answer: 'Oui, livraisons disponibles 7j/7 pour les célébrations de week-end à la plage.'
+      }
+    ]
+  },
+
+  // ============= BÉNIN - NOUVELLES VILLES =============
+
+  parakou: {
+    slug: 'parakou',
+    city: 'Parakou',
+    country: 'Bénin',
+    countryCode: 'BJ',
+    population: '300,000',
+    nicknames: ['La Cité des Kobourou', 'Capitale du Nord'],
+    coordinates: { lat: 9.3500, lng: 2.6167 },
+    heroTitle: 'Cadeaux Collectifs à Parakou',
+    heroSubtitle: 'Célébrez à Zongo, Banikanni, Titirou et dans toute la capitale économique du Nord',
+    description: 'JOIE DE VIVRE arrive dans le Nord-Bénin ! Créez des cagnottes à Parakou, hub commercial majeur. Artisanat bariba, marchés animés et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Parakou, 2ème ville du Bénin. Cagnottes anniversaires, artisanat bariba. Paiement MTN, Moov.',
+    keywords: [
+      'cadeaux Parakou',
+      'cagnotte anniversaire Nord Bénin',
+      'artisanat bariba',
+      'deuxième ville Bénin',
+      'Kobourou Parakou',
+      'cagnotte mariage Parakou',
+      'marché Arzèkè'
+    ],
+    neighborhoods: ['Zongo', 'Banikanni', 'Titirou', 'Thian', 'Kpébié', 'Ladji', 'Nima', 'Guéma', 'Albarika', 'Gah'],
+    paymentMethods: [
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Moov Money', icon: '🔵' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Flooz', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Anniversaires', 'Mariages', 'Tabaski', 'Korité', 'Gaani', 'Baptêmes'],
+    localProducts: ['Tissus bariba', 'Poterie du Nord', 'Bijoux traditionnels', 'Cuir travaillé', 'Calebasses décorées'],
+    testimonials: [
+      {
+        name: 'Idrissou M.',
+        text: 'Pour la Tabaski, notre famille dispersée entre Parakou et Cotonou a contribué ensemble. Merci JOIE DE VIVRE !',
+        occasion: 'Tabaski'
+      },
+      {
+        name: 'Ramatou B.',
+        text: 'La Fête du Gaani célébrée avec une cagnotte collective ! Nos traditions bariba sont honorées.',
+        occasion: 'Gaani'
+      },
+    ],
+    stats: {
+      businesses: '10+',
+      gifts: '130+',
+      users: '280+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE est-il disponible à Parakou ?',
+        answer: 'Oui ! Nous couvrons Zongo, Banikanni, Titirou, Thian et tous les quartiers de la 2ème ville du Bénin.'
+      },
+      {
+        question: 'Quels moyens de paiement au Nord-Bénin ?',
+        answer: 'MTN Mobile Money, Moov Money, Wave et Flooz. Tous les opérateurs sont acceptés.'
+      },
+      {
+        question: 'Proposez-vous de l\'artisanat bariba ?',
+        answer: 'Oui ! Tissus traditionnels, poteries, bijoux et cuir travaillé par les artisans du marché Arzèkè.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour le Gaani ?',
+        answer: 'Absolument ! La fête du Gaani est parfaite pour rassembler les contributions de toute la communauté bariba.'
+      }
+    ]
+  },
+
+  abomey: {
+    slug: 'abomey',
+    city: 'Abomey',
+    country: 'Bénin',
+    countryCode: 'BJ',
+    population: '100,000',
+    nicknames: ['Capitale historique', 'Cité des Palais Royaux', 'Agbomè'],
+    coordinates: { lat: 7.1828, lng: 1.9919 },
+    heroTitle: 'Cadeaux Collectifs à Abomey',
+    heroSubtitle: 'Célébrez près des Palais Royaux UNESCO, à Djimè, Zounzonmè et dans l\'ancienne capitale du Dahomey',
+    description: 'JOIE DE VIVRE honore l\'histoire du Dahomey ! Créez des cagnottes à Abomey, patrimoine mondial. Bronzes célèbres, tissus applicués et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Abomey, Bénin. Bronzes UNESCO, Palais Royaux, cagnottes anniversaires. Paiement MTN, Moov.',
+    keywords: [
+      'cadeaux Abomey',
+      'bronzes Abomey UNESCO',
+      'Palais Royaux Dahomey',
+      'artisanat royal Bénin',
+      'cagnotte anniversaire Abomey',
+      'tissus applicués',
+      'patrimoine Abomey'
+    ],
+    neighborhoods: ['Djimè', 'Zounzonmè', 'Hounli', 'Agblomè', 'Adandokpodji', 'Vidolé', 'Lissèzoun', 'Gbècon'],
+    paymentMethods: [
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Moov Money', icon: '🔵' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Flooz', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Anniversaires', 'Mariages', 'Fête des Rois', 'Funérailles royales', 'Baptêmes', 'Cérémonies ancestrales'],
+    localProducts: ['Bronzes d\'Abomey', 'Tissus applicués', 'Sculptures royales', 'Tentures Aplawoué', 'Poterie traditionnelle'],
+    testimonials: [
+      {
+        name: 'Codjo A.',
+        text: 'Pour honorer nos ancêtres royaux, notre famille a créé une cagnotte pour les cérémonies. Un succès !',
+        occasion: 'Cérémonie ancestrale'
+      },
+      {
+        name: 'Victorine H.',
+        text: 'J\'ai offert un authentique bronze d\'Abomey à mon père. Il était ému par ce cadeau chargé d\'histoire.',
+        occasion: 'Anniversaire'
+      },
+    ],
+    stats: {
+      businesses: '8+',
+      gifts: '80+',
+      users: '160+'
+    },
+    faqs: [
+      {
+        question: 'Proposez-vous des bronzes d\'Abomey authentiques ?',
+        answer: 'Oui ! Nos artisans perpétuent la tradition des bronzes royaux d\'Abomey, classés au patrimoine UNESCO.'
+      },
+      {
+        question: 'JOIE DE VIVRE livre-t-il à Abomey ?',
+        answer: 'Nous livrons à Djimè, Zounzonmè, Hounli et tous les quartiers près des Palais Royaux.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour les cérémonies royales ?',
+        answer: 'Absolument ! Honorez vos traditions familiales et cérémonies ancestrales avec une cagnotte collective.'
+      },
+      {
+        question: 'Quels autres artisanats trouvez-vous ?',
+        answer: 'Tissus applicués (Aplawoué), sculptures royales, tentures historiques et poteries traditionnelles.'
+      }
+    ]
+  },
+
+  ouidah: {
+    slug: 'ouidah',
+    city: 'Ouidah',
+    country: 'Bénin',
+    countryCode: 'BJ',
+    population: '90,000',
+    nicknames: ['La Cité Sacrée', 'Capitale du Vodoun', 'Glexwé'],
+    coordinates: { lat: 6.3667, lng: 2.0833 },
+    heroTitle: 'Cadeaux Collectifs à Ouidah',
+    heroSubtitle: 'Célébrez à Zomaï, Tovè, Fonsramè et dans la capitale spirituelle du Vodoun',
+    description: 'JOIE DE VIVRE dans la cité sacrée ! Créez des cagnottes à Ouidah pour vos célébrations. Route des Esclaves, artisanat vodoun et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Ouidah, Bénin. Fête du Vodoun, Route des Esclaves, artisanat sacré. Paiement MTN, Moov.',
+    keywords: [
+      'cadeaux Ouidah',
+      'Fête du Vodoun',
+      'Route des Esclaves',
+      'artisanat vodoun',
+      'cagnotte anniversaire Ouidah',
+      'tourisme spirituel Bénin',
+      'Temple des Pythons'
+    ],
+    neighborhoods: ['Zomaï', 'Tovè', 'Fonsramè', 'Ahouandjigo', 'Savi', 'Djègbadji', 'Pahou', 'Avlékété'],
+    paymentMethods: [
+      { name: 'MTN Mobile Money', icon: '🟡' },
+      { name: 'Moov Money', icon: '🔵' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Flooz', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Fête du Vodoun (10 janvier)', 'Anniversaires', 'Mariages', 'Cérémonies spirituelles', 'Retour aux sources'],
+    localProducts: ['Objets vodoun', 'Statues sacrées', 'Tissus rituels', 'Perles spirituelles', 'Sculptures mémorielles'],
+    testimonials: [
+      {
+        name: 'Sagbo P.',
+        text: 'Pour la Fête du Vodoun du 10 janvier, notre confrérie a rassemblé les contributions via JOIE DE VIVRE. Spirituel et moderne !',
+        occasion: 'Fête du Vodoun'
+      },
+      {
+        name: 'Élisabeth D.',
+        text: 'Retour aux sources organisé pour grand-mère. La cagnotte familiale a rendu ce moment inoubliable.',
+        occasion: 'Retour aux sources'
+      },
+    ],
+    stats: {
+      businesses: '6+',
+      gifts: '70+',
+      users: '140+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE respecte-t-il les traditions vodoun ?',
+        answer: 'Absolument ! Nos artisans partenaires créent des objets dans le respect total des traditions spirituelles de Ouidah.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour la Fête du Vodoun ?',
+        answer: 'Oui ! Le 10 janvier est l\'occasion parfaite pour une cagnotte collective célébrant cette fête nationale.'
+      },
+      {
+        question: 'Livrez-vous sur la Route des Esclaves ?',
+        answer: 'Nous livrons à Zomaï, Tovè, Fonsramè et jusqu\'à la Porte du Non-Retour pour vos cérémonies.'
+      },
+      {
+        question: 'Proposez-vous des objets pour le retour aux sources ?',
+        answer: 'Nos partenaires proposent des objets symboliques pour les cérémonies de retour aux sources de la diaspora.'
+      }
+    ]
+  },
+
+  // ============= SÉNÉGAL - NOUVELLES VILLES =============
+
+  'saint-louis': {
+    slug: 'saint-louis',
+    city: 'Saint-Louis',
+    country: 'Sénégal',
+    countryCode: 'SN',
+    population: '250,000',
+    nicknames: ['Ndar', 'Venise africaine', 'Ancienne capitale'],
+    coordinates: { lat: 16.0167, lng: -16.5000 },
+    heroTitle: 'Cadeaux Collectifs à Saint-Louis',
+    heroSubtitle: 'Célébrez à Sor, Guet Ndar, Langue de Barbarie et dans toute la Venise africaine',
+    description: 'JOIE DE VIVRE dans l\'ancienne capitale ! Créez des cagnottes à Saint-Louis, patrimoine UNESCO. Festival de Jazz, artisanat Ndar et paiement Wave/Orange Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Saint-Louis, patrimoine UNESCO Sénégal. Cagnottes mariages, Festival Jazz, artisanat. Paiement Wave, Orange Money.',
+    keywords: [
+      'cadeaux Saint-Louis',
+      'Ndar artisanat',
+      'patrimoine UNESCO Sénégal',
+      'Festival Jazz Saint-Louis',
+      'cagnotte Venise africaine',
+      'fleuve Sénégal',
+      'cagnotte mariage Ndar'
+    ],
+    neighborhoods: ['Sor', 'Guet Ndar', 'Langue de Barbarie', 'Nord', 'Sud', 'Île', 'Eaux Claires', 'Ndiolofène', 'Diamaguène', 'Pikine'],
+    paymentMethods: [
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Free Money', icon: '🔴' },
+      { name: 'E-Money', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Mariages', 'Festival de Jazz', 'Baptêmes', 'Tabaski', 'Korité', 'Saint-Louis Jazz'],
+    localProducts: ['Artisanat Ndar', 'Bijoux touaregs', 'Peintures coloniales', 'Tissus indigo', 'Vannerie du fleuve'],
+    testimonials: [
+      {
+        name: 'Oumar S.',
+        text: 'Pour le Festival de Jazz, notre groupe d\'amis a créé une cagnotte. Une expérience musicale inoubliable à Ndar !',
+        occasion: 'Festival Jazz'
+      },
+      {
+        name: 'Aïda N.',
+        text: 'Mariage traditionnel à Guet Ndar avec vue sur le fleuve. Les contributions venaient du monde entier !',
+        occasion: 'Mariage'
+      },
+    ],
+    stats: {
+      businesses: '12+',
+      gifts: '180+',
+      users: '350+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE est-il disponible à Saint-Louis ?',
+        answer: 'Oui ! Nous livrons à Sor, Guet Ndar, Langue de Barbarie, l\'Île et tous les quartiers de la Venise africaine.'
+      },
+      {
+        question: 'Proposez-vous des produits liés au patrimoine UNESCO ?',
+        answer: 'Nos artisans créent des objets inspirés de l\'architecture coloniale, peintures et artisanat traditionnel Ndar.'
+      },
+      {
+        question: 'Peut-on organiser une cagnotte pour le Festival de Jazz ?',
+        answer: 'Absolument ! Créez une cagnotte pour vivre le Saint-Louis Jazz en groupe. Parfait entre amis !'
+      },
+      {
+        question: 'Livrez-vous à Langue de Barbarie ?',
+        answer: 'Oui, nous livrons sur toute la presqu\'île, y compris les zones touristiques et hôtelières.'
+      }
+    ]
+  },
+
+  touba: {
+    slug: 'touba',
+    city: 'Touba',
+    country: 'Sénégal',
+    countryCode: 'SN',
+    population: '1,000,000+',
+    nicknames: ['La Ville Sainte', 'Capitale du Mouridisme', 'Touba Mosquée'],
+    coordinates: { lat: 14.8500, lng: -15.8833 },
+    heroTitle: 'Cadeaux Collectifs à Touba',
+    heroSubtitle: 'Célébrez le Magal, les mariages et moments de foi à Darou Khoudoss, Darou Miname et dans la Ville Sainte',
+    description: 'JOIE DE VIVRE dans la capitale spirituelle ! Créez des cagnottes à Touba pour le Magal, mariages et baptêmes. Artisanat mouride et paiement Wave/Orange Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Touba, ville sainte du Sénégal. Cagnottes Magal, mariages religieux, artisanat mouride. Paiement Wave, Orange Money.',
+    keywords: [
+      'cadeaux Touba',
+      'cagnotte Magal',
+      'Mouridisme cadeaux',
+      'Grande Mosquée Touba',
+      'ville sainte Sénégal',
+      'artisanat mouride',
+      'cagnotte religieuse Touba'
+    ],
+    neighborhoods: ['Darou Khoudoss', 'Darou Miname', 'Gouye Mbind', 'Touba Mosquée', 'Ndamatou', 'Darou Marnane', 'Touba Belel', 'Guédé'],
+    paymentMethods: [
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'Free Money', icon: '🔴' },
+      { name: 'E-Money', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Grand Magal', 'Mariages', 'Baptêmes', 'Korité', 'Tabaski', 'Ziarra', 'Gamou'],
+    localProducts: ['Chapelets artisanaux', 'Livres religieux', 'Tapis de prière', 'Encens et parfums', 'Boubous blancs brodés'],
+    testimonials: [
+      {
+        name: 'Cheikh M.',
+        text: 'Pour le Grand Magal, notre dahira a créé une cagnotte. Des contributions de Dakar, Paris, New York... Une bénédiction !',
+        occasion: 'Magal'
+      },
+      {
+        name: 'Sokhna F.',
+        text: 'Mariage béni à Touba. La cagnotte JOIE DE VIVRE a rassemblé toute la communauté mouride.',
+        occasion: 'Mariage'
+      },
+    ],
+    stats: {
+      businesses: '15+',
+      gifts: '300+',
+      users: '600+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE respecte-t-il les valeurs mourides ?',
+        answer: 'Absolument ! Notre plateforme facilite les contributions communautaires dans le respect des enseignements de Cheikh Ahmadou Bamba.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour le Magal ?',
+        answer: 'Oui ! Le Grand Magal est l\'occasion idéale pour une cagnotte collective. Rassemblez votre dahira et vos proches.'
+      },
+      {
+        question: 'Quels produits religieux proposez-vous ?',
+        answer: 'Chapelets artisanaux, livres religieux, tapis de prière, encens traditionnels et boubous blancs brodés.'
+      },
+      {
+        question: 'Comment payer à Touba ?',
+        answer: 'Wave est très populaire à Touba. Orange Money, Free Money et E-Money sont aussi acceptés.'
+      }
+    ]
+  },
+
+  kaolack: {
+    slug: 'kaolack',
+    city: 'Kaolack',
+    country: 'Sénégal',
+    countryCode: 'SN',
+    population: '200,000',
+    nicknames: ['La Capitale du Saloum', 'Carrefour du Sénégal', 'Ndangane'],
+    coordinates: { lat: 14.1500, lng: -16.0667 },
+    heroTitle: 'Cadeaux Collectifs à Kaolack',
+    heroSubtitle: 'Célébrez à Médina Baye, Léona, Ndangane et dans la capitale économique du Saloum',
+    description: 'JOIE DE VIVRE au carrefour du Sénégal ! Créez des cagnottes à Kaolack, hub commercial majeur. Marché d\'arachides, artisanat sérère et paiement Mobile Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Kaolack, Sénégal. Cagnottes mariages, marché arachides, artisanat Saloum. Paiement Wave, Orange Money.',
+    keywords: [
+      'cadeaux Kaolack',
+      'marché arachides Sénégal',
+      'cagnotte anniversaire Saloum',
+      'artisanat sérère',
+      'carrefour commercial',
+      'cagnotte mariage Kaolack',
+      'Médina Baye'
+    ],
+    neighborhoods: ['Médina Baye', 'Léona', 'Ndangane', 'Bongré', 'Kahone', 'Sam', 'Dialègne', 'Touba Kaolack', 'Thiofack'],
+    paymentMethods: [
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'Free Money', icon: '🔴' },
+      { name: 'E-Money', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Mariages', 'Gamou Médina Baye', 'Baptêmes', 'Tabaski', 'Korité', 'Fêtes commerciales'],
+    localProducts: ['Arachides décortiquées', 'Huile d\'arachide', 'Tissus sérères', 'Sel de mer', 'Vannerie Saloum'],
+    testimonials: [
+      {
+        name: 'Ibrahima D.',
+        text: 'Pour le Gamou à Médina Baye, notre famille a créé une cagnotte. Des contributions de tout le Sénégal !',
+        occasion: 'Gamou'
+      },
+      {
+        name: 'Coumba S.',
+        text: 'Mariage traditionnel sérère à Ndangane. La cagnotte a rendu notre union encore plus belle.',
+        occasion: 'Mariage'
+      },
+    ],
+    stats: {
+      businesses: '10+',
+      gifts: '140+',
+      users: '280+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE est-il disponible à Kaolack ?',
+        answer: 'Oui ! Nous livrons à Médina Baye, Léona, Ndangane, Bongré et tous les quartiers du carrefour du Sénégal.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour le Gamou Médina Baye ?',
+        answer: 'Absolument ! Le Gamou est parfait pour rassembler les contributions de la communauté Niassène.'
+      },
+      {
+        question: 'Quels produits locaux proposez-vous ?',
+        answer: 'Arachides de qualité, huile artisanale, tissus sérères, sel de mer et vannerie du Saloum.'
+      },
+      {
+        question: 'Comment payer à Kaolack ?',
+        answer: 'Wave est très répandu. Orange Money, Free Money et E-Money fonctionnent parfaitement aussi.'
+      }
+    ]
+  },
+
+  ziguinchor: {
+    slug: 'ziguinchor',
+    city: 'Ziguinchor',
+    country: 'Sénégal',
+    countryCode: 'SN',
+    population: '250,000',
+    nicknames: ['La Perle du Sud', 'Capitale de la Casamance', 'Ziggy'],
+    coordinates: { lat: 12.5833, lng: -16.2719 },
+    heroTitle: 'Cadeaux Collectifs à Ziguinchor',
+    heroSubtitle: 'Célébrez à Boucotte, Kandé, Escale et dans toute la verdoyante Casamance',
+    description: 'JOIE DE VIVRE en Casamance ! Créez des cagnottes à Ziguinchor pour vos célébrations. Artisanat diola, forêts vertes et paiement Wave/Orange Money.',
+    metaDescription: 'Plateforme de cadeaux collectifs à Ziguinchor, Casamance, Sénégal. Cagnottes mariages, artisanat diola, nature. Paiement Wave, Orange Money.',
+    keywords: [
+      'cadeaux Ziguinchor',
+      'artisanat diola',
+      'Casamance Sénégal',
+      'cagnotte anniversaire Ziggy',
+      'forêts Casamance',
+      'cagnotte mariage Ziguinchor',
+      'culture diola'
+    ],
+    neighborhoods: ['Boucotte', 'Kandé', 'Escale', 'Peyrissac', 'Tilène', 'Colobane', 'Diabir', 'Lyndiane', 'Néma', 'Château d\'eau'],
+    paymentMethods: [
+      { name: 'Wave', icon: '🔵' },
+      { name: 'Orange Money', icon: '🟠' },
+      { name: 'Free Money', icon: '🔴' },
+      { name: 'E-Money', icon: '🟢' }
+    ],
+    currency: 'XOF (Franc CFA)',
+    occasions: ['Mariages diola', 'Bukut (initiation)', 'Baptêmes', 'Korité', 'Noël', 'Fêtes de récolte'],
+    localProducts: ['Vin de palme', 'Sculptures diola', 'Vannerie Casamance', 'Huile de palme', 'Bijoux traditionnels'],
+    testimonials: [
+      {
+        name: 'Adama D.',
+        text: 'Pour le Bukut de mon fils, la cagnotte a rassemblé toute la communauté diola. Tradition et modernité !',
+        occasion: 'Bukut'
+      },
+      {
+        name: 'Marie-Pierre M.',
+        text: 'Mariage en Casamance avec contributions de Dakar et de l\'étranger. JOIE DE VIVRE a tout simplifié.',
+        occasion: 'Mariage'
+      },
+    ],
+    stats: {
+      businesses: '8+',
+      gifts: '100+',
+      users: '200+'
+    },
+    faqs: [
+      {
+        question: 'JOIE DE VIVRE est-il disponible en Casamance ?',
+        answer: 'Oui ! Nous livrons à Boucotte, Kandé, Escale, Tilène et tous les quartiers de Ziguinchor.'
+      },
+      {
+        question: 'Proposez-vous de l\'artisanat diola ?',
+        answer: 'Nos artisans créent sculptures, vanneries, bijoux et objets traditionnels de la culture diola.'
+      },
+      {
+        question: 'Peut-on créer une cagnotte pour le Bukut ?',
+        answer: 'Absolument ! L\'initiation diola mérite une cagnotte collective pour honorer cette tradition.'
+      },
+      {
+        question: 'Comment payer en Casamance ?',
+        answer: 'Wave et Orange Money sont très répandus. Free Money et E-Money fonctionnent aussi.'
+      }
+    ]
   }
 };
 
