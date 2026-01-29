@@ -194,22 +194,22 @@ export const AIChatWidget = () => {
               dragElastic={0.3}
               onDragEnd={handleSwipeDismiss}
             >
+              {/* Close button - Positionné en dehors de la carte pour être visible */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowWelcome(false);
+                }}
+                className="absolute -top-2 right-0 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
+                aria-label="Fermer le message de bienvenue"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
               {/* Glassmorphism Card */}
               <div className="relative bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-500/20 border border-violet-200/50 dark:border-violet-500/20 p-4 max-w-[280px] overflow-hidden">
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-pink-500/5 pointer-events-none" />
-                
-                {/* Close button - Badge style pour meilleure visibilité et accessibilité */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowWelcome(false);
-                  }}
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
-                  aria-label="Fermer le message de bienvenue"
-                >
-                  <X className="h-4 w-4" />
-                </button>
 
                 {/* Content */}
                 <div className="relative z-10">
