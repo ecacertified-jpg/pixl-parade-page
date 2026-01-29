@@ -25,6 +25,7 @@ interface EditPermissionsModalProps {
 const PERMISSIONS = [
   { key: 'manage_users', label: 'Gérer les utilisateurs' },
   { key: 'manage_admins', label: 'Gérer les administrateurs' },
+  { key: 'manage_businesses', label: 'Gérer les prestataires' },
   { key: 'manage_content', label: 'Modérer le contenu' },
   { key: 'manage_finances', label: 'Gérer les finances' },
   { key: 'view_analytics', label: 'Voir les analytics' },
