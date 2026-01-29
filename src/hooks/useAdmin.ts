@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface AdminPermissions {
   manage_users: boolean;
   manage_admins: boolean;
+  manage_businesses: boolean;
   manage_content: boolean;
   manage_finances: boolean;
   view_analytics: boolean;
@@ -18,6 +19,7 @@ export const useAdmin = () => {
   const [permissions, setPermissions] = useState<AdminPermissions>({
     manage_users: false,
     manage_admins: false,
+    manage_businesses: false,
     manage_content: false,
     manage_finances: false,
     view_analytics: false,
@@ -83,6 +85,7 @@ export const useAdmin = () => {
       setPermissions({
         manage_users: perms.manage_users ?? false,
         manage_admins: perms.manage_admins ?? false,
+        manage_businesses: perms.manage_businesses ?? false,
         manage_content: perms.manage_content ?? false,
         manage_finances: perms.manage_finances ?? false,
         view_analytics: perms.view_analytics ?? false,
