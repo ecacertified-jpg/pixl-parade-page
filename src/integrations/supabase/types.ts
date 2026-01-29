@@ -6022,6 +6022,72 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_sync_queue: {
+        Row: {
+          action: string
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          priority: string | null
+          processed: boolean | null
+          processed_at: string | null
+          retry_count: number | null
+          url: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          retry_count?: number | null
+          url: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          priority?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          retry_count?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
+      seo_sync_stats: {
+        Row: {
+          id: string
+          last_updated: string | null
+          stat_type: string
+          stat_value: Json | null
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          stat_type: string
+          stat_value?: Json | null
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          stat_type?: string
+          stat_value?: Json | null
+        }
+        Relationships: []
+      }
       suggestion_feedback: {
         Row: {
           contact_id: string | null
@@ -7729,6 +7795,7 @@ export type Database = {
       }
       get_fund_creator_id: { Args: { p_fund_id: string }; Returns: string }
       get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
+      get_platform_seo_stats: { Args: never; Returns: Json }
       get_product_category_name: {
         Args: { p_product_id: string }
         Returns: string
