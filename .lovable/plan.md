@@ -1,132 +1,198 @@
 
+# Permettre au Super Admin de Modifier le Rôle d'un Administrateur
 
-# Rendre les Métriques Dynamiques dans le Modal Admin
+## Objectif
 
-## Diagnostic
+Ajouter un sélecteur de rôle dans le modal `EditPermissionsModal` pour permettre au Super Admin de changer le rôle d'un administrateur (par exemple, de Modérateur à Admin Régional ou inversement).
 
-L'analyse révèle que la fonction RPC `get_user_stats_for_admin` existe et est appelée correctement dans `UserProfileModal.tsx`. Cependant, elle compte les "Amis" dans la table `contact_relationships` (relations bidirectionnelles entre utilisateurs JDV - seulement **5 entrées**), alors que vous avez ajouté des amis dans la table `contacts` (carnet d'adresses - **18 entrées**).
+## Analyse Actuelle
 
-**Différence entre les deux tables :**
-
-| Table | Description | Données |
-|-------|-------------|---------|
-| `contacts` | Carnet d'adresses personnel (noms, téléphones, anniversaires) | 18 entrées |
-| `contact_relationships` | Relations mutuelles entre utilisateurs inscrits sur JDV | 5 entrées |
-
-## Solution Proposée
-
-Modifier la fonction SQL `get_user_stats_for_admin` pour compter les **contacts** (carnet d'adresses) au lieu des `contact_relationships`, car c'est plus représentatif de l'activité réelle de l'utilisateur.
+| Élément | État actuel |
+|---------|-------------|
+| Modal `EditPermissionsModal` | Affiche le rôle en badge statique, non modifiable |
+| Modal `AddAdminModal` | Contient déjà un Select pour choisir le rôle (réutilisable) |
+| Validation | Les permissions s'affichent conditionnellement selon le rôle |
 
 ## Modifications Techniques
 
-### Migration SQL : Mise à jour de la fonction
+### Fichier : `src/components/admin/EditPermissionsModal.tsx`
 
-Modifier la requête pour compter les contacts au lieu des relationships :
-
-```sql
--- Avant (actuel)
-SELECT COUNT(*) INTO v_friends_count
-FROM contact_relationships 
-WHERE user_a = target_user_id OR user_b = target_user_id;
-
--- Après (proposé)
-SELECT COUNT(*) INTO v_friends_count
-FROM contacts 
-WHERE user_id = target_user_id;
-```
-
-### Fichier de Migration
-
-Créer une migration qui met à jour la fonction `get_user_stats_for_admin` :
-
-```sql
--- Modification pour compter les contacts (carnet d'adresses) 
--- au lieu des contact_relationships
-
-CREATE OR REPLACE FUNCTION public.get_user_stats_for_admin(target_user_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  result jsonb;
-  v_gifts_given integer;
-  v_gifts_received integer;
-  v_funds_created integer;
-  v_contacts_count integer;  -- Renommé pour clarté
-  v_contributions_count integer;
-  v_total_contributed numeric;
-  v_community_points integer;
-BEGIN
-  -- Vérifier que l'appelant est admin
-  IF NOT is_admin(auth.uid()) THEN
-    RAISE EXCEPTION 'Accès non autorisé';
-  END IF;
-
-  -- Cadeaux donnés
-  SELECT COUNT(*) INTO v_gifts_given
-  FROM gifts WHERE giver_id = target_user_id;
-
-  -- Cadeaux reçus
-  SELECT COUNT(*) INTO v_gifts_received
-  FROM gifts WHERE receiver_id = target_user_id;
-
-  -- Cagnottes créées
-  SELECT COUNT(*) INTO v_funds_created
-  FROM collective_funds WHERE creator_id = target_user_id;
-
-  -- Nombre de contacts dans le carnet d'adresses
-  SELECT COUNT(*) INTO v_contacts_count
-  FROM contacts WHERE user_id = target_user_id;
-
-  -- Contributions
-  SELECT COUNT(*), COALESCE(SUM(amount), 0) 
-  INTO v_contributions_count, v_total_contributed
-  FROM fund_contributions WHERE contributor_id = target_user_id;
-
-  -- Points communauté
-  SELECT COALESCE(total_points, 0) INTO v_community_points
-  FROM community_scores WHERE user_id = target_user_id;
-
-  result := jsonb_build_object(
-    'giftsGiven', COALESCE(v_gifts_given, 0),
-    'giftsReceived', COALESCE(v_gifts_received, 0),
-    'fundsCreated', COALESCE(v_funds_created, 0),
-    'friendsCount', COALESCE(v_contacts_count, 0),  -- Utilise contacts
-    'contributionsCount', COALESCE(v_contributions_count, 0),
-    'totalContributed', COALESCE(v_total_contributed, 0),
-    'communityPoints', COALESCE(v_community_points, 0)
-  );
-
-  RETURN result;
-END;
-$$;
-```
-
-### Mise à jour du Hook useUserStats.ts
-
-Synchroniser également le hook client pour cohérence :
+**1. Importer les éléments nécessaires**
 
 ```typescript
-// Changer de contact_relationships à contacts
-supabase
-  .from("contacts")
-  .select("*", { count: "exact", head: true })
-  .eq("user_id", user.id),
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShieldCheck, Shield, UserCheck } from "lucide-react";
 ```
+
+**2. Ajouter la constante ROLE_INFO** (comme dans AddAdminModal)
+
+```typescript
+type AdminRoleType = 'super_admin' | 'regional_admin' | 'moderator';
+
+const ROLE_INFO = {
+  super_admin: {
+    label: 'Super Administrateur',
+    description: 'Accès complet à tous les pays et toutes les fonctionnalités',
+    icon: ShieldCheck,
+    color: 'text-primary',
+  },
+  regional_admin: {
+    label: 'Administrateur Régional',
+    description: 'Accès complet limité à certains pays',
+    icon: Shield,
+    color: 'text-blue-500',
+  },
+  moderator: {
+    label: 'Modérateur',
+    description: 'Permissions spécifiques sur certains pays',
+    icon: UserCheck,
+    color: 'text-muted-foreground',
+  },
+};
+```
+
+**3. Ajouter un état local pour le nouveau rôle**
+
+```typescript
+const [newRole, setNewRole] = useState<AdminRoleType>(adminRole as AdminRoleType);
+
+// Dans useEffect, réinitialiser avec le rôle actuel
+useEffect(() => {
+  if (open) {
+    setPermissions(currentPermissions || {});
+    setAssignedCountries(currentCountries || []);
+    setNewRole(adminRole as AdminRoleType); // Nouveau
+  }
+}, [open, currentPermissions, currentCountries, adminRole]);
+```
+
+**4. Remplacer le badge statique par un Select**
+
+Transformer le badge en sélecteur modifiable avec les 3 rôles :
+
+```tsx
+{/* Role selection - remplace le badge statique */}
+<div className="space-y-2">
+  <Label>Rôle</Label>
+  <Select value={newRole} onValueChange={(v: AdminRoleType) => setNewRole(v)}>
+    <SelectTrigger>
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="moderator">
+        <div className="flex items-center gap-2">
+          <UserCheck className="h-4 w-4" />
+          Modérateur
+        </div>
+      </SelectItem>
+      <SelectItem value="regional_admin">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-blue-500" />
+          Admin Régional
+        </div>
+      </SelectItem>
+      <SelectItem value="super_admin">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          Super Administrateur
+        </div>
+      </SelectItem>
+    </SelectContent>
+  </Select>
+  <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+    <RoleIcon className={`h-4 w-4 ${currentRoleInfo.color}`} />
+    <p className="text-xs text-muted-foreground">
+      {currentRoleInfo.description}
+    </p>
+  </div>
+</div>
+```
+
+**5. Adapter les conditions d'affichage**
+
+Utiliser `newRole` au lieu de `adminRole` pour les conditions d'affichage :
+
+```typescript
+// Afficher les pays seulement si pas super_admin
+{newRole !== 'super_admin' && (
+  <AdminCountryAssignment ... />
+)}
+
+// Afficher les permissions seulement pour moderator
+{newRole === 'moderator' && (
+  <div className="space-y-2">
+    <Label>Permissions</Label>
+    ...
+  </div>
+)}
+```
+
+**6. Modifier handleSubmit pour inclure le changement de rôle**
+
+```typescript
+const handleSubmit = async () => {
+  // Validations adaptées au nouveau rôle
+  if (newRole === 'moderator' && Object.values(permissions).every(v => !v)) {
+    toast.error("Un modérateur doit avoir au moins une permission");
+    return;
+  }
+
+  if (newRole !== 'super_admin' && assignedCountries.length === 0) {
+    toast.error("Veuillez sélectionner au moins un pays");
+    return;
+  }
+
+  const updateData: any = {
+    role: newRole, // NOUVEAU - mise à jour du rôle
+    assigned_countries: newRole === 'super_admin' ? null : assignedCountries,
+    permissions: newRole === 'moderator' 
+      ? permissions 
+      : { manage_users: true, manage_content: true, view_analytics: true, manage_finances: true },
+  };
+
+  // ... reste de la logique
+  
+  // Log avec le changement de rôle
+  await supabase.from('admin_audit_logs').insert({
+    // ...
+    description: `Rôle/permissions mis à jour pour ${adminName}`,
+    metadata: { 
+      previous_role: adminRole,
+      new_role: newRole,
+      previous_countries: currentCountries,
+      new_countries: assignedCountries,
+      // ...
+    }
+  });
+};
+```
+
+**7. Gérer le cas Super Admin différemment**
+
+Si l'admin édité est déjà Super Admin, on peut soit :
+- Bloquer la modification (garde actuelle)
+- Permettre de le rétrograder
+
+Proposition : Permettre la modification du rôle Super Admin vers un rôle inférieur, mais afficher un avertissement.
+
+## Comportement Attendu
+
+| Rôle actuel | Nouveau rôle | UI affichée |
+|-------------|--------------|-------------|
+| Modérateur | - | Select + Pays + Permissions |
+| Modérateur → Admin Régional | - | Select + Pays (permissions masquées) |
+| Admin Régional | - | Select + Pays |
+| Admin Régional → Modérateur | - | Select + Pays + Permissions |
+| Super Admin | - | Select + Avertissement rétrogradation |
 
 ## Fichiers à Modifier
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/migrations/XXXXXXXX_update_user_stats_function.sql` | Créer migration SQL |
-| `src/hooks/useUserStats.ts` | Aligner le comptage sur `contacts` |
+| Fichier | Modification |
+|---------|--------------|
+| `src/components/admin/EditPermissionsModal.tsx` | Ajouter Select de rôle + adapter logique |
 
-## Résultat Attendu
+## Sécurité
 
-Après cette modification :
-- Le modal Admin affichera le nombre de **contacts** ajoutés par l'utilisateur
-- Le ProfileDropdown affichera également les contacts
-- Les 18 contacts ajoutés seront visibles dans les statistiques
-
+- Seul un Super Admin peut modifier les rôles (le modal n'est accessible que par eux)
+- Le changement de rôle est audité dans `admin_audit_logs`
+- Permissions par défaut assignées automatiquement aux admins régionaux
