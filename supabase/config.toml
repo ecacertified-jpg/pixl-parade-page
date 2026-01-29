@@ -203,3 +203,6 @@ verify_jwt = false
 
 [functions.verify-whatsapp-otp]
 verify_jwt = false
+
+[functions.seo-sync-orchestrator]
+verify_jwt = false

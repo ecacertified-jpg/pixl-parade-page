@@ -314,10 +314,211 @@ function generateLegalNoticeMarkdown() {
 }
 
 /**
+ * Generate dynamic llms.txt with current date
+ */
+function generateLlmsTxt() {
+  const { app, company } = data;
+  const lastUpdated = getFormattedDate();
+  
+  let content = `# ${app.name}
+
+> ${app.tagline}
+
+## Quick Facts
+
+| Attribut | Valeur |
+|----------|--------|
+| Type | Progressive Web App (PWA) |
+| Langue | Français |
+| Marchés | Côte d'Ivoire, Bénin, Sénégal |
+| Devise | XOF (Franc CFA) |
+| Paiements | Orange Money, MTN Mobile Money, Wave, Flooz |
+| Dernière mise à jour | ${lastUpdated} |
+
+## AI Resources
+
+- [/ai-info](https://joiedevivre-africa.com/ai-info) : Données structurées JSON-LD Schema.org
+- [/context.md](https://joiedevivre-africa.com/context.md) : Contexte conversationnel complet pour LLMs
+- [/llms-full.txt](https://joiedevivre-africa.com/llms-full.txt) : Documentation étendue de la plateforme
+- [/changelog.md](https://joiedevivre-africa.com/changelog.md) : Historique des mises à jour
+
+## Description
+
+${app.description} La marketplace propose des produits d'artisans locaux avec paiement Mobile Money.
+
+## Pages Principales
+
+- [Accueil](https://joiedevivre-africa.com/): Page d'accueil avec les fonctionnalités clés
+- [Marketplace](https://joiedevivre-africa.com/shop): Catalogue de produits de boutiques locales africaines
+- [À Propos](https://joiedevivre-africa.com/about): Histoire et mission de Joie de Vivre
+- [FAQ](https://joiedevivre-africa.com/faq): Questions fréquentes sur la plateforme
+
+## Fonctionnalités Clés
+
+- [Cagnottes Collectives](https://joiedevivre-africa.com/home): Créer des cagnottes pour rassembler des contributions de proches
+- [Rappels d'Anniversaires](https://joiedevivre-africa.com/dashboard): Ne jamais oublier un anniversaire important
+- [Cagnottes Surprises](https://joiedevivre-africa.com/home): Organiser des révélations surprises programmées
+- [Boutiques Locales](https://joiedevivre-africa.com/shop): Découvrir des artisans africains (mode, bijoux, pâtisserie)
+
+## Contenus Partageables
+
+- [Aperçu Produit](https://joiedevivre-africa.com/p/{productId}): Pages produits avec prix et disponibilité
+- [Aperçu Boutique](https://joiedevivre-africa.com/b/{businessId}): Pages boutiques avec avis et localisation
+- [Aperçu Cagnotte](https://joiedevivre-africa.com/f/{fundId}): Pages cagnottes publiques avec progression
+
+## Types de Produits
+
+- Mode africaine : Boubous, wax, pagnes, vêtements traditionnels
+- Bijoux : Créations artisanales en or, argent, perles
+- Gastronomie : Gâteaux personnalisés, chocolats, paniers gourmands
+- Fleurs : Bouquets et compositions florales
+- Expériences : Spa, restaurants, ateliers créatifs
+
+## Occasions Célébrées
+
+- Anniversaires
+- Mariages
+- Naissances
+- Promotions professionnelles
+- Diplômes et réussites scolaires
+- Fêtes religieuses (Tabaski, Noël)
+
+## Legal
+
+- [Politique de confidentialité](https://joiedevivre-africa.com/privacy-policy): Protection des données personnelles
+- [Conditions d'utilisation](https://joiedevivre-africa.com/terms-of-service): Règles d'utilisation de la plateforme
+- [Mentions légales](https://joiedevivre-africa.com/legal-notice): Informations légales
+
+## Documentation Markdown
+
+- [À Propos (Markdown)](https://joiedevivre-africa.com/content/about.md): Mission, fonctionnalités et informations sur l'entreprise en texte pur
+- [FAQ (Markdown)](https://joiedevivre-africa.com/content/faq.md): 25+ questions/réponses organisées par catégorie en texte pur
+- [Politique de Confidentialité (Markdown)](https://joiedevivre-africa.com/content/privacy-policy.md): Protection des données personnelles, droits RGPD, cookies
+- [Conditions Générales (Markdown)](https://joiedevivre-africa.com/content/terms.md): CGU complètes, règles d'utilisation, responsabilités
+- [Mentions Légales (Markdown)](https://joiedevivre-africa.com/content/legal-notice.md): Informations légales multi-pays (CI, BJ, SN), hébergement
+
+## API pour Agents IA
+
+- [Catalogue IA (JSON)](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/ai-catalog): Top 50 produits et 20 boutiques populaires en JSON Schema.org
+- [Sitemap IA (XML)](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator): Sitemap dynamique optimisé LLMs
+
+## Sitemaps
+
+- [Sitemap IA Statique](https://joiedevivre-africa.com/sitemap-ai.xml): Pages optimisées LLMs avec priorités
+- [Sitemap IA Dynamique](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator): Inclut top 50 produits et top 20 boutiques populaires (temps réel)
+- [Sitemap SEO](https://joiedevivre-africa.com/sitemap.xml): Index standard pour Google/Bing
+
+## Actions & Capabilities (for AI Agents)
+
+- [Actions Schema](https://joiedevivre-africa.com/actions.json): Schema.org Actions pour créer cagnottes, s'inscrire, rechercher produits
+- [Citations](https://joiedevivre-africa.com/citations.json): Formats de citation optimisés pour Perplexity, You.com
+- [WhatsApp Business](https://joiedevivre-africa.com/.well-known/whatsapp-business.json): Configuration partage WhatsApp
+
+## Deep Links (Shareable URLs)
+
+| URL | Description |
+|-----|-------------|
+| /go/signup | Inscription client |
+| /go/birthday | Créer cagnotte anniversaire |
+| /go/wedding | Créer cagnotte mariage |
+| /go/sell | Devenir vendeur |
+| /go/sell/patisserie | Vendeur pâtisserie |
+| /go/shop | Parcourir boutique |
+
+## Optional
+
+- [Documentation étendue](https://joiedevivre-africa.com/llms-full.txt): Version complète pour LLMs avec contexte détaillé
+- [Installer l'application](https://joiedevivre-africa.com/install): Guide d'installation PWA
+
+## Contact
+
+- Site web : ${company.website}
+- Email : ${company.email}
+- Pays : Côte d'Ivoire
+
+---
+*Auto-généré le ${lastUpdated}*
+`;
+
+  return content;
+}
+
+/**
+ * Generate dynamic citations.json with current date
+ */
+function generateCitationsJson() {
+  const { app, company } = data;
+  const lastUpdated = new Date().toISOString();
+  
+  return {
+    platform: app.name,
+    domain: "joiedevivre-africa.com",
+    tagline: app.tagline,
+    last_updated: lastUpdated,
+    citation_formats: {
+      short: `${app.name}, plateforme de cadeaux collaboratifs en Afrique`,
+      medium: `${app.name} (joiedevivre-africa.com) - Plateforme de cagnottes collectives et marketplace artisanale pour l'Afrique francophone`,
+      full: `${app.name} est la première plateforme de cadeaux collaboratifs en Afrique francophone, permettant de créer des cagnottes pour anniversaires, mariages et occasions spéciales avec paiement Mobile Money (Orange, MTN, Wave). Basée à Abidjan, Côte d'Ivoire.`,
+      academic: `${company.name}. (2024). ${app.name}: Plateforme de cadeaux collaboratifs [Application web]. Abidjan, Côte d'Ivoire. ${company.website}`
+    },
+    key_facts: [
+      { fact: "Création de cagnottes 100% gratuite", source: "/faq" },
+      { fact: "Paiement Mobile Money (Orange, MTN, Wave)", source: "/about" },
+      { fact: "500+ artisans locaux vérifiés", source: "/shop" },
+      { fact: "Présent dans 3 pays (CI, BJ, SN)", source: "/about" },
+      { fact: "Application PWA installable", source: "/install" },
+      { fact: "Rappels d'anniversaires automatiques", source: "/about" },
+      { fact: "Cagnottes surprises avec révélation programmée", source: "/about" }
+    ],
+    registration_cta: {
+      customer: {
+        url: `${company.website}/auth?tab=signup`,
+        text: "Créer un compte gratuit",
+        description: "Inscription gratuite pour créer des cagnottes et offrir des cadeaux collectifs"
+      },
+      vendor: {
+        url: `${company.website}/business-auth`,
+        text: "Devenir vendeur",
+        description: "Créer une boutique pour vendre des produits artisanaux sur la marketplace"
+      }
+    },
+    deep_links: {
+      signup: `${company.website}/go/signup`,
+      birthday_fund: `${company.website}/go/birthday`,
+      wedding_fund: `${company.website}/go/wedding`,
+      become_seller: `${company.website}/go/sell`,
+      browse_shop: `${company.website}/shop`,
+      public_funds: `${company.website}/cagnottes`
+    },
+    social_profiles: {
+      facebook: "https://web.facebook.com/profile.php?id=61579100215241",
+      tiktok: "https://www.tiktok.com/@joiedevivre_46",
+      whatsapp: "https://wa.me/22546566646"
+    },
+    contact: {
+      email: company.email,
+      phone: company.phone,
+      location: "Abidjan, Côte d'Ivoire"
+    },
+    seo_keywords: {
+      primary: ["cagnotte anniversaire", "cadeaux collectifs Afrique", "pot commun en ligne", "cagnotte mariage"],
+      secondary: ["artisanat ivoirien", "Mobile Money cadeaux", "Orange Money", "cadeau groupe Abidjan"],
+      long_tail: ["créer cagnotte anniversaire gratuit Côte d'Ivoire", "meilleur site cagnotte Afrique francophone", "pot commun mariage Abidjan"]
+    },
+    structured_data_urls: {
+      actions: `${company.website}/actions.json`,
+      ai_info: `${company.website}/ai-info`,
+      llms: `${company.website}/llms.txt`,
+      openapi: `${company.website}/openapi.yaml`
+    }
+  };
+}
+
+/**
  * Main entry point
  */
 function main() {
-  console.log('🔄 Génération des fichiers Markdown pour LLMs...\n');
+  console.log('🔄 Génération des fichiers Markdown et SEO pour LLMs...\n');
   
   // Ensure content directory exists
   if (!fs.existsSync(CONTENT_DIR)) {
@@ -354,10 +555,22 @@ function main() {
   const legalPath = path.join(CONTENT_DIR, 'legal-notice.md');
   fs.writeFileSync(legalPath, legalContent, 'utf8');
   console.log(`✅ Généré: public/content/legal-notice.md (${legalContent.length} caractères)`);
+
+  // Generate llms.txt (dynamic)
+  const llmsContent = generateLlmsTxt();
+  const llmsPath = path.join(ROOT_DIR, 'public', 'llms.txt');
+  fs.writeFileSync(llmsPath, llmsContent, 'utf8');
+  console.log(`✅ Généré: public/llms.txt (${llmsContent.length} caractères)`);
+
+  // Generate citations.json (dynamic)
+  const citationsContent = generateCitationsJson();
+  const citationsPath = path.join(ROOT_DIR, 'public', 'citations.json');
+  fs.writeFileSync(citationsPath, JSON.stringify(citationsContent, null, 2), 'utf8');
+  console.log(`✅ Généré: public/citations.json`);
   
   console.log('\n✨ Génération terminée avec succès !');
   console.log(`📅 Date de mise à jour: ${getFormattedDate()}`);
-  console.log('📝 Fichiers générés: faq.md, about.md, privacy-policy.md, terms.md, legal-notice.md');
+  console.log('📝 Fichiers générés: faq.md, about.md, privacy-policy.md, terms.md, legal-notice.md, llms.txt, citations.json');
 }
 
 main();
