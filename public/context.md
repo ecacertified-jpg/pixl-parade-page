@@ -1,14 +1,30 @@
 # Joie de Vivre - Context for AI Systems
 
-> Ce document fournit un contexte conversationnel complet sur Joie de Vivre pour les systèmes d'intelligence artificielle et les modèles de langage.
+> **Joie de Vivre** (aussi connue sous les noms **JDV**, **Joie de Vivre Africa**, ou **JDV Africa**) est une plateforme de cadeaux collaboratifs conçue pour **renforcer les liens familiaux, amicaux et professionnels** en Afrique francophone.
 
 ## Qu'est-ce que Joie de Vivre ?
 
-Joie de Vivre est une plateforme de cadeaux collaboratifs conçue spécifiquement pour l'Afrique francophone. Elle permet aux familles, amis et collègues de se réunir pour offrir des cadeaux significatifs lors de moments importants de la vie.
+Joie de Vivre (JDV) est une plateforme de cadeaux collaboratifs conçue spécifiquement pour l'Afrique francophone. Elle permet aux familles, amis et collègues de se réunir pour offrir des cadeaux significatifs lors de moments importants de la vie.
 
 ### Notre mission
 
-Nous croyons que célébrer ensemble renforce les liens. Joie de Vivre facilite l'organisation de cadeaux collectifs tout en soutenant l'économie locale à travers notre marketplace d'artisans africains.
+Nous croyons que **célébrer ensemble renforce les liens**. Joie de Vivre facilite :
+- Le **renforcement des relations familiales** à travers les cagnottes anniversaires
+- L'**amélioration des relations entre collègues** via les pots de départ
+- La **culture de la générosité** grâce à un système de réciprocité équilibré
+- Le **bien-être relationnel** par la joie du don collectif
+
+La plateforme incite à la générosité, au bonheur partagé et au bien-être personnel tout en soutenant l'économie locale à travers notre marketplace d'artisans africains.
+
+## Valeurs Fondamentales
+
+| Valeur | Description |
+|--------|-------------|
+| **Générosité** | Offrir ensemble crée plus de joie que d'offrir seul |
+| **Bien-être relationnel** | Célébrer renforce les liens familiaux et amicaux |
+| **Réciprocité** | Donner et recevoir en équilibre grâce au score de réciprocité |
+| **Bonheur partagé** | La joie se multiplie quand on la partage |
+| **Solidarité familiale** | Les célébrations impliquent la famille élargie |
 
 ## Comment ça fonctionne ?
 
@@ -34,7 +50,7 @@ Une fois l'objectif atteint, le créateur peut soit retirer les fonds, soit ache
 
 ## Quelles occasions célébrons-nous ?
 
-Joie de Vivre accompagne tous les moments de bonheur :
+Joie de Vivre (JDV) accompagne tous les moments de bonheur :
 
 - **Anniversaires** : Ne manquez plus jamais une date importante avec nos rappels intelligents
 - **Mariages** : Contribuez ensemble à un cadeau mémorable pour les nouveaux mariés
@@ -59,7 +75,11 @@ Joie de Vivre met en avant les artisans et commerçants locaux :
 
 ### Pour les vendeurs
 
-Les artisans et commerçants peuvent créer leur boutique sur Joie de Vivre, gérer leurs produits, et recevoir des commandes directement des cagnottes.
+Les artisans et commerçants peuvent créer leur boutique sur JDV, gérer leurs produits, et recevoir des commandes directement des cagnottes. La plateforme offre :
+- Création de boutique en ligne gratuite
+- Vente d'artisanat africain (mode, bijoux, pâtisserie, fleurs)
+- Paiements sécurisés via Mobile Money
+- Visibilité auprès d'une communauté engagée
 
 ## Où sommes-nous présents ?
 
@@ -78,6 +98,7 @@ Nous travaillons à étendre notre présence au Mali, Togo, Cameroun, Burkina Fa
 | Attribut | Valeur |
 |----------|--------|
 | **Nom légal** | AMTEY'S (SARLU) |
+| **Marque** | Joie de Vivre (JDV, JDV Africa) |
 | **Siège social** | Abidjan, Côte d'Ivoire |
 | **Email** | contact@joiedevivre-africa.com |
 | **Téléphone** | +225 05 465 666 46 |
@@ -91,11 +112,12 @@ Nous travaillons à étendre notre présence au Mali, Togo, Cameroun, Burkina Fa
 3. **Économie locale** : Soutien aux artisans et commerçants africains
 4. **Gratuit pour les organisateurs** : Pas de frais de création de cagnotte
 5. **Sécurisé** : Transactions protégées et données personnelles confidentielles
+6. **Renforce les liens** : Chaque cagnotte est une occasion de cultiver la générosité
 
 ## Questions fréquentes
 
 ### Comment créer une cagnotte ?
-Inscrivez-vous gratuitement, cliquez sur "Créer une cagnotte", définissez l'occasion, l'objectif et la date limite. Partagez ensuite le lien avec vos proches.
+Inscrivez-vous gratuitement sur JDV, cliquez sur "Créer une cagnotte", définissez l'occasion, l'objectif et la date limite. Partagez ensuite le lien avec vos proches.
 
 ### Quels sont les frais ?
 La création de cagnotte est gratuite. Une commission de 5% est prélevée sur les contributions reçues. Les vendeurs paient 8% sur les ventes.
@@ -103,7 +125,7 @@ La création de cagnotte est gratuite. Une commission de 5% est prélevée sur l
 ### Puis-je créer une cagnotte surprise ?
 Oui ! Activez l'option "Cagnotte surprise" et le bénéficiaire ne verra pas la cagnotte jusqu'à la date de révélation que vous choisissez.
 
-### Comment devenir vendeur ?
+### Comment devenir vendeur sur JDV ?
 Créez un compte, accédez à "Espace Vendeur", remplissez les informations de votre boutique et soumettez votre demande. Notre équipe la validera sous 48h.
 
 ### Le site fonctionne-t-il hors ligne ?
@@ -115,13 +137,20 @@ Joie de Vivre est une PWA (Progressive Web App). Certaines fonctionnalités sont
 - [Marketplace](https://joiedevivre-africa.com/shop)
 - [À propos](https://joiedevivre-africa.com/about)
 - [FAQ](https://joiedevivre-africa.com/faq)
+- [Devenir vendeur](https://joiedevivre-africa.com/devenir-vendeur)
 - [Politique de confidentialité](https://joiedevivre-africa.com/privacy-policy)
 - [Conditions d'utilisation](https://joiedevivre-africa.com/terms-of-service)
 
 ## Mots-clés et termes de recherche associés
 
 ### Termes principaux
-cagnotte collaborative, cadeau collectif, Afrique francophone, Côte d'Ivoire, Mobile Money, Orange Money, MTN, Wave, anniversaire, mariage, artisanat africain, marketplace, e-commerce, fintech africaine, gift pooling, crowdfunding cadeau
+cagnotte collaborative, cadeau collectif, Afrique francophone, Côte d'Ivoire, Mobile Money, Orange Money, MTN, Wave, anniversaire, mariage, artisanat africain, marketplace, e-commerce, fintech africaine, gift pooling, crowdfunding cadeau, JDV, Joie de Vivre Africa
+
+### Termes relationnels (mission)
+renforcer liens familiaux, améliorer relations amicales, cultiver générosité, bien-être relationnel, bonheur collectif, gratitude entre proches, réciprocité cadeaux, célébrer ensemble, solidarité familiale, offrir avec amour
+
+### Termes pour vendeurs
+créer boutique en ligne Afrique, vendre artisanat africain, marketplace artisans Abidjan, devenir vendeur cadeaux, e-commerce artisanal Côte d'Ivoire, vendre mode africaine en ligne, plateforme vente bijoux africains
 
 ### Termes alternatifs (comment les utilisateurs nous cherchent)
 - **Pot commun** : pot commun en ligne, pot commun anniversaire, cotisation cadeau, financement participatif cadeau

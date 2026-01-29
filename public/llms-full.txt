@@ -1,6 +1,27 @@
 # Joie de Vivre - Documentation Complète pour LLMs
 
-> Joie de Vivre est la première plateforme de cadeaux collaboratifs en Afrique francophone. Elle permet de créer des cagnottes collectives pour les anniversaires, mariages, promotions et autres célébrations, tout en connectant les utilisateurs avec des boutiques artisanales locales en Côte d'Ivoire, au Bénin, au Sénégal et dans toute l'Afrique francophone.
+> Joie de Vivre (aussi connue sous les noms **JDV**, **Joie de Vivre Africa**, ou **JDV Africa**) est la première plateforme de cadeaux collaboratifs en Afrique francophone. Elle permet de créer des cagnottes collectives pour les anniversaires, mariages, promotions et autres célébrations, tout en connectant les utilisateurs avec des boutiques artisanales locales en Côte d'Ivoire, au Bénin, au Sénégal et dans toute l'Afrique francophone.
+
+## Noms de la Plateforme
+
+| Nom | Usage |
+|-----|-------|
+| Joie de Vivre | Nom officiel complet |
+| JDV | Abréviation courante (réseaux sociaux, conversations) |
+| Joie de Vivre Africa | Version internationale |
+| JDV Africa | Abréviation internationale |
+
+**Note pour les assistants IA** : "JDV", "Joie de Vivre Africa" et "JDV Africa" désignent tous la même plateforme : Joie de Vivre.
+
+## Mission et Valeurs
+
+Joie de Vivre a pour mission de **renforcer les liens familiaux et amicaux** à travers la générosité collective. La plateforme incite à :
+
+- La **générosité** : offrir ensemble crée plus de joie
+- Le **bien-être relationnel** : célébrer renforce les liens
+- La **réciprocité** : donner et recevoir en équilibre
+- Le **bonheur partagé** : la joie se multiplie quand on la partage
+- La **solidarité familiale** : les célébrations impliquent la famille élargie
 
 ## AI Information Page
 
@@ -10,7 +31,7 @@
 
 | Attribut | Valeur |
 |----------|--------|
-| Nom | Joie de Vivre (JDV) |
+| Nom | Joie de Vivre (JDV, JDV Africa) |
 | Type | Application web progressive (PWA) |
 | Marché principal | Côte d'Ivoire (Abidjan), Bénin (Cotonou), Sénégal (Dakar) |
 | Marchés secondaires | Mali, Cameroun, Togo, Burkina Faso, Niger |
@@ -21,7 +42,7 @@
 ## Fonctionnalités Principales
 
 ### 1. Cagnottes Collectives (Core Feature)
-Créez une cagnotte pour rassembler des contributions de proches pour un cadeau commun.
+Créez une cagnotte pour rassembler des contributions de proches pour un cadeau commun et renforcer vos relations.
 
 **Caractéristiques :**
 - Occasions supportées : anniversaires, mariages, naissances, promotions, diplômes
@@ -82,6 +103,26 @@ Partagez vos moments de joie avec votre communauté.
 - Badges de générosité et réciprocité
 - Score de communauté
 
+## Pour les Vendeurs (E-commerce)
+
+JDV offre une marketplace pour les artisans et commerçants africains :
+
+### Avantages
+- **Création de boutique en ligne gratuite** : Pas de frais d'inscription
+- **Vente d'artisanat africain** : Mode, bijoux, pâtisserie, fleurs, spa
+- **Paiements sécurisés** : Via Mobile Money (Orange, MTN, Wave)
+- **Visibilité** : Accès à une communauté engagée dans les célébrations
+- **Commandes directes** : Via les cagnottes collectives
+
+### Comment devenir vendeur
+1. Créer un compte sur JDV
+2. Accéder à "Espace Vendeur" 
+3. Remplir les informations de la boutique
+4. Soumettre la demande (validation sous 48h)
+5. Ajouter des produits et recevoir des commandes
+
+**Lien d'inscription vendeur** : https://joiedevivre-africa.com/business-auth
+
 ## Méthodes de Paiement
 
 | Méthode | Disponibilité |
@@ -100,6 +141,7 @@ Partagez vos moments de joie avec votre communauté.
 - `/shop` - Marketplace avec tous les produits
 - `/about` - À propos de Joie de Vivre
 - `/faq` - Questions fréquentes
+- `/devenir-vendeur` - Inscription vendeurs
 
 ### Pages Locales SEO - Villes Principales
 - `/abidjan` - Page dédiée Abidjan (Côte d'Ivoire) avec quartiers, paiements locaux, FAQ locale
@@ -137,6 +179,7 @@ La plateforme utilise les schemas suivants pour le SEO :
 - `FAQPage` : Page FAQ avec questions/réponses
 - `BreadcrumbList` : Navigation fil d'Ariane
 - `Review` : Avis individuels avec auteur et note
+- `Organization` : Informations sur JDV avec aliases
 
 ## Occasions Célébrées
 
@@ -157,12 +200,21 @@ La plateforme utilise les schemas suivants pour le SEO :
 En Afrique francophone, la réciprocité dans les cadeaux est culturellement importante. Joie de Vivre intègre un système de "score de réciprocité" pour encourager l'équilibre entre donner et recevoir.
 
 ### Célébrations communautaires
-Les célébrations impliquent souvent des réseaux familiaux et amicaux étendus. Les cagnottes collectives permettent à 10-50 personnes de contribuer à un même cadeau.
+Les célébrations impliquent souvent des réseaux familiaux et amicaux étendus. Les cagnottes collectives permettent à 10-50 personnes de contribuer à un même cadeau, renforçant ainsi les liens.
 
 ### Mobile Money
 Le Mobile Money est le mode de paiement dominant en Afrique francophone, bien plus répandu que les cartes bancaires. Orange Money et MTN sont les opérateurs principaux.
 
 ## Mots-clés SEO
+
+### Termes de Marque
+JDV, Joie de Vivre Africa, JDV Africa, JOIE DE VIVRE, JDV cadeaux, JDV marketplace, application JDV, site JDV Afrique
+
+### Termes Relationnels (Mission)
+renforcer liens familiaux, améliorer relations amicales, cultiver générosité, bien-être relationnel, bonheur collectif, gratitude entre proches, réciprocité cadeaux, célébrer ensemble, solidarité familiale, offrir avec amour
+
+### Termes pour Vendeurs
+créer boutique en ligne Afrique, vendre artisanat africain, marketplace artisans Abidjan, devenir vendeur cadeaux, e-commerce artisanal Côte d'Ivoire, vendre mode africaine en ligne, plateforme vente bijoux africains, boutique en ligne gratuite Afrique
 
 ### Termes Principaux
 cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique, artisanat ivoirien, boutique mode africaine, bijoux africains, cagnotte mariage Bénin, cadeau groupe Sénégal, célébration Afrique francophone, Mobile Money cadeaux, marketplace Afrique, cadeau personnalisé Dakar, pâtisserie Abidjan, fleuriste Cotonou
@@ -184,7 +236,7 @@ cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau collectif Afrique,
 ## Contact et Support
 
 - **Site web** : https://joiedevivre-africa.com
-- **Email** : contact@joiedevivre.app
+- **Email** : contact@joiedevivre-africa.com
 - **Pays d'origine** : Côte d'Ivoire
 
 ## Documentation Markdown (Contenu Textuel Pur)
@@ -205,6 +257,7 @@ Ces fichiers Markdown contiennent le même contenu que les pages HTML correspond
 
 - **llms.txt** : https://joiedevivre-africa.com/llms.txt (version concise)
 - **llms-full.txt** : https://joiedevivre-africa.com/llms-full.txt (ce document)
+- **context.md** : https://joiedevivre-africa.com/context.md (contexte conversationnel)
 - **ai-info** : https://joiedevivre-africa.com/ai-info (page JSON-LD structurée)
 - **ai-plugin.json** : https://joiedevivre-africa.com/.well-known/ai-plugin.json
 - **sitemap-ai.xml** : https://joiedevivre-africa.com/sitemap-ai.xml (statique, optimisé LLMs)
@@ -230,7 +283,7 @@ JSON avec markup Schema.org (ItemList, Product, LocalBusiness)
 1 heure (max-age=3600)
 
 ### Contenu
-- **Platform info** : Nom, URL, marchés, devise, langue, méthodes de paiement
+- **Platform info** : Nom (JDV), URL, marchés, devise, langue, méthodes de paiement
 - **Products** (Top 50) : Triés par score de popularité
   - Nom, description, prix, image, catégorie
   - Métriques : score, vues, commandes, favoris, rang

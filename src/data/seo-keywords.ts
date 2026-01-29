@@ -524,20 +524,70 @@ export const ACQUISITION_KEYWORDS = {
 };
 
 // ============= VENDOR KEYWORDS =============
-export const VENDOR_KEYWORDS = {
+export const VENDOR_ECOMMERCE_KEYWORDS = {
   general: [
     "devenir vendeur",
     "vendre en ligne Afrique",
     "créer boutique en ligne",
     "marketplace artisans",
+    "créer boutique en ligne Afrique",
+    "vendre artisanat africain marketplace",
+    "e-commerce artisanal Côte d'Ivoire",
+    "marketplace artisans Abidjan",
+    "commission vendeur plateforme",
+    "boutique en ligne gratuite Afrique",
+    "plateforme artisans Bénin",
+    "créer sa boutique Sénégal",
   ],
-  patisserie: ["vendre gâteaux en ligne", "pâtissier Abidjan", "commandes gâteaux anniversaire"],
-  fleuriste: ["fleuriste en ligne Abidjan", "vendre bouquets livraison"],
-  mode: ["vendre mode africaine", "styliste marketplace", "vendre wax en ligne"],
-  bijoux: ["vendre bijoux Abidjan", "bijoutier marketplace"],
+  patisserie: ["vendre gâteaux en ligne", "pâtissier Abidjan", "commandes gâteaux anniversaire", "vendre gâteaux personnalisés"],
+  fleuriste: ["fleuriste en ligne Abidjan", "vendre bouquets livraison", "vendre fleurs en ligne Dakar"],
+  mode: ["vendre mode africaine", "styliste marketplace", "vendre wax en ligne", "vendre mode africaine en ligne"],
+  bijoux: ["vendre bijoux Abidjan", "bijoutier marketplace", "plateforme vente bijoux africains"],
   spa: ["spa partenaire", "vendre soins bien-être"],
   traiteur: ["traiteur partenaire", "chef événement marketplace"],
 };
+
+// ============= VALEURS & RELATIONS =============
+export const RELATIONSHIP_KEYWORDS = [
+  "renforcer liens familiaux",
+  "améliorer relations amicales",
+  "cultiver générosité Afrique",
+  "partager la joie ensemble",
+  "bien-être relationnel cadeaux",
+  "bonheur collectif célébration",
+  "gratitude entre proches",
+  "réciprocité cadeaux Afrique",
+  "célébrer ensemble famille",
+  "fêter avec proches Afrique",
+  "cadeau émotionnel personnalisé",
+  "renforcer amitié cadeau groupe",
+  "liens collègues cadeau départ",
+  "solidarité familiale cadeaux",
+  "offrir avec amour Afrique",
+  "renforcer relations famille cadeau collectif",
+  "offrir ensemble pour mieux célébrer",
+  "partager joie anniversaire Afrique",
+];
+
+// ============= ALIAS DE MARQUE =============
+export const BRAND_ALIASES = [
+  "JDV",
+  "Joie de Vivre Africa",
+  "JDV Africa",
+  "JOIE DE VIVRE",
+  "Joie de Vivre",
+];
+
+export const BRAND_KEYWORDS = [
+  "JDV cadeaux",
+  "JDV Africa cagnottes",
+  "Joie de Vivre Africa plateforme",
+  "JDV marketplace",
+  "application JDV",
+  "site JDV Afrique",
+  "Joie de Vivre Abidjan",
+  "JDV Côte d'Ivoire",
+];
 
 // ============= SEASONAL KEYWORDS =============
 export const SEASONAL_KEYWORDS = {
@@ -558,7 +608,10 @@ export const SEO_KEYWORDS = {
   longTail: LONG_TAIL_KEYWORDS,
   differentiators: DIFFERENTIATOR_KEYWORDS,
   acquisition: ACQUISITION_KEYWORDS,
-  vendor: VENDOR_KEYWORDS,
+  vendorEcommerce: VENDOR_ECOMMERCE_KEYWORDS,
+  relationships: RELATIONSHIP_KEYWORDS,
+  brandAliases: BRAND_ALIASES,
+  brand: BRAND_KEYWORDS,
   seasonal: SEASONAL_KEYWORDS,
 };
 

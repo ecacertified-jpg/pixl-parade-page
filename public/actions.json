@@ -4,8 +4,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#CreateFundAction",
-      "name": "Créer une cagnotte",
-      "description": "Créer une cagnotte collective pour un anniversaire, mariage ou autre occasion en Afrique francophone",
+      "name": "Créer une cagnotte sur JDV",
+      "description": "Créer une cagnotte sur Joie de Vivre (JDV) pour renforcer les liens avec vos proches lors d'un anniversaire, mariage ou autre occasion en Afrique francophone",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/auth?tab=signup&redirect=create-fund&occasion={occasion}",
@@ -25,8 +25,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#SignUpCustomer",
-      "name": "Créer un compte gratuit",
-      "description": "S'inscrire gratuitement pour créer des cagnottes et offrir des cadeaux collectifs",
+      "name": "Créer un compte gratuit sur JDV",
+      "description": "S'inscrire gratuitement sur Joie de Vivre pour créer des cagnottes, renforcer les liens familiaux et amicaux, et offrir des cadeaux collectifs",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/auth?tab=signup",
@@ -39,8 +39,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#BecomeSeller",
-      "name": "Devenir vendeur",
-      "description": "Créer une boutique pour vendre des produits artisanaux sur la marketplace JOIE DE VIVRE",
+      "name": "Devenir vendeur sur JDV Africa",
+      "description": "Créer une boutique en ligne gratuite sur Joie de Vivre pour vendre des produits artisanaux africains (mode, bijoux, pâtisserie, fleurs) sur la marketplace JDV",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/business-auth?sector={sector}",
@@ -58,8 +58,8 @@
     {
       "@type": "SearchAction",
       "@id": "https://joiedevivre-africa.com/#SearchProducts",
-      "name": "Rechercher un cadeau",
-      "description": "Rechercher des produits dans la marketplace de cadeaux africains",
+      "name": "Rechercher un cadeau sur JDV",
+      "description": "Rechercher des produits artisanaux africains dans la marketplace Joie de Vivre pour offrir ensemble",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/shop?q={search_term}",
@@ -73,8 +73,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#ContributeToFund",
-      "name": "Contribuer à une cagnotte",
-      "description": "Participer financièrement à une cagnotte collective via Mobile Money",
+      "name": "Contribuer à une cagnotte JDV",
+      "description": "Participer financièrement à une cagnotte collective via Mobile Money pour renforcer les liens avec vos proches",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/f/{fund_id}",
@@ -92,8 +92,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#BrowseByOccasion",
-      "name": "Explorer par occasion",
-      "description": "Découvrir les cagnottes et cadeaux par type d'occasion",
+      "name": "Explorer par occasion sur JDV",
+      "description": "Découvrir les cagnottes et cadeaux par type d'occasion sur Joie de Vivre Africa",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/cagnotte-{occasion}",
@@ -111,8 +111,8 @@
     {
       "@type": "Action",
       "@id": "https://joiedevivre-africa.com/#ReferFriend",
-      "name": "Parrainer un ami",
-      "description": "Inviter un ami à rejoindre JOIE DE VIVRE avec votre code de parrainage",
+      "name": "Parrainer un ami sur JDV",
+      "description": "Inviter un ami à rejoindre Joie de Vivre avec votre code de parrainage pour cultiver ensemble la générosité",
       "target": {
         "@type": "EntryPoint",
         "urlTemplate": "https://joiedevivre-africa.com/auth?ref={referral_code}",

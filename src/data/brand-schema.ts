@@ -33,10 +33,10 @@ export const enhancedOrganizationSchema = {
   "@id": `${DOMAIN}/#organization`,
   "name": "Joie de Vivre",
   "legalName": "AMTEY'S SARLU",
-  "alternateName": ["JDV", "JDV Africa", "Joie de Vivre Africa"],
+  "alternateName": ["JDV", "JDV Africa", "Joie de Vivre Africa", "JOIE DE VIVRE"],
   "url": DOMAIN,
   "logo": `${DOMAIN}/logo-jv.png`,
-  "description": "Première plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes gratuites pour anniversaires, mariages et occasions spéciales.",
+  "description": "Première plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes gratuites pour anniversaires, mariages et occasions spéciales. Mission : renforcer les liens familiaux et amicaux à travers la générosité collective.",
   "slogan": "La joie d'offrir ensemble",
   "foundingDate": "2024",
   "foundingLocation": {
@@ -55,7 +55,15 @@ export const enhancedOrganizationSchema = {
     "Mobile Money",
     "Artisanat africain",
     "Pot commun anniversaire",
-    "Financement participatif cadeaux"
+    "Financement participatif cadeaux",
+    "Renforcement des liens familiaux",
+    "Amélioration des relations amicales",
+    "Générosité collaborative",
+    "Bien-être relationnel",
+    "Célébrations collectives Afrique",
+    "Marketplace e-commerce artisanal",
+    "Vente en ligne artisanat africain",
+    "Créer boutique en ligne Afrique"
   ],
   "areaServed": [
     { "@type": "Country", "name": "Côte d'Ivoire" },
@@ -92,7 +100,7 @@ export const enhancedOrganizationSchema = {
     {
       "@type": "RegisterAction",
       "target": `${DOMAIN}/auth?tab=signup`,
-      "name": "Créer un compte gratuit"
+      "name": "Créer un compte gratuit sur JDV"
     },
     {
       "@type": "SearchAction",
