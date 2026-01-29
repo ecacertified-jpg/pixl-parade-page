@@ -118,9 +118,17 @@ Joie de Vivre est une PWA (Progressive Web App). Certaines fonctionnalités sont
 - [Politique de confidentialité](https://joiedevivre-africa.com/privacy-policy)
 - [Conditions d'utilisation](https://joiedevivre-africa.com/terms-of-service)
 
-## Mots-clés associés
+## Mots-clés et termes de recherche associés
 
+### Termes principaux
 cagnotte collaborative, cadeau collectif, Afrique francophone, Côte d'Ivoire, Mobile Money, Orange Money, MTN, Wave, anniversaire, mariage, artisanat africain, marketplace, e-commerce, fintech africaine, gift pooling, crowdfunding cadeau
+
+### Termes alternatifs (comment les utilisateurs nous cherchent)
+- **Pot commun** : pot commun en ligne, pot commun anniversaire, cotisation cadeau, financement participatif cadeau
+- **Questions fréquentes** : où acheter cadeau anniversaire Abidjan, comment créer cagnotte en ligne, meilleur site cadeau collectif Côte d'Ivoire
+- **Paiement mobile** : payer cagnotte Orange Money, contribuer MTN Mobile Money, Wave paiement cadeaux, sans carte bancaire
+- **Occasions** : cagnotte Tabaski, cadeau Fête des Mères Afrique, cagnotte Korité, cadeau Noël collectif, cagnotte baccalauréat, pot de départ retraite
+- **Villes** : cadeaux Abidjan, cagnotte Cotonou, cadeau groupe Dakar, artisans Bouaké, livraison Yamoussoukro
 
 ---
 
