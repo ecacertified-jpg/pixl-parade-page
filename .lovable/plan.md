@@ -1,246 +1,407 @@
 
 
-# Plan d'Implémentation - Stratégie SEO Landing Pages
+# Référencement Avancé pour l'Acquisition Utilisateurs
 
-## Vue d'Ensemble
+## Analyse de l'Existant
 
-Ce plan implémente 3 stratégies d'acquisition SEO majeures :
-1. **Landing Pages par Occasion** (8 pages) - Acquisition clients B2C
-2. **Landing Pages Vendeurs par Secteur** (6 pages) - Recrutement B2B
-3. **Pages Saisonnières 2026** (5 pages) - Timing événements
+### Infrastructure SEO déjà en place
+| Catégorie | Éléments existants |
+|-----------|-------------------|
+| **LLMs/Chatbots** | llms.txt, llms-full.txt, context.md, ai-plugin.json, openapi.yaml |
+| **Moteurs de recherche** | IndexNow, Sitemaps (statique + dynamique + IA), robots.txt optimisé |
+| **Schema.org** | FAQPage, Product, LocalBusiness, Event, HowTo, Organization, WebSite |
+| **Réseaux sociaux** | Open Graph, Twitter Cards, Pinterest Rich Pins, templates de partage |
+| **Analytics** | GA4 avec tracking social, conversion, referral UTM |
+| **Pages SEO** | 20 villes + 19 pages occasion/vendeur/saisonnier |
 
-**Architecture choisie** : Système data-driven comme les City Pages existantes (extensible, maintenable, Schema.org automatique).
-
----
-
-## 1. Landing Pages par Occasion (Acquisition B2C)
-
-### Pages à Créer
-
-| URL | Occasion | Cible SEO |
-|-----|----------|-----------|
-| `/cagnotte-anniversaire` | Anniversaire | "cagnotte anniversaire", "pot commun anniversaire" |
-| `/cagnotte-mariage` | Mariage | "cagnotte mariage", "liste mariage Afrique" |
-| `/cagnotte-naissance` | Naissance/Baptême | "cagnotte naissance", "baby shower Afrique" |
-| `/cagnotte-diplome` | Diplôme/Bac | "cagnotte baccalauréat", "cadeau réussite examen" |
-| `/cagnotte-promotion` | Promotion/Départ | "pot de départ", "cadeau collègue promotion" |
-| `/cagnotte-retraite` | Retraite | "cagnotte retraite", "cadeau départ retraite" |
-| `/cagnotte-fete-meres` | Fête des Mères | "cadeau Fête des Mères", "cagnotte maman" |
-| `/cagnotte-fete-peres` | Fête des Pères | "cadeau Fête des Pères", "cagnotte papa" |
-
-### Structure de Données
-
-**Fichier** : `src/data/occasion-pages.ts`
-
-```typescript
-export interface OccasionPageData {
-  slug: string;                    // URL
-  occasion: string;                // Nom occasion
-  emoji: string;                   // Emoji principal
-  heroTitle: string;               // H1 optimisé SEO
-  heroSubtitle: string;            // Accroche
-  description: string;             // Description complète
-  metaDescription: string;         // Meta (160 chars)
-  keywords: string[];              // Mots-clés SEO (15+)
-  benefits: {                      // Avantages
-    icon: string;
-    title: string;
-    description: string;
-  }[];
-  giftIdeas: string[];             // Idées cadeaux suggérées
-  testimonials: {                  // Témoignages localisés
-    name: string;
-    text: string;
-    city: string;
-  }[];
-  faqs: {                          // FAQ localisée
-    question: string;
-    answer: string;
-  }[];
-  relatedOccasions: string[];      // Liens croisés
-  stats: {                         // Statistiques
-    fundCreated: string;
-    avgAmount: string;
-    contributors: string;
-  };
-}
-```
-
-### Composant Page
-
-**Fichier** : `src/pages/OccasionPage.tsx`
-
-Sections :
-- **Hero** : Titre H1 + CTA "Créer ma cagnotte gratuite" → `/auth`
-- **Comment ça marche** : 3 étapes avec icônes
-- **Avantages** : 4-6 bénéfices spécifiques à l'occasion
-- **Idées cadeaux** : Suggestions avec liens vers Shop filtré
-- **Témoignages** : 3 témoignages localisés
-- **FAQ** : 4-5 questions avec Schema.org FAQPage
-- **CTA Final** : Double CTA → Inscription + Boutique
-
-### Schema.org
-
-Chaque page génère automatiquement :
-- `FAQPageSchema` avec questions localisées
-- `HowToSchema` : "Comment créer une cagnotte {occasion}"
-- `BreadcrumbListSchema` : Accueil → Cagnottes → {Occasion}
-- `WebPageSchema` avec `mainEntity` et `audience`
+### Ce qui manque pour un référencement **avancé**
+Ce plan propose des stratégies de niveau supérieur pour maximiser la conversion vers les pages d'inscription.
 
 ---
 
-## 2. Landing Pages Vendeurs par Secteur (B2B)
+## 1. Schema.org Avancé pour les Pages d'Inscription
 
-### Pages à Créer
+### Problème actuel
+Les pages `/auth` et `/business-auth` n'ont pas de Schema.org spécifique pour les applications, ce qui limite leur visibilité dans les recherches "créer compte", "inscription", "devenir vendeur".
 
-| URL | Secteur | Cible |
-|-----|---------|-------|
-| `/devenir-vendeur/patisserie` | Pâtisserie/Gâteaux | Pâtissiers, boulangers |
-| `/devenir-vendeur/fleuriste` | Fleurs | Fleuristes |
-| `/devenir-vendeur/mode` | Mode/Wax | Stylistes, couturiers |
-| `/devenir-vendeur/bijoux` | Bijoux | Bijoutiers, créateurs |
-| `/devenir-vendeur/spa` | Bien-être/Spa | Spas, masseurs |
-| `/devenir-vendeur/traiteur` | Traiteur/Événements | Traiteurs, décorateurs |
+### Solution : `SoftwareApplication` et `WebApplication` Schema
 
-### Structure de Données
-
-**Fichier** : `src/data/vendor-sector-pages.ts`
+**Fichiers à modifier :**
+- `src/pages/Auth.tsx` - Ajouter Schema SoftwareApplication
+- `src/pages/BusinessAuth.tsx` - Ajouter Schema SoftwareApplication B2B
 
 ```typescript
-export interface VendorSectorPageData {
-  slug: string;                    // URL segment
-  sector: string;                  // Nom secteur
-  emoji: string;                   // Emoji secteur
-  heroTitle: string;               // H1 B2B
-  heroSubtitle: string;            // Accroche vendeurs
-  description: string;             // Description SEO
-  metaDescription: string;         // Meta B2B
-  keywords: string[];              // Keywords B2B
-  benefits: {                      // Avantages pour vendeurs
-    icon: string;
-    title: string;
-    description: string;
-  }[];
-  features: {                      // Fonctionnalités plateforme
-    title: string;
-    description: string;
-  }[];
-  successStories: {                // Témoignages vendeurs
-    businessName: string;
-    ownerName: string;
-    quote: string;
-    metric: string;                // "50+ commandes/mois"
-  }[];
-  faqs: {
-    question: string;
-    answer: string;
-  }[];
-  pricing: {                       // Modèle tarifaire
-    joinFee: string;
-    commission: string;
-    payoutDelay: string;
-  };
-  requirements: string[];          // Critères d'éligibilité
-}
+// Schema pour la page d'inscription clients
+const signUpSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Joie de Vivre",
+  "applicationCategory": "ShoppingApplication",
+  "applicationSubCategory": "Gift Pooling",
+  "operatingSystem": "Web, Android, iOS",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "XOF",
+    "description": "Inscription gratuite, création de cagnottes sans frais"
+  },
+  "featureList": [
+    "Création de cagnottes collectives",
+    "Rappels d'anniversaires automatiques",
+    "Paiement Orange Money, MTN, Wave",
+    "Boutiques artisanales africaines"
+  ],
+  "potentialAction": {
+    "@type": "RegisterAction",
+    "target": "https://joiedevivre-africa.com/auth?tab=signup",
+    "name": "Créer un compte gratuit"
+  }
+};
 ```
-
-### Composant Page
-
-**Fichier** : `src/pages/VendorSectorPage.tsx`
-
-Sections :
-- **Hero B2B** : "Vendez vos {produits} sur JOIE DE VIVRE" + CTA → `/business-auth`
-- **Pourquoi nous rejoindre** : 4 avantages (visibilité, paiements, support, cagnottes)
-- **Fonctionnalités** : Dashboard, notifications, stats
-- **Témoignages vendeurs** : Success stories avec métriques
-- **Tarification** : Transparence sur commissions
-- **Critères** : Qui peut s'inscrire
-- **FAQ secteur** : Questions spécifiques au métier
-- **CTA Final** : "Créer ma boutique gratuite" → `/business-auth`
-
-### Schema.org
-
-- `LocalBusinessSchema` (type selon secteur)
-- `FAQPageSchema`
-- `HowToSchema` : "Comment devenir vendeur {secteur}"
-- `BreadcrumbListSchema`
 
 ---
 
-## 3. Pages Saisonnières 2026
+## 2. Action Schema pour les Chatbots et Assistants IA
 
-### Pages à Créer
+### Objectif
+Permettre aux assistants IA (ChatGPT, Claude, Perplexity, Siri, Google Assistant) de proposer directement l'inscription.
 
-| URL | Événement | Date 2026 |
-|-----|-----------|-----------|
-| `/tabaski-2026` | Tabaski (Eid al-Adha) | ~7 juin 2026 |
-| `/korite-2026` | Korité (Eid al-Fitr) | ~20 mars 2026 |
-| `/fete-meres-2026` | Fête des Mères | 31 mai 2026 |
-| `/noel-2026` | Noël | 25 décembre 2026 |
-| `/rentree-scolaire-2026` | Rentrée Scolaire | Septembre 2026 |
+### Solution : Actions Schema.org
 
-### Structure de Données
+**Fichier à créer :** `public/actions.json`
 
-**Fichier** : `src/data/seasonal-pages.ts`
-
-```typescript
-export interface SeasonalPageData {
-  slug: string;                    // URL avec année
-  event: string;                   // Nom événement
-  year: number;                    // Année
-  emoji: string;                   // Emoji
-  date: string;                    // Date formatée
-  dateISO: string;                 // Date ISO pour Schema
-  isVariable: boolean;             // Date variable (religieux)
-  heroTitle: string;               // H1 avec année
-  heroSubtitle: string;            // Accroche saisonnière
-  description: string;             // Description
-  metaDescription: string;         // Meta avec année
-  keywords: string[];              // Keywords saisonniers
-  countdown: boolean;              // Afficher compte à rebours
-  giftSuggestions: {               // Cadeaux suggérés
-    category: string;
-    description: string;
-    link: string;
-  }[];
-  traditions: {                    // Contexte culturel
-    title: string;
-    description: string;
-  }[];
-  fundIdeas: {                     // Idées de cagnottes
-    title: string;
-    description: string;
-  }[];
-  testimonials: {
-    name: string;
-    text: string;
-  }[];
-  faqs: {
-    question: string;
-    answer: string;
-  }[];
+```json
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#CreateFundAction",
+      "name": "Créer une cagnotte",
+      "description": "Créer une cagnotte collective pour un anniversaire, mariage ou autre occasion",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/auth?tab=signup&redirect=create-fund&occasion={occasion}",
+        "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "occasion",
+        "description": "Type d'occasion (birthday, wedding, baby, graduation, promotion)"
+      }
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#BecomeSeller",
+      "name": "Devenir vendeur",
+      "description": "Créer une boutique pour vendre des produits sur la marketplace",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/business-auth?sector={sector}",
+        "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+      }
+    },
+    {
+      "@type": "SearchAction",
+      "@id": "https://joiedevivre-africa.com/#SearchProducts",
+      "name": "Rechercher un cadeau",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/shop?q={search_term}",
+        "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+      },
+      "query-input": "required name=search_term"
+    }
+  ]
 }
 ```
 
-### Composant Page
+**Mise à jour de `llms.txt` et `ai-plugin.json`** pour référencer ces actions.
 
-**Fichier** : `src/pages/SeasonalPage.tsx`
+---
 
-Sections :
-- **Hero saisonnier** : Titre avec année + compte à rebours (J-XX)
-- **Contexte culturel** : Signification de la fête (important pour SEO)
-- **Idées cagnottes** : Suggestions adaptées à l'événement
-- **Cadeaux suggérés** : Liens vers Shop filtré par catégorie
-- **Témoignages** : Histoires de célébrations passées
-- **FAQ** : Questions spécifiques à l'événement
-- **CTA** : "Préparez votre cagnotte {événement}"
+## 3. Featured Snippets et Position Zéro
 
-### Schema.org
+### Objectif
+Capturer les "Featured Snippets" (position zéro) de Google pour les requêtes clés.
 
-- `EventSchema` : Événement avec date, lieu (Côte d'Ivoire/Afrique)
-- `FAQPageSchema`
-- `BreadcrumbListSchema`
-- `ArticleSchema` (pour le contenu culturel)
+### Solution : Speakable Schema + FAQ Optimisées
+
+**Nouveau Schema : Speakable** (pour Google Assistant et recherche vocale)
+
+```typescript
+// À ajouter sur les pages clés (FAQ, Landing, Occasion Pages)
+const speakableSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".hero-title", ".hero-subtitle", ".faq-answer"]
+  }
+};
+```
+
+**Optimisation des FAQs existantes** pour le format snippet :
+- Réponses de 40-50 mots maximum
+- Format "Qu'est-ce que" / "Comment" / "Pourquoi"
+- Bullet points pour les listes
+
+---
+
+## 4. OpenAI GPT Actions (ChatGPT Plugins)
+
+### Objectif
+Permettre à ChatGPT et autres LLMs de déclencher des inscriptions directement.
+
+### Solution : API Actions dans ai-plugin.json
+
+**Fichier à modifier :** `public/.well-known/ai-plugin.json`
+
+```json
+{
+  "schema_version": "v1",
+  "name_for_human": "Joie de Vivre",
+  "name_for_model": "joie_de_vivre_africa",
+  "description_for_model": "...",
+  "api": {
+    "type": "openapi",
+    "url": "https://joiedevivre-africa.com/openapi.yaml"
+  },
+  "capabilities": {
+    "registration": {
+      "description": "Rediriger l'utilisateur vers la page d'inscription",
+      "endpoints": {
+        "customer": "/auth?tab=signup",
+        "vendor": "/business-auth"
+      }
+    },
+    "product_search": {
+      "description": "Rechercher des produits dans la marketplace",
+      "endpoint": "/api/products"
+    },
+    "fund_creation": {
+      "description": "Guider vers la création d'une cagnotte",
+      "endpoint": "/auth?redirect=create-fund"
+    }
+  },
+  "auth": { "type": "none" },
+  "logo_url": "https://joiedevivre-africa.com/pwa-512x512.png"
+}
+```
+
+---
+
+## 5. Deep Links pour Réseaux Sociaux
+
+### Objectif
+URLs optimisées pour les partages sociaux avec pre-remplissage intelligent.
+
+### Solution : Smart Deep Links
+
+**Nouveau système d'URLs d'acquisition :**
+
+| URL Pattern | Usage | Destination |
+|-------------|-------|-------------|
+| `/go/signup` | Inscription générique | `/auth?tab=signup` |
+| `/go/birthday` | Cagnotte anniversaire | `/auth?tab=signup&redirect=create-fund&occasion=birthday` |
+| `/go/wedding` | Cagnotte mariage | `/auth?tab=signup&redirect=create-fund&occasion=wedding` |
+| `/go/sell` | Devenir vendeur | `/business-auth` |
+| `/go/sell/patisserie` | Vendeur pâtisserie | `/business-auth?sector=patisserie` |
+| `/r/{code}` | Lien de parrainage | `/auth?ref={code}` |
+
+**Fichier à modifier :** `src/App.tsx` - Ajouter les redirections `/go/*`
+
+---
+
+## 6. WhatsApp Business Catalog Link
+
+### Objectif
+Intégration avec WhatsApp Business pour les partages viraux.
+
+### Solution : Meta Tags WhatsApp Business
+
+**Fichier à modifier :** `src/components/SEOHead.tsx`
+
+```typescript
+// Ajouter les meta tags pour WhatsApp Business Catalog
+if (type === 'product') {
+  updateMetaTag('og:whatsapp:catalog', 'true');
+  updateMetaTag('og:whatsapp:product_id', productId);
+}
+```
+
+**Nouveau fichier :** `public/.well-known/whatsapp-business.json`
+
+```json
+{
+  "business_name": "Joie de Vivre",
+  "business_id": "joiedevivre_africa",
+  "catalog_enabled": true,
+  "catalog_link": "https://joiedevivre-africa.com/shop",
+  "signup_link": "https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=catalog"
+}
+```
+
+---
+
+## 7. Knowledge Graph Optimisation
+
+### Objectif
+Apparaître dans le Knowledge Panel de Google pour "Joie de Vivre".
+
+### Solution : Enrichissement Organization Schema
+
+**Fichier à modifier :** `src/components/schema/brand-schema.ts`
+
+```typescript
+// Enrichir le schema Organization existant
+export const ENHANCED_ORGANIZATION_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": ["Organization", "Corporation"],
+  "@id": "https://joiedevivre-africa.com/#organization",
+  "name": "Joie de Vivre",
+  "legalName": "AMTEY'S SARLU",
+  "alternateName": ["JDV", "JDV Africa", "Joie de Vivre Africa"],
+  "description": "Première plateforme de cadeaux collaboratifs en Afrique francophone",
+  "foundingDate": "2024",
+  "foundingLocation": {
+    "@type": "Place",
+    "name": "Abidjan, Côte d'Ivoire"
+  },
+  "knowsAbout": [
+    "Cadeaux collaboratifs",
+    "Cagnottes en ligne",
+    "E-commerce Afrique",
+    "Mobile Money",
+    "Artisanat africain"
+  ],
+  "areaServed": [
+    { "@type": "Country", "name": "Côte d'Ivoire" },
+    { "@type": "Country", "name": "Bénin" },
+    { "@type": "Country", "name": "Sénégal" }
+  ],
+  "sameAs": [
+    "https://www.facebook.com/joiedevivre.africa",
+    "https://www.instagram.com/joiedevivre_africa",
+    "https://www.tiktok.com/@joiedevivre_africa",
+    "https://www.linkedin.com/company/joiedevivre-africa"
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "reviewCount": "150",
+    "bestRating": "5"
+  }
+};
+```
+
+---
+
+## 8. Perplexity et AI Search Engines
+
+### Objectif
+Optimisation spécifique pour Perplexity, You.com, et autres moteurs IA.
+
+### Solution : Citation-Optimized Content
+
+**Nouveau fichier :** `public/citations.json`
+
+```json
+{
+  "platform": "Joie de Vivre",
+  "domain": "joiedevivre-africa.com",
+  "citation_formats": {
+    "short": "Joie de Vivre, plateforme de cadeaux collaboratifs en Afrique",
+    "medium": "Joie de Vivre (joiedevivre-africa.com) - Plateforme de cagnottes collectives et marketplace artisanale pour l'Afrique francophone",
+    "full": "Joie de Vivre est la première plateforme de cadeaux collaboratifs en Afrique francophone, permettant de créer des cagnottes pour anniversaires, mariages et occasions spéciales avec paiement Mobile Money (Orange, MTN, Wave). Basée à Abidjan, Côte d'Ivoire."
+  },
+  "key_facts": [
+    { "fact": "Cagnottes gratuites", "source": "/faq" },
+    { "fact": "Paiement Mobile Money", "source": "/about" },
+    { "fact": "500+ artisans locaux", "source": "/shop" },
+    { "fact": "3 pays (CI, BJ, SN)", "source": "/about" }
+  ],
+  "registration_cta": {
+    "customer": "https://joiedevivre-africa.com/auth?tab=signup",
+    "vendor": "https://joiedevivre-africa.com/business-auth"
+  }
+}
+```
+
+**Mise à jour `robots.txt`** pour référencer ce fichier.
+
+---
+
+## 9. Social Proof Schema
+
+### Objectif
+Afficher les avis et notes dans les résultats de recherche.
+
+### Solution : Review Schema Agrégé
+
+**Fichiers à modifier :**
+- Pages occasion : Ajouter AggregateRating
+- Pages vendeur : Ajouter testimonials avec Review Schema
+
+```typescript
+// Exemple pour page /cagnotte-anniversaire
+const aggregateRatingSchema = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Cagnotte Anniversaire",
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "reviewCount": "234",
+    "bestRating": "5"
+  },
+  "review": [
+    {
+      "@type": "Review",
+      "author": { "@type": "Person", "name": "Aminata K." },
+      "reviewRating": { "@type": "Rating", "ratingValue": "5" },
+      "reviewBody": "Super plateforme ! Ma cagnotte anniversaire a collecté 150 000 FCFA en 3 jours."
+    }
+  ]
+};
+```
+
+---
+
+## 10. Conversion Tracking Avancé
+
+### Objectif
+Mesurer précisément l'acquisition depuis chaque canal.
+
+### Solution : Enhanced UTM + First-Party Tracking
+
+**Fichier à créer :** `src/hooks/useAcquisitionTracking.ts`
+
+```typescript
+export function useAcquisitionTracking() {
+  // Tracker la source d'acquisition à l'inscription
+  const trackAcquisition = useCallback((userId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    const acquisitionData = {
+      user_id: userId,
+      source: params.get('utm_source') || 'direct',
+      medium: params.get('utm_medium') || 'none',
+      campaign: params.get('utm_campaign'),
+      content: params.get('utm_content'),
+      referral_code: params.get('ref'),
+      landing_page: params.get('lp') || window.location.pathname,
+      ai_referrer: params.get('ai_ref'), // ChatGPT, Perplexity, etc.
+      social_source: params.get('social'), // whatsapp, instagram, etc.
+    };
+    
+    // Sauvegarder en base + GA4
+    supabase.from('user_acquisition').insert(acquisitionData);
+    trackEvent('acquisition_complete', acquisitionData);
+  }, []);
+  
+  return { trackAcquisition };
+}
+```
 
 ---
 
@@ -248,252 +409,45 @@ Sections :
 
 | Fichier | Description |
 |---------|-------------|
-| `src/data/occasion-pages.ts` | Données 8 occasions |
-| `src/data/vendor-sector-pages.ts` | Données 6 secteurs vendeurs |
-| `src/data/seasonal-pages.ts` | Données 5 événements 2026 |
-| `src/pages/OccasionPage.tsx` | Composant pages occasion |
-| `src/pages/VendorSectorPage.tsx` | Composant pages vendeur |
-| `src/pages/SeasonalPage.tsx` | Composant pages saisonnières |
+| `public/actions.json` | Schema.org Actions pour assistants IA |
+| `public/citations.json` | Formats de citation pour Perplexity/You.com |
+| `public/.well-known/whatsapp-business.json` | Config WhatsApp Business |
+| `src/hooks/useAcquisitionTracking.ts` | Tracking source d'inscription |
+| `src/components/schema/SoftwareApplicationSchema.tsx` | Schema pour pages auth |
 
 ## Fichiers à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/App.tsx` | Ajouter 3 nouvelles routes dynamiques |
-| `src/data/seo-keywords.ts` | Ajouter `ACQUISITION_KEYWORDS` et `SEASONAL_KEYWORDS` |
-| `src/components/SEOHead.tsx` | Ajouter configs pour nouvelles pages |
-| `src/pages/Landing.tsx` | Liens vers nouvelles pages dans footer |
+| `src/pages/Auth.tsx` | Ajouter SoftwareApplication Schema + Speakable |
+| `src/pages/BusinessAuth.tsx` | Ajouter SoftwareApplication Schema B2B |
+| `public/.well-known/ai-plugin.json` | Ajouter capabilities registration |
+| `public/llms.txt` | Référencer actions.json et citations.json |
+| `public/robots.txt` | Ajouter références aux nouveaux fichiers |
+| `src/App.tsx` | Ajouter routes `/go/*` (smart deep links) |
+| `src/components/SEOHead.tsx` | Ajouter meta tags WhatsApp Business |
+| `src/components/schema/brand-schema.ts` | Enrichir Organization Schema |
 
 ---
 
-## Routes à Ajouter (App.tsx)
+## Impact Attendu
 
-```typescript
-// Occasion Pages (lazy loaded)
-const OccasionPage = lazy(() => import("./pages/OccasionPage"));
-
-// Vendor Sector Pages (lazy loaded)
-const VendorSectorPage = lazy(() => import("./pages/VendorSectorPage"));
-
-// Seasonal Pages (lazy loaded)
-const SeasonalPage = lazy(() => import("./pages/SeasonalPage"));
-
-// Routes
-<Route path="/cagnotte-:occasionSlug" element={<OccasionPage />} />
-<Route path="/devenir-vendeur/:sectorSlug" element={<VendorSectorPage />} />
-<Route path="/:eventSlug-:year" element={<SeasonalPage />} />
-```
+| Canal | Amélioration |
+|-------|--------------|
+| **Google Search** | Featured Snippets + Rich Results inscription |
+| **ChatGPT/Claude** | Recommandations directes avec liens |
+| **Perplexity/You.com** | Citations correctes avec CTA |
+| **WhatsApp** | Partages optimisés avec deep links |
+| **Google Assistant** | Réponses vocales avec Speakable |
+| **Knowledge Graph** | Panel de marque enrichi |
 
 ---
 
-## SEO Keywords à Ajouter
+## Estimation
 
-**Fichier** : `src/data/seo-keywords.ts`
-
-```typescript
-// ACQUISITION KEYWORDS (B2C)
-export const ACQUISITION_KEYWORDS = {
-  registration: [
-    "créer compte gratuit",
-    "inscription gratuite",
-    "s'inscrire cagnotte",
-    "créer cagnotte en ligne",
-    "ouvrir compte cadeaux",
-  ],
-  trust: [
-    "plateforme sécurisée",
-    "paiement sécurisé Afrique",
-    "site fiable cadeaux",
-    "avis utilisateurs",
-  ],
-  comparison: [
-    "meilleur site cagnotte Afrique",
-    "alternative Leetchi Afrique",
-    "cagnotte sans frais",
-    "pot commun gratuit",
-  ],
-};
-
-// VENDOR KEYWORDS (B2B)
-export const VENDOR_KEYWORDS = {
-  general: [
-    "devenir vendeur",
-    "vendre en ligne Afrique",
-    "créer boutique en ligne",
-    "marketplace artisans",
-  ],
-  patisserie: [
-    "vendre gâteaux en ligne",
-    "pâtissier Abidjan",
-    "commandes gâteaux anniversaire",
-  ],
-  fleuriste: [
-    "fleuriste en ligne Abidjan",
-    "vendre bouquets livraison",
-  ],
-  // ... autres secteurs
-};
-
-// SEASONAL KEYWORDS
-export const SEASONAL_KEYWORDS = {
-  tabaski: [
-    "Tabaski 2026",
-    "cagnotte Aïd el-Kebir",
-    "cadeau mouton Tabaski",
-    "cagnotte Tabaski Côte d'Ivoire",
-  ],
-  korite: [
-    "Korité 2026",
-    "cagnotte Eid al-Fitr",
-    "cadeau fin Ramadan",
-  ],
-  // ... autres événements
-};
-```
-
----
-
-## Données Exemples
-
-### Occasion : Anniversaire
-```typescript
-{
-  slug: 'anniversaire',
-  occasion: 'Anniversaire',
-  emoji: '🎂',
-  heroTitle: 'Cagnotte Anniversaire - Offrez Ensemble un Cadeau Inoubliable',
-  heroSubtitle: 'Réunissez vos proches pour offrir LE cadeau parfait. Gratuit, simple, via Mobile Money.',
-  metaDescription: 'Créez une cagnotte anniversaire gratuite. Collectez les contributions de famille et amis via Orange Money, MTN, Wave. Livraison cadeaux Abidjan.',
-  keywords: [
-    'cagnotte anniversaire',
-    'pot commun anniversaire',
-    'cadeau groupe anniversaire',
-    'surprise anniversaire collectif',
-    'créer cagnotte anniversaire gratuit',
-    'collecte argent anniversaire',
-    'cadeau anniversaire Abidjan',
-    'fêter anniversaire ensemble',
-    'contribution anniversaire en ligne',
-    'cagnotte anniversaire Orange Money',
-  ],
-  benefits: [
-    { icon: '💰', title: 'Gratuit', description: 'Aucun frais de création ni de commission' },
-    { icon: '📱', title: 'Mobile Money', description: 'Orange, MTN, Wave - les moyens de paiement locaux' },
-    { icon: '🎁', title: 'Boutique intégrée', description: 'Choisissez parmi 500+ artisans locaux' },
-    { icon: '🔔', title: 'Rappels', description: 'Ne ratez plus jamais un anniversaire' },
-  ],
-  giftIdeas: ['Bijoux personnalisés', 'Gâteau sur mesure', 'Expérience spa', 'Tenue wax'],
-  faqs: [
-    { 
-      question: 'Comment créer une cagnotte anniversaire ?', 
-      answer: 'Inscrivez-vous gratuitement, cliquez sur "Créer une cagnotte", choisissez "Anniversaire" et personnalisez votre page. Partagez le lien par WhatsApp !' 
-    },
-    // ... 4 autres FAQs
-  ],
-}
-```
-
-### Vendeur : Pâtisserie
-```typescript
-{
-  slug: 'patisserie',
-  sector: 'Pâtisserie & Gâteaux',
-  emoji: '🎂',
-  heroTitle: 'Vendez vos Gâteaux sur JOIE DE VIVRE - Plateforme #1 Cadeaux Abidjan',
-  heroSubtitle: 'Recevez des commandes de gâteaux d\'anniversaire, mariages et événements. Paiement sécurisé, livraison organisée.',
-  benefits: [
-    { icon: '📦', title: '50+ commandes/mois', description: 'Nos pâtissiers reçoivent en moyenne 50 commandes mensuelles' },
-    { icon: '💳', title: 'Paiement garanti', description: 'Recevez l\'argent avant de préparer la commande' },
-    { icon: '🚚', title: 'Livraison optionnelle', description: 'Livrez vous-même ou utilisez nos partenaires' },
-    { icon: '📊', title: 'Dashboard pro', description: 'Gérez vos commandes, stocks et statistiques' },
-  ],
-  successStories: [
-    { 
-      businessName: 'Sweet Délices', 
-      ownerName: 'Aminata', 
-      quote: 'Depuis que je suis sur JDV, mes commandes ont triplé !', 
-      metric: '150+ gâteaux/mois' 
-    },
-  ],
-  requirements: [
-    'Disposer d\'un local de production',
-    'Avoir une carte nationale d\'identité valide',
-    'Pouvoir livrer à Abidjan ou utiliser nos partenaires',
-  ],
-}
-```
-
-### Saisonnier : Tabaski 2026
-```typescript
-{
-  slug: 'tabaski',
-  event: 'Tabaski',
-  year: 2026,
-  emoji: '🐑',
-  date: '7 juin 2026 (date estimée)',
-  dateISO: '2026-06-07',
-  isVariable: true,
-  heroTitle: 'Tabaski 2026 - Préparez votre Cagnotte pour l\'Aïd el-Kebir',
-  heroSubtitle: 'Réunissez votre famille pour offrir le mouton ou un cadeau collectif. Contribuez via Mobile Money.',
-  countdown: true,
-  traditions: [
-    { 
-      title: 'Une fête de partage', 
-      description: 'La Tabaski célèbre le sacrifice et le partage. C\'est l\'occasion parfaite pour offrir ensemble à vos proches.' 
-    },
-  ],
-  fundIdeas: [
-    { title: 'Cagnotte Mouton', description: 'Contribuez ensemble pour offrir le mouton à la famille' },
-    { title: 'Cagnotte Vêtements', description: 'Offrez de nouveaux habits aux enfants pour la fête' },
-  ],
-  giftSuggestions: [
-    { category: 'Mode', description: 'Tenues traditionnelles et boubous', link: '/shop?category=mode-vetements' },
-    { category: 'Bijoux', description: 'Bijoux en or pour les femmes', link: '/shop?category=bijoux-accessoires' },
-  ],
-}
-```
-
----
-
-## Maillage Interne
-
-### Liens depuis les nouvelles pages
-
-| Depuis | Vers |
-|--------|------|
-| `/cagnotte-anniversaire` | `/auth`, `/shop`, `/cagnottes`, autres occasions |
-| `/devenir-vendeur/patisserie` | `/business-auth`, `/shop?category=gastronomie-delices` |
-| `/tabaski-2026` | `/auth`, `/cagnotte-anniversaire`, `/shop` |
-
-### Liens vers les nouvelles pages
-
-| Depuis | Nouveaux liens |
-|--------|----------------|
-| Landing | Section "Occasions" avec liens vers 8 pages |
-| Footer global | Liens "Occasions populaires" + "Devenir vendeur" |
-| FAQ | Liens contextuels vers pages occasion |
-| Blog/Articles | Liens saisonniers |
-
----
-
-## Estimation Technique
-
-| Élément | Quantité |
-|---------|----------|
-| **Fichiers créés** | 6 |
-| **Fichiers modifiés** | 4 |
-| **Nouvelles pages** | 19 (8 + 6 + 5) |
-| **Nouvelles URLs SEO** | 19 |
-| **Nouveaux mots-clés** | 100+ |
-| **Schémas JSON-LD** | 19 FAQPage + 19 HowTo + 5 Event |
-
----
-
-## Ordre d'Implémentation Recommandé
-
-1. **Données** : Créer les 3 fichiers de données
-2. **Composants** : Créer les 3 composants de page
-3. **Routes** : Modifier App.tsx
-4. **SEO** : Enrichir seo-keywords.ts
-5. **Maillage** : Ajouter liens dans Landing et Footer
+- **Complexité** : Moyenne-Élevée
+- **Fichiers créés** : 5
+- **Fichiers modifiés** : 8
+- **Nouveaux Schemas** : 3 (SoftwareApplication, Action, Speakable)
+- **Nouvelles routes** : 10+ (deep links /go/*)
 
