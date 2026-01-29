@@ -41,11 +41,11 @@ export const useUserStats = () => {
         contributionsResult,
         communityScoreResult,
       ] = await Promise.all([
-        // Count friends (contact_relationships where user is either user_a or user_b)
+        // Count contacts in address book
         supabase
-          .from("contact_relationships")
+          .from("contacts")
           .select("*", { count: "exact", head: true })
-          .or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
+          .eq("user_id", user.id),
 
         // Count gifts given
         supabase
