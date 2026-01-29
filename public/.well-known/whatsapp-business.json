@@ -1,0 +1,27 @@
+{
+  "business_name": "Joie de Vivre",
+  "business_id": "joiedevivre_africa",
+  "description": "Plateforme de cadeaux collaboratifs en Afrique francophone. Cagnottes anniversaires, mariages, promotions. Marketplace artisanale locale.",
+  "catalog_enabled": true,
+  "catalog_link": "https://joiedevivre-africa.com/shop",
+  "signup_link": "https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=catalog",
+  "business_signup_link": "https://joiedevivre-africa.com/business-auth?utm_source=whatsapp&utm_medium=business",
+  "deep_links": {
+    "create_fund": "https://joiedevivre-africa.com/go/birthday?utm_source=whatsapp",
+    "browse_gifts": "https://joiedevivre-africa.com/shop?utm_source=whatsapp",
+    "become_vendor": "https://joiedevivre-africa.com/go/sell?utm_source=whatsapp"
+  },
+  "share_templates": {
+    "fund_invite": "🎁 Rejoignez ma cagnotte sur Joie de Vivre ! Contribuez facilement via Orange Money, MTN ou Wave. {fund_url}",
+    "product_share": "✨ Découvrez ce cadeau sur Joie de Vivre ! {product_url}",
+    "referral": "🎉 Utilisez mon code {ref_code} pour vous inscrire sur Joie de Vivre et créer des cagnottes gratuitement ! {signup_url}"
+  },
+  "contact": {
+    "phone": "+22546566646",
+    "formatted_phone": "+225 05 46 56 66 46",
+    "whatsapp_link": "https://wa.me/22546566646"
+  },
+  "supported_countries": ["CI", "BJ", "SN"],
+  "payment_methods": ["Orange Money", "MTN Mobile Money", "Wave", "Flooz"],
+  "currency": "XOF"
+}

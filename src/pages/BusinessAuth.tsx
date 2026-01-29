@@ -26,6 +26,8 @@ import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { SEOHead } from '@/components/SEOHead';
 import { HowToSchema } from '@/components/schema';
+import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
+import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -1441,6 +1443,12 @@ const BusinessAuth = () => {
         onLoginWithGoogle={handleDuplicateLoginWithGoogle}
         onLoginWithPhone={handleDuplicateLoginWithPhone}
         onContinueAnyway={handleDuplicateContinueAnyway}
+      />
+      {/* Enhanced Schema.org for B2B registration */}
+      <SoftwareApplicationSchema variant="business" />
+      <SpeakableSchema 
+        pageName="business-auth" 
+        cssSelectors={[".card-title", ".card-description", ".text-2xl"]} 
       />
     </div>
   );

@@ -142,6 +142,11 @@ Allow: /
 # https://joiedevivre-africa.com/content/privacy-policy.md
 # https://joiedevivre-africa.com/content/terms.md
 # https://joiedevivre-africa.com/content/legal-notice.md
+#
+# AI Actions & Capabilities:
+# https://joiedevivre-africa.com/actions.json
+# https://joiedevivre-africa.com/citations.json
+# https://joiedevivre-africa.com/.well-known/whatsapp-business.json
 # ============================================
 
 # ============================================

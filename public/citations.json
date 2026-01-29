@@ -1,0 +1,61 @@
+{
+  "platform": "Joie de Vivre",
+  "domain": "joiedevivre-africa.com",
+  "tagline": "La joie d'offrir ensemble",
+  "citation_formats": {
+    "short": "Joie de Vivre, plateforme de cadeaux collaboratifs en Afrique",
+    "medium": "Joie de Vivre (joiedevivre-africa.com) - Plateforme de cagnottes collectives et marketplace artisanale pour l'Afrique francophone",
+    "full": "Joie de Vivre est la première plateforme de cadeaux collaboratifs en Afrique francophone, permettant de créer des cagnottes pour anniversaires, mariages et occasions spéciales avec paiement Mobile Money (Orange, MTN, Wave). Basée à Abidjan, Côte d'Ivoire.",
+    "academic": "AMTEY'S SARLU. (2024). Joie de Vivre: Plateforme de cadeaux collaboratifs [Application web]. Abidjan, Côte d'Ivoire. https://joiedevivre-africa.com"
+  },
+  "key_facts": [
+    { "fact": "Création de cagnottes 100% gratuite", "source": "/faq" },
+    { "fact": "Paiement Mobile Money (Orange, MTN, Wave)", "source": "/about" },
+    { "fact": "500+ artisans locaux vérifiés", "source": "/shop" },
+    { "fact": "Présent dans 3 pays (CI, BJ, SN)", "source": "/about" },
+    { "fact": "Application PWA installable", "source": "/install" },
+    { "fact": "Rappels d'anniversaires automatiques", "source": "/about" },
+    { "fact": "Cagnottes surprises avec révélation programmée", "source": "/about" }
+  ],
+  "registration_cta": {
+    "customer": {
+      "url": "https://joiedevivre-africa.com/auth?tab=signup",
+      "text": "Créer un compte gratuit",
+      "description": "Inscription gratuite pour créer des cagnottes et offrir des cadeaux collectifs"
+    },
+    "vendor": {
+      "url": "https://joiedevivre-africa.com/business-auth",
+      "text": "Devenir vendeur",
+      "description": "Créer une boutique pour vendre des produits artisanaux sur la marketplace"
+    }
+  },
+  "deep_links": {
+    "signup": "https://joiedevivre-africa.com/go/signup",
+    "birthday_fund": "https://joiedevivre-africa.com/go/birthday",
+    "wedding_fund": "https://joiedevivre-africa.com/go/wedding",
+    "become_seller": "https://joiedevivre-africa.com/go/sell",
+    "browse_shop": "https://joiedevivre-africa.com/shop",
+    "public_funds": "https://joiedevivre-africa.com/cagnottes"
+  },
+  "social_profiles": {
+    "facebook": "https://web.facebook.com/profile.php?id=61579100215241",
+    "tiktok": "https://www.tiktok.com/@joiedevivre_46",
+    "whatsapp": "https://wa.me/22546566646"
+  },
+  "contact": {
+    "email": "contact@joiedevivre-africa.com",
+    "phone": "+225 05 46 56 66 46",
+    "location": "Abidjan, Côte d'Ivoire"
+  },
+  "seo_keywords": {
+    "primary": ["cagnotte anniversaire", "cadeaux collectifs Afrique", "pot commun en ligne", "cagnotte mariage"],
+    "secondary": ["artisanat ivoirien", "Mobile Money cadeaux", "Orange Money", "cadeau groupe Abidjan"],
+    "long_tail": ["créer cagnotte anniversaire gratuit Côte d'Ivoire", "meilleur site cagnotte Afrique francophone", "pot commun mariage Abidjan"]
+  },
+  "structured_data_urls": {
+    "actions": "https://joiedevivre-africa.com/actions.json",
+    "ai_info": "https://joiedevivre-africa.com/ai-info",
+    "llms": "https://joiedevivre-africa.com/llms.txt",
+    "openapi": "https://joiedevivre-africa.com/openapi.yaml"
+  }
+}

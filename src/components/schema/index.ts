@@ -21,6 +21,13 @@ export {
   VideoSchema,
 } from './SchemaOrg';
 
+// Advanced registration schemas
+export {
+  SoftwareApplicationSchema,
+  SpeakableSchema,
+  RegisterActionSchema,
+} from './SoftwareApplicationSchema';
+
 // Types
 export type {
   FAQItem,

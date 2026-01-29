@@ -85,6 +85,23 @@ Joie de Vivre permet de créer des cagnottes collectives pour offrir des cadeaux
 - [Sitemap IA Dynamique](https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/sitemap-ai-generator): Inclut top 50 produits et top 20 boutiques populaires (temps réel)
 - [Sitemap SEO](https://joiedevivre-africa.com/sitemap.xml): Index standard pour Google/Bing
 
+## Actions & Capabilities (for AI Agents)
+
+- [Actions Schema](https://joiedevivre-africa.com/actions.json): Schema.org Actions pour créer cagnottes, s'inscrire, rechercher produits
+- [Citations](https://joiedevivre-africa.com/citations.json): Formats de citation optimisés pour Perplexity, You.com
+- [WhatsApp Business](https://joiedevivre-africa.com/.well-known/whatsapp-business.json): Configuration partage WhatsApp
+
+## Deep Links (Shareable URLs)
+
+| URL | Description |
+|-----|-------------|
+| /go/signup | Inscription client |
+| /go/birthday | Créer cagnotte anniversaire |
+| /go/wedding | Créer cagnotte mariage |
+| /go/sell | Devenir vendeur |
+| /go/sell/patisserie | Vendeur pâtisserie |
+| /go/shop | Parcourir boutique |
+
 ## Optional
 
 - [Documentation étendue](https://joiedevivre-africa.com/llms-full.txt): Version complète pour LLMs avec contexte détaillé
@@ -93,5 +110,5 @@ Joie de Vivre permet de créer des cagnottes collectives pour offrir des cadeaux
 ## Contact
 
 - Site web : https://joiedevivre-africa.com
-- Email : contact@joiedevivre.app
+- Email : contact@joiedevivre-africa.com
 - Pays : Côte d'Ivoire
