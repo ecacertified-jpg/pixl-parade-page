@@ -25,6 +25,9 @@ import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { OtpMethodSelector, useWhatsAppFallback, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
+import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
+import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -1104,6 +1107,20 @@ const Auth = () => {
         onLoginWithGoogle={handleDuplicateLoginWithGoogle}
         onLoginWithPhone={handleDuplicateLoginWithPhone}
         onContinueAnyway={handleDuplicateContinueAnyway}
+      />
+      {/* SEO & Schema.org for registration page */}
+      <SEOHead
+        title="Connexion & Inscription | Créer Compte Gratuit"
+        description="Connectez-vous ou créez un compte gratuit pour créer des cagnottes collectives et offrir des cadeaux en groupe. Paiement Mobile Money."
+        keywords="inscription cagnotte, créer compte gratuit, connexion Joie de Vivre, s'inscrire cadeaux collectifs"
+        aiContentType="landing"
+        aiSummary="Page d'inscription et de connexion pour créer des cagnottes collectives gratuitement."
+        audience="consumers"
+      />
+      <SoftwareApplicationSchema variant="customer" />
+      <SpeakableSchema 
+        pageName="auth" 
+        cssSelectors={[".card-title", ".card-description"]} 
       />
     </div>
   );

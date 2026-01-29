@@ -1,7 +1,7 @@
 {
   "schema_version": "v1",
   "name_for_human": "Joie de Vivre",
-  "name_for_model": "joie_de_vivre",
+  "name_for_model": "joie_de_vivre_africa",
   "description_for_human": "Plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et célébrations. Découvrez des boutiques artisanales locales.",
   "description_for_model": "Joie de Vivre is a collaborative gift platform for French-speaking Africa. Primary markets: Côte d'Ivoire (Abidjan), Benin (Cotonou), Senegal (Dakar). Secondary markets: Mali, Cameroon, Togo, Burkina Faso, Niger. Core features: 1) Collective gift funds (cagnottes) - users create pools to collect contributions from friends/family for birthdays, weddings, promotions, graduations 2) Surprise reveals - scheduled surprise gift reveals for beneficiaries 3) Local artisan marketplace - African fashion (boubous, wax), jewelry, pastries, flowers, experiences 4) Birthday reminders with gift suggestions 5) Social celebrations with gratitude posts. Payments exclusively via Mobile Money: Orange Money, MTN Mobile Money, Wave, Flooz. Currency: CFA Franc (XOF). Language: French. Target audience: Ivorian, Beninese, Senegalese users and diaspora. Cultural context: gift reciprocity is important, celebrations involve extended family networks (10-50 contributors per fund).",
   "auth": {
@@ -11,7 +11,38 @@
     "type": "openapi",
     "url": "https://joiedevivre-africa.com/openapi.yaml"
   },
+  "capabilities": {
+    "registration": {
+      "description": "Redirect user to registration page for customer or vendor signup",
+      "endpoints": {
+        "customer": "/auth?tab=signup",
+        "vendor": "/business-auth"
+      }
+    },
+    "fund_creation": {
+      "description": "Guide user to create a collective gift fund for an occasion",
+      "endpoint": "/auth?tab=signup&redirect=create-fund",
+      "parameters": {
+        "occasion": "birthday, wedding, baby, graduation, promotion, retirement"
+      }
+    },
+    "product_search": {
+      "description": "Search for gift products in the marketplace",
+      "endpoint": "/shop",
+      "parameters": {
+        "q": "search query",
+        "category": "category filter"
+      }
+    },
+    "browse_vendors": {
+      "description": "Browse local artisan vendors by sector",
+      "endpoint": "/devenir-vendeur/:sector",
+      "sectors": ["patisserie", "fleuriste", "mode", "bijoux", "spa", "traiteur"]
+    }
+  },
+  "actions_url": "https://joiedevivre-africa.com/actions.json",
+  "citations_url": "https://joiedevivre-africa.com/citations.json",
   "logo_url": "https://joiedevivre-africa.com/pwa-512x512.png",
-  "contact_email": "contact@joiedevivre.app",
+  "contact_email": "contact@joiedevivre-africa.com",
   "legal_info_url": "https://joiedevivre-africa.com/terms-of-service"
 }

@@ -1,0 +1,131 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#CreateFundAction",
+      "name": "Créer une cagnotte",
+      "description": "Créer une cagnotte collective pour un anniversaire, mariage ou autre occasion en Afrique francophone",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/auth?tab=signup&redirect=create-fund&occasion={occasion}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform",
+          "http://schema.org/AndroidPlatform",
+          "http://schema.org/IOSPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "occasion",
+        "description": "Type d'occasion: birthday, wedding, baby, graduation, promotion, retirement"
+      }
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#SignUpCustomer",
+      "name": "Créer un compte gratuit",
+      "description": "S'inscrire gratuitement pour créer des cagnottes et offrir des cadeaux collectifs",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/auth?tab=signup",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      }
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#BecomeSeller",
+      "name": "Devenir vendeur",
+      "description": "Créer une boutique pour vendre des produits artisanaux sur la marketplace JOIE DE VIVRE",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/business-auth?sector={sector}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "sector",
+        "description": "Secteur d'activité: patisserie, fleuriste, mode, bijoux, spa, traiteur"
+      }
+    },
+    {
+      "@type": "SearchAction",
+      "@id": "https://joiedevivre-africa.com/#SearchProducts",
+      "name": "Rechercher un cadeau",
+      "description": "Rechercher des produits dans la marketplace de cadeaux africains",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/shop?q={search_term}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "query-input": "required name=search_term"
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#ContributeToFund",
+      "name": "Contribuer à une cagnotte",
+      "description": "Participer financièrement à une cagnotte collective via Mobile Money",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/f/{fund_id}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "fund_id",
+        "description": "Identifiant unique de la cagnotte"
+      }
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#BrowseByOccasion",
+      "name": "Explorer par occasion",
+      "description": "Découvrir les cagnottes et cadeaux par type d'occasion",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/cagnotte-{occasion}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "occasion",
+        "description": "Type: anniversaire, mariage, naissance, diplome, promotion, retraite"
+      }
+    },
+    {
+      "@type": "Action",
+      "@id": "https://joiedevivre-africa.com/#ReferFriend",
+      "name": "Parrainer un ami",
+      "description": "Inviter un ami à rejoindre JOIE DE VIVRE avec votre code de parrainage",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://joiedevivre-africa.com/auth?ref={referral_code}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "object": {
+        "@type": "Thing",
+        "name": "referral_code",
+        "description": "Code de parrainage unique"
+      }
+    }
+  ]
+}

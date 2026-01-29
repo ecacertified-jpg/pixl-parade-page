@@ -191,6 +191,24 @@ const App = () => (
     <CityPage />
   </Suspense>
 } />
+
+{/* Deep Links for Social Sharing & AI Referrals */}
+<Route path="/go/signup" element={<Navigate to="/auth?tab=signup&utm_source=deep_link" replace />} />
+<Route path="/go/birthday" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=birthday&utm_source=deep_link" replace />} />
+<Route path="/go/wedding" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=wedding&utm_source=deep_link" replace />} />
+<Route path="/go/baby" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=baby&utm_source=deep_link" replace />} />
+<Route path="/go/graduation" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=graduation&utm_source=deep_link" replace />} />
+<Route path="/go/promotion" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=promotion&utm_source=deep_link" replace />} />
+<Route path="/go/sell" element={<Navigate to="/business-auth?utm_source=deep_link" replace />} />
+<Route path="/go/sell/patisserie" element={<Navigate to="/business-auth?sector=patisserie&utm_source=deep_link" replace />} />
+<Route path="/go/sell/fleuriste" element={<Navigate to="/business-auth?sector=fleuriste&utm_source=deep_link" replace />} />
+<Route path="/go/sell/mode" element={<Navigate to="/business-auth?sector=mode&utm_source=deep_link" replace />} />
+<Route path="/go/sell/bijoux" element={<Navigate to="/business-auth?sector=bijoux&utm_source=deep_link" replace />} />
+<Route path="/go/sell/spa" element={<Navigate to="/business-auth?sector=spa&utm_source=deep_link" replace />} />
+<Route path="/go/sell/traiteur" element={<Navigate to="/business-auth?sector=traiteur&utm_source=deep_link" replace />} />
+<Route path="/go/shop" element={<Navigate to="/shop?utm_source=deep_link" replace />} />
+<Route path="/go/funds" element={<Navigate to="/cagnottes?utm_source=deep_link" replace />} />
+
 <Route path="/auth" element={<Auth />} />
 <Route path="/business-auth" element={<BusinessAuth />} />
             {/* Redirects for removed waitlist/pending pages */}
