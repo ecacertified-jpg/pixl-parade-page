@@ -503,6 +503,51 @@ export function buildFundKeywords(
   return keywords.slice(0, 12).join(", ");
 }
 
+// ============= ACQUISITION KEYWORDS =============
+export const ACQUISITION_KEYWORDS = {
+  registration: [
+    "créer compte gratuit",
+    "inscription gratuite cagnotte",
+    "créer cagnotte en ligne",
+    "ouvrir compte cadeaux",
+  ],
+  trust: [
+    "plateforme sécurisée cadeaux",
+    "paiement sécurisé Afrique",
+    "site fiable cagnotte",
+  ],
+  comparison: [
+    "meilleur site cagnotte Afrique",
+    "alternative Leetchi Afrique",
+    "cagnotte sans frais",
+  ],
+};
+
+// ============= VENDOR KEYWORDS =============
+export const VENDOR_KEYWORDS = {
+  general: [
+    "devenir vendeur",
+    "vendre en ligne Afrique",
+    "créer boutique en ligne",
+    "marketplace artisans",
+  ],
+  patisserie: ["vendre gâteaux en ligne", "pâtissier Abidjan", "commandes gâteaux anniversaire"],
+  fleuriste: ["fleuriste en ligne Abidjan", "vendre bouquets livraison"],
+  mode: ["vendre mode africaine", "styliste marketplace", "vendre wax en ligne"],
+  bijoux: ["vendre bijoux Abidjan", "bijoutier marketplace"],
+  spa: ["spa partenaire", "vendre soins bien-être"],
+  traiteur: ["traiteur partenaire", "chef événement marketplace"],
+};
+
+// ============= SEASONAL KEYWORDS =============
+export const SEASONAL_KEYWORDS = {
+  tabaski: ["Tabaski 2026", "cagnotte Aïd el-Kebir", "cadeau mouton Tabaski"],
+  korite: ["Korité 2026", "cagnotte Eid al-Fitr", "cadeau fin Ramadan"],
+  feteMeres: ["Fête des Mères 2026", "cagnotte maman", "cadeau maman collectif"],
+  noel: ["Noël 2026", "cadeaux Noël Afrique", "cagnotte Noël"],
+  rentree: ["rentrée scolaire 2026", "cagnotte fournitures", "équiper enfants rentrée"],
+};
+
 // ============= EXPORT ALL =============
 export const SEO_KEYWORDS = {
   core: CORE_KEYWORDS,
@@ -512,6 +557,9 @@ export const SEO_KEYWORDS = {
   payment: PAYMENT_KEYWORDS,
   longTail: LONG_TAIL_KEYWORDS,
   differentiators: DIFFERENTIATOR_KEYWORDS,
+  acquisition: ACQUISITION_KEYWORDS,
+  vendor: VENDOR_KEYWORDS,
+  seasonal: SEASONAL_KEYWORDS,
 };
 
 export default SEO_KEYWORDS;
