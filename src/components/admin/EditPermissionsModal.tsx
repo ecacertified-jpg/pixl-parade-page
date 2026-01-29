@@ -5,11 +5,36 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AdminCountryAssignment } from "./AdminCountryAssignment";
 import { useAuth } from "@/contexts/AuthContext";
 import { COUNTRIES } from "@/config/countries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShieldCheck, Shield, UserCheck, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type AdminRoleType = 'super_admin' | 'regional_admin' | 'moderator';
+
+const ROLE_INFO = {
+  super_admin: {
+    label: 'Super Administrateur',
+    description: 'Accès complet à tous les pays et toutes les fonctionnalités',
+    icon: ShieldCheck,
+    color: 'text-primary',
+  },
+  regional_admin: {
+    label: 'Administrateur Régional',
+    description: 'Accès complet limité à certains pays',
+    icon: Shield,
+    color: 'text-blue-500',
+  },
+  moderator: {
+    label: 'Modérateur',
+    description: 'Permissions spécifiques sur certains pays',
+    icon: UserCheck,
+    color: 'text-muted-foreground',
+  },
+};
 
 interface EditPermissionsModalProps {
   adminId: string | null;
@@ -45,40 +70,41 @@ export function EditPermissionsModal({
   const { user } = useAuth();
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [assignedCountries, setAssignedCountries] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState<AdminRoleType>(adminRole as AdminRoleType);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       setPermissions(currentPermissions || {});
       setAssignedCountries(currentCountries || []);
+      setNewRole(adminRole as AdminRoleType);
     }
-  }, [open, currentPermissions, currentCountries]);
+  }, [open, currentPermissions, currentCountries, adminRole]);
 
   const handleSubmit = async () => {
     if (!adminId) return;
 
     // Validate permissions for moderator
-    if (adminRole === 'moderator' && Object.values(permissions).every(v => !v)) {
+    if (newRole === 'moderator' && Object.values(permissions).every(v => !v)) {
       toast.error("Un modérateur doit avoir au moins une permission");
       return;
     }
 
     // Validate countries for non-super_admin
-    if (adminRole !== 'super_admin' && assignedCountries.length === 0) {
+    if (newRole !== 'super_admin' && assignedCountries.length === 0) {
       toast.error("Veuillez sélectionner au moins un pays");
       return;
     }
 
     setLoading(true);
     try {
-      const updateData: any = {
-        assigned_countries: adminRole === 'super_admin' ? null : assignedCountries,
+      const updateData: Record<string, unknown> = {
+        role: newRole,
+        assigned_countries: newRole === 'super_admin' ? null : assignedCountries,
+        permissions: newRole === 'moderator' 
+          ? permissions 
+          : { manage_users: true, manage_admins: true, manage_businesses: true, manage_content: true, manage_finances: true, view_analytics: true, manage_settings: true },
       };
-
-      // Only update permissions for moderators
-      if (adminRole === 'moderator') {
-        updateData.permissions = permissions;
-      }
 
       const { error } = await supabase
         .from('admin_users')
@@ -90,23 +116,30 @@ export function EditPermissionsModal({
       // Log the action
       await supabase.from('admin_audit_logs').insert({
         admin_user_id: user?.id,
-        action_type: 'update_admin_permissions',
+        action_type: 'update_admin_role_permissions',
         target_type: 'admin_user',
         target_id: adminId,
-        description: `Permissions mises à jour pour ${adminName}`,
+        description: `Rôle/permissions mis à jour pour ${adminName}`,
         metadata: { 
+          previous_role: adminRole,
+          new_role: newRole,
+          role_changed: adminRole !== newRole,
           previous_countries: currentCountries,
-          new_countries: assignedCountries,
-          permissions: adminRole === 'moderator' ? permissions : null
+          new_countries: newRole === 'super_admin' ? null : assignedCountries,
+          permissions: newRole === 'moderator' ? permissions : null
         }
       });
 
-      toast.success(`Permissions mises à jour pour ${adminName}`);
+      const roleChanged = adminRole !== newRole;
+      toast.success(roleChanged 
+        ? `Rôle modifié : ${adminName} est maintenant ${ROLE_INFO[newRole].label}`
+        : `Permissions mises à jour pour ${adminName}`
+      );
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating permissions:', error);
-      toast.error("Erreur lors de la mise à jour des permissions");
+      toast.error("Erreur lors de la mise à jour");
     } finally {
       setLoading(false);
     }
@@ -119,31 +152,9 @@ export function EditPermissionsModal({
     }));
   };
 
-  if (adminRole === 'super_admin') {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Modifier les permissions</DialogTitle>
-            <DialogDescription>
-              Les Super Administrateurs ont automatiquement toutes les permissions.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
-              Super Administrateur
-            </Badge>
-            <p className="text-sm text-muted-foreground mt-2">
-              {adminName} a accès complet à toutes les fonctionnalités et tous les pays.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => onOpenChange(false)}>Fermer</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const currentRoleInfo = ROLE_INFO[newRole];
+  const RoleIcon = currentRoleInfo.icon;
+  const isDowngradeFromSuperAdmin = adminRole === 'super_admin' && newRole !== 'super_admin';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -151,39 +162,85 @@ export function EditPermissionsModal({
         <DialogHeader>
           <DialogTitle>Modifier - {adminName}</DialogTitle>
           <DialogDescription>
-            {adminRole === 'regional_admin' 
-              ? "Modifiez les pays assignés à cet administrateur régional."
-              : "Modifiez les permissions et pays de ce modérateur."
-            }
+            Modifiez le rôle, les permissions et les pays assignés.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Current role badge */}
-          <div className="flex items-center gap-2">
-            <Label>Rôle actuel :</Label>
-            <Badge variant={adminRole === 'regional_admin' ? 'default' : 'secondary'}>
-              {adminRole === 'regional_admin' ? 'Admin Régional' : 'Modérateur'}
-            </Badge>
+          {/* Role selection */}
+          <div className="space-y-2">
+            <Label>Rôle</Label>
+            <Select value={newRole} onValueChange={(v: AdminRoleType) => setNewRole(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="moderator">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Modérateur
+                  </div>
+                </SelectItem>
+                <SelectItem value="regional_admin">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-blue-500" />
+                    Admin Régional
+                  </div>
+                </SelectItem>
+                <SelectItem value="super_admin">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Super Administrateur
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+              <RoleIcon className={`h-4 w-4 ${currentRoleInfo.color}`} />
+              <p className="text-xs text-muted-foreground">
+                {currentRoleInfo.description}
+              </p>
+            </div>
           </div>
+
+          {/* Warning for downgrade from super_admin */}
+          {isDowngradeFromSuperAdmin && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Attention : vous êtes sur le point de rétrograder un Super Administrateur. 
+                Il perdra l'accès complet à tous les pays.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Separator />
 
-          {/* Country assignment */}
-          <AdminCountryAssignment
-            selectedCountries={assignedCountries}
-            onChange={setAssignedCountries}
-          />
+          {/* Country assignment (only for non-super_admin) */}
+          {newRole !== 'super_admin' && (
+            <>
+              <AdminCountryAssignment
+                selectedCountries={assignedCountries}
+                onChange={setAssignedCountries}
+              />
 
-          {/* Show current countries for reference */}
-          {currentCountries && currentCountries.length > 0 && (
-            <div className="text-xs text-muted-foreground">
-              Pays actuels : {currentCountries.map(c => COUNTRIES[c]?.flag || c).join(' ')}
+              {/* Show current countries for reference */}
+              {currentCountries && currentCountries.length > 0 && adminRole !== newRole && (
+                <div className="text-xs text-muted-foreground">
+                  Pays actuels : {currentCountries.map(c => COUNTRIES[c]?.flag || c).join(' ')}
+                </div>
+              )}
+            </>
+          )}
+
+          {newRole === 'super_admin' && (
+            <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">
+              Les Super Administrateurs ont automatiquement accès à tous les pays et toutes les permissions.
             </div>
           )}
 
           {/* Permissions (only for moderators) */}
-          {adminRole === 'moderator' && (
+          {newRole === 'moderator' && (
             <>
               <Separator />
               <div className="space-y-2">
