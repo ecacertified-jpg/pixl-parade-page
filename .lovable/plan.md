@@ -1,219 +1,180 @@
 
-# Amélioration du Système de Rappels d'Anniversaire avec SMS/WhatsApp
-
-## Objectif
-
-Étendre le système de rappels d'anniversaire existant (`birthday-reminder-with-suggestions`) pour inclure les canaux SMS et WhatsApp en plus des notifications push et email actuelles.
-
----
+# Amélioration des Mots-Clés et Meta Tags SEO
 
 ## Analyse de l'Existant
 
-### Ce qui fonctionne déjà
-- Edge Function `birthday-reminder-with-suggestions` : Crée des rappels pour les anniversaires des contacts
-- `delivery_methods: ['push', 'in_app', 'email']` dans `scheduled_notifications`
-- Table `notification_preferences` avec `sms_enabled` et préférences utilisateur
-- Infrastructure WhatsApp via `send-whatsapp-otp` (META Cloud API)
-- Secrets WhatsApp configurés : `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`
+### Points forts actuels
+- Composant `SEOHead.tsx` bien structuré avec support complet (OG, Twitter, AI tags)
+- Configuration centralisée `SEO_CONFIGS` pour les pages principales
+- Tags AI/LLM (ai-content-type, ai-summary, ai-keywords)
+- Support multi-pages : landing, shop, about, faq, funds, product, business
 
-### Ce qui manque
-- Aucune logique pour envoyer SMS/WhatsApp basée sur `delivery_methods`
-- Pas de secrets Twilio pour SMS (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`)
-- Pas de processeur qui lit `scheduled_notifications` et envoie via les différents canaux
-- La préférence `sms_enabled` n'est pas consultée par le système de rappels
+### Lacunes identifiées
 
----
-
-## Architecture Proposée
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                      FLUX AMÉLIORÉ                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  CRON quotidien                                                 │
-│       │                                                         │
-│       ▼                                                         │
-│  [birthday-reminder-with-suggestions]                           │
-│       │                                                         │
-│       ├── Consulte notification_preferences                     │
-│       │   (push_enabled, email_enabled, sms_enabled)            │
-│       │                                                         │
-│       ▼                                                         │
-│  [scheduled_notifications]                                      │
-│       │  delivery_methods: ['push', 'in_app', 'email', 'sms']   │
-│       │                                                         │
-│       ▼                                                         │
-│  [process-scheduled-notifications] (NOUVEAU)                    │
-│       │                                                         │
-│       ├── push    → send-push-notification                      │
-│       ├── email   → send-email-notification (Resend)            │
-│       ├── sms     → send-sms-notification (Twilio)              │
-│       └── whatsapp → send-whatsapp-message (META Cloud)         │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Zone | Problème |
+|------|----------|
+| Keywords Landing | Manque termes : "financement participatif", "crowdfunding cadeau", "cotisation groupe" |
+| Keywords Shop | Manque : "panier cadeau", "livraison Abidjan", "commande en ligne Afrique" |
+| Keywords Produit | Génériques, pas de catégorie dynamique |
+| Keywords Cagnotte | Pas de termes "pot commun", "collecte argent", "financer cadeau" |
+| Long-tail | Aucune phrase clé longue ("où acheter cadeau anniversaire Abidjan") |
+| Villes secondaires | Keywords insuffisants pour Bouaké, Yamoussoukro, Porto-Novo |
+| Occasions | Pas de keywords spécifiques Tabaski, Pâques, Fête des Pères |
+| Concurrence | Termes génériques vs. différenciateurs ("sans commission", "100% mobile") |
 
 ---
 
 ## Plan d'Implémentation
 
-### 1. Modifier `birthday-reminder-with-suggestions`
+### 1. Enrichir `SEO_CONFIGS` dans `SEOHead.tsx`
 
-**Objectif** : Ajouter SMS et WhatsApp aux méthodes de livraison selon les préférences utilisateur
+Ajouter des mots-clés manquants à chaque configuration existante.
 
-**Changements :**
-- Consulter `notification_preferences` pour `sms_enabled` et `push_enabled`
-- Récupérer le téléphone de l'utilisateur depuis `profiles`
-- Construire dynamiquement `delivery_methods` selon les préférences
-- Pour les rappels urgents (J-3, J-1), forcer SMS si activé
-
+**Landing Page (actuel → enrichi) :**
 ```typescript
-// Logique de sélection des canaux
-const deliveryMethods = ['in_app']; // Toujours in_app
+// AVANT
+keywords: "cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau groupe Afrique..."
 
-if (prefs?.push_enabled !== false) deliveryMethods.push('push');
-if (prefs?.email_enabled !== false) deliveryMethods.push('email');
-if (prefs?.sms_enabled === true && userPhone) deliveryMethods.push('sms');
-
-// Pour les rappels urgents, ajouter WhatsApp si SMS non disponible
-if (matchingSchedule.priority === 'critical' && !userPhone) {
-  // Fallback WhatsApp via email ou autre identifiant
-}
+// APRÈS
+keywords: "cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau groupe Afrique, pot commun en ligne, cotisation cadeau collectif, financement participatif cadeau, crowdfunding anniversaire Afrique, collecte argent mariage, offrir ensemble cadeau, cagnotte sans frais, Orange Money cadeaux"
 ```
 
-### 2. Créer `send-sms-notification` Edge Function
-
-**Nouvelle fonction** : Envoie des SMS via Twilio
-
-**Paramètres :**
-- `phone`: Numéro de téléphone (format international)
-- `message`: Contenu du SMS
-- `notification_id`: ID pour tracking
-
-**Secrets requis :**
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE_NUMBER`
-
+**Shop/Marketplace (enrichi) :**
 ```typescript
-// Structure de la fonction
-interface SmsPayload {
-  phone: string;
-  message: string;
-  notification_id?: string;
-  user_id: string;
-}
-
-// Envoi via Twilio REST API
-const response = await fetch(
-  `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      To: phone,
-      From: twilioPhone,
-      Body: message,
-    }),
-  }
-);
+keywords: "boutique cadeaux Abidjan, artisanat Côte d'Ivoire, bijoux africains, cadeaux locaux Afrique, mode ivoirienne, panier cadeau en ligne, livraison express Abidjan, commande cadeau WhatsApp, achat Mobile Money, artisans vérifiés, cadeaux personnalisés Afrique"
 ```
 
-### 3. Créer `send-whatsapp-notification` Edge Function
-
-**Nouvelle fonction** : Envoie des notifications WhatsApp (différent de l'OTP existant)
-
-**Réutilise** : Credentials WhatsApp existants (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`)
-
-**Template requis** : Créer un template `birthday_reminder` dans Meta Business Manager
-
+**Cagnottes Publiques (enrichi) :**
 ```typescript
-// Structure pour templates marketing
-interface WhatsAppPayload {
-  phone: string;
-  template_name: 'birthday_reminder';
-  template_params: {
-    contact_name: string;
-    days_until: number;
-    action_url: string;
-  };
-}
+keywords: "cagnotte collective, cadeau groupe, anniversaire, mariage, contribution, pot commun Afrique, collecte cadeau en ligne, financer ensemble, cotisation groupe cadeau, cagnotte participative"
 ```
 
-### 4. Créer `process-scheduled-notifications` Edge Function
+### 2. Créer un fichier de keywords centralisé
 
-**Nouvelle fonction** : Traite les notifications en attente et les envoie via les bons canaux
+**Fichier :** `src/data/seo-keywords.ts`
 
-**Exécution** : CRON toutes les 5 minutes
-
-**Logique :**
-1. Récupérer les `scheduled_notifications` avec `status = 'pending'` et `scheduled_for <= now()`
-2. Pour chaque notification, parcourir `delivery_methods`
-3. Appeler la fonction appropriée pour chaque canal
-4. Mettre à jour le statut et `sent_at`
-5. Logger les résultats dans `notification_analytics`
+Centraliser tous les mots-clés par catégorie pour faciliter la maintenance et l'utilisation dynamique.
 
 ```typescript
-for (const notification of pendingNotifications) {
-  for (const method of notification.delivery_methods) {
-    switch (method) {
-      case 'push':
-        await sendPushNotification(notification);
-        break;
-      case 'email':
-        await sendEmailNotification(notification);
-        break;
-      case 'sms':
-        await sendSmsNotification(notification);
-        break;
-      case 'whatsapp':
-        await sendWhatsAppNotification(notification);
-        break;
-      case 'in_app':
-        // Déjà dans la table, visible automatiquement
-        break;
-    }
-  }
+export const SEO_KEYWORDS = {
+  // Termes principaux
+  core: [
+    "cadeaux collaboratifs",
+    "cagnotte collective",
+    "pot commun en ligne",
+    "cadeau groupe",
+  ],
   
-  // Marquer comme envoyé
-  await supabase
-    .from('scheduled_notifications')
-    .update({ status: 'sent', sent_at: new Date().toISOString() })
-    .eq('id', notification.id);
+  // Par type d'occasion
+  occasions: {
+    birthday: ["cagnotte anniversaire", "cadeau anniversaire groupe", "surprise anniversaire"],
+    wedding: ["cagnotte mariage", "cadeau mariage collectif", "liste de mariage Afrique"],
+    baby: ["cagnotte naissance", "cadeau bébé groupe", "baby shower Afrique"],
+    graduation: ["cagnotte diplôme", "cadeau réussite examen"],
+    promotion: ["cagnotte promotion", "cadeau collègue", "pot de départ"],
+    religious: ["cagnotte Tabaski", "cadeau Noël collectif", "Pâques Afrique"],
+  },
+  
+  // Par ville
+  cities: {
+    abidjan: ["cadeaux Abidjan", "livraison Cocody", "artisans Yopougon", "boutique Plateau"],
+    cotonou: ["cadeaux Cotonou", "artisanat Dantokpa", "livraison Bénin"],
+    dakar: ["cadeaux Dakar", "artisanat sénégalais", "teranga cadeaux"],
+    bouake: ["cadeaux Bouaké", "artisanat baoulé", "région Gbêkê"],
+  },
+  
+  // Par catégorie produit
+  products: {
+    mode: ["mode africaine", "boubou wax", "pagne tissé", "vêtements traditionnels"],
+    bijoux: ["bijoux africains", "or artisanal", "perles africaines", "collier fait-main"],
+    gastronomie: ["gâteau personnalisé Abidjan", "panier gourmand Afrique", "chocolat artisanal"],
+    fleurs: ["fleuriste Abidjan", "bouquet livraison", "compositions florales"],
+  },
+  
+  // Paiements (différenciateur)
+  payment: [
+    "Orange Money cadeaux",
+    "MTN Mobile Money",
+    "Wave paiement",
+    "paiement mobile Afrique",
+    "sans carte bancaire",
+  ],
+  
+  // Long-tail (questions utilisateurs)
+  longTail: [
+    "où acheter cadeau anniversaire Abidjan",
+    "comment créer cagnotte en ligne Afrique",
+    "meilleur site cadeau collectif Côte d'Ivoire",
+    "offrir cadeau groupe sans frais",
+    "artisans locaux cadeaux personnalisés",
+  ],
+};
+
+// Helper pour générer une chaîne de keywords
+export function buildKeywords(categories: (keyof typeof SEO_KEYWORDS)[]): string {
+  return categories
+    .flatMap(cat => Array.isArray(SEO_KEYWORDS[cat]) 
+      ? SEO_KEYWORDS[cat] 
+      : Object.values(SEO_KEYWORDS[cat]).flat())
+    .slice(0, 20) // Limite pour éviter le keyword stuffing
+    .join(", ");
 }
 ```
 
-### 5. Ajouter les secrets Twilio
+### 3. Enrichir les Meta Tags des Pages Dynamiques
 
-**Action utilisateur requise** : Configurer les secrets suivants :
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_PHONE_NUMBER`
+**ProductPreview.tsx - Keywords dynamiques par catégorie :**
+```typescript
+// AVANT
+keywords={`${product.name}, cadeau Abidjan, ${product.vendor_name}, boutique Côte d'Ivoire, cadeaux Afrique`}
 
-### 6. Créer le template WhatsApp
-
-**Action utilisateur requise** : Dans Meta Business Manager, créer un template :
-- **Nom** : `birthday_reminder`
-- **Catégorie** : Marketing
-- **Corps** : "🎂 L'anniversaire de {{1}} est dans {{2}} jour(s) ! Préparez-lui quelque chose de spécial sur JOIE DE VIVRE."
-- **Bouton** : "Voir les idées cadeaux" → {{3}}
-
-### 7. Configurer le CRON Job
-
-Ajouter dans `supabase/config.toml` :
-
-```toml
-[functions.process-scheduled-notifications]
-enabled = true
-
-[[cron_jobs]]
-schedule = "*/5 * * * *"  # Toutes les 5 minutes
-function = "process-scheduled-notifications"
+// APRÈS (avec catégorie)
+keywords={`${product.name}, ${product.category || 'cadeau'} Abidjan, ${product.vendor_name}, artisanat ivoirien, idée cadeau ${product.category?.toLowerCase() || ''}, livraison Côte d'Ivoire, achat Mobile Money`}
 ```
+
+**FundPreview.tsx - Keywords par occasion :**
+```typescript
+// AVANT
+keywords={`cagnotte ${fund.occasion || 'collective'}, cadeau groupe, contribution en ligne`}
+
+// APRÈS
+keywords={`cagnotte ${fund.occasion || 'collective'}, pot commun ${fund.occasion || ''}, cotisation cadeau, financer ensemble, collecte argent ${fund.occasion || 'cadeau'}, offrir à plusieurs Afrique`}
+```
+
+### 4. Enrichir les Pages Villes (city-pages.ts)
+
+Ajouter des mots-clés long-tail et différenciateurs pour chaque ville.
+
+**Exemple Abidjan (enrichi) :**
+```typescript
+keywords: [
+  // Existants
+  'cadeaux Abidjan',
+  'cagnotte anniversaire Cocody',
+  // Nouveaux - Long-tail
+  'où acheter cadeau Abidjan livraison rapide',
+  'meilleur site cagnotte Côte d\'Ivoire',
+  'artisans locaux cadeaux uniques Abidjan',
+  // Nouveaux - Paiement
+  'payer cadeau Orange Money',
+  'achat sans carte bancaire Abidjan',
+  // Nouveaux - Occasions locales
+  'cadeau Fête des Mères Abidjan',
+  'cagnotte Tabaski Côte d\'Ivoire',
+]
+```
+
+### 5. Enrichir llms-full.txt avec Mots-Clés Supplémentaires
+
+Ajouter une section "Termes de Recherche Alternatifs" pour les AI crawlers.
+
+### 6. Enrichir context.md
+
+Ajouter des phrases naturelles contenant les mots-clés pour le contexte conversationnel des LLMs.
+
+### 7. Mettre à jour index.html
+
+Enrichir les meta keywords statiques dans le `<head>` avec les nouveaux termes.
 
 ---
 
@@ -221,64 +182,66 @@ function = "process-scheduled-notifications"
 
 | Action | Fichier | Description |
 |--------|---------|-------------|
-| Modifier | `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Ajouter SMS/WhatsApp aux delivery_methods |
-| Créer | `supabase/functions/send-sms-notification/index.ts` | Envoi SMS via Twilio |
-| Créer | `supabase/functions/send-whatsapp-notification/index.ts` | Envoi WhatsApp via META |
-| Créer | `supabase/functions/process-scheduled-notifications/index.ts` | Processeur central des notifications |
-| Modifier | `supabase/config.toml` | Ajouter CRON pour le processeur |
+| Créer | `src/data/seo-keywords.ts` | Base centralisée de mots-clés |
+| Modifier | `src/components/SEOHead.tsx` | Enrichir SEO_CONFIGS |
+| Modifier | `src/pages/ProductPreview.tsx` | Keywords dynamiques par catégorie |
+| Modifier | `src/pages/FundPreview.tsx` | Keywords par occasion |
+| Modifier | `src/data/city-pages.ts` | Keywords long-tail par ville |
+| Modifier | `public/llms-full.txt` | Section termes alternatifs |
+| Modifier | `public/context.md` | Phrases naturelles SEO |
+| Modifier | `index.html` | Meta keywords enrichis |
 
 ---
 
-## Détails Techniques
+## Nouveaux Mots-Clés par Catégorie
 
-### Priorité des Canaux
+### Termes Généraux (Core)
+| Nouveau | Justification |
+|---------|---------------|
+| pot commun en ligne | Terme courant en Afrique francophone |
+| cotisation cadeau | Usage local fréquent |
+| financement participatif cadeau | Version française de "crowdfunding" |
+| collecte argent mariage/anniversaire | Recherche directe |
+| offrir ensemble | Intention collaborative |
 
-| Priorité Rappel | Canaux par défaut |
-|-----------------|-------------------|
-| low (J-14) | in_app, push |
-| medium (J-7) | in_app, push, email |
-| high (J-3) | in_app, push, email, sms (si activé) |
-| critical (J-1) | in_app, push, email, sms, whatsapp |
+### Occasions Spécifiques
+| Occasion | Nouveaux Keywords |
+|----------|-------------------|
+| Tabaski | cagnotte Tabaski, cadeau Aïd, fête religieuse |
+| Fête des Mères | cadeau maman Afrique, fête des mères Abidjan |
+| Noël | cagnotte Noël, cadeau fin d'année collectif |
+| Diplôme | cagnotte baccalauréat, cadeau réussite scolaire |
 
-### Gestion des Erreurs
+### Différenciateurs Concurrentiels
+| Terme | Message |
+|-------|---------|
+| sans frais de création | Gratuit pour l'organisateur |
+| paiement 100% mobile | Pas besoin de carte bancaire |
+| artisans vérifiés | Qualité garantie |
+| livraison express | Rapidité |
 
-- Si SMS échoue → Fallback WhatsApp
-- Si WhatsApp échoue → Fallback Email
-- Tous les échecs sont loggés dans `notification_analytics`
-
-### Rate Limiting
-
-- Maximum 10 SMS/jour par utilisateur (coût)
-- Maximum 50 WhatsApp/jour par utilisateur
-- Pas de limite pour push/email
-
-### Tracking
-
-Utiliser la table existante `notification_analytics` pour tracker :
-- `notification_type`: 'sms' ou 'whatsapp'
-- `status`: 'sent', 'delivered', 'failed'
-- `error_message`: Détails si échec
+### Long-Tail (Questions)
+| Question Type | Exemples |
+|---------------|----------|
+| "Où..." | où acheter cadeau anniversaire Abidjan |
+| "Comment..." | comment créer cagnotte collective |
+| "Meilleur..." | meilleur site cadeau groupe Afrique |
+| "Quel..." | quel cadeau offrir collègue promotion |
 
 ---
 
-## Configuration Requise (Actions Utilisateur)
+## Impact Attendu
 
-1. **Secrets Twilio** (pour SMS)
-   - Créer un compte Twilio
-   - Ajouter `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
-
-2. **Template WhatsApp** (pour rappels marketing)
-   - Créer et faire approuver le template `birthday_reminder` dans Meta Business Manager
-
-3. **Numéro de téléphone utilisateur**
-   - S'assurer que le champ `phone` est renseigné dans `profiles`
+- **SEO Organique** : Meilleur classement sur requêtes long-tail
+- **AI Search** : Contexte enrichi pour ChatGPT, Perplexity, Claude
+- **Réseaux Sociaux** : Descriptions plus pertinentes lors du partage
+- **Conversion** : Utilisateurs trouvent la plateforme via termes qu'ils utilisent réellement
 
 ---
 
 ## Estimation
 
-- **Complexité** : Moyenne à élevée
-- **Edge Functions** : 3 nouvelles + 1 modifiée
-- **Secrets requis** : 3 (Twilio)
-- **Templates Meta** : 1 nouveau
-- **CRON Jobs** : 1 nouveau
+- **Complexité** : Faible à moyenne
+- **Fichiers créés** : 1
+- **Fichiers modifiés** : 7
+- **Nouveaux mots-clés** : 50+
