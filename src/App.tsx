@@ -103,6 +103,11 @@ const CitiesOverview = lazy(() => import("./pages/CitiesOverview"));
 // Category page (lazy loaded for SEO)
 const CategoryPage = lazy(() => import("./pages/CategoryPage"));
 
+// SEO Landing pages (lazy loaded)
+const OccasionPage = lazy(() => import("./pages/OccasionPage"));
+const VendorSectorPage = lazy(() => import("./pages/VendorSectorPage"));
+const SeasonalPage = lazy(() => import("./pages/SeasonalPage"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -160,6 +165,24 @@ const App = () => (
 <Route path="/villes" element={
   <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
     <CitiesOverview />
+  </Suspense>
+} />
+{/* SEO Occasion Landing Pages */}
+<Route path="/cagnotte-:occasionSlug" element={
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+    <OccasionPage />
+  </Suspense>
+} />
+{/* SEO Vendor Sector Landing Pages */}
+<Route path="/devenir-vendeur/:sectorSlug" element={
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+    <VendorSectorPage />
+  </Suspense>
+} />
+{/* SEO Seasonal Landing Pages */}
+<Route path="/:eventSlug-:year" element={
+  <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+    <SeasonalPage />
   </Suspense>
 } />
 {/* SEO City Landing Pages */}
