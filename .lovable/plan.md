@@ -1,356 +1,310 @@
 
+# Enrichissement des Mots-Clés SEO et Alias de Marque
 
-# Système de Mise à Jour Automatique du Référencement
+## Problème Identifié
 
-## Analyse de l'Existant
+L'analyse révèle **trois lacunes majeures** dans la stratégie de référencement actuelle :
 
-### Infrastructure actuelle de référencement
-
-| Composant | Type | Mise à jour |
-|-----------|------|-------------|
-| **IndexNow** | Edge Function | Manuelle (appel depuis code) |
-| **Sitemaps dynamiques** | Edge Functions (sitemap-generator, sitemap-ai-generator, sitemap-full) | Temps réel (à chaque requête) |
-| **Markdown LLM** | Scripts (generate-markdown.mjs) | Au build (prebuild hook) |
-| **llms.txt, actions.json** | Fichiers statiques | Manuel |
-| **AI Catalog** | Edge Function | Temps réel |
-
-### Déclencheurs existants
-- **Produits** : IndexNow appelé manuellement lors de création/modification (AddProductModal, AdminEditProductModal)
-- **Boutiques** : IndexNow appelé lors d'activation (BusinessManagement)
-- **Triggers SQL** : Nombreux triggers pour notifications, mais aucun pour SEO
+1. **Absence de mots-clés relationnels/émotionnels** liés à la mission de la plateforme
+2. **Couverture e-commerce insuffisante** pour attirer les vendeurs/prestataires
+3. **Alias "JDV" et "Joie de Vivre Africa"** non propagés sur tous les canaux
 
 ---
 
-## Stratégie d'Automatisation Complète
+## 1. Nouveaux Mots-Clés à Ajouter
 
-### 1. Triggers de Base de Données pour Indexation Automatique
+### Catégorie "Valeurs & Émotions" (NOUVELLE)
 
-Créer des triggers PostgreSQL qui appellent automatiquement IndexNow via `pg_net` quand :
-- Un **produit** est créé/modifié/activé
-- Une **boutique** est approuvée/modifiée
-- Une **cagnotte publique** est créée
-- Une **page de ville/occasion** SEO est ajoutée
+| Mots-clés | Description |
+|-----------|-------------|
+| renforcer liens familiaux | Mission principale |
+| améliorer relations amicales | Mission principale |
+| cultiver générosité | Valeur fondamentale |
+| partager la joie | Tagline |
+| bien-être relationnel | Bénéfice utilisateur |
+| bonheur collectif | Bénéfice utilisateur |
+| gratitude entre proches | Fonctionnalité sociale |
+| réciprocité cadeaux | Score de réciprocité |
+| célébrer ensemble Afrique | Contexte culturel |
+| fêter anniversaire avec proches | Occasion |
 
-```sql
--- Trigger pour indexation automatique des produits
-CREATE OR REPLACE FUNCTION notify_indexnow_on_product_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Appeler IndexNow via pg_net
-  PERFORM net.http_post(
-    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/indexnow-notify',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb,
-    body := json_build_object(
-      'urls', ARRAY['https://joiedevivre-africa.com/p/' || NEW.id],
-      'entityType', 'product',
-      'entityId', NEW.id::text,
-      'priority', CASE WHEN NEW.popularity_score > 50 THEN 'high' ELSE 'normal' END
-    )::jsonb
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+### Catégorie "E-commerce Vendeurs" (NOUVELLE)
 
-### 2. CRON Job pour Synchronisation Périodique
+| Mots-clés | Description |
+|-----------|-------------|
+| créer boutique en ligne Afrique | Inscription vendeur |
+| vendre artisanat africain | Proposition valeur |
+| marketplace artisans Abidjan | Localisation |
+| devenir vendeur cadeaux | CTA vendeur |
+| ouvrir boutique pâtisserie en ligne | Secteur spécifique |
+| plateforme vente bijoux africains | Secteur spécifique |
+| vendre mode africaine en ligne | Secteur spécifique |
+| e-commerce artisanal Côte d'Ivoire | Marché principal |
+| commissions vendeur Afrique | Recherche comparative |
 
-Planifier des tâches automatiques via `pg_cron` :
+### Mots-clés Long-Tail Additionnels
 
-| Job | Fréquence | Action |
-|-----|-----------|--------|
-| `sync-sitemap-to-search-engines` | Toutes les 6h | Ping Google/Bing avec sitemap URL |
-| `refresh-ai-catalog` | Toutes les 2h | Mettre à jour le cache AI Catalog |
-| `check-new-seo-content` | Quotidien 8h | Détecter et indexer nouveaux contenus |
-| `update-llms-metadata` | Hebdomadaire | Régénérer llms.txt avec stats à jour |
-
-### 3. Edge Function de Synchronisation SEO Centralisée
-
-Créer une fonction `seo-sync-hub` qui :
-- Détecte les changements de contenu depuis la dernière synchronisation
-- Soumet les nouvelles URLs à IndexNow
-- Met à jour les fichiers IA (llms.txt, ai-catalog)
-- Notifie les moteurs de recherche
-
-### 4. Webhook pour Réseaux Sociaux
-
-Créer une Edge Function `social-content-sync` qui :
-- Génère automatiquement des posts pour nouveaux produits populaires
-- Met à jour les Open Graph tags
-- Crée des deep links partageables
+- "comment créer cagnotte anniversaire amis"
+- "renforcer relations famille cadeau collectif"
+- "idée cadeau collègue promotion Abidjan"
+- "offrir ensemble pour mieux célébrer"
+- "partager joie anniversaire Afrique"
+- "vendre gâteaux personnalisés Abidjan"
+- "boutique fleuriste en ligne Dakar"
 
 ---
 
-## Architecture Proposée
+## 2. Propagation des Alias de Marque
 
+### Alias à Propager Partout
+
+| Alias | Contexte d'utilisation |
+|-------|------------------------|
+| JDV | Abréviation courante (réseaux sociaux, conversations) |
+| Joie de Vivre Africa | Version longue pour distinction internationale |
+| JDV Africa | Combinaison pour recherches bilingues |
+
+### Fichiers à Modifier
+
+| Fichier | Ajout |
+|---------|-------|
+| `public/llms.txt` | Section "Noms alternatifs" |
+| `public/llms-full.txt` | Section "Alias et noms de marque" |
+| `public/context.md` | Mention des alias dans l'intro |
+| `public/citations.json` | Champ `aliases` avec tous les noms |
+| `public/actions.json` | Mention JDV dans les descriptions |
+| `public/.well-known/ai-plugin.json` | `also_known_as` array |
+| `src/data/seo-keywords.ts` | Catégorie BRAND_KEYWORDS |
+
+---
+
+## 3. Détail des Modifications
+
+### A. `src/data/seo-keywords.ts`
+
+Ajouter 3 nouvelles catégories :
+
+```typescript
+// ============= VALEURS & RELATIONS =============
+export const RELATIONSHIP_KEYWORDS = [
+  "renforcer liens familiaux",
+  "améliorer relations amicales",
+  "cultiver générosité Afrique",
+  "partager la joie ensemble",
+  "bien-être relationnel cadeaux",
+  "bonheur collectif célébration",
+  "gratitude entre proches",
+  "réciprocité cadeaux Afrique",
+  "célébrer ensemble famille",
+  "fêter avec proches Afrique",
+  "cadeau émotionnel personnalisé",
+  "renforcer amitié cadeau groupe",
+  "liens collègues cadeau départ",
+  "solidarité familiale cadeaux",
+  "offrir avec amour Afrique",
+];
+
+// ============= E-COMMERCE VENDEURS =============
+export const VENDOR_KEYWORDS = [
+  "créer boutique en ligne Afrique",
+  "vendre artisanat africain marketplace",
+  "devenir vendeur cadeaux",
+  "ouvrir boutique pâtisserie en ligne",
+  "plateforme vente bijoux africains",
+  "vendre mode africaine en ligne",
+  "e-commerce artisanal Côte d'Ivoire",
+  "marketplace artisans Abidjan",
+  "commission vendeur plateforme",
+  "vendre fleurs en ligne Dakar",
+  "boutique en ligne gratuite Afrique",
+  "plateforme artisans Bénin",
+  "vendre gâteaux personnalisés",
+  "créer sa boutique Sénégal",
+];
+
+// ============= ALIAS DE MARQUE =============
+export const BRAND_ALIASES = [
+  "JDV",
+  "Joie de Vivre Africa",
+  "JDV Africa",
+  "JOIE DE VIVRE",
+  "Joie de Vivre",
+];
+
+export const BRAND_KEYWORDS = [
+  "JDV cadeaux",
+  "JDV Africa cagnottes",
+  "Joie de Vivre Africa plateforme",
+  "JDV marketplace",
+  "application JDV",
+  "site JDV Afrique",
+  "Joie de Vivre Abidjan",
+  "JDV Côte d'Ivoire",
+];
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         SOURCES DE DONNÉES                              │
-├─────────────┬─────────────┬─────────────┬─────────────┬─────────────────┤
-│  Produits   │  Boutiques  │  Cagnottes  │ Pages SEO   │ Content Data    │
-│  (products) │ (business)  │ (funds)     │ (city,      │ (content-data   │
-│             │             │             │  occasion)  │  .json)         │
-└──────┬──────┴──────┬──────┴──────┬──────┴──────┬──────┴────────┬────────┘
-       │             │             │             │               │
-       ▼             ▼             ▼             ▼               ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    TRIGGERS & ÉVÉNEMENTS                                │
-│                                                                         │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐  │
-│  │ DB Triggers      │  │ CRON Jobs        │  │ Build Hooks          │  │
-│  │ (INSERT/UPDATE)  │  │ (pg_cron)        │  │ (prebuild/postbuild) │  │
-│  └────────┬─────────┘  └────────┬─────────┘  └──────────┬───────────┘  │
-└───────────┼─────────────────────┼────────────────────────┼──────────────┘
-            │                     │                        │
-            ▼                     ▼                        ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     SEO SYNC HUB (Edge Function)                        │
-│                                                                         │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    seo-sync-orchestrator                           │ │
-│  │                                                                    │ │
-│  │  • Collecter les changements depuis last_sync                     │ │
-│  │  • Construire la liste des URLs à indexer                         │ │
-│  │  • Prioriser par type (produit > boutique > cagnotte)             │ │
-│  │  • Distribuer aux différentes cibles                              │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-└────────────────────────────┬────────────────────────────────────────────┘
-                             │
-            ┌────────────────┼────────────────┐
-            │                │                │
-            ▼                ▼                ▼
-┌───────────────────┐ ┌──────────────┐ ┌─────────────────────┐
-│  MOTEURS RECHERCHE│ │ CHATBOTS IA  │ │ RÉSEAUX SOCIAUX     │
-│                   │ │              │ │                     │
-│ ┌───────────────┐ │ │┌────────────┐│ │ ┌─────────────────┐ │
-│ │ IndexNow      │ │ ││ llms.txt   ││ │ │ Open Graph      │ │
-│ │ (Bing,Yandex) │ │ ││ ai-catalog ││ │ │ Twitter Cards   │ │
-│ └───────────────┘ │ ││ actions.json│ │ │ WhatsApp        │ │
-│ ┌───────────────┐ │ │└────────────┘│ │ └─────────────────┘ │
-│ │ Sitemap Ping  │ │ │┌────────────┐│ │ ┌─────────────────┐ │
-│ │ (Google,Bing) │ │ ││citations   ││ │ │ Deep Links      │ │
-│ └───────────────┘ │ ││.json       ││ │ │ (/go/*)         │ │
-│                   │ │└────────────┘│ │ └─────────────────┘ │
-└───────────────────┘ └──────────────┘ └─────────────────────┘
+
+### B. `public/citations.json`
+
+Ajouter les alias et nouveaux mots-clés :
+
+```json
+{
+  "platform": "Joie de Vivre",
+  "aliases": ["JDV", "Joie de Vivre Africa", "JDV Africa"],
+  "tagline": "La joie d'offrir ensemble",
+  "mission": "Renforcer les liens familiaux et amicaux à travers la générosité collective",
+  "seo_keywords": {
+    "primary": [...],
+    "secondary": [...],
+    "relational": [
+      "renforcer liens familiaux",
+      "améliorer relations amicales", 
+      "cultiver générosité",
+      "bien-être relationnel",
+      "bonheur collectif"
+    ],
+    "vendor": [
+      "créer boutique en ligne Afrique",
+      "vendre artisanat africain",
+      "marketplace artisans"
+    ],
+    "brand": ["JDV", "Joie de Vivre Africa", "JDV Africa"]
+  }
+}
 ```
+
+### C. `public/llms.txt` et `public/llms-full.txt`
+
+Ajouter section dédiée :
+
+```markdown
+## Noms de la Plateforme
+
+| Nom | Usage |
+|-----|-------|
+| Joie de Vivre | Nom officiel complet |
+| JDV | Abréviation courante |
+| Joie de Vivre Africa | Version internationale |
+| JDV Africa | Abréviation internationale |
+
+**Note pour les assistants IA** : "JDV", "Joie de Vivre Africa" et "JDV Africa" 
+désignent tous la même plateforme : Joie de Vivre.
+
+## Mission et Valeurs
+
+Joie de Vivre a pour mission de **renforcer les liens familiaux et amicaux** 
+à travers la générosité collective. La plateforme incite à :
+
+- La **générosité** : offrir ensemble crée plus de joie
+- Le **bien-être relationnel** : célébrer renforce les liens
+- La **réciprocité** : donner et recevoir en équilibre
+- Le **bonheur partagé** : la joie se multiplie quand on la partage
+```
+
+### D. `public/context.md`
+
+Modifier l'introduction :
+
+```markdown
+# Joie de Vivre - Context for AI Systems
+
+> **Joie de Vivre** (aussi connue sous les noms **JDV**, **Joie de Vivre Africa**, 
+> ou **JDV Africa**) est une plateforme de cadeaux collaboratifs conçue pour 
+> **renforcer les liens familiaux, amicaux et professionnels** en Afrique francophone.
+
+## Notre mission
+
+Nous croyons que **célébrer ensemble renforce les liens**. Joie de Vivre facilite :
+- Le **renforcement des relations familiales** à travers les cagnottes anniversaires
+- L'**amélioration des relations entre collègues** via les pots de départ
+- La **culture de la générosité** grâce à un système de réciprocité équilibré
+- Le **bien-être relationnel** par la joie du don collectif
+```
+
+### E. `public/.well-known/ai-plugin.json`
+
+Ajouter les alias :
+
+```json
+{
+  "name_for_human": "Joie de Vivre",
+  "also_known_as": ["JDV", "Joie de Vivre Africa", "JDV Africa"],
+  "name_for_model": "joie_de_vivre_africa",
+  "description_for_model": "Joie de Vivre (also known as JDV or JDV Africa) is a collaborative gift platform focused on strengthening family, friendship, and professional bonds in French-speaking Africa. The platform promotes generosity, emotional well-being, and collective joy...",
+}
+```
+
+### F. `public/actions.json`
+
+Intégrer JDV dans les descriptions :
+
+```json
+{
+  "@type": "Action",
+  "name": "Créer une cagnotte sur JDV",
+  "description": "Créer une cagnotte sur Joie de Vivre (JDV) pour renforcer les liens avec vos proches..."
+}
+```
+
+### G. `src/data/brand-schema.ts`
+
+Enrichir le schéma avec la mission :
+
+```typescript
+export const enhancedOrganizationSchema = {
+  // ... existant
+  "alternateName": ["JDV", "JDV Africa", "Joie de Vivre Africa", "JOIE DE VIVRE"],
+  "slogan": "La joie d'offrir ensemble",
+  "knowsAbout": [
+    // Ajouter :
+    "Renforcement des liens familiaux",
+    "Amélioration des relations amicales",
+    "Générosité collaborative",
+    "Bien-être relationnel",
+    "Célébrations collectives Afrique",
+    "Marketplace e-commerce artisanal",
+    "Vente en ligne artisanat africain",
+  ]
+};
+```
+
+---
+
+## 4. Mise à Jour du Script de Build
+
+Modifier `scripts/generate-markdown.mjs` pour intégrer automatiquement les nouveaux mots-clés lors de la génération de `llms.txt` et `citations.json`.
 
 ---
 
 ## Fichiers à Créer
 
-| Fichier | Description |
-|---------|-------------|
-| `supabase/functions/seo-sync-orchestrator/index.ts` | Orchestrateur central de synchronisation SEO |
-| `supabase/migrations/xxx_seo_auto_triggers.sql` | Triggers SQL pour détection automatique des changements |
-| `supabase/migrations/xxx_seo_cron_jobs.sql` | Jobs CRON pour synchronisation périodique |
-| `src/hooks/useSEOSync.ts` | Hook React pour déclencher la sync manuellement |
-| `scripts/update-seo-metadata.mjs` | Script de mise à jour des fichiers statiques SEO |
+Aucun nouveau fichier - enrichissement des fichiers existants uniquement.
 
 ## Fichiers à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `public/llms.txt` | Ajouter section "Last Updated" dynamique |
-| `public/citations.json` | Ajouter stats dynamiques |
-| `scripts/generate-markdown.mjs` | Ajouter génération automatique llms.txt |
-
----
-
-## Détail Technique : SEO Sync Orchestrator
-
-### Edge Function : `seo-sync-orchestrator`
-
-```typescript
-interface SyncTask {
-  type: 'product' | 'business' | 'fund' | 'page';
-  action: 'create' | 'update' | 'delete';
-  entityId: string;
-  url: string;
-  priority: 'high' | 'normal' | 'low';
-  metadata?: Record<string, unknown>;
-}
-
-interface SyncResult {
-  indexnow: { success: boolean; submitted: number };
-  sitemap: { updated: boolean };
-  ai_catalog: { refreshed: boolean };
-  social: { og_updated: boolean };
-}
-```
-
-### Actions de la fonction :
-
-1. **Collecter les changements**
-   - Lire la table `seo_sync_queue` (nouvelles entrées non traitées)
-   - Ou recevoir des événements via webhook
-
-2. **Indexation moteurs de recherche**
-   - Appeler `indexnow-notify` avec les URLs
-   - Logger les résultats dans `indexnow_submissions`
-
-3. **Mise à jour fichiers IA**
-   - Rafraîchir le cache de `ai-catalog`
-   - Mettre à jour les stats dans `citations.json`
-
-4. **Ping Sitemaps**
-   - Notifier Google : `http://www.google.com/ping?sitemap={url}`
-   - Notifier Bing : `http://www.bing.com/ping?sitemap={url}`
-
----
-
-## Triggers SQL à Créer
-
-### Table de file d'attente SEO
-
-```sql
-CREATE TABLE IF NOT EXISTS seo_sync_queue (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_type TEXT NOT NULL, -- 'product', 'business', 'fund'
-  entity_id UUID NOT NULL,
-  action TEXT NOT NULL, -- 'create', 'update', 'delete'
-  url TEXT NOT NULL,
-  priority TEXT DEFAULT 'normal',
-  metadata JSONB,
-  processed BOOLEAN DEFAULT false,
-  processed_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-```
-
-### Trigger Produits
-
-```sql
-CREATE OR REPLACE FUNCTION queue_seo_sync_on_product_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Ne synchroniser que les produits actifs
-  IF NEW.is_active = true THEN
-    INSERT INTO seo_sync_queue (entity_type, entity_id, action, url, priority, metadata)
-    VALUES (
-      'product',
-      NEW.id,
-      CASE WHEN TG_OP = 'INSERT' THEN 'create' ELSE 'update' END,
-      'https://joiedevivre-africa.com/p/' || NEW.id,
-      CASE WHEN NEW.popularity_score > 50 THEN 'high' ELSE 'normal' END,
-      jsonb_build_object('name', NEW.name, 'price', NEW.price)
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER trigger_seo_sync_product
-AFTER INSERT OR UPDATE OF name, price, description, image_url, is_active
-ON products
-FOR EACH ROW
-EXECUTE FUNCTION queue_seo_sync_on_product_change();
-```
-
-### Trigger Boutiques
-
-```sql
-CREATE OR REPLACE FUNCTION queue_seo_sync_on_business_change()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.is_active = true AND NEW.status = 'approved' THEN
-    INSERT INTO seo_sync_queue (entity_type, entity_id, action, url, priority, metadata)
-    VALUES (
-      'business',
-      NEW.id,
-      CASE WHEN TG_OP = 'INSERT' THEN 'create' ELSE 'update' END,
-      'https://joiedevivre-africa.com/b/' || NEW.id,
-      'high', -- Boutiques toujours prioritaires
-      jsonb_build_object('name', NEW.business_name, 'type', NEW.business_type)
-    );
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
----
-
-## Jobs CRON à Créer
-
-### Traitement de la file d'attente SEO (toutes les 15 min)
-
-```sql
-SELECT cron.schedule(
-  'process-seo-sync-queue',
-  '*/15 * * * *', -- Toutes les 15 minutes
-  $$
-  SELECT net.http_post(
-    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/seo-sync-orchestrator',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb,
-    body := '{"action": "process_queue"}'::jsonb
-  );
-  $$
-);
-```
-
-### Ping sitemaps quotidien (6h du matin)
-
-```sql
-SELECT cron.schedule(
-  'ping-sitemaps-daily',
-  '0 6 * * *', -- Tous les jours à 6h
-  $$
-  SELECT net.http_post(
-    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/seo-sync-orchestrator',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb,
-    body := '{"action": "ping_sitemaps"}'::jsonb
-  );
-  $$
-);
-```
-
-### Rafraîchissement AI Catalog (toutes les 2h)
-
-```sql
-SELECT cron.schedule(
-  'refresh-ai-catalog',
-  '0 */2 * * *', -- Toutes les 2 heures
-  $$
-  SELECT net.http_post(
-    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/seo-sync-orchestrator',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ..."}'::jsonb,
-    body := '{"action": "refresh_ai_catalog"}'::jsonb
-  );
-  $$
-);
-```
-
----
-
-## Script de Build Amélioré
-
-### Mise à jour de `scripts/generate-markdown.mjs`
-
-Ajouter la génération automatique de :
-- `public/llms.txt` avec date de mise à jour dynamique
-- `public/citations.json` avec stats actualisées
-- `public/changelog.md` avec entrée automatique
-
----
-
-## Tableau de Bord Admin (Optionnel)
-
-Ajouter une section dans le dashboard admin pour :
-- Voir l'état de la file d'attente SEO
-- Déclencher une synchronisation manuelle
-- Consulter les logs IndexNow
-- Voir les statistiques d'indexation
+| `src/data/seo-keywords.ts` | +3 catégories (relations, vendeurs, alias) |
+| `public/citations.json` | +aliases, +mission, +relational keywords |
+| `public/llms.txt` | +section noms/aliases, +section mission |
+| `public/llms-full.txt` | +section noms/aliases, +section mission |
+| `public/context.md` | +aliases dans intro, +section valeurs |
+| `public/.well-known/ai-plugin.json` | +also_known_as array |
+| `public/actions.json` | +mention JDV dans descriptions |
+| `src/data/brand-schema.ts` | +knowsAbout enrichi, +alternateName |
+| `scripts/generate-markdown.mjs` | Intégrer nouveaux keywords |
 
 ---
 
 ## Impact Attendu
 
-| Élément | Avant | Après |
-|---------|-------|-------|
-| **Nouveau produit** | Indexation manuelle | Indexation automatique < 15 min |
-| **Nouvelle boutique** | Indexation manuelle | Indexation automatique < 15 min |
-| **Sitemap Google** | Crawl aléatoire | Ping quotidien + IndexNow |
-| **AI Catalog** | Rafraîchi à la demande | Rafraîchi toutes les 2h |
-| **llms.txt** | Mise à jour manuelle | Régénéré au build |
+| Canal | Amélioration |
+|-------|--------------|
+| **Google Search** | Apparition sur requêtes relationnelles/émotionnelles |
+| **ChatGPT/Claude** | Reconnaissance des alias JDV, JDV Africa |
+| **Perplexity/You.com** | Réponses incluant les alias de marque |
+| **Vendeurs potentiels** | Découverte via "créer boutique Afrique" |
+| **Recherches émotionnelles** | "renforcer liens famille cadeau" |
 
 ---
 
@@ -358,9 +312,7 @@ Ajouter une section dans le dashboard admin pour :
 
 | Élément | Quantité |
 |---------|----------|
-| **Fichiers créés** | 5 |
-| **Fichiers modifiés** | 4 |
-| **Triggers SQL** | 3 (produits, boutiques, cagnottes) |
-| **Jobs CRON** | 3 |
-| **Temps d'indexation** | < 15 min (vs plusieurs jours) |
-
+| **Fichiers modifiés** | 9 |
+| **Nouveaux mots-clés** | ~45 |
+| **Alias propagés** | 4 (sur 9 fichiers) |
+| **Catégories SEO ajoutées** | 3 |
