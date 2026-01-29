@@ -1,180 +1,248 @@
 
-# Amélioration des Mots-Clés et Meta Tags SEO
+
+# Stratégie de Contenu Réseaux Sociaux - JOIE DE VIVRE
+
+## Objectif
+
+Créer un système centralisé de templates de posts et hashtags pour faciliter le partage cohérent sur les réseaux sociaux par les utilisateurs, vendeurs et l'équipe marketing.
+
+---
 
 ## Analyse de l'Existant
 
 ### Points forts actuels
-- Composant `SEOHead.tsx` bien structuré avec support complet (OG, Twitter, AI tags)
-- Configuration centralisée `SEO_CONFIGS` pour les pages principales
-- Tags AI/LLM (ai-content-type, ai-summary, ai-keywords)
-- Support multi-pages : landing, shop, about, faq, funds, product, business
+- `seo-keywords.ts` : Base centralisée de mots-clés (core, occasions, villes, produits, paiements)
+- Composants de partage : `ProductShareMenu`, `BusinessShareMenu`, `ShareFundModal`
+- Messages pré-configurés dans `QuickBusinessShareMenu` (6 suggestions)
+- Templates de cartes : `ProductShareCard`, `CollectiveFundShareCard`
+- Tracking des partages avec analytics Google
 
 ### Lacunes identifiées
-
-| Zone | Problème |
-|------|----------|
-| Keywords Landing | Manque termes : "financement participatif", "crowdfunding cadeau", "cotisation groupe" |
-| Keywords Shop | Manque : "panier cadeau", "livraison Abidjan", "commande en ligne Afrique" |
-| Keywords Produit | Génériques, pas de catégorie dynamique |
-| Keywords Cagnotte | Pas de termes "pot commun", "collecte argent", "financer cadeau" |
-| Long-tail | Aucune phrase clé longue ("où acheter cadeau anniversaire Abidjan") |
-| Villes secondaires | Keywords insuffisants pour Bouaké, Yamoussoukro, Porto-Novo |
-| Occasions | Pas de keywords spécifiques Tabaski, Pâques, Fête des Pères |
-| Concurrence | Termes génériques vs. différenciateurs ("sans commission", "100% mobile") |
+| Élément | Problème |
+|---------|----------|
+| **Hashtags** | Aucune base centralisée de hashtags |
+| **Templates posts** | Pas de templates variés par occasion/plateforme |
+| **Calendrier contenu** | Pas de suggestions par événement du calendrier |
+| **Emojis standardisés** | Utilisation inconsistante |
+| **Appels à l'action** | CTAs génériques, pas adaptés par plateforme |
+| **Vendeurs** | Templates limités (6), pas par catégorie produit |
 
 ---
 
 ## Plan d'Implémentation
 
-### 1. Enrichir `SEO_CONFIGS` dans `SEOHead.tsx`
+### 1. Créer `src/data/social-media-content.ts`
 
-Ajouter des mots-clés manquants à chaque configuration existante.
+Fichier central contenant :
 
-**Landing Page (actuel → enrichi) :**
+**1.1 Base de Hashtags par catégorie**
 ```typescript
-// AVANT
-keywords: "cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau groupe Afrique..."
-
-// APRÈS
-keywords: "cadeaux Abidjan, cagnotte anniversaire Côte d'Ivoire, cadeau groupe Afrique, pot commun en ligne, cotisation cadeau collectif, financement participatif cadeau, crowdfunding anniversaire Afrique, collecte argent mariage, offrir ensemble cadeau, cagnotte sans frais, Orange Money cadeaux"
-```
-
-**Shop/Marketplace (enrichi) :**
-```typescript
-keywords: "boutique cadeaux Abidjan, artisanat Côte d'Ivoire, bijoux africains, cadeaux locaux Afrique, mode ivoirienne, panier cadeau en ligne, livraison express Abidjan, commande cadeau WhatsApp, achat Mobile Money, artisans vérifiés, cadeaux personnalisés Afrique"
-```
-
-**Cagnottes Publiques (enrichi) :**
-```typescript
-keywords: "cagnotte collective, cadeau groupe, anniversaire, mariage, contribution, pot commun Afrique, collecte cadeau en ligne, financer ensemble, cotisation groupe cadeau, cagnotte participative"
-```
-
-### 2. Créer un fichier de keywords centralisé
-
-**Fichier :** `src/data/seo-keywords.ts`
-
-Centraliser tous les mots-clés par catégorie pour faciliter la maintenance et l'utilisation dynamique.
-
-```typescript
-export const SEO_KEYWORDS = {
-  // Termes principaux
-  core: [
-    "cadeaux collaboratifs",
-    "cagnotte collective",
-    "pot commun en ligne",
-    "cadeau groupe",
-  ],
+export const HASHTAGS = {
+  // Hashtags de marque (toujours inclus)
+  brand: ['#JoieDeVivre', '#JDVAfrica', '#CadeauxCollaboratifs'],
   
-  // Par type d'occasion
-  occasions: {
-    birthday: ["cagnotte anniversaire", "cadeau anniversaire groupe", "surprise anniversaire"],
-    wedding: ["cagnotte mariage", "cadeau mariage collectif", "liste de mariage Afrique"],
-    baby: ["cagnotte naissance", "cadeau bébé groupe", "baby shower Afrique"],
-    graduation: ["cagnotte diplôme", "cadeau réussite examen"],
-    promotion: ["cagnotte promotion", "cadeau collègue", "pot de départ"],
-    religious: ["cagnotte Tabaski", "cadeau Noël collectif", "Pâques Afrique"],
-  },
+  // Par plateforme
+  instagram: ['#CadeauxAbidjan', '#ArtisanatAfricain', '#MadeInAfrica'],
+  twitter: ['#GiftPooling', '#AfricaGifts'],
+  facebook: ['#CadeauxGroupe', '#FêteAfrique'],
+  tiktok: ['#AfricanGifts', '#CadeauTikTok', '#GiftTok'],
+  linkedin: ['#FintechAfrica', '#Ecommerce', '#StartupCI'],
+  
+  // Par occasion
+  birthday: ['#AnniversaireAfrique', '#CagnotteAnniversaire', '#SurpriseParty'],
+  wedding: ['#MariageAfricain', '#CagnotteMariage', '#ListeDeMariage'],
+  baby: ['#BabyShowerAfrique', '#CagnotteNaissance'],
+  graduation: ['#Diplomé', '#RéussiteExamen', '#FiertéAfricaine'],
+  promotion: ['#Promotion', '#RéussitePro', '#PotDeDépart'],
+  tabaski: ['#Tabaski', '#AidElKebir', '#FêteDesProches'],
   
   // Par ville
-  cities: {
-    abidjan: ["cadeaux Abidjan", "livraison Cocody", "artisans Yopougon", "boutique Plateau"],
-    cotonou: ["cadeaux Cotonou", "artisanat Dantokpa", "livraison Bénin"],
-    dakar: ["cadeaux Dakar", "artisanat sénégalais", "teranga cadeaux"],
-    bouake: ["cadeaux Bouaké", "artisanat baoulé", "région Gbêkê"],
-  },
+  abidjan: ['#Abidjan', '#CIV', '#TeamCI', '#Babi'],
+  cotonou: ['#Cotonou', '#Benin', '#BeninTourism'],
+  dakar: ['#Dakar', '#Senegal', '#Teranga'],
   
   // Par catégorie produit
-  products: {
-    mode: ["mode africaine", "boubou wax", "pagne tissé", "vêtements traditionnels"],
-    bijoux: ["bijoux africains", "or artisanal", "perles africaines", "collier fait-main"],
-    gastronomie: ["gâteau personnalisé Abidjan", "panier gourmand Afrique", "chocolat artisanal"],
-    fleurs: ["fleuriste Abidjan", "bouquet livraison", "compositions florales"],
-  },
-  
-  // Paiements (différenciateur)
-  payment: [
-    "Orange Money cadeaux",
-    "MTN Mobile Money",
-    "Wave paiement",
-    "paiement mobile Afrique",
-    "sans carte bancaire",
-  ],
-  
-  // Long-tail (questions utilisateurs)
-  longTail: [
-    "où acheter cadeau anniversaire Abidjan",
-    "comment créer cagnotte en ligne Afrique",
-    "meilleur site cadeau collectif Côte d'Ivoire",
-    "offrir cadeau groupe sans frais",
-    "artisans locaux cadeaux personnalisés",
-  ],
-};
-
-// Helper pour générer une chaîne de keywords
-export function buildKeywords(categories: (keyof typeof SEO_KEYWORDS)[]): string {
-  return categories
-    .flatMap(cat => Array.isArray(SEO_KEYWORDS[cat]) 
-      ? SEO_KEYWORDS[cat] 
-      : Object.values(SEO_KEYWORDS[cat]).flat())
-    .slice(0, 20) // Limite pour éviter le keyword stuffing
-    .join(", ");
+  mode: ['#ModeAfricaine', '#WaxPrint', '#AfricanFashion'],
+  bijoux: ['#BijouxAfricains', '#Handmade', '#AfricanJewelry'],
+  gastronomie: ['#FoodAbidjan', '#GâteauPersonnalisé', '#TraiteurCI'],
 }
 ```
 
-### 3. Enrichir les Meta Tags des Pages Dynamiques
-
-**ProductPreview.tsx - Keywords dynamiques par catégorie :**
+**1.2 Templates de Posts par Type**
 ```typescript
-// AVANT
-keywords={`${product.name}, cadeau Abidjan, ${product.vendor_name}, boutique Côte d'Ivoire, cadeaux Afrique`}
-
-// APRÈS (avec catégorie)
-keywords={`${product.name}, ${product.category || 'cadeau'} Abidjan, ${product.vendor_name}, artisanat ivoirien, idée cadeau ${product.category?.toLowerCase() || ''}, livraison Côte d'Ivoire, achat Mobile Money`}
+export const POST_TEMPLATES = {
+  // Templates pour produits (vendeurs)
+  product: {
+    nouveau: {
+      text: "🆕 Nouveau produit disponible !\n\n{product_name}\n💰 {price} {currency}\n\n📍 Livraison à {city}\n💳 Paiement {payment}\n\n👉 {url}",
+      emoji: "🆕",
+    },
+    promotion: {
+      text: "🔥 Offre spéciale !\n\n{product_name}\n💰 {price} {currency}\n\n⏰ Offre limitée\n📍 {city}\n\n👉 {url}",
+      emoji: "🔥",
+    },
+    bestseller: {
+      text: "⭐ Notre best-seller !\n\n{product_name}\n💰 {price} {currency}\n\n❤️ Adoré par nos clients\n📍 {city}\n\n👉 {url}",
+      emoji: "⭐",
+    },
+    // ... autres templates
+  },
+  
+  // Templates pour cagnottes
+  fund: {
+    creation: {
+      text: "🎁 J'organise une cagnotte pour {beneficiary} !\n\n{occasion_emoji} {occasion}\n🎯 Objectif : {target} {currency}\n\n💝 Chaque contribution compte !\n\n👉 Participez ici : {url}",
+      emoji: "🎁",
+    },
+    milestone: {
+      text: "🎉 Déjà {percent}% de notre objectif atteint !\n\n🎁 Cagnotte pour {beneficiary}\n💰 {current}/{target} {currency}\n\n🙏 Merci à tous les contributeurs !\n\n👉 {url}",
+      emoji: "🎉",
+    },
+    lastChance: {
+      text: "⏰ Derniers jours pour contribuer !\n\n🎁 Cagnotte pour {beneficiary}\n📅 Fin : {deadline}\n💰 Il manque {remaining} {currency}\n\n👉 {url}",
+      emoji: "⏰",
+    },
+  },
+  
+  // Templates par occasion
+  occasions: {
+    birthday: {
+      text: "🎂 L'anniversaire de {name} approche !\n\nCréons ensemble une belle surprise 🎁\n\n💝 Chaque contribution compte\n📅 Le {date}\n\n👉 {url}",
+      hashtags: ['birthday', 'brand'],
+    },
+    wedding: {
+      text: "💒 {names} se marient !\n\nContribuez à leur liste de mariage ✨\n\n🎁 Offrons-leur un cadeau inoubliable\n📅 {date}\n\n👉 {url}",
+      hashtags: ['wedding', 'brand'],
+    },
+    // ... autres occasions
+  },
+}
 ```
 
-**FundPreview.tsx - Keywords par occasion :**
+**1.3 Calendrier Marketing**
 ```typescript
-// AVANT
-keywords={`cagnotte ${fund.occasion || 'collective'}, cadeau groupe, contribution en ligne`}
-
-// APRÈS
-keywords={`cagnotte ${fund.occasion || 'collective'}, pot commun ${fund.occasion || ''}, cotisation cadeau, financer ensemble, collecte argent ${fund.occasion || 'cadeau'}, offrir à plusieurs Afrique`}
+export const MARKETING_CALENDAR = {
+  // Événements récurrents Afrique de l'Ouest
+  january: [
+    { day: 1, event: "Nouvel An", template: "celebration", hashtags: ['brand'] },
+  ],
+  february: [
+    { day: 14, event: "Saint-Valentin", template: "love", hashtags: ['#Love', '#Valentine'] },
+  ],
+  march: [
+    { day: 8, event: "Journée de la Femme", template: "women", hashtags: ['#8Mars', '#WomenPower'] },
+  ],
+  may: [
+    { day: null, event: "Fête des Mères", template: "mothersDay", hashtags: ['mothersDay', 'brand'] },
+  ],
+  june: [
+    { day: null, event: "Fête des Pères", template: "fathersDay", hashtags: ['#FêteDesPères', '#Papa'] },
+    { day: null, event: "Korité/Eid al-Fitr", template: "religious", hashtags: ['#Korité', '#EidMubarak'] },
+  ],
+  december: [
+    { day: 25, event: "Noël", template: "christmas", hashtags: ['#Noël', '#Christmas'] },
+    { day: 31, event: "Réveillon", template: "newYear", hashtags: ['#Réveillon', '#NewYear'] },
+  ],
+  // Tabaski - Date variable
+  variable: [
+    { event: "Tabaski/Eid al-Adha", template: "tabaski", hashtags: ['tabaski', 'brand'] },
+    { event: "Rentrée Scolaire", template: "backToSchool", hashtags: ['#RentréeScolaire', '#École'] },
+  ],
+};
 ```
 
-### 4. Enrichir les Pages Villes (city-pages.ts)
-
-Ajouter des mots-clés long-tail et différenciateurs pour chaque ville.
-
-**Exemple Abidjan (enrichi) :**
+**1.4 Helper Functions**
 ```typescript
-keywords: [
-  // Existants
-  'cadeaux Abidjan',
-  'cagnotte anniversaire Cocody',
-  // Nouveaux - Long-tail
-  'où acheter cadeau Abidjan livraison rapide',
-  'meilleur site cagnotte Côte d\'Ivoire',
-  'artisans locaux cadeaux uniques Abidjan',
-  // Nouveaux - Paiement
-  'payer cadeau Orange Money',
-  'achat sans carte bancaire Abidjan',
-  // Nouveaux - Occasions locales
-  'cadeau Fête des Mères Abidjan',
-  'cagnotte Tabaski Côte d\'Ivoire',
-]
+// Génère les hashtags pour un post
+export function buildHashtags(
+  categories: (keyof typeof HASHTAGS)[],
+  limit = 10
+): string {
+  return categories
+    .flatMap(cat => HASHTAGS[cat] || [])
+    .slice(0, limit)
+    .join(' ');
+}
+
+// Génère un post complet avec template
+export function generatePost(
+  templateType: keyof typeof POST_TEMPLATES,
+  templateName: string,
+  variables: Record<string, string>,
+  platform: 'instagram' | 'facebook' | 'twitter' | 'whatsapp' = 'instagram'
+): { text: string; hashtags: string } {
+  // ... logique de génération
+}
+
+// Adapte un post par plateforme
+export function adaptForPlatform(
+  text: string,
+  platform: string
+): string {
+  // Twitter: tronquer à 280 caractères
+  // WhatsApp: format simple sans hashtags
+  // Instagram: limite 30 hashtags
+  // ...
+}
 ```
 
-### 5. Enrichir llms-full.txt avec Mots-Clés Supplémentaires
+### 2. Créer `src/components/SocialPostGenerator.tsx`
 
-Ajouter une section "Termes de Recherche Alternatifs" pour les AI crawlers.
+Composant UI pour générer des posts (accessible aux vendeurs et équipe marketing) :
 
-### 6. Enrichir context.md
+```typescript
+interface SocialPostGeneratorProps {
+  type: 'product' | 'fund' | 'general';
+  data: ProductData | FundData;
+  onCopy: (text: string) => void;
+}
+```
 
-Ajouter des phrases naturelles contenant les mots-clés pour le contexte conversationnel des LLMs.
+**Fonctionnalités :**
+- Sélection de template par catégorie
+- Preview du post généré
+- Sélection des hashtags à inclure
+- Boutons de copie par plateforme
+- Compteur de caractères (utile pour Twitter)
 
-### 7. Mettre à jour index.html
+### 3. Modifier les Composants de Partage Existants
 
-Enrichir les meta keywords statiques dans le `<head>` avec les nouveaux termes.
+**3.1 `ProductShareMenu.tsx`**
+- Intégrer les nouveaux templates de `social-media-content.ts`
+- Ajouter bouton "Copier avec hashtags"
+- Preview avec hashtags suggérés
+
+**3.2 `QuickBusinessShareMenu.tsx`**
+- Remplacer les 6 suggestions statiques par les templates dynamiques
+- Ajouter sélection de hashtags par catégorie produit
+- Suggestion intelligente basée sur la catégorie
+
+**3.3 `ShareFundModal.tsx`**
+- Intégrer les templates de cagnottes
+- Hashtags automatiques par occasion
+
+### 4. Enrichir les Hooks de Partage
+
+**4.1 `useProductShares.ts`**
+```typescript
+// Ajouter méthode pour générer le message complet
+const getFullShareMessage = (
+  template: string = 'nouveau',
+  includeHashtags: boolean = true
+) => {
+  // Utilise social-media-content.ts
+};
+```
+
+### 5. Créer Section Marketing dans Dashboard Admin
+
+**Fichier** : `src/pages/Admin/MarketingContent.tsx`
+
+Dashboard pour l'équipe marketing :
+- Visualiser les templates disponibles
+- Prévisualiser les posts par plateforme
+- Calendrier des événements avec templates suggérés
+- Statistiques des hashtags les plus performants
 
 ---
 
@@ -182,66 +250,115 @@ Enrichir les meta keywords statiques dans le `<head>` avec les nouveaux termes.
 
 | Action | Fichier | Description |
 |--------|---------|-------------|
-| Créer | `src/data/seo-keywords.ts` | Base centralisée de mots-clés |
-| Modifier | `src/components/SEOHead.tsx` | Enrichir SEO_CONFIGS |
-| Modifier | `src/pages/ProductPreview.tsx` | Keywords dynamiques par catégorie |
-| Modifier | `src/pages/FundPreview.tsx` | Keywords par occasion |
-| Modifier | `src/data/city-pages.ts` | Keywords long-tail par ville |
-| Modifier | `public/llms-full.txt` | Section termes alternatifs |
-| Modifier | `public/context.md` | Phrases naturelles SEO |
-| Modifier | `index.html` | Meta keywords enrichis |
+| **Créer** | `src/data/social-media-content.ts` | Base centralisée hashtags + templates |
+| **Créer** | `src/components/SocialPostGenerator.tsx` | Générateur de posts UI |
+| Modifier | `src/components/ProductShareMenu.tsx` | Intégrer templates + hashtags |
+| Modifier | `src/components/QuickBusinessShareMenu.tsx` | Templates par catégorie |
+| Modifier | `src/components/ShareFundModal.tsx` | Templates par occasion |
+| **Créer** | `src/hooks/useSocialPost.ts` | Hook pour générer posts |
+| Optionnel | `src/pages/Admin/MarketingContent.tsx` | Dashboard marketing |
 
 ---
 
-## Nouveaux Mots-Clés par Catégorie
+## Exemples de Contenus Générés
 
-### Termes Généraux (Core)
-| Nouveau | Justification |
-|---------|---------------|
-| pot commun en ligne | Terme courant en Afrique francophone |
-| cotisation cadeau | Usage local fréquent |
-| financement participatif cadeau | Version française de "crowdfunding" |
-| collecte argent mariage/anniversaire | Recherche directe |
-| offrir ensemble | Intention collaborative |
+### Template Produit - Instagram
+```
+🆕 Nouveau produit disponible !
 
-### Occasions Spécifiques
-| Occasion | Nouveaux Keywords |
-|----------|-------------------|
-| Tabaski | cagnotte Tabaski, cadeau Aïd, fête religieuse |
-| Fête des Mères | cadeau maman Afrique, fête des mères Abidjan |
-| Noël | cagnotte Noël, cadeau fin d'année collectif |
-| Diplôme | cagnotte baccalauréat, cadeau réussite scolaire |
+Collier en perles Akwaba ✨
+💰 15 000 XOF
 
-### Différenciateurs Concurrentiels
-| Terme | Message |
-|-------|---------|
-| sans frais de création | Gratuit pour l'organisateur |
-| paiement 100% mobile | Pas besoin de carte bancaire |
-| artisans vérifiés | Qualité garantie |
-| livraison express | Rapidité |
+📍 Livraison Abidjan
+💳 Paiement Orange Money, MTN
 
-### Long-Tail (Questions)
-| Question Type | Exemples |
-|---------------|----------|
-| "Où..." | où acheter cadeau anniversaire Abidjan |
-| "Comment..." | comment créer cagnotte collective |
-| "Meilleur..." | meilleur site cadeau groupe Afrique |
-| "Quel..." | quel cadeau offrir collègue promotion |
+👉 joiedevivre-africa.com/p/123
+
+#JoieDeVivre #JDVAfrica #BijouxAfricains #MadeInAfrica #Abidjan #CadeauxAbidjan
+```
+
+### Template Cagnotte - WhatsApp
+```
+🎂 L'anniversaire de Fatou approche !
+
+Créons ensemble une belle surprise 🎁
+
+💝 Chaque contribution compte
+📅 Le 15 février
+
+👉 joiedevivre-africa.com/f/abc123
+```
+
+### Template Mariage - Facebook
+```
+💒 Aminata & Koffi se marient !
+
+Contribuez à leur liste de mariage ✨
+
+🎁 Offrons-leur un cadeau inoubliable
+📅 25 mars 2026
+
+👉 joiedevivre-africa.com/f/wedding123
+
+#JoieDeVivre #MariageAfricain #CagnotteMariage #Abidjan
+```
+
+---
+
+## Hashtags Clés par Catégorie
+
+### Marque (obligatoires)
+- `#JoieDeVivre`
+- `#JDVAfrica`
+- `#CadeauxCollaboratifs`
+
+### Occasions
+| Occasion | Hashtags |
+|----------|----------|
+| Anniversaire | `#AnniversaireAfrique` `#Surprise` `#CagnotteAnniversaire` |
+| Mariage | `#MariageAfricain` `#WeddingCI` `#ListeDeMariage` |
+| Naissance | `#BabyShowerAfrique` `#NouveauNé` `#CagnotteNaissance` |
+| Tabaski | `#Tabaski2026` `#AidElKebir` `#EidMubarak` |
+| Fête des Mères | `#FêteDesMères` `#MamanJeTaime` `#MothersDay` |
+
+### Villes
+| Ville | Hashtags |
+|-------|----------|
+| Abidjan | `#Abidjan` `#TeamCI` `#Babi` `#CIV225` |
+| Cotonou | `#Cotonou` `#Benin229` `#BeninTourism` |
+| Dakar | `#Dakar` `#Senegal` `#Teranga` `#Kebetu` |
+
+### Produits
+| Catégorie | Hashtags |
+|-----------|----------|
+| Mode | `#ModeAfricaine` `#AfricanFashion` `#WaxPrint` `#Bazin` |
+| Bijoux | `#BijouxAfricains` `#AfricanJewelry` `#Handmade` `#OrArtisanal` |
+| Gastronomie | `#FoodAbidjan` `#PâtisserieCI` `#TraiteurAbidjan` |
+
+### Plateformes Spécifiques
+| Plateforme | Hashtags recommandés |
+|------------|----------------------|
+| TikTok | `#GiftTok` `#AfricaTikTok` `#FYP` `#PourtToi` |
+| Instagram | `#InstaGift` `#AfricaGram` `#ExplorePage` |
+| LinkedIn | `#FintechAfrica` `#StartupAfrique` `#EcommerceCI` |
 
 ---
 
 ## Impact Attendu
 
-- **SEO Organique** : Meilleur classement sur requêtes long-tail
-- **AI Search** : Contexte enrichi pour ChatGPT, Perplexity, Claude
-- **Réseaux Sociaux** : Descriptions plus pertinentes lors du partage
-- **Conversion** : Utilisateurs trouvent la plateforme via termes qu'ils utilisent réellement
+- **Cohérence de marque** : Messages uniformes sur toutes les plateformes
+- **Gain de temps** : Vendeurs génèrent posts en 1 clic
+- **SEO Social** : Hashtags optimisés pour la découvrabilité
+- **Engagement** : Templates testés et optimisés par occasion
+- **Marketing** : Calendrier prêt pour les événements clés
 
 ---
 
 ## Estimation
 
-- **Complexité** : Faible à moyenne
-- **Fichiers créés** : 1
-- **Fichiers modifiés** : 7
-- **Nouveaux mots-clés** : 50+
+- **Complexité** : Moyenne
+- **Fichiers créés** : 3 (data, composant, hook)
+- **Fichiers modifiés** : 3 (menus de partage)
+- **Nouveaux hashtags** : 60+
+- **Nouveaux templates** : 20+
+
