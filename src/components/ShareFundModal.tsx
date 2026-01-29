@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -7,6 +7,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
   Facebook, 
@@ -15,7 +16,10 @@ import {
   Download,
   QrCode,
   Share2,
-  Loader2
+  Loader2,
+  Sparkles,
+  Hash,
+  Copy
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,6 +27,8 @@ import { CollectiveFundShareCard } from './CollectiveFundShareCard';
 import { useFundShareCard } from '@/hooks/useFundShareCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
+import { FUND_TEMPLATES, buildHashtags, getOccasionEmoji, type HashtagCategory, HASHTAGS } from '@/data/social-media-content';
+import { useSocialPost } from '@/hooks/useSocialPost';
 
 interface FundData {
   title: string;
@@ -33,6 +39,7 @@ interface FundData {
   productImage?: string;
   productName?: string;
   occasion?: string;
+  deadline?: string;
 }
 
 interface ShareFundModalProps {
@@ -48,6 +55,7 @@ interface ShareFundModalProps {
   beneficiaryName?: string;
   productImage?: string;
   productName?: string;
+  deadline?: string;
 }
 
 export function ShareFundModal({ 
@@ -63,16 +71,50 @@ export function ShareFundModal({
   beneficiaryName,
   productImage,
   productName,
+  deadline,
 }: ShareFundModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { generating, shareImageUrl, generateShareCard, getShareFile, reset } = useFundShareCard();
   const [fundData, setFundData] = useState<FundData | null>(null);
   const [loadingFundData, setLoadingFundData] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('creation');
   const { trackSocialShare } = useGoogleAnalytics();
+  const { generateFundPost } = useSocialPost();
 
   // Use new /f/ URL for sharing (Edge Function with OG meta tags)
   const fundUrl = `${window.location.origin}/f/${fundId}`;
   const shareText = `🎁 Contribuez à cette cagnotte : ${fundTitle}${fundDescription ? ` - ${fundDescription.substring(0, 80)}` : ''}`;
+
+  // Get suggested hashtags based on occasion
+  const suggestedHashtags = useCallback(() => {
+    const categories: HashtagCategory[] = ['brand'];
+    if (occasion) {
+      const occasionKey = occasion.toLowerCase().replace(/[éè]/g, 'e') as HashtagCategory;
+      if (HASHTAGS[occasionKey]) categories.push(occasionKey);
+    }
+    return buildHashtags(categories, { limit: 6 });
+  }, [occasion]);
+
+  // Generate share message using template
+  const getShareMessage = useCallback((platform: 'whatsapp' | 'facebook' | 'instagram' = 'whatsapp') => {
+    if (!fundData) return shareText + '\n' + fundUrl;
+    
+    return generateFundPost(selectedTemplate, {
+      beneficiary: fundData.beneficiaryName,
+      occasion: fundData.occasion || 'cadeau',
+      target: fundData.targetAmount,
+      current: fundData.currentAmount,
+      currency: fundData.currency,
+      deadline: fundData.deadline,
+      url: fundUrl,
+    }, platform);
+  }, [fundData, selectedTemplate, fundUrl, shareText, generateFundPost]);
+
+  // Copy hashtags
+  const copyHashtags = async () => {
+    await navigator.clipboard.writeText(suggestedHashtags());
+    toast.success('Hashtags copiés !');
+  };
 
   // Fetch fund data if not provided via props
   useEffect(() => {
@@ -88,6 +130,7 @@ export function ShareFundModal({
           productImage,
           productName,
           occasion,
+          deadline,
         });
         return;
       }
@@ -104,6 +147,7 @@ export function ShareFundModal({
             current_amount,
             currency,
             occasion,
+            deadline_date,
             products:business_product_id (
               id,
               name,
@@ -130,6 +174,7 @@ export function ShareFundModal({
             productImage: product?.image_url || productImage,
             productName: product?.name || productName,
             occasion: data.occasion || occasion,
+            deadline: data.deadline_date || deadline,
           });
         }
       } catch (err) {
@@ -142,7 +187,7 @@ export function ShareFundModal({
     if (open) {
       fetchFundData();
     }
-  }, [open, fundId, fundTitle, targetAmount, currentAmount, currency, occasion, beneficiaryName, productImage, productName]);
+  }, [open, fundId, fundTitle, targetAmount, currentAmount, currency, occasion, beneficiaryName, productImage, productName, deadline]);
 
   // Generate share card when modal opens and data is ready
   useEffect(() => {
@@ -159,6 +204,7 @@ export function ShareFundModal({
   useEffect(() => {
     if (!open) {
       reset();
+      setSelectedTemplate('creation');
     }
   }, [open, reset]);
 
@@ -201,7 +247,7 @@ export function ShareFundModal({
           if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               title: fundTitle,
-              text: shareText,
+              text: getShareMessage('whatsapp'),
               url: fundUrl,
               files: [file],
             });
@@ -215,7 +261,7 @@ export function ShareFundModal({
         // Fallback to share without image
         await navigator.share({
           title: fundTitle,
-          text: shareText,
+          text: getShareMessage('whatsapp'),
           url: fundUrl,
         });
         trackSocialShare('native', 'fund', fundId);
@@ -243,7 +289,7 @@ export function ShareFundModal({
       color: 'text-green-600',
       bgColor: 'hover:bg-green-50 dark:hover:bg-green-950',
       action: () => {
-        const message = encodeURIComponent(shareText + '\n' + fundUrl);
+        const message = encodeURIComponent(getShareMessage('whatsapp'));
         const url = `https://wa.me/?text=${message}`;
         window.open(url, '_blank', 'noopener,noreferrer');
         trackSocialShare('whatsapp', 'fund', fundId);
@@ -299,10 +345,14 @@ export function ShareFundModal({
           </SheetHeader>
 
           <Tabs defaultValue="share" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="share">
                 <Share2 className="h-4 w-4 mr-2" />
                 Partager
+              </TabsTrigger>
+              <TabsTrigger value="templates">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Modèles
               </TabsTrigger>
               <TabsTrigger value="qrcode">
                 <QrCode className="h-4 w-4 mr-2" />
@@ -352,6 +402,65 @@ export function ShareFundModal({
                 <p className="text-xs text-muted-foreground mb-2">Aperçu du lien :</p>
                 <p className="text-xs font-mono text-foreground break-all">{fundUrl}</p>
               </div>
+            </TabsContent>
+
+            <TabsContent value="templates" className="space-y-4 mt-4">
+              {/* Template selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">📝 Choisir un modèle de message</label>
+                <div className="flex flex-wrap gap-2">
+                  {FUND_TEMPLATES.map((template) => (
+                    <Button
+                      key={template.id}
+                      variant={selectedTemplate === template.id ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => setSelectedTemplate(template.id)}
+                    >
+                      {template.emoji} {template.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Message preview */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Aperçu du message</label>
+                <div className="p-3 bg-muted/30 rounded-lg text-sm whitespace-pre-wrap max-h-40 overflow-y-auto border">
+                  {getShareMessage('whatsapp')}
+                </div>
+              </div>
+
+              {/* Hashtags */}
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground truncate">
+                    {suggestedHashtags()}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs flex-shrink-0"
+                  onClick={copyHashtags}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Copier
+                </Button>
+              </div>
+
+              {/* Copy message button */}
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(getShareMessage('instagram'));
+                  toast.success('Message copié !');
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copier le message
+              </Button>
             </TabsContent>
 
             <TabsContent value="qrcode" className="space-y-4 mt-4">

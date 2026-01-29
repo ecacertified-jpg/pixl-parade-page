@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Share2, 
   MessageCircle, 
@@ -16,10 +17,14 @@ import {
   Copy, 
   Check,
   TrendingUp,
-  Smartphone
+  Smartphone,
+  Hash,
+  Sparkles
 } from "lucide-react";
 import { useProductShares, SharePlatform } from "@/hooks/useProductShares";
 import { toast } from "sonner";
+import { PRODUCT_TEMPLATES, buildHashtags, type HashtagCategory, HASHTAGS } from "@/data/social-media-content";
+import { useSocialPost } from "@/hooks/useSocialPost";
 
 interface QuickBusinessShareMenuProps {
   open: boolean;
@@ -30,19 +35,12 @@ interface QuickBusinessShareMenuProps {
     price: number;
     currency?: string;
     image_url?: string;
+    category?: string;
   };
   businessName: string;
   businessId: string;
+  city?: string;
 }
-
-const businessMessageSuggestions = [
-  { label: "Nouveau", emoji: "🆕", text: "Nouveau produit disponible !" },
-  { label: "Offre", emoji: "🔥", text: "Offre spéciale du jour !" },
-  { label: "Best-seller", emoji: "⭐", text: "Découvrez notre best-seller !" },
-  { label: "Cadeau", emoji: "🎁", text: "Idée cadeau parfaite !" },
-  { label: "Stock limité", emoji: "⚡", text: "Stock limité, profitez-en !" },
-  { label: "Anniversaire", emoji: "🎂", text: "Parfait pour un anniversaire !" },
-];
 
 export function QuickBusinessShareMenu({
   open,
@@ -50,10 +48,14 @@ export function QuickBusinessShareMenu({
   product,
   businessName,
   businessId,
+  city = "Abidjan",
 }: QuickBusinessShareMenuProps) {
   const [customMessage, setCustomMessage] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"templates" | "custom">("templates");
   const { stats, recordShare } = useProductShares(product.id);
+  const { generateProductPost } = useSocialPost();
 
   // Generate trackable share URL
   const getShareUrl = useCallback(() => {
@@ -62,22 +64,35 @@ export function QuickBusinessShareMenu({
   }, [businessId, product.id]);
 
   // Format share message
-  const getShareMessage = useCallback(() => {
+  const getShareMessage = useCallback((platform: SharePlatform = 'whatsapp') => {
+    // If using a template
+    if (selectedTemplate) {
+      return generateProductPost(selectedTemplate, {
+        name: product.name,
+        price: product.price,
+        currency: product.currency || 'XOF',
+        city,
+        category: product.category,
+        url: getShareUrl(),
+      }, platform === 'copy_link' ? 'instagram' : platform as 'whatsapp' | 'facebook' | 'instagram' | 'twitter' | 'sms' | 'email');
+    }
+    
+    // Custom message
     const priceText = `${product.price.toLocaleString()} ${product.currency || 'XOF'}`;
     const message = customMessage || `Découvrez ${product.name} chez ${businessName}`;
     return `${message}\n\n💰 ${priceText}\n\n🔗 ${getShareUrl()}`;
-  }, [customMessage, product.name, product.price, product.currency, businessName, getShareUrl]);
+  }, [selectedTemplate, customMessage, product, businessName, getShareUrl, generateProductPost, city]);
 
   // Handle share action
   const handleShare = async (platform: SharePlatform) => {
     const shareUrl = getShareUrl();
-    const shareMessage = getShareMessage();
+    const shareMessage = getShareMessage(platform);
     const encodedMessage = encodeURIComponent(shareMessage);
     const encodedUrl = encodeURIComponent(shareUrl);
 
     // Record the share
     await recordShare(platform, { 
-      template: 'business_quick', 
+      template: selectedTemplate || 'custom', 
       message: customMessage || undefined 
     });
 
@@ -123,14 +138,33 @@ export function QuickBusinessShareMenu({
     }
   };
 
-  // Apply message suggestion
-  const applySuggestion = (text: string, emoji: string) => {
-    setCustomMessage(`${text} ${emoji}`);
+  // Apply template
+  const handleSelectTemplate = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    setCustomMessage(""); // Clear custom message when selecting template
+  };
+
+  // Get suggested hashtags
+  const suggestedHashtags = useCallback(() => {
+    const categories: HashtagCategory[] = ['brand'];
+    if (product.category) {
+      const catKey = product.category.toLowerCase() as HashtagCategory;
+      if (HASHTAGS[catKey]) categories.push(catKey);
+    }
+    const cityKey = city.toLowerCase().replace(/[éè]/g, 'e') as HashtagCategory;
+    if (HASHTAGS[cityKey]) categories.push(cityKey);
+    
+    return buildHashtags(categories, { limit: 6 });
+  }, [product.category, city]);
+
+  const copyHashtags = async () => {
+    await navigator.clipboard.writeText(suggestedHashtags());
+    toast.success("Hashtags copiés !");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />
@@ -160,38 +194,76 @@ export function QuickBusinessShareMenu({
             </div>
           </div>
 
-          {/* Custom Message */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              💬 Message personnalisé (optionnel)
-            </label>
-            <Textarea
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              placeholder="Ajoutez un message pour accompagner le partage..."
-              className="resize-none h-20"
-            />
-          </div>
+          {/* Tabs: Templates vs Custom */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "templates" | "custom")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="templates" className="text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Modèles
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs">
+                ✏️ Personnalisé
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Message Suggestions */}
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">
-              Suggestions rapides :
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {businessMessageSuggestions.map((suggestion) => (
+            <TabsContent value="templates" className="space-y-3 mt-3">
+              {/* Template Selection */}
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_TEMPLATES.map((template) => (
+                  <Button
+                    key={template.id}
+                    variant={selectedTemplate === template.id ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => handleSelectTemplate(template.id)}
+                  >
+                    {template.emoji} {template.label}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Template Preview */}
+              {selectedTemplate && (
+                <div className="p-3 bg-muted/30 rounded-lg text-sm whitespace-pre-wrap max-h-32 overflow-y-auto border">
+                  {getShareMessage('whatsapp')}
+                </div>
+              )}
+
+              {/* Hashtags */}
+              <div className="flex items-center gap-2">
                 <Button
-                  key={suggestion.label}
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  className="text-xs h-7"
-                  onClick={() => applySuggestion(suggestion.text, suggestion.emoji)}
+                  className="text-xs flex-1 justify-start"
+                  onClick={copyHashtags}
                 >
-                  {suggestion.emoji} {suggestion.label}
+                  <Hash className="h-3 w-3 mr-1" />
+                  {suggestedHashtags().split(' ').slice(0, 3).join(' ')}...
                 </Button>
-              ))}
-            </div>
-          </div>
+                <Badge variant="secondary" className="text-xs">
+                  Copier
+                </Badge>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="custom" className="space-y-3 mt-3">
+              {/* Custom Message */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  💬 Message personnalisé
+                </label>
+                <Textarea
+                  value={customMessage}
+                  onChange={(e) => {
+                    setCustomMessage(e.target.value);
+                    setSelectedTemplate(null); // Clear template when typing custom
+                  }}
+                  placeholder="Ajoutez un message pour accompagner le partage..."
+                  className="resize-none h-20"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Share Buttons */}
           <div className="grid grid-cols-4 gap-2">
