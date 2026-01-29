@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map, Expand } from "lucide-react";
+import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { motion, useReducedMotion } from "framer-motion";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
 import { ProductShareCount } from "@/components/ProductShareCount";
@@ -90,6 +91,12 @@ export default function Shop() {
   
   // State for product share
   const [shareProduct, setShareProduct] = useState<typeof products[0] | null>(null);
+  
+  // State for fullscreen gallery
+  const [fullscreenProduct, setFullscreenProduct] = useState<{
+    images: string[];
+    name: string;
+  } | null>(null);
   
   // Pre-selected recipient from URL params (when coming from friend card gift button)
   const [preSelectedRecipient, setPreSelectedRecipient] = useState<{
@@ -760,6 +767,21 @@ export default function Shop() {
                         </Badge>
                       </button>
                     )}
+                    {/* Expand Button */}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-[5.5rem] bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullscreenProduct({
+                          images: product.images || [product.image],
+                          name: product.name
+                        });
+                      }}
+                    >
+                      <Expand className="h-4 w-4" />
+                    </Button>
                     {/* Share Button */}
                     <Button 
                       variant="ghost" 
@@ -932,6 +954,15 @@ export default function Shop() {
         open={!!shareProduct}
         onOpenChange={(open) => !open && setShareProduct(null)}
         product={shareProduct}
+      />
+      
+      {/* Fullscreen Gallery */}
+      <FullscreenGallery
+        images={fullscreenProduct?.images || []}
+        alt={fullscreenProduct?.name || "Produit"}
+        initialIndex={0}
+        isOpen={!!fullscreenProduct}
+        onClose={() => setFullscreenProduct(null)}
       />
     </div>
     </>
