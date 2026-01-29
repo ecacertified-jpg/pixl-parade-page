@@ -1,101 +1,102 @@
 
-# Permettre aux Administrateurs Régionaux de Gérer les Business
+# Ajouter la Vue Plein Écran des Images dans la Boutique
+
+## Objectif
+
+Permettre aux utilisateurs de cliquer sur un bouton (icône d'expansion) pour voir l'image du produit en plein écran dans la page Shop, comme c'est déjà le cas dans les pages vendeur (`/boutique/:businessId`).
 
 ## Diagnostic
 
-L'analyse du code révèle que dans `BusinessManagement.tsx` :
-- Seul `isSuperAdmin` est extrait du hook `useAdmin` (ligne 92)
-- Les actions du dropdown (Ajouter un produit, Gérer les produits, etc.) sont conditionnées par `{isSuperAdmin && (...)}` (ligne 1002)
-
-Cela exclut les **Administrateurs Régionaux** qui devraient avoir accès à ces fonctionnalités.
+| Page | Fonctionnalité d'agrandissement |
+|------|--------------------------------|
+| `VendorShop.tsx` | ✅ Bouton Expand avec `FullscreenGallery` |
+| `Shop.tsx` | ❌ Aucun bouton, juste l'image cliquable |
 
 ## Solution
 
-Remplacer la condition `isSuperAdmin` par `hasPermission('manage_businesses')` pour permettre à tout admin ayant cette permission (Super Admins et Admins Régionaux) d'accéder aux actions de gestion.
+Ajouter un bouton "Expand" (icône `Expand` de Lucide) sur chaque carte produit dans `Shop.tsx` qui ouvrira le composant `FullscreenGallery` avec toutes les images du produit.
 
-| Condition actuelle | Nouvelle condition |
-|-------------------|-------------------|
-| `isSuperAdmin` | `hasPermission('manage_businesses')` |
+## Modifications Techniques
+
+### Fichier : `src/pages/Shop.tsx`
+
+**1. Importer le composant FullscreenGallery et l'icône**
+
+```typescript
+import { FullscreenGallery } from "@/components/FullscreenGallery";
+import { Expand } from "lucide-react"; // Déjà disponible via Play
+```
+
+**2. Ajouter un état pour gérer la galerie plein écran**
+
+```typescript
+// État pour la galerie plein écran
+const [fullscreenProduct, setFullscreenProduct] = useState<{
+  images: string[];
+  name: string;
+} | null>(null);
+```
+
+**3. Ajouter le bouton Expand sur chaque carte produit**
+
+Dans la grille de produits (ligne ~730), ajouter un bouton entre le bouton Share et le bouton Favoris :
+
+```tsx
+{/* Expand Button */}
+<Button 
+  variant="ghost" 
+  size="icon" 
+  className="absolute top-2 right-[5.5rem] bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
+  onClick={(e) => {
+    e.stopPropagation();
+    setFullscreenProduct({
+      images: product.images || [product.image],
+      name: product.name
+    });
+  }}
+>
+  <Expand className="h-4 w-4" />
+</Button>
+```
+
+**4. Ajouter le composant FullscreenGallery à la fin du JSX**
+
+Après les modaux existants (VideoPlayer, ProductShareMenu) :
+
+```tsx
+{/* Fullscreen Gallery */}
+<FullscreenGallery
+  images={fullscreenProduct?.images || []}
+  alt={fullscreenProduct?.name || "Produit"}
+  initialIndex={0}
+  isOpen={!!fullscreenProduct}
+  onClose={() => setFullscreenProduct(null)}
+/>
+```
+
+## UI Résultante
+
+Sur chaque carte produit, l'utilisateur verra :
+- **Position top-2 right-2** : Bouton Favoris ❤️
+- **Position top-2 right-12** : Bouton Partage 📤
+- **Position top-2 right-22** : **Nouveau** Bouton Expand ⛶
+
+Quand l'utilisateur clique sur le bouton Expand :
+1. Le `FullscreenGallery` s'ouvre avec un fond noir
+2. L'image est affichée en grand avec possibilité de zoom
+3. Si le produit a plusieurs images, l'utilisateur peut naviguer entre elles
+4. Les raccourcis clavier fonctionnent (← → pour naviguer, Esc pour fermer)
+5. Des miniatures sont affichées en bas pour la navigation
 
 ## Fichier à Modifier
 
-`src/pages/Admin/BusinessManagement.tsx`
+| Fichier | Modification |
+|---------|--------------|
+| `src/pages/Shop.tsx` | Ajouter import, état, bouton Expand et composant FullscreenGallery |
 
-### Modification 1 : Extraire `hasPermission` du hook
+## Compatibilité
 
-**Ligne 92** - Ajouter `hasPermission` à la destructuration :
-
-```typescript
-// Avant
-const { isSuperAdmin } = useAdmin();
-
-// Après
-const { isSuperAdmin, hasPermission } = useAdmin();
-```
-
-### Modification 2 : Changer la condition du dropdown
-
-**Ligne 1002** - Remplacer la condition pour les actions de gestion :
-
-```typescript
-// Avant
-{isSuperAdmin && (
-  <>
-    <DropdownMenuItem onClick={() => {...}}>
-      Ajouter un produit
-    </DropdownMenuItem>
-    ...
-  </>
-)}
-
-// Après
-{hasPermission('manage_businesses') && (
-  <>
-    <DropdownMenuItem onClick={() => {...}}>
-      Ajouter un produit
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => {...}}>
-      Gérer les produits
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => {...}}>
-      Modifier le business
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => {...}}>
-      Gérer les catégories
-    </DropdownMenuItem>
-    <DropdownMenuItem onClick={() => {...}}>
-      Voir les commandes
-    </DropdownMenuItem>
-    {/* Supprimer reste réservé aux Super Admins */}
-    {isSuperAdmin && (
-      <DropdownMenuItem className="text-destructive">
-        Supprimer le business
-      </DropdownMenuItem>
-    )}
-  </>
-)}
-```
-
-## Logique des Permissions
-
-| Rôle | `hasPermission('manage_businesses')` | Actions accessibles |
-|------|-------------------------------------|---------------------|
-| Super Admin | ✅ (automatique) | Toutes, y compris suppression |
-| Admin Régional | ✅ (par défaut) | Toutes, sauf suppression |
-| Modérateur | ✅ si activé | Toutes, sauf suppression |
-
-## Sécurité
-
-- **Suppression** : L'action "Supprimer le business" reste réservée aux Super Admins car elle est irréversible
-- **Restriction pays** : Les Admins Régionaux ne voient déjà que les business de leurs pays assignés (via `selectedCountry`)
-- **Permission granulaire** : Un Modérateur doit avoir `manage_businesses` explicitement activé pour accéder à ces actions
-
-## Résultat Attendu
-
-Après cette modification, les Administrateurs Régionaux verront dans le dropdown :
-- ✅ Ajouter un produit
-- ✅ Gérer les produits  
-- ✅ Modifier le business
-- ✅ Gérer les catégories
-- ✅ Voir les commandes
-- ❌ Supprimer le business (réservé Super Admin)
+- ✅ Fonctionne sur mobile (tap pour ouvrir)
+- ✅ Fonctionne sur desktop (clic + navigation clavier)
+- ✅ Support du zoom par pincement (mobile) et boutons (desktop)
+- ✅ Réutilise le composant `FullscreenGallery` existant
