@@ -1,102 +1,69 @@
 
-# Ajouter la Vue Plein Écran des Images dans la Boutique
+# Corriger le Scroll du Modal "Gérer les Produits" sur Mobile
 
-## Objectif
+## Problème
 
-Permettre aux utilisateurs de cliquer sur un bouton (icône d'expansion) pour voir l'image du produit en plein écran dans la page Shop, comme c'est déjà le cas dans les pages vendeur (`/boutique/:businessId`).
+Dans le modal `AdminProductsModal`, il est impossible de scroller pour voir les produits en bas de liste sur mobile. L'utilisateur voit les premiers produits mais ne peut pas accéder aux suivants.
 
 ## Diagnostic
 
-| Page | Fonctionnalité d'agrandissement |
-|------|--------------------------------|
-| `VendorShop.tsx` | ✅ Bouton Expand avec `FullscreenGallery` |
-| `Shop.tsx` | ❌ Aucun bouton, juste l'image cliquable |
+| Élément | Problème identifié |
+|---------|-------------------|
+| `DialogContent` | Utilise `overflow-hidden` qui bloque le scroll |
+| `ScrollArea` | Hauteur max de `60vh` trop restrictive sur mobile |
+| Structure flex | Le `flex-1` et `min-h-0` ne fonctionnent pas correctement avec la hauteur fixe |
 
 ## Solution
 
-Ajouter un bouton "Expand" (icône `Expand` de Lucide) sur chaque carte produit dans `Shop.tsx` qui ouvrira le composant `FullscreenGallery` avec toutes les images du produit.
+Restructurer le modal pour permettre un scroll natif fiable sur mobile :
+
+1. **Retirer `overflow-hidden`** du DialogContent
+2. **Ajuster la hauteur du ScrollArea** pour mobile avec des classes responsive
+3. **Ajouter un conteneur scrollable** avec une hauteur calculée qui s'adapte mieux à l'espace disponible
 
 ## Modifications Techniques
 
-### Fichier : `src/pages/Shop.tsx`
+### Fichier : `src/components/admin/AdminProductsModal.tsx`
 
-**1. Importer le composant FullscreenGallery et l'icône**
-
-```typescript
-import { FullscreenGallery } from "@/components/FullscreenGallery";
-import { Expand } from "lucide-react"; // Déjà disponible via Play
-```
-
-**2. Ajouter un état pour gérer la galerie plein écran**
+**Ligne 99 - DialogContent** : Changer les classes pour permettre le scroll
 
 ```typescript
-// État pour la galerie plein écran
-const [fullscreenProduct, setFullscreenProduct] = useState<{
-  images: string[];
-  name: string;
-} | null>(null);
+// Avant
+<DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+
+// Après
+<DialogContent className="max-w-4xl max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
 ```
 
-**3. Ajouter le bouton Expand sur chaque carte produit**
+**Ligne 117 - ScrollArea** : Améliorer les classes de hauteur pour mobile
 
-Dans la grille de produits (ligne ~730), ajouter un bouton entre le bouton Share et le bouton Favoris :
+```typescript
+// Avant
+<ScrollArea className="min-h-0 flex-1 max-h-[60vh] pr-4">
 
-```tsx
-{/* Expand Button */}
-<Button 
-  variant="ghost" 
-  size="icon" 
-  className="absolute top-2 right-[5.5rem] bg-white/80 hover:bg-white transition-all h-8 w-8 rounded-full z-10"
-  onClick={(e) => {
-    e.stopPropagation();
-    setFullscreenProduct({
-      images: product.images || [product.image],
-      name: product.name
-    });
-  }}
->
-  <Expand className="h-4 w-4" />
-</Button>
+// Après  
+<ScrollArea className="min-h-0 flex-1 max-h-[50vh] sm:max-h-[60vh] pr-4 overflow-y-auto">
 ```
 
-**4. Ajouter le composant FullscreenGallery à la fin du JSX**
+**Alternative plus robuste** : Remplacer ScrollArea par un div scrollable natif pour mobile
 
-Après les modaux existants (VideoPlayer, ProductShareMenu) :
-
-```tsx
-{/* Fullscreen Gallery */}
-<FullscreenGallery
-  images={fullscreenProduct?.images || []}
-  alt={fullscreenProduct?.name || "Produit"}
-  initialIndex={0}
-  isOpen={!!fullscreenProduct}
-  onClose={() => setFullscreenProduct(null)}
-/>
+```typescript
+// Solution plus robuste pour mobile
+<div className="min-h-0 flex-1 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto pr-2">
+  {/* Contenu de la grille */}
+</div>
 ```
 
-## UI Résultante
+## Comportement Attendu
 
-Sur chaque carte produit, l'utilisateur verra :
-- **Position top-2 right-2** : Bouton Favoris ❤️
-- **Position top-2 right-12** : Bouton Partage 📤
-- **Position top-2 right-22** : **Nouveau** Bouton Expand ⛶
-
-Quand l'utilisateur clique sur le bouton Expand :
-1. Le `FullscreenGallery` s'ouvre avec un fond noir
-2. L'image est affichée en grand avec possibilité de zoom
-3. Si le produit a plusieurs images, l'utilisateur peut naviguer entre elles
-4. Les raccourcis clavier fonctionnent (← → pour naviguer, Esc pour fermer)
-5. Des miniatures sont affichées en bas pour la navigation
+| Device | Résultat |
+|--------|----------|
+| Mobile | Scroll tactile fluide, peut voir tous les produits |
+| Tablet | Scroll adapté à la taille d'écran |
+| Desktop | Scroll avec molette/trackpad + scrollbar visible |
 
 ## Fichier à Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `src/pages/Shop.tsx` | Ajouter import, état, bouton Expand et composant FullscreenGallery |
-
-## Compatibilité
-
-- ✅ Fonctionne sur mobile (tap pour ouvrir)
-- ✅ Fonctionne sur desktop (clic + navigation clavier)
-- ✅ Support du zoom par pincement (mobile) et boutons (desktop)
-- ✅ Réutilise le composant `FullscreenGallery` existant
+| `src/components/admin/AdminProductsModal.tsx` | Ajuster les classes de hauteur et overflow |
