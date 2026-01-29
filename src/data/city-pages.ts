@@ -63,7 +63,20 @@ export const CITY_PAGES: Record<string, CityPageData> = {
       'cadeau groupe Abidjan',
       'Orange Money cadeaux',
       'boutique cadeaux Yopougon',
-      'cagnotte mariage Abidjan'
+      'cagnotte mariage Abidjan',
+      // Long-tail keywords
+      'où acheter cadeau Abidjan livraison rapide',
+      'meilleur site cagnotte Côte d\'Ivoire',
+      'artisans locaux cadeaux uniques Abidjan',
+      'pot commun anniversaire Abidjan',
+      // Payment keywords
+      'payer cadeau Orange Money',
+      'achat sans carte bancaire Abidjan',
+      'MTN Mobile Money cadeaux',
+      // Occasion keywords
+      'cadeau Fête des Mères Abidjan',
+      'cagnotte Tabaski Côte d\'Ivoire',
+      'cadeau promotion collègue',
     ],
     neighborhoods: ['Cocody', 'Yopougon', 'Marcory', 'Plateau', 'Treichville', 'Abobo', 'Adjamé', 'Koumassi', 'Port-Bouët', 'Bingerville'],
     paymentMethods: [
@@ -137,7 +150,20 @@ export const CITY_PAGES: Record<string, CityPageData> = {
       'cadeau groupe Cotonou',
       'marché Dantokpa',
       'cagnotte mariage Bénin',
-      'boutique cadeaux Akpakpa'
+      'boutique cadeaux Akpakpa',
+      // Long-tail keywords
+      'où acheter cadeau Cotonou livraison',
+      'meilleur site cagnotte Bénin',
+      'artisans Dantokpa cadeaux authentiques',
+      'pot commun anniversaire Bénin',
+      // Payment keywords
+      'payer MTN Mobile Money cadeaux',
+      'Moov Money Bénin',
+      'Wave Cotonou paiement',
+      // Occasion keywords
+      'cagnotte Fête du Vodoun',
+      'cadeau baptême Cotonou',
+      'bronze Abomey cadeau',
     ],
     neighborhoods: ['Akpakpa', 'Cadjèhoun', 'Fidjrossè', 'Gbégamey', 'Haie Vive', 'Zongo', 'Ganhi', 'Sikècodji', 'Agla', 'Calavi'],
     paymentMethods: [
@@ -206,7 +232,20 @@ export const CITY_PAGES: Record<string, CityPageData> = {
       'Wave Sénégal',
       'cadeau groupe Dakar',
       'Soumbédioune artisans',
-      'cagnotte baptême Dakar'
+      'cagnotte baptême Dakar',
+      // Long-tail keywords
+      'où acheter cadeau Dakar livraison',
+      'meilleur site cagnotte Sénégal',
+      'teranga cadeaux collectifs',
+      'pot commun mariage Dakar',
+      // Payment keywords
+      'Wave paiement cadeaux Sénégal',
+      'Orange Money Dakar',
+      'Free Money cadeaux',
+      // Occasion keywords
+      'cagnotte Tabaski Sénégal',
+      'cadeau Korité Dakar',
+      'boubou brodé cadeau',
     ],
     neighborhoods: ['Plateau', 'Almadies', 'Médina', 'Parcelles Assainies', 'Mermoz', 'Yoff', 'Ngor', 'Ouakam', 'Fann', 'Grand Dakar'],
     paymentMethods: [

@@ -198,7 +198,7 @@ export default function FundPreview() {
         image={fund.product?.image_url || undefined}
         imageAlt={fund.title}
         type="website"
-        keywords={`cagnotte ${fund.occasion || 'collective'}, cadeau groupe, contribution en ligne, ${fund.contact?.name || ''}`}
+        keywords={`cagnotte ${fund.occasion || 'collective'}, pot commun ${fund.occasion || ''}, cotisation cadeau, financer ensemble, collecte argent ${fund.occasion || 'cadeau'}, offrir à plusieurs Afrique, contribution en ligne, ${fund.contact?.name || ''}`}
         aiContentType="fund"
         aiSummary={`Cagnotte: ${fund.title}. Objectif: ${formatAmount(targetAmount)} ${currency}. Collecté: ${formatAmount(currentAmount)} ${currency} (${progressPercent}%). Pour: ${fund.contact?.name || 'un proche'}.`}
         audience="gift-givers"

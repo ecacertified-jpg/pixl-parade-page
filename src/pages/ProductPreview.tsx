@@ -218,7 +218,7 @@ export default function ProductPreview() {
         image={displayImageUrl || undefined}
         imageAlt={`${product.name} - ${product.vendor_name}`}
         type="product"
-        keywords={`${product.name}, cadeau Abidjan, ${product.vendor_name}, boutique Côte d'Ivoire, cadeaux Afrique`}
+        keywords={`${product.name}, cadeau Abidjan, ${product.vendor_name}, artisanat ivoirien, idée cadeau original, livraison Côte d'Ivoire, achat Mobile Money, boutique cadeaux Afrique`}
         aiContentType="product"
         aiSummary={`Produit: ${product.name}. Prix: ${formattedPrice}. Vendeur: ${product.vendor_name}. ${stats?.rating_count ? `Note: ${stats.average_rating.toFixed(1)}/5 (${stats.rating_count} avis).` : ''}`}
         audience="gift-givers"
