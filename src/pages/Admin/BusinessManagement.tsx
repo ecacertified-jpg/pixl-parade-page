@@ -89,7 +89,7 @@ interface Business {
 }
 
 export default function BusinessManagement() {
-  const { isSuperAdmin } = useAdmin();
+  const { isSuperAdmin, hasPermission } = useAdmin();
   const { selectedCountry } = useAdminCountry();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -999,7 +999,7 @@ export default function BusinessManagement() {
                           }}>
                             Voir le profil complet
                           </DropdownMenuItem>
-                          {isSuperAdmin && (
+                          {hasPermission('manage_businesses') && (
                             <>
                               <DropdownMenuItem onClick={() => {
                                 setProductBusinessId(business.id);
@@ -1036,16 +1036,18 @@ export default function BusinessManagement() {
                                 <ShoppingCart className="mr-2 h-4 w-4" />
                                 Voir les commandes
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => {
-                                  setBusinessToDelete(business);
-                                  setDeleteModalOpen(true);
-                                }}
-                                className="text-destructive font-medium"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Supprimer le business
-                              </DropdownMenuItem>
+                              {isSuperAdmin && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setBusinessToDelete(business);
+                                    setDeleteModalOpen(true);
+                                  }}
+                                  className="text-destructive font-medium"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Supprimer le business
+                                </DropdownMenuItem>
+                              )}
                             </>
                           )}
                         </DropdownMenuContent>
