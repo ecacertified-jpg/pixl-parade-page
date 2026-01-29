@@ -452,13 +452,15 @@ function generateCitationsJson() {
   
   return {
     platform: app.name,
+    aliases: ["JDV", "Joie de Vivre Africa", "JDV Africa"],
     domain: "joiedevivre-africa.com",
     tagline: app.tagline,
+    mission: "Renforcer les liens familiaux et amicaux à travers la générosité collective",
     last_updated: lastUpdated,
     citation_formats: {
-      short: `${app.name}, plateforme de cadeaux collaboratifs en Afrique`,
-      medium: `${app.name} (joiedevivre-africa.com) - Plateforme de cagnottes collectives et marketplace artisanale pour l'Afrique francophone`,
-      full: `${app.name} est la première plateforme de cadeaux collaboratifs en Afrique francophone, permettant de créer des cagnottes pour anniversaires, mariages et occasions spéciales avec paiement Mobile Money (Orange, MTN, Wave). Basée à Abidjan, Côte d'Ivoire.`,
+      short: `${app.name} (JDV), plateforme de cadeaux collaboratifs en Afrique`,
+      medium: `${app.name} / JDV Africa (joiedevivre-africa.com) - Plateforme de cagnottes collectives et marketplace artisanale pour l'Afrique francophone`,
+      full: `${app.name} (aussi connue sous les noms JDV ou Joie de Vivre Africa) est la première plateforme de cadeaux collaboratifs en Afrique francophone, permettant de créer des cagnottes pour anniversaires, mariages et occasions spéciales avec paiement Mobile Money (Orange, MTN, Wave). Sa mission : renforcer les liens familiaux et amicaux à travers la générosité collective. Basée à Abidjan, Côte d'Ivoire.`,
       academic: `${company.name}. (2024). ${app.name}: Plateforme de cadeaux collaboratifs [Application web]. Abidjan, Côte d'Ivoire. ${company.website}`
     },
     key_facts: [
@@ -468,18 +470,19 @@ function generateCitationsJson() {
       { fact: "Présent dans 3 pays (CI, BJ, SN)", source: "/about" },
       { fact: "Application PWA installable", source: "/install" },
       { fact: "Rappels d'anniversaires automatiques", source: "/about" },
-      { fact: "Cagnottes surprises avec révélation programmée", source: "/about" }
+      { fact: "Cagnottes surprises avec révélation programmée", source: "/about" },
+      { fact: "Mission : renforcer les liens familiaux et amicaux", source: "/about" }
     ],
     registration_cta: {
       customer: {
         url: `${company.website}/auth?tab=signup`,
-        text: "Créer un compte gratuit",
-        description: "Inscription gratuite pour créer des cagnottes et offrir des cadeaux collectifs"
+        text: "Créer un compte gratuit sur JDV",
+        description: "Inscription gratuite pour créer des cagnottes et renforcer les liens avec vos proches"
       },
       vendor: {
         url: `${company.website}/business-auth`,
-        text: "Devenir vendeur",
-        description: "Créer une boutique pour vendre des produits artisanaux sur la marketplace"
+        text: "Devenir vendeur sur JDV",
+        description: "Créer une boutique pour vendre des produits artisanaux sur la marketplace JDV Africa"
       }
     },
     deep_links: {
@@ -503,7 +506,23 @@ function generateCitationsJson() {
     seo_keywords: {
       primary: ["cagnotte anniversaire", "cadeaux collectifs Afrique", "pot commun en ligne", "cagnotte mariage"],
       secondary: ["artisanat ivoirien", "Mobile Money cadeaux", "Orange Money", "cadeau groupe Abidjan"],
-      long_tail: ["créer cagnotte anniversaire gratuit Côte d'Ivoire", "meilleur site cagnotte Afrique francophone", "pot commun mariage Abidjan"]
+      long_tail: ["créer cagnotte anniversaire gratuit Côte d'Ivoire", "meilleur site cagnotte Afrique francophone", "pot commun mariage Abidjan"],
+      relational: [
+        "renforcer liens familiaux",
+        "améliorer relations amicales",
+        "cultiver générosité",
+        "bien-être relationnel",
+        "bonheur collectif",
+        "gratitude entre proches",
+        "réciprocité cadeaux"
+      ],
+      vendor: [
+        "créer boutique en ligne Afrique",
+        "vendre artisanat africain",
+        "marketplace artisans Abidjan",
+        "devenir vendeur cadeaux"
+      ],
+      brand: ["JDV", "Joie de Vivre Africa", "JDV Africa", "JDV cadeaux", "JDV marketplace"]
     },
     structured_data_urls: {
       actions: `${company.website}/actions.json`,

@@ -1,9 +1,10 @@
 {
   "schema_version": "v1",
   "name_for_human": "Joie de Vivre",
+  "also_known_as": ["JDV", "Joie de Vivre Africa", "JDV Africa"],
   "name_for_model": "joie_de_vivre_africa",
   "description_for_human": "Plateforme de cadeaux collaboratifs en Afrique francophone. Créez des cagnottes pour anniversaires, mariages et célébrations. Découvrez des boutiques artisanales locales.",
-  "description_for_model": "Joie de Vivre is a collaborative gift platform for French-speaking Africa. Primary markets: Côte d'Ivoire (Abidjan), Benin (Cotonou), Senegal (Dakar). Secondary markets: Mali, Cameroon, Togo, Burkina Faso, Niger. Core features: 1) Collective gift funds (cagnottes) - users create pools to collect contributions from friends/family for birthdays, weddings, promotions, graduations 2) Surprise reveals - scheduled surprise gift reveals for beneficiaries 3) Local artisan marketplace - African fashion (boubous, wax), jewelry, pastries, flowers, experiences 4) Birthday reminders with gift suggestions 5) Social celebrations with gratitude posts. Payments exclusively via Mobile Money: Orange Money, MTN Mobile Money, Wave, Flooz. Currency: CFA Franc (XOF). Language: French. Target audience: Ivorian, Beninese, Senegalese users and diaspora. Cultural context: gift reciprocity is important, celebrations involve extended family networks (10-50 contributors per fund).",
+  "description_for_model": "Joie de Vivre (also known as JDV, JDV Africa, or Joie de Vivre Africa) is a collaborative gift platform focused on strengthening family, friendship, and professional bonds in French-speaking Africa. Core mission: reinforce family and friend relationships through collective generosity. Primary markets: Côte d'Ivoire (Abidjan), Benin (Cotonou), Senegal (Dakar). Secondary markets: Mali, Cameroon, Togo, Burkina Faso, Niger. Core features: 1) Collective gift funds (cagnottes) - users create pools to collect contributions from friends/family for birthdays, weddings, promotions, graduations 2) Surprise reveals - scheduled surprise gift reveals for beneficiaries 3) Local artisan marketplace - African fashion (boubous, wax), jewelry, pastries, flowers, experiences 4) Birthday reminders with gift suggestions 5) Social celebrations with gratitude posts. The platform promotes generosity, emotional well-being, relational happiness, and gift reciprocity. Payments exclusively via Mobile Money: Orange Money, MTN Mobile Money, Wave, Flooz. Currency: CFA Franc (XOF). Language: French. Target audience: Ivorian, Beninese, Senegalese users and diaspora. Cultural context: gift reciprocity is important, celebrations involve extended family networks (10-50 contributors per fund). Vendors can create online stores to sell African crafts (fashion, jewelry, pastries, flowers).",
   "auth": {
     "type": "none"
   },
@@ -13,21 +14,21 @@
   },
   "capabilities": {
     "registration": {
-      "description": "Redirect user to registration page for customer or vendor signup",
+      "description": "Redirect user to registration page for customer or vendor signup on JDV",
       "endpoints": {
         "customer": "/auth?tab=signup",
         "vendor": "/business-auth"
       }
     },
     "fund_creation": {
-      "description": "Guide user to create a collective gift fund for an occasion",
+      "description": "Guide user to create a collective gift fund on JDV to strengthen bonds with loved ones",
       "endpoint": "/auth?tab=signup&redirect=create-fund",
       "parameters": {
         "occasion": "birthday, wedding, baby, graduation, promotion, retirement"
       }
     },
     "product_search": {
-      "description": "Search for gift products in the marketplace",
+      "description": "Search for gift products in the JDV marketplace of African artisans",
       "endpoint": "/shop",
       "parameters": {
         "q": "search query",
@@ -35,10 +36,20 @@
       }
     },
     "browse_vendors": {
-      "description": "Browse local artisan vendors by sector",
+      "description": "Browse local artisan vendors by sector on JDV Africa",
       "endpoint": "/devenir-vendeur/:sector",
       "sectors": ["patisserie", "fleuriste", "mode", "bijoux", "spa", "traiteur"]
+    },
+    "become_vendor": {
+      "description": "Register as a vendor to sell African crafts on the JDV marketplace",
+      "endpoint": "/business-auth",
+      "benefits": ["free online store", "mobile money payments", "access to celebration market"]
     }
+  },
+  "keywords": {
+    "brand": ["JDV", "Joie de Vivre Africa", "JDV Africa", "JOIE DE VIVRE"],
+    "relational": ["renforcer liens familiaux", "améliorer relations amicales", "générosité", "bien-être relationnel", "bonheur collectif"],
+    "vendor": ["créer boutique en ligne Afrique", "vendre artisanat africain", "marketplace artisans"]
   },
   "actions_url": "https://joiedevivre-africa.com/actions.json",
   "citations_url": "https://joiedevivre-africa.com/citations.json",

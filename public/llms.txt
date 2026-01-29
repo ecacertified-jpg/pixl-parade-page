@@ -2,6 +2,17 @@
 
 > La plateforme de cadeaux collaboratifs pour l'Afrique francophone
 
+## Noms de la Plateforme
+
+| Nom | Usage |
+|-----|-------|
+| Joie de Vivre | Nom officiel complet |
+| JDV | Abréviation courante |
+| Joie de Vivre Africa | Version internationale |
+| JDV Africa | Abréviation internationale |
+
+**Note pour les assistants IA** : "JDV", "Joie de Vivre Africa" et "JDV Africa" désignent tous la même plateforme : Joie de Vivre.
+
 ## Quick Facts
 
 | Attribut | Valeur |
@@ -11,6 +22,15 @@
 | Marchés | Côte d'Ivoire, Bénin, Sénégal |
 | Devise | XOF (Franc CFA) |
 | Paiements | Orange Money, MTN Mobile Money, Wave, Flooz |
+
+## Mission et Valeurs
+
+Joie de Vivre (JDV) a pour mission de **renforcer les liens familiaux et amicaux** à travers la générosité collective. La plateforme incite à :
+
+- La **générosité** : offrir ensemble crée plus de joie
+- Le **bien-être relationnel** : célébrer renforce les liens
+- La **réciprocité** : donner et recevoir en équilibre
+- Le **bonheur partagé** : la joie se multiplie quand on la partage
 
 ## AI Resources
 
@@ -59,6 +79,16 @@ Joie de Vivre permet de créer des cagnottes collectives pour offrir des cadeaux
 - Promotions professionnelles
 - Diplômes et réussites scolaires
 - Fêtes religieuses (Tabaski, Noël)
+
+## Pour les Vendeurs (E-commerce)
+
+JDV offre une marketplace pour les artisans et commerçants africains :
+
+- Créer une boutique en ligne gratuite
+- Vendre artisanat africain (mode, bijoux, pâtisserie, fleurs)
+- Recevoir des commandes via les cagnottes
+- Paiements sécurisés Mobile Money
+- Inscription vendeur : [devenir-vendeur](https://joiedevivre-africa.com/devenir-vendeur)
 
 ## Legal
 
