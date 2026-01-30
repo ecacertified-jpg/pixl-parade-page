@@ -15,8 +15,8 @@ export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { markers, statistics } = useRealtimeMapData(events);
   
-  // Admin dashboard: useDefault=false to require explicit token configuration
-  const { token: mapboxToken, setToken, clearToken } = useMapboxToken({ useDefault: false });
+  // Use default token for admin map as well
+  const { token: mapboxToken, setToken, clearToken } = useMapboxToken({ useDefault: true });
 
   return (
     <Card className={isFullscreen ? 'fixed inset-4 z-50' : ''}>
