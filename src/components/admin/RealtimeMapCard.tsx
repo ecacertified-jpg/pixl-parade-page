@@ -1,38 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RealtimeMap } from './RealtimeMap';
 import { useRealtimeMapData, RealtimeEvent } from '@/hooks/useRealtimeMapData';
 import { MapPin, RotateCcw, Maximize2 } from 'lucide-react';
+import { useMapboxToken } from '@/hooks/useMapboxToken';
 
 interface RealtimeMapCardProps {
   events: RealtimeEvent[];
   isConnected: boolean;
 }
 
-const MAPBOX_TOKEN_KEY = 'joie_de_vivre_mapbox_token';
-
 export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
-  const [mapboxToken, setMapboxToken] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { markers, statistics } = useRealtimeMapData(events);
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem(MAPBOX_TOKEN_KEY);
-    if (savedToken) {
-      setMapboxToken(savedToken);
-    }
-  }, []);
-
-  const handleTokenSubmit = (token: string) => {
-    setMapboxToken(token);
-    localStorage.setItem(MAPBOX_TOKEN_KEY, token);
-  };
-
-  const handleResetToken = () => {
-    setMapboxToken('');
-    localStorage.removeItem(MAPBOX_TOKEN_KEY);
-  };
+  
+  // Admin dashboard: useDefault=false to require explicit token configuration
+  const { token: mapboxToken, setToken, clearToken } = useMapboxToken({ useDefault: false });
 
   return (
     <Card className={isFullscreen ? 'fixed inset-4 z-50' : ''}>
@@ -48,7 +32,7 @@ export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
             {mapboxToken && (
-              <Button variant="ghost" size="sm" onClick={handleResetToken} title="Réinitialiser le token">
+              <Button variant="ghost" size="sm" onClick={clearToken} title="Réinitialiser le token">
                 <RotateCcw className="h-4 w-4" />
               </Button>
             )}
@@ -70,8 +54,8 @@ export function RealtimeMapCard({ events, isConnected }: RealtimeMapCardProps) {
       <CardContent className={isFullscreen ? 'h-[calc(100%-80px)]' : 'h-[400px]'}>
         <RealtimeMap 
           markers={markers}
-          mapboxToken={mapboxToken}
-          onTokenSubmit={handleTokenSubmit}
+          mapboxToken={mapboxToken || undefined}
+          onTokenSubmit={setToken}
         />
       </CardContent>
     </Card>

@@ -3,6 +3,7 @@ import { MapPin, ExternalLink, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { findCityInCountry, type CityCoordinates } from "@/utils/countryCities";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -13,8 +14,6 @@ interface VendorLocationMapProps {
   latitude?: number | null;
   longitude?: number | null;
 }
-
-const MAPBOX_TOKEN_KEY = "joie_de_vivre_mapbox_token";
 
 export function VendorLocationMap({ 
   address, 
@@ -27,18 +26,10 @@ export function VendorLocationMap({
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
   
-  const [mapboxToken, setMapboxToken] = useState<string>("");
+  const { token: mapboxToken } = useMapboxToken();
   const [cityData, setCityData] = useState<CityCoordinates | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isExactLocation, setIsExactLocation] = useState(false);
-
-  // Load token from localStorage
-  useEffect(() => {
-    const savedToken = localStorage.getItem(MAPBOX_TOKEN_KEY);
-    if (savedToken) {
-      setMapboxToken(savedToken);
-    }
-  }, []);
 
   // Determine coordinates - prioritize provided lat/lng over address lookup
   useEffect(() => {

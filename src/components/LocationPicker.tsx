@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CitySelector } from "@/components/CitySelector";
 import { findCityInCountry } from "@/utils/countryCities";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -18,8 +19,6 @@ interface LocationPickerProps {
   disabled?: boolean;
   label?: string;
 }
-
-const MAPBOX_TOKEN_KEY = "joie_de_vivre_mapbox_token";
 
 export function LocationPicker({
   address,
@@ -35,18 +34,10 @@ export function LocationPicker({
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
 
-  const [mapboxToken, setMapboxToken] = useState<string>("");
+  const { token: mapboxToken } = useMapboxToken();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [geolocating, setGeolocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
-
-  // Load token from localStorage
-  useEffect(() => {
-    const savedToken = localStorage.getItem(MAPBOX_TOKEN_KEY);
-    if (savedToken) {
-      setMapboxToken(savedToken);
-    }
-  }, []);
 
   // Determine initial coordinates
   const getInitialCoordinates = useCallback((): { lat: number; lng: number } | null => {

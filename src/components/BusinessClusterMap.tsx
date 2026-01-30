@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Locate, ZoomIn, ZoomOut } from 'lucide-react';
 import { toast } from 'sonner';
 import type { BusinessMapPoint } from '@/hooks/useExploreMapData';
+import { useMapboxToken } from '@/hooks/useMapboxToken';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface GeoJsonFeature {
@@ -36,14 +37,8 @@ export function BusinessClusterMap({
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const superclusterRef = useRef<Supercluster | null>(null);
-  const [mapToken, setMapToken] = useState<string | null>(null);
+  const { token: mapToken } = useMapboxToken();
   const [isLocating, setIsLocating] = useState(false);
-
-  // Load Mapbox token
-  useEffect(() => {
-    const token = localStorage.getItem('mapbox_token');
-    setMapToken(token);
-  }, []);
 
   // Initialize Supercluster
   useEffect(() => {
