@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Building2, Shield, User } from 'lucide-react';
 import { logAdminAction } from '@/utils/auditLogger';
+import { LocationPicker } from '@/components/LocationPicker';
 
 interface Business {
   id: string;
@@ -24,6 +25,8 @@ interface Business {
   is_active: boolean;
   status: string;
   user_id: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface UserProfile {
@@ -76,6 +79,8 @@ export function AdminEditBusinessModal({
     is_active: true,
     status: 'active',
     user_id: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   useEffect(() => {
@@ -92,6 +97,8 @@ export function AdminEditBusinessModal({
         is_active: business.is_active,
         status: business.status,
         user_id: business.user_id,
+        latitude: business.latitude,
+        longitude: business.longitude,
       });
       loadUsers();
     }
@@ -131,6 +138,8 @@ export function AdminEditBusinessModal({
         is_verified: formData.is_verified,
         is_active: formData.is_active,
         status: formData.status,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       };
 
       // Only update user_id if it changed (ownership transfer)
@@ -159,6 +168,10 @@ export function AdminEditBusinessModal({
       if (formData.is_verified !== business.is_verified) changes.push('vérification');
       if (formData.is_active !== business.is_active) changes.push('statut actif');
       if (formData.user_id !== business.user_id) changes.push('propriétaire');
+      if (formData.address !== business.address) changes.push('adresse');
+      if (formData.latitude !== business.latitude || formData.longitude !== business.longitude) {
+        changes.push('coordonnées GPS');
+      }
 
       await logAdminAction(
         'update_business',
@@ -250,15 +263,16 @@ export function AdminEditBusinessModal({
             </div>
           </div>
 
-          {/* Address */}
-          <div className="space-y-2">
-            <Label>Adresse</Label>
-            <Input
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Adresse du business"
-            />
-          </div>
+          {/* Localisation (Carte + Adresse) */}
+          <LocationPicker
+            address={formData.address}
+            latitude={formData.latitude}
+            longitude={formData.longitude}
+            onAddressChange={(addr) => setFormData({ ...formData, address: addr })}
+            onCoordinatesChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+            countryCode="CI"
+            label="Localisation de la boutique (Admin)"
+          />
 
           {/* Description */}
           <div className="space-y-2">
