@@ -1,77 +1,157 @@
 
 
-# Corriger le Bouton de Fermeture Masqué du Chat AI
+# Afficher les Produits les Plus Proches avec Drapeau du Pays d'Origine
 
-## Problème
+## Objectif
 
-Le bouton X de fermeture du chat AI est partiellement masqué car :
-- Le bouton est positionné à `-top-2 -right-2` (en dehors du conteneur)
-- Le conteneur parent (Glassmorphism Card) a `overflow-hidden` qui coupe tout ce qui dépasse
+Améliorer la page Boutique pour :
+1. **Afficher les produits triés par proximité** de la position de l'utilisateur
+2. **Marquer chaque carte produit avec le drapeau** de son pays d'origine
 
-## Solution
-
-Déplacer le bouton de fermeture **en dehors** de la carte avec `overflow-hidden`, et le placer dans le conteneur `motion.div` parent qui n'a pas de contrainte d'overflow.
-
-## Modification Technique
-
-### Fichier : `src/components/AIChatWidget.tsx`
-
-**Restructuration du code** (lignes 196-212) :
+## Architecture Proposée
 
 ```text
-AVANT (structure actuelle) :
-├── motion.div (conteneur draggable)
-│   └── div.overflow-hidden (Glassmorphism Card)
-│       ├── button X (MASQUÉ par overflow-hidden)
-│       └── contenu
-
-APRÈS (nouvelle structure) :
-├── motion.div (conteneur draggable)
-│   ├── button X (VISIBLE, en dehors de la carte)
-│   └── div.overflow-hidden (Glassmorphism Card)
-│       └── contenu
++-------------------+     +----------------------+     +------------------+
+|   Shop.tsx        |     |  useNearbyProducts   |     |   Supabase       |
+|   (Page)          |---->|  (Nouveau Hook)      |---->|   Database       |
++-------------------+     +----------------------+     +------------------+
+        |                           |
+        v                           v
++-------------------+     +----------------------+
+|  Carte Produit    |     |  Géolocalisation     |
+|  + CountryBadge   |     |  navigator.geolocation|
++-------------------+     +----------------------+
 ```
 
-**Code modifié** :
+## Modifications
 
-1. **Ligne 196** - Après l'ouverture de `motion.div`, ajouter le bouton de fermeture **avant** la carte :
+### 1. Nouveau Hook : `useNearbyProducts.ts`
+
+Créer un hook dédié pour récupérer les produits avec :
+- Les coordonnées de la boutique associée (via `business_accounts`)
+- Le `country_code` du produit ou de la boutique
+- Le calcul de distance par rapport à l'utilisateur
+- Le tri par proximité
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| Géolocalisation | Utilise `navigator.geolocation` pour obtenir la position |
+| Distance | Formule Haversine (réutilisation de la fonction existante) |
+| Fallback | Si pas de géolocalisation, affiche sans tri par distance |
+| Country code | Priorité : product.country_code > business.country_code |
+
+### 2. Modifier la Page `Shop.tsx`
+
+| Modification | Détails |
+|--------------|---------|
+| Importer CountryBadge | `import { CountryBadge } from "@/components/CountryBadge"` |
+| Ajouter géolocalisation | État `userLocation` + demande de permission |
+| Enrichir loadProducts | Récupérer latitude/longitude et country_code via join |
+| Trier par proximité | Après le fetch, trier par distance calculée |
+| Afficher distance réelle | Remplacer "2.3 km" par la vraie distance |
+| Afficher le drapeau | Ajouter `CountryBadge` sur chaque carte |
+
+### 3. Interface Produit Enrichie
+
+Ajouter les champs au type de produit dans Shop.tsx :
+
+```typescript
+interface Product {
+  // ... champs existants ...
+  countryCode: string | null;        // Nouveau
+  businessLatitude: number | null;   // Nouveau
+  businessLongitude: number | null;  // Nouveau
+  distanceKm: number | null;         // Nouveau (calculé)
+}
+```
+
+## Détails Techniques
+
+### Requête Supabase Modifiée
+
+```sql
+SELECT 
+  products.*,
+  business_accounts.latitude,
+  business_accounts.longitude,
+  COALESCE(products.country_code, business_accounts.country_code) as effective_country_code
+FROM products
+LEFT JOIN business_accounts ON products.business_account_id = business_accounts.id
+WHERE products.is_active = true
+```
+
+### Calcul de Distance (Haversine)
+
+La fonction existe déjà dans `useExploreMapData.ts`. Elle sera extraite dans un utilitaire partagé :
+
+```typescript
+// src/utils/geoUtils.ts
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Rayon de la Terre en km
+  // ... calcul existant ...
+}
+```
+
+### Position de l'Utilisateur
+
+Ajouter un bouton optionnel "Me localiser" ou demander automatiquement :
+
+```typescript
+const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
+
+const requestLocation = () => {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+    (err) => console.warn('Géolocalisation refusée')
+  );
+};
+```
+
+### Affichage du Drapeau sur la Carte
 
 ```tsx
-<motion.div
-  // ... props existantes
-  className="absolute bottom-20 right-0 mr-2 touch-pan-y"
-  // ... autres props
->
-  {/* Close button - Positionné en dehors de la carte pour être visible */}
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      setShowWelcome(false);
-    }}
-    className="absolute -top-2 right-0 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 shadow-md hover:bg-destructive hover:border-destructive hover:text-white transition-all duration-200 z-20 flex items-center justify-center"
-    aria-label="Fermer le message de bienvenue"
-  >
-    <X className="h-4 w-4" />
-  </button>
-
-  {/* Glassmorphism Card */}
-  <div className="relative bg-white/95 dark:bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl shadow-violet-500/20 border border-violet-200/50 dark:border-violet-500/20 p-4 max-w-[280px] overflow-hidden">
-    {/* ... reste du contenu sans le bouton */}
+{/* Dans la carte produit, après l'image */}
+<div className="absolute top-2 left-2 flex items-center gap-2">
+  <CountryBadge countryCode={product.countryCode} variant="compact" />
+  {product.isExperience && (
+    <Badge className="bg-purple-600">✨ EXPÉRIENCE</Badge>
+  )}
+</div>
 ```
 
-2. **Supprimer** le bouton de fermeture de son emplacement actuel (lignes 202-212)
+### Affichage de la Distance
 
-## Résultat Attendu
+```tsx
+{/* Remplacer la distance fixe "2.3 km" */}
+<span className="text-xs text-muted-foreground">
+  {product.distanceKm !== null 
+    ? `${product.distanceKm.toFixed(1)} km`
+    : "Distance inconnue"
+  }
+</span>
+```
 
-| Aspect | Avant | Après |
-|--------|-------|-------|
-| Visibilité | Partiellement masqué | Entièrement visible |
-| Position | Coupé par overflow-hidden | Flottant au-dessus de la carte |
-| Accessibilité | Difficile à toucher | Zone de 32x32px complètement accessible |
+## Fichiers à Modifier/Créer
 
-## Fichier à Modifier
+| Fichier | Action |
+|---------|--------|
+| `src/utils/geoUtils.ts` | Créer - Extraire la fonction Haversine |
+| `src/pages/Shop.tsx` | Modifier - Ajouter géolocalisation, country_code, tri par distance |
+| `src/hooks/useExploreMapData.ts` | Modifier - Utiliser l'utilitaire partagé |
 
-| Fichier | Modification |
-|---------|--------------|
-| `src/components/AIChatWidget.tsx` | Déplacer le bouton X en dehors de la div overflow-hidden |
+## Comportement Attendu
+
+| Scénario | Résultat |
+|----------|----------|
+| Géolocalisation acceptée | Produits triés du plus proche au plus éloigné, distance affichée |
+| Géolocalisation refusée | Produits affichés sans tri par distance, drapeau toujours visible |
+| Produit sans coordonnées | Affiché en fin de liste avec "Distance inconnue" |
+| Produit sans country_code | CountryBadge n'affiche rien (comportement existant) |
+
+## UX Mobile
+
+- Bouton de géolocalisation discret dans l'en-tête
+- Indicateur de chargement pendant la récupération de position
+- Toast de confirmation "Position détectée"
+- Les drapeaux s'affichent en overlay sur l'image produit (coin supérieur gauche)
 
