@@ -1,41 +1,103 @@
 
-# Activer le Token par Défaut pour la Carte Admin
+# Corriger la Synchronisation du Token dans RealtimeMap
 
 ## Problème Identifié
 
-Dans `RealtimeMapCard.tsx` ligne 19, le hook est configuré avec `useDefault: false` :
+Le composant `RealtimeMap.tsx` a un bug de synchronisation d'état :
 
 ```typescript
-// Admin dashboard: useDefault=false to require explicit token configuration
-const { token: mapboxToken, setToken, clearToken } = useMapboxToken({ useDefault: false });
+// Ligne 21 - État initial basé sur mapboxToken au premier rendu
+const [hasValidToken, setHasValidToken] = useState(!!mapboxToken);
+
+// Ligne 107 - Condition qui affiche le formulaire
+if (!mapboxToken || !hasValidToken) {
+  return (/* formulaire de saisie */);
+}
 ```
 
-Cela signifie que la carte admin **ne reçoit pas le token par défaut** et affiche donc le formulaire de saisie.
+### Chronologie du Bug
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ 1. Premier rendu                                        │
+│    - useMapboxToken pas encore initialisé               │
+│    - mapboxToken = null                                 │
+│    - hasValidToken = false (useState initial)           │
+│    → Affiche le formulaire ❌                           │
+└────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ 2. Hook initialisé                                      │
+│    - mapboxToken = "pk.eyJ1Ijo..."                     │
+│    - hasValidToken = false (pas mis à jour!)           │
+│    → Condition (!mapboxToken || !hasValidToken)        │
+│    → false || true = true → Affiche toujours           │
+│      le formulaire ❌                                   │
+└────────────────────────────────────────────────────────┘
+```
 
 ## Solution
 
-Changer `useDefault: false` → `useDefault: true` pour que la carte admin utilise automatiquement le token sécurisé configuré dans `mapboxConfig.ts`.
+Modifier `RealtimeMap.tsx` pour synchroniser `hasValidToken` quand `mapboxToken` change :
 
-## Modification
+### Modification 1 : Ajouter un useEffect de synchronisation
 
-| Fichier | Ligne | Avant | Après |
-|---------|-------|-------|-------|
-| `src/components/admin/RealtimeMapCard.tsx` | 19 | `useDefault: false` | `useDefault: true` |
-
-## Code Modifié
+Ajouter un `useEffect` après la déclaration de `hasValidToken` pour le synchroniser :
 
 ```typescript
-// Ligne 18-19 : Utiliser le token par défaut pour l'admin aussi
-const { token: mapboxToken, setToken, clearToken } = useMapboxToken({ useDefault: true });
+// Synchroniser hasValidToken quand mapboxToken change
+useEffect(() => {
+  if (mapboxToken) {
+    setHasValidToken(true);
+  }
+}, [mapboxToken]);
 ```
 
-## Optionnel : Supprimer le Bouton Reset
+### Modification 2 : Simplifier la condition de rendu
 
-Puisque le token par défaut sera toujours disponible, le bouton "Réinitialiser" (lignes 34-38) devient moins utile. On peut le conserver pour permettre aux admins de tester avec un token personnalisé, ou le supprimer pour simplifier l'interface.
+La condition ligne 107 peut aussi être simplifiée. Au lieu de :
+
+```typescript
+if (!mapboxToken || !hasValidToken) {
+```
+
+On peut utiliser :
+
+```typescript
+if (!mapboxToken) {
+```
+
+Et garder `hasValidToken` uniquement pour gérer les erreurs de validation du token (quand Mapbox rejette un token invalide).
+
+## Fichier à Modifier
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/components/admin/RealtimeMap.tsx` | Ajouter useEffect de synchronisation après ligne 21 |
+
+## Code Final
+
+```typescript
+// Ligne 20-28 après modification
+const [tokenInput, setTokenInput] = useState('');
+const [hasValidToken, setHasValidToken] = useState(!!mapboxToken);
+
+// Synchroniser hasValidToken quand mapboxToken devient disponible
+useEffect(() => {
+  if (mapboxToken) {
+    setHasValidToken(true);
+  }
+}, [mapboxToken]);
+
+// Initialize map (useEffect existant)
+useEffect(() => {
+  // ...
+```
 
 ## Résultat Attendu
 
 Après cette modification :
-- ✅ La carte s'affichera immédiatement sur `/admin/realtime`
-- ✅ Le token `pk.eyJ1IjoiamR2...` sera utilisé automatiquement
-- ✅ Cohérence avec toutes les autres cartes du projet
+- ✅ La carte s'affichera immédiatement quand le hook est initialisé
+- ✅ `hasValidToken` sera mis à `true` dès que `mapboxToken` est disponible
+- ✅ Les erreurs de token invalide seront toujours gérées (événement `error` de Mapbox)
