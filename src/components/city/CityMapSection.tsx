@@ -4,9 +4,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { type CityPageData } from "@/data/city-pages";
 import { Loader2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-
-// Get Mapbox token from Supabase secrets (injected at runtime)
-const MAPBOX_TOKEN = "pk.eyJ1Ijoiam9pZWRldml2cmUiLCJhIjoiY200eTI1MTdiMDUyMjJrcTBqc2FlbTkycCJ9.aaVJBQMZG8sRPnKKxFpDDA";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 
 interface CityMapSectionProps {
   cities: CityPageData[];
@@ -33,6 +31,8 @@ export function CityMapSection({ cities, hoveredCity, onCityHover }: CityMapSect
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapError, setMapError] = useState<string | null>(null);
+  
+  const { token: mapboxToken } = useMapboxToken();
 
   // Calculate map bounds from cities
   const getBounds = () => {
@@ -49,10 +49,10 @@ export function CityMapSection({ cities, hoveredCity, onCityHover }: CityMapSect
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapboxToken) return;
 
     try {
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+      mapboxgl.accessToken = mapboxToken;
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -91,7 +91,7 @@ export function CityMapSection({ cities, hoveredCity, onCityHover }: CityMapSect
         map.current = null;
       }
     };
-  }, []);
+  }, [mapboxToken]);
 
   // Update markers when cities change
   useEffect(() => {
