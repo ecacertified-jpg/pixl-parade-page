@@ -160,6 +160,12 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
       return;
     }
 
+    // Validation GPS obligatoire uniquement pour la création (pas la modification)
+    if (!editingBusiness && (formData.latitude === null || formData.longitude === null)) {
+      toast.error("La localisation GPS est obligatoire. Cliquez sur la carte ou utilisez 'Ma position GPS'");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -343,7 +349,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                   handleInputChange('longitude', lng);
                 }}
                 countryCode={countryCode}
-                label="Emplacement de l'entreprise"
+                label={editingBusiness ? "Emplacement de l'entreprise" : "Emplacement de l'entreprise *"}
               />
 
               <div>
