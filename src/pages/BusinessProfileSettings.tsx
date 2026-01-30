@@ -427,21 +427,7 @@ const BusinessProfileSettings = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="address">Adresse</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="address"
-                      value={business.address}
-                      onChange={(e) => setBusiness({ ...business, address: e.target.value })}
-                      placeholder="Adresse de votre entreprise"
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Location Picker */}
+                {/* Location Picker - Carte + CitySelector + GPS */}
                 <LocationPicker
                   address={business.address}
                   latitude={business.latitude}
