@@ -20,6 +20,13 @@ export function RealtimeMap({ markers, mapboxToken, onTokenSubmit }: RealtimeMap
   const [tokenInput, setTokenInput] = useState('');
   const [hasValidToken, setHasValidToken] = useState(!!mapboxToken);
 
+  // Synchroniser hasValidToken quand mapboxToken devient disponible
+  useEffect(() => {
+    if (mapboxToken) {
+      setHasValidToken(true);
+    }
+  }, [mapboxToken]);
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
