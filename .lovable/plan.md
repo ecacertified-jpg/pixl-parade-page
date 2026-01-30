@@ -1,173 +1,105 @@
 
-
-# Ajouter un Indicateur Visuel de Localisation GPS Manquante
+# Rendre la Localisation GPS Obligatoire lors de la Création de Boutique
 
 ## Objectif
 
-Afficher un bandeau d'alerte sur le dashboard prestataire lorsque la localisation GPS (latitude/longitude) de la boutique n'est pas encore définie, encourageant le prestataire à compléter cette information importante.
+Ajouter une validation qui empêche la création d'une boutique si les coordonnées GPS (latitude/longitude) ne sont pas définies, afin d'améliorer le tri par proximité dans la boutique.
 
-## Contexte
+## Contexte Actuel
 
-- Les prestataires peuvent définir leur localisation via `/business-profile-settings` (onglet Contact)
-- Le composant `LocationPicker` permet la saisie sur carte ou par nom de lieu
-- La table `business_accounts` contient les champs `latitude` et `longitude`
-- Le hook `useBusinessAccount` récupère déjà ces coordonnées
-- Le dashboard (`BusinessAccount.tsx`) affiche déjà des alertes comme l'onboarding checklist
+| Élément | État |
+|---------|------|
+| `AddBusinessModal.tsx` | Validation sur `business_name` et `business_type` uniquement |
+| `LocationPicker.tsx` | Affiche déjà un indicateur "Position non définie" en jaune |
+| Coordonnées initiales | `latitude: null`, `longitude: null` par défaut |
 
 ## Solution
 
-Créer un nouveau composant `BusinessLocationAlert` qui :
-1. Vérifie si la boutique sélectionnée a des coordonnées GPS
-2. Affiche une alerte stylisée si les coordonnées sont manquantes
-3. Propose un bouton pour accéder directement aux paramètres
+Ajouter une validation dans `handleSubmit` du composant `AddBusinessModal.tsx` qui vérifie que les coordonnées GPS sont renseignées avant de permettre la soumission.
 
-## Architecture
+## Fichier à Modifier
 
-```text
-BusinessAccount.tsx
-├── Header
-├── BusinessOnboardingChecklist (existant)
-├── BusinessLocationAlert (NOUVEAU)  <-- Affiche l'alerte si pas de GPS
-├── Stats Cards
-└── Tabs (Vue d'ensemble, Produits, etc.)
-```
-
-## Fichiers à Créer/Modifier
-
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `src/components/BusinessLocationAlert.tsx` | Créer | Nouveau composant d'alerte GPS |
-| `src/pages/BusinessAccount.tsx` | Modifier | Intégrer le composant d'alerte |
+| Fichier | Action |
+|---------|--------|
+| `src/components/AddBusinessModal.tsx` | Ajouter validation GPS + indicateur visuel obligatoire |
 
 ## Détails Techniques
 
-### 1. Nouveau Composant : `BusinessLocationAlert.tsx`
+### 1. Ajouter la validation dans `handleSubmit`
 
-Le composant vérifiera si la boutique a des coordonnées valides et affichera une alerte si ce n'est pas le cas :
+Dans la fonction `handleSubmit` (ligne 147), après les validations existantes pour `business_name` et `business_type`, ajouter une validation pour les coordonnées GPS :
 
 ```tsx
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { MapPin, AlertCircle, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-
-interface BusinessLocationAlertProps {
-  latitude?: number | null;
-  longitude?: number | null;
-  address?: string | null;
+// Après la validation du business_type (lignes 158-161)
+if (formData.latitude === null || formData.longitude === null) {
+  toast.error("La localisation GPS est obligatoire. Cliquez sur la carte ou utilisez 'Ma position GPS'");
+  return;
 }
-
-export const BusinessLocationAlert = ({ 
-  latitude, 
-  longitude, 
-  address 
-}: BusinessLocationAlertProps) => {
-  const navigate = useNavigate();
-  
-  // Vérifier si la localisation GPS est définie
-  const hasGpsLocation = latitude !== null && 
-                         latitude !== undefined && 
-                         longitude !== null && 
-                         longitude !== undefined;
-  
-  // Ne pas afficher si la localisation est définie
-  if (hasGpsLocation) return null;
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-4"
-    >
-      <Alert className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/30">
-        <MapPin className="h-4 w-4 text-orange-600" />
-        <AlertTitle className="text-orange-800 dark:text-orange-300">
-          Localisation GPS manquante
-        </AlertTitle>
-        <AlertDescription className="text-orange-700 dark:text-orange-400">
-          <p className="mb-3">
-            Ajoutez la position GPS de votre boutique pour apparaître dans les 
-            recherches par proximité et faciliter les livraisons.
-          </p>
-          <Button 
-            size="sm" 
-            variant="outline"
-            className="border-orange-500 text-orange-700 hover:bg-orange-100"
-            onClick={() => navigate('/business-profile-settings')}
-          >
-            Définir ma localisation
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </AlertDescription>
-      </Alert>
-    </motion.div>
-  );
-};
 ```
 
-### 2. Modification : `BusinessAccount.tsx`
+### 2. Mettre à jour le label du LocationPicker
 
-Récupérer les données de localisation du business sélectionné et afficher l'alerte :
+Modifier l'appel au composant `LocationPicker` pour indiquer visuellement que c'est obligatoire :
 
-**Ajouts :**
-
-1. **Import du composant** (en haut du fichier) :
 ```tsx
-import { BusinessLocationAlert } from "@/components/BusinessLocationAlert";
+<LocationPicker
+  address={formData.address || ""}
+  latitude={formData.latitude ?? null}
+  longitude={formData.longitude ?? null}
+  onAddressChange={(value) => handleInputChange('address', value)}
+  onCoordinatesChange={(lat, lng) => {
+    handleInputChange('latitude', lat);
+    handleInputChange('longitude', lng);
+  }}
+  countryCode={countryCode}
+  label="Emplacement de l'entreprise *"  // Ajout de l'astérisque
+/>
 ```
 
-2. **Récupérer le business sélectionné avec ses coordonnées** :
-Le state `businesses` contient déjà toutes les données (via `select('*')`), donc on peut dériver :
-```tsx
-// Trouver le business sélectionné avec ses coordonnées
-const currentBusiness = businesses.find(b => b.id === selectedBusinessId);
-```
-
-3. **Afficher l'alerte** (après l'onboarding checklist, avant les stats) :
-```tsx
-{/* Alerte localisation GPS manquante */}
-{selectedBusinessId && currentBusiness && (
-  <BusinessLocationAlert
-    latitude={currentBusiness.latitude}
-    longitude={currentBusiness.longitude}
-    address={currentBusiness.address}
-  />
-)}
-```
-
-## Positionnement de l'Alerte
+## Flux Utilisateur
 
 ```text
 ┌─────────────────────────────────────┐
-│ Header (Mon Espace Business)        │
-├─────────────────────────────────────┤
-│ BusinessOnboardingChecklist         │  ← Si pas complété
-├─────────────────────────────────────┤
-│ ⚠️ BusinessLocationAlert            │  ← NOUVEAU - Si pas de GPS
-├─────────────────────────────────────┤
-│ Stats Cards (Produits, Commandes..) │
-├─────────────────────────────────────┤
-│ Tabs (Vue d'ensemble, ...)          │
-└─────────────────────────────────────┘
+│ Utilisateur ouvre AddBusinessModal  │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│ Remplit le formulaire               │
+│ - Nom du business *                 │
+│ - Type de business *                │
+│ - Emplacement de l'entreprise *     │  ← NOUVEAU: Obligatoire
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│ Clique sur "Créer"                  │
+└──────────────┬──────────────────────┘
+               │
+       ┌───────┴───────┐
+       │               │
+       ▼               ▼
+┌──────────────┐  ┌──────────────────────────┐
+│ GPS défini   │  │ GPS non défini           │
+│ → Création   │  │ → Toast d'erreur         │
+│    OK        │  │ "La localisation GPS..." │
+└──────────────┘  └──────────────────────────┘
 ```
 
-## UX et Design
+## Messages d'Erreur
 
-| Aspect | Description |
-|--------|-------------|
-| Couleur | Orange (warning) - pas bloquant mais important |
-| Icône | MapPin pour la localisation |
-| Animation | Fade-in avec Framer Motion |
-| Action | Bouton "Définir ma localisation" menant aux paramètres |
-| Condition | Masqué dès que latitude ET longitude sont renseignées |
-| Responsive | Pleine largeur sur mobile et desktop |
+| Cas | Message Toast |
+|-----|---------------|
+| GPS manquant | "La localisation GPS est obligatoire. Cliquez sur la carte ou utilisez 'Ma position GPS'" |
 
 ## Avantages
 
-1. **Visibilité** - L'alerte est placée en haut du dashboard, très visible
-2. **Non-bloquante** - Orange plutôt que rouge, le prestataire peut continuer à utiliser l'app
-3. **Actionable** - Bouton direct vers les paramètres pour corriger
-4. **Smart** - Disparaît automatiquement une fois la localisation définie
-5. **Cohérente** - Suit le pattern existant des alertes dans l'application
+1. **Données de qualité** - Toutes les nouvelles boutiques auront des coordonnées GPS
+2. **Tri par proximité** - Améliore l'expérience utilisateur dans la boutique
+3. **UX cohérente** - Le `LocationPicker` montre déjà un indicateur visuel quand la position n'est pas définie
+4. **Non-bloquant pour les boutiques existantes** - La validation ne s'applique qu'à la création
 
+## Impact
+
+- Les prestataires devront cliquer sur la carte OU utiliser "Ma position GPS" OU sélectionner une ville pour définir les coordonnées
+- Le `LocationPicker` affiche déjà clairement si la position est définie ou non (icône verte avec coordonnées vs icône jaune "Position non définie")
