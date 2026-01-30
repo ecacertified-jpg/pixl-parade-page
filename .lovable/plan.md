@@ -1,157 +1,185 @@
 
 
-# Afficher les Produits les Plus Proches avec Drapeau du Pays d'Origine
+# Ajouter la Modification de Localisation dans l'Admin
 
 ## Objectif
 
-Améliorer la page Boutique pour :
-1. **Afficher les produits triés par proximité** de la position de l'utilisateur
-2. **Marquer chaque carte produit avec le drapeau** de son pays d'origine
+Permettre aux administrateurs de modifier la localisation d'une boutique :
+1. **Sur carte** - Cliquer ou glisser le marqueur pour définir les coordonnées GPS
+2. **Par nom de lieu** - Sélectionner une ville/adresse via le CitySelector
 
-## Architecture Proposée
+## Architecture
 
 ```text
-+-------------------+     +----------------------+     +------------------+
-|   Shop.tsx        |     |  useNearbyProducts   |     |   Supabase       |
-|   (Page)          |---->|  (Nouveau Hook)      |---->|   Database       |
-+-------------------+     +----------------------+     +------------------+
-        |                           |
-        v                           v
-+-------------------+     +----------------------+
-|  Carte Produit    |     |  Géolocalisation     |
-|  + CountryBadge   |     |  navigator.geolocation|
-+-------------------+     +----------------------+
+AdminEditBusinessModal
+├── Champs existants (nom, type, téléphone, etc.)
+├── Section Adresse existante (Input simple)
+│   └── REMPLACER PAR ↓
+└── Section Localisation GPS (Nouveau)
+    └── LocationPicker
+        ├── Carte Mapbox interactive
+        ├── CitySelector (adresse/ville)
+        ├── Affichage coordonnées GPS
+        ├── Bouton "Ma position GPS"
+        └── Bouton "Recentrer"
 ```
 
 ## Modifications
 
-### 1. Nouveau Hook : `useNearbyProducts.ts`
+### 1. `src/pages/Admin/BusinessManagement.tsx`
 
-Créer un hook dédié pour récupérer les produits avec :
-- Les coordonnées de la boutique associée (via `business_accounts`)
-- Le `country_code` du produit ou de la boutique
-- Le calcul de distance par rapport à l'utilisateur
-- Le tri par proximité
+| Changement | Détails |
+|------------|---------|
+| Interface Business | Ajouter `latitude: number \| null` et `longitude: number \| null` |
+| Query Supabase | Ajouter `latitude, longitude` à la liste des colonnes sélectionnées |
 
-| Fonctionnalité | Description |
-|----------------|-------------|
-| Géolocalisation | Utilise `navigator.geolocation` pour obtenir la position |
-| Distance | Formule Haversine (réutilisation de la fonction existante) |
-| Fallback | Si pas de géolocalisation, affiche sans tri par distance |
-| Country code | Priorité : product.country_code > business.country_code |
+### 2. `src/components/admin/AdminEditBusinessModal.tsx`
 
-### 2. Modifier la Page `Shop.tsx`
-
-| Modification | Détails |
-|--------------|---------|
-| Importer CountryBadge | `import { CountryBadge } from "@/components/CountryBadge"` |
-| Ajouter géolocalisation | État `userLocation` + demande de permission |
-| Enrichir loadProducts | Récupérer latitude/longitude et country_code via join |
-| Trier par proximité | Après le fetch, trier par distance calculée |
-| Afficher distance réelle | Remplacer "2.3 km" par la vraie distance |
-| Afficher le drapeau | Ajouter `CountryBadge` sur chaque carte |
-
-### 3. Interface Produit Enrichie
-
-Ajouter les champs au type de produit dans Shop.tsx :
-
-```typescript
-interface Product {
-  // ... champs existants ...
-  countryCode: string | null;        // Nouveau
-  businessLatitude: number | null;   // Nouveau
-  businessLongitude: number | null;  // Nouveau
-  distanceKm: number | null;         // Nouveau (calculé)
-}
-```
+| Changement | Détails |
+|------------|---------|
+| Interface Business | Ajouter `latitude: number \| null` et `longitude: number \| null` |
+| Imports | Ajouter `import { LocationPicker } from "@/components/LocationPicker"` |
+| État formData | Ajouter `latitude: number \| null` et `longitude: number \| null` |
+| useEffect | Initialiser latitude/longitude depuis le business existant |
+| handleSubmit | Inclure latitude/longitude dans updateData |
+| JSX | Remplacer le champ Adresse par le composant LocationPicker |
+| Audit log | Logger si la localisation a changé |
 
 ## Détails Techniques
 
-### Requête Supabase Modifiée
-
-```sql
-SELECT 
-  products.*,
-  business_accounts.latitude,
-  business_accounts.longitude,
-  COALESCE(products.country_code, business_accounts.country_code) as effective_country_code
-FROM products
-LEFT JOIN business_accounts ON products.business_account_id = business_accounts.id
-WHERE products.is_active = true
-```
-
-### Calcul de Distance (Haversine)
-
-La fonction existe déjà dans `useExploreMapData.ts`. Elle sera extraite dans un utilitaire partagé :
+### Interface Business Enrichie
 
 ```typescript
-// src/utils/geoUtils.ts
-export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Rayon de la Terre en km
-  // ... calcul existant ...
+interface Business {
+  id: string;
+  business_name: string;
+  business_type: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  description: string | null;
+  website_url: string | null;
+  is_verified: boolean;
+  is_active: boolean;
+  status: string;
+  user_id: string;
+  latitude: number | null;     // Nouveau
+  longitude: number | null;    // Nouveau
 }
 ```
 
-### Position de l'Utilisateur
-
-Ajouter un bouton optionnel "Me localiser" ou demander automatiquement :
+### État formData Enrichi
 
 ```typescript
-const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
-
-const requestLocation = () => {
-  navigator.geolocation.getCurrentPosition(
-    (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-    (err) => console.warn('Géolocalisation refusée')
-  );
-};
+const [formData, setFormData] = useState({
+  // ... champs existants ...
+  latitude: null as number | null,
+  longitude: null as number | null,
+});
 ```
 
-### Affichage du Drapeau sur la Carte
+### Initialisation dans useEffect
 
+```typescript
+useEffect(() => {
+  if (open && business) {
+    setFormData({
+      // ... autres champs ...
+      address: business.address || '',
+      latitude: business.latitude,
+      longitude: business.longitude,
+    });
+  }
+}, [open, business]);
+```
+
+### Remplacement de la Section Adresse
+
+Avant (simple Input) :
 ```tsx
-{/* Dans la carte produit, après l'image */}
-<div className="absolute top-2 left-2 flex items-center gap-2">
-  <CountryBadge countryCode={product.countryCode} variant="compact" />
-  {product.isExperience && (
-    <Badge className="bg-purple-600">✨ EXPÉRIENCE</Badge>
-  )}
+<div className="space-y-2">
+  <Label>Adresse</Label>
+  <Input
+    value={formData.address}
+    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+    placeholder="Adresse du business"
+  />
 </div>
 ```
 
-### Affichage de la Distance
-
+Après (LocationPicker complet) :
 ```tsx
-{/* Remplacer la distance fixe "2.3 km" */}
-<span className="text-xs text-muted-foreground">
-  {product.distanceKm !== null 
-    ? `${product.distanceKm.toFixed(1)} km`
-    : "Distance inconnue"
-  }
-</span>
+{/* Section Localisation - Admin */}
+<div className="space-y-2">
+  <LocationPicker
+    address={formData.address}
+    latitude={formData.latitude}
+    longitude={formData.longitude}
+    onAddressChange={(addr) => setFormData({ ...formData, address: addr })}
+    onCoordinatesChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+    countryCode="CI"
+    label="Localisation de la boutique (Admin)"
+  />
+</div>
 ```
 
-## Fichiers à Modifier/Créer
+### Update dans handleSubmit
 
-| Fichier | Action |
-|---------|--------|
-| `src/utils/geoUtils.ts` | Créer - Extraire la fonction Haversine |
-| `src/pages/Shop.tsx` | Modifier - Ajouter géolocalisation, country_code, tri par distance |
-| `src/hooks/useExploreMapData.ts` | Modifier - Utiliser l'utilitaire partagé |
+```typescript
+const updateData: any = {
+  // ... champs existants ...
+  address: formData.address.trim() || null,
+  latitude: formData.latitude,
+  longitude: formData.longitude,
+};
+```
 
-## Comportement Attendu
+### Audit Log Enrichi
 
-| Scénario | Résultat |
-|----------|----------|
-| Géolocalisation acceptée | Produits triés du plus proche au plus éloigné, distance affichée |
-| Géolocalisation refusée | Produits affichés sans tri par distance, drapeau toujours visible |
-| Produit sans coordonnées | Affiché en fin de liste avec "Distance inconnue" |
-| Produit sans country_code | CountryBadge n'affiche rien (comportement existant) |
+```typescript
+// Ajouter au tracking des changements
+if (formData.address !== business.address) changes.push('adresse');
+if (formData.latitude !== business.latitude || formData.longitude !== business.longitude) {
+  changes.push('coordonnées GPS');
+}
+```
 
-## UX Mobile
+## Query Supabase Modifiée
 
-- Bouton de géolocalisation discret dans l'en-tête
-- Indicateur de chargement pendant la récupération de position
-- Toast de confirmation "Position détectée"
-- Les drapeaux s'affichent en overlay sur l'image produit (coin supérieur gauche)
+Dans `BusinessManagement.tsx`, ajouter les colonnes :
+
+```typescript
+let query = supabase
+  .from('business_accounts')
+  .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code, latitude, longitude')
+  // ...
+```
+
+## Fichiers à Modifier
+
+| Fichier | Modification |
+|---------|--------------|
+| `src/pages/Admin/BusinessManagement.tsx` | Ajouter latitude/longitude à l'interface et la query |
+| `src/components/admin/AdminEditBusinessModal.tsx` | Intégrer LocationPicker + gestion des coordonnées |
+
+## Résultat Attendu
+
+| Aspect | Description |
+|--------|-------------|
+| Carte interactive | Affiche la position actuelle ou Abidjan par défaut |
+| CitySelector | Liste déroulante des villes avec recherche |
+| Clic sur carte | Repositionne le marqueur aux coordonnées cliquées |
+| Drag du marqueur | Déplace la position GPS en temps réel |
+| Géolocalisation | Bouton "Ma position GPS" pour l'admin |
+| Coordonnées | Affichage des lat/lng avec badge "Position GPS" |
+| Sauvegarde | Latitude, longitude et adresse enregistrées en base |
+| Audit | Actions "adresse" et "coordonnées GPS" loggées |
+
+## UX Administrateur
+
+- La carte s'affiche directement dans le modal d'édition
+- Si la boutique a déjà des coordonnées, la carte est centrée dessus
+- L'admin peut modifier l'adresse textuelle ET/OU les coordonnées GPS
+- Les deux informations sont indépendantes mais synchronisées via CitySelector
+- Message d'aide visible : "Cliquez sur la carte ou déplacez le marqueur..."
 
