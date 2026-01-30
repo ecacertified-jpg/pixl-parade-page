@@ -86,6 +86,8 @@ interface Business {
   created_at: string;
   updated_at: string;
   country_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export default function BusinessManagement() {
@@ -138,7 +140,7 @@ export default function BusinessManagement() {
       setLoading(true);
       let query = supabase
         .from('business_accounts')
-        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code')
+        .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code, latitude, longitude')
         .is('deleted_at', null) // Exclure les business supprimés
         .order('created_at', { ascending: false });
 
