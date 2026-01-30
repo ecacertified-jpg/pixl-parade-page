@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map, Expand } from "lucide-react";
+import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map, Expand, MapPin, Loader2 } from "lucide-react";
 import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { motion, useReducedMotion } from "framer-motion";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
@@ -31,6 +31,8 @@ import { getCategoryByName } from "@/data/product-categories";
 import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
+import { CountryBadge } from "@/components/CountryBadge";
+import { haversineDistance, formatDistance, requestUserLocation, type GeoLocation } from "@/utils/geoUtils";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -65,7 +67,15 @@ export default function Shop() {
     locationName?: string;
     videoUrl?: string | null;
     videoThumbnailUrl?: string | null;
+    countryCode: string | null;
+    businessLatitude: number | null;
+    businessLongitude: number | null;
+    distanceKm: number | null;
   }>>([]);
+  
+  // Geolocation state
+  const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   
   // State for video playback modal
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
@@ -128,6 +138,28 @@ export default function Shop() {
       }
     }
   }, [searchParams, products]);
+  // Request user location on mount
+  useEffect(() => {
+    const fetchLocation = async () => {
+      setIsLocating(true);
+      const location = await requestUserLocation();
+      if (location) {
+        setUserLocation(location);
+        toast({
+          title: "Position détectée",
+          description: "Les produits sont triés par proximité",
+        });
+      }
+      setIsLocating(false);
+    };
+    fetchLocation();
+  }, []);
+  
+  // Reload products when userLocation changes
+  useEffect(() => {
+    loadProducts();
+  }, [userLocation]);
+  
   useEffect(() => {
     // Check if user came from contribution flow
     const target = localStorage.getItem('contributionTarget');
@@ -190,23 +222,35 @@ export default function Shop() {
           .filter(Boolean)
       )] as string[];
 
-      // Étape 3: Récupérer les noms et logos des boutiques
-      let businessMap: Record<string, { name: string; logo: string | null }> = {};
+      // Étape 3: Récupérer les infos des boutiques (nom, logo, latitude, longitude, country_code)
+      let businessMap: Record<string, { 
+        name: string; 
+        logo: string | null;
+        latitude: number | null;
+        longitude: number | null;
+        countryCode: string | null;
+      }> = {};
       if (businessIds.length > 0) {
         const { data: businessData, error: businessError } = await supabase
-          .from('business_public_info')
-          .select('id, business_name, logo_url')
+          .from('business_accounts')
+          .select('id, business_name, logo_url, latitude, longitude, country_code')
           .in('id', businessIds);
         
         if (businessError) {
-          console.error('Error loading business names:', businessError);
+          console.error('Error loading business data:', businessError);
         }
         
         if (businessData) {
           businessMap = businessData.reduce((acc, b) => {
-            acc[b.id] = { name: b.business_name, logo: b.logo_url };
+            acc[b.id] = { 
+              name: b.business_name, 
+              logo: b.logo_url,
+              latitude: b.latitude,
+              longitude: b.longitude,
+              countryCode: b.country_code
+            };
             return acc;
-          }, {} as Record<string, { name: string; logo: string | null }>);
+          }, {} as typeof businessMap);
         }
       }
 
@@ -231,7 +275,7 @@ export default function Shop() {
         }
       }
 
-      // Étape 5: Formater les produits avec les noms, logos et vrais ratings
+      // Étape 5: Formater les produits avec les noms, logos, coordonnées et country_code
       const formattedProducts = productsData.map(product => {
         const businessInfo = product.business_account_id ? businessMap[product.business_account_id] : null;
         const ratingInfo = ratingsMap[product.id];
@@ -248,6 +292,24 @@ export default function Shop() {
         const additionalImages = Array.isArray(product.images) ? (product.images as string[]) : [];
         const allImages = [mainImage, ...additionalImages.filter(img => img !== mainImage)];
         
+        // Country code: priorité au produit, sinon la boutique
+        const effectiveCountryCode = product.country_code || businessInfo?.countryCode || null;
+        
+        // Coordonnées de la boutique
+        const businessLat = businessInfo?.latitude || null;
+        const businessLng = businessInfo?.longitude || null;
+        
+        // Calcul de distance si on a la position utilisateur et les coordonnées boutique
+        let distanceKm: number | null = null;
+        if (userLocation && businessLat && businessLng) {
+          distanceKm = haversineDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            businessLat, 
+            businessLng
+          );
+        }
+        
         return {
           id: product.id,
           name: product.name,
@@ -260,7 +322,7 @@ export default function Shop() {
           vendor: businessInfo?.name || "Boutique",
           vendorId: product.business_account_id || null,
           vendorLogo: businessInfo?.logo || null,
-          distance: "2.3 km",
+          distance: distanceKm !== null ? formatDistance(distanceKm) : "Distance inconnue",
           rating: parseFloat(avgRating.toFixed(1)),
           reviews: reviewCount,
           inStock: (product.stock_quantity || 0) > 0,
@@ -268,9 +330,25 @@ export default function Shop() {
           categoryName: product.category_name,
           locationName: product.location_name || "Non spécifié",
           videoUrl: product.video_url || null,
-          videoThumbnailUrl: product.video_thumbnail_url || null
+          videoThumbnailUrl: product.video_thumbnail_url || null,
+          countryCode: effectiveCountryCode,
+          businessLatitude: businessLat,
+          businessLongitude: businessLng,
+          distanceKm: distanceKm
         };
       });
+      
+      // Étape 6: Trier par distance (les plus proches en premier)
+      // Si pas de géolocalisation, garder l'ordre par date de création
+      if (userLocation) {
+        formattedProducts.sort((a, b) => {
+          // Produits sans distance à la fin
+          if (a.distanceKm === null && b.distanceKm === null) return 0;
+          if (a.distanceKm === null) return 1;
+          if (b.distanceKm === null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+      }
       
       setProducts(formattedProducts);
     } catch (error) {
@@ -468,6 +546,40 @@ export default function Shop() {
               <span className="text-sm text-muted-foreground">🏷️</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              {/* Geolocation Button */}
+              <Button 
+                variant={userLocation ? "default" : "outline"} 
+                size="sm" 
+                onClick={async () => {
+                  if (!userLocation) {
+                    setIsLocating(true);
+                    const location = await requestUserLocation();
+                    if (location) {
+                      setUserLocation(location);
+                      toast({
+                        title: "Position détectée",
+                        description: "Les produits sont triés par proximité",
+                      });
+                    } else {
+                      toast({
+                        title: "Géolocalisation refusée",
+                        description: "Activez la localisation pour trier par proximité",
+                        variant: "destructive",
+                      });
+                    }
+                    setIsLocating(false);
+                  }
+                }}
+                disabled={isLocating}
+                title={userLocation ? "Position détectée" : "Me localiser"}
+                className="relative"
+              >
+                {isLocating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MapPin className={cn("h-4 w-4", userLocation && "text-primary-foreground")} />
+                )}
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -743,11 +855,15 @@ export default function Shop() {
                       alt={product.name} 
                       className="w-full h-40 object-cover" 
                     />
-                    {product.isExperience && (
-                      <Badge className="absolute top-2 left-2 bg-purple-600 text-white text-xs">
-                        ✨ EXPÉRIENCE
-                      </Badge>
-                    )}
+                    {/* Country Badge + Experience Badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+                      <CountryBadge countryCode={product.countryCode} variant="compact" />
+                      {product.isExperience && (
+                        <Badge className="bg-purple-600 text-white text-xs">
+                          ✨ EXPÉRIENCE
+                        </Badge>
+                      )}
+                    </div>
                     {/* Play button for video products */}
                     {product.videoUrl && (
                       <button
@@ -856,8 +972,8 @@ export default function Shop() {
                     </Badge>
                   </div>
 
-                  {/* Compact Rating */}
-                  <div className="flex items-center gap-2 mb-2">
+                  {/* Compact Rating + Distance */}
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <div className="flex items-center gap-1">
                       {product.reviews > 0 ? (
                         <>
@@ -873,6 +989,11 @@ export default function Shop() {
                           <span className="text-xs text-muted-foreground">Aucun avis</span>
                         </>
                       )}
+                    </div>
+                    <span className="text-muted-foreground">•</span>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">{product.distance}</span>
                     </div>
                     <span className="text-muted-foreground">•</span>
                     <ProductShareCount productId={String(product.id)} compact showIcon />
