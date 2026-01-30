@@ -21,6 +21,7 @@ import { OrderDetailsModal } from "@/components/OrderDetailsModal";
 import { BusinessSelector } from "@/components/BusinessSelector";
 import { BusinessOnboardingModal } from "@/components/BusinessOnboardingModal";
 import { BusinessOnboardingChecklist } from "@/components/BusinessOnboardingChecklist";
+import { BusinessLocationAlert } from "@/components/BusinessLocationAlert";
 import { BusinessPushNotificationPrompt } from "@/components/BusinessPushNotificationPrompt";
 import { ProductImportModal } from "@/components/ProductImportModal";
 import { ProductExportButton } from "@/components/ProductExportButton";
@@ -915,6 +916,17 @@ interface RecentOrderItem {
             onOpenNotificationSettings={() => setShowPushNotificationPrompt(true)}
           />
         )}
+
+        {/* Alerte localisation GPS manquante */}
+        {selectedBusinessId && (() => {
+          const currentBusiness = businesses.find(b => b.id === selectedBusinessId);
+          return currentBusiness ? (
+            <BusinessLocationAlert
+              latitude={currentBusiness.latitude}
+              longitude={currentBusiness.longitude}
+            />
+          ) : null;
+        })()}
 
         {/* Statut du compte */}
         <Card className="p-4 mb-6">
