@@ -54,6 +54,13 @@ const COUNTRY_BOUNDS: Record<string, [[number, number], [number, number]]> = {
   SN: SENEGAL_BOUNDS,
 };
 
+// Mapping des grandes villes avec communes/arrondissements par pays
+const MAJOR_CITY_MAPPING: Record<string, { name: string; label: string }> = {
+  CI: { name: "Abidjan", label: "🏙️ Abidjan (communes)" },
+  BJ: { name: "Cotonou", label: "🏙️ Cotonou (arrondissements)" },
+  SN: { name: "Dakar", label: "🏙️ Dakar (communes)" },
+};
+
 /**
  * Get cities for a specific country
  */
@@ -140,26 +147,75 @@ export function getNeighborhoods(countryCode: string, cityName: string): CityCoo
 }
 
 /**
- * Get main locations for first-level selection (cities + Abidjan communes)
- * Returns: standalone cities + communes of Abidjan (grouped)
+ * Get main locations for first-level selection (cities + major city communes)
+ * Returns: communes of the major city + standalone cities
  */
 export function getMainLocations(countryCode: string): { 
-  abidjanCommunes: CityCoordinates[]; 
+  majorCityCommunes: CityCoordinates[]; 
+  majorCityName: string | null;
+  majorCityLabel: string;
   otherCities: CityCoordinates[];
 } {
   const cities = getCitiesForCountry(countryCode);
+  const majorCityConfig = MAJOR_CITY_MAPPING[countryCode];
   
-  // Get Abidjan communes
-  const abidjanCommunes = cities.filter(
-    city => city.region === "Abidjan" && city.type === "commune"
+  if (!majorCityConfig) {
+    // No major city with communes for this country
+    const allCities = cities.filter(city => city.type === "city");
+    return { 
+      majorCityCommunes: [], 
+      majorCityName: null,
+      majorCityLabel: "",
+      otherCities: allCities 
+    };
+  }
+  
+  const majorCityName = majorCityConfig.name;
+  
+  // Get communes of the major city
+  const majorCityCommunes = cities.filter(
+    city => city.region === majorCityName && city.type === "commune"
   );
   
-  // Get standalone cities (type: city, excluding Abidjan itself)
+  // Get standalone cities (type: city, excluding the major city itself)
   const otherCities = cities.filter(
-    city => city.type === "city" && city.name !== "Abidjan"
+    city => city.type === "city" && city.name !== majorCityName
   );
   
-  return { abidjanCommunes, otherCities };
+  return { 
+    majorCityCommunes, 
+    majorCityName,
+    majorCityLabel: majorCityConfig.label,
+    otherCities 
+  };
+}
+
+/**
+ * Check if a location is a commune of the major city for this country
+ */
+export function isMajorCityCommune(countryCode: string, locationName: string): boolean {
+  const cities = getCitiesForCountry(countryCode);
+  const majorCityConfig = MAJOR_CITY_MAPPING[countryCode];
+  
+  if (!majorCityConfig) return false;
+  
+  const location = cities.find(c => c.name === locationName);
+  return location?.region === majorCityConfig.name && location?.type === "commune";
+}
+
+/**
+ * Get the major city name for a country
+ */
+export function getMajorCityName(countryCode: string): string | null {
+  return MAJOR_CITY_MAPPING[countryCode]?.name || null;
+}
+
+/**
+ * Legacy function - kept for backward compatibility
+ * Check if a location is an Abidjan commune (Côte d'Ivoire specific)
+ */
+export function isAbidjanCommune(countryCode: string, locationName: string): boolean {
+  return isMajorCityCommune(countryCode, locationName);
 }
 
 /**
@@ -198,15 +254,6 @@ export function getCoordinatesFor(
   }
   
   return null;
-}
-
-/**
- * Check if a location is a commune of Abidjan
- */
-export function isAbidjanCommune(countryCode: string, locationName: string): boolean {
-  const cities = getCitiesForCountry(countryCode);
-  const location = cities.find(c => c.name === locationName);
-  return location?.region === "Abidjan" && location?.type === "commune";
 }
 
 /**
