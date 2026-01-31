@@ -23,7 +23,8 @@ import {
   getMainLocations, 
   getNeighborhoodsOf, 
   getCoordinatesFor,
-  isAbidjanCommune,
+  isMajorCityCommune,
+  getMajorCityName,
   type CityCoordinates 
 } from "@/utils/countryCities";
 
@@ -73,7 +74,7 @@ export function AddressSelector({
   const [neighborhoodOpen, setNeighborhoodOpen] = useState(false);
 
   // Get structured location data
-  const { abidjanCommunes, otherCities } = useMemo(() => {
+  const { majorCityCommunes, majorCityName, majorCityLabel, otherCities } = useMemo(() => {
     return getMainLocations(countryCode);
   }, [countryCode]);
 
@@ -83,16 +84,16 @@ export function AddressSelector({
     return getNeighborhoodsOf(countryCode, selectedCity);
   }, [countryCode, selectedCity]);
 
-  // Check if selected city is an Abidjan commune
+  // Check if selected city is a commune of the major city
   const isCommune = useMemo(() => {
-    return isAbidjanCommune(countryCode, selectedCity);
+    return isMajorCityCommune(countryCode, selectedCity);
   }, [countryCode, selectedCity]);
 
   // Build and emit result
   const emitChange = useCallback((city: string, neighborhood: string, isCustomNeigh: boolean) => {
     if (!city) return;
 
-    const parentCity = isAbidjanCommune(countryCode, city) ? "Abidjan" : undefined;
+    const parentCity = isMajorCityCommune(countryCode, city) ? getMajorCityName(countryCode) : undefined;
     const coords = getCoordinatesFor(countryCode, city, neighborhood);
     
     const fullAddress = neighborhood 
@@ -183,8 +184,8 @@ export function AddressSelector({
                       <MapPin className="h-4 w-4 text-primary" />
                     )}
                     {selectedCity}
-                    {isCommune && (
-                      <span className="text-xs text-muted-foreground">(Abidjan)</span>
+                    {isCommune && majorCityName && (
+                      <span className="text-xs text-muted-foreground">({majorCityName})</span>
                     )}
                   </span>
                 ) : (
@@ -199,10 +200,10 @@ export function AddressSelector({
                 <CommandList>
                   <CommandEmpty>Aucune ville trouvée</CommandEmpty>
                   
-                  {/* Communes d'Abidjan */}
-                  {abidjanCommunes.length > 0 && (
-                    <CommandGroup heading="🏙️ Abidjan (communes)">
-                      {abidjanCommunes.map((commune) => (
+                  {/* Communes de la grande ville */}
+                  {majorCityCommunes.length > 0 && (
+                    <CommandGroup heading={majorCityLabel}>
+                      {majorCityCommunes.map((commune) => (
                         <CommandItem
                           key={commune.name}
                           value={commune.name}
@@ -336,7 +337,7 @@ export function AddressSelector({
             <p className="text-sm font-medium">
               {selectedNeighborhood && `${selectedNeighborhood}, `}
               {selectedCity}
-              {isCommune && ", Abidjan"}
+              {isCommune && majorCityName && `, ${majorCityName}`}
             </p>
             {showCoordinates && currentCoords && (
               <p className="text-xs text-muted-foreground mt-1">
