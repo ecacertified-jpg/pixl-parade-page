@@ -81,9 +81,10 @@ export function LocationPicker({
   const createMarker = useCallback((coords: { lat: number; lng: number }) => {
     if (!map.current) return;
 
-    // Remove existing marker
+    // Remove existing marker and clear reference
     if (marker.current) {
       marker.current.remove();
+      marker.current = null;
     }
 
     // Create custom marker element
@@ -210,9 +211,6 @@ export function LocationPicker({
 
   // Update marker position (clears accuracy circle for manual positioning)
   const updateMarkerPosition = useCallback((lat: number, lng: number) => {
-    if (marker.current && map.current) {
-      marker.current.setLngLat([lng, lat]);
-    }
     clearAccuracyCircle();
     onCoordinatesChange(lat, lng);
   }, [onCoordinatesChange, clearAccuracyCircle]);
@@ -286,8 +284,9 @@ export function LocationPicker({
       map.current.on("click", (e) => {
         if (disabled) return;
         const { lat, lng } = e.lngLat;
-        updateMarkerPosition(lat, lng);
         createMarker({ lat, lng });
+        clearAccuracyCircle();
+        onCoordinatesChange(lat, lng);
       });
     } catch (error) {
       console.error("Error initializing map:", error);
@@ -306,11 +305,19 @@ export function LocationPicker({
       setMapLoaded(false);
       setTilesLoading(true);
     };
-  }, [mapboxToken, disabled, createMarker, updateMarkerPosition]);
+  }, [mapboxToken, disabled, createMarker, clearAccuracyCircle, onCoordinatesChange]);
 
   // Update marker when coordinates change externally
   useEffect(() => {
     if (map.current && mapLoaded && latitude !== null && longitude !== null) {
+      // Avoid recreating if marker is already at the correct position
+      const currentLngLat = marker.current?.getLngLat();
+      if (currentLngLat && 
+          Math.abs(currentLngLat.lat - latitude) < 0.0001 && 
+          Math.abs(currentLngLat.lng - longitude) < 0.0001) {
+        return;
+      }
+      
       createMarker({ lat: latitude, lng: longitude });
       map.current.flyTo({
         center: [longitude, latitude],
