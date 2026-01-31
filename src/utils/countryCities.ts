@@ -140,6 +140,76 @@ export function getNeighborhoods(countryCode: string, cityName: string): CityCoo
 }
 
 /**
+ * Get main locations for first-level selection (cities + Abidjan communes)
+ * Returns: standalone cities + communes of Abidjan (grouped)
+ */
+export function getMainLocations(countryCode: string): { 
+  abidjanCommunes: CityCoordinates[]; 
+  otherCities: CityCoordinates[];
+} {
+  const cities = getCitiesForCountry(countryCode);
+  
+  // Get Abidjan communes
+  const abidjanCommunes = cities.filter(
+    city => city.region === "Abidjan" && city.type === "commune"
+  );
+  
+  // Get standalone cities (type: city, excluding Abidjan itself)
+  const otherCities = cities.filter(
+    city => city.type === "city" && city.name !== "Abidjan"
+  );
+  
+  return { abidjanCommunes, otherCities };
+}
+
+/**
+ * Get neighborhoods for a specific location (commune or city)
+ */
+export function getNeighborhoodsOf(countryCode: string, locationName: string): CityCoordinates[] {
+  const cities = getCitiesForCountry(countryCode);
+  return cities.filter(city => city.region === locationName && city.type === "neighborhood");
+}
+
+/**
+ * Get coordinates for a location (city, commune, or neighborhood)
+ * Falls back to parent location if neighborhood not found
+ */
+export function getCoordinatesFor(
+  countryCode: string, 
+  city: string, 
+  neighborhood?: string
+): { lat: number; lng: number } | null {
+  const cities = getCitiesForCountry(countryCode);
+  
+  // If neighborhood is specified, try to find it
+  if (neighborhood) {
+    const neighborhoodData = cities.find(
+      c => c.name.toLowerCase() === neighborhood.toLowerCase() && c.region === city
+    );
+    if (neighborhoodData) {
+      return { lat: neighborhoodData.lat, lng: neighborhoodData.lng };
+    }
+  }
+  
+  // Fall back to city/commune
+  const cityData = cities.find(c => c.name.toLowerCase() === city.toLowerCase());
+  if (cityData) {
+    return { lat: cityData.lat, lng: cityData.lng };
+  }
+  
+  return null;
+}
+
+/**
+ * Check if a location is a commune of Abidjan
+ */
+export function isAbidjanCommune(countryCode: string, locationName: string): boolean {
+  const cities = getCitiesForCountry(countryCode);
+  const location = cities.find(c => c.name === locationName);
+  return location?.region === "Abidjan" && location?.type === "commune";
+}
+
+/**
  * Get all cities grouped by country, with user's country first
  */
 export function getCitiesGroupedByCountry(userCountryCode: string): CountryCitiesGroup[] {

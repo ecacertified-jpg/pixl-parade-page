@@ -28,6 +28,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { HowToSchema } from '@/components/schema';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
+import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -965,14 +966,16 @@ const BusinessAuth = () => {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="complete-address">Adresse</Label>
-                <Input
-                  id="complete-address"
-                  placeholder="Cocody, Abidjan"
-                  {...completeRegistrationForm.register('address')}
-                />
-              </div>
+              <AddressSelector
+                onAddressChange={(data: AddressResult) => {
+                  completeRegistrationForm.setValue('address', data.fullAddress);
+                }}
+                label="Adresse de la boutique"
+                cityLabel="Ville / Commune"
+                neighborhoodLabel="Quartier"
+                required={false}
+                showCoordinates={false}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="complete-description">Description (optionnel)</Label>
@@ -1365,14 +1368,16 @@ const BusinessAuth = () => {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Adresse</Label>
-                        <Input
-                          id="address"
-                          placeholder="Cocody, Abidjan"
-                          {...signUpForm.register('address')}
-                        />
-                      </div>
+                      <AddressSelector
+                        onAddressChange={(data: AddressResult) => {
+                          signUpForm.setValue('address', data.fullAddress);
+                        }}
+                        label="Adresse de la boutique"
+                        cityLabel="Ville / Commune"
+                        neighborhoodLabel="Quartier"
+                        required={false}
+                        showCoordinates={false}
+                      />
 
                       <div className="space-y-2">
                         <Label htmlFor="description">Description (optionnel)</Label>
