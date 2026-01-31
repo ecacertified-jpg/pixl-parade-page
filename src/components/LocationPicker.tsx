@@ -41,6 +41,7 @@ export function LocationPicker({
   const [geolocating, setGeolocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
   // Determine initial coordinates - memoized and stable
   const getInitialCoordinates = useCallback((): { lat: number; lng: number } => {
@@ -121,13 +122,92 @@ export function LocationPicker({
     });
   }, [disabled, onCoordinatesChange]);
 
-  // Update marker position
+  // Clear GPS accuracy circle
+  const clearAccuracyCircle = useCallback(() => {
+    if (!map.current) return;
+    
+    if (map.current.getLayer('accuracy-circle-fill')) {
+      map.current.removeLayer('accuracy-circle-fill');
+    }
+    if (map.current.getLayer('accuracy-circle-border')) {
+      map.current.removeLayer('accuracy-circle-border');
+    }
+    if (map.current.getSource('accuracy-circle')) {
+      map.current.removeSource('accuracy-circle');
+    }
+    setGpsAccuracy(null);
+  }, []);
+
+  // Draw GPS accuracy circle
+  const updateAccuracyCircle = useCallback((lat: number, lng: number, accuracy: number) => {
+    if (!map.current || !mapLoaded) return;
+
+    // Clear existing circle first
+    clearAccuracyCircle();
+
+    // Create a GeoJSON circle using turf-like calculation
+    // Convert accuracy (meters) to a circle polygon
+    const steps = 64;
+    const coordinates: [number, number][] = [];
+    
+    for (let i = 0; i < steps; i++) {
+      const angle = (i / steps) * 2 * Math.PI;
+      // Convert meters to degrees (approximate)
+      const latOffset = (accuracy / 111320) * Math.cos(angle);
+      const lngOffset = (accuracy / (111320 * Math.cos(lat * Math.PI / 180))) * Math.sin(angle);
+      coordinates.push([lng + lngOffset, lat + latOffset]);
+    }
+    coordinates.push(coordinates[0]); // Close the polygon
+
+    const circleGeoJSON: GeoJSON.Feature<GeoJSON.Polygon> = {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        coordinates: [coordinates]
+      }
+    };
+
+    // Add source
+    map.current.addSource('accuracy-circle', {
+      type: 'geojson',
+      data: circleGeoJSON
+    });
+
+    // Add fill layer
+    map.current.addLayer({
+      id: 'accuracy-circle-fill',
+      type: 'fill',
+      source: 'accuracy-circle',
+      paint: {
+        'fill-color': 'hsl(259, 58%, 59%)',
+        'fill-opacity': 0.15
+      }
+    });
+
+    // Add border layer
+    map.current.addLayer({
+      id: 'accuracy-circle-border',
+      type: 'line',
+      source: 'accuracy-circle',
+      paint: {
+        'line-color': 'hsl(259, 58%, 59%)',
+        'line-width': 2,
+        'line-opacity': 0.5
+      }
+    });
+
+    setGpsAccuracy(accuracy);
+  }, [mapLoaded, clearAccuracyCircle]);
+
+  // Update marker position (clears accuracy circle for manual positioning)
   const updateMarkerPosition = useCallback((lat: number, lng: number) => {
     if (marker.current && map.current) {
       marker.current.setLngLat([lng, lat]);
     }
+    clearAccuracyCircle();
     onCoordinatesChange(lat, lng);
-  }, [onCoordinatesChange]);
+  }, [onCoordinatesChange, clearAccuracyCircle]);
 
   // Initialize map - stable dependencies
   useEffect(() => {
@@ -235,6 +315,7 @@ export function LocationPicker({
   // Handle address change from CitySelector
   const handleAddressChange = (newAddress: string) => {
     onAddressChange(newAddress);
+    clearAccuracyCircle(); // Clear GPS circle on manual selection
 
     // Try to get coordinates from city name
     const cityData = findCityInCountry(newAddress, countryCode);
@@ -261,11 +342,12 @@ export function LocationPicker({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
+        const { latitude: lat, longitude: lng, accuracy } = position.coords;
         onCoordinatesChange(lat, lng);
 
         if (map.current && mapLoaded) {
           createMarker({ lat, lng });
+          updateAccuracyCircle(lat, lng, accuracy);
           map.current.flyTo({
             center: [lng, lat],
             zoom: 16,
@@ -372,7 +454,7 @@ export function LocationPicker({
 
         {/* Coordinates display */}
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {hasValidCoordinates ? (
               <>
                 <CheckCircle className="h-4 w-4 text-green-500" />
@@ -380,6 +462,11 @@ export function LocationPicker({
                   {latitude?.toFixed(6)}° N, {longitude?.toFixed(6)}° {longitude && longitude >= 0 ? 'E' : 'W'}
                 </span>
                 <Badge variant="secondary" className="text-xs">Position GPS</Badge>
+                {gpsAccuracy !== null && (
+                  <Badge variant="outline" className="text-xs">
+                    ± {gpsAccuracy < 1000 ? `${Math.round(gpsAccuracy)}m` : `${(gpsAccuracy / 1000).toFixed(1)}km`}
+                  </Badge>
+                )}
               </>
             ) : (
               <>
