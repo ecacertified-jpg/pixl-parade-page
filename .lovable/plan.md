@@ -1,233 +1,175 @@
 
-
-# Ajouter la Connexion Google à la Page Admin
+# Corriger le Chargement des Tuiles de Carte dans LocationPicker
 
 ## Diagnostic
 
-Les administrateurs ajoutés via `AddAdminModal` ne peuvent pas se connecter car :
-- Ils se sont inscrits via **Google OAuth** (pas de mot de passe)
-- La page `/admin-auth` n'accepte que l'authentification **email + mot de passe**
+D'après la capture d'écran, on observe :
+- **Le marqueur violet est visible** (c'est un élément HTML/SVG créé localement)
+- **Les tuiles de carte sont vides** (fond beige sans rues ni bâtiments)
+- **Les coordonnées GPS sont correctes** (6.365400° N, 2.418300° E)
+- **L'utilisateur est au Bénin** (détecté dans les logs)
 
-| Admin | Méthode d'inscription | Mot de passe | Peut se connecter ? |
-|-------|----------------------|--------------|---------------------|
-| Florentin | Email/Téléphone | ✅ Oui | ✅ Oui |
-| Chris | Google OAuth | ❌ Non | ❌ Non |
-| Bernadette | Google OAuth | ❌ Non | ❌ Non |
+### Causes Probables
 
-## Solution
+| Cause | Probabilité | Explication |
+|-------|-------------|-------------|
+| Token Mapbox restreint par URL | Élevée | Le token est configuré pour `*.lovable.app` mais peut ne pas couvrir toutes les variantes de preview |
+| Problème de dépendances useEffect | Moyenne | Le hook qui initialise la carte inclut `getInitialCoordinates` qui change à chaque rendu |
+| Erreur réseau/CORS silencieuse | Possible | Mapbox peut échouer silencieusement sans log console |
+| Cache navigateur corrompu | Faible | Le style de carte peut être mis en cache avec une erreur |
 
-Ajouter un bouton **"Se connecter avec Google"** sur la page `/admin-auth` qui :
-1. Authentifie l'utilisateur via Google
-2. Vérifie s'il est admin dans la table `admin_users`
-3. Redirige vers `/admin` ou affiche un message d'erreur
+## Solution Proposée
 
-## Architecture
+### Modification 1 : Ajouter la gestion des erreurs Mapbox
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                    AdminAuth.tsx                         │
-├─────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │        Formulaire Email + Mot de passe              │ │
-│ │        (existant, inchangé)                         │ │
-│ └─────────────────────────────────────────────────────┘ │
-│                         ──ou──                          │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │  🔵 Se connecter avec Google                        │ │
-│ │  (NOUVEAU - Pour admins inscrits via Google)        │ │
-│ └─────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-                   ┌────────────────────┐
-                   │  Callback Google   │
-                   │  /admin-auth       │
-                   └────────┬───────────┘
-                            │
-                            ▼
-              ┌─────────────────────────────┐
-              │ Vérifier admin_users        │
-              │ WHERE user_id = auth.uid()  │
-              │   AND is_active = true      │
-              └─────────────┬───────────────┘
-                            │
-           ┌────────────────┴────────────────┐
-           │                                 │
-           ▼                                 ▼
-    ┌─────────────┐                   ┌─────────────┐
-    │ ✅ Est admin │                   │ ❌ Pas admin │
-    │ → /admin    │                   │ → Déconnexion│
-    │             │                   │ → Erreur     │
-    └─────────────┘                   └─────────────┘
-```
-
-## Modifications
-
-### Fichier : `src/pages/AdminAuth.tsx`
-
-#### 1. Ajouter l'état de chargement Google
+Ajouter un listener pour l'événement `error` de Mapbox pour diagnostiquer les problèmes de token :
 
 ```typescript
-const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+map.current.on("error", (e) => {
+  console.error("Mapbox error:", e.error);
+  // Si erreur d'authentification, afficher un message
+  if (e.error?.status === 401 || e.error?.status === 403) {
+    setGeoError("Erreur d'authentification carte - token invalide ou domaine non autorisé");
+  }
+});
 ```
 
-#### 2. Ajouter la fonction `signInWithGoogle`
+### Modification 2 : Stabiliser les dépendances du useEffect
+
+Le `getInitialCoordinates` est recréé à chaque rendu car ses dépendances changent. Il faut le stabiliser :
+
+**Avant (problématique)** :
+```typescript
+useEffect(() => {
+  // ...
+}, [mapboxToken, getInitialCoordinates, createMarker, updateMarkerPosition, disabled]);
+```
+
+**Après (stable)** :
+```typescript
+// Utiliser useRef pour les coordonnées initiales
+const initialCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+
+// Calculer une seule fois au premier rendu
+useEffect(() => {
+  if (!initialCoordsRef.current) {
+    initialCoordsRef.current = getInitialCoordinates();
+  }
+}, [getInitialCoordinates]);
+
+// useEffect d'initialisation avec dépendances minimales
+useEffect(() => {
+  if (!mapboxToken || !mapContainer.current || map.current) return;
+  
+  const coords = initialCoordsRef.current || { lat: 5.3364, lng: -4.0267 };
+  // ... reste du code
+}, [mapboxToken]); // Dépendance réduite
+```
+
+### Modification 3 : Forcer le rechargement du style si vide
+
+Ajouter une vérification après le chargement pour recharger le style si les sources sont vides :
 
 ```typescript
-const signInWithGoogle = async () => {
+map.current.on("load", () => {
+  setMapLoaded(true);
+  
+  // Vérifier si le style est correctement chargé
+  const style = map.current?.getStyle();
+  if (!style?.sources || Object.keys(style.sources).length === 0) {
+    console.warn("Map style has no sources, attempting reload...");
+    map.current?.setStyle("mapbox://styles/mapbox/streets-v12");
+  }
+  
+  if (coords) {
+    createMarker(coords);
+  }
+});
+```
+
+### Modification 4 : Ajouter un indicateur de chargement
+
+Afficher un loader pendant que les tuiles se chargent :
+
+```typescript
+const [tilesLoading, setTilesLoading] = useState(true);
+
+// Dans le useEffect
+map.current.on("idle", () => {
+  setTilesLoading(false);
+});
+
+// Dans le JSX
+{tilesLoading && mapLoaded && (
+  <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+)}
+```
+
+## Fichier à Modifier
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/LocationPicker.tsx` | 1. Ajouter listener `error` pour Mapbox |
+| | 2. Stabiliser les dépendances useEffect avec useRef |
+| | 3. Ajouter vérification/reload du style |
+| | 4. Ajouter indicateur de chargement des tuiles |
+
+## Test de Validation du Token
+
+Pour vérifier si le token fonctionne, on peut aussi ajouter un test au démarrage :
+
+```typescript
+// Tester le token avant d'initialiser la carte
+const testMapboxToken = async (token: string): Promise<boolean> => {
   try {
-    setIsGoogleLoading(true);
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/admin-auth`,
-      },
-    });
-
-    if (error) {
-      toast({
-        title: 'Erreur',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  } catch (error) {
-    console.error('Google sign in error:', error);
-    toast({
-      title: 'Erreur',
-      description: 'Une erreur inattendue s\'est produite',
-      variant: 'destructive',
-    });
-  } finally {
-    setIsGoogleLoading(false);
+    const response = await fetch(
+      `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${token}`
+    );
+    return response.ok;
+  } catch {
+    return false;
   }
 };
 ```
 
-#### 3. Modifier le useEffect pour gérer le callback Google
+## Architecture de la Solution
 
-L'effet existant vérifie déjà si l'utilisateur est admin. Il faut ajouter la gestion du cas où l'utilisateur n'est PAS admin après une connexion Google :
-
-```typescript
-useEffect(() => {
-  const checkAdminStatus = async () => {
-    if (user) {
-      const { data: adminData, error } = await supabase
-        .from('admin_users')
-        .select('role, is_active')
-        .eq('user_id', user.id)
-        .single();
-
-      if (adminData?.is_active) {
-        navigate('/admin');
-      } else {
-        // L'utilisateur est connecté mais n'est pas admin
-        // → Déconnecter et afficher erreur
-        await supabase.auth.signOut();
-        toast({
-          title: 'Accès refusé',
-          description: 'Ce compte n\'a pas les privilèges administrateur',
-          variant: 'destructive',
-        });
-      }
-    }
-  };
-  
-  checkAdminStatus();
-}, [user, navigate, toast]);
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    LocationPicker                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  1. Initialisation                                   │   │
+│  │     - useRef pour coordonnées initiales (stable)     │   │
+│  │     - Une seule création de carte                    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  2. Listeners Mapbox                                 │   │
+│  │     - on("load") → créer marqueur                    │   │
+│  │     - on("error") → afficher erreur token           │   │
+│  │     - on("idle") → masquer loader                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  3. Affichage                                        │   │
+│  │     - Loader pendant chargement tuiles              │   │
+│  │     - Message d'erreur si token invalide            │   │
+│  │     - Carte fonctionnelle sinon                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-#### 4. Ajouter le bouton Google dans le formulaire
+## Résultat Attendu
 
-Après le formulaire email/password et avant le bouton "Retour", ajouter :
-
-```tsx
-<div className="relative my-6">
-  <div className="absolute inset-0 flex items-center">
-    <span className="w-full border-t border-slate-600" />
-  </div>
-  <div className="relative flex justify-center text-xs uppercase">
-    <span className="bg-slate-800 px-2 text-slate-400">ou</span>
-  </div>
-</div>
-
-<Button
-  type="button"
-  variant="outline"
-  className="w-full border-slate-600 text-slate-200 hover:bg-slate-700"
-  onClick={signInWithGoogle}
-  disabled={isGoogleLoading || isLoading}
->
-  {isGoogleLoading ? (
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-  ) : (
-    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
-    </svg>
-  )}
-  Se connecter avec Google
-</Button>
-```
-
-#### 5. Ajouter l'import Loader2
-
-```typescript
-import { Shield, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
-```
-
-## Récapitulatif des Modifications
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/pages/AdminAuth.tsx` | Ajouter état `isGoogleLoading` |
-| `src/pages/AdminAuth.tsx` | Ajouter fonction `signInWithGoogle()` |
-| `src/pages/AdminAuth.tsx` | Modifier useEffect pour gérer non-admin après Google OAuth |
-| `src/pages/AdminAuth.tsx` | Ajouter séparateur "ou" et bouton Google |
-| `src/pages/AdminAuth.tsx` | Ajouter import `Loader2` |
-
-## Comportement Attendu
-
-### Scénario 1 : Admin inscrit via Google
-1. Clique sur "Se connecter avec Google"
-2. Authentification Google
-3. Redirection vers `/admin-auth`
-4. Vérification : utilisateur est dans `admin_users` et `is_active = true`
-5. Redirection vers `/admin` ✅
-
-### Scénario 2 : Utilisateur non-admin via Google
-1. Clique sur "Se connecter avec Google"
-2. Authentification Google
-3. Redirection vers `/admin-auth`
-4. Vérification : utilisateur n'est PAS dans `admin_users`
-5. Déconnexion automatique
-6. Message d'erreur "Ce compte n'a pas les privilèges administrateur" ❌
-
-### Scénario 3 : Admin inscrit par email/mot de passe
-1. Entre email et mot de passe
-2. Comportement inchangé ✅
-
-## Tests Recommandés
-
-Après implémentation :
-- [ ] Chris (edonouk@gmail.com) peut se connecter via Google
-- [ ] Bernadette (mahoussibernadette0@gmail.com) peut se connecter via Google
-- [ ] Un utilisateur Google non-admin est rejeté avec message d'erreur
-- [ ] La connexion email/mot de passe fonctionne toujours (Florentin)
-- [ ] Le bouton Google affiche le loader pendant le chargement
-
+Après ces modifications :
+- La carte affichera les tuiles correctement si le token est valide
+- Un message d'erreur explicite apparaîtra si le token est rejeté
+- Les re-rendus inutiles de la carte seront évités
+- Un loader indiquera que les tuiles sont en cours de chargement
