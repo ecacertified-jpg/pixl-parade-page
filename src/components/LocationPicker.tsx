@@ -33,14 +33,17 @@ export function LocationPicker({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const initialCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const { token: mapboxToken } = useMapboxToken();
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [tilesLoading, setTilesLoading] = useState(true);
   const [geolocating, setGeolocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
 
-  // Determine initial coordinates
-  const getInitialCoordinates = useCallback((): { lat: number; lng: number } | null => {
+  // Determine initial coordinates - memoized and stable
+  const getInitialCoordinates = useCallback((): { lat: number; lng: number } => {
     // Priority 1: Use provided coordinates
     if (latitude !== null && longitude !== null) {
       return { lat: latitude, lng: longitude };
@@ -58,13 +61,12 @@ export function LocationPicker({
     return { lat: 5.3364, lng: -4.0267 };
   }, [latitude, longitude, address, countryCode]);
 
-  // Update marker position
-  const updateMarkerPosition = useCallback((lat: number, lng: number) => {
-    if (marker.current && map.current) {
-      marker.current.setLngLat([lng, lat]);
+  // Store initial coordinates once
+  useEffect(() => {
+    if (!initialCoordsRef.current) {
+      initialCoordsRef.current = getInitialCoordinates();
     }
-    onCoordinatesChange(lat, lng);
-  }, [onCoordinatesChange]);
+  }, [getInitialCoordinates]);
 
   // Create draggable marker
   const createMarker = useCallback((coords: { lat: number; lng: number }) => {
@@ -119,14 +121,23 @@ export function LocationPicker({
     });
   }, [disabled, onCoordinatesChange]);
 
-  // Initialize map
+  // Update marker position
+  const updateMarkerPosition = useCallback((lat: number, lng: number) => {
+    if (marker.current && map.current) {
+      marker.current.setLngLat([lng, lat]);
+    }
+    onCoordinatesChange(lat, lng);
+  }, [onCoordinatesChange]);
+
+  // Initialize map - stable dependencies
   useEffect(() => {
     if (!mapboxToken || !mapContainer.current || map.current) return;
 
-    const coords = getInitialCoordinates();
-    if (!coords) return;
+    const coords = initialCoordsRef.current || { lat: 5.3364, lng: -4.0267 };
 
     mapboxgl.accessToken = mapboxToken;
+    setMapError(null);
+    setTilesLoading(true);
 
     try {
       map.current = new mapboxgl.Map({
@@ -142,11 +153,33 @@ export function LocationPicker({
         "top-right"
       );
 
+      // Handle Mapbox errors (token issues, network errors)
+      map.current.on("error", (e) => {
+        console.error("Mapbox error:", e.error);
+        const error = e.error as { status?: number; message?: string };
+        if (error?.status === 401 || error?.status === 403) {
+          setMapError("Erreur d'authentification - token invalide ou domaine non autorisé");
+        } else if (error?.message) {
+          setMapError(`Erreur carte: ${error.message}`);
+        }
+      });
+
       map.current.on("load", () => {
         setMapLoaded(true);
-        if (coords) {
-          createMarker(coords);
+        
+        // Verify style loaded correctly
+        const style = map.current?.getStyle();
+        if (!style?.sources || Object.keys(style.sources).length === 0) {
+          console.warn("Map style has no sources, attempting reload...");
+          map.current?.setStyle("mapbox://styles/mapbox/streets-v12");
         }
+        
+        createMarker(coords);
+      });
+
+      // Track when tiles are fully loaded
+      map.current.on("idle", () => {
+        setTilesLoading(false);
       });
 
       // Click on map to reposition marker
@@ -158,6 +191,7 @@ export function LocationPicker({
       });
     } catch (error) {
       console.error("Error initializing map:", error);
+      setMapError("Erreur d'initialisation de la carte");
     }
 
     return () => {
@@ -170,8 +204,9 @@ export function LocationPicker({
         map.current = null;
       }
       setMapLoaded(false);
+      setTilesLoading(true);
     };
-  }, [mapboxToken, getInitialCoordinates, createMarker, updateMarkerPosition, disabled]);
+  }, [mapboxToken, disabled, createMarker, updateMarkerPosition]);
 
   // Update marker when coordinates change externally
   useEffect(() => {
@@ -277,11 +312,31 @@ export function LocationPicker({
       <CardContent className="space-y-4">
         {/* Map */}
         {mapboxToken ? (
-          <div
-            ref={mapContainer}
-            className="w-full h-56 rounded-lg overflow-hidden border border-border"
-            style={{ cursor: disabled ? "default" : "crosshair" }}
-          />
+          <div className="relative">
+            <div
+              ref={mapContainer}
+              className="w-full h-56 rounded-lg overflow-hidden border border-border"
+              style={{ cursor: disabled ? "default" : "crosshair" }}
+            />
+            {/* Tiles loading indicator */}
+            {tilesLoading && mapLoaded && !mapError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-sm">Chargement de la carte...</span>
+                </div>
+              </div>
+            )}
+            {/* Map error overlay */}
+            {mapError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-destructive/10 rounded-lg">
+                <div className="flex flex-col items-center gap-2 text-destructive p-4 text-center">
+                  <AlertCircle className="h-6 w-6" />
+                  <span className="text-sm font-medium">{mapError}</span>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="w-full h-32 rounded-lg bg-muted/50 flex items-center justify-center border border-border">
             <div className="text-center text-muted-foreground">
