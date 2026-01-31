@@ -154,6 +154,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Force single React instance
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
@@ -165,6 +168,16 @@ export default defineConfig(({ mode }) => ({
       'react/jsx-dev-runtime',
       '@tanstack/react-query'
     ],
-    force: true
+    force: true,
+    esbuildOptions: {
+      // Ensure consistent React resolution
+      resolveExtensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
+    }
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   }
 }));
