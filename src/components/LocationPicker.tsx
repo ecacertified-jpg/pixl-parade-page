@@ -156,11 +156,21 @@ export function LocationPicker({
       // Handle Mapbox errors (token issues, network errors)
       map.current.on("error", (e) => {
         console.error("Mapbox error:", e.error);
-        const error = e.error as { status?: number; message?: string };
+        const error = e.error as { status?: number; message?: string; url?: string };
+        
+        // Ignore non-critical errors (fonts, icons, sprites)
+        if (error?.url && (
+          error.url.includes('fonts') ||
+          error.url.includes('sprite') ||
+          error.url.includes('glyphs')
+        )) {
+          console.warn("Non-critical Mapbox resource error:", error.url);
+          return;
+        }
+        
+        // Only show critical errors (token, style)
         if (error?.status === 401 || error?.status === 403) {
           setMapError("Erreur d'authentification - token invalide ou domaine non autorisé");
-        } else if (error?.message) {
-          setMapError(`Erreur carte: ${error.message}`);
         }
       });
 
@@ -180,6 +190,8 @@ export function LocationPicker({
       // Track when tiles are fully loaded
       map.current.on("idle", () => {
         setTilesLoading(false);
+        // Clear any minor errors if tiles loaded successfully
+        setMapError(null);
       });
 
       // Click on map to reposition marker
@@ -327,8 +339,8 @@ export function LocationPicker({
                 </div>
               </div>
             )}
-            {/* Map error overlay */}
-            {mapError && (
+            {/* Map error overlay - only show if tiles haven't loaded */}
+            {mapError && tilesLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-destructive/10 rounded-lg">
                 <div className="flex flex-col items-center gap-2 text-destructive p-4 text-center">
                   <AlertCircle className="h-6 w-6" />
