@@ -28,6 +28,7 @@ import { OtpMethodSelector, useWhatsAppFallback, type OtpMethod } from '@/compon
 import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
+import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -927,32 +928,28 @@ const Auth = () => {
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="birthday">Date d'anniversaire</Label>
-                            <Input
-                              id="birthday"
-                              type="date"
-                              {...signUpForm.register('birthday')}
-                            />
-                            {signUpForm.formState.errors.birthday && (
-                              <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="city">Lieu de livraison</Label>
-                            <Input
-                              id="city"
-                              placeholder="Votre ville"
-                              {...signUpForm.register('city')}
-                            />
-                            {signUpForm.formState.errors.city && (
-                              <p className="text-sm text-destructive">{signUpForm.formState.errors.city.message}</p>
-                            )}
-                          </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="birthday">Date d'anniversaire</Label>
+                          <Input
+                            id="birthday"
+                            type="date"
+                            {...signUpForm.register('birthday')}
+                          />
+                          {signUpForm.formState.errors.birthday && (
+                            <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
+                          )}
                         </div>
                         
+                        <AddressSelector
+                          onAddressChange={(data: AddressResult) => {
+                            signUpForm.setValue('city', data.fullAddress);
+                          }}
+                          label="Lieu de livraison"
+                          cityLabel="Ville / Commune"
+                          neighborhoodLabel="Quartier (optionnel)"
+                          required={false}
+                          showCoordinates={false}
+                        />
                         <div className="space-y-2">
                           <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
                           <div className="flex gap-2">
