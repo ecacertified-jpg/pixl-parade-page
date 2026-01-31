@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MapPin, Crosshair, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { MapPin, Crosshair, Loader2, CheckCircle, AlertCircle, X, RefreshCw, ShieldAlert, Wifi, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,14 @@ import { findCityInCountry } from "@/utils/countryCities";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+
+// Type for structured geolocation error info
+interface GeoErrorInfo {
+  title: string;
+  description: string;
+  instructions: string[];
+  icon: 'permission' | 'signal' | 'timeout';
+}
 
 interface LocationPickerProps {
   address: string;
@@ -39,7 +47,7 @@ export function LocationPicker({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [tilesLoading, setTilesLoading] = useState(true);
   const [geolocating, setGeolocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoError, setGeoError] = useState<GeoErrorInfo | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
@@ -331,9 +339,18 @@ export function LocationPicker({
   };
 
   // Geolocation
-  const handleUseCurrentPosition = () => {
+  const handleUseCurrentPosition = useCallback(() => {
     if (!navigator.geolocation) {
-      setGeoError("La géolocalisation n'est pas supportée par votre navigateur");
+      setGeoError({
+        title: "Géolocalisation non supportée",
+        description: "Votre navigateur ne supporte pas la géolocalisation.",
+        instructions: [
+          "Utilisez un navigateur plus récent (Chrome, Firefox, Safari)",
+          "Mettez à jour votre navigateur",
+          "Sélectionnez manuellement votre position sur la carte"
+        ],
+        icon: 'signal'
+      });
       return;
     }
 
@@ -361,16 +378,55 @@ export function LocationPicker({
         console.error("Geolocation error:", error);
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setGeoError("Permission de géolocalisation refusée");
+            setGeoError({
+              title: "Permission de géolocalisation refusée",
+              description: "Votre navigateur a bloqué l'accès à votre position.",
+              instructions: [
+                "Cliquez sur l'icône 🔒 dans la barre d'adresse",
+                "Trouvez 'Localisation' ou 'Position'",
+                "Sélectionnez 'Autoriser'",
+                "Rechargez la page si nécessaire"
+              ],
+              icon: 'permission'
+            });
             break;
           case error.POSITION_UNAVAILABLE:
-            setGeoError("Position non disponible");
+            setGeoError({
+              title: "Signal GPS non disponible",
+              description: "Impossible de déterminer votre position actuelle.",
+              instructions: [
+                "Vérifiez que le GPS est activé sur votre appareil",
+                "Si vous êtes en intérieur, essayez près d'une fenêtre",
+                "Désactivez le mode avion si activé",
+                "Attendez quelques secondes et réessayez"
+              ],
+              icon: 'signal'
+            });
             break;
           case error.TIMEOUT:
-            setGeoError("Délai de géolocalisation dépassé");
+            setGeoError({
+              title: "Délai de géolocalisation dépassé",
+              description: "La recherche de votre position a pris trop de temps.",
+              instructions: [
+                "Vérifiez votre connexion internet",
+                "Déplacez-vous vers un endroit avec meilleur signal",
+                "Fermez les autres applications utilisant le GPS",
+                "Réessayez dans quelques instants"
+              ],
+              icon: 'timeout'
+            });
             break;
           default:
-            setGeoError("Erreur de géolocalisation");
+            setGeoError({
+              title: "Erreur de géolocalisation",
+              description: "Une erreur inattendue s'est produite.",
+              instructions: [
+                "Vérifiez les autorisations de localisation",
+                "Redémarrez votre navigateur",
+                "Réessayez dans quelques instants"
+              ],
+              icon: 'signal'
+            });
         }
         setGeolocating(false);
       },
@@ -380,7 +436,7 @@ export function LocationPicker({
         maximumAge: 0,
       }
     );
-  };
+  }, [mapLoaded, createMarker, updateAccuracyCircle, onCoordinatesChange]);
 
   // Center map on current marker
   const handleRecenter = () => {
@@ -477,11 +533,78 @@ export function LocationPicker({
           </div>
         </div>
 
-        {/* Error message */}
+        {/* Enhanced Geolocation Error Card */}
         {geoError && (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            {geoError}
+          <div className={`rounded-lg border p-4 space-y-3 ${
+            geoError.icon === 'permission' 
+              ? 'bg-destructive/10 border-destructive/30' 
+              : 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
+          }`}>
+            {/* Error Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {geoError.icon === 'permission' && (
+                  <ShieldAlert className="h-5 w-5 text-destructive flex-shrink-0" />
+                )}
+                {geoError.icon === 'signal' && (
+                  <Wifi className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                )}
+                {geoError.icon === 'timeout' && (
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                )}
+                <div>
+                  <h4 className={`font-medium text-sm ${
+                    geoError.icon === 'permission' ? 'text-destructive' : 'text-amber-800 dark:text-amber-200'
+                  }`}>
+                    {geoError.title}
+                  </h4>
+                  <p className={`text-xs mt-0.5 ${
+                    geoError.icon === 'permission' ? 'text-destructive/80' : 'text-amber-700 dark:text-amber-300'
+                  }`}>
+                    {geoError.description}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={() => setGeoError(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Instructions */}
+            <div className={`text-xs space-y-1 ${
+              geoError.icon === 'permission' ? 'text-destructive/90' : 'text-amber-700 dark:text-amber-300'
+            }`}>
+              <p className="font-medium">Pour résoudre ce problème :</p>
+              <ol className="list-decimal list-inside space-y-0.5 pl-1">
+                {geoError.instructions.map((instruction, index) => (
+                  <li key={index}>{instruction}</li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Retry Button */}
+            <Button
+              variant={geoError.icon === 'permission' ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setGeoError(null);
+                handleUseCurrentPosition();
+              }}
+              disabled={geolocating}
+              className="w-full"
+            >
+              {geolocating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Réessayer la géolocalisation
+            </Button>
           </div>
         )}
 
