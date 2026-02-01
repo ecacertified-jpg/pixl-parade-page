@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Package, Pencil, Plus, Video, ImageIcon, Box, AlertCircle } from 'lucide-react';
+import { Loader2, Package, Pencil, Plus, Video, ImageIcon, Box, AlertCircle, Copy } from 'lucide-react';
 import { AdminEditProductModal } from './AdminEditProductModal';
 import { AdminAddProductModal } from './AdminAddProductModal';
 import { ProductVideo } from '@/types/video';
@@ -48,6 +48,7 @@ export function AdminProductsModal({
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [addProductOpen, setAddProductOpen] = useState(false);
+  const [duplicatingProduct, setDuplicatingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     if (open && businessId) {
@@ -178,8 +179,19 @@ export function AdminProductsModal({
                           )}
                         </div>
 
-                        {/* Edit button overlay */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        {/* Action buttons overlay */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => {
+                              setDuplicatingProduct(product);
+                              setAddProductOpen(true);
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Dupliquer
+                          </Button>
                           <Button 
                             variant="secondary" 
                             size="sm"
@@ -239,8 +251,12 @@ export function AdminProductsModal({
         <AdminAddProductModal
           preselectedBusinessId={businessId}
           open={addProductOpen}
-          onOpenChange={setAddProductOpen}
+          onOpenChange={(open) => {
+            setAddProductOpen(open);
+            if (!open) setDuplicatingProduct(null);
+          }}
           onProductAdded={handleProductUpdated}
+          duplicateFromProduct={duplicatingProduct}
         />
       )}
     </>

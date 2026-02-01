@@ -12,7 +12,7 @@ import { Loader2, Package, Image as ImageIcon, Video } from 'lucide-react';
 import { logAdminAction } from '@/utils/auditLogger';
 import { MultiImageUploader, ImageItem } from '@/components/MultiImageUploader';
 import { MultiVideoUploader } from '@/components/MultiVideoUploader';
-import { VideoItem, videoItemToProductVideo } from '@/types/video';
+import { VideoItem, videoItemToProductVideo, ProductVideo, productVideoToVideoItem } from '@/types/video';
 
 interface Business {
   id: string;
@@ -26,18 +26,37 @@ interface Category {
   name_fr: string;
 }
 
+interface DuplicateProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  stock_quantity: number;
+  category_id: string | null;
+  is_experience: boolean;
+  experience_type: string | null;
+  location_name: string | null;
+  is_active: boolean;
+  image_url: string | null;
+  images?: string[] | null;
+  videos?: ProductVideo[] | null;
+  business_account_id: string;
+}
+
 interface AdminAddProductModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onProductAdded: () => void;
   preselectedBusinessId?: string;
+  duplicateFromProduct?: DuplicateProduct | null;
 }
 
 export function AdminAddProductModal({ 
   open, 
   onOpenChange, 
   onProductAdded,
-  preselectedBusinessId 
+  preselectedBusinessId,
+  duplicateFromProduct
 }: AdminAddProductModalProps) {
   const [loading, setLoading] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -66,11 +85,51 @@ export function AdminAddProductModal({
     if (open) {
       loadBusinesses();
       loadCategories();
-      if (preselectedBusinessId) {
+      
+      // Handle duplication pre-fill
+      if (duplicateFromProduct) {
+        setFormData({
+          business_id: duplicateFromProduct.business_account_id || preselectedBusinessId || '',
+          name: `Copie de ${duplicateFromProduct.name}`,
+          description: duplicateFromProduct.description || '',
+          price: String(duplicateFromProduct.price),
+          stock_quantity: String(duplicateFromProduct.stock_quantity),
+          category_id: duplicateFromProduct.category_id || '',
+          is_experience: duplicateFromProduct.is_experience,
+          experience_type: duplicateFromProduct.experience_type || '',
+          location_name: duplicateFromProduct.location_name || '',
+          is_active: duplicateFromProduct.is_active,
+        });
+        
+        // Pre-fill images from URLs
+        if (duplicateFromProduct.images && duplicateFromProduct.images.length > 0) {
+          const imageItems: ImageItem[] = duplicateFromProduct.images.map((url, index) => ({
+            id: `existing-${index}-${Date.now()}`,
+            url,
+            isExisting: true,
+          }));
+          setProductImages(imageItems);
+        } else if (duplicateFromProduct.image_url) {
+          setProductImages([{
+            id: `existing-0-${Date.now()}`,
+            url: duplicateFromProduct.image_url,
+            isExisting: true,
+          }]);
+        }
+        
+        // Pre-fill videos
+        if (duplicateFromProduct.videos && duplicateFromProduct.videos.length > 0) {
+          const videoItems: VideoItem[] = duplicateFromProduct.videos.map(productVideoToVideoItem);
+          setProductVideos(videoItems);
+        }
+      } else if (preselectedBusinessId) {
         setFormData(prev => ({ ...prev, business_id: preselectedBusinessId }));
       }
+    } else {
+      // Reset when modal closes
+      resetForm();
     }
-  }, [open, preselectedBusinessId]);
+  }, [open, preselectedBusinessId, duplicateFromProduct]);
 
   const loadBusinesses = async () => {
     const { data, error } = await supabase
@@ -261,7 +320,7 @@ export function AdminAddProductModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Ajouter un produit (Admin)
+            {duplicateFromProduct ? 'Dupliquer un produit (Admin)' : 'Ajouter un produit (Admin)'}
           </DialogTitle>
         </DialogHeader>
 
