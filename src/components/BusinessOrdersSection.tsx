@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle, AlertTriangle, Star } from "lucide-react";
+import { Package, Phone, MapPin, CreditCard, Clock, CheckCircle, Users, Target, Filter, XCircle, AlertTriangle, Star, Truck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelectedBusiness } from "@/contexts/SelectedBusinessContext";
@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useBusinessCollectiveFunds } from "@/hooks/useBusinessCollectiveFunds";
 import { useQuickOrderActions } from "@/hooks/useQuickOrderActions";
+import { AssignDeliveryModal } from "@/components/AssignDeliveryModal";
+import { DELIVERY_STATUS_LABELS } from "@/types/delivery";
 
 interface CollectiveOrder {
   id: string;
@@ -52,6 +54,15 @@ interface IndividualOrder {
   refund_requested_at?: string | null;
   refund_reason?: string | null;
   customer_confirmed_at?: string | null;
+  // Delivery fields
+  delivery_partner_id?: string | null;
+  delivery_status?: string | null;
+  delivery_partner?: {
+    company_name: string;
+    contact_name: string;
+    phone: string;
+    vehicle_type: string;
+  } | null;
 }
 
 export function BusinessOrdersSection() {
@@ -59,6 +70,8 @@ export function BusinessOrdersSection() {
   const [individualOrders, setIndividualOrders] = useState<IndividualOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [assignDeliveryModalOpen, setAssignDeliveryModalOpen] = useState(false);
+  const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<{id: string, address: string} | null>(null);
   const { user } = useAuth();
   const { selectedBusinessId } = useSelectedBusiness();
   const { toast } = useToast();
@@ -211,7 +224,15 @@ export function BusinessOrdersSection() {
           customer_review_text,
           refund_requested_at,
           refund_reason,
-          customer_confirmed_at
+          customer_confirmed_at,
+          delivery_partner_id,
+          delivery_status,
+          delivery_partners(
+            company_name,
+            contact_name,
+            phone,
+            vehicle_type
+          )
         `)
         .eq('business_account_id', selectedBusinessId)
         .order('created_at', { ascending: false });
@@ -249,7 +270,8 @@ export function BusinessOrdersSection() {
             order_summary: {
               ...(orderSummary || {}),
               items: enrichedItems
-            }
+            },
+            delivery_partner: (order as any).delivery_partners || null
           };
         })
       );
@@ -541,6 +563,31 @@ export function BusinessOrdersSection() {
           </div>
         )}
 
+        {/* Delivery Partner Info */}
+        {isIndividual && (order as IndividualOrder).delivery_partner && (
+          <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Truck className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Livreur assigné</span>
+              {(order as IndividualOrder).delivery_status && (
+                <Badge variant="secondary" className="text-xs">
+                  {DELIVERY_STATUS_LABELS[(order as IndividualOrder).delivery_status as keyof typeof DELIVERY_STATUS_LABELS] || (order as IndividualOrder).delivery_status}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {(order as IndividualOrder).delivery_partner?.company_name} - {(order as IndividualOrder).delivery_partner?.contact_name}
+            </p>
+            <a 
+              href={`tel:${(order as IndividualOrder).delivery_partner?.phone}`}
+              className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+            >
+              <Phone className="h-3 w-3" />
+              {(order as IndividualOrder).delivery_partner?.phone}
+            </a>
+          </div>
+        )}
+
         {/* Actions */}
         {order.status === 'pending' && (
           <div className="flex gap-2">
@@ -554,7 +601,34 @@ export function BusinessOrdersSection() {
           </div>
         )}
 
-        {order.status === 'processed' && (
+        {order.status === 'processed' && isIndividual && (
+          <div className="flex gap-2 flex-wrap">
+            {!(order as IndividualOrder).delivery_partner_id && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setSelectedOrderForDelivery({ id: order.id, address: order.delivery_address });
+                  setAssignDeliveryModalOpen(true);
+                }}
+                className="flex-1"
+              >
+                <Truck className="h-4 w-4 mr-1" />
+                Assigner un livreur
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => updateOrderStatus(order.id, 'delivered', isIndividual)}
+              className="flex-1"
+            >
+              Marquer comme livrée
+            </Button>
+          </div>
+        )}
+
+        {order.status === 'processed' && !isIndividual && (
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -573,7 +647,7 @@ export function BusinessOrdersSection() {
               size="sm"
               variant="outline"
               onClick={() => updateOrderStatus(order.id, 'refunded', isIndividual)}
-              className="flex-1 text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950/30"
+              className="flex-1 text-success border-success/50 hover:bg-success/10"
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               Remboursé
@@ -582,7 +656,7 @@ export function BusinessOrdersSection() {
               size="sm"
               variant="outline"
               onClick={() => updateOrderStatus(order.id, 'refund_rejected', isIndividual)}
-              className="flex-1 text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+              className="flex-1 text-destructive border-destructive/50 hover:bg-destructive/10"
             >
               <XCircle className="h-4 w-4 mr-1" />
               Refuser
@@ -825,6 +899,18 @@ export function BusinessOrdersSection() {
         )}
       </TabsContent>
       </Tabs>
+
+      {/* Assign Delivery Modal */}
+      <AssignDeliveryModal
+        orderId={selectedOrderForDelivery?.id || ''}
+        orderAddress={selectedOrderForDelivery?.address}
+        open={assignDeliveryModalOpen}
+        onOpenChange={setAssignDeliveryModalOpen}
+        onAssignmentComplete={() => {
+          loadOrders();
+          setSelectedOrderForDelivery(null);
+        }}
+      />
     </div>
   );
 }

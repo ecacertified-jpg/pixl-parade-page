@@ -1280,7 +1280,15 @@ export type Database = {
           customer_rating: number | null
           customer_review_text: string | null
           delivery_address: string
+          delivery_assigned_at: string | null
+          delivery_delivered_at: string | null
+          delivery_fee: number | null
+          delivery_notes: string | null
+          delivery_partner_id: string | null
+          delivery_pickup_at: string | null
+          delivery_status: string | null
           donor_phone: string
+          estimated_delivery_time: string | null
           fund_id: string | null
           id: string
           order_summary: Json
@@ -1302,7 +1310,15 @@ export type Database = {
           customer_rating?: number | null
           customer_review_text?: string | null
           delivery_address: string
+          delivery_assigned_at?: string | null
+          delivery_delivered_at?: string | null
+          delivery_fee?: number | null
+          delivery_notes?: string | null
+          delivery_partner_id?: string | null
+          delivery_pickup_at?: string | null
+          delivery_status?: string | null
           donor_phone: string
+          estimated_delivery_time?: string | null
           fund_id?: string | null
           id?: string
           order_summary?: Json
@@ -1324,7 +1340,15 @@ export type Database = {
           customer_rating?: number | null
           customer_review_text?: string | null
           delivery_address?: string
+          delivery_assigned_at?: string | null
+          delivery_delivered_at?: string | null
+          delivery_fee?: number | null
+          delivery_notes?: string | null
+          delivery_partner_id?: string | null
+          delivery_pickup_at?: string | null
+          delivery_status?: string | null
           donor_phone?: string
+          estimated_delivery_time?: string | null
           fund_id?: string | null
           id?: string
           order_summary?: Json
@@ -1356,6 +1380,13 @@ export type Database = {
             columns: ["business_account_id"]
             isOneToOne: false
             referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_orders_delivery_partner_id_fkey"
+            columns: ["delivery_partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
             referencedColumns: ["id"]
           },
           {
@@ -2511,6 +2542,111 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      delivery_partners: {
+        Row: {
+          company_name: string
+          contact_name: string
+          country_code: string | null
+          coverage_zones: Json | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          latitude: number | null
+          longitude: number | null
+          phone: string
+          rating: number | null
+          total_deliveries: number | null
+          updated_at: string | null
+          user_id: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_name: string
+          country_code?: string | null
+          coverage_zones?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          phone: string
+          rating?: number | null
+          total_deliveries?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_name?: string
+          country_code?: string | null
+          coverage_zones?: Json | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          phone?: string
+          rating?: number | null
+          total_deliveries?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: []
+      }
+      delivery_tracking: {
+        Row: {
+          created_at: string | null
+          id: string
+          location: Json | null
+          notes: string | null
+          order_id: string
+          partner_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: Json | null
+          notes?: string | null
+          order_id: string
+          partner_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: Json | null
+          notes?: string | null
+          order_id?: string
+          partner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "business_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_tracking_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_zones: {
         Row: {
@@ -7927,6 +8063,10 @@ export type Database = {
           p_event_type: string
           p_share_id: string
         }
+        Returns: undefined
+      }
+      increment_delivery_count: {
+        Args: { partner_uuid: string }
         Returns: undefined
       }
       increment_gratitude_reaction: {
