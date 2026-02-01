@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useCountry } from "@/contexts/CountryContext";
+import { useCountrySafe } from "@/contexts/CountryContext";
 import { getAllCountries, getCountryConfig } from "@/config/countries";
 import { 
   getMainLocations, 
@@ -71,8 +71,9 @@ export function AddressSelector({
   onCountryChange,
   className,
 }: AddressSelectorProps) {
-  const { country } = useCountry();
-  const globalCountryCode = country.code;
+  // Safe access to country context with fallback
+  const countryContext = useCountrySafe();
+  const globalCountryCode = countryContext?.country?.code ?? "CI";
   
   // Local country state for override functionality
   const [localCountryCode, setLocalCountryCode] = useState(
