@@ -1,94 +1,156 @@
 
-# Correction du Sélecteur de Localisation pour les Prestataires
+# Ajout de la Fonctionnalite de Duplication de Produit pour l'Admin
 
-## Problème Identifié
+## Objectif
 
-Le composant `LocationPicker` (utilisé pour définir la position GPS des boutiques) utilise actuellement le composant `CitySelector` qui affiche **toutes les villes et quartiers dans une liste plate unique**. Cela ne permet pas une sélection hiérarchique Ville → Quartier comme le fait `AddressSelector`.
+Permettre aux administrateurs de dupliquer rapidement un produit existant dans les modales "Gerer les Produits" et "Ajouter un Produit". Cela accelere la creation de produits similaires en pre-remplissant toutes les informations du produit source.
 
-De plus, plusieurs communes d'Abidjan n'ont **aucun quartier défini** dans les données :
-- Anyama, Bingerville, Songon, Attécoubé, Plateau (5 communes sans quartiers)
+## Fonctionnement Utilisateur
 
-## Solution en Deux Parties
+### Dans AdminProductsModal (Gerer les Produits)
 
-### Partie 1 : Remplacer CitySelector par AddressSelector dans LocationPicker
-
-Le composant `LocationPicker` sera modifié pour utiliser `AddressSelector` à la place de `CitySelector`. Cela permettra :
-- Sélection hiérarchique : Ville/Commune → Quartier
-- Accès aux quartiers après sélection de la commune
-- Cohérence avec les autres formulaires d'adresse
+Au survol d'un produit, l'admin verra deux boutons au lieu d'un seul :
+- **Modifier** (existant) : Ouvre le formulaire d'edition
+- **Dupliquer** (nouveau) : Ouvre le formulaire d'ajout pre-rempli avec les donnees du produit
 
 ```text
-AVANT (CitySelector - liste plate) :
-┌─────────────────────────────────────────────────┐
-│ Adresse / Ville                                 │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ 📍 Anyama Grand Séminaire              ▼   │ │
-│ └─────────────────────────────────────────────┘ │
-│ (Un seul champ - pas de séparation Ville/Quartier)
-└─────────────────────────────────────────────────┘
-
-APRÈS (AddressSelector - hiérarchique) :
-┌─────────────────────────────────────────────────┐
-│ ┌─────────────────────────────────────────────┐ │
-│ │ 🌍 Pays: 🇨🇮 Côte d'Ivoire                ▼ │ │
-│ └─────────────────────────────────────────────┘ │
-│ ┌──────────────────┐  ┌──────────────────────┐  │
-│ │ Ville / Commune  │  │ Quartier             │  │
-│ │ [Anyama       ▼] │  │ [Grand Séminaire  ▼] │  │
-│ └──────────────────┘  └──────────────────────┘  │
-└─────────────────────────────────────────────────┘
+┌────────────────────────────────────────┐
+│  [Image produit]                       │
+│  ┌──────────────┐ ┌──────────────────┐ │
+│  │ 📋 Dupliquer │ │ ✏️ Modifier      │ │
+│  └──────────────┘ └──────────────────┘ │
+│  Chaussures hybrides noires            │
+│  42 000 F           Stock: 10          │
+└────────────────────────────────────────┘
 ```
 
-### Partie 2 : Ajouter les Quartiers des Communes Manquantes
+### Dans AdminAddProductModal (Ajouter un Produit)
 
-Enrichir les données pour les 5 communes d'Abidjan sans quartiers :
+Si un produit source est fourni, le formulaire est pre-rempli avec :
+- Le nom modifie : "Copie de [Nom original]"
+- La description du produit original
+- Le prix et le stock
+- La categorie
+- Les parametres d'experience (si applicable)
+- Les images (copiees par reference)
+- Les videos (copiees par reference)
+- Statut actif/inactif
 
-| Commune | Quartiers à ajouter |
-|---------|---------------------|
-| Anyama | Grand Séminaire, Aka, Azaguié-Gare, Groupement, Centre, RAN, Soweto, Zossonkoi |
-| Bingerville | Centre-ville, Cité des Cadres, Gbagba, Akouai Santé, Jean Folly, M'Pouto, Eloka |
-| Songon | Songon-Agban, Songon-Kassemblé, Songon-Té, Songon-Dagbé, Centre |
-| Attécoubé | Locodjro, Santé, Agban-Village, Boribana, Centre, Abidjan-Faîto, Abobo-Doumé |
-| Plateau | Centre Administratif, Indénié, Blockhauss, Commerce, Gare du Sud |
+## Modifications Techniques
 
-Cela ajoutera environ **35-40 nouveaux quartiers** pour couvrir ces zones.
+### 1. AdminProductsModal.tsx
 
-## Fichiers à Modifier
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/LocationPicker.tsx` | Remplacer `CitySelector` par `AddressSelector` avec adaptation des props et callbacks |
-| `src/utils/ivoryCoastCities.ts` | Ajouter les quartiers des 5 communes manquantes |
-
-## Détails Techniques
-
-### Modification de LocationPicker
-
-Le composant devra :
-
-1. **Changer l'import** : Remplacer `CitySelector` par `AddressSelector`
-2. **Adapter les callbacks** : Utiliser `onAddressChange` qui retourne un objet `AddressResult` avec ville, quartier et coordonnées
-3. **Gérer l'adresse composite** : Stocker l'adresse complète (quartier + ville) au lieu d'une seule valeur
-4. **Mettre à jour les coordonnées** : Utiliser les coordonnées retournées par `AddressSelector`
-
-### Structure des Nouveaux Quartiers
-
-Chaque quartier suivra le format existant :
+Ajouter un nouvel etat et bouton de duplication :
 
 ```text
-{
-  name: "Grand Séminaire",
-  lat: 5.4850,
-  lng: -4.0450,
-  aliases: ["seminaire", "grand seminaire"],
-  region: "Anyama",        // Parent = la commune
-  type: "neighborhood"
-}
+Modifications :
+- Ajouter un etat `duplicatingProduct` pour stocker le produit a dupliquer
+- Ajouter un bouton "Dupliquer" a cote de "Modifier" dans l'overlay au survol
+- Passer `duplicateFromProduct` en prop a AdminAddProductModal
 ```
 
-## Impact
+### 2. AdminAddProductModal.tsx
 
-- Les prestataires pourront sélectionner leur quartier précis
-- Cohérence de l'interface entre les formulaires clients et prestataires
-- Meilleures données GPS pour la recherche par proximité
-- Support du changement de pays manuel intégré
+Accepter une nouvelle prop pour pre-remplir le formulaire :
+
+```text
+Nouvelles props :
+- `duplicateFromProduct?: Product` : Produit source a dupliquer
+
+Comportement :
+- Si duplicateFromProduct est fourni, pre-remplir formData avec les valeurs
+- Pre-remplir productImages avec les images existantes (en mode reference)
+- Pre-remplir productVideos avec les videos existantes (en mode reference)
+- Modifier le titre en "Dupliquer un produit (Admin)"
+- Ajouter "Copie de " au debut du nom
+```
+
+## Diagramme de Flux
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    AdminProductsModal                            │
+│                                                                  │
+│  ┌──────────────┐                                                │
+│  │ Liste des    │                                                │
+│  │ produits     │                                                │
+│  └──────┬───────┘                                                │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌──────────────────────────────────────────┐                    │
+│  │ Au survol                                │                    │
+│  │  ┌────────────┐    ┌─────────────┐       │                    │
+│  │  │ Dupliquer  │    │ Modifier    │       │                    │
+│  │  └─────┬──────┘    └──────┬──────┘       │                    │
+│  └────────┼──────────────────┼──────────────┘                    │
+│           │                  │                                   │
+│           ▼                  ▼                                   │
+│  ┌────────────────┐  ┌────────────────┐                          │
+│  │ AdminAdd       │  │ AdminEdit      │                          │
+│  │ ProductModal   │  │ ProductModal   │                          │
+│  │ (pre-rempli)   │  │                │                          │
+│  └────────────────┘  └────────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Interface Product a Dupliquer
+
+Les champs copies lors de la duplication :
+
+| Champ | Copie | Modification |
+|-------|-------|--------------|
+| name | Oui | Prefixe "Copie de " |
+| description | Oui | Identique |
+| price | Oui | Identique |
+| stock_quantity | Oui | Identique |
+| category_id | Oui | Identique |
+| is_experience | Oui | Identique |
+| experience_type | Oui | Identique |
+| location_name | Oui | Identique |
+| is_active | Oui | Identique |
+| image_url | Oui | Reference URL |
+| images | Oui | References URLs |
+| videos | Oui | References URLs |
+| business_account_id | Oui | Identique (meme boutique) |
+
+## Fichiers a Modifier
+
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/admin/AdminProductsModal.tsx` | Ajouter bouton Dupliquer, etat duplicatingProduct, passer prop a AdminAddProductModal |
+| `src/components/admin/AdminAddProductModal.tsx` | Ajouter prop duplicateFromProduct, logique de pre-remplissage, titre dynamique |
+
+## Details d'Implementation
+
+### AdminProductsModal.tsx
+
+1. Importer l'icone `Copy` de lucide-react
+2. Ajouter un etat : `const [duplicatingProduct, setDuplicatingProduct] = useState<Product | null>(null);`
+3. Modifier l'overlay au survol pour inclure deux boutons
+4. Passer `duplicateFromProduct={duplicatingProduct}` a AdminAddProductModal
+5. Reinitialiser duplicatingProduct quand le modal se ferme
+
+### AdminAddProductModal.tsx
+
+1. Ajouter la prop : `duplicateFromProduct?: Product`
+2. Dans useEffect, si duplicateFromProduct est fourni :
+   - Pre-remplir formData avec les valeurs du produit source
+   - Charger les images existantes dans productImages
+   - Charger les videos existantes dans productVideos
+3. Modifier le titre du dialog si duplication
+4. Ajouter "Copie de " au nom du produit
+5. Reinitialiser lors de la fermeture
+
+## Avantages
+
+- **Gain de temps** : Dupliquer un produit similaire en quelques clics
+- **Reduction d'erreurs** : Pas besoin de ressaisir les informations
+- **Conservation des medias** : Images et videos sont reutilisees (pas de re-upload)
+- **Audit** : L'action de creation est loggee normalement
+
+## Edge Cases Geres
+
+- Si le produit source n'a pas d'images/videos, les champs restent vides
+- Le nouveau produit aura un nouvel ID unique
+- Les timestamps (created_at, updated_at) seront nouveaux
+- L'admin peut modifier toutes les valeurs avant de sauvegarder
