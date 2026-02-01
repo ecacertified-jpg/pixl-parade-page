@@ -1,105 +1,69 @@
 
+# Correction du Bug : Page Blanche lors de l'Ajout d'Anniversaire
 
-# Utilisation du Sélecteur de Date Natif sur Mobile
+## Probleme Identifie
 
-## Objectif
+Quand l'utilisateur clique sur le bouton "Ajouter" dans la carte "Quand est ton anniversaire ?", une page blanche s'affiche.
 
-Modifier le composant `BirthdayPicker` pour utiliser le sélecteur de date **natif du navigateur** (`<input type="date">`) sur mobile, comme montré dans la capture d'écran du formulaire d'inscription. Cela offre une meilleure expérience utilisateur sur smartphone car le picker natif est familier et optimisé pour l'écran tactile.
+**Cause** : Le bouton navigue vers `/profile`, une route qui n'existe pas dans l'application.
 
-## Situation Actuelle
-
-Le composant `BirthdayPicker` actuel utilise :
-- Un champ texte avec auto-formatage (jj/mm/aaaa)
-- Un bouton calendrier qui ouvre un `Popover` avec le composant `Calendar`
-- Validation en temps réel
-
-Ce composant est utilisé dans 4 endroits :
-1. `CompleteProfileModal.tsx` - Modal de complétion de profil
-2. `ProfileSettings.tsx` - Page des paramètres du profil
-3. `AddEventModal.tsx` - Ajout d'événement
-4. `AddFriendModal.tsx` - Ajout d'un ami
+```text
+Code actuel (Dashboard.tsx ligne 504) :
+┌──────────────────────────────────────────┐
+│ onCompleteProfile={() => navigate('/profile')}  │
+└──────────────────────────────────────────┘
+                     │
+                     ▼
+         Route "/profile" inexistante
+                     │
+                     ▼
+            Page NotFound (vide)
+```
 
 ## Solution Proposee
 
-Modifier `BirthdayPicker` pour :
-- **Mobile** : Utiliser `<input type="date">` natif avec une icône calendrier intégrée
-- **Desktop** : Conserver le comportement actuel (saisie texte + popover calendrier)
+Utiliser le `CompleteProfileModal` existant au lieu de naviguer vers une route inexistante. Ce modal est deja integre dans le Dashboard et permet d'ajouter la date d'anniversaire.
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│                    BirthdayPicker                   │
-│                                                     │
-│  ┌─────────────────┐     ┌─────────────────────┐   │
-│  │    Desktop      │     │       Mobile        │   │
-│  ├─────────────────┤     ├─────────────────────┤   │
-│  │ Input texte     │     │ Input type="date"   │   │
-│  │ + Bouton 📅     │     │ (picker natif OS)   │   │
-│  │ + Popover       │     │                     │   │
-│  │   Calendar      │     │  ┌─────────────┐    │   │
-│  │                 │     │  │ jj/mm/aaaa 📅│    │   │
-│  └─────────────────┘     │  └─────────────┘    │   │
-│                          └─────────────────────┘   │
-└─────────────────────────────────────────────────────┘
+Solution :
+┌──────────────────────────────────────────────────┐
+│ Bouton "Ajouter" → Ouvre CompleteProfileModal    │
+└──────────────────────────────────────────────────┘
 ```
 
-## Details Techniques
+## Modifications Techniques
 
-### Modification du Composant BirthdayPicker
+### Fichier a modifier : `src/pages/Dashboard.tsx`
 
-**Fichier** : `src/components/ui/birthday-picker.tsx`
+1. **Ajouter un etat pour controler le modal manuellement** :
+   - Creer un state `showCompleteProfileModal` pour pouvoir ouvrir le modal depuis le bouton
 
-Changements :
-1. Importer le hook `useIsMobile` depuis `@/hooks/use-mobile`
-2. Ajouter un rendu conditionnel selon `isMobile`
-3. Pour mobile : utiliser `<input type="date">` avec :
-   - Valeur au format `yyyy-MM-dd` (format HTML5)
-   - Affichage stylé pour correspondre au design system
-   - Validation identique au mode desktop
-4. Pour desktop : conserver le comportement actuel
+2. **Modifier le callback `onCompleteProfile`** :
+   - Remplacer `navigate('/profile')` par `setShowCompleteProfileModal(true)`
 
-### Avantages du Picker Natif sur Mobile
+3. **Mettre a jour l'affichage du modal** :
+   - Le modal s'ouvrira soit automatiquement (profil incomplet) soit via le bouton "Ajouter"
 
-| Aspect | Picker Actuel | Picker Natif |
-|--------|---------------|--------------|
-| UX | Saisie manuelle | Roues/calendrier natif |
-| Familiarité | Nouvelle UI | UI système connue |
-| Accessibilité | Correcte | Optimisée par l'OS |
-| Taille touch | Petits boutons | Cibles adaptées |
+### Changement de code
+
+| Ligne | Avant | Apres |
+|-------|-------|-------|
+| ~97 | - | Ajouter state `showCompleteProfileModal` |
+| ~504 | `navigate('/profile')` | `setShowCompleteProfileModal(true)` |
+| ~848 | `open={needsProfileCompletion && ...}` | `open={(needsProfileCompletion \|\| showCompleteProfileModal) && ...}` |
+
+## Comportement Apres Correction
+
+1. L'utilisateur clique sur "Ajouter" dans la carte anniversaire
+2. Le `CompleteProfileModal` s'ouvre
+3. L'utilisateur saisit sa date d'anniversaire
+4. Le profil est mis a jour et le modal se ferme
+5. La carte anniversaire affiche maintenant le compte a rebours
 
 ## Fichiers Impactes
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/ui/birthday-picker.tsx` | Modifier |
+| `src/pages/Dashboard.tsx` | Modifier (3 changements mineurs) |
 
-Aucun autre fichier n'a besoin d'être modifié car tous les formulaires utilisent déjà le composant `BirthdayPicker` de manière centralisée.
-
-## Comportement Attendu
-
-### Sur Mobile (largeur < 768px)
-- Affichage d'un input natif `type="date"` 
-- Au tap, le picker de date du système s'ouvre (roues sur iOS, calendrier sur Android)
-- Le placeholder "jj/mm/aaaa" s'affiche si pas de valeur
-- La validation reste identique (min/max année, pas de date future, etc.)
-
-### Sur Desktop (largeur >= 768px)
-- Comportement inchangé : saisie texte avec auto-formatage + bouton calendrier popover
-
-## Implementation
-
-Le composant utilisera `useIsMobile()` pour détecter la plateforme et rendra soit :
-
-```text
-Mobile:
-┌────────────────────────────┐
-│ jj/mm/aaaa              📅 │  <- input type="date"
-└────────────────────────────┘
-
-Desktop:
-┌──────────────────────┐ ┌──┐
-│ jj/mm/aaaa           │ │📅│  <- input text + button
-└──────────────────────┘ └──┘
-```
-
-Cette approche garantit une cohérence visuelle tout en offrant la meilleure expérience native sur mobile.
-
+Aucun nouveau fichier a creer. Cette correction utilise le composant modal existant.
