@@ -1,8 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
-import { MapPin, ChevronDown, Plus, Check, Building2, Home } from "lucide-react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { MapPin, ChevronDown, Plus, Check, Building2, Home, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -19,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useCountry } from "@/contexts/CountryContext";
+import { getAllCountries, getCountryConfig } from "@/config/countries";
 import { 
   getMainLocations, 
   getNeighborhoodsOf, 
@@ -27,6 +27,7 @@ import {
   getMajorCityName,
   type CityCoordinates 
 } from "@/utils/countryCities";
+import { toast } from "sonner";
 
 export interface AddressResult {
   city: string;
@@ -36,18 +37,22 @@ export interface AddressResult {
   latitude: number;
   longitude: number;
   isCustomNeighborhood: boolean;
+  countryCode: string;
 }
 
 interface AddressSelectorProps {
   onAddressChange: (data: AddressResult) => void;
   initialCity?: string;
   initialNeighborhood?: string;
+  initialCountryCode?: string;
   label?: string;
   cityLabel?: string;
   neighborhoodLabel?: string;
   required?: boolean;
   disabled?: boolean;
   showCoordinates?: boolean;
+  allowCountryOverride?: boolean;
+  onCountryChange?: (countryCode: string) => void;
   className?: string;
 }
 
@@ -55,16 +60,30 @@ export function AddressSelector({
   onAddressChange,
   initialCity = "",
   initialNeighborhood = "",
+  initialCountryCode,
   label = "Adresse",
   cityLabel = "Ville / Commune",
   neighborhoodLabel = "Quartier",
   required = false,
   disabled = false,
   showCoordinates = false,
+  allowCountryOverride = true,
+  onCountryChange,
   className,
 }: AddressSelectorProps) {
   const { country } = useCountry();
-  const countryCode = country.code;
+  const globalCountryCode = country.code;
+  
+  // Local country state for override functionality
+  const [localCountryCode, setLocalCountryCode] = useState(
+    initialCountryCode || globalCountryCode
+  );
+  const [countryOpen, setCountryOpen] = useState(false);
+  
+  // Use local country code for all location operations
+  const activeCountryCode = localCountryCode;
+  const activeCountryConfig = getCountryConfig(activeCountryCode);
+  const availableCountries = getAllCountries();
 
   const [selectedCity, setSelectedCity] = useState(initialCity);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState(initialNeighborhood);
@@ -73,28 +92,56 @@ export function AddressSelector({
   const [cityOpen, setCityOpen] = useState(false);
   const [neighborhoodOpen, setNeighborhoodOpen] = useState(false);
 
+  // Sync with global country if no initial override was provided
+  useEffect(() => {
+    if (!initialCountryCode && globalCountryCode !== localCountryCode) {
+      setLocalCountryCode(globalCountryCode);
+    }
+  }, [globalCountryCode, initialCountryCode]);
+
+  // Handle country change
+  const handleCountryChange = (newCountryCode: string) => {
+    if (newCountryCode === localCountryCode) {
+      setCountryOpen(false);
+      return;
+    }
+    
+    setLocalCountryCode(newCountryCode);
+    // Reset city and neighborhood when country changes
+    setSelectedCity("");
+    setSelectedNeighborhood("");
+    setCustomNeighborhood("");
+    setIsCustom(false);
+    setCountryOpen(false);
+    
+    const newCountryConfig = getCountryConfig(newCountryCode);
+    toast.info(`Villes mises à jour pour ${newCountryConfig.name}`);
+    
+    onCountryChange?.(newCountryCode);
+  };
+
   // Get structured location data
   const { majorCityCommunes, majorCityName, majorCityLabel, otherCities } = useMemo(() => {
-    return getMainLocations(countryCode);
-  }, [countryCode]);
+    return getMainLocations(activeCountryCode);
+  }, [activeCountryCode]);
 
   // Get neighborhoods for selected city
   const neighborhoods = useMemo(() => {
     if (!selectedCity) return [];
-    return getNeighborhoodsOf(countryCode, selectedCity);
-  }, [countryCode, selectedCity]);
+    return getNeighborhoodsOf(activeCountryCode, selectedCity);
+  }, [activeCountryCode, selectedCity]);
 
   // Check if selected city is a commune of the major city
   const isCommune = useMemo(() => {
-    return isMajorCityCommune(countryCode, selectedCity);
-  }, [countryCode, selectedCity]);
+    return isMajorCityCommune(activeCountryCode, selectedCity);
+  }, [activeCountryCode, selectedCity]);
 
   // Build and emit result
   const emitChange = useCallback((city: string, neighborhood: string, isCustomNeigh: boolean) => {
     if (!city) return;
 
-    const parentCity = isMajorCityCommune(countryCode, city) ? getMajorCityName(countryCode) : undefined;
-    const coords = getCoordinatesFor(countryCode, city, neighborhood);
+    const parentCity = isMajorCityCommune(activeCountryCode, city) ? getMajorCityName(activeCountryCode) : undefined;
+    const coords = getCoordinatesFor(activeCountryCode, city, neighborhood);
     
     const fullAddress = neighborhood 
       ? `${neighborhood}, ${city}${parentCity ? `, ${parentCity}` : ""}`
@@ -108,8 +155,9 @@ export function AddressSelector({
       latitude: coords?.lat || 0,
       longitude: coords?.lng || 0,
       isCustomNeighborhood: isCustomNeigh,
+      countryCode: activeCountryCode,
     });
-  }, [countryCode, onAddressChange]);
+  }, [activeCountryCode, onAddressChange]);
 
   // Handle city selection
   const handleCitySelect = (city: CityCoordinates) => {
@@ -141,8 +189,8 @@ export function AddressSelector({
   // Calculate coordinates for display
   const currentCoords = useMemo(() => {
     if (!selectedCity) return null;
-    return getCoordinatesFor(countryCode, selectedCity, selectedNeighborhood);
-  }, [countryCode, selectedCity, selectedNeighborhood]);
+    return getCoordinatesFor(activeCountryCode, selectedCity, selectedNeighborhood);
+  }, [activeCountryCode, selectedCity, selectedNeighborhood]);
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -154,6 +202,51 @@ export function AddressSelector({
             {label}
             {required && <span className="text-destructive ml-1">*</span>}
           </Label>
+        </div>
+      )}
+
+      {/* Sélecteur de pays (si override autorisé) */}
+      {allowCountryOverride && (
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Pays</Label>
+          <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={countryOpen}
+                disabled={disabled}
+                className="w-full justify-between font-normal h-9"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-base">{activeCountryConfig.flag}</span>
+                  <span>{activeCountryConfig.name}</span>
+                </span>
+                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0" align="start">
+              <Command>
+                <CommandList>
+                  <CommandGroup heading="Sélectionner un pays">
+                    {availableCountries.map((c) => (
+                      <CommandItem
+                        key={c.code}
+                        value={c.code}
+                        onSelect={() => handleCountryChange(c.code)}
+                      >
+                        <span className="mr-2 text-base">{c.flag}</span>
+                        {c.name}
+                        {activeCountryCode === c.code && (
+                          <Check className="ml-auto h-4 w-4 text-primary" />
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
