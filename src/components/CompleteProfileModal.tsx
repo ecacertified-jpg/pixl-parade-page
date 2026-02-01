@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Gift, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Gift, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import confetti from 'canvas-confetti';
-import { CitySelector } from '@/components/CitySelector';
+import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { PhoneInput, createPhoneData, parseFullPhoneNumber, type PhoneData } from '@/components/PhoneInput';
 import { useCountry } from '@/contexts/CountryContext';
@@ -30,8 +30,10 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const { country } = useCountry();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [birthday, setBirthday] = useState<Date | undefined>();
-  const [city, setCity] = useState('');
   const [firstName, setFirstName] = useState(initialData?.firstName || '');
+  
+  // State for address selection
+  const [addressData, setAddressData] = useState<AddressResult | null>(null);
   
   // Initialiser avec le numéro existant ou le préfixe du pays détecté
   const [phoneData, setPhoneData] = useState<PhoneData>(() => {
@@ -41,7 +43,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
     return createPhoneData(country.phonePrefix);
   });
 
-  const isValid = birthday && city.trim().length > 0 && phoneData.isValid;
+  const isValid = birthday && addressData?.city && phoneData.isValid;
 
   const triggerCelebration = () => {
     confetti({
@@ -58,9 +60,12 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
     setIsSubmitting(true);
 
     try {
-      const updateData: Record<string, string | null> = {
+      const updateData: Record<string, string | number | null> = {
         birthday: birthday ? format(birthday, 'yyyy-MM-dd') : null,
-        city: city.trim(),
+        city: addressData?.city || null,
+        neighborhood: addressData?.neighborhood || null,
+        latitude: addressData?.latitude || null,
+        longitude: addressData?.longitude || null,
         phone: phoneData.nationalNumber ? `${phoneData.countryCode}${phoneData.nationalNumber}` : null,
       };
 
@@ -150,23 +155,16 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
           />
 
           {/* City/Delivery Location (required) */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>Ville ou quartier de livraison</span>
-              <span className="text-xs text-destructive">*</span>
-            </Label>
-            <CitySelector
-              value={city}
-              onChange={setCity}
-              label=""
-              placeholder="Sélectionnez ou ajoutez votre ville"
-              allowCustom
-            />
-            <p className="text-xs text-muted-foreground">
-              Pour faciliter la livraison de vos cadeaux surprises !
-            </p>
-          </div>
+          <AddressSelector
+            onAddressChange={setAddressData}
+            label="Lieu de livraison"
+            cityLabel="Ville / Commune"
+            neighborhoodLabel="Quartier"
+            required
+          />
+          <p className="text-xs text-muted-foreground -mt-2">
+            Pour faciliter la livraison de vos cadeaux surprises !
+          </p>
 
           {/* Phone (required) */}
           <PhoneInput

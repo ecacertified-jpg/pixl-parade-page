@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 
 interface CheckoutItem {
   id: number | string;
@@ -36,7 +37,8 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("delivery");
   const [donorPhoneNumber, setDonorPhoneNumber] = useState("");
   const [beneficiaryPhoneNumber, setBeneficiaryPhoneNumber] = useState("");
-  const [address, setAddress] = useState("");
+  const [addressData, setAddressData] = useState<AddressResult | null>(null);
+  const [addressDetails, setAddressDetails] = useState(""); // Précisions supplémentaires
   const [orderItems, setOrderItems] = useState<CheckoutItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [businessAccounts, setBusinessAccounts] = useState<any[]>([]);
@@ -131,8 +133,13 @@ export default function Checkout() {
   const shipping = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shipping;
 
+  // Build full address from AddressSelector + details
+  const fullDeliveryAddress = addressData?.fullAddress 
+    ? (addressDetails.trim() ? `${addressDetails.trim()}, ${addressData.fullAddress}` : addressData.fullAddress)
+    : "";
+
   // Check if form is valid (both phones and address filled)
-  const isFormValid = donorPhoneNumber.trim() !== "" && beneficiaryPhoneNumber.trim() !== "" && address.trim() !== "";
+  const isFormValid = donorPhoneNumber.trim() !== "" && beneficiaryPhoneNumber.trim() !== "" && !!addressData?.city;
 
   const handleConfirmOrder = async () => {
     setIsProcessing(true);
@@ -206,7 +213,16 @@ export default function Checkout() {
           total_amount: total,
           currency: "XOF",
           status: "pending",
-          delivery_address: { address, donorPhone: donorPhoneNumber, beneficiaryPhone: beneficiaryPhoneNumber },
+          delivery_address: { 
+            address: fullDeliveryAddress,
+            city: addressData?.city,
+            neighborhood: addressData?.neighborhood,
+            details: addressDetails,
+            latitude: addressData?.latitude,
+            longitude: addressData?.longitude,
+            donorPhone: donorPhoneNumber, 
+            beneficiaryPhone: beneficiaryPhoneNumber 
+          },
           notes: paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"
         })
         .select()
@@ -315,7 +331,7 @@ export default function Checkout() {
             currency: "XOF",
             donor_phone: donorPhoneNumber,
             beneficiary_phone: beneficiaryPhoneNumber,
-            delivery_address: address,
+            delivery_address: fullDeliveryAddress,
             payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
             status: "pending"
           };
@@ -380,7 +396,7 @@ export default function Checkout() {
         total,
         donorPhone: donorPhoneNumber,
         beneficiaryPhone: beneficiaryPhoneNumber,
-        location: address,
+        location: fullDeliveryAddress,
         orderId: orderData.id
       }));
 
@@ -545,14 +561,22 @@ export default function Checkout() {
               />
             </div>
             
+            <AddressSelector
+              onAddressChange={setAddressData}
+              label="Adresse de livraison"
+              cityLabel="Ville / Commune"
+              neighborhoodLabel="Quartier"
+              required
+            />
+            
             <div>
-              <Label htmlFor="address" className="text-sm font-medium">Adresse de livraison *</Label>
+              <Label htmlFor="addressDetails" className="text-sm font-medium">Précisions (rue, repères...)</Label>
               <Textarea 
-                id="address" 
-                placeholder="Quartier, rue, points de repère..." 
-                value={address} 
-                onChange={(e) => setAddress(e.target.value)} 
-                className="mt-1 min-h-[80px]" 
+                id="addressDetails" 
+                placeholder="Numéro de rue, points de repère, instructions..." 
+                value={addressDetails} 
+                onChange={(e) => setAddressDetails(e.target.value)} 
+                className="mt-1 min-h-[60px]" 
               />
             </div>
           </div>
