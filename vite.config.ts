@@ -167,12 +167,7 @@ export default defineConfig(({ mode }) => ({
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
       '@tanstack/react-query'
-    ],
-    // Force rebuild after context changes
-    force: true,
-    esbuildOptions: {
-      resolveExtensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json']
-    }
+    ]
   },
   build: {
     commonjsOptions: {
