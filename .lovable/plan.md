@@ -1,151 +1,102 @@
 
-# Ajout des Champs Ville/Commune et Quartier sur Toutes les Pages de Localisation
+# Ajout d'un Selecteur de Pays dans les Formulaires d'Adresse
 
-## Objectif
+## Probleme
 
-Remplacer les champs de saisie manuelle de localisation par le composant hierarchique `AddressSelector` existant (Ville/Commune + Quartier) dans tous les formulaires qui necessitent une adresse de livraison ou une localisation. Le composant `AddressSelector` fournit automatiquement les coordonnees GPS basees sur la selection.
+Actuellement, le composant `AddressSelector` utilise le pays detecte automatiquement via le contexte global `useCountry()`. Si cette detection est incorrecte (par exemple, un utilisateur en deplacement utilisant un VPN), il n'a aucun moyen de changer le pays directement dans le formulaire d'adresse pour acceder aux villes et quartiers du bon pays.
 
-## Analyse de l'Existant
+## Solution Proposee
 
-Le projet dispose deja d'un composant `AddressSelector` complet qui :
-- Affiche un selecteur hierarchique Ville/Commune -> Quartier
-- Recupere automatiquement les coordonnees GPS associees
-- Permet l'ajout de quartiers personnalises
-- Est deja utilise dans les pages d'authentification (`Auth.tsx`, `BusinessAuth.tsx`)
+Ajouter une option de selection de pays directement dans le composant `AddressSelector` avec deux modes :
 
-Cependant, plusieurs autres formulaires utilisent encore :
-- Le simple `CitySelector` (sans quartier)
-- Des champs `Input` ou `Textarea` manuels pour l'adresse
+1. **Mode par defaut** : Utilise le pays du contexte global (comportement actuel)
+2. **Mode avec override** : Affiche un selecteur de pays en haut du composant permettant de choisir manuellement le pays
 
-## Pages et Composants a Modifier
+## Approche Technique
 
-### 1. CompleteProfileModal.tsx
-**Etat actuel** : Utilise `CitySelector` seul
-**Modification** : Remplacer par `AddressSelector` avec Ville + Quartier
+### Modification du Composant AddressSelector
 
-### 2. ProfileSettings.tsx  
-**Etat actuel** : Utilise `CitySelector` pour la ville de residence
-**Modification** : Remplacer par `AddressSelector` avec Ville + Quartier
+Le composant sera enrichi avec :
 
-### 3. Checkout.tsx
-**Etat actuel** : Utilise un `Textarea` manuel pour l'adresse de livraison
-**Modification** : Remplacer par `AddressSelector` pour capturer Ville + Quartier avec GPS
-
-### 4. AddFriendModal.tsx
-**Etat actuel** : Utilise un `Input` manuel pour le lieu de residence
-**Modification** : Remplacer par `AddressSelector` avec Ville + Quartier
-
-### 5. AddressInput.tsx (composant reutilisable)
-**Etat actuel** : Utilise `CitySelector` + champ texte pour adresse precise
-**Modification** : Integrer `AddressSelector` pour la partie Ville + Quartier
-
-## Details Techniques
-
-### Modifications pour CompleteProfileModal.tsx
+- Une nouvelle prop `allowCountryOverride` (par defaut: `true`) pour activer/desactiver le selecteur de pays
+- Une nouvelle prop `onCountryChange` optionnelle pour notifier le parent du changement de pays
+- Un etat local `localCountryCode` pour gerer le pays selectionne dans le formulaire
+- Un selecteur de pays compact affiche au-dessus des champs Ville/Commune
 
 ```text
-Avant :
-┌────────────────────────────────────────┐
-│ Ville ou quartier de livraison        │
-│ ┌────────────────────────────────────┐ │
-│ │ CitySelector (ville seule)         │ │
-│ └────────────────────────────────────┘ │
-└────────────────────────────────────────┘
+AVANT (actuel) :
+┌───────────────────────────────────────────────────────────┐
+│  📍 Adresse                                               │
+│  ┌─────────────────┐    ┌─────────────────┐               │
+│  │ Ville/Commune   │    │ Quartier        │               │
+│  │ [Cocody      ▼] │    │ [Angre       ▼] │               │
+│  └─────────────────┘    └─────────────────┘               │
+└───────────────────────────────────────────────────────────┘
 
-Apres :
-┌────────────────────────────────────────┐
-│ 📍 Lieu de livraison                  │
-│ ┌─────────────────┐ ┌────────────────┐│
-│ │ Ville/Commune   │ │ Quartier       ││
-│ │ [Cocody      ▼] │ │ [Angre     ▼]  ││
-│ └─────────────────┘ └────────────────┘│
-│ Adresse complete: Angre, Cocody       │
-└────────────────────────────────────────┘
+APRES (avec override pays) :
+┌───────────────────────────────────────────────────────────┐
+│  📍 Adresse                                               │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │  Pays:  🇨🇮 Côte d'Ivoire  ▼  ← Nouveau selecteur   │  │
+│  └─────────────────────────────────────────────────────┘  │
+│  ┌─────────────────┐    ┌─────────────────┐               │
+│  │ Ville/Commune   │    │ Quartier        │               │
+│  │ [Cocody      ▼] │    │ [Angre       ▼] │               │
+│  └─────────────────┘    └─────────────────┘               │
+└───────────────────────────────────────────────────────────┘
 ```
 
-### Modifications pour Checkout.tsx
+### Nouvelle Interface AddressResult
 
-```text
-Avant :
-┌────────────────────────────────────────┐
-│ Adresse de livraison *                 │
-│ ┌────────────────────────────────────┐ │
-│ │ Quartier, rue, points de repere... │ │
-│ │ (Textarea libre)                   │ │
-│ └────────────────────────────────────┘ │
-└────────────────────────────────────────┘
-
-Apres :
-┌────────────────────────────────────────┐
-│ 📍 Adresse de livraison               │
-│ ┌─────────────────┐ ┌────────────────┐│
-│ │ Ville/Commune   │ │ Quartier       ││
-│ │ [Plateau     ▼] │ │ [Indenie   ▼]  ││
-│ └─────────────────┘ └────────────────┘│
-│ ┌────────────────────────────────────┐ │
-│ │ Precisions (rue, reperes...)       │ │
-│ └────────────────────────────────────┘ │
-│ Adresse: Indenie, Plateau, Abidjan    │
-└────────────────────────────────────────┘
-```
-
-### Schema de Donnees
-
-L'`AddressSelector` retourne un objet `AddressResult` :
+L'objet retourne par `onAddressChange` sera enrichi avec le code pays :
 
 ```text
 AddressResult {
-  city: string           // Nom de la ville/commune
-  neighborhood: string   // Nom du quartier
-  fullAddress: string    // Adresse complete formatee
-  parentCity?: string    // Ville parente (si commune)
-  latitude: number       // Coordonnees GPS
-  longitude: number      // Coordonnees GPS
+  city: string
+  neighborhood: string
+  fullAddress: string
+  parentCity?: string
+  latitude: number
+  longitude: number
   isCustomNeighborhood: boolean
+  countryCode: string        // ← Nouveau champ
 }
 ```
 
+### Logique de Fonctionnement
+
+1. A l'initialisation, le composant utilise le pays du contexte global
+2. Si l'utilisateur change le pays via le selecteur :
+   - Les villes et quartiers sont filtres pour le nouveau pays
+   - La selection actuelle est reinitialisee (car les villes changent)
+   - Le pays est inclus dans le resultat `AddressResult`
+3. Le changement de pays dans le formulaire ne modifie PAS le contexte global
+
 ## Fichiers a Modifier
 
-| Fichier | Type de modification |
-|---------|---------------------|
-| `src/components/CompleteProfileModal.tsx` | Remplacer CitySelector par AddressSelector |
-| `src/pages/ProfileSettings.tsx` | Remplacer CitySelector par AddressSelector |
-| `src/pages/Checkout.tsx` | Remplacer Textarea par AddressSelector + champ precisions |
-| `src/components/AddFriendModal.tsx` | Remplacer Input par AddressSelector |
-| `src/components/AddressInput.tsx` | Remplacer CitySelector par AddressSelector |
+| Fichier | Modifications |
+|---------|---------------|
+| `src/components/AddressSelector.tsx` | Ajouter le selecteur de pays et la logique d'override |
 
-## Impact sur les Donnees
+## Nouvelles Props du Composant
 
-### Champs a stocker
+| Prop | Type | Defaut | Description |
+|------|------|--------|-------------|
+| `allowCountryOverride` | boolean | true | Affiche le selecteur de pays |
+| `initialCountryCode` | string | undefined | Force un pays initial (sinon utilise le contexte) |
+| `onCountryChange` | (code: string) => void | undefined | Callback quand le pays change |
 
-Pour chaque entite (profil, contact, commande), les donnees suivantes seront capturees :
-- `city` : Ville ou commune selectionnee
-- `neighborhood` : Quartier selectionne (optionnel)
-- `full_address` : Adresse complete formatee
-- `latitude` / `longitude` : Coordonnees GPS (si disponibles)
+## Impact sur les Formulaires Existants
 
-### Tables impactees
+Les formulaires existants (`Auth.tsx`, `CompleteProfileModal.tsx`, `Checkout.tsx`, etc.) beneficieront automatiquement de cette fonctionnalite car :
 
-| Table | Champs existants | Nouveaux champs suggeres |
-|-------|-----------------|--------------------------|
-| `profiles` | `city` | Ajouter `neighborhood`, `latitude`, `longitude` |
-| `contacts` | (aucun) | Ajouter `city`, `neighborhood`, `latitude`, `longitude` |
-| `business_orders` | `delivery_address` | Enrichir avec quartier et GPS |
+1. La nouvelle prop `allowCountryOverride` est `true` par defaut
+2. Le code pays est desormais inclus dans `AddressResult`
+3. Aucune modification requise pour les formulaires existants
 
-**Note** : Les colonnes `latitude` et `longitude` peuvent deja exister sur certaines tables. Une verification sera faite avant toute modification de schema.
+## Comportement UX
 
-## Ordre d'Implementation
-
-1. **CompleteProfileModal** - Point d'entree principal pour les nouveaux utilisateurs
-2. **Checkout** - Impact direct sur les commandes et livraisons
-3. **ProfileSettings** - Mise a jour du profil existant
-4. **AddFriendModal** - Localisation des contacts
-5. **AddressInput** - Composant reutilisable pour coherence globale
-
-## Benefices
-
-- **Coherence UX** : Meme interface de selection sur toutes les pages
-- **Precision GPS** : Chaque adresse aura des coordonnees associees
-- **Livraisons optimisees** : Tri par proximite facilite
-- **Donnees normalisees** : Fin des adresses en format libre
+- Le selecteur de pays est discret (format compact avec drapeau)
+- Quand l'utilisateur change de pays, un message indique que les villes ont ete mises a jour
+- La selection precedente (ville/quartier) est effacee pour eviter les incoherences
+- Le selecteur affiche les 3 pays disponibles (Côte d'Ivoire, Benin, Senegal)
