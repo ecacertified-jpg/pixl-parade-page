@@ -8,6 +8,7 @@ import { CalendarIcon, AlertCircle, CheckCircle2 } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BirthdayPickerProps {
   value?: Date;
@@ -42,6 +43,7 @@ export function BirthdayPicker({
   disablePast = false,
   className,
 }: BirthdayPickerProps) {
+  const isMobile = useIsMobile();
   const [inputValue, setInputValue] = useState("");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -67,16 +69,65 @@ export function BirthdayPicker({
     }
   }, [value]);
 
-  // Validation en temps réel
+  // Validation commune pour mobile et desktop
+  const validateDate = (date: Date): string | null => {
+    const now = new Date();
+    const year = date.getFullYear();
+
+    if (year < minYear || year > maxYear) {
+      return `Année doit être entre ${minYear} et ${maxYear}`;
+    }
+
+    if (disableFuture && date > now) {
+      return "La date ne peut pas être dans le futur";
+    }
+
+    if (disablePast && date < now) {
+      return "La date ne peut pas être dans le passé";
+    }
+
+    return null;
+  };
+
+  // Handler pour l'input natif mobile
+  const handleNativeDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateString = e.target.value;
+    
+    if (!dateString) {
+      onChange(undefined);
+      setValidationError(null);
+      setIsValidDate(false);
+      return;
+    }
+
+    const parsedDate = new Date(dateString);
+    
+    if (!isValid(parsedDate)) {
+      setValidationError("Date invalide");
+      setIsValidDate(false);
+      return;
+    }
+
+    const validationResult = validateDate(parsedDate);
+    if (validationResult) {
+      setValidationError(validationResult);
+      setIsValidDate(false);
+      return;
+    }
+
+    setValidationError(null);
+    setIsValidDate(true);
+    onChange(parsedDate);
+  };
+
+  // Validation en temps réel pour desktop
   const validateInput = (formatted: string): boolean => {
-    // Pas de validation si champ vide ou en cours de saisie
     if (formatted.length === 0) {
       setValidationError(null);
       setIsValidDate(false);
       return true;
     }
 
-    // Validation du jour
     if (formatted.length >= 2) {
       const day = parseInt(formatted.slice(0, 2));
       if (day > 31 || day === 0) {
@@ -86,7 +137,6 @@ export function BirthdayPicker({
       }
     }
 
-    // Validation du mois
     if (formatted.length >= 5) {
       const month = parseInt(formatted.slice(3, 5));
       if (month > 12 || month === 0) {
@@ -96,10 +146,8 @@ export function BirthdayPicker({
       }
     }
 
-    // Validation complète quand la date est saisie entièrement
     if (formatted.length === 10) {
       const parsedDate = parse(formatted, "dd/MM/yyyy", new Date());
-      const now = new Date();
 
       if (!isValid(parsedDate)) {
         setValidationError("Cette date n'existe pas");
@@ -107,21 +155,9 @@ export function BirthdayPicker({
         return false;
       }
 
-      const year = parsedDate.getFullYear();
-      if (year < minYear || year > maxYear) {
-        setValidationError(`Année doit être entre ${minYear} et ${maxYear}`);
-        setIsValidDate(false);
-        return false;
-      }
-
-      if (disableFuture && parsedDate > now) {
-        setValidationError("La date ne peut pas être dans le futur");
-        setIsValidDate(false);
-        return false;
-      }
-
-      if (disablePast && parsedDate < now) {
-        setValidationError("La date ne peut pas être dans le passé");
+      const validationResult = validateDate(parsedDate);
+      if (validationResult) {
+        setValidationError(validationResult);
         setIsValidDate(false);
         return false;
       }
@@ -131,13 +167,12 @@ export function BirthdayPicker({
       return true;
     }
 
-    // Effacer l'erreur si on est en cours de saisie valide
     setValidationError(null);
     setIsValidDate(false);
     return true;
   };
 
-  // Handler pour la saisie clavier avec auto-formatage
+  // Handler pour la saisie clavier avec auto-formatage (desktop)
   const handleInputChange = (rawValue: string) => {
     let digits = rawValue.replace(/\D/g, "").slice(0, 8);
     
@@ -151,7 +186,6 @@ export function BirthdayPicker({
     
     setInputValue(formatted);
 
-    // Valider en temps réel
     const isValidInput = validateInput(formatted);
 
     if (formatted.length === 10 && isValidInput) {
@@ -182,6 +216,15 @@ export function BirthdayPicker({
   const hasError = error || validationError;
   const showSuccess = !hasError && isValidDate;
 
+  // Format pour l'input natif (yyyy-MM-dd)
+  const nativeInputValue = value && isValid(value) ? format(value, "yyyy-MM-dd") : "";
+
+  // Calcul des limites pour l'input natif
+  const minDate = `${minYear}-01-01`;
+  const maxDate = disableFuture 
+    ? format(new Date(), "yyyy-MM-dd")
+    : `${maxYear}-12-31`;
+
   return (
     <div className={cn("space-y-2", className)}>
       {label && (
@@ -192,52 +235,74 @@ export function BirthdayPicker({
         </Label>
       )}
       
-      <div className="flex gap-2">
-        <Input
-          ref={inputRef}
-          placeholder={placeholder}
-          value={inputValue}
-          onChange={(e) => handleInputChange(e.target.value)}
-          maxLength={10}
-          disabled={disabled}
-          className={cn(
-            "flex-1 transition-all duration-300 ease-in-out",
-            showSuccess && "border-green-500 focus-visible:ring-green-500",
-            hasError && "border-destructive focus-visible:ring-destructive"
-          )}
-        />
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "shrink-0 transition-all duration-300 ease-in-out",
-                showSuccess && "border-green-500 text-green-600 hover:border-green-500",
-                hasError && "border-destructive text-destructive hover:border-destructive"
-              )}
-              type="button"
-              disabled={disabled}
-            >
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={value}
-              onSelect={handleCalendarSelect}
-              locale={fr}
-              captionLayout="dropdown-buttons"
-              fromYear={minYear}
-              toYear={maxYear}
-              disabled={isDateDisabled}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+      {isMobile ? (
+        // Version mobile : input natif type="date"
+        <div className="relative">
+          <Input
+            ref={inputRef}
+            type="date"
+            value={nativeInputValue}
+            onChange={handleNativeDateChange}
+            min={minDate}
+            max={maxDate}
+            disabled={disabled}
+            className={cn(
+              "w-full transition-all duration-300 ease-in-out pr-10",
+              showSuccess && "border-green-500 focus-visible:ring-green-500",
+              hasError && "border-destructive focus-visible:ring-destructive"
+            )}
+          />
+          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+      ) : (
+        // Version desktop : input texte + bouton calendrier
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={(e) => handleInputChange(e.target.value)}
+            maxLength={10}
+            disabled={disabled}
+            className={cn(
+              "flex-1 transition-all duration-300 ease-in-out",
+              showSuccess && "border-green-500 focus-visible:ring-green-500",
+              hasError && "border-destructive focus-visible:ring-destructive"
+            )}
+          />
+          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  "shrink-0 transition-all duration-300 ease-in-out",
+                  showSuccess && "border-green-500 text-green-600 hover:border-green-500",
+                  hasError && "border-destructive text-destructive hover:border-destructive"
+                )}
+                type="button"
+                disabled={disabled}
+              >
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={value}
+                onSelect={handleCalendarSelect}
+                locale={fr}
+                captionLayout="dropdown-buttons"
+                fromYear={minYear}
+                toYear={maxYear}
+                disabled={isDateDisabled}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
       
       {hasError ? (
         <div className="animate-fade-in">
