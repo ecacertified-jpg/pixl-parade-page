@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CitySelector } from "@/components/CitySelector";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 import { CountrySelector } from "@/components/CountrySelector";
 import { CountryInfoCard } from "@/components/CountryInfoCard";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
@@ -138,6 +138,9 @@ const ProfileSettings = () => {
     phone: "",
     birthday: "",
     city: "",
+    neighborhood: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
   const [birthdayDate, setBirthdayDate] = useState<Date | undefined>();
 
@@ -184,6 +187,9 @@ const ProfileSettings = () => {
             phone: data.phone || "",
             birthday: data.birthday || "",
             city: data.city || "",
+            neighborhood: (data as any).neighborhood || "",
+            latitude: (data as any).latitude || null,
+            longitude: (data as any).longitude || null,
           });
           // Synchroniser birthdayDate
           if (data.birthday) {
@@ -246,6 +252,9 @@ const ProfileSettings = () => {
           phone: profile.phone,
           birthday: profile.birthday || null,
           city: profile.city,
+          neighborhood: profile.neighborhood || null,
+          latitude: profile.latitude,
+          longitude: profile.longitude,
         })
         .eq("user_id", user.id);
       
@@ -442,12 +451,19 @@ const ProfileSettings = () => {
                   helperText="Votre date d'anniversaire sera partagée avec vos proches"
                 />
 
-                <CitySelector
-                  value={profile.city}
-                  onChange={(value) => setProfile({ ...profile, city: value })}
-                  label="Ville de résidence"
-                  placeholder="Sélectionnez votre ville"
-                  allowCustom
+                <AddressSelector
+                  onAddressChange={(data: AddressResult) => setProfile({
+                    ...profile,
+                    city: data.city,
+                    neighborhood: data.neighborhood,
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                  })}
+                  initialCity={profile.city}
+                  initialNeighborhood={profile.neighborhood}
+                  label="Lieu de résidence"
+                  cityLabel="Ville / Commune"
+                  neighborhoodLabel="Quartier"
                 />
               </CardContent>
             </Card>

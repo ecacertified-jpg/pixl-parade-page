@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 
 interface Friend {
   id: string;
@@ -12,6 +13,10 @@ interface Friend {
   phone: string;
   relation: string;
   location: string;
+  city?: string;
+  neighborhood?: string;
+  latitude?: number;
+  longitude?: number;
   birthday: Date;
 }
 
@@ -25,13 +30,13 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relation, setRelation] = useState("");
-  const [location, setLocation] = useState("");
+  const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [birthday, setBirthday] = useState<Date>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !phone || !relation || !location || !birthday) {
+    if (!name || !phone || !relation || !addressData?.city || !birthday) {
       return;
     }
 
@@ -40,7 +45,11 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
       name,
       phone,
       relation,
-      location,
+      location: addressData.fullAddress,
+      city: addressData.city,
+      neighborhood: addressData.neighborhood,
+      latitude: addressData.latitude,
+      longitude: addressData.longitude,
       birthday
     };
 
@@ -50,7 +59,7 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
     setName("");
     setPhone("");
     setRelation("");
-    setLocation("");
+    setAddressData(null);
     setBirthday(undefined);
     
     onClose();
@@ -61,7 +70,7 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
     setName("");
     setPhone("");
     setRelation("");
-    setLocation("");
+    setAddressData(null);
     setBirthday(undefined);
     onClose();
   };
@@ -113,16 +122,13 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location">Lieu de résidence</Label>
-            <Input
-              id="location"
-              placeholder="Cocody, Abidjan"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
+          <AddressSelector
+            onAddressChange={setAddressData}
+            label="Lieu de résidence"
+            cityLabel="Ville / Commune"
+            neighborhoodLabel="Quartier"
+            required
+          />
 
           <BirthdayPicker
             label="Date d'anniversaire"

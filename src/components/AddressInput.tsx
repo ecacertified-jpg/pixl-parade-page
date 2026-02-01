@@ -1,14 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { CitySelector } from "@/components/CitySelector";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 
 export interface AddressData {
   city: string;
+  neighborhood: string;
   streetAddress: string;
   fullAddress: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface AddressInputProps {
@@ -16,15 +19,13 @@ interface AddressInputProps {
   onChange: (value: AddressData) => void;
   label?: string;
   cityLabel?: string;
+  neighborhoodLabel?: string;
   streetLabel?: string;
-  cityPlaceholder?: string;
   streetPlaceholder?: string;
   countryCode?: string;
   showPreview?: boolean;
   required?: boolean;
   disabled?: boolean;
-  allowCustomCity?: boolean;
-  showRegions?: boolean;
   className?: string;
   layout?: 'stacked' | 'inline';
 }
@@ -33,40 +34,46 @@ export function AddressInput({
   value,
   onChange,
   label = "Adresse de livraison",
-  cityLabel = "Ville / Quartier",
-  streetLabel = "Adresse précise",
-  cityPlaceholder = "Sélectionner une ville...",
+  cityLabel = "Ville / Commune",
+  neighborhoodLabel = "Quartier",
+  streetLabel = "Précisions (rue, repères...)",
   streetPlaceholder = "Numéro, rue, points de repère...",
-  countryCode,
   showPreview = true,
   required = false,
   disabled = false,
-  allowCustomCity = true,
-  showRegions = true,
   className,
   layout = 'stacked',
 }: AddressInputProps) {
   
   // Formater l'adresse complète
-  const formatFullAddress = (city: string, street: string): string => {
-    const parts = [street, city].filter(Boolean);
+  const formatFullAddress = (city: string, neighborhood: string, street: string): string => {
+    const locationParts = [neighborhood, city].filter(Boolean);
+    const locationStr = locationParts.join(', ');
+    const parts = [street, locationStr].filter(Boolean);
     return parts.join(', ');
   };
 
   // Adresse complète calculée
   const fullAddress = useMemo(() => {
-    return formatFullAddress(value.city, value.streetAddress);
-  }, [value.city, value.streetAddress]);
+    return formatFullAddress(value.city, value.neighborhood, value.streetAddress);
+  }, [value.city, value.neighborhood, value.streetAddress]);
 
-  // Gérer le changement de ville
-  const handleCityChange = (city: string) => {
-    const newFullAddress = formatFullAddress(city, value.streetAddress);
-    onChange({ ...value, city, fullAddress: newFullAddress });
+  // Gérer le changement d'adresse depuis AddressSelector
+  const handleAddressChange = (result: AddressResult) => {
+    const newFullAddress = formatFullAddress(result.city, result.neighborhood, value.streetAddress);
+    onChange({ 
+      ...value, 
+      city: result.city,
+      neighborhood: result.neighborhood,
+      latitude: result.latitude,
+      longitude: result.longitude,
+      fullAddress: newFullAddress 
+    });
   };
 
   // Gérer le changement d'adresse précise
   const handleStreetChange = (streetAddress: string) => {
-    const newFullAddress = formatFullAddress(value.city, streetAddress);
+    const newFullAddress = formatFullAddress(value.city, value.neighborhood, streetAddress);
     onChange({ ...value, streetAddress, fullAddress: newFullAddress });
   };
 
@@ -83,37 +90,30 @@ export function AddressInput({
         </div>
       )}
 
-      {/* Layout flexible */}
-      <div className={cn(
-        layout === 'inline' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'
-      )}>
-        {/* Sélection de ville */}
-        <CitySelector
-          value={value.city}
-          onChange={handleCityChange}
-          label={cityLabel}
-          placeholder={cityPlaceholder}
-          countryCode={countryCode}
-          allowCustom={allowCustomCity}
-          showRegions={showRegions}
-          disabled={disabled}
-          required={required}
-        />
+      {/* AddressSelector for City + Neighborhood */}
+      <AddressSelector
+        onAddressChange={handleAddressChange}
+        initialCity={value.city}
+        initialNeighborhood={value.neighborhood}
+        label=""
+        cityLabel={cityLabel}
+        neighborhoodLabel={neighborhoodLabel}
+        required={required}
+        disabled={disabled}
+      />
 
-        {/* Adresse précise */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">
-            {streetLabel}
-            {required && <span className="text-destructive ml-1">*</span>}
-          </Label>
-          <Input
-            value={value.streetAddress}
-            onChange={(e) => handleStreetChange(e.target.value)}
-            placeholder={streetPlaceholder}
-            disabled={disabled}
-            className="bg-background"
-          />
-        </div>
+      {/* Adresse précise */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">
+          {streetLabel}
+        </Label>
+        <Input
+          value={value.streetAddress}
+          onChange={(e) => handleStreetChange(e.target.value)}
+          placeholder={streetPlaceholder}
+          disabled={disabled}
+          className="bg-background"
+        />
       </div>
 
       {/* Aperçu de l'adresse complète */}
@@ -123,6 +123,11 @@ export function AddressInput({
           <div>
             <p className="text-xs text-muted-foreground">Adresse complète</p>
             <p className="text-sm font-medium">{fullAddress}</p>
+            {value.latitude && value.longitude && (
+              <p className="text-xs text-muted-foreground mt-1">
+                📍 {value.latitude.toFixed(4)}° N, {Math.abs(value.longitude).toFixed(4)}° W
+              </p>
+            )}
           </div>
         </div>
       )}
