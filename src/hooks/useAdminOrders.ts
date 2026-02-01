@@ -28,6 +28,24 @@ export interface AdminOrder {
   customer_confirmed_at: string | null;
   created_at: string;
   updated_at: string;
+  // Delivery partner fields
+  delivery_partner_id: string | null;
+  delivery_status: string | null;
+  delivery_fee: number | null;
+  delivery_notes: string | null;
+  delivery_assigned_at: string | null;
+  delivery_pickup_at: string | null;
+  delivery_delivered_at: string | null;
+  estimated_delivery_time: string | null;
+  // Joined partner info
+  delivery_partner?: {
+    id: string;
+    company_name: string;
+    contact_name: string;
+    phone: string;
+    vehicle_type: string;
+    rating: number;
+  };
 }
 
 export interface OrderFilters {
@@ -115,6 +133,14 @@ export const useAdminOrders = () => {
             id,
             business_name,
             logo_url
+          ),
+          delivery_partners(
+            id,
+            company_name,
+            contact_name,
+            phone,
+            vehicle_type,
+            rating
           )
         `)
         .order('created_at', { ascending: false });
@@ -141,7 +167,8 @@ export const useAdminOrders = () => {
       const transformedOrders: AdminOrder[] = (data || []).map((order: any) => ({
         ...order,
         business_name: order.business_accounts?.business_name || 'Inconnu',
-        business_logo: order.business_accounts?.logo_url
+        business_logo: order.business_accounts?.logo_url,
+        delivery_partner: order.delivery_partners || null
       }));
 
       // Apply search filter client-side

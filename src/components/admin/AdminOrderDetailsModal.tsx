@@ -16,7 +16,9 @@ import {
   RefreshCw,
   CheckCircle,
   Clock,
-  Truck
+  Truck,
+  Bike,
+  Car
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -24,6 +26,7 @@ import { AdminOrder, getOrderStatusLabel, getOrderStatusColor } from '@/hooks/us
 import { AdminRefundModal } from './AdminRefundModal';
 import { AdminCancelOrderModal } from './AdminCancelOrderModal';
 import { AdminUpdateStatusModal } from './AdminUpdateStatusModal';
+import { DELIVERY_STATUS_LABELS, VEHICLE_TYPE_LABELS } from '@/types/delivery';
 
 interface AdminOrderDetailsModalProps {
   order: AdminOrder | null;
@@ -231,6 +234,75 @@ export function AdminOrderDetailsModal({
                 </p>
               </div>
             </div>
+
+            {/* Delivery Partner Info */}
+            {order.delivery_partner && (
+              <>
+                <Separator />
+                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-primary" />
+                    Livreur assigné
+                    {order.delivery_status && (
+                      <Badge variant="secondary" className="ml-2">
+                        {DELIVERY_STATUS_LABELS[order.delivery_status as keyof typeof DELIVERY_STATUS_LABELS] || order.delivery_status}
+                      </Badge>
+                    )}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Entreprise</p>
+                      <p className="font-medium">{order.delivery_partner.company_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Contact</p>
+                      <p className="font-medium">{order.delivery_partner.contact_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Téléphone</p>
+                      <a href={`tel:${order.delivery_partner.phone}`} className="font-medium text-primary hover:underline flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {order.delivery_partner.phone}
+                      </a>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Véhicule</p>
+                      <p className="font-medium flex items-center gap-1">
+                        {order.delivery_partner.vehicle_type === 'moto' && <Bike className="h-4 w-4" />}
+                        {order.delivery_partner.vehicle_type === 'voiture' && <Car className="h-4 w-4" />}
+                        {order.delivery_partner.vehicle_type === 'camionnette' && <Truck className="h-4 w-4" />}
+                        {VEHICLE_TYPE_LABELS[order.delivery_partner.vehicle_type as keyof typeof VEHICLE_TYPE_LABELS] || order.delivery_partner.vehicle_type}
+                      </p>
+                    </div>
+                    {order.delivery_partner.rating && (
+                      <div>
+                        <p className="text-muted-foreground">Note</p>
+                        <p className="font-medium flex items-center gap-1">
+                          <Star className="h-4 w-4 text-gratitude fill-gratitude" />
+                          {order.delivery_partner.rating.toFixed(1)}
+                        </p>
+                      </div>
+                    )}
+                    {order.delivery_fee && (
+                      <div>
+                        <p className="text-muted-foreground">Frais de livraison</p>
+                        <p className="font-medium">{order.delivery_fee.toLocaleString()} XOF</p>
+                      </div>
+                    )}
+                  </div>
+                  {order.delivery_notes && (
+                    <div className="mt-3 pt-3 border-t border-primary/20">
+                      <p className="text-sm text-muted-foreground">Instructions : {order.delivery_notes}</p>
+                    </div>
+                  )}
+                  {order.estimated_delivery_time && (
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">Temps estimé : {order.estimated_delivery_time}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <Separator />
 
