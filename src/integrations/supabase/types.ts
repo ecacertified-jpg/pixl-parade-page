@@ -5322,6 +5322,9 @@ export type Database = {
           is_deleted: boolean | null
           is_suspended: boolean | null
           last_name: string | null
+          latitude: number | null
+          longitude: number | null
+          neighborhood: string | null
           phone: string | null
           preferences: Json | null
           primary_referral_code: string | null
@@ -5356,6 +5359,9 @@ export type Database = {
           is_deleted?: boolean | null
           is_suspended?: boolean | null
           last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
@@ -5390,6 +5396,9 @@ export type Database = {
           is_deleted?: boolean | null
           is_suspended?: boolean | null
           last_name?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
