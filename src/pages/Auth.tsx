@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Store, Gift, Loader2, Shield } from 'lucide-react';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
-import { useCountry } from '@/contexts/CountryContext';
+import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
 import { useReferralTracking } from '@/hooks/useReferralTracking';
 import { Separator } from '@/components/ui/separator';
@@ -78,7 +78,8 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { country } = useCountry();
+  const countryContext = useCountrySafe();
+  const country = countryContext?.country ?? { code: 'CI', name: 'Côte d\'Ivoire', phonePrefix: '+225', currency: 'XOF', flag: '🇨🇮' };
   const { trackReferralEvent, getActiveReferralCode, setActiveReferralCode } = useReferralTracking();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
   const { checkExistingAccount } = useAccountLinking();

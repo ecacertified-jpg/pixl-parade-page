@@ -221,6 +221,12 @@ export function useCountry(): CountryContextType {
   return context;
 }
 
+// Safe version that returns null instead of throwing when provider is missing
+export function useCountrySafe(): CountryContextType | null {
+  const context = useContext(CountryContext);
+  return context ?? null;
+}
+
 // Hook to get just the country config without the setter
 export function useCountryConfig(): CountryConfig {
   const { country } = useCountry();
