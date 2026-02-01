@@ -1,64 +1,105 @@
 
-# Plan de Continuation : Système d'Assignation de Livreurs
 
-## ✅ Implémentation Terminée
+# Utilisation du Sélecteur de Date Natif sur Mobile
 
-### Phase 1 : Base de données ✅
-- Table `delivery_partners` créée avec 17 colonnes
-- Table `delivery_tracking` créée avec 7 colonnes  
-- Colonnes ajoutées à `business_orders` : delivery_partner_id, delivery_status, delivery_fee, etc.
+## Objectif
 
-### Phase 2A : Types TypeScript ✅
-- **Fichier créé : `src/types/delivery.ts`**
-- Types: DeliveryPartner, DeliveryTracking, DeliveryStatus, VehicleType
-- Labels et couleurs pour les statuts de livraison
+Modifier le composant `BirthdayPicker` pour utiliser le sélecteur de date **natif du navigateur** (`<input type="date">`) sur mobile, comme montré dans la capture d'écran du formulaire d'inscription. Cela offre une meilleure expérience utilisateur sur smartphone car le picker natif est familier et optimisé pour l'écran tactile.
 
-### Phase 2B : Hook useDeliveryPartners ✅
-- **Fichier créé : `src/hooks/useDeliveryPartners.ts`**
-- loadPartners() : Charge les livreurs actifs et vérifiés
-- getAvailablePartners(zone) : Filtre par zone de couverture
-- getPartnerById() : Récupère un livreur par ID
+## Situation Actuelle
 
-### Phase 2C : Hook useOrderDelivery ✅
-- **Fichier créé : `src/hooks/useOrderDelivery.ts`**
-- assignPartner() : Assigne un livreur à une commande
-- updateDeliveryStatus() : Met à jour le statut de livraison
-- unassignPartner() : Retire le livreur d'une commande
-- getTrackingHistory() : Récupère l'historique de suivi
+Le composant `BirthdayPicker` actuel utilise :
+- Un champ texte avec auto-formatage (jj/mm/aaaa)
+- Un bouton calendrier qui ouvre un `Popover` avec le composant `Calendar`
+- Validation en temps réel
 
-### Phase 2D : Modal d'Assignation ✅
-- **Fichier créé : `src/components/AssignDeliveryModal.tsx`**
-- Liste des livreurs disponibles avec infos (véhicule, note, téléphone)
-- Sélection et confirmation de l'assignation
-- Champs pour frais de livraison, temps estimé, instructions
+Ce composant est utilisé dans 4 endroits :
+1. `CompleteProfileModal.tsx` - Modal de complétion de profil
+2. `ProfileSettings.tsx` - Page des paramètres du profil
+3. `AddEventModal.tsx` - Ajout d'événement
+4. `AddFriendModal.tsx` - Ajout d'un ami
 
-### Phase 2E : Intégration BusinessOrdersSection ✅
-- **Fichier modifié : `src/components/BusinessOrdersSection.tsx`**
-- Bouton "Assigner un livreur" sur les commandes traitées
-- Affichage des infos du livreur assigné
-- Badge de statut de livraison
+## Solution Proposee
 
-### Phase 2F : Intégration AdminOrderDetailsModal ✅
-- **Fichier modifié : `src/components/admin/AdminOrderDetailsModal.tsx`**
-- Section dédiée aux informations du livreur
-- Affichage du véhicule, note, contact, frais de livraison
-- Instructions et temps estimé visibles
+Modifier `BirthdayPicker` pour :
+- **Mobile** : Utiliser `<input type="date">` natif avec une icône calendrier intégrée
+- **Desktop** : Conserver le comportement actuel (saisie texte + popover calendrier)
 
-### Phase 2G : Mise à jour useAdminOrders ✅
-- **Fichier modifié : `src/hooks/useAdminOrders.ts`**
-- Interface AdminOrder étendue avec champs livreur
-- Jointure avec delivery_partners dans la requête
+```text
+┌─────────────────────────────────────────────────────┐
+│                    BirthdayPicker                   │
+│                                                     │
+│  ┌─────────────────┐     ┌─────────────────────┐   │
+│  │    Desktop      │     │       Mobile        │   │
+│  ├─────────────────┤     ├─────────────────────┤   │
+│  │ Input texte     │     │ Input type="date"   │   │
+│  │ + Bouton 📅     │     │ (picker natif OS)   │   │
+│  │ + Popover       │     │                     │   │
+│  │   Calendar      │     │  ┌─────────────┐    │   │
+│  │                 │     │  │ jj/mm/aaaa 📅│    │   │
+│  └─────────────────┘     │  └─────────────┘    │   │
+│                          └─────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
 
-## Prochaines Étapes (Optionnelles)
+## Details Techniques
 
-### Interface de gestion des livreurs (Admin)
-- Page d'administration pour ajouter/modifier/supprimer des livreurs
-- Tableau de bord avec statistiques des livraisons
+### Modification du Composant BirthdayPicker
 
-### Notifications livreur
-- Edge function pour notifier le livreur par SMS/push
-- Suivi en temps réel de la position
+**Fichier** : `src/components/ui/birthday-picker.tsx`
 
-### Intégration Mobile
-- Vue dédiée pour les livreurs sur mobile
-- Mise à jour du statut en temps réel
+Changements :
+1. Importer le hook `useIsMobile` depuis `@/hooks/use-mobile`
+2. Ajouter un rendu conditionnel selon `isMobile`
+3. Pour mobile : utiliser `<input type="date">` avec :
+   - Valeur au format `yyyy-MM-dd` (format HTML5)
+   - Affichage stylé pour correspondre au design system
+   - Validation identique au mode desktop
+4. Pour desktop : conserver le comportement actuel
+
+### Avantages du Picker Natif sur Mobile
+
+| Aspect | Picker Actuel | Picker Natif |
+|--------|---------------|--------------|
+| UX | Saisie manuelle | Roues/calendrier natif |
+| Familiarité | Nouvelle UI | UI système connue |
+| Accessibilité | Correcte | Optimisée par l'OS |
+| Taille touch | Petits boutons | Cibles adaptées |
+
+## Fichiers Impactes
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/ui/birthday-picker.tsx` | Modifier |
+
+Aucun autre fichier n'a besoin d'être modifié car tous les formulaires utilisent déjà le composant `BirthdayPicker` de manière centralisée.
+
+## Comportement Attendu
+
+### Sur Mobile (largeur < 768px)
+- Affichage d'un input natif `type="date"` 
+- Au tap, le picker de date du système s'ouvre (roues sur iOS, calendrier sur Android)
+- Le placeholder "jj/mm/aaaa" s'affiche si pas de valeur
+- La validation reste identique (min/max année, pas de date future, etc.)
+
+### Sur Desktop (largeur >= 768px)
+- Comportement inchangé : saisie texte avec auto-formatage + bouton calendrier popover
+
+## Implementation
+
+Le composant utilisera `useIsMobile()` pour détecter la plateforme et rendra soit :
+
+```text
+Mobile:
+┌────────────────────────────┐
+│ jj/mm/aaaa              📅 │  <- input type="date"
+└────────────────────────────┘
+
+Desktop:
+┌──────────────────────┐ ┌──┐
+│ jj/mm/aaaa           │ │📅│  <- input text + button
+└──────────────────────┘ └──┘
+```
+
+Cette approche garantit une cohérence visuelle tout en offrant la meilleure expérience native sur mobile.
+
