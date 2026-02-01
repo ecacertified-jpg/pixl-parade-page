@@ -65,12 +65,11 @@ export function useVendorProducts(businessId: string | undefined) {
       setLoading(true);
       setError(null);
 
-      // Charger les infos du prestataire
+      // Charger les infos du prestataire via la vue sécurisée (exclut phone, email, payment_info)
       const { data: businessData, error: businessError } = await supabase
-        .from('business_accounts')
-        .select('*')
+        .from('business_public_info')
+        .select('id, business_name, description, logo_url, business_type, delivery_zones, opening_hours, country_code, latitude, longitude, website_url, address')
         .eq('id', businessId)
-        .eq('is_active', true)
         .single();
 
       if (businessError) {
@@ -82,8 +81,8 @@ export function useVendorProducts(businessId: string | undefined) {
         businessName: businessData.business_name,
         description: businessData.description,
         logoUrl: businessData.logo_url,
-        email: businessData.email,
-        phone: businessData.phone,
+        email: null, // Removed from public view for security
+        phone: null, // Removed from public view for security
         address: businessData.address,
         businessType: businessData.business_type,
         deliveryZones: businessData.delivery_zones,

@@ -7211,8 +7211,10 @@ export type Database = {
       }
       business_public_info: {
         Row: {
+          address: string | null
           business_name: string | null
           business_type: string | null
+          country_code: string | null
           created_at: string | null
           delivery_settings: Json | null
           delivery_zones: Json | null
@@ -7220,13 +7222,19 @@ export type Database = {
           id: string | null
           is_active: boolean | null
           is_verified: boolean | null
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           opening_hours: Json | null
           status: string | null
+          updated_at: string | null
+          website_url: string | null
         }
         Insert: {
+          address?: string | null
           business_name?: string | null
           business_type?: string | null
+          country_code?: string | null
           created_at?: string | null
           delivery_settings?: Json | null
           delivery_zones?: Json | null
@@ -7234,13 +7242,19 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           opening_hours?: Json | null
           status?: string | null
+          updated_at?: string | null
+          website_url?: string | null
         }
         Update: {
+          address?: string | null
           business_name?: string | null
           business_type?: string | null
+          country_code?: string | null
           created_at?: string | null
           delivery_settings?: Json | null
           delivery_zones?: Json | null
@@ -7248,9 +7262,13 @@ export type Database = {
           id?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           opening_hours?: Json | null
           status?: string | null
+          updated_at?: string | null
+          website_url?: string | null
         }
         Relationships: []
       }

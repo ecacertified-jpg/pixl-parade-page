@@ -34,12 +34,10 @@ export function useExploreMapData(filters?: ExploreMapFilters) {
       setLoading(true);
       setError(null);
 
-      // Fetch active businesses
+      // Fetch active businesses via secure view (excludes phone, email, payment_info)
       const { data: businessData, error: businessError } = await supabase
-        .from('business_accounts')
-        .select('id, business_name, business_type, logo_url, address, latitude, longitude, country_code')
-        .eq('is_active', true)
-        .eq('status', 'approved');
+        .from('business_public_info')
+        .select('id, business_name, business_type, logo_url, address, latitude, longitude, country_code');
 
       if (businessError) throw businessError;
 
