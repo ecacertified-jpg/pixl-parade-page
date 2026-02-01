@@ -96,6 +96,9 @@ export default function Dashboard() {
   // Profile completion check (for Google sign-up users)
   const { needsCompletion: needsProfileCompletion, isLoading: profileCompletionLoading, markComplete: markProfileComplete, initialData } = useProfileCompletion();
   
+  // Manual trigger for profile completion modal (from BirthdayCountdownCard button)
+  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
+  
   // Push notification prompt
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, permission: pushPermission } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
@@ -501,7 +504,7 @@ export default function Dashboard() {
         <BirthdayCountdownCard 
           birthday={userProfile?.birthday || null}
           userName={userProfile?.first_name || user?.user_metadata?.first_name}
-          onCompleteProfile={() => navigate('/profile')}
+          onCompleteProfile={() => setShowCompleteProfileModal(true)}
         />
 
         {/* Carte résumé */}
@@ -843,11 +846,12 @@ export default function Dashboard() {
           onClose={() => setShowShopForCollectiveGiftModal(false)} 
         />
         
-        {/* Complete Profile Modal - Priority over Onboarding */}
+        {/* Complete Profile Modal - Priority over Onboarding, or manually triggered */}
         <CompleteProfileModal
-          open={needsProfileCompletion && !profileCompletionLoading}
+          open={(needsProfileCompletion || showCompleteProfileModal) && !profileCompletionLoading}
           onComplete={() => {
             markProfileComplete();
+            setShowCompleteProfileModal(false);
             loadUserProfile(); // Refresh profile data
           }}
           initialData={initialData}
