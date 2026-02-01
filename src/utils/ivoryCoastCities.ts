@@ -100,6 +100,48 @@ export const IVORY_COAST_CITIES: CityCoordinates[] = [
   { name: "Gonzagueville", lat: 5.2444, lng: -3.9139, aliases: ["gonzague"], region: "Port-Bouët", type: "neighborhood" },
   { name: "Adjouffou", lat: 5.2500, lng: -3.9500, aliases: [], region: "Port-Bouët", type: "neighborhood" },
   
+  // --- Quartiers d'Anyama ---
+  { name: "Grand Séminaire", lat: 5.4850, lng: -4.0450, aliases: ["seminaire", "grand seminaire"], region: "Anyama", type: "neighborhood" },
+  { name: "Aka", lat: 5.4889, lng: -4.0556, aliases: [], region: "Anyama", type: "neighborhood" },
+  { name: "Azaguié-Gare", lat: 5.4972, lng: -4.0389, aliases: ["azaguie gare", "azaguie-gare"], region: "Anyama", type: "neighborhood" },
+  { name: "Groupement", lat: 5.4861, lng: -4.0500, aliases: [], region: "Anyama", type: "neighborhood" },
+  { name: "Anyama Centre", lat: 5.4917, lng: -4.0508, aliases: ["centre"], region: "Anyama", type: "neighborhood" },
+  { name: "RAN", lat: 5.4944, lng: -4.0472, aliases: [], region: "Anyama", type: "neighborhood" },
+  { name: "Soweto", lat: 5.4833, lng: -4.0583, aliases: [], region: "Anyama", type: "neighborhood" },
+  { name: "Zossonkoi", lat: 5.4806, lng: -4.0528, aliases: [], region: "Anyama", type: "neighborhood" },
+  
+  // --- Quartiers de Bingerville ---
+  { name: "Bingerville Centre", lat: 5.3547, lng: -3.8883, aliases: ["centre-ville", "centre"], region: "Bingerville", type: "neighborhood" },
+  { name: "Cité des Cadres", lat: 5.3500, lng: -3.8833, aliases: ["cite des cadres", "cite cadres"], region: "Bingerville", type: "neighborhood" },
+  { name: "Gbagba", lat: 5.3583, lng: -3.8917, aliases: [], region: "Bingerville", type: "neighborhood" },
+  { name: "Akouai Santé", lat: 5.3611, lng: -3.8850, aliases: ["akouai sante", "akouai"], region: "Bingerville", type: "neighborhood" },
+  { name: "Jean Folly", lat: 5.3472, lng: -3.8806, aliases: ["jean-folly"], region: "Bingerville", type: "neighborhood" },
+  { name: "M'Pouto", lat: 5.3528, lng: -3.8944, aliases: ["mpouto", "m pouto"], region: "Bingerville", type: "neighborhood" },
+  { name: "Eloka", lat: 5.3639, lng: -3.8778, aliases: [], region: "Bingerville", type: "neighborhood" },
+  
+  // --- Quartiers de Songon ---
+  { name: "Songon-Agban", lat: 5.3167, lng: -4.2667, aliases: ["agban"], region: "Songon", type: "neighborhood" },
+  { name: "Songon-Kassemblé", lat: 5.3194, lng: -4.2611, aliases: ["kassemble", "kassemblé"], region: "Songon", type: "neighborhood" },
+  { name: "Songon-Té", lat: 5.3111, lng: -4.2722, aliases: ["songon te", "te"], region: "Songon", type: "neighborhood" },
+  { name: "Songon-Dagbé", lat: 5.3139, lng: -4.2556, aliases: ["dagbe", "dagbé"], region: "Songon", type: "neighborhood" },
+  { name: "Songon Centre", lat: 5.3167, lng: -4.2583, aliases: ["centre"], region: "Songon", type: "neighborhood" },
+  
+  // --- Quartiers d'Attécoubé ---
+  { name: "Locodjro", lat: 5.3389, lng: -4.0444, aliases: [], region: "Attécoubé", type: "neighborhood" },
+  { name: "Santé", lat: 5.3361, lng: -4.0500, aliases: ["sante"], region: "Attécoubé", type: "neighborhood" },
+  { name: "Agban-Village", lat: 5.3417, lng: -4.0389, aliases: ["agban village", "agban-village"], region: "Attécoubé", type: "neighborhood" },
+  { name: "Boribana", lat: 5.3333, lng: -4.0528, aliases: [], region: "Attécoubé", type: "neighborhood" },
+  { name: "Attécoubé Centre", lat: 5.3375, lng: -4.0456, aliases: ["centre"], region: "Attécoubé", type: "neighborhood" },
+  { name: "Abidjan-Faîto", lat: 5.3306, lng: -4.0417, aliases: ["faito", "faîto", "abidjan faito"], region: "Attécoubé", type: "neighborhood" },
+  { name: "Abobo-Doumé", lat: 5.3278, lng: -4.0361, aliases: ["abobo doume"], region: "Attécoubé", type: "neighborhood" },
+  
+  // --- Quartiers du Plateau ---
+  { name: "Centre Administratif", lat: 5.3192, lng: -4.0194, aliases: ["centre administratif", "admin"], region: "Plateau", type: "neighborhood" },
+  { name: "Indénié", lat: 5.3222, lng: -4.0250, aliases: ["indenie"], region: "Plateau", type: "neighborhood" },
+  { name: "Blockhauss", lat: 5.3167, lng: -4.0139, aliases: ["block hauss", "blockhaus"], region: "Plateau", type: "neighborhood" },
+  { name: "Commerce", lat: 5.3208, lng: -4.0167, aliases: [], region: "Plateau", type: "neighborhood" },
+  { name: "Gare du Sud", lat: 5.3139, lng: -4.0222, aliases: ["gare sud", "gare-du-sud"], region: "Plateau", type: "neighborhood" },
+  
   // ========== AUTRES GRANDES VILLES ==========
   { name: "Bouaké", lat: 7.6906, lng: -5.0305, aliases: ["bouake"], type: "city" },
   { name: "Daloa", lat: 6.8774, lng: -6.4502, aliases: [], type: "city" },

@@ -3,7 +3,7 @@ import { MapPin, Crosshair, Loader2, CheckCircle, AlertCircle, X, RefreshCw, Shi
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CitySelector } from "@/components/CitySelector";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 import { findCityInCountry } from "@/utils/countryCities";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import mapboxgl from "mapbox-gl";
@@ -327,23 +327,38 @@ export function LocationPicker({
     }
   }, [latitude, longitude, mapLoaded, createMarker]);
 
-  // Handle address change from CitySelector
-  const handleAddressChange = (newAddress: string) => {
-    onAddressChange(newAddress);
+  // Handle address change from AddressSelector
+  const handleAddressChange = (result: AddressResult) => {
+    // Build composite address: "Quartier, Ville" or just "Ville"
+    const compositeAddress = result.fullAddress || result.city;
+    onAddressChange(compositeAddress);
     clearAccuracyCircle(); // Clear GPS circle on manual selection
 
-    // Try to get coordinates from city name
-    const cityData = findCityInCountry(newAddress, countryCode);
-    if (cityData && map.current && mapLoaded) {
-      onCoordinatesChange(cityData.lat, cityData.lng);
-      createMarker({ lat: cityData.lat, lng: cityData.lng });
+    // Use coordinates from AddressSelector result
+    if (result.latitude && result.longitude && map.current && mapLoaded) {
+      onCoordinatesChange(result.latitude, result.longitude);
+      createMarker({ lat: result.latitude, lng: result.longitude });
       map.current.flyTo({
-        center: [cityData.lng, cityData.lat],
-        zoom: 14,
+        center: [result.longitude, result.latitude],
+        zoom: result.neighborhood ? 16 : 14, // Zoom closer if neighborhood selected
         duration: 1000,
       });
     }
   };
+
+  // Parse initial address to extract city and neighborhood
+  const parseInitialAddress = useCallback((): { city: string; neighborhood: string } => {
+    if (!address) return { city: "", neighborhood: "" };
+    
+    // Try to split "Neighborhood, City" format
+    const parts = address.split(",").map(p => p.trim());
+    if (parts.length >= 2) {
+      return { city: parts[1], neighborhood: parts[0] };
+    }
+    return { city: address, neighborhood: "" };
+  }, [address]);
+
+  const initialAddress = parseInitialAddress();
 
   // Geolocation
   const handleUseCurrentPosition = useCallback(() => {
@@ -504,15 +519,18 @@ export function LocationPicker({
           </div>
         )}
 
-        {/* Address selector */}
-        <CitySelector
-          value={address}
-          onChange={handleAddressChange}
-          label="Adresse / Ville"
-          placeholder="Sélectionnez l'emplacement"
-          allowCustom
-          showRegions
+        {/* Address selector - hierarchical City → Neighborhood */}
+        <AddressSelector
+          onAddressChange={handleAddressChange}
+          initialCity={initialAddress.city}
+          initialNeighborhood={initialAddress.neighborhood}
+          initialCountryCode={countryCode}
+          label=""
+          cityLabel="Ville / Commune"
+          neighborhoodLabel="Quartier"
           disabled={disabled}
+          showCoordinates={false}
+          allowCountryOverride={true}
         />
 
         {/* Coordinates display */}
