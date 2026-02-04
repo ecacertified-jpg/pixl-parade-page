@@ -1,199 +1,196 @@
 
-
-# Plan d'Integration SMS Twilio
+# Plan : Système de Notifications SMS Bidirectionnelles pour Anniversaires
 
 ## Contexte
 
-Les 3 secrets Twilio sont maintenant configures :
-- `TWILIO_ACCOUNT_SID` 
-- `TWILIO_AUTH_TOKEN` 
-- `TWILIO_SENDER_ID` (Alphanumeric: "JoieDvivre")
-
-L'objectif est d'ajouter le canal SMS aux notifications existantes, en complement de Push, WhatsApp et Email.
-
----
+L'utilisateur souhaite que lorsqu'un contact est ajouté dans son cercle d'amis :
+1. **Le contact ajouté reçoit un SMS** l'informant qu'il a été ajouté par X pour son prochain anniversaire dans N jours
+2. **Le contact ajouté est ensuite informé de l'anniversaire de X** (celui qui l'a ajouté) selon un calendrier progressif
+3. **Les intervalles de rappel sont configurables** dans les paramètres (par défaut : J-10, J-5, J-3, J-2, J-1, Jour-J)
 
 ## Architecture Proposee
 
 ```text
-                    +---------------------------+
-                    |      Edge Functions       |
-                    +---------------------------+
-                              |
-              +---------------+---------------+
-              |               |               |
-              v               v               v
-    +-----------------+ +-----------+ +---------------+
-    | notify-business | | birthday- | | daily-notif-  |
-    | order           | | reminder  | | ications-check|
-    +-----------------+ +-----------+ +---------------+
-              |               |               |
-              +-------+-------+-------+-------+
-                      |               |
-                      v               v
-              +---------------+ +---------------+
-              | _shared/      | | _shared/      |
-              | sms-sender.ts | | whatsapp.ts   |
-              +---------------+ +---------------+
-                      |               |
-                      v               v
-              +---------------+ +---------------+
-              | Twilio API    | | Meta WhatsApp |
-              | (SMS)         | | Cloud API     |
-              +---------------+ +---------------+
++-------------------+        +------------------------+
+|   Dashboard.tsx   |        |  contact_alert_prefs   |
+| (Ajout contact)   |        | (Préférences user)     |
++--------+----------+        +-----------+------------+
+         |                               |
+         v                               v
++------------------------+    +-------------------------+
+| notify-contact-added   |<---| birthday_contact_alerts |
+| (Edge Function)        |    | (Table de suivi)        |
++------------------------+    +-------------------------+
+         |
+         v
++------------------------+    +-------------------------+
+| check-birthday-alerts  |<---| CRON quotidien 00:30    |
+| -for-contacts          |    | pg_cron                 |
+| (Edge Function)        |    +-------------------------+
++------------------------+
+         |
+    +----+----+
+    |         |
+    v         v
++------+  +----------+
+| SMS  |  | WhatsApp |
++------+  +----------+
 ```
 
----
+## Etape 1 : Mettre a jour le Schema de Preferences
 
-## Etape 1 : Creer le Module Partage SMS
+### Migration SQL
 
-### Fichier : `supabase/functions/_shared/sms-sender.ts`
+Modifier la table `contact_alert_preferences` pour supporter les nouveaux intervalles personnalisables :
 
-Ce module centralisera toute la logique d'envoi SMS via Twilio :
+**Nouvelles colonnes :**
 
-**Fonctions exportees :**
+| Colonne | Type | Defaut | Description |
+|---------|------|--------|-------------|
+| alert_10_days | boolean | true | Rappel J-10 |
+| alert_5_days | boolean | true | Rappel J-5 |
+| alert_3_days | boolean | true | Rappel J-3 |
+| alert_2_days | boolean | true | Rappel J-2 |
+| alert_1_day | boolean | true | Rappel J-1 |
+| alert_day_of | boolean | true | Rappel Jour-J |
+| notify_of_adder_birthday | boolean | true | Etre notifie de l'anniversaire de celui qui m'ajoute |
 
-| Fonction | Description |
-|----------|-------------|
-| `sendSms(to, message)` | Envoie un SMS via Twilio |
-| `getPreferredChannel(phone)` | Determine SMS ou WhatsApp selon le prefixe |
-| `formatPhoneForTwilio(phone)` | Formatte le numero au format E.164 |
-
-**Logique de routage par pays :**
-
-| Prefixe | Pays | Canal | Raison |
-|---------|------|-------|--------|
-| +225 | Cote d'Ivoire | SMS | Haute fiabilite |
-| +221 | Senegal | SMS | Haute fiabilite |
-| +229 | Benin | WhatsApp | SMS moins fiable |
-| Autres | - | WhatsApp | Fallback securise |
-
-**Gestion des erreurs :**
-- Retry automatique (1 tentative)
-- Logging detaille pour debug
-- Fallback vers WhatsApp si SMS echoue
+**Suppression des colonnes obsoletes :**
+- alert_30_days (remplace par intervalle plus court)
+- alert_14_days (remplace par intervalle plus court)
+- alert_10_days_daily (remplace par intervalles individuels)
 
 ---
 
-## Etape 2 : Creer une Fonction de Test SMS
+## Etape 2 : Creer la Fonction notify-contact-added
 
-### Fichier : `supabase/functions/test-sms/index.ts`
+### Fichier : `supabase/functions/notify-contact-added/index.ts`
 
-Fonction pour valider la configuration Twilio avant integration :
+Declenchee immediatement lors de l'ajout d'un contact dans le Dashboard.
 
-**Endpoint :** `POST /test-sms`
+**Flux :**
 
-**Body :**
-```json
-{
-  "phone": "+225XXXXXXXXXX",
-  "message": "Test de configuration SMS JoieDvivre"
+1. Recevoir les donnees du contact ajoute (nom, telephone, anniversaire)
+2. Verifier les preferences de l'utilisateur (alerts_enabled, alert_on_contact_add)
+3. Calculer le nombre de jours avant l'anniversaire du contact
+4. Envoyer un SMS/WhatsApp au contact ajoute
+5. Enregistrer l'alerte dans `birthday_contact_alerts`
+
+**Message SMS (exemple) :**
+```text
+JoieDvivre: {userName} vous a ajoute(e) a son cercle d'amis. 
+Votre anniversaire est dans {daysUntil} jours! 
+Creez votre liste de souhaits: {link}
+```
+
+**Logique bidirectionnelle :**
+- Si le contact a aussi un compte JoieDvivre, lui envoyer l'anniversaire de l'ajouteur
+- Sinon, lui proposer de s'inscrire
+
+---
+
+## Etape 3 : Creer la Fonction check-birthday-alerts-for-contacts
+
+### Fichier : `supabase/functions/check-birthday-alerts-for-contacts/index.ts`
+
+Executee quotidiennement via CRON pour envoyer les rappels progressifs.
+
+**Flux :**
+
+1. Recuperer tous les contacts avec numero de telephone
+2. Pour chaque contact, calculer les jours avant l'anniversaire du proprietaire (l'utilisateur qui l'a ajoute)
+3. Verifier les preferences de l'utilisateur
+4. Si le jour correspond a un rappel configure (J-10, J-5, J-3, J-2, J-1, Jour-J) :
+   - Verifier si l'alerte n'a pas deja ete envoyee
+   - Envoyer le SMS/WhatsApp
+   - Enregistrer dans `birthday_contact_alerts`
+
+**Messages SMS par intervalle :**
+
+| Jour | Message |
+|------|---------|
+| J-10 | "{name} fete son anniversaire dans 10 jours. Preparez une surprise!" |
+| J-5 | "{name} fete son anniversaire dans 5 jours. Avez-vous trouve le cadeau parfait?" |
+| J-3 | "Plus que 3 jours avant l'anniversaire de {name}! Decouvrez nos idees cadeaux." |
+| J-2 | "L'anniversaire de {name} approche (dans 2 jours). Commandez votre cadeau!" |
+| J-1 | "DEMAIN c'est l'anniversaire de {name}! Dernier jour pour commander." |
+| Jour-J | "Aujourd'hui c'est l'anniversaire de {name}! Souhaitez-lui une bonne fete." |
+
+**Gestion des rate limits :**
+- Max 100 SMS/jour par utilisateur
+- Minimum 1 heure entre 2 messages au meme contact
+- Respect du fuseau horaire (envoi entre 8h-20h locale)
+
+---
+
+## Etape 4 : Modifier le Dashboard pour Declencher la Notification
+
+### Fichier : `src/pages/Dashboard.tsx`
+
+Apres la creation du contact dans la base, appeler la fonction Edge `notify-contact-added`.
+
+**Code a ajouter :**
+
+```typescript
+// Apres l'insertion du contact reussie
+if (newContact.phone) {
+  await supabase.functions.invoke('notify-contact-added', {
+    body: {
+      contact_id: newContactId,
+      contact_name: newFriend.name,
+      contact_phone: newFriend.phone,
+      birthday: newFriend.birthday.toISOString()
+    }
+  });
 }
 ```
 
-**Reponse succes :**
-```json
-{
-  "success": true,
-  "sid": "SMxxxxxxxxxxxxxxxx",
-  "status": "queued",
-  "channel": "sms"
-}
-```
+---
 
-**Reponse erreur :**
-```json
-{
-  "success": false,
-  "error": "TWILIO_CREDENTIALS_MISSING",
-  "details": "TWILIO_ACCOUNT_SID not configured"
-}
+## Etape 5 : Mettre a jour l'Interface des Preferences
+
+### Fichier : `src/components/preferences/ContactAlertPreferencesSection.tsx`
+
+Remplacer les anciens intervalles par les nouveaux :
+
+**Nouvelle interface :**
+
+- Checkbox "J-10 (10 jours avant)"
+- Checkbox "J-5 (5 jours avant)"
+- Checkbox "J-3 (3 jours avant)"
+- Checkbox "J-2 (2 jours avant)"
+- Checkbox "J-1 (Veille)"
+- Checkbox "Jour-J"
+
+**Nouvelle option :**
+- Toggle "Etre notifie de l'anniversaire de mes contacts qui m'ajoutent"
+
+---
+
+## Etape 6 : Ajouter le CRON Job
+
+### Migration SQL
+
+```sql
+SELECT cron.schedule(
+  'check-birthday-alerts-for-contacts-daily',
+  '30 0 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://PROJECT.supabase.co/functions/v1/check-birthday-alerts-for-contacts',
+    headers := '{"Authorization": "Bearer SERVICE_KEY"}'::jsonb
+  );
+  $$
+);
 ```
 
 ---
 
-## Etape 3 : Integrer SMS dans notify-business-order
+## Etape 7 : Mettre a jour le Hook des Preferences
 
-### Modifications :
+### Fichier : `src/hooks/useContactAlertPreferences.ts`
 
-1. Importer le module `_shared/sms-sender.ts`
-2. Recuperer le telephone du proprietaire business
-3. Apres l'envoi Push et in-app, envoyer un SMS
-
-**Message SMS (max 160 caracteres) :**
-```text
-JoieDvivre: Nouvelle commande #{shortId} de {amount} XOF. Acceptez dans l'app.
-```
-
-**Condition d'envoi :**
-- Si le proprietaire a un numero valide (+225 ou +221)
-- Toujours envoyer pour les commandes (haute priorite)
-
----
-
-## Etape 4 : Integrer SMS dans notify-order-confirmation
-
-### Modifications :
-
-1. Importer le module `_shared/sms-sender.ts`
-2. Envoyer SMS **uniquement pour les demandes de remboursement** (urgent)
-
-**Message SMS :**
-```text
-URGENT JoieDvivre: Demande remboursement #{shortId}. Connectez-vous maintenant.
-```
-
-**Condition d'envoi :**
-- `isSatisfied === false` (demande de remboursement)
-- Numero valide
-
----
-
-## Etape 5 : Integrer SMS dans birthday-reminder-with-suggestions
-
-### Modifications :
-
-1. Importer le module `_shared/sms-sender.ts`
-2. Envoyer SMS pour les rappels J-1 (critiques)
-
-**Message SMS :**
-```text
-JoieDvivre: L'anniversaire de {contactName} est DEMAIN! Offrez un cadeau memorable.
-```
-
-**Condition d'envoi :**
-- `priority_score === 'critical'` (J-1)
-- Utilisateur a un numero valide
-- Preferences utilisateur autorisent SMS
-
----
-
-## Etape 6 : Integrer SMS dans daily-notifications-check
-
-### Modifications :
-
-1. Importer le module `_shared/sms-sender.ts`
-2. Envoyer SMS pour les deadlines de cagnottes a 3 jours
-
-**Message SMS :**
-```text
-URGENT JoieDvivre: Cotisation "{fundTitle}" expire dans 3 jours!
-```
-
-**Condition d'envoi :**
-- `daysUntilDeadline === 3`
-- Contributeur a un numero valide
-
----
-
-## Etape 7 : Mettre a jour supabase/config.toml
-
-Ajouter la configuration pour la nouvelle fonction de test :
-
-```toml
-[functions.test-sms]
-verify_jwt = false
-```
+Ajouter les nouvelles proprietes de preferences.
 
 ---
 
@@ -201,64 +198,42 @@ verify_jwt = false
 
 | Fichier | Description |
 |---------|-------------|
-| `supabase/functions/_shared/sms-sender.ts` | Module partage pour envoi SMS Twilio |
-| `supabase/functions/test-sms/index.ts` | Fonction de test de configuration |
+| `supabase/functions/notify-contact-added/index.ts` | Notification immediate a l'ajout |
+| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Rappels quotidiens progressifs |
+| `supabase/migrations/XXXXXX_update_alert_preferences.sql` | Nouvelles colonnes de preferences |
+| `supabase/migrations/XXXXXX_cron_birthday_alerts.sql` | CRON job quotidien |
 
 ## Fichiers a Modifier
 
 | Fichier | Modification |
 |---------|--------------|
-| `supabase/functions/notify-business-order/index.ts` | Ajouter envoi SMS au prestataire |
-| `supabase/functions/notify-order-confirmation/index.ts` | Ajouter SMS pour remboursements |
-| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Ajouter SMS pour J-1 |
-| `supabase/functions/daily-notifications-check/index.ts` | Ajouter SMS pour deadlines J-3 |
-| `supabase/config.toml` | Ajouter `[functions.test-sms]` |
+| `src/pages/Dashboard.tsx` | Appeler notify-contact-added apres ajout |
+| `src/components/preferences/ContactAlertPreferencesSection.tsx` | Nouveaux intervalles J-10/5/3/2/1/0 |
+| `src/hooks/useContactAlertPreferences.ts` | Nouvelles proprietes |
+| `src/integrations/supabase/types.ts` | Types mis a jour automatiquement |
+| `supabase/config.toml` | Ajouter les nouvelles fonctions |
 
 ---
 
-## Specification Technique : Module sms-sender.ts
+## Logique de Routage SMS/WhatsApp
 
-```text
-// Types
-interface SmsResult {
-  success: boolean;
-  sid?: string;
-  status?: string;
-  error?: string;
-  channel: 'sms' | 'whatsapp';
-}
+Utilisation du module existant `_shared/sms-sender.ts` :
 
-interface TwilioErrorResponse {
-  code: number;
-  message: string;
-  more_info: string;
-}
-
-// Constants
-TWILIO_API_URL = "https://api.twilio.com/2010-04-01/Accounts/{SID}/Messages.json"
-
-// Main Functions
-sendSms(to: string, message: string): Promise<SmsResult>
-getPreferredChannel(phone: string): 'sms' | 'whatsapp'
-formatPhoneForTwilio(phone: string): string
-
-// Internal Helpers
-buildTwilioAuthHeader(): string  // Basic Auth avec SID:AuthToken
-truncateMessage(message: string, maxLength: number): string
-```
+| Prefixe | Pays | Canal |
+|---------|------|-------|
+| +225 | Cote d'Ivoire | SMS |
+| +221 | Senegal | SMS |
+| +229 | Benin | WhatsApp |
+| Autres | - | WhatsApp |
 
 ---
 
-## Limites de l'Alphanumeric Sender ID
+## Securite
 
-| Aspect | Comportement |
-|--------|--------------|
-| Direction | Unidirectionnel (envoi uniquement) |
-| Reponses | Impossible de recevoir des reponses |
-| Pays supportes | Verifier la liste Twilio |
-| Longueur | 11 caracteres max ("JoieDvivre" = 10) |
-
-**Note :** Pour la Cote d'Ivoire et le Senegal, les Alphanumeric Sender IDs sont generalement supportes. Pour le Benin, il faudrait verifier la compatibilite ou utiliser WhatsApp.
+- **Verification du rate limit** : Max 100 messages/jour par utilisateur
+- **Opt-out** : Les contacts peuvent repondre "STOP" pour ne plus recevoir de messages
+- **Consentement** : L'utilisateur doit explicitement activer les alertes dans ses preferences
+- **Service Role** : Les fonctions CRON utilisent le service role key
 
 ---
 
@@ -266,22 +241,10 @@ truncateMessage(message: string, maxLength: number): string
 
 | Phase | Duree |
 |-------|-------|
-| Module `_shared/sms-sender.ts` | 10 min |
-| Fonction `test-sms` | 5 min |
-| Integration `notify-business-order` | 5 min |
-| Integration `notify-order-confirmation` | 5 min |
-| Integration `birthday-reminder` | 5 min |
-| Integration `daily-notifications-check` | 5 min |
-| Tests et validation | 10 min |
-| **Total** | ~45 min |
-
----
-
-## Tests de Validation
-
-Apres implementation :
-
-1. **Test unitaire** : Appeler `test-sms` avec un numero de test
-2. **Test integration** : Creer une commande et verifier le SMS
-3. **Test fallback** : Verifier que WhatsApp est utilise pour +229
-
+| Migration SQL (preferences + CRON) | 15 min |
+| Edge Function notify-contact-added | 30 min |
+| Edge Function check-birthday-alerts | 45 min |
+| Modification Dashboard.tsx | 10 min |
+| Mise a jour interface preferences | 20 min |
+| Tests et validation | 20 min |
+| **Total** | ~2h20 |
