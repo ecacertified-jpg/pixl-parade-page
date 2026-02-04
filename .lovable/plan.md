@@ -1,121 +1,93 @@
 
+# Correction de la Carte des Boutiques Vide
 
-# Correction du Comptage des Utilisateurs par Pays
+## Diagnostic
 
-## Probleme Identifie
+La page ExploreMap affiche correctement "13 boutiques" dans le header, ce qui confirme que:
+1. La vue `business_public_info` fonctionne
+2. Le hook `useExploreMapData` charge les données
+3. Le fallback `findCityAcrossCountries` devrait fonctionner pour 11/12 boutiques sans GPS
 
-La base de donnees montre une incoherence entre les numeros de telephone et les codes pays des utilisateurs :
+**Probleme identifie** : Race condition dans `BusinessClusterMap.tsx`
 
-| Utilisateur | Telephone | country_code actuel | country_code attendu |
-|-------------|-----------|---------------------|----------------------|
-| Aubierge | +2290162576116 | CI | **BJ** |
-| Jennifer | +2290163542214 | CI | **BJ** |
-| Bernadette | +2290197643691 | BJ | BJ |
+La carte Mapbox et Supercluster ont des problemes de synchronisation :
+- L'effet d'initialisation de la carte (ligne 196) depend de `[mapToken]` mais appelle `updateMarkers()` 
+- L'effet Supercluster (ligne 44) depend de `[geoJsonPoints]`
+- Si les donnees `geoJsonPoints` arrivent APRES le chargement de la carte, `updateMarkers()` ne trouve pas de clusters car Supercluster n'est pas encore initialise avec les donnees
 
-Les prefixes telephoniques :
-- **+225** = Cote d'Ivoire (CI)
-- **+229** = Benin (BJ)
-- **+221** = Senegal (SN)
+## Solution Technique
 
-## Cause Racine
+### Modification 1 : Corriger les dependances React dans `BusinessClusterMap.tsx`
 
-La fonction `handle_new_user()` ne definit pas le `country_code` lors de la creation du profil. Les utilisateurs ont donc le code par defaut ou celui detecte par geolocalisation (qui peut etre incorrect si l'utilisateur est en deplacement).
+**Probleme** : `updateMarkers` est defini avec `useCallback` mais ses dependances ne sont pas correctement propagees aux effets qui l'utilisent.
 
-## Solution en Deux Parties
+**Correction** :
+```tsx
+// Effect d'initialisation de la carte - ajouter updateMarkers aux dependances
+useEffect(() => {
+  if (!mapContainerRef.current || !mapToken) return;
+  // ... reste du code
+}, [mapToken, updateMarkers]); // Ajouter updateMarkers
 
-### Partie 1 : Correction des Donnees Existantes (Migration SQL)
-
-Mettre a jour les profils avec le bon `country_code` base sur le prefixe telephonique :
-
-```text
-UPDATE profiles
-SET country_code = CASE
-  WHEN phone LIKE '+229%' THEN 'BJ'  -- Benin
-  WHEN phone LIKE '+221%' THEN 'SN'  -- Senegal
-  WHEN phone LIKE '+225%' THEN 'CI'  -- Cote d'Ivoire
-  ELSE country_code
-END
-WHERE phone IS NOT NULL 
-  AND phone != ''
-  AND (
-    (phone LIKE '+229%' AND country_code != 'BJ') OR
-    (phone LIKE '+221%' AND country_code != 'SN') OR
-    (phone LIKE '+225%' AND country_code != 'CI')
-  );
+// OU mieux encore: utiliser un ref pour suivre si la carte est prete
+const mapReadyRef = useRef(false);
 ```
 
-### Partie 2 : Prevention Future (Modification de handle_new_user)
+### Modification 2 : S'assurer que Supercluster est pret avant de rendre les marqueurs
 
-Modifier la fonction trigger pour definir automatiquement le `country_code` base sur le telephone :
-
-```text
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  phone_number TEXT;
-  detected_country TEXT;
-BEGIN
-  -- Get phone from metadata or auth.users
-  phone_number := COALESCE(
-    NEW.raw_user_meta_data ->> 'phone',
-    NEW.phone
-  );
+Ajouter une verification que les donnees sont chargees :
+```tsx
+const updateMarkers = useCallback(() => {
+  if (!mapRef.current) return;
   
-  -- Detect country from phone prefix
-  detected_country := CASE
-    WHEN phone_number LIKE '+229%' THEN 'BJ'
-    WHEN phone_number LIKE '+221%' THEN 'SN'
-    WHEN phone_number LIKE '+225%' THEN 'CI'
-    ELSE 'CI'  -- Default
-  END;
+  // Verifier que supercluster a des donnees
+  if (!superclusterRef.current || geoJsonPoints.length === 0) {
+    clearMarkers(); // Nettoyer les anciens marqueurs
+    return;
+  }
   
-  INSERT INTO public.profiles (user_id, first_name, last_name, birthday, city, phone, country_code)
-  VALUES (
-    NEW.id, 
-    NEW.raw_user_meta_data ->> 'first_name', 
-    NEW.raw_user_meta_data ->> 'last_name',
-    CASE 
-      WHEN NEW.raw_user_meta_data ->> 'birthday' IS NOT NULL 
-      THEN (NEW.raw_user_meta_data ->> 'birthday')::DATE 
-      ELSE NULL 
-    END,
-    NEW.raw_user_meta_data ->> 'city',
-    phone_number,
-    detected_country  -- Auto-detect country
-  );
-
-  -- Create default reciprocity preferences
-  INSERT INTO public.user_reciprocity_preferences (
-    user_id, alert_threshold, reminder_frequency,
-    enable_suggestions, enable_notifications, private_mode
-  )
-  VALUES (NEW.id, 2.0, 'monthly', true, true, false);
-
-  RETURN NEW;
-END;
-$function$;
+  // ... reste du code
+}, [clearMarkers, selectedBusiness, onBusinessSelect, geoJsonPoints.length]);
 ```
 
-## Impact Attendu
+### Modification 3 : Forcer la mise a jour des marqueurs quand les donnees changent
 
-| Metrique | Avant | Apres |
-|----------|-------|-------|
-| Utilisateurs Benin (BJ) | 1 | 3 |
-| Utilisateurs Cote d'Ivoire (CI) | 170 | 168 |
-| Precision des statistiques | Incorrecte | Correcte |
+Ajouter `geoJsonPoints` aux dependances de l'effet qui met a jour les marqueurs :
+```tsx
+useEffect(() => {
+  if (mapRef.current && geoJsonPoints.length > 0) {
+    // Recharger supercluster avec les nouvelles donnees
+    superclusterRef.current = new Supercluster({
+      radius: 60,
+      maxZoom: 16,
+      minPoints: 2,
+    });
+    superclusterRef.current.load(geoJsonPoints as any);
+    updateMarkers();
+  }
+}, [geoJsonPoints, updateMarkers]);
+```
 
-## Fichiers Modifies
+## Fichier a Modifier
 
-- **Migration SQL** : Correction des donnees existantes + mise a jour de `handle_new_user()`
+| Fichier | Type de modification |
+|---------|---------------------|
+| `src/components/BusinessClusterMap.tsx` | Corriger les effets React et le timing de l'initialisation |
 
-## Avantages
+## Flux Corrige
 
-1. **Correction immediate** : Les statistiques du dashboard refletent la realite
-2. **Prevention** : Les futurs utilisateurs auront automatiquement le bon pays
-3. **Fiabilite** : Le prefixe telephonique est une source fiable du pays d'origine
-4. **Retrocompatible** : Les inscriptions Google (sans telephone) utiliseront le pays par defaut
+```text
+1. Composant monte
+2. useMapboxToken retourne le token
+3. Carte Mapbox s'initialise (event 'load')
+4. useExploreMapData charge les boutiques via API
+5. geoJsonPoints mis a jour -> useEffect detecte le changement
+6. Supercluster reinitialise avec les nouvelles donnees
+7. updateMarkers() appele -> marqueurs affiches
+```
 
+## Avantages de la Correction
+
+1. **Fiabilite** : Les marqueurs s'affichent toujours, peu importe l'ordre de chargement
+2. **Reactivite** : Mise a jour automatique quand les filtres changent
+3. **Performance** : Pas de recreation inutile de la carte
