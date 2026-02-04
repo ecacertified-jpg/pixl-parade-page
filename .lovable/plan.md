@@ -1,138 +1,94 @@
 
-# Correction du bouton "Ajouter mes amis" dans la carte d'action requise
+# Création d'une fonction de vérification du statut SMS Twilio
 
-## Diagnostic
+## Contexte
 
-Le bouton "Ajouter mes amis" sur la carte `FriendsCircleReminderCard` ouvre bien le modal `AddFriendModal`, mais l'ami n'est **jamais sauvegardé dans la base de données**.
+Les SMS sont correctement envoyés à Twilio (statut `queued`), mais nous n'avons aucun moyen de vérifier s'ils ont été effectivement livrés au destinataire. Twilio fournit une API pour récupérer le statut de livraison d'un message via son SID.
 
-### Code actuel problématique
+### Messages à vérifier
+| SID | Source | Heure |
+|-----|--------|-------|
+| SM8be8c54159e36d9c1529bf9740ca3ba5 | notify-contact-added | 23:21 |
+| SM7a7d320aa79f633386e06d4de68873c2 | test-sms (diagnostic) | 23:25 |
+| SM9db12b8c2dd19449709dd2ce4ae4a568 | test-sms (diagnostic) | 23:28 |
 
-```javascript
-// FriendsCircleReminderCard.tsx - lignes 71-75
-const handleAddFriend = (friend: Friend) => {
-  console.log('Friend added:', friend);  // ⚠️ Seulement un log !
-  refresh();                              // Rafraîchit le compteur (qui reste à 0)
-  onFriendAdded?.();                      // Callback optionnel
-};
-```
-
-### Code fonctionnel dans Dashboard.tsx
-
-Le Dashboard a une implémentation complète (lignes 251-336) qui :
-1. Insère le contact dans la table `contacts`
-2. Crée une relation d'amitié si l'utilisateur existe
-3. Envoie une notification SMS via `notify-contact-added`
-4. Déclenche la vérification des badges
+### Statuts possibles Twilio
+| Statut | Signification |
+|--------|---------------|
+| queued | En attente d'envoi |
+| sent | Envoyé à l'opérateur |
+| delivered | Livré au téléphone |
+| undelivered | Échec de livraison |
+| failed | Erreur d'envoi |
 
 ---
 
 ## Solution
 
-Ajouter la logique de sauvegarde dans `FriendsCircleReminderCard` en réutilisant le même pattern que Dashboard.
+Créer une Edge Function `check-sms-status` qui interroge l'API Twilio pour obtenir le statut de livraison d'un ou plusieurs messages.
 
-### Modification de `src/components/FriendsCircleReminderCard.tsx`
-
-```text
-CHANGEMENTS :
-1. Importer supabase et les utilitaires nécessaires
-2. Remplacer handleAddFriend par une version qui sauvegarde en BDD
-3. Ajouter un état loading et un toast de confirmation
-```
-
-**Nouvelle logique handleAddFriend :**
+### Nouvelle Edge Function: `supabase/functions/check-sms-status/index.ts`
 
 ```javascript
-const handleAddFriend = async (newFriend: Friend) => {
-  if (!user) return;
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+serve(async (req) => {
+  // Récupérer le(s) SID(s) à vérifier
+  const { sid, sids } = await req.json();
   
-  try {
-    // 1. Rechercher si un utilisateur existe avec ce numéro
-    const { data: existingUser } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('phone', newFriend.phone)
-      .maybeSingle();
-
-    // 2. Si l'utilisateur existe, créer une relation d'amitié
-    if (existingUser?.user_id && existingUser.user_id !== user.id) {
-      await supabase
-        .from('contact_relationships')
-        .insert({
-          user_a: user.id,
-          user_b: existingUser.user_id,
-          can_see_funds: true,
-          relationship_type: 'friend'
-        });
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  
+  // Appeler l'API Twilio GET /Messages/{SID}.json
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages/${sid}.json`;
+  
+  const response = await fetch(twilioUrl, {
+    headers: {
+      'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`)
     }
-
-    // 3. Créer le contact dans la table contacts
-    const { data: insertedContact, error } = await supabase
-      .from('contacts')
-      .insert({
-        user_id: user.id,
-        name: newFriend.name,
-        phone: newFriend.phone,
-        relationship: newFriend.relation || newFriend.relationship,
-        notes: newFriend.location,
-        birthday: newFriend.birthday.toISOString().split('T')[0]
-      })
-      .select('id')
-      .single();
-
-    if (error) throw error;
-
-    // 4. Envoyer notification SMS au contact ajouté
-    if (newFriend.phone && insertedContact?.id) {
-      supabase.functions.invoke('notify-contact-added', {
-        body: {
-          contact_id: insertedContact.id,
-          contact_name: newFriend.name,
-          contact_phone: newFriend.phone,
-          birthday: newFriend.birthday.toISOString()
-        }
-      }).catch(console.error);
-    }
-
-    // 5. Rafraîchir le compteur et afficher confirmation
-    refresh();
-    onFriendAdded?.();
-    toast.success(`${newFriend.name} a été ajouté à votre cercle d'amis !`);
-    
-    // 6. Vérifier les badges
-    checkAndAwardBadges(user.id);
-    
-  } catch (error) {
-    console.error('Erreur lors de l\'ajout du contact:', error);
-    toast.error('Impossible d\'ajouter le contact');
-  }
-};
+  });
+  
+  const data = await response.json();
+  
+  return {
+    sid: data.sid,
+    to: data.to,
+    status: data.status,           // queued, sent, delivered, undelivered, failed
+    error_code: data.error_code,   // Code d'erreur si échec
+    error_message: data.error_message,
+    date_sent: data.date_sent,
+    date_updated: data.date_updated
+  };
+});
 ```
 
 ---
 
-## Imports à ajouter
-
-```javascript
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-```
-
----
-
-## Fichier modifié
+## Fichiers à créer/modifier
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/FriendsCircleReminderCard.tsx` | Modifier handleAddFriend pour sauvegarder en BDD |
+| `supabase/functions/check-sms-status/index.ts` | Créer |
 
 ---
 
-## Résultat attendu
+## Utilisation après création
 
-1. Cliquer sur "Ajouter mes amis" ouvre le modal
-2. Remplir le formulaire et valider
-3. Le contact est enregistré dans la table `contacts`
-4. Le SMS de bienvenue est envoyé au contact
-5. Le compteur passe de 1/2 à 2/2
-6. Si c'est le 2ème ami, la célébration s'affiche avec confetti
-7. Le badge "Premier Cercle" est attribué
+Une fois la fonction déployée, je pourrai vérifier le statut des 3 SMS envoyés :
+
+```bash
+# Vérifier le statut du SMS de bienvenue
+curl /check-sms-status --data '{"sid": "SM8be8c54159e36d9c1529bf9740ca3ba5"}'
+
+# Vérifier les SMS de test
+curl /check-sms-status --data '{"sids": ["SM7a7d320aa79f633386e06d4de68873c2", "SM9db12b8c2dd19449709dd2ce4ae4a568"]}'
+```
+
+---
+
+## Résultats attendus
+
+Cette fonction permettra de :
+1. Confirmer si les SMS sont livrés (`delivered`) ou échoués (`undelivered`/`failed`)
+2. Identifier les codes d'erreur Twilio spécifiques
+3. Diagnostiquer les problèmes de livraison (opérateur, numéro invalide, etc.)
