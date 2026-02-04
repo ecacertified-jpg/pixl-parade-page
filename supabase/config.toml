@@ -215,3 +215,6 @@ verify_jwt = true
 
 [functions.check-birthday-alerts-for-contacts]
 verify_jwt = false
+
+[functions.check-sms-status]
+verify_jwt = false
