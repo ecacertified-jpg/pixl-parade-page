@@ -152,8 +152,8 @@ serve(async (req) => {
       );
     }
 
-    // Build message
-    const message = `JoieDvivre: ${userName} vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app`;
+    // Build optimized message (<160 chars for better deliverability)
+    const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
 
     // Send via preferred channel (SMS for CI/SN, otherwise just log for WhatsApp)
     const channel = getPreferredChannel(contact_phone);
