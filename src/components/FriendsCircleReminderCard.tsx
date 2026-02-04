@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { checkAndAwardBadges } from '@/utils/badgeAwarder';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 interface Friend {
   id: string;
   name: string;
@@ -68,10 +70,72 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
     setPrevContactsCount(contactsCount);
   }, [contactsCount, prevContactsCount, minimumContacts, sendCompletionNotification, user?.id]);
 
-  const handleAddFriend = (friend: Friend) => {
-    console.log('Friend added:', friend);
-    refresh();
-    onFriendAdded?.();
+  const handleAddFriend = async (newFriend: Friend) => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour ajouter un ami');
+      return;
+    }
+    
+    try {
+      // 1. Rechercher si un utilisateur existe avec ce numéro
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('phone', newFriend.phone)
+        .maybeSingle();
+
+      // 2. Si l'utilisateur existe, créer une relation d'amitié
+      if (existingUser?.user_id && existingUser.user_id !== user.id) {
+        await supabase
+          .from('contact_relationships')
+          .insert({
+            user_a: user.id,
+            user_b: existingUser.user_id,
+            can_see_funds: true,
+            relationship_type: 'friend'
+          });
+      }
+
+      // 3. Créer le contact dans la table contacts
+      const { data: insertedContact, error } = await supabase
+        .from('contacts')
+        .insert({
+          user_id: user.id,
+          name: newFriend.name,
+          phone: newFriend.phone,
+          relationship: newFriend.relationship || 'friend',
+          notes: newFriend.location,
+          birthday: newFriend.birthday ? newFriend.birthday.toISOString().split('T')[0] : null
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      // 4. Envoyer notification SMS au contact ajouté
+      if (newFriend.phone && insertedContact?.id) {
+        supabase.functions.invoke('notify-contact-added', {
+          body: {
+            contact_id: insertedContact.id,
+            contact_name: newFriend.name,
+            contact_phone: newFriend.phone,
+            birthday: newFriend.birthday?.toISOString()
+          }
+        }).catch(console.error);
+      }
+
+      // 5. Rafraîchir le compteur et afficher confirmation
+      refresh();
+      onFriendAdded?.();
+      toast.success(`${newFriend.name} a été ajouté à votre cercle d'amis !`);
+      
+      // 6. Vérifier les badges
+      checkAndAwardBadges(user.id);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du contact:', error);
+      toast.error('Impossible d\'ajouter le contact');
+    }
   };
 
   if (isLoading) return null;
