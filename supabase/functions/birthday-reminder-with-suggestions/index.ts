@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,6 +136,7 @@ serve(async (req) => {
       withSuggestions: 0,
       basic: 0,
       skipped: 0,
+      smsSent: 0,
     };
 
     const today = new Date();
@@ -146,6 +148,9 @@ serve(async (req) => {
       .not('birthday', 'is', null);
 
     if (contactsError) throw contactsError;
+
+    // Cache for user profiles (to get phone numbers for SMS)
+    const userProfilesCache: Map<string, any> = new Map();
 
     for (const contact of contacts || []) {
       if (!contact.birthday) continue;
@@ -263,6 +268,34 @@ serve(async (req) => {
         notificationsCreated.withSuggestions++;
       } else {
         notificationsCreated.basic++;
+      }
+
+      // Send SMS for critical reminders (J-1)
+      if (matchingSchedule.priority === 'critical') {
+        // Get user profile for phone number
+        let userProfile = userProfilesCache.get(contact.user_id);
+        if (!userProfile) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('phone')
+            .eq('user_id', contact.user_id)
+            .single();
+          userProfile = profile;
+          if (profile) userProfilesCache.set(contact.user_id, profile);
+        }
+
+        if (userProfile?.phone && shouldUseSms(userProfile.phone)) {
+          const smsMessage = `JoieDvivre: L'anniversaire de ${contact.name} est DEMAIN! Offrez un cadeau memorable.`;
+          console.log(`📤 [SMS] Sending critical birthday reminder to user for ${contact.name}`);
+          
+          const smsResult = await sendSms(userProfile.phone, smsMessage);
+          if (smsResult.success) {
+            notificationsCreated.smsSent++;
+            console.log(`✅ [SMS] Critical reminder sent: ${smsResult.sid}`);
+          } else {
+            console.log(`⚠️ [SMS] Failed to send: ${smsResult.error}`);
+          }
+        }
       }
 
       console.log(`Created birthday reminder for ${contact.name} (${daysUntilBirthday} days) with ${suggestions.length} suggestions`);

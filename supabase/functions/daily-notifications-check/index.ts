@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,6 +47,7 @@ serve(async (req) => {
       birthdays: 0,
       events: 0,
       deadlines: 0,
+      smsSent: 0,
     };
 
     // 1. Check upcoming birthdays (7-10 days before)
@@ -228,7 +230,7 @@ serve(async (req) => {
         }
       }
 
-      // 3 days final warning
+      // 3 days final warning with SMS
       if (daysUntilDeadline === 3) {
         for (const contributorId of uniqueContributors) {
           const { data: existingNotif } = await supabase
@@ -256,6 +258,26 @@ serve(async (req) => {
               });
             
             notificationsCreated.deadlines++;
+
+            // Send urgent SMS for J-3 deadline
+            const { data: contributorProfile } = await supabase
+              .from('profiles')
+              .select('phone')
+              .eq('user_id', contributorId)
+              .single();
+
+            if (contributorProfile?.phone && shouldUseSms(contributorProfile.phone)) {
+              const smsMessage = `URGENT JoieDvivre: Cotisation "${fund.title.substring(0, 30)}" expire dans 3 jours!`;
+              console.log(`📤 [SMS] Sending deadline warning to contributor: ${contributorId}`);
+              
+              const smsResult = await sendSms(contributorProfile.phone, smsMessage);
+              if (smsResult.success) {
+                notificationsCreated.smsSent++;
+                console.log(`✅ [SMS] Deadline warning sent: ${smsResult.sid}`);
+              } else {
+                console.log(`⚠️ [SMS] Failed: ${smsResult.error}`);
+              }
+            }
           }
         }
       }

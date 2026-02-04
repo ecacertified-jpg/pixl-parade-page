@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendSms, shouldUseSms, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -160,7 +161,7 @@ async function processOrder(payload: OrderPayload) {
     // Get the business account to find the owner
     const { data: businessAccount, error: businessError } = await supabaseClient
       .from('business_accounts')
-      .select('user_id, business_name')
+      .select('user_id, business_name, phone')
       .eq('id', order.business_account_id)
       .single();
 
@@ -268,6 +269,23 @@ async function processOrder(payload: OrderPayload) {
     // Also create an in-app notification
     await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name);
 
+    // Send SMS notification if business has a valid phone for SMS
+    let smsSent = false;
+    if (businessAccount.phone && shouldUseSms(businessAccount.phone)) {
+      const shortOrderId = order.id.substring(0, 8).toUpperCase();
+      const smsMessage = `JoieDvivre: Nouvelle commande #${shortOrderId} de ${order.total_amount.toLocaleString()} ${order.currency}. Acceptez dans l'app.`;
+      
+      console.log(`📤 [SMS] Sending order notification to business: ${businessAccount.phone}`);
+      const smsResult = await sendSms(businessAccount.phone, smsMessage);
+      smsSent = smsResult.success;
+      
+      if (smsResult.success) {
+        console.log(`✅ [SMS] Order notification sent: ${smsResult.sid}`);
+      } else {
+        console.log(`⚠️ [SMS] Failed to send: ${smsResult.error}`);
+      }
+    }
+
     console.log(`✅ Push notifications sent: ${successCount} success, ${failedCount} failed`);
 
     return new Response(
@@ -275,7 +293,8 @@ async function processOrder(payload: OrderPayload) {
         sent: successCount, 
         failed: failedCount,
         total: subscriptions.length,
-        in_app_created: true
+        in_app_created: true,
+        sms_sent: smsSent
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
