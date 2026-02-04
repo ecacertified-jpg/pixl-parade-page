@@ -50,13 +50,20 @@ export function formatPhoneForTwilio(phone: string): string {
   
   // Ensure it starts with +
   if (!cleaned.startsWith('+')) {
-    // Assume Côte d'Ivoire if no country code
-    if (cleaned.length === 10 && (cleaned.startsWith('0') || cleaned.startsWith('05') || cleaned.startsWith('07'))) {
-      cleaned = '+225' + cleaned.replace(/^0/, '');
-    } else if (cleaned.length === 8) {
-      // Côte d'Ivoire without leading 0
+    // Côte d'Ivoire - 10 chiffres (format post-2021: 0X XX XX XX XX)
+    if (cleaned.length === 10 && /^0[157]/.test(cleaned)) {
+      cleaned = '+225' + cleaned; // Keep the leading 0
+    }
+    // Ancien format CI - 8 chiffres (legacy)
+    else if (cleaned.length === 8 && /^[0-9]/.test(cleaned)) {
       cleaned = '+225' + cleaned;
-    } else {
+    }
+    // Sénégal - 9 chiffres (7X XXX XX XX)
+    else if (cleaned.length === 9 && /^7/.test(cleaned)) {
+      cleaned = '+221' + cleaned;
+    }
+    // Autre - ajouter +
+    else {
       cleaned = '+' + cleaned;
     }
   }
