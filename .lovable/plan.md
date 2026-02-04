@@ -1,96 +1,138 @@
 
-# Correction du formatage des numéros ivoiriens pour les SMS
+# Correction du bouton "Ajouter mes amis" dans la carte d'action requise
 
 ## Diagnostic
 
-Le SMS n'a pas été envoyé car le numéro de téléphone est mal formaté.
+Le bouton "Ajouter mes amis" sur la carte `FriendsCircleReminderCard` ouvre bien le modal `AddFriendModal`, mais l'ami n'est **jamais sauvegardé dans la base de données**.
 
-### Erreur identifiée dans les logs
-
-```
-notify-contact-added: Sending to +225707*** → ❌ Twilio error
-test-sms: Sending to +2250707467445 → ✅ SMS sent successfully
-```
-
-### Cause racine
-
-La fonction `formatPhoneForTwilio()` dans `_shared/sms-sender.ts` supprime incorrectement le "0" initial des numéros ivoiriens :
+### Code actuel problématique
 
 ```javascript
-// Ligne 54-55 - CODE ACTUEL INCORRECT
-if (cleaned.length === 10 && cleaned.startsWith('0')) {
-  cleaned = '+225' + cleaned.replace(/^0/, '');  // Résultat: +225707467445 (9 chiffres)
-}
+// FriendsCircleReminderCard.tsx - lignes 71-75
+const handleAddFriend = (friend: Friend) => {
+  console.log('Friend added:', friend);  // ⚠️ Seulement un log !
+  refresh();                              // Rafraîchit le compteur (qui reste à 0)
+  onFriendAdded?.();                      // Callback optionnel
+};
 ```
 
-**Résultat** : `0707467445` → `+225707467445` (9 chiffres après +225)
+### Code fonctionnel dans Dashboard.tsx
 
-**Attendu** : `0707467445` → `+2250707467445` (10 chiffres après +225)
-
-### Contexte
-
-Depuis la réforme 2021, les numéros ivoiriens sont passés de 8 à 10 chiffres :
-- **Ancien format** : `07 XX XX XX` (8 chiffres) → `+225 07 XX XX XX`
-- **Nouveau format** : `07 07 46 74 45` (10 chiffres) → `+225 07 07 46 74 45`
+Le Dashboard a une implémentation complète (lignes 251-336) qui :
+1. Insère le contact dans la table `contacts`
+2. Crée une relation d'amitié si l'utilisateur existe
+3. Envoie une notification SMS via `notify-contact-added`
+4. Déclenche la vérification des badges
 
 ---
 
 ## Solution
 
-### Modification de `supabase/functions/_shared/sms-sender.ts`
+Ajouter la logique de sauvegarde dans `FriendsCircleReminderCard` en réutilisant le même pattern que Dashboard.
 
-Corriger la fonction `formatPhoneForTwilio()` pour ne plus supprimer le 0 initial :
+### Modification de `src/components/FriendsCircleReminderCard.tsx`
 
-```javascript
-export function formatPhoneForTwilio(phone: string): string {
-  if (!phone) return '';
-  
-  let cleaned = phone.replace(/[^\d+]/g, '');
-  
-  if (!cleaned.startsWith('+')) {
-    // Côte d'Ivoire - 10 chiffres (format post-2021)
-    if (cleaned.length === 10 && /^0[157]/.test(cleaned)) {
-      cleaned = '+225' + cleaned;  // GARDER le 0
-    }
-    // Ancien format CI - 8 chiffres (legacy)
-    else if (cleaned.length === 8 && /^[0-9]/.test(cleaned)) {
-      cleaned = '+225' + cleaned;
-    }
-    // Sénégal - 9 chiffres (7X XXX XX XX)
-    else if (cleaned.length === 9 && /^7/.test(cleaned)) {
-      cleaned = '+221' + cleaned;
-    }
-    // Autre - ajouter +
-    else {
-      cleaned = '+' + cleaned;
-    }
-  }
-  
-  return cleaned;
-}
+```text
+CHANGEMENTS :
+1. Importer supabase et les utilitaires nécessaires
+2. Remplacer handleAddFriend par une version qui sauvegarde en BDD
+3. Ajouter un état loading et un toast de confirmation
 ```
 
-### Changements clés
+**Nouvelle logique handleAddFriend :**
 
-| Avant | Après |
-|-------|-------|
-| `+225` + `cleaned.replace(/^0/, '')` | `+225` + `cleaned` (garde le 0) |
-| Uniquement CI | Ajoute support Sénégal (+221) |
+```javascript
+const handleAddFriend = async (newFriend: Friend) => {
+  if (!user) return;
+  
+  try {
+    // 1. Rechercher si un utilisateur existe avec ce numéro
+    const { data: existingUser } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('phone', newFriend.phone)
+      .maybeSingle();
+
+    // 2. Si l'utilisateur existe, créer une relation d'amitié
+    if (existingUser?.user_id && existingUser.user_id !== user.id) {
+      await supabase
+        .from('contact_relationships')
+        .insert({
+          user_a: user.id,
+          user_b: existingUser.user_id,
+          can_see_funds: true,
+          relationship_type: 'friend'
+        });
+    }
+
+    // 3. Créer le contact dans la table contacts
+    const { data: insertedContact, error } = await supabase
+      .from('contacts')
+      .insert({
+        user_id: user.id,
+        name: newFriend.name,
+        phone: newFriend.phone,
+        relationship: newFriend.relation || newFriend.relationship,
+        notes: newFriend.location,
+        birthday: newFriend.birthday.toISOString().split('T')[0]
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+
+    // 4. Envoyer notification SMS au contact ajouté
+    if (newFriend.phone && insertedContact?.id) {
+      supabase.functions.invoke('notify-contact-added', {
+        body: {
+          contact_id: insertedContact.id,
+          contact_name: newFriend.name,
+          contact_phone: newFriend.phone,
+          birthday: newFriend.birthday.toISOString()
+        }
+      }).catch(console.error);
+    }
+
+    // 5. Rafraîchir le compteur et afficher confirmation
+    refresh();
+    onFriendAdded?.();
+    toast.success(`${newFriend.name} a été ajouté à votre cercle d'amis !`);
+    
+    // 6. Vérifier les badges
+    checkAndAwardBadges(user.id);
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout du contact:', error);
+    toast.error('Impossible d\'ajouter le contact');
+  }
+};
+```
+
+---
+
+## Imports à ajouter
+
+```javascript
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+```
 
 ---
 
 ## Fichier modifié
 
-| Fichier | Modification |
-|---------|--------------|
-| `supabase/functions/_shared/sms-sender.ts` | Correction de `formatPhoneForTwilio()` |
+| Fichier | Action |
+|---------|--------|
+| `src/components/FriendsCircleReminderCard.tsx` | Modifier handleAddFriend pour sauvegarder en BDD |
 
 ---
 
-## Vérification après correction
+## Résultat attendu
 
-1. Redéployer les fonctions edge (automatique)
-2. Supprimer le contact "Marie Belle"
-3. Ré-ajouter avec le numéro `0707467445`
-4. Vérifier dans les logs que le numéro envoyé est `+2250707467445`
-5. Confirmer la réception du SMS
+1. Cliquer sur "Ajouter mes amis" ouvre le modal
+2. Remplir le formulaire et valider
+3. Le contact est enregistré dans la table `contacts`
+4. Le SMS de bienvenue est envoyé au contact
+5. Le compteur passe de 1/2 à 2/2
+6. Si c'est le 2ème ami, la célébration s'affiche avec confetti
+7. Le badge "Premier Cercle" est attribué
