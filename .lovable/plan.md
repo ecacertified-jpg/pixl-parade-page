@@ -1,67 +1,121 @@
 
-# Plan de Correction : Affichage du Logo sur BusinessPreview
+
+# Correction du Comptage des Utilisateurs par Pays
 
 ## Probleme Identifie
 
-Sur la page `BusinessPreview.tsx` (page de previsualisation d'une boutique), le logo "Joie de Vivre" n'apparait pas a deux endroits :
+La base de donnees montre une incoherence entre les numeros de telephone et les codes pays des utilisateurs :
 
-1. **Header** : Utilise une icone `<Gift>` au lieu du logo
-2. **Footer** : Utilise aussi une icone `<Gift>` au lieu du logo
+| Utilisateur | Telephone | country_code actuel | country_code attendu |
+|-------------|-----------|---------------------|----------------------|
+| Aubierge | +2290162576116 | CI | **BJ** |
+| Jennifer | +2290163542214 | CI | **BJ** |
+| Bernadette | +2290197643691 | BJ | BJ |
 
-La page `ProductPreview.tsx` affiche correctement le logo car elle importe et utilise `logo-jdv-rose.png`.
+Les prefixes telephoniques :
+- **+225** = Cote d'Ivoire (CI)
+- **+229** = Benin (BJ)
+- **+221** = Senegal (SN)
 
-## Solution
+## Cause Racine
 
-Modifier `BusinessPreview.tsx` pour utiliser le meme pattern que `ProductPreview.tsx` :
+La fonction `handle_new_user()` ne definit pas le `country_code` lors de la creation du profil. Les utilisateurs ont donc le code par defaut ou celui detecte par geolocalisation (qui peut etre incorrect si l'utilisateur est en deplacement).
 
-### Changements a effectuer
+## Solution en Deux Parties
 
-| Emplacement | Avant | Apres |
-|-------------|-------|-------|
-| Import | (aucun import de logo) | `import logoRose from "@/assets/logo-jdv-rose.png";` |
-| Header (ligne 184-188) | `<Gift className="h-6 w-6 text-primary" />` | `<img src={logoRose} alt="Joie de Vivre" className="h-8 w-auto" />` |
-| Footer (ligne 265) | `<Gift className="h-5 w-5 inline-block mr-2 text-primary" />` | `<img src={logoRose} alt="" className="h-6 w-auto" />` |
+### Partie 1 : Correction des Donnees Existantes (Migration SQL)
 
-### Code Modifie
+Mettre a jour les profils avec le bon `country_code` base sur le prefixe telephonique :
 
-**1. Ajouter l'import du logo** (apres la ligne 2) :
-```tsx
-import logoRose from "@/assets/logo-jdv-rose.png";
+```text
+UPDATE profiles
+SET country_code = CASE
+  WHEN phone LIKE '+229%' THEN 'BJ'  -- Benin
+  WHEN phone LIKE '+221%' THEN 'SN'  -- Senegal
+  WHEN phone LIKE '+225%' THEN 'CI'  -- Cote d'Ivoire
+  ELSE country_code
+END
+WHERE phone IS NOT NULL 
+  AND phone != ''
+  AND (
+    (phone LIKE '+229%' AND country_code != 'BJ') OR
+    (phone LIKE '+221%' AND country_code != 'SN') OR
+    (phone LIKE '+225%' AND country_code != 'CI')
+  );
 ```
 
-**2. Modifier le header** (lignes 184-189) :
-```tsx
-<Link to="/" className="flex items-center gap-2">
-  <img src={logoRose} alt="Joie de Vivre" className="h-8 w-auto" />
-  <span className="font-poppins font-semibold text-lg text-primary">
-    JOIE DE VIVRE
-  </span>
-</Link>
+### Partie 2 : Prevention Future (Modification de handle_new_user)
+
+Modifier la fonction trigger pour definir automatiquement le `country_code` base sur le telephone :
+
+```text
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  phone_number TEXT;
+  detected_country TEXT;
+BEGIN
+  -- Get phone from metadata or auth.users
+  phone_number := COALESCE(
+    NEW.raw_user_meta_data ->> 'phone',
+    NEW.phone
+  );
+  
+  -- Detect country from phone prefix
+  detected_country := CASE
+    WHEN phone_number LIKE '+229%' THEN 'BJ'
+    WHEN phone_number LIKE '+221%' THEN 'SN'
+    WHEN phone_number LIKE '+225%' THEN 'CI'
+    ELSE 'CI'  -- Default
+  END;
+  
+  INSERT INTO public.profiles (user_id, first_name, last_name, birthday, city, phone, country_code)
+  VALUES (
+    NEW.id, 
+    NEW.raw_user_meta_data ->> 'first_name', 
+    NEW.raw_user_meta_data ->> 'last_name',
+    CASE 
+      WHEN NEW.raw_user_meta_data ->> 'birthday' IS NOT NULL 
+      THEN (NEW.raw_user_meta_data ->> 'birthday')::DATE 
+      ELSE NULL 
+    END,
+    NEW.raw_user_meta_data ->> 'city',
+    phone_number,
+    detected_country  -- Auto-detect country
+  );
+
+  -- Create default reciprocity preferences
+  INSERT INTO public.user_reciprocity_preferences (
+    user_id, alert_threshold, reminder_frequency,
+    enable_suggestions, enable_notifications, private_mode
+  )
+  VALUES (NEW.id, 2.0, 'monthly', true, true, false);
+
+  RETURN NEW;
+END;
+$function$;
 ```
 
-**3. Modifier le footer** (lignes 264-267) :
-```tsx
-<div className="text-center mt-8 text-sm text-muted-foreground flex items-center justify-center gap-2">
-  <img src={logoRose} alt="" className="h-6 w-auto" />
-  <span>La plateforme de cadeaux collaboratifs</span>
-</div>
-```
+## Impact Attendu
 
-## Details Techniques
+| Metrique | Avant | Apres |
+|----------|-------|-------|
+| Utilisateurs Benin (BJ) | 1 | 3 |
+| Utilisateurs Cote d'Ivoire (CI) | 170 | 168 |
+| Precision des statistiques | Incorrecte | Correcte |
 
-- **Fichier modifie** : `src/pages/BusinessPreview.tsx`
-- **Logo utilise** : `src/assets/logo-jdv-rose.png` (deja existant dans le projet)
-- **Aucun nouveau fichier** : Le logo rose existe deja et correspond exactement a celui uploade
+## Fichiers Modifies
 
-## Resultat Attendu
+- **Migration SQL** : Correction des donnees existantes + mise a jour de `handle_new_user()`
 
-| Element | Avant | Apres |
-|---------|-------|-------|
-| Header | Icone Gift violet | Logo rose "Joie de Vivre" + texte |
-| Footer | Icone Gift + texte | Logo rose + texte |
+## Avantages
 
-## Impact
+1. **Correction immediate** : Les statistiques du dashboard refletent la realite
+2. **Prevention** : Les futurs utilisateurs auront automatiquement le bon pays
+3. **Fiabilite** : Le prefixe telephonique est une source fiable du pays d'origine
+4. **Retrocompatible** : Les inscriptions Google (sans telephone) utiliseront le pays par defaut
 
-- Coherence visuelle avec `ProductPreview.tsx`
-- Branding unifie sur les pages publiques de previsualisation
-- Aucun impact sur d'autres fonctionnalites
