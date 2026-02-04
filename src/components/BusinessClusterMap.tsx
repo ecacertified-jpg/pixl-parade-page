@@ -40,18 +40,8 @@ export function BusinessClusterMap({
   const { token: mapToken } = useMapboxToken();
   const [isLocating, setIsLocating] = useState(false);
 
-  // Initialize Supercluster
-  useEffect(() => {
-    superclusterRef.current = new Supercluster({
-      radius: 60,
-      maxZoom: 16,
-      minPoints: 2,
-    });
-    
-    if (geoJsonPoints.length > 0) {
-      superclusterRef.current.load(geoJsonPoints as any);
-    }
-  }, [geoJsonPoints]);
+  // Track if map is ready
+  const mapReadyRef = useRef(false);
 
   // Clear all markers
   const clearMarkers = useCallback(() => {
@@ -61,7 +51,13 @@ export function BusinessClusterMap({
 
   // Update markers based on current view
   const updateMarkers = useCallback(() => {
-    if (!mapRef.current || !superclusterRef.current) return;
+    if (!mapRef.current || !mapReadyRef.current) return;
+
+    // Ensure supercluster has data before rendering
+    if (!superclusterRef.current || geoJsonPoints.length === 0) {
+      clearMarkers();
+      return;
+    }
 
     clearMarkers();
 
@@ -187,10 +183,10 @@ export function BusinessClusterMap({
           .setLngLat([lng, lat])
           .addTo(mapRef.current!);
 
-        markersRef.current.push(marker);
+      markersRef.current.push(marker);
       }
     });
-  }, [clearMarkers, selectedBusiness, onBusinessSelect]);
+  }, [clearMarkers, selectedBusiness, onBusinessSelect, geoJsonPoints]);
 
   // Initialize map
   useEffect(() => {
@@ -209,6 +205,7 @@ export function BusinessClusterMap({
 
     map.on('load', () => {
       mapRef.current = map;
+      mapReadyRef.current = true;
       updateMarkers();
     });
 
@@ -218,17 +215,33 @@ export function BusinessClusterMap({
     return () => {
       clearMarkers();
       userMarkerRef.current?.remove();
+      mapReadyRef.current = false;
       map.remove();
       mapRef.current = null;
     };
-  }, [mapToken]);
+  }, [mapToken, clearMarkers]);
 
-  // Update markers when data or selection changes
+  // Update Supercluster and markers when data changes
   useEffect(() => {
-    if (mapRef.current) {
+    if (!mapReadyRef.current || geoJsonPoints.length === 0) return;
+
+    // Reinitialize Supercluster with new data
+    superclusterRef.current = new Supercluster({
+      radius: 60,
+      maxZoom: 16,
+      minPoints: 2,
+    });
+    superclusterRef.current.load(geoJsonPoints as any);
+    
+    updateMarkers();
+  }, [geoJsonPoints, updateMarkers]);
+
+  // Update markers when selection changes
+  useEffect(() => {
+    if (mapReadyRef.current && geoJsonPoints.length > 0) {
       updateMarkers();
     }
-  }, [geoJsonPoints, selectedBusiness, updateMarkers]);
+  }, [selectedBusiness, updateMarkers, geoJsonPoints.length]);
 
   // Update user location marker
   useEffect(() => {
