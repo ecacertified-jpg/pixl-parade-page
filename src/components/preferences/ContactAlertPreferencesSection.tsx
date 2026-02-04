@@ -158,59 +158,139 @@ export function ContactAlertPreferencesSection() {
 
           <Separator />
 
-          <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-            <Checkbox
-              id="alert-30-days"
-              checked={preferences.alert_30_days}
-              onCheckedChange={(checked) => 
-                updatePreferences({ alert_30_days: checked === true })
-              }
-              disabled={isDisabled || saving}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="alert-30-days" className="font-medium cursor-pointer">
-                1 mois avant (J-30)
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Premier rappel pour commencer à planifier
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-10-days"
+                checked={preferences.alert_10_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_10_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-10-days" className="font-medium cursor-pointer">
+                  J-10 (10 jours avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Premier rappel pour préparer
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-5-days"
+                checked={preferences.alert_5_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_5_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-5-days" className="font-medium cursor-pointer">
+                  J-5 (5 jours avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel pour trouver le cadeau
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-3-days"
+                checked={preferences.alert_3_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_3_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-3-days" className="font-medium cursor-pointer">
+                  J-3 (3 jours avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel pour commander
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-2-days"
+                checked={preferences.alert_2_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_2_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-2-days" className="font-medium cursor-pointer">
+                  J-2 (2 jours avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel dernière chance
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border-l-2 border-orange-400">
+              <Checkbox
+                id="alert-1-day"
+                checked={preferences.alert_1_day}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_1_day: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-1-day" className="font-medium cursor-pointer">
+                  J-1 (Veille)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Dernier rappel urgent
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border-l-2 border-primary">
+              <Checkbox
+                id="alert-day-of"
+                checked={preferences.alert_day_of}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_day_of: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-day-of" className="font-medium cursor-pointer">
+                  Jour-J 🎂
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Le jour de l'anniversaire
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-            <Checkbox
-              id="alert-14-days"
-              checked={preferences.alert_14_days}
-              onCheckedChange={(checked) => 
-                updatePreferences({ alert_14_days: checked === true })
-              }
-              disabled={isDisabled || saving}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="alert-14-days" className="font-medium cursor-pointer">
-                2 semaines avant (J-14)
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Rappel pour commander un cadeau
-              </p>
-            </div>
-          </div>
+          <Separator />
 
-          <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+          <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors bg-secondary/30">
             <Checkbox
-              id="alert-10-days-daily"
-              checked={preferences.alert_10_days_daily}
+              id="notify-of-adder-birthday"
+              checked={preferences.notify_of_adder_birthday}
               onCheckedChange={(checked) => 
-                updatePreferences({ alert_10_days_daily: checked === true })
+                updatePreferences({ notify_of_adder_birthday: checked === true })
               }
               disabled={isDisabled || saving}
             />
             <div className="space-y-1">
-              <Label htmlFor="alert-10-days-daily" className="font-medium cursor-pointer">
-                10 jours avant → Veille (quotidien)
+              <Label htmlFor="notify-of-adder-birthday" className="font-medium cursor-pointer">
+                Être notifié de l'anniversaire de ceux qui m'ajoutent
               </Label>
               <p className="text-sm text-muted-foreground">
-                Rappels quotidiens intensifs jusqu'à la veille
+                Recevez des rappels quand c'est l'anniversaire d'un ami qui vous a ajouté
               </p>
             </div>
           </div>
@@ -246,7 +326,7 @@ export function ContactAlertPreferencesSection() {
         <div className="text-sm text-blue-800 dark:text-blue-200">
           <p className="font-medium mb-1">Comment ça fonctionne ?</p>
           <p className="text-blue-700 dark:text-blue-300">
-            Les messages sont envoyés via SMS en Côte d'Ivoire (réseau plus fiable) 
+            Les messages sont envoyés via SMS en Côte d'Ivoire et au Sénégal (réseau plus fiable) 
             et via WhatsApp dans les autres pays. Le système choisit automatiquement 
             le meilleur canal selon la localisation de votre contact.
           </p>

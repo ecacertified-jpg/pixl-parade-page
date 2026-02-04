@@ -209,3 +209,9 @@ verify_jwt = false
 
 [functions.test-sms]
 verify_jwt = false
+
+[functions.notify-contact-added]
+verify_jwt = true
+
+[functions.check-birthday-alerts-for-contacts]
+verify_jwt = false

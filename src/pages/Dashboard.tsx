@@ -280,14 +280,14 @@ export default function Dashboard() {
       }
 
       // 3. Créer le contact dans la table contacts
-      const { error } = await supabase.from('contacts').insert({
+      const { data: insertedContact, error } = await supabase.from('contacts').insert({
         user_id: user.id,
         name: newFriend.name,
         phone: newFriend.phone,
         relationship: newFriend.relation,
         notes: newFriend.location,
         birthday: newFriend.birthday.toISOString().split('T')[0]
-      });
+      }).select('id').single();
 
       if (error) {
         console.error('Erreur lors de la sauvegarde du contact:', error);
@@ -297,6 +297,20 @@ export default function Dashboard() {
           variant: "destructive"
         });
         return;
+      }
+
+      // 4. Notify the added contact via SMS/WhatsApp (if phone provided)
+      if (newFriend.phone && insertedContact?.id) {
+        supabase.functions.invoke('notify-contact-added', {
+          body: {
+            contact_id: insertedContact.id,
+            contact_name: newFriend.name,
+            contact_phone: newFriend.phone,
+            birthday: newFriend.birthday.toISOString()
+          }
+        }).catch(err => {
+          console.log('Notification non envoyée (non bloquant):', err);
+        });
       }
 
       // Recharger les contacts depuis Supabase

@@ -2135,45 +2135,57 @@ export type Database = {
       }
       contact_alert_preferences: {
         Row: {
-          alert_10_days_daily: boolean
-          alert_14_days: boolean
-          alert_30_days: boolean
+          alert_1_day: boolean | null
+          alert_10_days: boolean | null
+          alert_2_days: boolean | null
+          alert_3_days: boolean | null
+          alert_5_days: boolean | null
+          alert_day_of: boolean | null
           alert_on_contact_add: boolean
           alerts_enabled: boolean
           created_at: string
           custom_message: string | null
           email_enabled: boolean
           id: string
+          notify_of_adder_birthday: boolean | null
           sms_enabled: boolean
           updated_at: string
           user_id: string
           whatsapp_enabled: boolean
         }
         Insert: {
-          alert_10_days_daily?: boolean
-          alert_14_days?: boolean
-          alert_30_days?: boolean
+          alert_1_day?: boolean | null
+          alert_10_days?: boolean | null
+          alert_2_days?: boolean | null
+          alert_3_days?: boolean | null
+          alert_5_days?: boolean | null
+          alert_day_of?: boolean | null
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string
           custom_message?: string | null
           email_enabled?: boolean
           id?: string
+          notify_of_adder_birthday?: boolean | null
           sms_enabled?: boolean
           updated_at?: string
           user_id: string
           whatsapp_enabled?: boolean
         }
         Update: {
-          alert_10_days_daily?: boolean
-          alert_14_days?: boolean
-          alert_30_days?: boolean
+          alert_1_day?: boolean | null
+          alert_10_days?: boolean | null
+          alert_2_days?: boolean | null
+          alert_3_days?: boolean | null
+          alert_5_days?: boolean | null
+          alert_day_of?: boolean | null
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string
           custom_message?: string | null
           email_enabled?: boolean
           id?: string
+          notify_of_adder_birthday?: boolean | null
           sms_enabled?: boolean
           updated_at?: string
           user_id?: string
