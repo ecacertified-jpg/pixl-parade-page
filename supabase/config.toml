@@ -206,3 +206,6 @@ verify_jwt = false
 
 [functions.seo-sync-orchestrator]
 verify_jwt = false
+
+[functions.test-sms]
+verify_jwt = false

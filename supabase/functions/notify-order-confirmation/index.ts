@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,10 +46,10 @@ serve(async (req) => {
 
     console.log(`📋 Processing order confirmation: orderId=${orderId}, rating=${rating}, satisfied=${isSatisfied}`);
 
-    // Get order details
+    // Get order details with business phone
     const { data: order, error: orderError } = await supabase
       .from("business_orders")
-      .select("*, business_accounts(user_id, business_name)")
+      .select("*, business_accounts(user_id, business_name, phone)")
       .eq("id", orderId)
       .single();
 
@@ -67,6 +68,7 @@ serve(async (req) => {
     const customerName = customerProfile?.first_name || "Client";
     const businessUserId = order.business_accounts?.user_id;
     const businessName = order.business_accounts?.business_name || "Boutique";
+    const businessPhone = order.business_accounts?.phone;
     const shortOrderId = orderId.substring(0, 8).toUpperCase();
 
     if (!businessUserId) {
@@ -179,10 +181,26 @@ serve(async (req) => {
       console.log(`📊 Push results: ${pushSuccessCount} success, ${pushFailCount} failed`);
     }
 
-    // Log for refund requests
+    // Log for refund requests and send urgent SMS
+    let smsSent = false;
     if (!isSatisfied) {
       console.log(`🔔 REFUND REQUEST: Order ${orderId}, Rating: ${rating}/5, Reason: "${reviewText || 'Non spécifiée'}"`);
       console.log(`📞 Business should arrange product return for customer ${customerName}`);
+      
+      // Send urgent SMS for refund requests
+      if (businessPhone && shouldUseSms(businessPhone)) {
+        const smsMessage = `URGENT JoieDvivre: Demande remboursement #${shortOrderId}. Connectez-vous maintenant.`;
+        console.log(`📤 [SMS] Sending urgent refund notification to: ${businessPhone}`);
+        
+        const smsResult = await sendSms(businessPhone, smsMessage);
+        smsSent = smsResult.success;
+        
+        if (smsResult.success) {
+          console.log(`✅ [SMS] Refund notification sent: ${smsResult.sid}`);
+        } else {
+          console.log(`⚠️ [SMS] Failed to send refund notification: ${smsResult.error}`);
+        }
+      }
     }
 
     return new Response(
@@ -194,6 +212,7 @@ serve(async (req) => {
           sent: pushSuccessCount,
           failed: pushFailCount,
         },
+        sms_sent: smsSent,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
