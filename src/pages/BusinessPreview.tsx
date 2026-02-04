@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
+import logoRose from "@/assets/logo-jdv-rose.png";
 import { Gift, Store, ArrowRight, Loader2, AlertCircle, MapPin, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,7 @@ export default function BusinessPreview() {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
+            <img src={logoRose} alt="Joie de Vivre" className="h-8 w-auto" />
             <span className="font-poppins font-semibold text-lg text-primary">
               JOIE DE VIVRE
             </span>
@@ -261,8 +262,8 @@ export default function BusinessPreview() {
         </Card>
 
         {/* Footer branding */}
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          <Gift className="h-5 w-5 inline-block mr-2 text-primary" />
+        <div className="text-center mt-8 text-sm text-muted-foreground flex items-center justify-center gap-2">
+          <img src={logoRose} alt="" className="h-6 w-auto" />
           <span>La plateforme de cadeaux collaboratifs</span>
         </div>
       </main>
