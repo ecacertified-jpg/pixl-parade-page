@@ -1,94 +1,79 @@
 
-# Création d'une fonction de vérification du statut SMS Twilio
+# Optimisation du SMS de bienvenue
 
-## Contexte
+## Problème actuel
 
-Les SMS sont correctement envoyés à Twilio (statut `queued`), mais nous n'avons aucun moyen de vérifier s'ils ont été effectivement livrés au destinataire. Twilio fournit une API pour récupérer le statut de livraison d'un message via son SID.
+Le message actuel (ligne 156) fait **~180 caractères** :
+```
+JoieDvivre: [Nom] vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans X jours. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app
+```
 
-### Messages à vérifier
-| SID | Source | Heure |
-|-----|--------|-------|
-| SM8be8c54159e36d9c1529bf9740ca3ba5 | notify-contact-added | 23:21 |
-| SM7a7d320aa79f633386e06d4de68873c2 | test-sms (diagnostic) | 23:25 |
-| SM9db12b8c2dd19449709dd2ce4ae4a568 | test-sms (diagnostic) | 23:28 |
-
-### Statuts possibles Twilio
-| Statut | Signification |
-|--------|---------------|
-| queued | En attente d'envoi |
-| sent | Envoyé à l'opérateur |
-| delivered | Livré au téléphone |
-| undelivered | Échec de livraison |
-| failed | Erreur d'envoi |
+**Problèmes identifiés :**
+1. Trop long (>160 chars) = segmentation en 2 SMS
+2. URL technique (`pixl-parade-page.lovable.app`) peu professionnelle
+3. Caractères spéciaux (`é`, `è`) qui peuvent affecter l'encodage
+4. Formulation verbeuse
 
 ---
 
-## Solution
+## Message optimisé proposé
 
-Créer une Edge Function `check-sms-status` qui interroge l'API Twilio pour obtenir le statut de livraison d'un ou plusieurs messages.
+```
+[Nom] t'a ajouté à son cercle! Anniversaire dans X jours. Crée ta liste: joiedevivre-africa.com/favorites
+```
 
-### Nouvelle Edge Function: `supabase/functions/check-sms-status/index.ts`
+**Analyse du nouveau message :**
+| Élément | Ancien | Nouveau |
+|---------|--------|---------|
+| Préfixe | `JoieDvivre: ` (12 chars) | Aucun (0 chars) |
+| Verbe | `vous a ajouté(e)` (17 chars) | `t'a ajouté` (10 chars) |
+| Cercle | `son cercle d'amis` (17 chars) | `son cercle` (10 chars) |
+| Anniversaire | `Votre anniversaire est dans` (27 chars) | `Anniversaire dans` (17 chars) |
+| CTA | `Créez votre liste de souhaits` (29 chars) | `Crée ta liste` (13 chars) |
+| URL | `https://pixl-parade-page.lovable.app` (36 chars) | `joiedevivre-africa.com/favorites` (32 chars) |
+
+**Longueur totale estimée** : ~95-110 caractères (selon le nom)
+
+---
+
+## Solution technique
+
+### Modification de `supabase/functions/notify-contact-added/index.ts`
+
+**Ligne 156 - Remplacer :**
+```javascript
+// AVANT
+const message = `JoieDvivre: ${userName} vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app`;
+
+// APRÈS
+const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
+```
+
+---
+
+## Fichier modifié
+
+| Fichier | Ligne | Action |
+|---------|-------|--------|
+| `supabase/functions/notify-contact-added/index.ts` | 156 | Optimiser le message |
+
+---
+
+## Avantages de l'optimisation
+
+1. **Moins de 160 caractères** : pas de segmentation, meilleure délivrabilité
+2. **Tutoiement** : plus convivial, cohérent avec le ton de l'app
+3. **URL courte sans https://** : moins de caractères, moins de risque de filtrage
+4. **Pas de caractères spéciaux problématiques** : meilleur encodage GSM-7
+5. **Domaine personnalisé** : plus professionnel que `.lovable.app`
+
+---
+
+## Note importante
+
+Le domaine `joiedevivre-africa.com` doit être configuré comme redirection vers l'app Lovable. Si ce domaine n'est pas encore actif, je peux utiliser l'URL publiée actuelle sans le `https://` :
 
 ```javascript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-serve(async (req) => {
-  // Récupérer le(s) SID(s) à vérifier
-  const { sid, sids } = await req.json();
-  
-  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-  
-  // Appeler l'API Twilio GET /Messages/{SID}.json
-  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages/${sid}.json`;
-  
-  const response = await fetch(twilioUrl, {
-    headers: {
-      'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`)
-    }
-  });
-  
-  const data = await response.json();
-  
-  return {
-    sid: data.sid,
-    to: data.to,
-    status: data.status,           // queued, sent, delivered, undelivered, failed
-    error_code: data.error_code,   // Code d'erreur si échec
-    error_message: data.error_message,
-    date_sent: data.date_sent,
-    date_updated: data.date_updated
-  };
-});
+// Alternative si le domaine personnalisé n'est pas prêt
+const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: pixl-parade-page.lovable.app/favorites`;
 ```
-
----
-
-## Fichiers à créer/modifier
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/check-sms-status/index.ts` | Créer |
-
----
-
-## Utilisation après création
-
-Une fois la fonction déployée, je pourrai vérifier le statut des 3 SMS envoyés :
-
-```bash
-# Vérifier le statut du SMS de bienvenue
-curl /check-sms-status --data '{"sid": "SM8be8c54159e36d9c1529bf9740ca3ba5"}'
-
-# Vérifier les SMS de test
-curl /check-sms-status --data '{"sids": ["SM7a7d320aa79f633386e06d4de68873c2", "SM9db12b8c2dd19449709dd2ce4ae4a568"]}'
-```
-
----
-
-## Résultats attendus
-
-Cette fonction permettra de :
-1. Confirmer si les SMS sont livrés (`delivered`) ou échoués (`undelivered`/`failed`)
-2. Identifier les codes d'erreur Twilio spécifiques
-3. Diagnostiquer les problèmes de livraison (opérateur, numéro invalide, etc.)
