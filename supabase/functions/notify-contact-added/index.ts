@@ -70,15 +70,46 @@ serve(async (req) => {
       );
     }
 
-    // Use service role for database operations
+  // Use service role for database operations
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get user preferences
-    const { data: preferences } = await supabaseAdmin
+    // Get or create user preferences
+    let { data: preferences } = await supabaseAdmin
       .from('contact_alert_preferences')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+
+    // Create default preferences if they don't exist
+    if (!preferences) {
+      console.log('Creating default preferences for user:', user.id);
+      const { data: newPrefs, error: insertError } = await supabaseAdmin
+        .from('contact_alert_preferences')
+        .insert({
+          user_id: user.id,
+          alerts_enabled: true,
+          sms_enabled: true,
+          whatsapp_enabled: true,
+          email_enabled: false,
+          alert_on_contact_add: true,
+          alert_10_days: true,
+          alert_5_days: true,
+          alert_3_days: true,
+          alert_2_days: true,
+          alert_1_day: true,
+          alert_day_of: true,
+          notify_of_adder_birthday: true
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating preferences:', insertError);
+      } else {
+        preferences = newPrefs;
+        console.log('Default preferences created successfully');
+      }
+    }
 
     // Check if alerts are enabled
     if (!preferences?.alerts_enabled || !preferences?.alert_on_contact_add) {
