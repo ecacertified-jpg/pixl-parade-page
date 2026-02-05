@@ -61,9 +61,9 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     mobileMoneyProviders: ["Orange Money", "MTN Mobile Money", "Moov Money", "Wave"],
     dateFormat: "DD/MM/YYYY",
     language: "fr",
-     // SMS bloqué par les opérateurs CI - WhatsApp prioritaire
-     smsReliability: "unreliable",
-     whatsappFallbackEnabled: true
+    // SMS fonctionne bien en Côte d'Ivoire via Twilio
+    smsReliability: "reliable",
+    whatsappFallbackEnabled: false
   },
   BJ: {
     code: "BJ",

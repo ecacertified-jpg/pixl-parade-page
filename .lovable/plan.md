@@ -1,211 +1,79 @@
 
-# Migration vers WhatsApp Prioritaire pour les Notifications
+# Optimisation du SMS de bienvenue
 
-## Contexte du Problème
+## Problème actuel
 
-Les SMS envoyés via Twilio avec l'ID "JoieDvivre" ne sont plus délivrés en Côte d'Ivoire, malgré un statut "delivered" côté Twilio. Cela suggère un filtrage opérateur (DLT/anti-spam) qui a changé récemment.
+Le message actuel (ligne 156) fait **~180 caractères** :
+```
+JoieDvivre: [Nom] vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans X jours. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app
+```
 
-## Solution Proposée
+**Problèmes identifiés :**
+1. Trop long (>160 chars) = segmentation en 2 SMS
+2. URL technique (`pixl-parade-page.lovable.app`) peu professionnelle
+3. Caractères spéciaux (`é`, `è`) qui peuvent affecter l'encodage
+4. Formulation verbeuse
 
-Inverser la logique de routage : **WhatsApp devient le canal principal**, SMS devient le fallback pour les pays sans WhatsApp.
+---
 
-### Architecture Actuelle vs Future
+## Message optimisé proposé
 
-```text
-AVANT (SMS prioritaire)
-┌─────────────┐     ┌──────────┐
-│   CI/SN     │ ──► │   SMS    │  ──► Bloqué par opérateur
-│   (+225)    │     │ (Twilio) │
-└─────────────┘     └──────────┘
+```
+[Nom] t'a ajouté à son cercle! Anniversaire dans X jours. Crée ta liste: joiedevivre-africa.com/favorites
+```
 
-APRÈS (WhatsApp prioritaire)
-┌─────────────┐     ┌───────────────┐
-│   CI/SN     │ ──► │   WhatsApp    │  ──► Délivré 99%+
-│   (+225)    │     │ (Meta Cloud)  │
-└─────────────┘     └───────────────┘
-                           │
-                    (SMS fallback si
-                     WhatsApp échoue)
+**Analyse du nouveau message :**
+| Élément | Ancien | Nouveau |
+|---------|--------|---------|
+| Préfixe | `JoieDvivre: ` (12 chars) | Aucun (0 chars) |
+| Verbe | `vous a ajouté(e)` (17 chars) | `t'a ajouté` (10 chars) |
+| Cercle | `son cercle d'amis` (17 chars) | `son cercle` (10 chars) |
+| Anniversaire | `Votre anniversaire est dans` (27 chars) | `Anniversaire dans` (17 chars) |
+| CTA | `Créez votre liste de souhaits` (29 chars) | `Crée ta liste` (13 chars) |
+| URL | `https://pixl-parade-page.lovable.app` (36 chars) | `joiedevivre-africa.com/favorites` (32 chars) |
+
+**Longueur totale estimée** : ~95-110 caractères (selon le nom)
+
+---
+
+## Solution technique
+
+### Modification de `supabase/functions/notify-contact-added/index.ts`
+
+**Ligne 156 - Remplacer :**
+```javascript
+// AVANT
+const message = `JoieDvivre: ${userName} vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app`;
+
+// APRÈS
+const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
 ```
 
 ---
 
-## Fichiers à Créer/Modifier
+## Fichier modifié
 
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `supabase/functions/_shared/whatsapp-sender.ts` | **Créer** | Module partagé pour envoi WhatsApp (réutilise la logique de send-whatsapp-otp) |
-| `supabase/functions/_shared/sms-sender.ts` | Modifier | Inverser la logique : WhatsApp prioritaire partout |
-| `supabase/functions/notify-contact-added/index.ts` | Modifier | Utiliser WhatsApp en priorité |
-| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Modifier | Utiliser WhatsApp en priorité |
-| `src/config/countries.ts` | Modifier | Marquer CI comme `smsReliability: 'unreliable'` |
+| Fichier | Ligne | Action |
+|---------|-------|--------|
+| `supabase/functions/notify-contact-added/index.ts` | 156 | Optimiser le message |
 
 ---
 
-## Détails Techniques
+## Avantages de l'optimisation
 
-### 1. Nouveau Module : `_shared/whatsapp-sender.ts`
+1. **Moins de 160 caractères** : pas de segmentation, meilleure délivrabilité
+2. **Tutoiement** : plus convivial, cohérent avec le ton de l'app
+3. **URL courte sans https://** : moins de caractères, moins de risque de filtrage
+4. **Pas de caractères spéciaux problématiques** : meilleur encodage GSM-7
+5. **Domaine personnalisé** : plus professionnel que `.lovable.app`
 
-Ce module centralisera l'envoi de messages WhatsApp (texte libre, pas de template OTP) :
+---
 
-```typescript
-// Types
-export interface WhatsAppResult {
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}
+## Note importante
 
-// Configuration via secrets existants
-const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
+Le domaine `joiedevivre-africa.com` doit être configuré comme redirection vers l'app Lovable. Si ce domaine n'est pas encore actif, je peux utiliser l'URL publiée actuelle sans le `https://` :
 
-/**
- * Envoie un message WhatsApp texte libre
- * Utilise l'API Meta Cloud (Graph API)
- */
-export async function sendWhatsAppMessage(
-  to: string,
-  message: string
-): Promise<WhatsAppResult> {
-  if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
-    return { success: false, error: 'WHATSAPP_NOT_CONFIGURED' };
-  }
-
-  // Format: retirer le + du numéro
-  const formattedPhone = to.replace(/^\+/, '');
-
-  const response = await fetch(
-    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: formattedPhone,
-        type: "text",
-        text: { body: message },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    return { success: false, error: errorData };
-  }
-
-  const result = await response.json();
-  return { 
-    success: true, 
-    messageId: result.messages?.[0]?.id 
-  };
-}
+```javascript
+// Alternative si le domaine personnalisé n'est pas prêt
+const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: pixl-parade-page.lovable.app/favorites`;
 ```
-
-### 2. Modification du Routage dans `sms-sender.ts`
-
-Inverser la logique du canal préféré :
-
-```typescript
-// AVANT: SMS pour CI/SN
-const SMS_RELIABLE_PREFIXES = ['+225', '+221'];
-
-function getPreferredChannel(phone: string): 'sms' | 'whatsapp' {
-  if (SMS_RELIABLE_PREFIXES.includes(prefix)) return 'sms';
-  return 'whatsapp';
-}
-
-// APRÈS: WhatsApp partout (sauf exceptions futures)
-const SMS_FALLBACK_ONLY_PREFIXES: string[] = []; // Aucun pays en SMS prioritaire
-
-function getPreferredChannel(phone: string): 'sms' | 'whatsapp' {
-  // WhatsApp prioritaire pour tous les pays
-  return 'whatsapp';
-}
-```
-
-### 3. Modification de `notify-contact-added/index.ts`
-
-```typescript
-// Ajouter l'import
-import { sendWhatsAppMessage } from "../_shared/whatsapp-sender.ts";
-
-// Dans la logique d'envoi, inverser la priorité
-const channel = 'whatsapp'; // Toujours WhatsApp en premier
-
-if (preferences.whatsapp_enabled) {
-  // WhatsApp prioritaire
-  const waResult = await sendWhatsAppMessage(contact_phone, message);
-  sendResult = { success: waResult.success, error: waResult.error };
-  
-  // Fallback SMS si WhatsApp échoue
-  if (!waResult.success && preferences.sms_enabled) {
-    console.log('WhatsApp failed, trying SMS fallback...');
-    const smsResult = await sendSms(contact_phone, message);
-    sendResult = { success: smsResult.success, error: smsResult.error };
-    channel = 'sms';
-  }
-} else if (preferences.sms_enabled) {
-  // SMS seulement si WhatsApp désactivé
-  const smsResult = await sendSms(contact_phone, message);
-  sendResult = { success: smsResult.success, error: smsResult.error };
-}
-```
-
-### 4. Mise à jour de `countries.ts`
-
-Refléter la réalité du terrain :
-
-```typescript
-CI: {
-  // ...
-  smsReliability: "unreliable", // ← Changé de "reliable"
-  whatsappFallbackEnabled: true  // ← Changé de false
-},
-```
-
----
-
-## Prérequis WhatsApp Business
-
-Les secrets nécessaires sont **déjà configurés** :
-- `WHATSAPP_PHONE_NUMBER_ID` ✅
-- `WHATSAPP_ACCESS_TOKEN` ✅
-
-**Important** : L'envoi de messages texte libre (hors template) nécessite que l'utilisateur ait initié une conversation dans les 24 dernières heures OU que vous utilisiez un template approuvé.
-
-Pour les notifications d'ajout de contact, un **template WhatsApp** serait plus fiable. Je peux créer un template si nécessaire.
-
----
-
-## Plan d'Exécution
-
-1. Créer `_shared/whatsapp-sender.ts` (nouveau module)
-2. Modifier `_shared/sms-sender.ts` (inverser la priorité)
-3. Modifier `notify-contact-added/index.ts` (WhatsApp prioritaire + fallback SMS)
-4. Modifier `check-birthday-alerts-for-contacts/index.ts` (même logique)
-5. Mettre à jour `countries.ts` (marquer CI comme unreliable)
-6. Déployer et tester avec votre numéro
-
----
-
-## Avantages de cette Solution
-
-| Critère | SMS (avant) | WhatsApp (après) |
-|---------|-------------|------------------|
-| Délivrabilité CI | ~0% (bloqué) | ~99% |
-| Coût | ~0.05€/SMS | Gratuit (messages utilisateur-initiés) |
-| Liens cliquables | Filtrés | ✅ Fonctionnent |
-| Médias (images) | Non | ✅ Possible |
-| Confirmation lecture | Non | ✅ Double coche |
-
----
-
-## Note sur les Templates WhatsApp
-
-Pour garantir la délivrabilité même sans conversation préalable, je recommande de créer un template WhatsApp Business pour les notifications. Cela nécessite une approbation Meta (24-48h).
-
-Voulez-vous que j'inclue la création d'un template dans le plan ?

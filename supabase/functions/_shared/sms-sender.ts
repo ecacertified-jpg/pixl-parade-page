@@ -20,19 +20,22 @@ interface TwilioResponse {
   error_message?: string;
 }
 
- // WhatsApp is now the primary channel for all countries
- // SMS is only used as fallback when WhatsApp fails or is disabled
- // No country uses SMS as primary anymore due to carrier filtering issues
- const SMS_PRIMARY_PREFIXES: string[] = []; // Empty - WhatsApp is primary everywhere
+// Country prefixes with reliable SMS delivery
+const SMS_RELIABLE_PREFIXES = ['+225', '+221']; // Côte d'Ivoire, Sénégal
 
 /**
  * Determines the preferred notification channel based on phone prefix
-  * WhatsApp is now the default channel for all countries
-  * SMS is only a fallback
+ * SMS for reliable countries, WhatsApp for others
  */
 export function getPreferredChannel(phone: string): 'sms' | 'whatsapp' {
-   // WhatsApp is now the primary channel for all countries
-   // Due to carrier SMS filtering issues in CI and other West African countries
+  const cleanPhone = formatPhoneForTwilio(phone);
+  
+  for (const prefix of SMS_RELIABLE_PREFIXES) {
+    if (cleanPhone.startsWith(prefix)) {
+      return 'sms';
+    }
+  }
+  
   return 'whatsapp';
 }
 
