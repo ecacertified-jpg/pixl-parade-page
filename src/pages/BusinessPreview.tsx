@@ -93,6 +93,12 @@ export default function BusinessPreview() {
           return;
         }
 
+        // Ensure required fields are present (view returns nullable types)
+        if (!data.id || !data.business_name) {
+          setError("Boutique introuvable");
+          return;
+        }
+
         // Count active products
         const { count } = await supabase
           .from("products")
@@ -101,8 +107,8 @@ export default function BusinessPreview() {
           .eq("is_active", true);
 
         setBusiness({
-          id: data.id,
-          business_name: data.business_name,
+          id: data.id as string,
+          business_name: data.business_name as string,
           business_type: data.business_type,
           description: data.description,
           logo_url: data.logo_url,
