@@ -1,93 +1,104 @@
 
 
-# Personnalisation du SMS de bienvenue selon l'existence du compte
+# Correction : Boutiques des prestataires introuvables
 
-## Objectif
+## Diagnostic
 
-Adapter le message SMS envoyé au contact selon qu'il possède déjà un compte sur la plateforme ou non.
+L'erreur "Boutique introuvable" apparaît car les pages publiques tentent d'accéder directement à la table `business_accounts` qui est protégée par RLS (Row Level Security).
 
-## Messages proposés
+### Politiques RLS actuelles de `business_accounts`
+| Politique | Qui peut voir |
+|-----------|--------------|
+| Users can view own | Propriétaire uniquement |
+| Admins can view all | Administrateurs |
+| **Accès public** | **NON AUTORISÉ** |
 
-| Situation | Message | Longueur estimée |
-|-----------|---------|------------------|
-| **Compte existant** | `[Nom] t'a ajouté à son cercle! Ton anniversaire dans X jours. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites` | ~115 chars |
-| **Nouveau contact** | `[Nom] t'a ajouté à son cercle! Ton anniversaire dans X jours. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com` | ~130 chars |
+### Source du problème
+Le fichier `BusinessPreview.tsx` (route `/b/:businessId`) effectue une requête directe sur `business_accounts` :
 
-Les deux messages restent sous la limite de 160 caractères.
+```typescript
+// Ligne 70-85 - BusinessPreview.tsx
+const { data } = await supabase
+  .from("business_accounts")  // ❌ Table protégée
+  .select(...)
+```
+
+Cependant, une vue sécurisée `business_public_info` existe déjà et est correctement utilisée dans d'autres parties de l'application (ex: `useVendorProducts.ts`, `useExploreMapData.ts`).
 
 ---
 
-## Solution technique
+## Solution
 
-### Modification de `supabase/functions/notify-contact-added/index.ts`
+Modifier `BusinessPreview.tsx` pour utiliser la vue `business_public_info` au lieu de la table `business_accounts`.
 
-Ajouter une vérification du numéro de téléphone dans `auth.users` avant de construire le message.
+### Modification de `src/pages/BusinessPreview.tsx`
+
+**Avant (lignes 70-85)** :
+```typescript
+const { data, error: fetchError } = await supabase
+  .from("business_accounts")
+  .select(`
+    id,
+    business_name,
+    business_type,
+    description,
+    logo_url,
+    address,
+    latitude,
+    longitude
+  `)
+  .eq("id", businessId)
+  .eq("is_active", true)
+  .eq("status", "active")
+  .maybeSingle();
+```
+
+**Après** :
+```typescript
+const { data, error: fetchError } = await supabase
+  .from("business_public_info")  // ✅ Vue sécurisée publique
+  .select(`
+    id,
+    business_name,
+    business_type,
+    description,
+    logo_url,
+    address,
+    latitude,
+    longitude
+  `)
+  .eq("id", businessId)
+  .maybeSingle();
+// Note: Pas besoin de filtrer is_active/status car la vue les filtre déjà
+```
+
+---
+
+## Flux de données après correction
 
 ```text
-┌─────────────────────────────────────────┐
-│  1. Recevoir contact_phone              │
-│                                         │
-│  2. Normaliser le numéro                │
-│     (+225, suffixe 8 chiffres)          │
-│                                         │
-│  3. Chercher dans auth.users            │
-│     → Correspondance exacte ou suffixe  │
-│                                         │
-│  4. Si compte trouvé:                   │
-│     → Message "Tes souhaits de cadeaux" │
-│     → URL: /favorites                   │
-│                                         │
-│  5. Sinon:                              │
-│     → Message "Ajoute des amis"         │
-│     → URL: / (page d'accueil)           │
-│                                         │
-│  6. Envoyer SMS                         │
-└─────────────────────────────────────────┘
-```
-
-### Code à ajouter (après ligne 134)
-
-```typescript
-// Vérifier si le contact a déjà un compte
-const normalizedPhone = contact_phone.replace(/[\s\-\(\)]/g, '');
-let hasExistingAccount = false;
-
-const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({
-  perPage: 100
-});
-
-if (authUsers?.users) {
-  for (const authUser of authUsers.users) {
-    const userPhone = authUser.phone?.replace(/[\s\-\(\)]/g, '') || '';
-    
-    // Correspondance exacte ou par suffixe (8 derniers chiffres)
-    const isExactMatch = userPhone === normalizedPhone;
-    const isSuffixMatch = normalizedPhone.length >= 8 && 
-      (userPhone.endsWith(normalizedPhone.slice(-8)) || 
-       normalizedPhone.endsWith(userPhone.slice(-8)));
-    
-    if (isExactMatch || isSuffixMatch) {
-      hasExistingAccount = true;
-      console.log(`Contact ${contact_phone} has existing account: ${authUser.id}`);
-      break;
-    }
-  }
-}
-```
-
-### Message conditionnel (remplacer ligne 156)
-
-```typescript
-// Construire le message selon l'existence du compte
-let message: string;
-
-if (hasExistingAccount) {
-  // Utilisateur existant → rediriger vers ses favoris
-  message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
-} else {
-  // Nouvel utilisateur → inciter à créer un compte
-  message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
-}
+Utilisateur (anonyme ou connecté)
+        │
+        ▼
+┌──────────────────────────────┐
+│  Route /b/:businessId        │
+│  (BusinessPreview.tsx)       │
+└──────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────┐
+│  Vue: business_public_info   │
+│  ✅ Accessible à tous        │
+│  ✅ Filtre is_active=true    │
+│  ✅ Filtre status='active'   │
+│  ✅ Exclut données sensibles │
+└──────────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────┐
+│  Affichage de la boutique    │
+│  (aperçu public)             │
+└──────────────────────────────┘
 ```
 
 ---
@@ -96,54 +107,14 @@ if (hasExistingAccount) {
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/notify-contact-added/index.ts` | Ajouter vérification compte + message conditionnel |
+| `src/pages/BusinessPreview.tsx` | Changer `business_accounts` → `business_public_info` |
 
 ---
 
-## Flux de données
+## Avantages de la correction
 
-```text
-contact_phone: "0707467445"
-        │
-        ▼
-┌───────────────────┐
-│ Normaliser        │ → "+2250707467445" ou "0707467445"
-└───────────────────┘
-        │
-        ▼
-┌───────────────────┐
-│ auth.admin.       │
-│ listUsers()       │ → Parcourir tous les utilisateurs
-└───────────────────┘
-        │
-        ▼
-┌───────────────────┐
-│ Comparer suffixes │ → "07467445" == "07467445" ?
-│ (8 derniers)      │
-└───────────────────┘
-        │
-        ├── OUI → hasExistingAccount = true
-        │         Message: "Tes souhaits de cadeaux ?"
-        │
-        └── NON → hasExistingAccount = false
-                  Message: "Ajoute des amis..."
-```
-
----
-
-## Avantages
-
-1. **Personnalisation** : Message adapté au contexte de l'utilisateur
-2. **Meilleure conversion** : Les nouveaux utilisateurs sont incités à créer un compte
-3. **Expérience cohérente** : Les utilisateurs existants sont redirigés vers leurs favoris
-4. **Réutilisation** : Logique similaire à `check-existing-account` déjà testée
-
----
-
-## Note technique
-
-La recherche par suffixe (8 derniers chiffres) permet de gérer les différents formats de numéros :
-- `0707467445` (format local)
-- `+2250707467445` (format international)
-- `2250707467445` (sans le +)
+1. **Sécurité maintenue** : La vue `business_public_info` n'expose que les données non-sensibles (pas de phone, email, payment_info)
+2. **Cohérence** : Toutes les pages publiques utilisent la même vue
+3. **Pas de modification RLS** : Pas besoin de changer les politiques de sécurité de la base
+4. **Simplification** : Les filtres `is_active` et `status` sont déjà dans la vue
 
