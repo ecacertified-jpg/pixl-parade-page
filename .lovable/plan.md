@@ -1,38 +1,19 @@
 
-# Optimisation du SMS de bienvenue
 
-## Problème actuel
+# Personnalisation du SMS de bienvenue selon l'existence du compte
 
-Le message actuel (ligne 156) fait **~180 caractères** :
-```
-JoieDvivre: [Nom] vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans X jours. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app
-```
+## Objectif
 
-**Problèmes identifiés :**
-1. Trop long (>160 chars) = segmentation en 2 SMS
-2. URL technique (`pixl-parade-page.lovable.app`) peu professionnelle
-3. Caractères spéciaux (`é`, `è`) qui peuvent affecter l'encodage
-4. Formulation verbeuse
+Adapter le message SMS envoyé au contact selon qu'il possède déjà un compte sur la plateforme ou non.
 
----
+## Messages proposés
 
-## Message optimisé proposé
+| Situation | Message | Longueur estimée |
+|-----------|---------|------------------|
+| **Compte existant** | `[Nom] t'a ajouté à son cercle! Ton anniversaire dans X jours. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites` | ~115 chars |
+| **Nouveau contact** | `[Nom] t'a ajouté à son cercle! Ton anniversaire dans X jours. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com` | ~130 chars |
 
-```
-[Nom] t'a ajouté à son cercle! Anniversaire dans X jours. Crée ta liste: joiedevivre-africa.com/favorites
-```
-
-**Analyse du nouveau message :**
-| Élément | Ancien | Nouveau |
-|---------|--------|---------|
-| Préfixe | `JoieDvivre: ` (12 chars) | Aucun (0 chars) |
-| Verbe | `vous a ajouté(e)` (17 chars) | `t'a ajouté` (10 chars) |
-| Cercle | `son cercle d'amis` (17 chars) | `son cercle` (10 chars) |
-| Anniversaire | `Votre anniversaire est dans` (27 chars) | `Anniversaire dans` (17 chars) |
-| CTA | `Créez votre liste de souhaits` (29 chars) | `Crée ta liste` (13 chars) |
-| URL | `https://pixl-parade-page.lovable.app` (36 chars) | `joiedevivre-africa.com/favorites` (32 chars) |
-
-**Longueur totale estimée** : ~95-110 caractères (selon le nom)
+Les deux messages restent sous la limite de 160 caractères.
 
 ---
 
@@ -40,40 +21,129 @@ JoieDvivre: [Nom] vous a ajouté(e) à son cercle d'amis! Votre anniversaire est
 
 ### Modification de `supabase/functions/notify-contact-added/index.ts`
 
-**Ligne 156 - Remplacer :**
-```javascript
-// AVANT
-const message = `JoieDvivre: ${userName} vous a ajouté(e) à son cercle d'amis! Votre anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Créez votre liste de souhaits: https://pixl-parade-page.lovable.app`;
+Ajouter une vérification du numéro de téléphone dans `auth.users` avant de construire le message.
 
-// APRÈS
-const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
+```text
+┌─────────────────────────────────────────┐
+│  1. Recevoir contact_phone              │
+│                                         │
+│  2. Normaliser le numéro                │
+│     (+225, suffixe 8 chiffres)          │
+│                                         │
+│  3. Chercher dans auth.users            │
+│     → Correspondance exacte ou suffixe  │
+│                                         │
+│  4. Si compte trouvé:                   │
+│     → Message "Tes souhaits de cadeaux" │
+│     → URL: /favorites                   │
+│                                         │
+│  5. Sinon:                              │
+│     → Message "Ajoute des amis"         │
+│     → URL: / (page d'accueil)           │
+│                                         │
+│  6. Envoyer SMS                         │
+└─────────────────────────────────────────┘
+```
+
+### Code à ajouter (après ligne 134)
+
+```typescript
+// Vérifier si le contact a déjà un compte
+const normalizedPhone = contact_phone.replace(/[\s\-\(\)]/g, '');
+let hasExistingAccount = false;
+
+const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({
+  perPage: 100
+});
+
+if (authUsers?.users) {
+  for (const authUser of authUsers.users) {
+    const userPhone = authUser.phone?.replace(/[\s\-\(\)]/g, '') || '';
+    
+    // Correspondance exacte ou par suffixe (8 derniers chiffres)
+    const isExactMatch = userPhone === normalizedPhone;
+    const isSuffixMatch = normalizedPhone.length >= 8 && 
+      (userPhone.endsWith(normalizedPhone.slice(-8)) || 
+       normalizedPhone.endsWith(userPhone.slice(-8)));
+    
+    if (isExactMatch || isSuffixMatch) {
+      hasExistingAccount = true;
+      console.log(`Contact ${contact_phone} has existing account: ${authUser.id}`);
+      break;
+    }
+  }
+}
+```
+
+### Message conditionnel (remplacer ligne 156)
+
+```typescript
+// Construire le message selon l'existence du compte
+let message: string;
+
+if (hasExistingAccount) {
+  // Utilisateur existant → rediriger vers ses favoris
+  message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
+} else {
+  // Nouvel utilisateur → inciter à créer un compte
+  message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
+}
 ```
 
 ---
 
 ## Fichier modifié
 
-| Fichier | Ligne | Action |
-|---------|-------|--------|
-| `supabase/functions/notify-contact-added/index.ts` | 156 | Optimiser le message |
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/notify-contact-added/index.ts` | Ajouter vérification compte + message conditionnel |
 
 ---
 
-## Avantages de l'optimisation
+## Flux de données
 
-1. **Moins de 160 caractères** : pas de segmentation, meilleure délivrabilité
-2. **Tutoiement** : plus convivial, cohérent avec le ton de l'app
-3. **URL courte sans https://** : moins de caractères, moins de risque de filtrage
-4. **Pas de caractères spéciaux problématiques** : meilleur encodage GSM-7
-5. **Domaine personnalisé** : plus professionnel que `.lovable.app`
-
----
-
-## Note importante
-
-Le domaine `joiedevivre-africa.com` doit être configuré comme redirection vers l'app Lovable. Si ce domaine n'est pas encore actif, je peux utiliser l'URL publiée actuelle sans le `https://` :
-
-```javascript
-// Alternative si le domaine personnalisé n'est pas prêt
-const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: pixl-parade-page.lovable.app/favorites`;
+```text
+contact_phone: "0707467445"
+        │
+        ▼
+┌───────────────────┐
+│ Normaliser        │ → "+2250707467445" ou "0707467445"
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│ auth.admin.       │
+│ listUsers()       │ → Parcourir tous les utilisateurs
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│ Comparer suffixes │ → "07467445" == "07467445" ?
+│ (8 derniers)      │
+└───────────────────┘
+        │
+        ├── OUI → hasExistingAccount = true
+        │         Message: "Tes souhaits de cadeaux ?"
+        │
+        └── NON → hasExistingAccount = false
+                  Message: "Ajoute des amis..."
 ```
+
+---
+
+## Avantages
+
+1. **Personnalisation** : Message adapté au contexte de l'utilisateur
+2. **Meilleure conversion** : Les nouveaux utilisateurs sont incités à créer un compte
+3. **Expérience cohérente** : Les utilisateurs existants sont redirigés vers leurs favoris
+4. **Réutilisation** : Logique similaire à `check-existing-account` déjà testée
+
+---
+
+## Note technique
+
+La recherche par suffixe (8 derniers chiffres) permet de gérer les différents formats de numéros :
+- `0707467445` (format local)
+- `+2250707467445` (format international)
+- `2250707467445` (sans le +)
+
