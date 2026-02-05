@@ -1,226 +1,211 @@
 
-# Système de Raccourcissement d'URL pour SMS
+# Migration vers WhatsApp Prioritaire pour les Notifications
 
-## Contexte
+## Contexte du Problème
 
-Les SMS avec URLs longues ou complètes (ex: `https://joiedevivre-africa.com/favorites`) peuvent :
-1. Être filtrés par les opérateurs (anti-phishing)
-2. Consommer des caractères précieux (limite 160)
-3. Apparaître peu professionnels
+Les SMS envoyés via Twilio avec l'ID "JoieDvivre" ne sont plus délivrés en Côte d'Ivoire, malgré un statut "delivered" côté Twilio. Cela suggère un filtrage opérateur (DLT/anti-spam) qui a changé récemment.
 
 ## Solution Proposée
 
-Créer un module partagé `_shared/url-shortener.ts` utilisant l'API TinyURL (gratuite, sans clé API, fiable) avec un cache en base de données pour éviter les appels répétés.
+Inverser la logique de routage : **WhatsApp devient le canal principal**, SMS devient le fallback pour les pays sans WhatsApp.
 
-### Architecture
+### Architecture Actuelle vs Future
 
 ```text
-┌─────────────────────┐      ┌──────────────────┐      ┌─────────────┐
-│   Edge Functions    │ ──── │  url-shortener   │ ──── │   TinyURL   │
-│  (notify-contact,   │      │    (module)      │      │     API     │
-│   birthday-alerts)  │      └────────┬─────────┘      └─────────────┘
-└─────────────────────┘               │
-                                      ▼
-                              ┌───────────────────┐
-                              │  shortened_urls   │
-                              │     (cache)       │
-                              └───────────────────┘
+AVANT (SMS prioritaire)
+┌─────────────┐     ┌──────────┐
+│   CI/SN     │ ──► │   SMS    │  ──► Bloqué par opérateur
+│   (+225)    │     │ (Twilio) │
+└─────────────┘     └──────────┘
+
+APRÈS (WhatsApp prioritaire)
+┌─────────────┐     ┌───────────────┐
+│   CI/SN     │ ──► │   WhatsApp    │  ──► Délivré 99%+
+│   (+225)    │     │ (Meta Cloud)  │
+└─────────────┘     └───────────────┘
+                           │
+                    (SMS fallback si
+                     WhatsApp échoue)
 ```
+
+---
 
 ## Fichiers à Créer/Modifier
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| `supabase/functions/_shared/url-shortener.ts` | Créer | Module principal de raccourcissement |
-| Table `shortened_urls` | Créer (SQL) | Cache des URLs raccourcies |
-| `supabase/functions/notify-contact-added/index.ts` | Modifier | Intégrer le raccourcisseur |
-| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Modifier | Intégrer le raccourcisseur |
+| `supabase/functions/_shared/whatsapp-sender.ts` | **Créer** | Module partagé pour envoi WhatsApp (réutilise la logique de send-whatsapp-otp) |
+| `supabase/functions/_shared/sms-sender.ts` | Modifier | Inverser la logique : WhatsApp prioritaire partout |
+| `supabase/functions/notify-contact-added/index.ts` | Modifier | Utiliser WhatsApp en priorité |
+| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Modifier | Utiliser WhatsApp en priorité |
+| `src/config/countries.ts` | Modifier | Marquer CI comme `smsReliability: 'unreliable'` |
 
 ---
 
 ## Détails Techniques
 
-### 1. Nouveau Module : `_shared/url-shortener.ts`
+### 1. Nouveau Module : `_shared/whatsapp-sender.ts`
+
+Ce module centralisera l'envoi de messages WhatsApp (texte libre, pas de template OTP) :
 
 ```typescript
-/**
- * URL Shortener Module using TinyURL API
- * Features: caching, fallback, SMS-optimized
- */
-
-// Cache TTL in days
-const CACHE_TTL_DAYS = 30;
-
-export interface ShortenResult {
+// Types
+export interface WhatsAppResult {
   success: boolean;
-  shortUrl: string;
-  originalUrl: string;
-  cached: boolean;
+  messageId?: string;
   error?: string;
 }
 
-/**
- * Shortens a URL using TinyURL API with database caching
- * Falls back to original URL if shortening fails
- */
-export async function shortenUrl(
-  longUrl: string,
-  supabaseClient: any
-): Promise<ShortenResult> {
-  
-  // 1. Check cache first
-  const { data: cached } = await supabaseClient
-    .from('shortened_urls')
-    .select('short_url, created_at')
-    .eq('original_url', longUrl)
-    .single();
-  
-  if (cached) {
-    // Check if cache is still valid (30 days)
-    const cacheAge = Date.now() - new Date(cached.created_at).getTime();
-    if (cacheAge < CACHE_TTL_DAYS * 24 * 60 * 60 * 1000) {
-      return {
-        success: true,
-        shortUrl: cached.short_url,
-        originalUrl: longUrl,
-        cached: true
-      };
-    }
-  }
-  
-  // 2. Call TinyURL API (no auth required)
-  try {
-    const response = await fetch(
-      `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`TinyURL API error: ${response.status}`);
-    }
-    
-    const shortUrl = await response.text();
-    
-    // 3. Cache the result
-    await supabaseClient
-      .from('shortened_urls')
-      .upsert({
-        original_url: longUrl,
-        short_url: shortUrl,
-        created_at: new Date().toISOString()
-      }, { onConflict: 'original_url' });
-    
-    return {
-      success: true,
-      shortUrl,
-      originalUrl: longUrl,
-      cached: false
-    };
-    
-  } catch (error) {
-    console.error('URL shortening failed:', error);
-    
-    // Fallback: return original URL without https://
-    const fallback = longUrl.replace(/^https?:\/\//, '');
-    return {
-      success: false,
-      shortUrl: fallback,
-      originalUrl: longUrl,
-      cached: false,
-      error: error.message
-    };
-  }
-}
+// Configuration via secrets existants
+const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
 
 /**
- * Shortens URL for SMS (removes https:// from TinyURL result)
- * TinyURL returns: https://tinyurl.com/abc123
- * We return: tinyurl.com/abc123 (saves 8 chars)
+ * Envoie un message WhatsApp texte libre
+ * Utilise l'API Meta Cloud (Graph API)
  */
-export async function shortenUrlForSms(
-  longUrl: string,
-  supabaseClient: any
-): Promise<string> {
-  const result = await shortenUrl(longUrl, supabaseClient);
-  
-  // Remove https:// to save characters
-  return result.shortUrl.replace(/^https?:\/\//, '');
+export async function sendWhatsAppMessage(
+  to: string,
+  message: string
+): Promise<WhatsAppResult> {
+  if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
+    return { success: false, error: 'WHATSAPP_NOT_CONFIGURED' };
+  }
+
+  // Format: retirer le + du numéro
+  const formattedPhone = to.replace(/^\+/, '');
+
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedPhone,
+        type: "text",
+        text: { body: message },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    return { success: false, error: errorData };
+  }
+
+  const result = await response.json();
+  return { 
+    success: true, 
+    messageId: result.messages?.[0]?.id 
+  };
 }
 ```
 
-### 2. Table de Cache SQL
+### 2. Modification du Routage dans `sms-sender.ts`
 
-```sql
-CREATE TABLE IF NOT EXISTS shortened_urls (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  original_url text UNIQUE NOT NULL,
-  short_url text NOT NULL,
-  hit_count integer DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+Inverser la logique du canal préféré :
 
--- Index for fast lookups
-CREATE INDEX idx_shortened_urls_original ON shortened_urls(original_url);
+```typescript
+// AVANT: SMS pour CI/SN
+const SMS_RELIABLE_PREFIXES = ['+225', '+221'];
 
--- RLS: Only service role can access
-ALTER TABLE shortened_urls ENABLE ROW LEVEL SECURITY;
+function getPreferredChannel(phone: string): 'sms' | 'whatsapp' {
+  if (SMS_RELIABLE_PREFIXES.includes(prefix)) return 'sms';
+  return 'whatsapp';
+}
 
-CREATE POLICY "Service role only" ON shortened_urls
-  FOR ALL USING (auth.role() = 'service_role');
+// APRÈS: WhatsApp partout (sauf exceptions futures)
+const SMS_FALLBACK_ONLY_PREFIXES: string[] = []; // Aucun pays en SMS prioritaire
+
+function getPreferredChannel(phone: string): 'sms' | 'whatsapp' {
+  // WhatsApp prioritaire pour tous les pays
+  return 'whatsapp';
+}
 ```
 
 ### 3. Modification de `notify-contact-added/index.ts`
 
 ```typescript
 // Ajouter l'import
-import { shortenUrlForSms } from "../_shared/url-shortener.ts";
+import { sendWhatsAppMessage } from "../_shared/whatsapp-sender.ts";
 
-// Dans la fonction serve(), après la création du client admin:
-const baseUrl = 'https://joiedevivre-africa.com/favorites';
-const shortUrl = await shortenUrlForSms(baseUrl, supabaseAdmin);
+// Dans la logique d'envoi, inverser la priorité
+const channel = 'whatsapp'; // Toujours WhatsApp en premier
 
-// Message optimisé avec URL courte
-const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: ${shortUrl}`;
+if (preferences.whatsapp_enabled) {
+  // WhatsApp prioritaire
+  const waResult = await sendWhatsAppMessage(contact_phone, message);
+  sendResult = { success: waResult.success, error: waResult.error };
+  
+  // Fallback SMS si WhatsApp échoue
+  if (!waResult.success && preferences.sms_enabled) {
+    console.log('WhatsApp failed, trying SMS fallback...');
+    const smsResult = await sendSms(contact_phone, message);
+    sendResult = { success: smsResult.success, error: smsResult.error };
+    channel = 'sms';
+  }
+} else if (preferences.sms_enabled) {
+  // SMS seulement si WhatsApp désactivé
+  const smsResult = await sendSms(contact_phone, message);
+  sendResult = { success: smsResult.success, error: smsResult.error };
+}
 ```
 
-### 4. Modification des autres Edge Functions
+### 4. Mise à jour de `countries.ts`
 
-Même pattern pour :
-- `check-birthday-alerts-for-contacts/index.ts`
-- `birthday-reminder-with-suggestions/index.ts`
-- Tout autre SMS contenant un lien
+Refléter la réalité du terrain :
 
----
-
-## Avantages de TinyURL
-
-| Critère | TinyURL | Bit.ly |
-|---------|---------|--------|
-| Clé API requise | Non | Oui |
-| Limite gratuite | Illimitée | 1000/mois |
-| Longueur URL | ~25 chars | ~22 chars |
-| Fiabilité | Excellente | Excellente |
-| Analytics | Non | Oui (payant) |
-
-**Choix : TinyURL** pour sa simplicité (aucune configuration requise).
+```typescript
+CI: {
+  // ...
+  smsReliability: "unreliable", // ← Changé de "reliable"
+  whatsappFallbackEnabled: true  // ← Changé de false
+},
+```
 
 ---
 
-## Exemple de Résultat
+## Prérequis WhatsApp Business
 
-| Avant | Après |
-|-------|-------|
-| `joiedevivre-africa.com/favorites` (33 chars) | `tinyurl.com/abc123` (~19 chars) |
-| Message: ~110 chars | Message: ~96 chars |
+Les secrets nécessaires sont **déjà configurés** :
+- `WHATSAPP_PHONE_NUMBER_ID` ✅
+- `WHATSAPP_ACCESS_TOKEN` ✅
 
-**Gain : ~14 caractères** + meilleure délivrabilité (pas de domaine personnalisé filtré).
+**Important** : L'envoi de messages texte libre (hors template) nécessite que l'utilisateur ait initié une conversation dans les 24 dernières heures OU que vous utilisiez un template approuvé.
+
+Pour les notifications d'ajout de contact, un **template WhatsApp** serait plus fiable. Je peux créer un template si nécessaire.
 
 ---
 
 ## Plan d'Exécution
 
-1. Créer la table `shortened_urls` via migration SQL
-2. Créer le module `_shared/url-shortener.ts`
-3. Modifier `notify-contact-added/index.ts` pour utiliser le raccourcisseur
-4. Modifier `check-birthday-alerts-for-contacts/index.ts`
-5. Déployer et tester avec un nouveau contact
+1. Créer `_shared/whatsapp-sender.ts` (nouveau module)
+2. Modifier `_shared/sms-sender.ts` (inverser la priorité)
+3. Modifier `notify-contact-added/index.ts` (WhatsApp prioritaire + fallback SMS)
+4. Modifier `check-birthday-alerts-for-contacts/index.ts` (même logique)
+5. Mettre à jour `countries.ts` (marquer CI comme unreliable)
+6. Déployer et tester avec votre numéro
+
+---
+
+## Avantages de cette Solution
+
+| Critère | SMS (avant) | WhatsApp (après) |
+|---------|-------------|------------------|
+| Délivrabilité CI | ~0% (bloqué) | ~99% |
+| Coût | ~0.05€/SMS | Gratuit (messages utilisateur-initiés) |
+| Liens cliquables | Filtrés | ✅ Fonctionnent |
+| Médias (images) | Non | ✅ Possible |
+| Confirmation lecture | Non | ✅ Double coche |
+
+---
+
+## Note sur les Templates WhatsApp
+
+Pour garantir la délivrabilité même sans conversation préalable, je recommande de créer un template WhatsApp Business pour les notifications. Cela nécessite une approbation Meta (24-48h).
+
+Voulez-vous que j'inclue la création d'un template dans le plan ?
