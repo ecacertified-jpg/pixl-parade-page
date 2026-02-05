@@ -6245,6 +6245,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shortened_urls: {
+        Row: {
+          created_at: string | null
+          hit_count: number | null
+          id: string
+          original_url: string
+          short_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          original_url: string
+          short_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          original_url?: string
+          short_url?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       suggestion_feedback: {
         Row: {
           contact_id: string | null
