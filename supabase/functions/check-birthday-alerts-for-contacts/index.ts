@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, getPreferredChannel } from "../_shared/sms-sender.ts";
+ import { sendSms } from "../_shared/sms-sender.ts";
+ import { sendWhatsAppMessage } from "../_shared/whatsapp-sender.ts";
  import { shortenUrlForSms } from "../_shared/url-shortener.ts";
 
 const corsHeaders = {
@@ -162,17 +163,31 @@ serve(async (req) => {
 
         // Build and send message
          const message = MESSAGES[matchingInterval.msgKey](userName, shortUrl);
-        const channel = getPreferredChannel(ownerProfile.phone);
-        
+         
+         // WhatsApp is now the primary channel, SMS is fallback
+         let channel: 'whatsapp' | 'sms' = 'whatsapp';
         let sendResult: { success: boolean; error?: string } = { success: false };
 
-        if (channel === 'sms' && preferences.sms_enabled) {
-          const smsResult = await sendSms(ownerProfile.phone, message);
-          sendResult = { success: smsResult.success, error: smsResult.error };
-        } else if (preferences.whatsapp_enabled) {
-          // WhatsApp sending would go here - for now just log
-          console.log(`WhatsApp message would be sent to ${ownerProfile.phone}: ${message}`);
-          sendResult = { success: true }; // Consider it sent for tracking
+         // Try WhatsApp first (primary channel)
+         if (preferences.whatsapp_enabled) {
+           console.log(`📱 Trying WhatsApp for ${ownerProfile.phone}`);
+           const waResult = await sendWhatsAppMessage(ownerProfile.phone, message);
+           sendResult = { success: waResult.success, error: waResult.error };
+           channel = 'whatsapp';
+           
+           // Fallback to SMS if WhatsApp fails and SMS is enabled
+           if (!waResult.success && preferences.sms_enabled) {
+             console.log(`⚠️ WhatsApp failed, trying SMS fallback...`);
+             const smsResult = await sendSms(ownerProfile.phone, message);
+             sendResult = { success: smsResult.success, error: smsResult.error };
+             channel = 'sms';
+           }
+         } else if (preferences.sms_enabled) {
+           // Only use SMS if WhatsApp is disabled
+           console.log(`📤 WhatsApp disabled, using SMS for ${ownerProfile.phone}`);
+           const smsResult = await sendSms(ownerProfile.phone, message);
+           sendResult = { success: smsResult.success, error: smsResult.error };
+           channel = 'sms';
         }
 
         // Record the alert
