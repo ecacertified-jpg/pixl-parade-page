@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendSms, getPreferredChannel } from "../_shared/sms-sender.ts";
+ import { shortenUrlForSms } from "../_shared/url-shortener.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -152,8 +153,12 @@ serve(async (req) => {
       );
     }
 
-    // Build optimized message (<160 chars for better deliverability)
-    const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
+     // Shorten URL for SMS (saves ~14 characters)
+     const baseUrl = 'https://joiedevivre-africa.com/favorites';
+     const shortUrl = await shortenUrlForSms(baseUrl, supabaseAdmin);
+ 
+     // Build optimized message (<160 chars for better deliverability)
+     const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: ${shortUrl}`;
 
     // Send via preferred channel (SMS for CI/SN, otherwise just log for WhatsApp)
     const channel = getPreferredChannel(contact_phone);
