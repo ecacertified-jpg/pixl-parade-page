@@ -134,6 +134,32 @@ serve(async (req) => {
     // Calculate days until contact's birthday
     const daysUntil = getDaysUntilBirthday(birthday);
 
+    // Check if contact has an existing account
+    const normalizedPhone = contact_phone.replace(/[\s\-\(\)]/g, '');
+    let hasExistingAccount = false;
+
+    const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({
+      perPage: 100
+    });
+
+    if (authUsers?.users) {
+      for (const authUser of authUsers.users) {
+        const userPhone = authUser.phone?.replace(/[\s\-\(\)]/g, '') || '';
+        
+        // Match exact or by suffix (last 8 digits)
+        const isExactMatch = userPhone === normalizedPhone;
+        const isSuffixMatch = normalizedPhone.length >= 8 && 
+          (userPhone.endsWith(normalizedPhone.slice(-8)) || 
+           normalizedPhone.endsWith(userPhone.slice(-8)));
+        
+        if (isExactMatch || isSuffixMatch) {
+          hasExistingAccount = true;
+          console.log(`Contact ${contact_phone} has existing account: ${authUser.id}`);
+          break;
+        }
+      }
+    }
+
     // Check if alert was already sent recently (prevent duplicates)
     const { data: existingAlert } = await supabaseAdmin
       .from('birthday_contact_alerts')
@@ -152,8 +178,16 @@ serve(async (req) => {
       );
     }
 
-    // Build optimized message (<160 chars for better deliverability)
-    const message = `${userName} t'a ajouté à son cercle! Anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Crée ta liste: joiedevivre-africa.com/favorites`;
+    // Build personalized message based on account existence (<160 chars)
+    let message: string;
+    
+    if (hasExistingAccount) {
+      // Existing user → redirect to favorites
+      message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
+    } else {
+      // New user → encourage to create account
+      message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
+    }
 
     // Send via preferred channel (SMS for CI/SN, otherwise just log for WhatsApp)
     const channel = getPreferredChannel(contact_phone);
