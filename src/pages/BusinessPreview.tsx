@@ -68,7 +68,7 @@ export default function BusinessPreview() {
       try {
         // Fetch business details
         const { data, error: fetchError } = await supabase
-          .from("business_accounts")
+          .from("business_public_info")
           .select(`
             id,
             business_name,
@@ -80,8 +80,6 @@ export default function BusinessPreview() {
             longitude
           `)
           .eq("id", businessId)
-          .eq("is_active", true)
-          .eq("status", "active")
           .maybeSingle();
 
         if (fetchError) {
