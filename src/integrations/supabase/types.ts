@@ -2943,6 +2943,60 @@ export type Database = {
           },
         ]
       }
+      fund_contribution_reminders: {
+        Row: {
+          created_at: string
+          fund_id: string
+          id: string
+          reminder_date: string
+          reminder_number: number
+          sent_at: string | null
+          skip_reason: string | null
+          status: string
+          target_phone: string
+          target_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fund_id: string
+          id?: string
+          reminder_date: string
+          reminder_number?: number
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          target_phone: string
+          target_user_id: string
+        }
+        Update: {
+          created_at?: string
+          fund_id?: string
+          id?: string
+          reminder_date?: string
+          reminder_number?: number
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          target_phone?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_contribution_reminders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_contribution_reminders_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fund_contributions: {
         Row: {
           amount: number

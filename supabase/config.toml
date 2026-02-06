@@ -218,3 +218,6 @@ verify_jwt = false
 
 [functions.check-sms-status]
 verify_jwt = false
+
+[functions.check-fund-contribution-reminders]
+verify_jwt = false
