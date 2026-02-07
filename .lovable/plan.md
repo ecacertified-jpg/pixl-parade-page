@@ -1,39 +1,70 @@
 
-# Correction des profils manquants et amelioration de la resilience du trigger
+
+# Correction : country_code manquant lors de la creation des comptes business
 
 ## Probleme identifie
 
-Les deux amis d'Eca dans `contact_relationships` :
-- `aae8fedd...` (Amtey Aboutou - aaboutou@gmail.com)
-- `b348bb92...` (Amtey Florentin - amteyflorentin@gmail.com)
+Jenny Shop a ete creee par un utilisateur dont le profil a `country_code = 'BJ'` (Benin), mais le compte business a `country_code = 'CI'` (Cote d'Ivoire) car c'est la valeur par defaut de la colonne.
 
-Existent dans `auth.users` mais **n'ont pas de profil** dans la table `profiles`. Le trigger `generate_fund_contribution_reminders` fait un `JOIN profiles` pour recuperer le telephone, donc il ne trouve aucun ami et ne cree aucun rappel.
+**Cause racine** : Aucun des 3 chemins de creation de business ne propage le `country_code` du profil utilisateur vers le compte business :
+
+1. **BusinessAuth.tsx** (inscription prestataire) - ligne 778 : pas de `country_code`
+2. **AdminAddBusinessToOwnerModal.tsx** (admin ajoute un business) - ligne 123 : pas de `country_code`
+3. **admin-create-user Edge Function** (admin cree un utilisateur business) - ligne 156 : pas de `country_code`
+
+La colonne `business_accounts.country_code` a un `DEFAULT 'CI'`, donc tout business cree sans valeur explicite est attribue a la Cote d'Ivoire.
 
 ## Plan de correction
 
-### Etape 1 : Reparer les profils manquants
+### Etape 1 : Migration SQL - Corriger les donnees existantes et ajouter un trigger automatique
 
-Creer une migration qui :
-1. Insere les profils manquants pour tous les utilisateurs `auth.users` qui n'ont pas de profil (pas uniquement ces deux-la)
-2. Recupere `first_name`, `last_name`, `phone` depuis `raw_user_meta_data` quand disponible
+1. **Corriger Jenny Shop** : mettre a jour `country_code = 'BJ'` pour le business existant
+2. **Corriger tous les business existants** : synchroniser le `country_code` de chaque business avec celui du profil de son proprietaire
+3. **Creer un trigger** `sync_business_country_code` sur `business_accounts` qui, a chaque INSERT, copie automatiquement le `country_code` du profil du proprietaire. Cela sert de filet de securite.
+
+### Etape 2 : BusinessAuth.tsx - Propager le country_code a l'inscription
+
+Modifier la fonction `completeBusinessRegistration` pour :
+1. Recuperer le `country_code` du profil de l'utilisateur via une requete Supabase
+2. L'inclure dans l'INSERT du business account
+
+### Etape 3 : AdminAddBusinessToOwnerModal.tsx - Propager le country_code
+
+Modifier `handleSubmit` pour :
+1. Recuperer le `country_code` du profil de l'utilisateur selectionne (deja charge dans la liste `users`)
+2. L'inclure dans l'INSERT
+
+### Etape 4 : admin-create-user Edge Function - Propager le country_code
+
+Modifier l'Edge Function pour :
+1. Accepter un parametre `country_code` optionnel dans le body
+2. Si non fourni, le deduire du telephone (meme logique que `handle_new_user`)
+3. L'inclure dans l'INSERT du business account
+
+## Details techniques
 
 ```text
-INSERT INTO profiles (user_id, first_name, last_name)
-SELECT id, raw_user_meta_data->>'first_name', raw_user_meta_data->>'last_name'
-FROM auth.users
-WHERE id NOT IN (SELECT user_id FROM profiles WHERE user_id IS NOT NULL)
+-- Trigger automatique (filet de securite)
+CREATE OR REPLACE FUNCTION sync_business_country_from_profile()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.country_code IS NULL OR NEW.country_code = 'CI' THEN
+    SELECT country_code INTO NEW.country_code
+    FROM profiles WHERE user_id = NEW.user_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_business_country
+BEFORE INSERT ON business_accounts
+FOR EACH ROW EXECUTE FUNCTION sync_business_country_from_profile();
 ```
 
-### Etape 2 : Regenerer les rappels pour la cagnotte existante
+## Fichiers modifies
 
-Executer manuellement la logique de generation pour la cagnotte `c73a3ef7...` (Samsung Galaxy A16 pour Francoise TIA), car le trigger ne se declenche qu'a la creation.
+- `supabase/migrations/new_migration.sql` (nouveau)
+- `src/pages/BusinessAuth.tsx`
+- `src/components/admin/AdminAddBusinessToOwnerModal.tsx`
+- `supabase/functions/admin-create-user/index.ts`
 
-### Etape 3 : Renforcer le trigger `handle_new_user()`
-
-Verifier et corriger le trigger d'inscription pour qu'il cree systematiquement un profil, meme pour les inscriptions Google OAuth. Ajouter un `ON CONFLICT DO NOTHING` pour eviter les erreurs en doublon.
-
-## Limite restante
-
-Meme apres correction, les deux amis n'ont **pas de numero de telephone** renseigne. Les SMS ne partiront que quand ils auront ajoute leur telephone dans leur profil. En attendant, les rappels seront crees avec `status = 'pending'` mais le CRON les marquera `skipped` (invalid_phone).
-
-Pour resoudre cela a long terme, on pourrait aussi envoyer des **notifications in-app** en plus des SMS, pour couvrir les utilisateurs sans telephone.
