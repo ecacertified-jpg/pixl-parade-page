@@ -14,6 +14,7 @@ interface UserWithBusiness {
   user_id: string;
   first_name: string | null;
   last_name: string | null;
+  country_code: string | null;
   business_count: number;
 }
 
@@ -69,7 +70,7 @@ export function AdminAddBusinessToOwnerModal({
       // First get all profiles
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('user_id, first_name, last_name');
+        .select('user_id, first_name, last_name, country_code');
 
       if (profileError) throw profileError;
 
@@ -91,6 +92,7 @@ export function AdminAddBusinessToOwnerModal({
         user_id: p.user_id,
         first_name: p.first_name,
         last_name: p.last_name,
+        country_code: p.country_code,
         business_count: businessCounts[p.user_id] || 0,
       })) || [];
 
@@ -120,6 +122,8 @@ export function AdminAddBusinessToOwnerModal({
 
     setLoading(true);
     try {
+      const selectedUser = users.find(u => u.user_id === formData.user_id);
+
       const { error: insertError } = await supabase
         .from('business_accounts')
         .insert({
@@ -134,12 +138,12 @@ export function AdminAddBusinessToOwnerModal({
           is_active: true,
           is_verified: false,
           status: 'active',
+          country_code: selectedUser?.country_code || null,
         });
 
       if (insertError) throw insertError;
 
       // Find user name for log
-      const selectedUser = users.find(u => u.user_id === formData.user_id);
       const userName = selectedUser 
         ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim() 
         : formData.user_id;

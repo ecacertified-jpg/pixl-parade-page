@@ -21,6 +21,7 @@ interface CreateUserRequest {
   business_description?: string;
   is_active?: boolean;
   is_verified?: boolean;
+  country_code?: string;
 }
 
 serve(async (req) => {
@@ -151,6 +152,14 @@ serve(async (req) => {
 
     // If it's a business account, create the business entry
     if (body.type === 'business') {
+      // Déduire le country_code du téléphone si non fourni
+      let businessCountryCode = body.country_code || null;
+      if (!businessCountryCode) {
+        if (normalizedPhone.startsWith('+229')) businessCountryCode = 'BJ';
+        else if (normalizedPhone.startsWith('+221')) businessCountryCode = 'SN';
+        else businessCountryCode = 'CI';
+      }
+
       const { data: businessData, error: businessError } = await supabaseAdmin
         .from('business_accounts')
         .insert({
@@ -162,7 +171,8 @@ serve(async (req) => {
           description: body.business_description || null,
           is_active: true,
           is_verified: body.is_verified === true,
-          status: 'active'
+          status: 'active',
+          country_code: businessCountryCode,
         })
         .select('id')
         .single();

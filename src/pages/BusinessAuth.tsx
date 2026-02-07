@@ -775,6 +775,13 @@ const BusinessAuth = () => {
       // Déterminer le téléphone : OTP phone ou formulaire phone (Google Auth)
       const phoneToUse = authenticatedPhone || (formData.phone ? `${completePhoneCountryCode}${formData.phone}` : '');
 
+      // Récupérer le country_code du profil utilisateur
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('country_code')
+        .eq('user_id', authenticatedUserId)
+        .single();
+
       const { error: businessError } = await supabase
         .from('business_accounts')
         .insert({
@@ -787,6 +794,7 @@ const BusinessAuth = () => {
           description: formData.description || '',
           is_active: true,
           status: 'active',
+          country_code: profileData?.country_code || null,
         });
 
       if (businessError) {
