@@ -1,29 +1,39 @@
 
-# Integrer AddressSelector dans CollectiveCheckout
+# Correction des profils manquants et amelioration de la resilience du trigger
 
-## Contexte
-La page "Finaliser la cotisation" (`CollectiveCheckout.tsx`) utilise actuellement un simple `Textarea` pour l'adresse de livraison. La page de checkout standard (`Checkout.tsx`) utilise deja le composant `AddressSelector` avec selection hierarchique (Ville/Commune puis Quartier). L'objectif est d'aligner les deux pages.
+## Probleme identifie
 
-## Modifications
+Les deux amis d'Eca dans `contact_relationships` :
+- `aae8fedd...` (Amtey Aboutou - aaboutou@gmail.com)
+- `b348bb92...` (Amtey Florentin - amteyflorentin@gmail.com)
 
-### Fichier : `src/pages/CollectiveCheckout.tsx`
+Existent dans `auth.users` mais **n'ont pas de profil** dans la table `profiles`. Le trigger `generate_fund_contribution_reminders` fait un `JOIN profiles` pour recuperer le telephone, donc il ne trouve aucun ami et ne cree aucun rappel.
 
-1. **Ajouter les imports** : Importer `AddressSelector` et `AddressResult` depuis `@/components/AddressSelector`, et retirer l'import de `Textarea`.
+## Plan de correction
 
-2. **Ajouter les etats** :
-   - `addressData` (type `AddressResult | null`) pour stocker la ville et le quartier selectionnes
-   - `addressDetails` (type `string`) pour les precisions supplementaires (rue, reperes)
-   - Conserver `deliveryAddress` comme champ calcule a partir de ces deux valeurs
+### Etape 1 : Reparer les profils manquants
 
-3. **Calculer l'adresse complete** : Combiner `addressDetails` + `addressData.fullAddress` pour former la valeur finale de `deliveryAddress` envoyee a la base de donnees, exactement comme dans `Checkout.tsx`.
+Creer une migration qui :
+1. Insere les profils manquants pour tous les utilisateurs `auth.users` qui n'ont pas de profil (pas uniquement ces deux-la)
+2. Recupere `first_name`, `last_name`, `phone` depuis `raw_user_meta_data` quand disponible
 
-4. **Mettre a jour la validation** : Ajuster `isFormValid()` pour verifier que `addressData` contient au moins une ville selectionnee.
+```text
+INSERT INTO profiles (user_id, first_name, last_name)
+SELECT id, raw_user_meta_data->>'first_name', raw_user_meta_data->>'last_name'
+FROM auth.users
+WHERE id NOT IN (SELECT user_id FROM profiles WHERE user_id IS NOT NULL)
+```
 
-5. **Remplacer le Textarea** par :
-   - Un `AddressSelector` avec les labels "Ville / Commune" et "Quartier"
-   - Un champ `Textarea` reduit pour les precisions (rue, reperes, instructions)
+### Etape 2 : Regenerer les rappels pour la cagnotte existante
 
-6. **Mettre a jour les donnees envoyees** : Utiliser l'adresse complete calculee dans l'insertion vers `collective_fund_orders` et dans la navigation vers la page de confirmation.
+Executer manuellement la logique de generation pour la cagnotte `c73a3ef7...` (Samsung Galaxy A16 pour Francoise TIA), car le trigger ne se declenche qu'a la creation.
 
-## Resultat attendu
-L'utilisateur verra deux selecteurs (Ville/Commune, Quartier) suivis d'un petit champ texte pour les precisions, exactement comme sur la page de checkout standard.
+### Etape 3 : Renforcer le trigger `handle_new_user()`
+
+Verifier et corriger le trigger d'inscription pour qu'il cree systematiquement un profil, meme pour les inscriptions Google OAuth. Ajouter un `ON CONFLICT DO NOTHING` pour eviter les erreurs en doublon.
+
+## Limite restante
+
+Meme apres correction, les deux amis n'ont **pas de numero de telephone** renseigne. Les SMS ne partiront que quand ils auront ajoute leur telephone dans leur profil. En attendant, les rappels seront crees avec `status = 'pending'` mais le CRON les marquera `skipped` (invalid_phone).
+
+Pour resoudre cela a long terme, on pourrait aussi envoyer des **notifications in-app** en plus des SMS, pour couvrir les utilisateurs sans telephone.
