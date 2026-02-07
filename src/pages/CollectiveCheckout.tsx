@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, ShoppingCart, Phone, MapPin, CreditCard } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,9 +36,16 @@ export default function CollectiveCheckout() {
   const [items, setItems] = useState<CollectiveItem[]>([]);
   const [donorPhone, setDonorPhone] = useState("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [addressData, setAddressData] = useState<AddressResult | null>(null);
+  const [addressDetails, setAddressDetails] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
   const [processing, setProcessing] = useState(false);
+
+  const deliveryAddress = useMemo(() => {
+    if (!addressData) return "";
+    const parts = [addressDetails.trim(), addressData.fullAddress].filter(Boolean);
+    return parts.join(", ");
+  }, [addressData, addressDetails]);
 
   useEffect(() => {
     const checkoutItems = localStorage.getItem('checkoutItems');
@@ -67,7 +75,7 @@ export default function CollectiveCheckout() {
   const isFormValid = () => {
     return donorPhone.trim() !== "" && 
            beneficiaryPhone.trim() !== "" && 
-           deliveryAddress.trim() !== "";
+           addressData !== null && addressData.city !== "";
   };
 
   const handleConfirmCollectiveFund = async () => {
@@ -376,16 +384,24 @@ export default function CollectiveCheckout() {
               />
             </div>
 
+            <AddressSelector
+              onAddressChange={setAddressData}
+              label=""
+              cityLabel="Ville / Commune"
+              neighborhoodLabel="Quartier"
+              required
+            />
+
             <div>
-              <Label htmlFor="delivery-address" className="text-sm font-medium">
-                Adresse de livraison *
+              <Label htmlFor="address-details" className="text-sm font-medium">
+                Précisions (rue, repères...)
               </Label>
               <Textarea
-                id="delivery-address"
-                placeholder="Quartier, rue, points de repère..."
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                className="mt-1 min-h-[100px]"
+                id="address-details"
+                placeholder="Numéro, rue, points de repère..."
+                value={addressDetails}
+                onChange={(e) => setAddressDetails(e.target.value)}
+                className="mt-1 min-h-[60px]"
               />
             </div>
           </div>
