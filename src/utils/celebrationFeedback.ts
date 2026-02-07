@@ -1,10 +1,10 @@
 // Vibration patterns for different celebration types
-export const vibrationPatterns = {
+export const vibrationPatterns: Record<string, number[]> = {
   gentle: [50],
   celebration: [100, 50, 100],
   birthday: [50, 100, 50, 100, 200],
   urgent: [200, 100, 200],
-} as const;
+};
 
 export type VibrationPattern = keyof typeof vibrationPatterns;
 export type SoundType = 'pop' | 'chime' | 'tada';
