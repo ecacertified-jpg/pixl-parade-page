@@ -1314,7 +1314,7 @@ const BusinessAuth = () => {
 
   // Formulaire principal (connexion / inscription)
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 via-indigo-50/30 to-background dark:from-slate-950 dark:via-indigo-950/20 dark:to-background p-4">
       {/* SEO Head for Business Registration */}
       <SEOHead
         title="Devenir Vendeur Partenaire | JOIE DE VIVRE"
@@ -1368,12 +1368,14 @@ const BusinessAuth = () => {
           { name: "Informations sur votre activité" },
         ]}
       />
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg border-t-4 border-t-indigo-500">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Joie de Vivre</CardTitle>
-          <div className="flex items-center justify-center gap-1.5 mt-1">
-            <Store className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Espace Business</span>
+          <div className="flex items-center justify-center gap-1.5 mt-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-sm font-medium">
+              <Store className="h-3.5 w-3.5" />
+              Espace Business
+            </span>
           </div>
           <CardDescription>
             Connectez-vous ou créez un compte pour commencer
@@ -1382,7 +1384,7 @@ const BusinessAuth = () => {
             variant="ghost"
             size="sm"
             onClick={() => navigate(`/auth?tab=${authMode}`)}
-            className="mt-2 text-sm"
+            className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Espace Client
