@@ -14,7 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone } from 'lucide-react';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
@@ -50,9 +50,29 @@ const otpSchema = z.object({
   otp: z.string().length(6, 'Le code doit contenir 6 chiffres'),
 });
 
+// Email auth schemas
+const emailSignInSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+});
+
+const emailSignUpSchema = z.object({
+  firstName: z.string().min(1, 'Le prénom est requis'),
+  birthday: z.string().optional(),
+  city: z.string().min(1, 'La ville est requise').optional(),
+  email: z.string().email('Adresse email invalide'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Les mots de passe ne correspondent pas',
+  path: ['confirmPassword'],
+});
+
 type SignInFormData = z.infer<typeof signInSchema>;
 type SignUpFormData = z.infer<typeof signUpSchema>;
 type OtpFormData = z.infer<typeof otpSchema>;
+type EmailSignInFormData = z.infer<typeof emailSignInSchema>;
+type EmailSignUpFormData = z.infer<typeof emailSignUpSchema>;
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -74,6 +94,9 @@ const Auth = () => {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateResult, setDuplicateResult] = useState<DuplicateCheckResult | null>(null);
   const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
+  
+  // Auth method selector: phone or email
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -101,6 +124,14 @@ const Auth = () => {
 
   const otpForm = useForm<OtpFormData>({
     resolver: zodResolver(otpSchema),
+  });
+
+  const emailSignInForm = useForm<EmailSignInFormData>({
+    resolver: zodResolver(emailSignInSchema),
+  });
+
+  const emailSignUpForm = useForm<EmailSignUpFormData>({
+    resolver: zodResolver(emailSignUpSchema),
   });
 
   // Redirect if already authenticated - check for returnUrl first
@@ -737,7 +768,161 @@ const Auth = () => {
     }
   };
 
-  // Google icon component
+  // Email auth handlers
+  const handleEmailSignIn = async (data: EmailSignInFormData) => {
+    setIsLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur de connexion',
+          description: error.message === 'Invalid login credentials' 
+            ? 'Email ou mot de passe incorrect' 
+            : error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (authData.user) {
+        trackLogin('email');
+        toast({
+          title: 'Connexion réussie',
+          description: 'Vous êtes maintenant connecté',
+        });
+        await handleSmartRedirect(authData.user, navigate);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (data: EmailSignUpFormData) => {
+    setIsLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            birthday: data.birthday,
+            city: data.city,
+          },
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur d\'inscription',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (authData.user) {
+        trackSignUp('email');
+        
+        // Send welcome email
+        try {
+          await supabase.functions.invoke('send-welcome-email', {
+            body: {
+              user_email: data.email,
+              user_name: data.firstName,
+            }
+          });
+        } catch (e) {
+          console.error('Error sending welcome email:', e);
+        }
+
+        // Check if email confirmation is required
+        if (authData.user.identities?.length === 0) {
+          toast({
+            title: 'Email déjà utilisé',
+            description: 'Un compte existe déjà avec cette adresse email.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (!authData.session) {
+          toast({
+            title: 'Vérifiez votre email',
+            description: 'Un email de confirmation a été envoyé à votre adresse. Cliquez sur le lien pour activer votre compte.',
+          });
+        } else {
+          toast({
+            title: 'Compte créé',
+            description: 'Votre compte a été créé avec succès !',
+          });
+          navigate('/dashboard?onboarding=true');
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const email = emailSignInForm.getValues('email');
+    if (!email) {
+      toast({
+        title: 'Email requis',
+        description: 'Veuillez entrer votre adresse email pour réinitialiser le mot de passe',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Email envoyé',
+        description: 'Si un compte existe avec cette adresse, vous recevrez un lien de réinitialisation.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error?.message || 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   const GoogleIcon = () => (
     <svg className="h-4 w-4" viewBox="0 0 24 24">
       <path
@@ -843,6 +1028,30 @@ const Auth = () => {
                 <TabsTrigger value="signin">Connexion</TabsTrigger>
                 <TabsTrigger value="signup">Inscription</TabsTrigger>
               </TabsList>
+
+              {/* Method selector: Phone or Email */}
+              <div className="flex gap-2 mt-4 mb-2">
+                <Button
+                  type="button"
+                  variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => setAuthInputMethod('phone')}
+                >
+                  <Phone className="h-4 w-4" />
+                  Téléphone
+                </Button>
+                <Button
+                  type="button"
+                  variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => setAuthInputMethod('email')}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Button>
+              </div>
               
               <AnimatePresence mode="wait">
                 <motion.div
@@ -854,161 +1063,285 @@ const Auth = () => {
                 >
                   {authMode === 'signin' ? (
                     <div className="mt-2">
-                      <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
-                          <div className="flex gap-2">
-                            <Select 
-                              value={signInForm.watch('countryCode')} 
-                              onValueChange={(value) => signInForm.setValue('countryCode', value)}
-                            >
-                              <SelectTrigger className="w-[110px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {countries.map((c) => (
-                                  <SelectItem key={c.code} value={c.phonePrefix}>
-                                    {c.flag} {c.phonePrefix}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              id="signin-phone"
-                              type="tel"
-                              placeholder="07 XX XX XX XX"
-                              maxLength={10}
-                              {...signInForm.register('phone')}
-                              className="flex-1"
-                            />
+                      {authInputMethod === 'phone' ? (
+                        <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
+                            <div className="flex gap-2">
+                              <Select 
+                                value={signInForm.watch('countryCode')} 
+                                onValueChange={(value) => signInForm.setValue('countryCode', value)}
+                              >
+                                <SelectTrigger className="w-[110px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {countries.map((c) => (
+                                    <SelectItem key={c.code} value={c.phonePrefix}>
+                                      {c.flag} {c.phonePrefix}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                id="signin-phone"
+                                type="tel"
+                                placeholder="07 XX XX XX XX"
+                                maxLength={10}
+                                {...signInForm.register('phone')}
+                                className="flex-1"
+                              />
+                            </div>
+                            {signInForm.formState.errors.phone && (
+                              <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
+                            )}
                           </div>
-                          {signInForm.formState.errors.phone && (
-                            <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
-                          )}
-                        </div>
-                        
-                        <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
-                          {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
-                        </Button>
+                          
+                          <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                            {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
+                          </Button>
+                        </form>
+                      ) : (
+                        <form onSubmit={emailSignInForm.handleSubmit(handleEmailSignIn)} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="signin-email">Email <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="signin-email"
+                              type="email"
+                              placeholder="votre@email.com"
+                              {...emailSignInForm.register('email')}
+                            />
+                            {emailSignInForm.formState.errors.email && (
+                              <p className="text-sm text-destructive">{emailSignInForm.formState.errors.email.message}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="signin-password">Mot de passe <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="signin-password"
+                              type="password"
+                              placeholder="Votre mot de passe"
+                              {...emailSignInForm.register('password')}
+                            />
+                            {emailSignInForm.formState.errors.password && (
+                              <p className="text-sm text-destructive">{emailSignInForm.formState.errors.password.message}</p>
+                            )}
+                          </div>
 
-                        <div className="relative my-4">
-                          <Separator />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                            ou
-                          </span>
-                        </div>
+                          <div className="text-right">
+                            <button
+                              type="button"
+                              onClick={handleForgotPassword}
+                              className="text-sm text-primary hover:underline"
+                              disabled={isLoading}
+                            >
+                              Mot de passe oublié ?
+                            </button>
+                          </div>
+                          
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Connexion...' : 'Se connecter'}
+                          </Button>
+                        </form>
+                      )}
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                          disabled={isGoogleLoading}
-                          onClick={signInWithGoogle}
-                        >
-                          {isGoogleLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <GoogleIcon />
-                          )}
-                          <span className="ml-2">Continuer avec Google</span>
-                        </Button>
-                      </form>
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isGoogleLoading}
+                        onClick={signInWithGoogle}
+                      >
+                        {isGoogleLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <GoogleIcon />
+                        )}
+                        <span className="ml-2">Continuer avec Google</span>
+                      </Button>
                     </div>
                   ) : (
                     <div className="mt-2">
-                      <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">Prénom</Label>
-                          <Input
-                            id="firstName"
-                            placeholder="Prénom"
-                            {...signUpForm.register('firstName')}
-                          />
-                          {signUpForm.formState.errors.firstName && (
-                            <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="birthday">Date d'anniversaire</Label>
-                          <Input
-                            id="birthday"
-                            type="date"
-                            {...signUpForm.register('birthday')}
-                          />
-                          {signUpForm.formState.errors.birthday && (
-                            <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
-                          )}
-                        </div>
-                        
-                        <AddressSelector
-                          onAddressChange={(data: AddressResult) => {
-                            signUpForm.setValue('city', data.fullAddress);
-                          }}
-                          label="Lieu de livraison"
-                          cityLabel="Ville / Commune"
-                          neighborhoodLabel="Quartier (optionnel)"
-                          required={false}
-                          showCoordinates={false}
-                        />
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
-                          <div className="flex gap-2">
-                            <Select 
-                              value={signUpForm.watch('countryCode')} 
-                              onValueChange={(value) => signUpForm.setValue('countryCode', value)}
-                            >
-                              <SelectTrigger className="w-[110px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {countries.map((c) => (
-                                  <SelectItem key={c.code} value={c.phonePrefix}>
-                                    {c.flag} {c.phonePrefix}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                      {authInputMethod === 'phone' ? (
+                        <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="firstName">Prénom</Label>
                             <Input
-                              id="signup-phone"
-                              type="tel"
-                              placeholder="07 XX XX XX XX"
-                              maxLength={10}
-                              {...signUpForm.register('phone')}
-                              className="flex-1"
+                              id="firstName"
+                              placeholder="Prénom"
+                              {...signUpForm.register('firstName')}
+                            />
+                            {signUpForm.formState.errors.firstName && (
+                              <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="birthday">Date d'anniversaire</Label>
+                            <Input
+                              id="birthday"
+                              type="date"
+                              {...signUpForm.register('birthday')}
+                            />
+                            {signUpForm.formState.errors.birthday && (
+                              <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
+                            )}
+                          </div>
+                          
+                          <AddressSelector
+                            onAddressChange={(data: AddressResult) => {
+                              signUpForm.setValue('city', data.fullAddress);
+                            }}
+                            label="Lieu de livraison"
+                            cityLabel="Ville / Commune"
+                            neighborhoodLabel="Quartier (optionnel)"
+                            required={false}
+                            showCoordinates={false}
+                          />
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-phone">Téléphone <span className="text-destructive">*</span></Label>
+                            <div className="flex gap-2">
+                              <Select 
+                                value={signUpForm.watch('countryCode')} 
+                                onValueChange={(value) => signUpForm.setValue('countryCode', value)}
+                              >
+                                <SelectTrigger className="w-[110px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {countries.map((c) => (
+                                    <SelectItem key={c.code} value={c.phonePrefix}>
+                                      {c.flag} {c.phonePrefix}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Input
+                                id="signup-phone"
+                                type="tel"
+                                placeholder="07 XX XX XX XX"
+                                maxLength={10}
+                                {...signUpForm.register('phone')}
+                                className="flex-1"
+                              />
+                            </div>
+                            {signUpForm.formState.errors.phone && (
+                              <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
+                            )}
+                          </div>
+                          
+                          <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
+                            {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
+                          </Button>
+                        </form>
+                      ) : (
+                        <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="email-firstName">Prénom <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="email-firstName"
+                              placeholder="Prénom"
+                              {...emailSignUpForm.register('firstName')}
+                            />
+                            {emailSignUpForm.formState.errors.firstName && (
+                              <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.firstName.message}</p>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="email-birthday">Date d'anniversaire</Label>
+                            <Input
+                              id="email-birthday"
+                              type="date"
+                              {...emailSignUpForm.register('birthday')}
                             />
                           </div>
-                          {signUpForm.formState.errors.phone && (
-                            <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
-                          )}
-                        </div>
-                        
-                        <Button type="submit" className="w-full" disabled={isLoading || isChecking || isServerChecking}>
-                          {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
-                        </Button>
+                          
+                          <AddressSelector
+                            onAddressChange={(data: AddressResult) => {
+                              emailSignUpForm.setValue('city', data.fullAddress);
+                            }}
+                            label="Lieu de livraison"
+                            cityLabel="Ville / Commune"
+                            neighborhoodLabel="Quartier (optionnel)"
+                            required={false}
+                            showCoordinates={false}
+                          />
 
-                        <div className="relative my-4">
-                          <Separator />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                            ou
-                          </span>
-                        </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="email-signup-email">Email <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="email-signup-email"
+                              type="email"
+                              placeholder="votre@email.com"
+                              {...emailSignUpForm.register('email')}
+                            />
+                            {emailSignUpForm.formState.errors.email && (
+                              <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.email.message}</p>
+                            )}
+                          </div>
 
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                          disabled={isGoogleLoading}
-                          onClick={signInWithGoogle}
-                        >
-                          {isGoogleLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <GoogleIcon />
-                          )}
-                          <span className="ml-2">S'inscrire avec Google</span>
-                        </Button>
-                      </form>
+                          <div className="space-y-2">
+                            <Label htmlFor="email-signup-password">Mot de passe <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="email-signup-password"
+                              type="password"
+                              placeholder="Minimum 8 caractères"
+                              {...emailSignUpForm.register('password')}
+                            />
+                            {emailSignUpForm.formState.errors.password && (
+                              <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email-signup-confirm">Confirmer le mot de passe <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="email-signup-confirm"
+                              type="password"
+                              placeholder="Retapez le mot de passe"
+                              {...emailSignUpForm.register('confirmPassword')}
+                            />
+                            {emailSignUpForm.formState.errors.confirmPassword && (
+                              <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.confirmPassword.message}</p>
+                            )}
+                          </div>
+                          
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Inscription...' : 'Créer mon compte'}
+                          </Button>
+                        </form>
+                      )}
+
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isGoogleLoading}
+                        onClick={signInWithGoogle}
+                      >
+                        {isGoogleLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <GoogleIcon />
+                        )}
+                        <span className="ml-2">S'inscrire avec Google</span>
+                      </Button>
                     </div>
                   )}
                 </motion.div>

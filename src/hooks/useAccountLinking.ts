@@ -58,13 +58,17 @@ export function useAccountLinking() {
         });
       }
 
-      // Vérifier email (non-Google)
-      if (currentUser.email && !hasGoogle) {
-        methods.push({
-          type: 'email',
-          value: currentUser.email,
-          verified: currentUser.email_confirmed_at !== null,
-        });
+      // Vérifier email (non-Google) - includes email/password users
+      const hasEmailIdentity = currentUser.identities?.some(i => i.provider === 'email');
+      if (currentUser.email && (hasEmailIdentity || !hasGoogle)) {
+        // Only add if not already covered by Google
+        if (!hasGoogle) {
+          methods.push({
+            type: 'email',
+            value: currentUser.email,
+            verified: currentUser.email_confirmed_at !== null,
+          });
+        }
       }
 
       setState({
