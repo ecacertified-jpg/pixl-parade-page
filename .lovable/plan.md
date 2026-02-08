@@ -1,51 +1,76 @@
 
+# Aligner la page BusinessAuth sur la page Auth (client)
 
-# Corriger l'erreur "Database error saving new user"
+## Objectif
 
-## Probleme identifie
+Rendre la page d'authentification Business (`/business-auth`) visuellement et fonctionnellement identique a la page client (`/auth`), en suivant la meme structure d'interface.
 
-L'erreur "Database error saving new user" se produit parce que le trigger `handle_new_user()` tente d'inserer des donnees dans la table `user_reciprocity_preferences` avec des colonnes qui n'existent plus :
-- `alert_threshold` (n'existe pas)
-- `reminder_frequency` (n'existe pas)
-- `enable_suggestions` (n'existe pas)
-- `enable_notifications` (n'existe pas)
-- `private_mode` (n'existe pas)
+## Differences actuelles a corriger
 
-Les colonnes actuelles de la table sont :
-- `enable_reciprocity_system`, `enable_for_birthdays`, `enable_for_academic`, `enable_for_weddings`, `enable_for_promotions`, `show_generosity_badge`, `notify_on_friend_fund`, `min_reciprocity_score`, `notify_high_priority_only`
+| Element | Auth (client) | BusinessAuth (actuel) |
+|---------|--------------|----------------------|
+| Bouton Google | EN HAUT, avant les formulaires | En bas, apres les formulaires |
+| Ordre methodes | Email en premier, Telephone en second | Telephone en premier, Email en second |
+| Titre | "Joie de Vivre" | "Business JOIE DE VIVRE" |
+| Sous-titre | "Connectez-vous ou creez un compte pour commencer" | "Creez votre compte business ou connectez-vous..." |
+| Icone Espace | Store + "Espace Business" | ArrowLeft + "Compte client" |
+| Erreur "User already registered" | Geree avec message francais + bascule vers connexion | Erreur brute affichee |
 
-Cette erreur bloque **toute nouvelle inscription** (email ou autre).
+## Modifications prevues
 
-## Solution
+### Fichier : `src/pages/BusinessAuth.tsx`
 
-Mettre a jour la fonction `handle_new_user()` via une migration SQL pour utiliser les bonnes colonnes de la table `user_reciprocity_preferences`.
+#### 1. Restructurer le layout du formulaire de connexion (signin)
+- Deplacer le bouton Google EN HAUT (avant le separateur "ou")
+- Deplacer le separateur "ou" entre Google et les methodes
+- Garder le selecteur Email/Telephone en dessous
+- Inverser l'ordre : Email en premier, Telephone en second
+
+#### 2. Restructurer le layout du formulaire d'inscription (signup)
+- Ajouter le bouton Google EN HAUT (avant le separateur "ou")
+- Deplacer le separateur "ou" entre Google et les methodes
+- Inverser l'ordre : Email en premier, Telephone en second
+
+#### 3. Mettre a jour les textes
+- Titre : "Joie de Vivre" (avec sous-titre "Connectez-vous ou creez un compte pour commencer")
+- Garder l'icone Store et le lien "Espace Business" mais affiche comme dans Auth.tsx
+- TabsTrigger "Inscription Business" -> "Inscription"
+
+#### 4. Ajouter la gestion gracieuse de l'erreur "User already registered"
+Dans la fonction `handleEmailSignUp`, detecter l'erreur et :
+- Afficher "Compte existant - Un compte existe deja avec cet email. Veuillez vous connecter."
+- Basculer automatiquement vers l'onglet connexion
+
+#### 5. Changer la methode d'auth par defaut
+- `authInputMethod` initialise a `'email'` au lieu de `'phone'`
 
 ## Detail technique
 
-### Migration SQL
-
-Recreer la fonction `handle_new_user()` en remplacant l'INSERT dans `user_reciprocity_preferences` :
-
-**Avant (cassé) :**
-```sql
-INSERT INTO public.user_reciprocity_preferences (
-  user_id, alert_threshold, reminder_frequency,
-  enable_suggestions, enable_notifications, private_mode
-)
-VALUES (NEW.id, 2.0, 'monthly', true, true, false)
-ON CONFLICT (user_id) DO NOTHING;
+### Structure cible pour signin (identique a Auth.tsx)
+```text
+[Bouton Google]
+--- ou ---
+[Email] [Telephone]  (Email actif par defaut)
+[Formulaire email OU telephone]
 ```
 
-**Apres (corrigé) :**
-```sql
-INSERT INTO public.user_reciprocity_preferences (user_id)
-VALUES (NEW.id)
-ON CONFLICT (user_id) DO NOTHING;
+### Structure cible pour signup
+```text
+[Bouton Google]
+--- ou ---
+[Email] [Telephone]  (Email actif par defaut)
+[Formulaire email OU telephone]
 ```
 
-Cela inserera une ligne avec toutes les valeurs par defaut de la table (les colonnes booleennes ont deja des defauts). La partie profil de la fonction reste inchangee.
+### Gestion erreur "User already registered"
+```text
+if (error.message?.includes('User already registered') || error?.code === 'user_already_exists') {
+  toast: "Compte existant" / "Un compte existe deja avec cet email..."
+  setAuthMode('signin')
+  return
+}
+```
 
-### Fichier concerne
+## Fichier modifie
 
-- Migration SQL uniquement (aucun fichier frontend a modifier)
-
+- `src/pages/BusinessAuth.tsx`
