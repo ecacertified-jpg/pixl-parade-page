@@ -1,70 +1,81 @@
 
 
-# Correction : country_code manquant lors de la creation des comptes business
+# Ajouter l'authentification par Email/Mot de passe
 
 ## Probleme identifie
 
-Jenny Shop a ete creee par un utilisateur dont le profil a `country_code = 'BJ'` (Benin), mais le compte business a `country_code = 'CI'` (Cote d'Ivoire) car c'est la valeur par defaut de la colonne.
+Actuellement, l'application propose uniquement 2 methodes de connexion :
+1. **Telephone (SMS/WhatsApp OTP)** - necessite un numero de telephone
+2. **Google OAuth** - necessite un compte Google et un navigateur compatible
 
-**Cause racine** : Aucun des 3 chemins de creation de business ne propage le `country_code` du profil utilisateur vers le compte business :
+Certains utilisateurs n'ont ni numero de telephone, ni compte Google (ou utilisent des navigateurs sans integration Google). Ils ne peuvent donc pas acceder a JDV.
 
-1. **BusinessAuth.tsx** (inscription prestataire) - ligne 778 : pas de `country_code`
-2. **AdminAddBusinessToOwnerModal.tsx** (admin ajoute un business) - ligne 123 : pas de `country_code`
-3. **admin-create-user Edge Function** (admin cree un utilisateur business) - ligne 156 : pas de `country_code`
+## Solution proposee
 
-La colonne `business_accounts.country_code` a un `DEFAULT 'CI'`, donc tout business cree sans valeur explicite est attribue a la Cote d'Ivoire.
+Ajouter l'**authentification par email et mot de passe** comme 3e methode de connexion, disponible pour les clients (`Auth.tsx`) et les prestataires (`BusinessAuth.tsx`).
 
-## Plan de correction
+## Plan d'implementation
 
-### Etape 1 : Migration SQL - Corriger les donnees existantes et ajouter un trigger automatique
+### Etape 1 : Modifier les schemas de validation (Auth.tsx)
 
-1. **Corriger Jenny Shop** : mettre a jour `country_code = 'BJ'` pour le business existant
-2. **Corriger tous les business existants** : synchroniser le `country_code` de chaque business avec celui du profil de son proprietaire
-3. **Creer un trigger** `sync_business_country_code` sur `business_accounts` qui, a chaque INSERT, copie automatiquement le `country_code` du profil du proprietaire. Cela sert de filet de securite.
+Ajouter de nouveaux schemas Zod pour l'authentification email :
 
-### Etape 2 : BusinessAuth.tsx - Propager le country_code a l'inscription
+- `emailSignInSchema` : email + mot de passe
+- `emailSignUpSchema` : prenom, date anniversaire, ville, email, mot de passe, confirmation mot de passe
 
-Modifier la fonction `completeBusinessRegistration` pour :
-1. Recuperer le `country_code` du profil de l'utilisateur via une requete Supabase
-2. L'inclure dans l'INSERT du business account
+### Etape 2 : Ajouter les fonctions email dans Auth.tsx
 
-### Etape 3 : AdminAddBusinessToOwnerModal.tsx - Propager le country_code
+- `handleEmailSignUp` : appelle `supabase.auth.signUp()` avec email/password et `user_metadata` (first_name, birthday, city)
+- `handleEmailSignIn` : appelle `supabase.auth.signInWithPassword()` avec email/password
+- `handleForgotPassword` : appelle `supabase.auth.resetPasswordForEmail()` pour la recuperation du mot de passe
+- Ajouter un etat `authMethod` ('phone' | 'email') pour basculer entre les deux modes
 
-Modifier `handleSubmit` pour :
-1. Recuperer le `country_code` du profil de l'utilisateur selectionne (deja charge dans la liste `users`)
-2. L'inclure dans l'INSERT
+### Etape 3 : Modifier l'interface Auth.tsx
 
-### Etape 4 : admin-create-user Edge Function - Propager le country_code
-
-Modifier l'Edge Function pour :
-1. Accepter un parametre `country_code` optionnel dans le body
-2. Si non fourni, le deduire du telephone (meme logique que `handle_new_user`)
-3. L'inclure dans l'INSERT du business account
-
-## Details techniques
+Ajouter un selecteur de methode en haut du formulaire (Telephone / Email) :
 
 ```text
--- Trigger automatique (filet de securite)
-CREATE OR REPLACE FUNCTION sync_business_country_from_profile()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.country_code IS NULL OR NEW.country_code = 'CI' THEN
-    SELECT country_code INTO NEW.country_code
-    FROM profiles WHERE user_id = NEW.user_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_sync_business_country
-BEFORE INSERT ON business_accounts
-FOR EACH ROW EXECUTE FUNCTION sync_business_country_from_profile();
++----------------------------------+
+|  [Telephone]  [Email]            |  <-- Selecteur de methode
++----------------------------------+
+|  Formulaire selon la methode     |
++----------------------------------+
+|          --- ou ---              |
+|  [Continuer avec Google]         |
++----------------------------------+
 ```
 
-## Fichiers modifies
+Pour le mode Email :
+- **Connexion** : champs email + mot de passe + lien "Mot de passe oublie"
+- **Inscription** : champs prenom, anniversaire, ville, email, mot de passe, confirmation
 
-- `supabase/migrations/new_migration.sql` (nouveau)
-- `src/pages/BusinessAuth.tsx`
-- `src/components/admin/AdminAddBusinessToOwnerModal.tsx`
-- `supabase/functions/admin-create-user/index.ts`
+### Etape 4 : Appliquer les memes modifications a BusinessAuth.tsx
+
+Reproduire la logique email/mot de passe pour les prestataires :
+- Schema de validation avec champs business supplementaires
+- Fonctions signUp/signIn par email
+- Interface avec selecteur de methode
+
+### Etape 5 : Page de reinitialisation du mot de passe
+
+Creer une page `/reset-password` pour permettre aux utilisateurs de definir un nouveau mot de passe apres avoir clique sur le lien de reinitialisation recu par email.
+
+### Etape 6 : Mettre a jour la detection de methodes dans useAccountLinking
+
+Modifier `fetchAuthMethods` pour detecter correctement les utilisateurs connectes par email/mot de passe (distinctement de Google).
+
+## Fichiers concernes
+
+- `src/pages/Auth.tsx` - Ajout methode email
+- `src/pages/BusinessAuth.tsx` - Ajout methode email
+- `src/pages/ResetPassword.tsx` - Nouvelle page
+- `src/App.tsx` - Ajout route `/reset-password`
+- `src/hooks/useAccountLinking.ts` - Detection email auth
+
+## Considerations
+
+- Supabase Auth supporte nativement email/password, pas besoin de migration SQL
+- La confirmation par email sera geree par Supabase (email de verification automatique)
+- Le trigger `handle_new_user` existant creera automatiquement le profil
+- Les utilisateurs pourront ensuite lier un telephone ou Google via la page Account Linking existante
 
