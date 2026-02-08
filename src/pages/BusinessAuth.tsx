@@ -1371,6 +1371,10 @@ const BusinessAuth = () => {
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Joie de Vivre</CardTitle>
+          <div className="flex items-center justify-center gap-1.5 mt-1">
+            <Store className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Espace Business</span>
+          </div>
           <CardDescription>
             Connectez-vous ou créez un compte pour commencer
           </CardDescription>
@@ -1380,8 +1384,8 @@ const BusinessAuth = () => {
             onClick={() => navigate(`/auth?tab=${authMode}`)}
             className="mt-2 text-sm"
           >
-            <Store className="h-4 w-4 mr-2" />
-            Espace Business
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Espace Client
           </Button>
         </CardHeader>
         <CardContent>
