@@ -1,56 +1,26 @@
 
-# Ajouter l'icone oeil masque/devoile sur tous les champs mot de passe
+# Ameliorer le message d'erreur "User already registered"
 
-## Objectif
+## Probleme
 
-Permettre aux utilisateurs de voir/masquer leur mot de passe dans tous les champs password de l'application, comme c'est deja fait sur la page AdminAuth.
+Quand un utilisateur tente de s'inscrire avec un email deja enregistre (ex: tiafrancoise76@gmail.com), Supabase renvoie l'erreur brute en anglais "User already registered". Ce message est affiche tel quel dans le toast, ce qui n'est pas convivial.
 
-## Champs concernes
+## Solution
 
-7 champs mot de passe au total, repartis sur 3 fichiers :
+Detecter cette erreur specifique et afficher un message en francais clair, avec une suggestion de se connecter.
 
-### `src/pages/Auth.tsx` (3 champs)
-- Connexion : mot de passe
-- Inscription : mot de passe
-- Inscription : confirmation mot de passe
+## Modification
 
-### `src/pages/BusinessAuth.tsx` (3 champs)
-- Connexion : mot de passe
-- Inscription : mot de passe
-- Inscription : confirmation mot de passe
+### Fichier : `src/pages/Auth.tsx`
 
-### `src/pages/ResetPassword.tsx` (2 champs)
-- Nouveau mot de passe
-- Confirmation mot de passe
+Dans la fonction `handleEmailSignUp`, au niveau du bloc `if (error)` (lignes 831-837), remplacer l'affichage brut par une detection de l'erreur :
 
-## Implementation
+- Si `error.message` contient "User already registered" ou si le code erreur est `user_already_exists` :
+  - Titre : "Compte existant"
+  - Description : "Un compte existe deja avec cet email. Veuillez vous connecter."
+  - Basculer automatiquement sur l'onglet connexion (`setAuthMode('signin')`)
+- Sinon : afficher le message d'erreur generique comme avant
 
-Le pattern existe deja dans `AdminAuth.tsx` : un etat `showPassword`, un `div relative` autour de l'input, et un bouton avec les icones `Eye`/`EyeOff` de Lucide.
+### Resultat attendu
 
-### Pour chaque fichier :
-
-1. Importer `Eye` et `EyeOff` depuis `lucide-react`
-2. Ajouter des etats booleens (`showPassword`, `showConfirmPassword` selon le nombre de champs)
-3. Envelopper chaque Input password dans un `div className="relative"`
-4. Changer le `type` de l'input en `type={showPassword ? 'text' : 'password'}`
-5. Ajouter `pr-10` au className de l'input pour laisser de la place a l'icone
-6. Ajouter le bouton oeil apres l'input :
-
-```text
-<button type="button" onClick={toggle}
-  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-</button>
-```
-
-### Etats necessaires par fichier
-
-- **Auth.tsx** : `showSignInPassword`, `showSignUpPassword`, `showSignUpConfirmPassword`
-- **BusinessAuth.tsx** : `showSignInPassword`, `showSignUpPassword`, `showSignUpConfirmPassword`
-- **ResetPassword.tsx** : `showPassword`, `showConfirmPassword`
-
-## Fichiers modifies
-
-- `src/pages/Auth.tsx`
-- `src/pages/BusinessAuth.tsx`
-- `src/pages/ResetPassword.tsx`
+Au lieu du toast rouge "User already registered", l'utilisateur verra un message francais clair et sera redirige vers l'onglet connexion.
