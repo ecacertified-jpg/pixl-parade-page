@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Loader2, Phone, Edit2, Check } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail } from 'lucide-react';
 import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
@@ -234,6 +234,30 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type OtpFormData = z.infer<typeof otpSchema>;
 type CompleteRegistrationFormData = z.infer<typeof completeRegistrationSchema>;
 
+// Email auth schemas for business
+const emailSignInSchema = z.object({
+  email: z.string().email('Adresse email invalide'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+});
+
+const emailSignUpSchema = z.object({
+  firstName: z.string().min(2, 'Le prénom est requis (min 2 caractères)'),
+  lastName: z.string().min(2, 'Le nom est requis (min 2 caractères)'),
+  businessName: z.string().min(2, 'Le nom d\'entreprise est requis (min 2 caractères)'),
+  businessType: z.string().optional(),
+  email: z.string().email('Adresse email invalide'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+  confirmPassword: z.string(),
+  address: z.string().optional(),
+  description: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Les mots de passe ne correspondent pas',
+  path: ['confirmPassword'],
+});
+
+type EmailSignInFormData = z.infer<typeof emailSignInSchema>;
+type EmailSignUpFormData = z.infer<typeof emailSignUpSchema>;
+
 const BusinessAuth = () => {
   const { country } = useCountry();
   
@@ -282,6 +306,17 @@ const BusinessAuth = () => {
   const completeRegistrationForm = useForm<CompleteRegistrationFormData>({
     resolver: zodResolver(completeRegistrationSchema),
   });
+
+  const emailSignInForm = useForm<EmailSignInFormData>({
+    resolver: zodResolver(emailSignInSchema),
+  });
+
+  const emailSignUpForm = useForm<EmailSignUpFormData>({
+    resolver: zodResolver(emailSignUpSchema),
+  });
+
+  // Auth input method selector
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
 
   const businessType = signUpForm.watch('businessType');
 
@@ -828,6 +863,159 @@ const BusinessAuth = () => {
     }
   };
 
+  // Email auth handlers
+  const handleEmailSignIn = async (data: EmailSignInFormData) => {
+    setIsLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        toast({
+          title: 'Erreur de connexion',
+          description: error.message === 'Invalid login credentials' 
+            ? 'Email ou mot de passe incorrect' 
+            : error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (authData.user) {
+        // Check for existing business account
+        const { data: businessAccounts } = await supabase
+          .from('business_accounts')
+          .select('id')
+          .eq('user_id', authData.user.id)
+          .limit(1);
+
+        if (businessAccounts && businessAccounts.length > 0) {
+          setUserMode('business');
+          toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
+          navigate('/business-account', { replace: true });
+        } else {
+          setAuthenticatedUserId(authData.user.id);
+          setAuthenticatedPhone('');
+          setIsGoogleAuth(true);
+          setShowCompleteRegistration(true);
+          
+          const firstName = authData.user.user_metadata?.first_name || '';
+          const lastName = authData.user.user_metadata?.last_name || '';
+          completeRegistrationForm.setValue('firstName', firstName);
+          completeRegistrationForm.setValue('lastName', lastName);
+        }
+      }
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error?.message || 'Une erreur inattendue s\'est produite', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async (data: EmailSignUpFormData) => {
+    setIsLoading(true);
+    
+    const isUnique = await checkBusinessNameUniqueness(data.businessName);
+    if (!isUnique) {
+      setIsLoading(false);
+      toast({ title: 'Nom d\'entreprise déjà utilisé', description: 'Ce nom est déjà enregistré.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            is_business: true,
+          },
+          emailRedirectTo: `${window.location.origin}/business-auth`,
+        },
+      });
+
+      if (error) {
+        toast({ title: 'Erreur d\'inscription', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      if (authData.user) {
+        if (authData.user.identities?.length === 0) {
+          toast({ title: 'Email déjà utilisé', description: 'Un compte existe déjà avec cette adresse email.', variant: 'destructive' });
+          return;
+        }
+
+        if (!authData.session) {
+          toast({
+            title: 'Vérifiez votre email',
+            description: 'Un email de confirmation a été envoyé. Cliquez sur le lien pour activer votre compte, puis revenez ici.',
+          });
+        } else {
+          // Create business account immediately
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('country_code')
+            .eq('user_id', authData.user.id)
+            .single();
+
+          const { error: businessError } = await supabase
+            .from('business_accounts')
+            .insert({
+              user_id: authData.user.id,
+              business_name: data.businessName,
+              business_type: data.businessType || '',
+              email: data.email,
+              address: data.address || '',
+              description: data.description || '',
+              is_active: true,
+              status: 'active',
+              country_code: profileData?.country_code || null,
+            });
+
+          if (businessError && businessError.code !== '23505') {
+            console.error('Error creating business account:', businessError);
+          }
+
+          setUserMode('business');
+          trackSignUp('email_business');
+          toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
+          navigate('/business-account?onboarding=true', { replace: true });
+        }
+      }
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error?.message || 'Une erreur inattendue s\'est produite', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const email = emailSignInForm.getValues('email');
+    if (!email) {
+      toast({ title: 'Email requis', description: 'Veuillez entrer votre adresse email', variant: 'destructive' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast({ title: 'Erreur', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Email envoyé', description: 'Si un compte existe avec cette adresse, vous recevrez un lien de réinitialisation.' });
+    } catch (error: any) {
+      toast({ title: 'Erreur', description: error?.message || 'Une erreur inattendue', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const businessTypes = [
     'Bijouterie',
     'Parfumerie',
@@ -1192,6 +1380,30 @@ const BusinessAuth = () => {
               <TabsTrigger value="signin">Connexion</TabsTrigger>
               <TabsTrigger value="signup">Inscription Business</TabsTrigger>
             </TabsList>
+
+            {/* Method selector: Phone or Email */}
+            <div className="flex gap-2 mt-4 mb-2">
+              <Button
+                type="button"
+                variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => setAuthInputMethod('phone')}
+              >
+                <Phone className="h-4 w-4" />
+                Téléphone
+              </Button>
+              <Button
+                type="button"
+                variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => setAuthInputMethod('email')}
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+            </div>
             
             <AnimatePresence mode="wait">
               <motion.div
@@ -1203,239 +1415,225 @@ const BusinessAuth = () => {
               >
                 {authMode === 'signin' ? (
                   <div className="mt-4">
-                    {/* Onglet Connexion */}
-                    <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signin-phone">Numéro de téléphone</Label>
-                        <div className="flex gap-2">
-                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-[100px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {countryCodes.map((cc) => (
-                                <SelectItem key={cc.code} value={cc.code}>
-                                  {cc.flag} {cc.code}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            id="signin-phone"
-                            type="tel"
-                            placeholder="07 XX XX XX XX"
-                            {...signInForm.register('phone')}
-                            className="flex-1"
-                          />
+                    {authInputMethod === 'phone' ? (
+                      <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="signin-phone">Numéro de téléphone</Label>
+                          <div className="flex gap-2">
+                            <Select value={countryCode} onValueChange={setCountryCode}>
+                              <SelectTrigger className="w-[100px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countryCodes.map((cc) => (
+                                  <SelectItem key={cc.code} value={cc.code}>
+                                    {cc.flag} {cc.code}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              id="signin-phone"
+                              type="tel"
+                              placeholder="07 XX XX XX XX"
+                              {...signInForm.register('phone')}
+                              className="flex-1"
+                            />
+                          </div>
+                          {signInForm.formState.errors.phone && (
+                            <p className="text-sm text-destructive">
+                              {signInForm.formState.errors.phone.message}
+                            </p>
+                          )}
                         </div>
-                        {signInForm.formState.errors.phone && (
-                          <p className="text-sm text-destructive">
-                            {signInForm.formState.errors.phone.message}
-                          </p>
-                        )}
-                      </div>
 
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Envoi du code...
-                          </>
-                        ) : (
-                          <>
-                            <Phone className="mr-2 h-4 w-4" />
-                            Envoyer le code
-                          </>
-                        )}
-                      </Button>
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Envoi du code...
+                            </>
+                          ) : (
+                            <>
+                              <Phone className="mr-2 h-4 w-4" />
+                              Envoyer le code
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    ) : (
+                      <form onSubmit={emailSignInForm.handleSubmit(handleEmailSignIn)} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="biz-signin-email">Email <span className="text-destructive">*</span></Label>
+                          <Input
+                            id="biz-signin-email"
+                            type="email"
+                            placeholder="votre@email.com"
+                            {...emailSignInForm.register('email')}
+                          />
+                          {emailSignInForm.formState.errors.email && (
+                            <p className="text-sm text-destructive">{emailSignInForm.formState.errors.email.message}</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="biz-signin-password">Mot de passe <span className="text-destructive">*</span></Label>
+                          <Input
+                            id="biz-signin-password"
+                            type="password"
+                            placeholder="Votre mot de passe"
+                            {...emailSignInForm.register('password')}
+                          />
+                          {emailSignInForm.formState.errors.password && (
+                            <p className="text-sm text-destructive">{emailSignInForm.formState.errors.password.message}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <button type="button" onClick={handleForgotPassword} className="text-sm text-primary hover:underline" disabled={isLoading}>
+                            Mot de passe oublié ?
+                          </button>
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                          {isLoading ? 'Connexion...' : 'Se connecter'}
+                        </Button>
+                      </form>
+                    )}
 
-                      <div className="relative my-4">
-                        <Separator />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                          ou
-                        </span>
-                      </div>
+                    <div className="relative my-4">
+                      <Separator />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                        ou
+                      </span>
+                    </div>
 
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isGoogleLoading}
-                        onClick={signInWithGoogle}
-                      >
-                        {isGoogleLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <GoogleIcon />
-                        )}
-                        <span className="ml-2">Continuer avec Google</span>
-                      </Button>
-                    </form>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isGoogleLoading}
+                      onClick={signInWithGoogle}
+                    >
+                      {isGoogleLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <GoogleIcon />
+                      )}
+                      <span className="ml-2">Continuer avec Google</span>
+                    </Button>
                   </div>
                 ) : (
                   <div className="mt-4">
-                    {/* Onglet Inscription */}
-                    {/* Progress Indicator */}
-                    <SignupProgressIndicator signUpForm={signUpForm} />
-                    
-                    <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4 mt-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName" className="flex items-center gap-1">
-                            Prénom <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="firstName"
-                            placeholder="Votre prénom"
-                            {...signUpForm.register('firstName')}
-                            className={cn(signUpForm.formState.errors.firstName && "border-destructive")}
-                          />
-                          {signUpForm.formState.errors.firstName && (
-                            <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>
-                          )}
+                    {authInputMethod === 'phone' ? (
+                      <>
+                        <SignupProgressIndicator signUpForm={signUpForm} />
+                        <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4 mt-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="firstName" className="flex items-center gap-1">Prénom <span className="text-destructive">*</span></Label>
+                              <Input id="firstName" placeholder="Votre prénom" {...signUpForm.register('firstName')} className={cn(signUpForm.formState.errors.firstName && "border-destructive")} />
+                              {signUpForm.formState.errors.firstName && <p className="text-sm text-destructive">{signUpForm.formState.errors.firstName.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="lastName" className="flex items-center gap-1">Nom <span className="text-destructive">*</span></Label>
+                              <Input id="lastName" placeholder="Votre nom" {...signUpForm.register('lastName')} className={cn(signUpForm.formState.errors.lastName && "border-destructive")} />
+                              {signUpForm.formState.errors.lastName && <p className="text-sm text-destructive">{signUpForm.formState.errors.lastName.message}</p>}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="businessName" className="flex items-center gap-1">Nom de l'entreprise <span className="text-destructive">*</span></Label>
+                            <Input id="businessName" placeholder="Mon Enterprise SARL" {...signUpForm.register('businessName')} onBlur={(e) => checkBusinessNameUniqueness(e.target.value)} className={cn((signUpForm.formState.errors.businessName || businessNameError) && "border-destructive")} />
+                            {signUpForm.formState.errors.businessName && <p className="text-sm text-destructive">{signUpForm.formState.errors.businessName.message}</p>}
+                            {businessNameError && <p className="text-sm text-destructive">{businessNameError}</p>}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="businessType">Type d'activité</Label>
+                            <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
+                              <SelectTrigger><SelectValue placeholder="Sélectionnez votre activité" /></SelectTrigger>
+                              <SelectContent>{businessTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="phone" className="flex items-center gap-1">Téléphone <span className="text-destructive">*</span></Label>
+                            <div className="flex gap-2">
+                              <Select value={countryCode} onValueChange={setCountryCode}>
+                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>{countryCodes.map((cc) => (<SelectItem key={cc.code} value={cc.code}>{cc.flag} {cc.code}</SelectItem>))}</SelectContent>
+                              </Select>
+                              <Input id="phone" type="tel" placeholder="07 XX XX XX XX" {...signUpForm.register('phone')} className="flex-1" />
+                            </div>
+                            {signUpForm.formState.errors.phone && <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>}
+                          </div>
+                          <AddressSelector onAddressChange={(data: AddressResult) => { signUpForm.setValue('address', data.fullAddress); }} label="Adresse de la boutique" cityLabel="Ville / Commune" neighborhoodLabel="Quartier" required={false} showCoordinates={false} />
+                          <div className="space-y-2">
+                            <Label htmlFor="description">Description (optionnel)</Label>
+                            <Textarea id="description" placeholder="Décrivez votre activité..." rows={3} {...signUpForm.register('description')} />
+                          </div>
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>) : (<><Phone className="mr-2 h-4 w-4" />Continuer - Vérifier mon numéro</>)}
+                          </Button>
+                          <p className="text-xs text-muted-foreground text-center mt-2">Un code de vérification sera envoyé à votre téléphone</p>
+                        </form>
+                      </>
+                    ) : (
+                      <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4 mt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-1">Prénom <span className="text-destructive">*</span></Label>
+                            <Input placeholder="Votre prénom" {...emailSignUpForm.register('firstName')} />
+                            {emailSignUpForm.formState.errors.firstName && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.firstName.message}</p>}
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-1">Nom <span className="text-destructive">*</span></Label>
+                            <Input placeholder="Votre nom" {...emailSignUpForm.register('lastName')} />
+                            {emailSignUpForm.formState.errors.lastName && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.lastName.message}</p>}
+                          </div>
                         </div>
-                        
                         <div className="space-y-2">
-                          <Label htmlFor="lastName" className="flex items-center gap-1">
-                            Nom <span className="text-destructive">*</span>
-                          </Label>
-                          <Input
-                            id="lastName"
-                            placeholder="Votre nom"
-                            {...signUpForm.register('lastName')}
-                            className={cn(signUpForm.formState.errors.lastName && "border-destructive")}
-                          />
-                          {signUpForm.formState.errors.lastName && (
-                            <p className="text-sm text-destructive">{signUpForm.formState.errors.lastName.message}</p>
-                          )}
+                          <Label className="flex items-center gap-1">Nom de l'entreprise <span className="text-destructive">*</span></Label>
+                          <Input placeholder="Mon Enterprise SARL" {...emailSignUpForm.register('businessName')} />
+                          {emailSignUpForm.formState.errors.businessName && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.businessName.message}</p>}
                         </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="businessName" className="flex items-center gap-1">
-                          Nom de l'entreprise <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="businessName"
-                          placeholder="Mon Enterprise SARL"
-                          {...signUpForm.register('businessName')}
-                          onBlur={(e) => checkBusinessNameUniqueness(e.target.value)}
-                          className={cn((signUpForm.formState.errors.businessName || businessNameError) && "border-destructive")}
-                        />
-                        {signUpForm.formState.errors.businessName && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.businessName.message}</p>
-                        )}
-                        {businessNameError && (
-                          <p className="text-sm text-destructive">{businessNameError}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="businessType">Type d'activité</Label>
-                        <Select onValueChange={(value) => signUpForm.setValue('businessType', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionnez votre activité" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {businessTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="flex items-center gap-1">
-                          Téléphone <span className="text-destructive">*</span>
-                        </Label>
-                        <div className="flex gap-2">
-                          <Select value={countryCode} onValueChange={setCountryCode}>
-                            <SelectTrigger className="w-[100px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {countryCodes.map((cc) => (
-                                <SelectItem key={cc.code} value={cc.code}>
-                                  {cc.flag} {cc.code}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
+                        <div className="space-y-2">
+                          <Label>Type d'activité</Label>
+                          <Select onValueChange={(value) => emailSignUpForm.setValue('businessType', value)}>
+                            <SelectTrigger><SelectValue placeholder="Sélectionnez votre activité" /></SelectTrigger>
+                            <SelectContent>{businessTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent>
                           </Select>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            placeholder="07 XX XX XX XX"
-                            {...signUpForm.register('phone')}
-                            className="flex-1"
-                          />
                         </div>
-                        {signUpForm.formState.errors.phone && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
-                        )}
-                      </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-1">Email <span className="text-destructive">*</span></Label>
+                          <Input type="email" placeholder="votre@email.com" {...emailSignUpForm.register('email')} />
+                          {emailSignUpForm.formState.errors.email && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.email.message}</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-1">Mot de passe <span className="text-destructive">*</span></Label>
+                          <Input type="password" placeholder="Minimum 8 caractères" {...emailSignUpForm.register('password')} />
+                          {emailSignUpForm.formState.errors.password && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-1">Confirmer le mot de passe <span className="text-destructive">*</span></Label>
+                          <Input type="password" placeholder="Retapez le mot de passe" {...emailSignUpForm.register('confirmPassword')} />
+                          {emailSignUpForm.formState.errors.confirmPassword && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.confirmPassword.message}</p>}
+                        </div>
+                        <AddressSelector onAddressChange={(data: AddressResult) => { emailSignUpForm.setValue('address', data.fullAddress); }} label="Adresse de la boutique" cityLabel="Ville / Commune" neighborhoodLabel="Quartier" required={false} showCoordinates={false} />
+                        <div className="space-y-2">
+                          <Label>Description (optionnel)</Label>
+                          <Textarea placeholder="Décrivez votre activité..." rows={3} {...emailSignUpForm.register('description')} />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                          {isLoading ? 'Inscription...' : 'Créer mon compte business'}
+                        </Button>
+                      </form>
+                    )}
 
-                      <AddressSelector
-                        onAddressChange={(data: AddressResult) => {
-                          signUpForm.setValue('address', data.fullAddress);
-                        }}
-                        label="Adresse de la boutique"
-                        cityLabel="Ville / Commune"
-                        neighborhoodLabel="Quartier"
-                        required={false}
-                        showCoordinates={false}
-                      />
+                    <div className="relative my-4">
+                      <Separator />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">ou</span>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description (optionnel)</Label>
-                        <Textarea
-                          id="description"
-                          placeholder="Décrivez votre activité..."
-                          rows={3}
-                          {...signUpForm.register('description')}
-                        />
-                      </div>
-                      
-                      <Button type="submit" className="w-full" disabled={isLoading}>
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Envoi du code...
-                          </>
-                        ) : (
-                          <>
-                            <Phone className="mr-2 h-4 w-4" />
-                            Continuer - Vérifier mon numéro
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-xs text-muted-foreground text-center mt-2">
-                        Un code de vérification sera envoyé à votre téléphone
-                      </p>
-
-                      <div className="relative my-4">
-                        <Separator />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                          ou
-                        </span>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isGoogleLoading}
-                        onClick={signInWithGoogle}
-                      >
-                        {isGoogleLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <GoogleIcon />
-                        )}
-                        <span className="ml-2">S'inscrire avec Google</span>
-                      </Button>
-                    </form>
+                    <Button type="button" variant="outline" className="w-full" disabled={isGoogleLoading} onClick={signInWithGoogle}>
+                      {isGoogleLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <GoogleIcon />}
+                      <span className="ml-2">S'inscrire avec Google</span>
+                    </Button>
                   </div>
                 )}
               </motion.div>

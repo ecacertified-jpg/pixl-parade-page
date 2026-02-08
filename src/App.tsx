@@ -83,6 +83,7 @@ import FAQ from "./pages/FAQ";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import AccountLinking from "./pages/AccountLinking";
+import ResetPassword from "./pages/ResetPassword";
 import ProductPreview from "./pages/ProductPreview";
 import FundPreview from "./pages/FundPreview";
 import BusinessPreview from "./pages/BusinessPreview";
@@ -210,6 +211,7 @@ const App = () => (
 <Route path="/go/funds" element={<Navigate to="/cagnottes?utm_source=deep_link" replace />} />
 
 <Route path="/auth" element={<Auth />} />
+<Route path="/reset-password" element={<ResetPassword />} />
 <Route path="/business-auth" element={<BusinessAuth />} />
             {/* Redirects for removed waitlist/pending pages */}
             <Route path="/business-waitlist" element={<Navigate to="/business-auth" replace />} />
