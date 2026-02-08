@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail, Eye, EyeOff } from 'lucide-react';
 import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
@@ -317,6 +317,11 @@ const BusinessAuth = () => {
 
   // Auth input method selector
   const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
+  
+  // Password visibility toggles
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
 
   const businessType = signUpForm.watch('businessType');
 
@@ -1477,12 +1482,22 @@ const BusinessAuth = () => {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="biz-signin-password">Mot de passe <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="biz-signin-password"
-                            type="password"
-                            placeholder="Votre mot de passe"
-                            {...emailSignInForm.register('password')}
-                          />
+                          <div className="relative">
+                            <Input
+                              id="biz-signin-password"
+                              type={showSignInPassword ? 'text' : 'password'}
+                              placeholder="Votre mot de passe"
+                              className="pr-10"
+                              {...emailSignInForm.register('password')}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowSignInPassword(!showSignInPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                           {emailSignInForm.formState.errors.password && (
                             <p className="text-sm text-destructive">{emailSignInForm.formState.errors.password.message}</p>
                           )}
@@ -1606,12 +1621,22 @@ const BusinessAuth = () => {
                         </div>
                         <div className="space-y-2">
                           <Label className="flex items-center gap-1">Mot de passe <span className="text-destructive">*</span></Label>
-                          <Input type="password" placeholder="Minimum 8 caractères" {...emailSignUpForm.register('password')} />
+                          <div className="relative">
+                            <Input type={showSignUpPassword ? 'text' : 'password'} placeholder="Minimum 8 caractères" className="pr-10" {...emailSignUpForm.register('password')} />
+                            <button type="button" onClick={() => setShowSignUpPassword(!showSignUpPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                              {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                           {emailSignUpForm.formState.errors.password && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <Label className="flex items-center gap-1">Confirmer le mot de passe <span className="text-destructive">*</span></Label>
-                          <Input type="password" placeholder="Retapez le mot de passe" {...emailSignUpForm.register('confirmPassword')} />
+                          <div className="relative">
+                            <Input type={showSignUpConfirmPassword ? 'text' : 'password'} placeholder="Retapez le mot de passe" className="pr-10" {...emailSignUpForm.register('confirmPassword')} />
+                            <button type="button" onClick={() => setShowSignUpConfirmPassword(!showSignUpConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                              {showSignUpConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                           {emailSignUpForm.formState.errors.confirmPassword && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.confirmPassword.message}</p>}
                         </div>
                         <AddressSelector onAddressChange={(data: AddressResult) => { emailSignUpForm.setValue('address', data.fullAddress); }} label="Adresse de la boutique" cityLabel="Ville / Commune" neighborhoodLabel="Quartier" required={false} showCoordinates={false} />
