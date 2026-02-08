@@ -1,48 +1,63 @@
 
-# Differencier visuellement les pages Auth Client et BusinessAuth
 
-## Probleme
+# Nuance de couleurs pour la page BusinessAuth
 
-Les deux pages d'authentification (`/auth` et `/business-auth`) sont maintenant quasiment identiques :
-- Meme titre "Joie de Vivre"
-- Meme sous-titre "Connectez-vous ou creez un compte pour commencer"
-- Meme lien "Espace Business" avec la meme icone Store
+## Objectif
 
-L'utilisateur ne peut pas savoir sur quelle page il se trouve.
+Ajouter une teinte de couleur distincte a la page BusinessAuth pour la differencier visuellement de la page Auth client, tout en gardant la meme structure.
 
-## Cause
+## Proposition de palette
 
-Lors de l'alignement de BusinessAuth sur Auth, le bouton de navigation dans BusinessAuth a garde le texte "Espace Business" au lieu de pointer vers l'espace client. Il devrait dire "Espace Client" pour indiquer qu'il redirige vers la page client.
+Utiliser une nuance **bleu-indigo professionnel** pour l'espace Business, en contraste avec le violet/rose de l'espace client :
 
-## Solution
+| Element | Auth Client | BusinessAuth |
+|---------|-------------|--------------|
+| Fond de page | Violet lavande (bg-background) | Gradient subtil bleu-indigo |
+| Badge "Espace Business" | Texte primary violet | Badge avec fond indigo/bleu fonce |
+| Bordure Card | Defaut | Bordure superieure coloree indigo |
+| Bouton Google | Style par defaut | Identique (coherence) |
+| TabsList | Style par defaut | Teinte bleu-indigo subtile |
 
-Modifier `src/pages/BusinessAuth.tsx` pour differencier clairement la page Business :
+## Modifications prevues
 
-### 1. Changer le lien de navigation (BusinessAuth.tsx)
-- Texte : "Espace Business" -> **"Espace Client"**
-- Icone : `Store` -> **`ArrowLeft`** (deja importe dans le fichier)
-- Cela indique clairement que ce bouton ramene vers la page client
+### Fichier : `src/pages/BusinessAuth.tsx`
 
-### 2. Ajouter un indicateur visuel "Espace Business" (BusinessAuth.tsx)
-- Ajouter un petit badge ou sous-titre sous "Joie de Vivre" indiquant **"Espace Business"** avec l'icone Store
-- Cela permet de savoir immediatement qu'on est sur la page Business
+#### 1. Fond de page distinct
+Ajouter un gradient de fond subtil bleu-indigo au conteneur principal :
+- Classe : `bg-gradient-to-b from-slate-50 via-indigo-50/30 to-background dark:from-slate-950 dark:via-indigo-950/20 dark:to-background`
 
-### Resultat attendu
+#### 2. Badge "Espace Business" plus visible
+Transformer le badge actuel (texte simple) en un vrai badge avec fond colore :
+- Fond : `bg-indigo-100 dark:bg-indigo-900/40`
+- Texte : `text-indigo-700 dark:text-indigo-300`
+- Icone Store en indigo
+- Bordure arrondie, padding
 
-**Page Auth (client)** :
+#### 3. Bordure superieure coloree sur la Card
+Ajouter une bordure superieure de 3-4px en indigo sur la Card pour donner un accent visuel immediat :
+- `border-t-4 border-t-indigo-500`
+
+#### 4. Bouton "Espace Client" style
+Ajouter une teinte indigo legere au bouton retour :
+- `text-indigo-600 hover:text-indigo-800`
+
+### Resultat visuel attendu
+
 ```text
-Joie de Vivre
-Connectez-vous ou creez un compte...
-[Store] Espace Business   <-- lien vers /business-auth
+  [fond subtil bleu-indigo]
+  ┌──────────────────────────┐
+  │▓▓▓▓ bordure indigo ▓▓▓▓▓│
+  │                          │
+  │     Joie de Vivre        │
+  │  [Espace Business]       │  <-- badge indigo
+  │  Connectez-vous ou...    │
+  │  <- Espace Client        │
+  │                          │
+  │  [Connexion] [Inscription]│
+  │  ...                     │
+  └──────────────────────────┘
 ```
 
-**Page BusinessAuth** :
-```text
-Joie de Vivre
-[Store] Espace Business    <-- badge indicateur
-Connectez-vous ou creez un compte...
-[ArrowLeft] Espace Client  <-- lien vers /auth
-```
+## Fichier modifie
+- `src/pages/BusinessAuth.tsx` uniquement (styles inline/Tailwind, pas de CSS global)
 
-### Fichier modifie
-- `src/pages/BusinessAuth.tsx` uniquement
