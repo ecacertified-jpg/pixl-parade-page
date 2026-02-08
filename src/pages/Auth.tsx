@@ -96,7 +96,7 @@ const Auth = () => {
   const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
   
   // Auth method selector: phone or email
-  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -1029,30 +1029,6 @@ const Auth = () => {
                 <TabsTrigger value="signup">Inscription</TabsTrigger>
               </TabsList>
 
-              {/* Method selector: Phone or Email */}
-              <div className="flex gap-2 mt-4 mb-2">
-                <Button
-                  type="button"
-                  variant={authInputMethod === 'phone' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex-1 gap-2"
-                  onClick={() => setAuthInputMethod('phone')}
-                >
-                  <Phone className="h-4 w-4" />
-                  Téléphone
-                </Button>
-                <Button
-                  type="button"
-                  variant={authInputMethod === 'email' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex-1 gap-2"
-                  onClick={() => setAuthInputMethod('email')}
-                >
-                  <Mail className="h-4 w-4" />
-                  Email
-                </Button>
-              </div>
-              
               <AnimatePresence mode="wait">
                 <motion.div
                   key={authMode}
@@ -1062,7 +1038,54 @@ const Auth = () => {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                 >
                   {authMode === 'signin' ? (
-                    <div className="mt-2">
+                    <div className="mt-4">
+                      {/* Google button first */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={isGoogleLoading}
+                        onClick={signInWithGoogle}
+                      >
+                        {isGoogleLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <GoogleIcon />
+                        )}
+                        <span className="ml-2">Continuer avec Google</span>
+                      </Button>
+
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      {/* Method selector: Email first, then Phone */}
+                      <div className="flex gap-2 mb-4">
+                        <Button
+                          type="button"
+                          variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1 gap-2"
+                          onClick={() => setAuthInputMethod('email')}
+                        >
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1 gap-2"
+                          onClick={() => setAuthInputMethod('phone')}
+                        >
+                          <Phone className="h-4 w-4" />
+                          Téléphone
+                        </Button>
+                      </div>
+
                       {authInputMethod === 'phone' ? (
                         <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                           <div className="space-y-2">
@@ -1145,14 +1168,10 @@ const Auth = () => {
                           </Button>
                         </form>
                       )}
-
-                      <div className="relative my-4">
-                        <Separator />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                          ou
-                        </span>
-                      </div>
-
+                    </div>
+                  ) : (
+                    <div className="mt-4">
+                      {/* Google button first */}
                       <Button
                         type="button"
                         variant="outline"
@@ -1165,11 +1184,40 @@ const Auth = () => {
                         ) : (
                           <GoogleIcon />
                         )}
-                        <span className="ml-2">Continuer avec Google</span>
+                        <span className="ml-2">S'inscrire avec Google</span>
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="mt-2">
+
+                      <div className="relative my-4">
+                        <Separator />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                          ou
+                        </span>
+                      </div>
+
+                      {/* Method selector: Email first, then Phone */}
+                      <div className="flex gap-2 mb-4">
+                        <Button
+                          type="button"
+                          variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1 gap-2"
+                          onClick={() => setAuthInputMethod('email')}
+                        >
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                          size="sm"
+                          className="flex-1 gap-2"
+                          onClick={() => setAuthInputMethod('phone')}
+                        >
+                          <Phone className="h-4 w-4" />
+                          Téléphone
+                        </Button>
+                      </div>
+
                       {authInputMethod === 'phone' ? (
                         <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
                           <div className="space-y-2">
@@ -1320,28 +1368,6 @@ const Auth = () => {
                           </Button>
                         </form>
                       )}
-
-                      <div className="relative my-4">
-                        <Separator />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                          ou
-                        </span>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={isGoogleLoading}
-                        onClick={signInWithGoogle}
-                      >
-                        {isGoogleLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <GoogleIcon />
-                        )}
-                        <span className="ml-2">S'inscrire avec Google</span>
-                      </Button>
                     </div>
                   )}
                 </motion.div>
