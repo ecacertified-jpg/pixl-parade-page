@@ -316,7 +316,7 @@ const BusinessAuth = () => {
   });
 
   // Auth input method selector
-  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
   
   // Password visibility toggles
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -944,7 +944,15 @@ const BusinessAuth = () => {
       });
 
       if (error) {
-        toast({ title: 'Erreur d\'inscription', description: error.message, variant: 'destructive' });
+        if (error.message?.includes('User already registered') || (error as any)?.code === 'user_already_exists') {
+          toast({
+            title: 'Compte existant',
+            description: 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
+          });
+          setAuthMode('signin');
+        } else {
+          toast({ title: 'Erreur d\'inscription', description: error.message, variant: 'destructive' });
+        }
         return;
       }
 
@@ -1362,12 +1370,9 @@ const BusinessAuth = () => {
       />
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Store className="h-6 w-6 text-primary" />
-            <CardTitle className="text-2xl font-bold">Business JOIE DE VIVRE</CardTitle>
-          </div>
+          <CardTitle className="text-2xl font-bold">Joie de Vivre</CardTitle>
           <CardDescription>
-            Créez votre compte business ou connectez-vous à votre espace vendeur
+            Connectez-vous ou créez un compte pour commencer
           </CardDescription>
           <Button
             variant="ghost"
@@ -1375,41 +1380,17 @@ const BusinessAuth = () => {
             onClick={() => navigate(`/auth?tab=${authMode}`)}
             className="mt-2 text-sm"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Compte client
+            <Store className="h-4 w-4 mr-2" />
+            Espace Business
           </Button>
         </CardHeader>
         <CardContent>
           <Tabs value={authMode} onValueChange={(value) => setAuthMode(value as 'signin' | 'signup')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription Business</TabsTrigger>
+              <TabsTrigger value="signup">Inscription</TabsTrigger>
             </TabsList>
 
-            {/* Method selector: Phone or Email */}
-            <div className="flex gap-2 mt-4 mb-2">
-              <Button
-                type="button"
-                variant={authInputMethod === 'phone' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => setAuthInputMethod('phone')}
-              >
-                <Phone className="h-4 w-4" />
-                Téléphone
-              </Button>
-              <Button
-                type="button"
-                variant={authInputMethod === 'email' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => setAuthInputMethod('email')}
-              >
-                <Mail className="h-4 w-4" />
-                Email
-              </Button>
-            </div>
-            
             <AnimatePresence mode="wait">
               <motion.div
                 key={authMode}
@@ -1420,6 +1401,53 @@ const BusinessAuth = () => {
               >
                 {authMode === 'signin' ? (
                   <div className="mt-4">
+                    {/* Google button first */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isGoogleLoading}
+                      onClick={signInWithGoogle}
+                    >
+                      {isGoogleLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <GoogleIcon />
+                      )}
+                      <span className="ml-2">Continuer avec Google</span>
+                    </Button>
+
+                    <div className="relative my-4">
+                      <Separator />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                        ou
+                      </span>
+                    </div>
+
+                    {/* Method selector: Email first, then Phone */}
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        type="button"
+                        variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => setAuthInputMethod('email')}
+                      >
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => setAuthInputMethod('phone')}
+                      >
+                        <Phone className="h-4 w-4" />
+                        Téléphone
+                      </Button>
+                    </div>
+
                     {authInputMethod === 'phone' ? (
                       <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                         <div className="space-y-2">
@@ -1512,14 +1540,10 @@ const BusinessAuth = () => {
                         </Button>
                       </form>
                     )}
-
-                    <div className="relative my-4">
-                      <Separator />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-                        ou
-                      </span>
-                    </div>
-
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    {/* Google button first */}
                     <Button
                       type="button"
                       variant="outline"
@@ -1532,11 +1556,40 @@ const BusinessAuth = () => {
                       ) : (
                         <GoogleIcon />
                       )}
-                      <span className="ml-2">Continuer avec Google</span>
+                      <span className="ml-2">S'inscrire avec Google</span>
                     </Button>
-                  </div>
-                ) : (
-                  <div className="mt-4">
+
+                    <div className="relative my-4">
+                      <Separator />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                        ou
+                      </span>
+                    </div>
+
+                    {/* Method selector: Email first, then Phone */}
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        type="button"
+                        variant={authInputMethod === 'email' ? 'default' : 'outline'}
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => setAuthInputMethod('email')}
+                      >
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={authInputMethod === 'phone' ? 'default' : 'outline'}
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => setAuthInputMethod('phone')}
+                      >
+                        <Phone className="h-4 w-4" />
+                        Téléphone
+                      </Button>
+                    </div>
+
                     {authInputMethod === 'phone' ? (
                       <>
                         <SignupProgressIndicator signUpForm={signUpForm} />
@@ -1649,16 +1702,6 @@ const BusinessAuth = () => {
                         </Button>
                       </form>
                     )}
-
-                    <div className="relative my-4">
-                      <Separator />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">ou</span>
-                    </div>
-
-                    <Button type="button" variant="outline" className="w-full" disabled={isGoogleLoading} onClick={signInWithGoogle}>
-                      {isGoogleLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <GoogleIcon />}
-                      <span className="ml-2">S'inscrire avec Google</span>
-                    </Button>
                   </div>
                 )}
               </motion.div>
