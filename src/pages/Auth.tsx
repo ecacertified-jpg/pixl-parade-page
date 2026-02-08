@@ -829,11 +829,19 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: 'Erreur d\'inscription',
-          description: error.message,
-          variant: 'destructive',
-        });
+        if (error.message?.includes('User already registered') || (error as any)?.code === 'user_already_exists') {
+          toast({
+            title: 'Compte existant',
+            description: 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
+          });
+          setAuthMode('signin');
+        } else {
+          toast({
+            title: 'Erreur d\'inscription',
+            description: error.message,
+            variant: 'destructive',
+          });
+        }
         return;
       }
 
