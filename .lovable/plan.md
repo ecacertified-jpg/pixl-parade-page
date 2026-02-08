@@ -1,76 +1,48 @@
 
-# Aligner la page BusinessAuth sur la page Auth (client)
+# Differencier visuellement les pages Auth Client et BusinessAuth
 
-## Objectif
+## Probleme
 
-Rendre la page d'authentification Business (`/business-auth`) visuellement et fonctionnellement identique a la page client (`/auth`), en suivant la meme structure d'interface.
+Les deux pages d'authentification (`/auth` et `/business-auth`) sont maintenant quasiment identiques :
+- Meme titre "Joie de Vivre"
+- Meme sous-titre "Connectez-vous ou creez un compte pour commencer"
+- Meme lien "Espace Business" avec la meme icone Store
 
-## Differences actuelles a corriger
+L'utilisateur ne peut pas savoir sur quelle page il se trouve.
 
-| Element | Auth (client) | BusinessAuth (actuel) |
-|---------|--------------|----------------------|
-| Bouton Google | EN HAUT, avant les formulaires | En bas, apres les formulaires |
-| Ordre methodes | Email en premier, Telephone en second | Telephone en premier, Email en second |
-| Titre | "Joie de Vivre" | "Business JOIE DE VIVRE" |
-| Sous-titre | "Connectez-vous ou creez un compte pour commencer" | "Creez votre compte business ou connectez-vous..." |
-| Icone Espace | Store + "Espace Business" | ArrowLeft + "Compte client" |
-| Erreur "User already registered" | Geree avec message francais + bascule vers connexion | Erreur brute affichee |
+## Cause
 
-## Modifications prevues
+Lors de l'alignement de BusinessAuth sur Auth, le bouton de navigation dans BusinessAuth a garde le texte "Espace Business" au lieu de pointer vers l'espace client. Il devrait dire "Espace Client" pour indiquer qu'il redirige vers la page client.
 
-### Fichier : `src/pages/BusinessAuth.tsx`
+## Solution
 
-#### 1. Restructurer le layout du formulaire de connexion (signin)
-- Deplacer le bouton Google EN HAUT (avant le separateur "ou")
-- Deplacer le separateur "ou" entre Google et les methodes
-- Garder le selecteur Email/Telephone en dessous
-- Inverser l'ordre : Email en premier, Telephone en second
+Modifier `src/pages/BusinessAuth.tsx` pour differencier clairement la page Business :
 
-#### 2. Restructurer le layout du formulaire d'inscription (signup)
-- Ajouter le bouton Google EN HAUT (avant le separateur "ou")
-- Deplacer le separateur "ou" entre Google et les methodes
-- Inverser l'ordre : Email en premier, Telephone en second
+### 1. Changer le lien de navigation (BusinessAuth.tsx)
+- Texte : "Espace Business" -> **"Espace Client"**
+- Icone : `Store` -> **`ArrowLeft`** (deja importe dans le fichier)
+- Cela indique clairement que ce bouton ramene vers la page client
 
-#### 3. Mettre a jour les textes
-- Titre : "Joie de Vivre" (avec sous-titre "Connectez-vous ou creez un compte pour commencer")
-- Garder l'icone Store et le lien "Espace Business" mais affiche comme dans Auth.tsx
-- TabsTrigger "Inscription Business" -> "Inscription"
+### 2. Ajouter un indicateur visuel "Espace Business" (BusinessAuth.tsx)
+- Ajouter un petit badge ou sous-titre sous "Joie de Vivre" indiquant **"Espace Business"** avec l'icone Store
+- Cela permet de savoir immediatement qu'on est sur la page Business
 
-#### 4. Ajouter la gestion gracieuse de l'erreur "User already registered"
-Dans la fonction `handleEmailSignUp`, detecter l'erreur et :
-- Afficher "Compte existant - Un compte existe deja avec cet email. Veuillez vous connecter."
-- Basculer automatiquement vers l'onglet connexion
+### Resultat attendu
 
-#### 5. Changer la methode d'auth par defaut
-- `authInputMethod` initialise a `'email'` au lieu de `'phone'`
-
-## Detail technique
-
-### Structure cible pour signin (identique a Auth.tsx)
+**Page Auth (client)** :
 ```text
-[Bouton Google]
---- ou ---
-[Email] [Telephone]  (Email actif par defaut)
-[Formulaire email OU telephone]
+Joie de Vivre
+Connectez-vous ou creez un compte...
+[Store] Espace Business   <-- lien vers /business-auth
 ```
 
-### Structure cible pour signup
+**Page BusinessAuth** :
 ```text
-[Bouton Google]
---- ou ---
-[Email] [Telephone]  (Email actif par defaut)
-[Formulaire email OU telephone]
+Joie de Vivre
+[Store] Espace Business    <-- badge indicateur
+Connectez-vous ou creez un compte...
+[ArrowLeft] Espace Client  <-- lien vers /auth
 ```
 
-### Gestion erreur "User already registered"
-```text
-if (error.message?.includes('User already registered') || error?.code === 'user_already_exists') {
-  toast: "Compte existant" / "Un compte existe deja avec cet email..."
-  setAuthMode('signin')
-  return
-}
-```
-
-## Fichier modifie
-
-- `src/pages/BusinessAuth.tsx`
+### Fichier modifie
+- `src/pages/BusinessAuth.tsx` uniquement
