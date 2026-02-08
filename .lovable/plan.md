@@ -1,53 +1,56 @@
 
+# Ajouter l'icone oeil masque/devoile sur tous les champs mot de passe
 
-# Reordonner les methodes d'authentification : Google > Email > Telephone
+## Objectif
 
-## Situation actuelle
+Permettre aux utilisateurs de voir/masquer leur mot de passe dans tous les champs password de l'application, comme c'est deja fait sur la page AdminAuth.
 
-L'ordre actuel sur la page Auth est :
-1. Selecteur Phone / Email (boutons toggle)
-2. Formulaire selon la methode selectionnee
-3. Separateur "ou"
-4. Bouton Google (en bas)
+## Champs concernes
 
-## Nouvel ordre souhaite
+7 champs mot de passe au total, repartis sur 3 fichiers :
 
-1. **Google** (bouton en haut, le plus visible)
-2. Separateur "ou"
-3. **Selecteur Email / Telephone** (Email selectionne par defaut)
-4. Formulaire selon la methode selectionnee
+### `src/pages/Auth.tsx` (3 champs)
+- Connexion : mot de passe
+- Inscription : mot de passe
+- Inscription : confirmation mot de passe
 
-## Modifications
+### `src/pages/BusinessAuth.tsx` (3 champs)
+- Connexion : mot de passe
+- Inscription : mot de passe
+- Inscription : confirmation mot de passe
 
-### Fichier : `src/pages/Auth.tsx`
+### `src/pages/ResetPassword.tsx` (2 champs)
+- Nouveau mot de passe
+- Confirmation mot de passe
 
-**Changement 1** : Modifier la valeur par defaut de `authInputMethod` de `'phone'` a `'email'` (ligne 99)
+## Implementation
 
-**Changement 2** : Restructurer le rendu dans les deux onglets (connexion et inscription) pour placer :
-- Le bouton Google **en premier**
-- Le separateur "ou" **apres**
-- Le selecteur Email / Telephone **ensuite**
-- Le formulaire correspondant **en dernier**
+Le pattern existe deja dans `AdminAuth.tsx` : un etat `showPassword`, un `div relative` autour de l'input, et un bouton avec les icones `Eye`/`EyeOff` de Lucide.
 
-L'ordre des boutons du selecteur sera aussi inverse : Email en premier, Telephone en second.
+### Pour chaque fichier :
 
-### Structure resultante
+1. Importer `Eye` et `EyeOff` depuis `lucide-react`
+2. Ajouter des etats booleens (`showPassword`, `showConfirmPassword` selon le nombre de champs)
+3. Envelopper chaque Input password dans un `div className="relative"`
+4. Changer le `type` de l'input en `type={showPassword ? 'text' : 'password'}`
+5. Ajouter `pr-10` au className de l'input pour laisser de la place a l'icone
+6. Ajouter le bouton oeil apres l'input :
 
 ```text
-+----------------------------------+
-|  [Connexion]  [Inscription]      |
-+----------------------------------+
-|  [Continuer avec Google]         |
-+----------------------------------+
-|          --- ou ---              |
-+----------------------------------+
-|  [Email]  [Telephone]            |
-+----------------------------------+
-|  Formulaire selon la methode     |
-+----------------------------------+
+<button type="button" onClick={toggle}
+  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+  {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+</button>
 ```
 
-### Fichiers concernes
+### Etats necessaires par fichier
 
-- `src/pages/Auth.tsx` : reordonner les elements UI et changer le defaut a `'email'`
+- **Auth.tsx** : `showSignInPassword`, `showSignUpPassword`, `showSignUpConfirmPassword`
+- **BusinessAuth.tsx** : `showSignInPassword`, `showSignUpPassword`, `showSignUpConfirmPassword`
+- **ResetPassword.tsx** : `showPassword`, `showConfirmPassword`
 
+## Fichiers modifies
+
+- `src/pages/Auth.tsx`
+- `src/pages/BusinessAuth.tsx`
+- `src/pages/ResetPassword.tsx`
