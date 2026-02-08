@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, KeyRound, CheckCircle } from 'lucide-react';
+import { Loader2, KeyRound, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
@@ -26,6 +26,8 @@ const ResetPassword = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -110,12 +112,22 @@ const ResetPassword = () => {
           <form onSubmit={form.handleSubmit(handleResetPassword)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Nouveau mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Minimum 8 caractères"
-                {...form.register('password')}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Minimum 8 caractères"
+                  className="pr-10"
+                  {...form.register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {form.formState.errors.password && (
                 <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
               )}
@@ -123,12 +135,22 @@ const ResetPassword = () => {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Retapez le mot de passe"
-                {...form.register('confirmPassword')}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Retapez le mot de passe"
+                  className="pr-10"
+                  {...form.register('confirmPassword')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {form.formState.errors.confirmPassword && (
                 <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
               )}

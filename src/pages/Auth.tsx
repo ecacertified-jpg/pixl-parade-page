@@ -14,7 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff } from 'lucide-react';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
@@ -97,6 +97,11 @@ const Auth = () => {
   
   // Auth method selector: phone or email
   const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
+  
+  // Password visibility toggles
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -1141,12 +1146,22 @@ const Auth = () => {
                           
                           <div className="space-y-2">
                             <Label htmlFor="signin-password">Mot de passe <span className="text-destructive">*</span></Label>
-                            <Input
-                              id="signin-password"
-                              type="password"
-                              placeholder="Votre mot de passe"
-                              {...emailSignInForm.register('password')}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="signin-password"
+                                type={showSignInPassword ? 'text' : 'password'}
+                                placeholder="Votre mot de passe"
+                                className="pr-10"
+                                {...emailSignInForm.register('password')}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSignInPassword(!showSignInPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
                             {emailSignInForm.formState.errors.password && (
                               <p className="text-sm text-destructive">{emailSignInForm.formState.errors.password.message}</p>
                             )}
@@ -1339,12 +1354,22 @@ const Auth = () => {
 
                           <div className="space-y-2">
                             <Label htmlFor="email-signup-password">Mot de passe <span className="text-destructive">*</span></Label>
-                            <Input
-                              id="email-signup-password"
-                              type="password"
-                              placeholder="Minimum 8 caractères"
-                              {...emailSignUpForm.register('password')}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="email-signup-password"
+                                type={showSignUpPassword ? 'text' : 'password'}
+                                placeholder="Minimum 8 caractères"
+                                className="pr-10"
+                                {...emailSignUpForm.register('password')}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
                             {emailSignUpForm.formState.errors.password && (
                               <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>
                             )}
@@ -1352,12 +1377,22 @@ const Auth = () => {
 
                           <div className="space-y-2">
                             <Label htmlFor="email-signup-confirm">Confirmer le mot de passe <span className="text-destructive">*</span></Label>
-                            <Input
-                              id="email-signup-confirm"
-                              type="password"
-                              placeholder="Retapez le mot de passe"
-                              {...emailSignUpForm.register('confirmPassword')}
-                            />
+                            <div className="relative">
+                              <Input
+                                id="email-signup-confirm"
+                                type={showSignUpConfirmPassword ? 'text' : 'password'}
+                                placeholder="Retapez le mot de passe"
+                                className="pr-10"
+                                {...emailSignUpForm.register('confirmPassword')}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSignUpConfirmPassword(!showSignUpConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              >
+                                {showSignUpConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
                             {emailSignUpForm.formState.errors.confirmPassword && (
                               <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.confirmPassword.message}</p>
                             )}
