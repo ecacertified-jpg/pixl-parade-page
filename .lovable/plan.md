@@ -1,58 +1,50 @@
 
 
-# Corriger la saisie manuelle de date d'anniversaire sur mobile
+# Corriger la saisie manuelle de date sur mobile - Ameliorations supplementaires
 
-## Probleme
+## Constat
 
-Le composant `BirthdayPicker` utilise toujours un `<input type="date">` sur mobile (ligne 238-256), ce qui empeche la saisie manuelle au format `jj/mm/aaaa`. Les modifications prevues precedemment n'ont pas ete appliquees.
+Le code dans `birthday-picker.tsx` implemente deja le champ texte unifie avec `inputMode="numeric"` et auto-formatage `jj/mm/aaaa`. Cependant, certains navigateurs mobiles peuvent ignorer `inputMode="numeric"` ou ne pas afficher le bon clavier.
 
-## Solution
-
-Remplacer le bloc conditionnel mobile/desktop (lignes 238-305) par un rendu unifie :
+## Ameliorations a appliquer
 
 ### Fichier : `src/components/ui/birthday-picker.tsx`
 
-Remplacer le bloc `{isMobile ? (...) : (...)}` par :
+1. **Ajouter `type="text"` explicitement** sur le `<Input>` (ligne 239) pour eviter toute ambiguite avec le navigateur mobile.
 
-1. **Un champ texte unique** pour mobile ET desktop : `<Input>` avec `placeholder="jj/mm/aaaa"`, `inputMode="numeric"`, utilisant `handleInputChange` pour l'auto-formatage.
+2. **Ajouter `pattern="[0-9]*"`** pour forcer le clavier numerique sur iOS (Safari ignore parfois `inputMode` mais respecte `pattern`).
 
-2. **Le bouton calendrier conditionnel** :
-   - **Sur mobile** : un `<div>` relatif contenant un `<Button>` visible avec l'icone calendrier, et un `<input type="date">` invisible (`opacity-0, absolute, inset-0`) par-dessus pour ouvrir le selecteur natif du telephone.
-   - **Sur desktop** : le `<Popover>` existant avec le composant `<Calendar>`.
+3. **Ajouter `autoComplete="off"`** pour empecher les navigateurs mobiles de proposer un auto-remplissage qui pourrait interferer avec le formatage.
 
-### Structure du rendu unifie
+4. **Ajouter `aria-label`** pour l'accessibilite du champ.
+
+### Changement concret (lignes 239-252)
+
+Remplacer les proprietes du `<Input>` par :
 
 ```text
-<div className="flex gap-2">
-  <Input                          <-- champ texte jj/mm/aaaa (mobile + desktop)
-    placeholder="jj/mm/aaaa"
-    inputMode="numeric"
-    value={inputValue}
-    onChange={handleInputChange}
-  />
-  {isMobile ? (
-    <div className="relative shrink-0">
-      <Button>                    <-- bouton calendrier visible
-        <CalendarIcon />
-      </Button>
-      <input type="date"          <-- input natif cache par-dessus
-        className="absolute inset-0 opacity-0"
-        onChange={handleNativeDateChange}
-      />
-    </div>
-  ) : (
-    <Popover>                     <-- popover calendrier desktop (inchange)
-      ...
-    </Popover>
-  )}
-</div>
+<Input
+  ref={inputRef}
+  type="text"
+  placeholder={placeholder}
+  value={inputValue}
+  onChange={(e) => handleInputChange(e.target.value)}
+  inputMode="numeric"
+  pattern="[0-9]*"
+  autoComplete="off"
+  maxLength={10}
+  disabled={disabled}
+  aria-label={label || "Date d'anniversaire"}
+  className={...}
+/>
 ```
 
-### Attribut `inputMode="numeric"`
+### Pourquoi ces ajouts
 
-Cet attribut est essentiel : il force l'affichage du clavier numerique sur mobile, facilitant la saisie des chiffres de la date.
+- `pattern="[0-9]*"` : Sur iOS Safari, c'est le moyen le plus fiable de forcer le pave numerique
+- `type="text"` explicite : Certains navigateurs peuvent inferer un type different sans declaration explicite
+- `autoComplete="off"` : Empeche les suggestions du navigateur de remplacer la valeur formatee
 
 ### Impact
 
-Modification d'un seul fichier. Tous les formulaires utilisant `BirthdayPicker` beneficient automatiquement du changement.
-
+Un seul fichier modifie. Tous les formulaires utilisant `BirthdayPicker` beneficient automatiquement du changement.
