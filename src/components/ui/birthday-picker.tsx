@@ -235,41 +235,47 @@ export function BirthdayPicker({
         </Label>
       )}
       
-      {isMobile ? (
-        // Version mobile : input natif type="date"
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            type="date"
-            value={nativeInputValue}
-            onChange={handleNativeDateChange}
-            min={minDate}
-            max={maxDate}
-            disabled={disabled}
-            className={cn(
-              "w-full transition-all duration-300 ease-in-out pr-10",
-              showSuccess && "border-green-500 focus-visible:ring-green-500",
-              hasError && "border-destructive focus-visible:ring-destructive"
-            )}
-          />
-          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        </div>
-      ) : (
-        // Version desktop : input texte + bouton calendrier
-        <div className="flex gap-2">
-          <Input
-            ref={inputRef}
-            placeholder={placeholder}
-            value={inputValue}
-            onChange={(e) => handleInputChange(e.target.value)}
-            maxLength={10}
-            disabled={disabled}
-            className={cn(
-              "flex-1 transition-all duration-300 ease-in-out",
-              showSuccess && "border-green-500 focus-visible:ring-green-500",
-              hasError && "border-destructive focus-visible:ring-destructive"
-            )}
-          />
+      <div className="flex gap-2">
+        <Input
+          ref={inputRef}
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={(e) => handleInputChange(e.target.value)}
+          inputMode="numeric"
+          maxLength={10}
+          disabled={disabled}
+          className={cn(
+            "flex-1 transition-all duration-300 ease-in-out",
+            showSuccess && "border-green-500 focus-visible:ring-green-500",
+            hasError && "border-destructive focus-visible:ring-destructive"
+          )}
+        />
+        {isMobile ? (
+          <div className="relative shrink-0">
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "shrink-0 transition-all duration-300 ease-in-out",
+                showSuccess && "border-green-500 text-green-600 hover:border-green-500",
+                hasError && "border-destructive text-destructive hover:border-destructive"
+              )}
+              type="button"
+              disabled={disabled}
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+            <input
+              type="date"
+              value={nativeInputValue}
+              onChange={handleNativeDateChange}
+              min={minDate}
+              max={maxDate}
+              disabled={disabled}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+          </div>
+        ) : (
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -301,8 +307,8 @@ export function BirthdayPicker({
               />
             </PopoverContent>
           </Popover>
-        </div>
-      )}
+        )}
+      </div>
       
       {hasError ? (
         <div className="animate-fade-in">
