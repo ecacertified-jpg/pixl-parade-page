@@ -238,12 +238,16 @@ export function BirthdayPicker({
       <div className="flex gap-2">
         <Input
           ref={inputRef}
+          type="text"
           placeholder={placeholder}
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
           inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="off"
           maxLength={10}
           disabled={disabled}
+          aria-label={label || "Date d'anniversaire"}
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out",
             showSuccess && "border-green-500 focus-visible:ring-green-500",
