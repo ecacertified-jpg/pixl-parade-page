@@ -1,43 +1,58 @@
 
 
-# Permettre la saisie manuelle de la date d'anniversaire sur mobile
+# Corriger la saisie manuelle de date d'anniversaire sur mobile
 
-## Probleme actuel
+## Probleme
 
-Sur mobile, le composant `BirthdayPicker` utilise uniquement `<input type="date">` qui affiche le selecteur natif du systeme (roue iOS / calendrier Android). Les utilisateurs ne peuvent pas taper directement leur date au clavier.
+Le composant `BirthdayPicker` utilise toujours un `<input type="date">` sur mobile (ligne 238-256), ce qui empeche la saisie manuelle au format `jj/mm/aaaa`. Les modifications prevues precedemment n'ont pas ete appliquees.
 
 ## Solution
 
-Remplacer le `<input type="date">` mobile par un champ texte avec auto-formatage `jj/mm/aaaa` (identique a la version desktop), accompagne d'une icone calendrier qui ouvre le selecteur natif en fallback.
-
-## Approche technique
+Remplacer le bloc conditionnel mobile/desktop (lignes 238-305) par un rendu unifie :
 
 ### Fichier : `src/components/ui/birthday-picker.tsx`
 
-#### Modifier la version mobile pour utiliser un champ texte + selecteur natif cache
+Remplacer le bloc `{isMobile ? (...) : (...)}` par :
 
-1. **Champ texte principal** : Afficher un `<Input>` avec placeholder `jj/mm/aaaa` et auto-formatage des chiffres (ajout automatique des `/`), exactement comme la version desktop actuelle.
+1. **Un champ texte unique** pour mobile ET desktop : `<Input>` avec `placeholder="jj/mm/aaaa"`, `inputMode="numeric"`, utilisant `handleInputChange` pour l'auto-formatage.
 
-2. **Input natif cache** : Garder un `<input type="date">` invisible (opacity-0, position absolute) derriere l'icone calendrier. Quand l'utilisateur clique sur l'icone, ca ouvre le selecteur natif du telephone comme option secondaire.
+2. **Le bouton calendrier conditionnel** :
+   - **Sur mobile** : un `<div>` relatif contenant un `<Button>` visible avec l'icone calendrier, et un `<input type="date">` invisible (`opacity-0, absolute, inset-0`) par-dessus pour ouvrir le selecteur natif du telephone.
+   - **Sur desktop** : le `<Popover>` existant avec le composant `<Calendar>`.
 
-3. **Reutiliser la logique existante** : Les fonctions `handleInputChange` et `validateInput` sont deja implementees pour le desktop. On les reutilise pour le mobile en supprimant la condition `isMobile` qui separe les deux rendus.
+### Structure du rendu unifie
 
-#### Changement concret
+```text
+<div className="flex gap-2">
+  <Input                          <-- champ texte jj/mm/aaaa (mobile + desktop)
+    placeholder="jj/mm/aaaa"
+    inputMode="numeric"
+    value={inputValue}
+    onChange={handleInputChange}
+  />
+  {isMobile ? (
+    <div className="relative shrink-0">
+      <Button>                    <-- bouton calendrier visible
+        <CalendarIcon />
+      </Button>
+      <input type="date"          <-- input natif cache par-dessus
+        className="absolute inset-0 opacity-0"
+        onChange={handleNativeDateChange}
+      />
+    </div>
+  ) : (
+    <Popover>                     <-- popover calendrier desktop (inchange)
+      ...
+    </Popover>
+  )}
+</div>
+```
 
-Remplacer le bloc conditionnel `isMobile ? (...) : (...)` par un rendu unifie :
-- Un champ texte `jj/mm/aaaa` avec auto-formatage (toujours visible)
-- Une icone calendrier cliquable a droite
-- Sur mobile : l'icone ouvre un `<input type="date">` cache pour offrir le selecteur natif en option
-- Sur desktop : l'icone ouvre le `Popover` avec le composant `Calendar` (comportement actuel conserve)
+### Attribut `inputMode="numeric"`
+
+Cet attribut est essentiel : il force l'affichage du clavier numerique sur mobile, facilitant la saisie des chiffres de la date.
 
 ### Impact
 
-Ce changement s'applique automatiquement a tous les formulaires utilisant `BirthdayPicker` :
-- `CompleteProfileModal` (onboarding)
-- `ProfileSettings` (edition profil)
-- `AddFriendModal` (ajout contact)
-- `AddEventModal` (ajout evenement)
-
-### Aucune modification necessaire dans les autres fichiers
-Seul `src/components/ui/birthday-picker.tsx` est modifie.
+Modification d'un seul fichier. Tous les formulaires utilisant `BirthdayPicker` beneficient automatiquement du changement.
 
