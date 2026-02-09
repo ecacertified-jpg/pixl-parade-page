@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+function inferCountryFromAddress(address: string | null): string | null {
+  if (!address) return null;
+  const lower = address.toLowerCase();
+  if (['cotonou', 'porto-novo', 'parakou', 'bohicon', 'abomey'].some(c => lower.includes(c))) return 'BJ';
+  if (['dakar', 'thies', 'kaolack', 'saint-louis', 'ziguinchor'].some(c => lower.includes(c))) return 'SN';
+  if (['abidjan', 'bouake', 'yamoussoukro', 'korhogo', 'daloa'].some(c => lower.includes(c))) return 'CI';
+  return null;
+}
+
 interface ProductVideoData {
   id: string;
   url: string;
@@ -87,7 +96,7 @@ export function useVendorProducts(businessId: string | undefined) {
         businessType: businessData.business_type,
         deliveryZones: businessData.delivery_zones,
         openingHours: businessData.opening_hours,
-        countryCode: businessData.country_code || 'CI',
+        countryCode: businessData.country_code || inferCountryFromAddress(businessData.address) || 'CI',
         latitude: businessData.latitude || null,
         longitude: businessData.longitude || null,
         websiteUrl: businessData.website_url || null,
