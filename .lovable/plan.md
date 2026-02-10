@@ -1,35 +1,62 @@
 
 
-# Ajouter l'indicateur de progression sur l'inscription Business par Email
+# Harmoniser l'affichage des etapes de progression sur mobile
 
 ## Probleme
 
-L'indicateur de progression (`SignupProgressIndicator`) est uniquement affiche pour l'inscription par **telephone** (ligne 1601 de `BusinessAuth.tsx`). Le formulaire d'inscription par **email** (ligne 1651) n'en a pas.
+Sur mobile, les etapes (Identite, Anniversaire, Email, Mot de passe, Validation) sont alignees horizontalement avec `flex justify-between`, ce qui provoque :
+- Le texte "Mot de passe" qui passe sur 2 lignes
+- Les elements comprimes et mal espaces
+- Un rendu peu lisible et desordonne
+
+Ce probleme affecte 3 composants :
+1. `ClientSignupProgressIndicator` dans Auth.tsx (4 etapes)
+2. `EmailSignupProgressIndicator` dans BusinessAuth.tsx (5 etapes)
+3. `SignupProgressIndicator` dans BusinessAuth.tsx (phone, 4-5 etapes)
 
 ## Solution
 
-### 1. Creer un `EmailSignupProgressIndicator` dans `BusinessAuth.tsx`
+Remplacer la ligne horizontale d'etapes par une **grille responsive** qui s'adapte au mobile :
 
-Nouveau composant qui suit le meme design que `SignupProgressIndicator` mais adapte aux champs du formulaire email :
+- **Mobile** : `grid grid-cols-3` pour les indicateurs a 4-5 etapes, avec `text-center` pour chaque etape. Les etapes s'organisent sur 2 lignes (3+2 ou 2+2) au lieu d'une seule ligne comprimee.
+- **Desktop** : `flex justify-between` conserve (via `md:flex md:justify-between`).
 
-- **Champs suivis** : firstName, lastName, businessName, email, password
-- **5 etapes visuelles** : Identite, Business, Email, Mot de passe, Validation
-- **Barre de progression** : meme style (verte a 100%)
+Chaque etape sera presentee en colonne (icone au-dessus, label en dessous) pour un rendu plus compact et lisible.
 
-Logique de calcul :
-- `firstName` rempli (>= 2 caracteres) : +1
-- `lastName` rempli (>= 2 caracteres) : +1
-- `businessName` rempli (>= 2 caracteres) : +1
-- `email` valide : +1
-- `password` valide (>= 8 caracteres) : +1
+## Detail technique
 
-### 2. Inserer le composant avant le formulaire email
+### Modifications dans les 3 composants
 
-Ajouter `<EmailSignupProgressIndicator emailSignUpForm={emailSignUpForm} />` juste avant le `<form>` dans le bloc email (ligne 1651), exactement comme c'est fait pour le telephone a la ligne 1601.
+Remplacer le conteneur des etapes :
 
-## Fichier impacte
+**Avant** :
+```
+<div className="flex justify-between text-xs text-muted-foreground">
+```
 
-- **Modifie** : `src/pages/BusinessAuth.tsx`
-  - Ajout du composant `EmailSignupProgressIndicator` (apres `SignupProgressIndicator`, ~ligne 95)
-  - Insertion du composant dans le rendu du formulaire email (~ligne 1651)
+**Apres** :
+```
+<div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
+```
+
+Et chaque etape individuelle passe de `flex items-center gap-1` a `flex flex-col items-center gap-0.5 text-center` pour empiler l'icone et le label verticalement sur mobile :
+
+**Avant** :
+```
+<div className="flex items-center gap-1">
+  <Check/> <span>Mot de passe</span>
+</div>
+```
+
+**Apres** :
+```
+<div className="flex flex-col items-center gap-0.5 text-center">
+  <Check/> <span>Mot de passe</span>
+</div>
+```
+
+## Fichiers impactes
+
+- **Modifie** : `src/pages/Auth.tsx` -- `ClientSignupProgressIndicator` (ligne 67)
+- **Modifie** : `src/pages/BusinessAuth.tsx` -- `EmailSignupProgressIndicator` (ligne 135) et `SignupProgressIndicator` (si meme probleme)
 
