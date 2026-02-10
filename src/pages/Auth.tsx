@@ -32,6 +32,8 @@ import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
+import { BirthdayPicker } from '@/components/ui/birthday-picker';
+import { format } from 'date-fns';
 
 // Client Signup Progress Indicator
 const ClientSignupProgressIndicator = ({ 
@@ -1342,17 +1344,12 @@ const Auth = () => {
                             )}
                           </div>
                           
-                          <div className="space-y-2">
-                            <Label htmlFor="birthday">Date d'anniversaire</Label>
-                            <Input
-                              id="birthday"
-                              type="date"
-                              {...signUpForm.register('birthday')}
-                            />
-                            {signUpForm.formState.errors.birthday && (
-                              <p className="text-sm text-destructive">{signUpForm.formState.errors.birthday.message}</p>
-                            )}
-                          </div>
+                          <BirthdayPicker
+                            label="Date d'anniversaire"
+                            labelIcon={<Gift className="h-4 w-4 text-primary" />}
+                            value={signUpForm.watch('birthday') ? new Date(signUpForm.watch('birthday') + 'T00:00:00') : undefined}
+                            onChange={(date) => signUpForm.setValue('birthday', date ? format(date, 'yyyy-MM-dd') : '', { shouldValidate: true })}
+                          />
                           
                           <AddressSelector
                             onAddressChange={(data: AddressResult) => {
@@ -1417,14 +1414,12 @@ const Auth = () => {
                             )}
                           </div>
                           
-                          <div className="space-y-2">
-                            <Label htmlFor="email-birthday">Date d'anniversaire</Label>
-                            <Input
-                              id="email-birthday"
-                              type="date"
-                              {...emailSignUpForm.register('birthday')}
-                            />
-                          </div>
+                          <BirthdayPicker
+                            label="Date d'anniversaire"
+                            labelIcon={<Gift className="h-4 w-4 text-primary" />}
+                            value={emailSignUpForm.watch('birthday') ? new Date(emailSignUpForm.watch('birthday') + 'T00:00:00') : undefined}
+                            onChange={(date) => emailSignUpForm.setValue('birthday', date ? format(date, 'yyyy-MM-dd') : '', { shouldValidate: true })}
+                          />
                           
                           <AddressSelector
                             onAddressChange={(data: AddressResult) => {
