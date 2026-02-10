@@ -94,6 +94,70 @@ const SignupProgressIndicator = ({ signUpForm }: { signUpForm: any }) => {
   return <ProgressIndicator progress={progress} step={getStepLabel(progress)} />;
 };
 
+// Email Signup Progress Indicator
+const EmailSignupProgressIndicator = ({ emailSignUpForm }: { emailSignUpForm: any }) => {
+  const values = emailSignUpForm.watch();
+  
+  let filledFields = 0;
+  const totalRequiredFields = 5;
+  
+  if (values.firstName && values.firstName.length >= 2) filledFields++;
+  if (values.lastName && values.lastName.length >= 2) filledFields++;
+  if (values.businessName && values.businessName.length >= 2) filledFields++;
+  if (values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) filledFields++;
+  if (values.password && values.password.length >= 8) filledFields++;
+  
+  const progress = Math.round((filledFields / totalRequiredFields) * 100);
+  
+  const getStepLabel = (progress: number) => {
+    if (progress === 0) return 'Commencez votre inscription';
+    if (progress < 40) return 'Informations personnelles';
+    if (progress < 60) return 'Informations business';
+    if (progress < 80) return 'Coordonnées email';
+    if (progress < 100) return 'Presque terminé !';
+    return 'Prêt pour l\'inscription';
+  };
+
+  return (
+    <div className="space-y-3 mb-6 p-4 bg-secondary/30 rounded-xl">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-foreground">{getStepLabel(progress)}</span>
+        <span className="text-sm font-semibold text-primary">{progress}%</span>
+      </div>
+      <Progress 
+        value={progress} 
+        className="h-2" 
+        indicatorClassName={cn(
+          "transition-all duration-500",
+          progress === 100 ? "bg-green-500" : "bg-primary"
+        )}
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-1">
+          {(values.firstName?.length >= 2 && values.lastName?.length >= 2) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Identité</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {values.businessName?.length >= 2 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Business</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Email</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {values.password?.length >= 8 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Mot de passe</span>
+        </div>
+        <div className="flex items-center gap-1">
+          {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          <span>Validation</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Complete Registration Progress Indicator (for Google Auth completion form)
 const CompleteRegistrationProgressIndicator = ({ 
   form, 
@@ -1648,7 +1712,9 @@ const BusinessAuth = () => {
                         </form>
                       </>
                     ) : (
-                      <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4 mt-4">
+                      <>
+                        <EmailSignupProgressIndicator emailSignUpForm={emailSignUpForm} />
+                        <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4 mt-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label className="flex items-center gap-1">Prénom <span className="text-destructive">*</span></Label>
@@ -1707,6 +1773,7 @@ const BusinessAuth = () => {
                           {isLoading ? 'Inscription...' : 'Créer mon compte business'}
                         </Button>
                       </form>
+                      </>
                     )}
                   </div>
                 )}
