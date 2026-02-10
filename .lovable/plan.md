@@ -1,45 +1,44 @@
 
 
-# Ajouter une animation de transition au clic sur les cartes pays
+# Rendre les cartes KPI cliquables sur la page detail pays
 
-## Approche
+## Objectif
 
-Utiliser Framer Motion pour ajouter un effet visuel au clic (scale down puis navigation), combinant le feedback tactile immediat avec la transition de page existante via `AnimatedRoutes`.
+Sur la page `/admin/countries/:countryCode`, rendre les 7 cartes KPI (Utilisateurs, Entreprises, Revenus, Taux de conversion, Commandes, Panier moyen, Cagnottes) cliquables. Au clic, l'admin est redirige vers la page d'administration correspondante avec le filtre pays automatiquement applique.
 
-## Modification
+## Fonctionnement
 
-### `src/components/admin/CountryStatsCards.tsx`
+Chaque carte navigue vers la page admin dediee tout en changeant le filtre pays global (`AdminCountryContext`) pour pre-filtrer les donnees du pays concerne :
 
-- Importer `motion` de `framer-motion`
-- Remplacer `<Card>` par `<motion.div>` wrappant le `<Card>`
-- Ajouter `whileTap={{ scale: 0.97 }}` et `whileHover={{ scale: 1.02 }}` pour un feedback interactif
-- Ajouter une legere transition de fond au hover via `transition`
+| Carte | Navigation | Action |
+|-------|-----------|--------|
+| Utilisateurs | `/admin/users` | Filtre pays applique |
+| Entreprises | `/admin/businesses` | Filtre pays applique |
+| Revenus | `/admin/business-analytics` | Filtre pays applique |
+| Taux de conversion | `/admin/business-analytics` | Filtre pays applique |
+| Commandes | `/admin/orders` | Filtre pays applique |
+| Panier moyen | `/admin/orders` | Filtre pays applique |
+| Cagnottes | Reste sur la page (pas de page admin dediee) | Scroll vers la section |
 
-```tsx
-import { motion } from 'framer-motion';
+## Modifications techniques
 
-// Chaque carte :
-<motion.div
-  key={country.code}
-  whileHover={{ scale: 1.02 }}
-  whileTap={{ scale: 0.97 }}
-  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-  onClick={() => navigate(`/admin/countries/${country.code}`)}
-  className="cursor-pointer"
->
-  <Card className="hover:shadow-md transition-shadow h-full">
-    <CardContent className="p-5 flex flex-col items-center text-center gap-2">
-      ...
-    </CardContent>
-  </Card>
-</motion.div>
-```
+### `src/pages/Admin/CountryDetailPage.tsx`
 
-Meme approche pour le skeleton loading (sans interaction).
+1. Importer `useAdminCountry` depuis le contexte existant et `motion` de framer-motion
+2. Creer une fonction `handleNavigate(path)` qui :
+   - Appelle `setSelectedCountry(countryCode)` pour appliquer le filtre global
+   - Navigue vers la page cible avec `navigate(path)`
+3. Wrapper chaque `Card` dans un `motion.div` avec :
+   - `whileHover={{ scale: 1.02 }}` et `whileTap={{ scale: 0.97 }}`
+   - `className="cursor-pointer"`
+   - `onClick={() => handleNavigate('/admin/users')}` (adapte par carte)
+4. Ajouter un indicateur visuel (chevron ou texte "Voir detail") pour signaler que la carte est cliquable
+5. Pour la carte Cagnottes (pas de page dediee), ne pas rendre cliquable ou ajouter un lien futur
 
 ## Impact
 
-- 1 fichier modifie : `CountryStatsCards.tsx`
-- Animation spring au hover (zoom leger) et au clic (compression)
-- La transition de page existante dans `AnimatedRoutes` gere le reste de l'animation apres navigation
+- 1 fichier modifie : `CountryDetailPage.tsx`
+- Aucune nouvelle route ou page necessaire
+- Utilise les pages admin existantes qui supportent deja le filtre via `AdminCountryContext`
+- Animation coherente avec les cartes pays du dashboard principal
 
