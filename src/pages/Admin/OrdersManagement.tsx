@@ -26,6 +26,7 @@ import { fr } from 'date-fns/locale';
 import { useAdminOrders, AdminOrder, getOrderStatusLabel, getOrderStatusColor } from '@/hooks/useAdminOrders';
 import { AdminOrderDetailsModal } from '@/components/admin/AdminOrderDetailsModal';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 
 interface BusinessOption {
   id: string;
@@ -45,6 +46,7 @@ export default function OrdersManagement() {
     rejectRefund
   } = useAdminOrders();
 
+  const { selectedCountry } = useAdminCountry();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [businessFilter, setBusinessFilter] = useState<string>('all');
@@ -54,24 +56,31 @@ export default function OrdersManagement() {
 
   useEffect(() => {
     loadBusinessOptions();
-  }, []);
+    setBusinessFilter('all');
+  }, [selectedCountry]);
 
   useEffect(() => {
     const filters = {
       businessId: businessFilter !== 'all' ? businessFilter : undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      searchQuery: searchQuery || undefined
+      searchQuery: searchQuery || undefined,
+      countryCode: selectedCountry || undefined
     };
     loadOrders(filters);
-  }, [statusFilter, businessFilter, searchQuery]);
+  }, [statusFilter, businessFilter, searchQuery, selectedCountry]);
 
   const loadBusinessOptions = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('business_accounts')
       .select('id, business_name')
       .eq('is_active', true)
       .order('business_name');
     
+    if (selectedCountry) {
+      query = query.eq('country_code', selectedCountry);
+    }
+
+    const { data } = await query;
     setBusinesses(data || []);
   };
 
@@ -88,7 +97,8 @@ export default function OrdersManagement() {
     loadOrders({
       businessId: businessFilter !== 'all' ? businessFilter : undefined,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      searchQuery: searchQuery || undefined
+      searchQuery: searchQuery || undefined,
+      countryCode: selectedCountry || undefined
     });
   };
 

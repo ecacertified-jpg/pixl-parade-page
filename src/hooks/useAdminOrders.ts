@@ -54,6 +54,7 @@ export interface OrderFilters {
   dateFrom?: string;
   dateTo?: string;
   searchQuery?: string;
+  countryCode?: string;
 }
 
 export interface OrderStats {
@@ -157,6 +158,9 @@ export const useAdminOrders = () => {
       }
       if (currentFilters.dateTo) {
         query = query.lte('created_at', currentFilters.dateTo);
+      }
+      if (currentFilters.countryCode) {
+        query = query.eq('business_accounts.country_code', currentFilters.countryCode);
       }
 
       const { data, error } = await query;
