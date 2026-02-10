@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail, Eye, EyeOff } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail, Eye, EyeOff, User, Lock, CheckCircle } from 'lucide-react';
 import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
@@ -48,19 +48,19 @@ const ProgressIndicator = ({ progress, step }: { progress: number; step: string 
       />
       <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {progress >= 25 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {progress >= 25 ? <Check className="h-4 w-4 text-green-500" /> : <User className="h-4 w-4 text-muted-foreground/50" />}
           <span>Identité</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {progress >= 50 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {progress >= 50 ? <Check className="h-4 w-4 text-green-500" /> : <Store className="h-4 w-4 text-muted-foreground/50" />}
           <span>Business</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {progress >= 75 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {progress >= 75 ? <Check className="h-4 w-4 text-green-500" /> : <Phone className="h-4 w-4 text-muted-foreground/50" />}
           <span>Contact</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {progress === 100 ? <Check className="h-4 w-4 text-green-500" /> : <CheckCircle className="h-4 w-4 text-muted-foreground/50" />}
           <span>Validation</span>
         </div>
       </div>
@@ -134,23 +134,23 @@ const EmailSignupProgressIndicator = ({ emailSignUpForm }: { emailSignUpForm: an
       />
       <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {(values.firstName?.length >= 2 && values.lastName?.length >= 2) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {(values.firstName?.length >= 2 && values.lastName?.length >= 2) ? <Check className="h-4 w-4 text-green-500" /> : <User className="h-4 w-4 text-muted-foreground/50" />}
           <span>Identité</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {values.businessName?.length >= 2 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {values.businessName?.length >= 2 ? <Check className="h-4 w-4 text-green-500" /> : <Store className="h-4 w-4 text-muted-foreground/50" />}
           <span>Business</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) ? <Check className="h-4 w-4 text-green-500" /> : <Mail className="h-4 w-4 text-muted-foreground/50" />}
           <span>Email</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {values.password?.length >= 8 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {values.password?.length >= 8 ? <Check className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-muted-foreground/50" />}
           <span>Mot de passe</span>
         </div>
         <div className="flex flex-col items-center gap-0.5 text-center">
-          {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+          {progress === 100 ? <Check className="h-4 w-4 text-green-500" /> : <CheckCircle className="h-4 w-4 text-muted-foreground/50" />}
           <span>Validation</span>
         </div>
       </div>
