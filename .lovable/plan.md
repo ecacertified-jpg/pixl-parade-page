@@ -1,32 +1,35 @@
 
-# Installer l'app directement depuis la banniere
 
-## Probleme actuel
+# Ajouter l'indicateur de progression sur l'inscription Business par Email
 
-Le bouton "Installer" de la banniere redirige vers la page `/install` au lieu de declencher directement l'invite d'installation PWA du navigateur. L'utilisateur doit donc passer par une etape intermediaire inutile.
+## Probleme
+
+L'indicateur de progression (`SignupProgressIndicator`) est uniquement affiche pour l'inscription par **telephone** (ligne 1601 de `BusinessAuth.tsx`). Le formulaire d'inscription par **email** (ligne 1651) n'en a pas.
 
 ## Solution
 
-Modifier `InstallBanner.tsx` pour :
+### 1. Creer un `EmailSignupProgressIndicator` dans `BusinessAuth.tsx`
 
-1. **Capturer l'evenement `beforeinstallprompt`** -- Stocker le prompt d'installation dans un state local (`deferredPrompt`) pour pouvoir le declencher plus tard.
+Nouveau composant qui suit le meme design que `SignupProgressIndicator` mais adapte aux champs du formulaire email :
 
-2. **Declencher l'installation au clic** -- Quand l'utilisateur clique sur "Installer" :
-   - Si le prompt est disponible : appeler `deferredPrompt.prompt()` pour afficher l'invite native d'installation
-   - Si le prompt n'est pas disponible (iOS ou navigateur non compatible) : rediriger vers `/install` comme fallback (pour montrer les instructions manuelles)
+- **Champs suivis** : firstName, lastName, businessName, email, password
+- **5 etapes visuelles** : Identite, Business, Email, Mot de passe, Validation
+- **Barre de progression** : meme style (verte a 100%)
 
-3. **Masquer la banniere apres installation** -- Ecouter l'evenement `appinstalled` pour cacher la banniere automatiquement.
+Logique de calcul :
+- `firstName` rempli (>= 2 caracteres) : +1
+- `lastName` rempli (>= 2 caracteres) : +1
+- `businessName` rempli (>= 2 caracteres) : +1
+- `email` valide : +1
+- `password` valide (>= 8 caracteres) : +1
+
+### 2. Inserer le composant avant le formulaire email
+
+Ajouter `<EmailSignupProgressIndicator emailSignUpForm={emailSignUpForm} />` juste avant le `<form>` dans le bloc email (ligne 1651), exactement comme c'est fait pour le telephone a la ligne 1601.
 
 ## Fichier impacte
 
-- **Modifie** : `src/components/InstallBanner.tsx`
+- **Modifie** : `src/pages/BusinessAuth.tsx`
+  - Ajout du composant `EmailSignupProgressIndicator` (apres `SignupProgressIndicator`, ~ligne 95)
+  - Insertion du composant dans le rendu du formulaire email (~ligne 1651)
 
-## Detail technique
-
-```
-- Ajouter un state : deferredPrompt
-- Ajouter un listener "beforeinstallprompt" dans le useEffect existant
-- Ajouter un listener "appinstalled" pour masquer la banniere
-- Modifier handleInstall : si deferredPrompt existe, appeler .prompt(), sinon navigate("/install")
-- Supprimer l'import useNavigate seulement si on garde le fallback (on le garde)
-```
