@@ -60,6 +60,7 @@ import CountryPerformanceDashboard from "./pages/Admin/CountryPerformanceDashboa
 import CountryDetailPage from "./pages/Admin/CountryDetailPage";
 import CountryUsersPage from "./pages/Admin/CountryUsersPage";
 import CountryBusinessesPage from "./pages/Admin/CountryBusinessesPage";
+import CountryFundsPage from "./pages/Admin/CountryFundsPage";
 import CountryObjectivesPage from "./pages/Admin/CountryObjectivesPage";
 import CountryMonthlyComparisonPage from "./pages/Admin/CountryMonthlyComparisonPage";
 import ForecastPage from "./pages/Admin/ForecastPage";
@@ -512,6 +513,11 @@ const App = () => (
             <Route path="/admin/countries/:countryCode/businesses" element={
               <AdminRoute>
                 <CountryBusinessesPage />
+              </AdminRoute>
+            } />
+            <Route path="/admin/countries/:countryCode/funds" element={
+              <AdminRoute>
+                <CountryFundsPage />
               </AdminRoute>
             } />
             <Route path="/admin/countries/objectives" element={
