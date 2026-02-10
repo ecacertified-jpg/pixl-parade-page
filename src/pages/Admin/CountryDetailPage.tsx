@@ -70,8 +70,10 @@ const CountryDetailPage = () => {
   const handleNavigate = (path: string) => {
     if (countryCode) {
       setSelectedCountry(countryCode);
+      navigate(`${path}?country=${countryCode}`);
+    } else {
+      navigate(path);
     }
-    navigate(path);
   };
   const [topBusinesses, setTopBusinesses] = useState<TopBusiness[]>([]);
   const [businessTypes, setBusinessTypes] = useState<BusinessTypeDistribution[]>([]);

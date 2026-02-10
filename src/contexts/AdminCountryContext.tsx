@@ -15,7 +15,11 @@ interface AdminCountryContextType {
 const AdminCountryContext = createContext<AdminCountryContextType | undefined>(undefined);
 
 export function AdminCountryProvider({ children }: { children: ReactNode }) {
-  const [selectedCountry, setSelectedCountryState] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountryState] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const countryParam = params.get('country');
+    return countryParam || null;
+  });
   const allCountries = getAllCountries();
   const { isSuperAdmin, assignedCountries, canAccessCountry: adminCanAccessCountry } = useAdmin();
 
