@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { getAllCountries } from '@/config/countries';
 
@@ -40,17 +41,26 @@ export function CountryStatsCards({ stats, loading }: CountryStatsCardsProps) {
         const countryStats = stats[country.code] || { users: 0, businesses: 0 };
         
         return (
-          <Card key={country.code} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/admin/countries/${country.code}`)}>
-            <CardContent className="p-5 flex flex-col items-center text-center gap-2">
-              <span className="text-4xl">{country.flag}</span>
-              <p className="font-semibold text-base">{country.name}</p>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>{countryStats.users.toLocaleString('fr-FR')} utilisateurs</span>
-                <span>·</span>
-                <span>{countryStats.businesses} prestataires</span>
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div
+            key={country.code}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            onClick={() => navigate(`/admin/countries/${country.code}`)}
+            className="cursor-pointer"
+          >
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+                <span className="text-4xl">{country.flag}</span>
+                <p className="font-semibold text-base">{country.name}</p>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>{countryStats.users.toLocaleString('fr-FR')} utilisateurs</span>
+                  <span>·</span>
+                  <span>{countryStats.businesses} prestataires</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         );
       })}
     </div>
