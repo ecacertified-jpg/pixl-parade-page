@@ -21,12 +21,10 @@ export function CountryStatsCards({ stats, loading }: CountryStatsCardsProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {countries.map((country) => (
           <Card key={country.code} className="animate-pulse">
-            <CardContent className="p-4 flex items-center gap-4">
+            <CardContent className="p-5 flex flex-col items-center text-center gap-2">
               <div className="text-4xl opacity-50">{country.flag}</div>
-              <div className="space-y-2">
-                <div className="h-4 bg-muted rounded w-20" />
-                <div className="h-3 bg-muted rounded w-16" />
-              </div>
+              <div className="h-4 bg-muted rounded w-24" />
+              <div className="h-3 bg-muted rounded w-32" />
             </CardContent>
           </Card>
         ))}
@@ -41,15 +39,13 @@ export function CountryStatsCards({ stats, loading }: CountryStatsCardsProps) {
         
         return (
           <Card key={country.code} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="text-4xl">{country.flag}</div>
-              <div>
-                <p className="font-semibold text-lg">{country.name}</p>
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>{countryStats.users.toLocaleString('fr-FR')} utilisateurs</span>
-                  <span>•</span>
-                  <span>{countryStats.businesses} prestataires</span>
-                </div>
+            <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+              <span className="text-4xl">{country.flag}</span>
+              <p className="font-semibold text-base">{country.name}</p>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span>{countryStats.users.toLocaleString('fr-FR')} utilisateurs</span>
+                <span>·</span>
+                <span>{countryStats.businesses} prestataires</span>
               </div>
             </CardContent>
           </Card>
