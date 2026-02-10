@@ -151,6 +151,8 @@ export default function BusinessManagement() {
   // Get unique business types for filter
   const businessTypes = [...new Set(businesses.map(b => b.business_type).filter(Boolean))] as string[];
 
+  const activeCountry = selectedCountry || searchParams.get('country');
+
   useEffect(() => {
     fetchBusinesses();
   }, [selectedCountry]);
@@ -158,14 +160,15 @@ export default function BusinessManagement() {
   const fetchBusinesses = async () => {
     try {
       setLoading(true);
+      const countryFilter = selectedCountry || searchParams.get('country');
       let query = supabase
         .from('business_accounts')
         .select('id, user_id, business_name, business_type, email, phone, address, description, website_url, is_verified, is_active, status, rejection_reason, corrections_message, created_at, updated_at, country_code, latitude, longitude')
-        .is('deleted_at', null) // Exclure les business supprimés
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
-      if (selectedCountry) {
-        query = query.eq('country_code', selectedCountry);
+      if (countryFilter) {
+        query = query.eq('country_code', countryFilter);
       }
 
       const { data, error } = await query;
@@ -621,7 +624,7 @@ export default function BusinessManagement() {
         <AdminPageHeader
           title="Gestion des prestataires"
           description="Gérer et valider les comptes business"
-          backPath={selectedCountry ? `/admin/countries/${selectedCountry}` : '/admin'}
+          backPath={activeCountry ? `/admin/countries/${activeCountry}` : '/admin'}
           actions={
             <div className="flex flex-wrap gap-2">
               {isSuperAdmin && (
@@ -647,18 +650,18 @@ export default function BusinessManagement() {
         />
 
         {/* Country context bar */}
-        {selectedCountry && (() => {
-          const country = accessibleCountries.find(c => c.code === selectedCountry);
+        {activeCountry && (() => {
+          const country = accessibleCountries.find(c => c.code === activeCountry);
           return (
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/admin/countries/${selectedCountry}`)}
+                onClick={() => navigate(`/admin/countries/${activeCountry}`)}
                 className="gap-1.5"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Retour à {country?.flag || ''} {country?.name || selectedCountry}
+                Retour à {country?.flag || ''} {country?.name || activeCountry}
               </Button>
               <Button
                 variant="ghost"
@@ -681,8 +684,8 @@ export default function BusinessManagement() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <CardTitle>
-                  {selectedCountry
-                    ? `Prestataires - ${accessibleCountries.find(c => c.code === selectedCountry)?.flag || ''} ${accessibleCountries.find(c => c.code === selectedCountry)?.name || selectedCountry}`
+                  {activeCountry
+                    ? `Prestataires - ${accessibleCountries.find(c => c.code === activeCountry)?.flag || ''} ${accessibleCountries.find(c => c.code === activeCountry)?.name || activeCountry}`
                     : 'Tous les prestataires'} ({filteredBusinesses.length}
                   {filteredBusinesses.length !== businesses.length && ` / ${businesses.length}`})
                 </CardTitle>
