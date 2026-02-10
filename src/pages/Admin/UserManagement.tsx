@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -175,8 +175,27 @@ const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
 
 export default function UserManagement() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isSuperAdmin } = useAdmin();
   const { selectedCountry, setSelectedCountry, accessibleCountries } = useAdminCountry();
+
+  // Sync URL country param → context on mount
+  useEffect(() => {
+    const countryParam = searchParams.get('country');
+    if (countryParam && countryParam !== selectedCountry) {
+      setSelectedCountry(countryParam);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync context → URL when country changes
+  useEffect(() => {
+    const currentParam = searchParams.get('country');
+    if (selectedCountry && selectedCountry !== currentParam) {
+      setSearchParams(prev => { prev.set('country', selectedCountry); return prev; }, { replace: true });
+    } else if (!selectedCountry && currentParam) {
+      setSearchParams(prev => { prev.delete('country'); return prev; }, { replace: true });
+    }
+  }, [selectedCountry]); // eslint-disable-line react-hooks/exhaustive-deps
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

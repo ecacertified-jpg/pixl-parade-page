@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -94,6 +94,25 @@ export default function BusinessManagement() {
   const { isSuperAdmin, hasPermission } = useAdmin();
   const { selectedCountry, setSelectedCountry, accessibleCountries } = useAdminCountry();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Sync URL country param → context on mount
+  useEffect(() => {
+    const countryParam = searchParams.get('country');
+    if (countryParam && countryParam !== selectedCountry) {
+      setSelectedCountry(countryParam);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync context → URL when country changes
+  useEffect(() => {
+    const currentParam = searchParams.get('country');
+    if (selectedCountry && selectedCountry !== currentParam) {
+      setSearchParams(prev => { prev.set('country', selectedCountry); return prev; }, { replace: true });
+    } else if (!selectedCountry && currentParam) {
+      setSearchParams(prev => { prev.delete('country'); return prev; }, { replace: true });
+    }
+  }, [selectedCountry]); // eslint-disable-line react-hooks/exhaustive-deps
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
