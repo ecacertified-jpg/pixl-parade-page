@@ -1,76 +1,56 @@
 
-# Persister le filtre pays lors de la navigation
 
-## Probleme identifie
+# Renforcer la persistance du filtre pays via URL
 
-Le `AdminCountryProvider` est place **a l'interieur** de `AdminLayout`, qui est lui-meme rendu comme enfant de chaque page admin. Quand l'admin clique sur la carte "Utilisateurs" depuis la page Benin :
+## Diagnostic
 
-1. `setSelectedCountry('BJ')` est appele
-2. `navigate('/admin/users')` est appele
-3. La route change, le composant `UserManagement` monte avec un **nouveau** `AdminLayout` et donc un **nouveau** `AdminCountryProvider`
-4. Le state `selectedCountry` est reinitialise a `null`
-5. Resultat : la page affiche les 187 utilisateurs globaux au lieu des 5 du Benin
+Le code actuel est architecturalement correct :
+- `handleNavigate` dans CountryDetailPage ajoute `?country=BJ` a l'URL
+- `AdminCountryContext` lit ce parametre au montage via `useState(() => ...)`
+- `fetchUsers` filtre par `country_code` quand `selectedCountry` est defini
 
-## Solution : passer le pays via un parametre URL
+Cependant, il peut exister un probleme de synchronisation (race condition) entre :
+1. Le remontage du `AdminCountryProvider` (dans `AdminLayout`)
+2. Le premier appel a `fetchUsers` dans `UserManagement`
 
-Utiliser un query parameter `?country=BJ` dans l'URL pour transmettre le filtre entre les pages. C'est la solution la plus fiable car elle ne depend pas du cycle de vie React.
+Le `useEffect([selectedCountry])` peut se declencher avant que le context soit pleinement synchronise, provoquant un appel avec `selectedCountry = null`.
 
-## Modifications
+## Solution : double securite
 
-### 1. `src/pages/Admin/CountryDetailPage.tsx`
+### 1. `src/pages/Admin/UserManagement.tsx`
 
-Modifier `handleNavigate` pour ajouter le query parameter :
+- Modifier `fetchUsers` pour lire directement le query parameter comme fallback si `selectedCountry` est null :
 
 ```
-const handleNavigate = (path: string) => {
-  if (countryCode) {
-    navigate(`${path}?country=${countryCode}`);
-  } else {
-    navigate(path);
+const fetchUsers = async () => {
+  const countryFilter = selectedCountry || searchParams.get('country');
+  // ...
+  if (countryFilter) {
+    query = query.eq('country_code', countryFilter);
   }
 };
 ```
 
-### 2. `src/contexts/AdminCountryContext.tsx`
+- S'assurer que le `useEffect` de synchronisation URL-vers-context se declenche aussi quand `searchParams` change (pas seulement au montage)
 
-Initialiser `selectedCountry` depuis le query parameter URL si present :
+### 2. `src/pages/Admin/BusinessManagement.tsx`
 
-- Lire `window.location.search` au montage
-- Si un parametre `country` est present et valide, l'utiliser comme valeur initiale
-- Cela garantit que meme apres le remontage du provider, le filtre est preserve
+- Meme logique de fallback sur le query parameter dans `fetchBusinesses`
 
-### 3. `src/pages/Admin/UserManagement.tsx`
+### 3. `src/pages/Admin/UserManagement.tsx` et `BusinessManagement.tsx`
 
-Ajouter la lecture du query parameter `country` au montage :
+- Adapter le `backPath` du `AdminPageHeader` pour utiliser aussi le fallback :
 
-- Utiliser `useSearchParams()` de react-router-dom
-- Si `country` est present dans l'URL, appeler `setSelectedCountry(country)` dans un `useEffect` au montage
-- Mettre a jour l'URL quand le filtre est efface (retirer le parametre)
-
-### 4. `src/pages/Admin/BusinessManagement.tsx`
-
-Meme logique que pour UserManagement :
-
-- Lire le query parameter `country` au montage
-- Appeler `setSelectedCountry` si present
-- Mettre a jour l'URL quand le filtre change
-
-## Flux apres correction
-
-```text
-Page Benin -> Clic "Utilisateurs"
-  -> navigate('/admin/users?country=BJ')
-  -> UserManagement monte
-  -> AdminCountryProvider monte (selectedCountry = null)
-  -> useEffect lit ?country=BJ -> setSelectedCountry('BJ')
-  -> fetchUsers filtre sur BJ -> 5 utilisateurs affiches
-  -> Titre : "Utilisateurs - Benin (5)"
-  -> Bouton "Retour a Benin" visible
 ```
+const activeCountry = selectedCountry || searchParams.get('country');
+const backPath = activeCountry ? `/admin/countries/${activeCountry}` : '/admin';
+```
+
+- Utiliser `activeCountry` aussi pour le titre dynamique et le bouton "Retour au pays"
 
 ## Impact
 
-- 4 fichiers modifies
+- 2 fichiers modifies
 - Aucune modification de base de donnees
-- Le filtre pays est transmis de maniere fiable via l'URL
-- Les liens sont partageables (un admin peut copier l'URL filtree)
+- Le filtre est garanti : meme si le context n'est pas encore synchronise, le query parameter est lu directement
+- Le flux fonctionne de maniere fiable dans tous les cas de timing
