@@ -1,10 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { useCountryPerformance } from '@/hooks/useCountryPerformance';
+import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Store, DollarSign, ShoppingCart, TrendingUp, TrendingDown, Minus, Percent, Gift } from 'lucide-react';
+import { ArrowLeft, Users, Store, DollarSign, ShoppingCart, TrendingUp, TrendingDown, Minus, Percent, Gift, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +65,14 @@ const CountryDetailPage = () => {
   const { countryCode } = useParams<{ countryCode: string }>();
   const navigate = useNavigate();
   const { countries, trends, loading } = useCountryPerformance();
+  const { setSelectedCountry } = useAdminCountry();
+
+  const handleNavigate = (path: string) => {
+    if (countryCode) {
+      setSelectedCountry(countryCode);
+    }
+    navigate(path);
+  };
   const [topBusinesses, setTopBusinesses] = useState<TopBusiness[]>([]);
   const [businessTypes, setBusinessTypes] = useState<BusinessTypeDistribution[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(true);
@@ -177,105 +187,133 @@ const CountryDetailPage = () => {
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Utilisateurs</p>
-                  <p className="text-2xl font-bold">{country.totalUsers.toLocaleString('fr-FR')}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    +{country.newUsersLast30Days} ce mois
-                  </p>
-                </div>
-                <div className="p-3 rounded-full bg-blue-100">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Entreprises</p>
-                  <p className="text-2xl font-bold">{country.totalBusinesses}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {country.activeBusinesses} actives, {country.verifiedBusinesses} vérifiées
-                  </p>
-                </div>
-                <div className="p-3 rounded-full bg-purple-100">
-                  <Store className="h-5 w-5 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Revenus</p>
-                  <p className="text-2xl font-bold">{formatCurrency(country.totalRevenue)} FCFA</p>
-                  <div className="mt-1">
-                    <GrowthIndicator rate={country.revenueGrowthRate} />
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/users')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Utilisateurs</p>
+                    <p className="text-2xl font-bold">{country.totalUsers.toLocaleString('fr-FR')}</p>
+                    <p className="text-xs text-muted-foreground mt-1">+{country.newUsersLast30Days} ce mois</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <Users className="h-5 w-5 text-primary" />
                   </div>
                 </div>
-                <div className="p-3 rounded-full bg-green-100">
-                  <DollarSign className="h-5 w-5 text-green-600" />
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <span>Voir détails</span>
+                  <ChevronRight className="h-3 w-3" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Taux de conversion</p>
-                  <p className="text-2xl font-bold">{country.conversionRate.toFixed(2)}%</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Users → Business
-                  </p>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/businesses')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Entreprises</p>
+                    <p className="text-2xl font-bold">{country.totalBusinesses}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{country.activeBusinesses} actives, {country.verifiedBusinesses} vérifiées</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-accent/20">
+                    <Store className="h-5 w-5 text-accent-foreground" />
+                  </div>
                 </div>
-                <div className="p-3 rounded-full bg-yellow-100">
-                  <Percent className="h-5 w-5 text-yellow-600" />
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <span>Voir détails</span>
+                  <ChevronRight className="h-3 w-3" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/business-analytics')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Revenus</p>
+                    <p className="text-2xl font-bold">{formatCurrency(country.totalRevenue)} FCFA</p>
+                    <div className="mt-1">
+                      <GrowthIndicator rate={country.revenueGrowthRate} />
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <span>Voir détails</span>
+                  <ChevronRight className="h-3 w-3" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/business-analytics')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Taux de conversion</p>
+                    <p className="text-2xl font-bold">{country.conversionRate.toFixed(2)}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">Users → Business</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-muted">
+                    <Percent className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <span>Voir détails</span>
+                  <ChevronRight className="h-3 w-3" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Additional KPIs */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <ShoppingCart className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Commandes</p>
-                  <p className="text-xl font-bold">{country.totalOrders}</p>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/orders')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Commandes</p>
+                      <p className="text-xl font-bold">{country.totalOrders}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/orders')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Panier moyen</p>
+                      <p className="text-xl font-bold">{formatCurrency(country.avgOrderValue)} FCFA</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-emerald-600" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Panier moyen</p>
-                  <p className="text-xl font-bold">{formatCurrency(country.avgOrderValue)} FCFA</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Gift className="h-5 w-5 text-pink-600" />
+                <Gift className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Cagnottes</p>
                   <p className="text-xl font-bold">{country.totalFunds} ({country.activeFunds} actives)</p>
