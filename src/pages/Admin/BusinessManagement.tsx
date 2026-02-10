@@ -848,6 +848,7 @@ export default function BusinessManagement() {
                     />
                   </TableHead>
                   <TableHead>Nom du business</TableHead>
+                  <TableHead>Pays</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Date d'inscription</TableHead>
@@ -865,6 +866,9 @@ export default function BusinessManagement() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{business.business_name}</TableCell>
+                    <TableCell>
+                      <CountryBadge countryCode={business.country_code} variant="compact" />
+                    </TableCell>
                     <TableCell>{business.business_type || 'Non spécifié'}</TableCell>
                     <TableCell>
                       <div className="text-sm">
