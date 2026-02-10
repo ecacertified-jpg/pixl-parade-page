@@ -1,70 +1,73 @@
 
 
-# Corriger l'affichage du drapeau pays sur les boutiques
+# Corriger le drapeau pays sur les produits de "Ese Shop"
 
-## Probleme identifie
+## Probleme
 
-La boutique "Ese Shop" est situee a Cotonou (Benin) mais affiche le drapeau de Cote d'Ivoire. Deux causes :
-
-1. **Donnees incorrectes en base** : Le profil de l'utilisateur proprietaire (Esenam, telephone `+2290143716729`) a `country_code = 'CI'` au lieu de `'BJ'`. Le business a herite de cette mauvaise valeur.
-2. **Fallback par defaut dans le code** : Dans `useVendorProducts.ts` ligne 90, le code fait `businessData.country_code || 'CI'`, ce qui met Cote d'Ivoire par defaut pour toute boutique sans pays.
+Le produit "Tricotage" a `country_code = 'CI'` dans la table `products`, alors que la boutique "Ese Shop" a bien `country_code = 'BJ'`. Dans `Shop.tsx`, le code donne la priorite au `country_code` du produit sur celui de la boutique (ligne 296), ce qui affiche le mauvais drapeau.
 
 ## Solution
 
-### 1. Correction des donnees existantes (SQL a executer)
+### 1. Correction des donnees (migration SQL)
 
-Mettre a jour le profil et la boutique concernes, ainsi que tout autre profil/business avec un numero beninois mais un mauvais `country_code` :
+Propager le `country_code` correct de `business_accounts` vers tous les `products` qui ont un code pays different de leur boutique parente :
 
 ```sql
--- Corriger les profils avec numero beninois
-UPDATE profiles 
-SET country_code = 'BJ' 
-WHERE phone LIKE '+229%' AND country_code != 'BJ';
-
--- Corriger les profils avec numero senegalais
-UPDATE profiles 
-SET country_code = 'SN' 
-WHERE phone LIKE '+221%' AND country_code != 'SN';
-
--- Propager aux business_accounts
-UPDATE business_accounts ba
-SET country_code = p.country_code
-FROM profiles p
-WHERE ba.user_id = p.user_id
-AND ba.country_code != p.country_code;
+UPDATE products p
+SET country_code = ba.country_code
+FROM business_accounts ba
+WHERE p.business_account_id = ba.id
+AND p.country_code != ba.country_code;
 ```
 
-### 2. Correction du code - Fichier `src/hooks/useVendorProducts.ts`
+### 2. Prevention future - Trigger de synchronisation
 
-Ligne 90 : remplacer le fallback aveugle `|| 'CI'` par une detection intelligente basee sur l'adresse de la boutique :
+Creer un trigger pour que tout nouveau produit ou mise a jour de `business_accounts.country_code` propage automatiquement le bon code pays aux produits :
 
-```typescript
-// Avant
-countryCode: businessData.country_code || 'CI',
+```sql
+-- Quand un produit est insere sans country_code, il herite de sa boutique
+CREATE OR REPLACE FUNCTION sync_product_country_code()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.country_code IS NULL OR NEW.country_code = '' THEN
+    SELECT country_code INTO NEW.country_code
+    FROM business_accounts
+    WHERE id = NEW.business_account_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-// Apres - deduire le pays depuis l'adresse si country_code est null
-countryCode: businessData.country_code || inferCountryFromAddress(businessData.address) || 'CI',
+CREATE TRIGGER trg_sync_product_country
+BEFORE INSERT ON products
+FOR EACH ROW
+EXECUTE FUNCTION sync_product_country_code();
+
+-- Quand le country_code d'une boutique change, propager aux produits
+CREATE OR REPLACE FUNCTION propagate_business_country_to_products()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.country_code IS DISTINCT FROM OLD.country_code THEN
+    UPDATE products
+    SET country_code = NEW.country_code
+    WHERE business_account_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_propagate_business_country
+AFTER UPDATE OF country_code ON business_accounts
+FOR EACH ROW
+EXECUTE FUNCTION propagate_business_country_to_products();
 ```
 
-Ajouter une fonction utilitaire simple en haut du fichier :
+### 3. Aucun changement de code frontend necessaire
 
-```typescript
-function inferCountryFromAddress(address: string | null): string | null {
-  if (!address) return null;
-  const lower = address.toLowerCase();
-  // Villes du Benin
-  if (['cotonou', 'porto-novo', 'parakou', 'bohicon', 'abomey'].some(c => lower.includes(c))) return 'BJ';
-  // Villes du Senegal
-  if (['dakar', 'thies', 'kaolack', 'saint-louis', 'ziguinchor'].some(c => lower.includes(c))) return 'SN';
-  // Villes de Cote d'Ivoire
-  if (['abidjan', 'bouake', 'yamoussoukro', 'korhogo', 'daloa'].some(c => lower.includes(c))) return 'CI';
-  return null;
-}
-```
+La logique dans `Shop.tsx` (priorite produit > boutique) et `useVendorProducts.ts` (fallback intelligent) sont correctes. Le probleme est purement dans les donnees.
 
 ### Impact
 
-- Un fichier code modifie : `src/hooks/useVendorProducts.ts`
-- Requetes SQL de correction des donnees existantes
-- Toutes les boutiques afficheront le bon drapeau immediatement apres la correction des donnees, et le fallback intelligent evitera ce probleme pour les futurs cas ou `country_code` serait null
-
+- 1 migration SQL (correction + triggers de prevention)
+- 0 fichiers de code modifies
+- Tous les produits de toutes les boutiques afficheront immediatement le bon drapeau
