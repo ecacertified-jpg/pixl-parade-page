@@ -1,73 +1,69 @@
 
-
-# Ajouter des icones aux etapes de progression sur mobile
+# Remplacer les inputs date natifs par le composant BirthdayPicker
 
 ## Probleme
 
-Actuellement, les etapes de progression utilisent uniquement un cercle gris (non complete) ou un Check vert (complete). Sur mobile, les labels textuels seuls ne sont pas assez visuels et distinctifs.
+Dans `Auth.tsx`, les deux formulaires d'inscription (telephone et email) utilisent un simple `<Input type="date">` pour la date d'anniversaire. Ce champ natif n'est pas ergonomique sur mobile : il n'affiche pas le format attendu (jj/mm/aaaa), ne propose pas de validation en temps reel, et n'a pas le meme style que le reste de l'application.
+
+Le composant `BirthdayPicker` existe deja et gere parfaitement le mobile (saisie manuelle avec pave numerique + selecteur natif via l'icone calendrier). Il est deja utilise dans `CompleteProfileModal`, `ProfileSettings`, `AddFriendModal` et `AddEventModal`.
 
 ## Solution
 
-Remplacer le cercle gris par une **icone specifique** pour chaque etape quand elle n'est pas encore completee. Quand l'etape est completee, l'icone Check verte est conservee.
+Remplacer les deux `<Input type="date">` par le composant `<BirthdayPicker>` dans les formulaires d'inscription de `Auth.tsx`.
 
-### Mapping des icones par etape
-
-| Etape | Icone Lucide |
-|-------|-------------|
-| Identite | `User` |
-| Anniversaire | `Gift` |
-| Business | `Store` |
-| Email | `Mail` |
-| Localisation | `MapPin` |
-| Contact / Telephone | `Phone` |
-| Mot de passe | `Lock` |
-| Validation | `CheckCircle` |
-
-### Comportement
-
-- **Etape non completee** : icone specifique en `text-muted-foreground/50` (grisee)
-- **Etape completee** : icone `Check` en `text-green-500` (comme actuellement)
-
-## Fichiers impactes
-
-### 1. `src/pages/Auth.tsx`
-
-- **`ClientSignupProgressIndicator`** (ligne 36) : modifier le type `steps` pour inclure une icone, et afficher l'icone au lieu du cercle gris
-- **`PhoneSignupProgress`** (ligne 82) : ajouter les icones `User`, `Gift`, `MapPin`, `Phone` aux etapes
-- **`EmailSignupProgress`** (ligne 100) : ajouter les icones `User`, `Gift`, `Mail`, `Lock` aux etapes
-- Ajouter les imports : `User`, `Gift`, `MapPin`, `Phone`, `Lock` depuis lucide-react
-
-### 2. `src/pages/BusinessAuth.tsx`
-
-- **`ProgressIndicator`** (ligne 34) : refactorer pour accepter des etapes avec icones (comme `ClientSignupProgressIndicator`)
-- **`SignupProgressIndicator`** (ligne 72) : passer les icones `User`, `Store`, `Phone`, `CheckCircle`
-- **`EmailSignupProgressIndicator`** (ligne 98) : ajouter les icones `User`, `Store`, `Mail`, `Lock`, `CheckCircle` aux etapes
-- Ajouter les imports : `User`, `Gift`, `MapPin`, `Lock`, `CheckCircle` depuis lucide-react
-
-### 3. `src/components/CompleteProfileModal.tsx`
-
-- Modifier l'indicateur inline (ligne 135) pour utiliser les icones `Gift`, `MapPin`, `Phone`
-- Appliquer le meme layout responsive (`grid grid-cols-3`, `flex-col items-center`)
-- Ajouter les imports : `MapPin`, `Phone` depuis lucide-react
+Comme les formulaires utilisent `react-hook-form` avec un champ `birthday` de type `string` (format yyyy-MM-dd), il faut faire le pont entre le `BirthdayPicker` (qui travaille avec des objets `Date`) et le formulaire :
+- Convertir la valeur string du formulaire en `Date` pour le `BirthdayPicker`
+- Convertir la `Date` retournee en string `yyyy-MM-dd` via `format()` pour le formulaire
 
 ## Detail technique
 
-Le type des etapes evolue de :
-```text
-{ label: string; isComplete: boolean }
+### Fichier modifie : `src/pages/Auth.tsx`
+
+**1. Ajouter l'import du BirthdayPicker** (en haut du fichier) :
 ```
-vers :
-```text
-{ label: string; isComplete: boolean; icon: LucideIcon }
+import { BirthdayPicker } from '@/components/ui/birthday-picker';
 ```
 
-Le rendu de chaque etape devient :
-```text
-{step.isComplete
-  ? <Check className="h-4 w-4 text-green-500" />
-  : <step.icon className="h-4 w-4 text-muted-foreground/50" />}
-<span>{step.label}</span>
+**2. Formulaire telephone (ligne 1345-1355)** -- Remplacer :
+```
+<div className="space-y-2">
+  <Label htmlFor="birthday">Date d'anniversaire</Label>
+  <Input id="birthday" type="date" {...signUpForm.register('birthday')} />
+  {signUpForm.formState.errors.birthday && ...}
+</div>
+```
+Par :
+```
+<BirthdayPicker
+  label="Date d'anniversaire"
+  labelIcon={<Gift className="h-4 w-4 text-primary" />}
+  value={signUpForm.watch('birthday') ? new Date(signUpForm.watch('birthday') + 'T00:00:00') : undefined}
+  onChange={(date) => signUpForm.setValue('birthday', date ? format(date, 'yyyy-MM-dd') : '', { shouldValidate: true })}
+/>
 ```
 
-Les icones passent de `h-3 w-3` a `h-4 w-4` pour une meilleure lisibilite sur mobile.
+**3. Formulaire email (ligne 1420-1427)** -- Meme remplacement :
+```
+<div className="space-y-2">
+  <Label htmlFor="email-birthday">Date d'anniversaire</Label>
+  <Input id="email-birthday" type="date" {...emailSignUpForm.register('birthday')} />
+</div>
+```
+Par :
+```
+<BirthdayPicker
+  label="Date d'anniversaire"
+  labelIcon={<Gift className="h-4 w-4 text-primary" />}
+  value={emailSignUpForm.watch('birthday') ? new Date(emailSignUpForm.watch('birthday') + 'T00:00:00') : undefined}
+  onChange={(date) => emailSignUpForm.setValue('birthday', date ? format(date, 'yyyy-MM-dd') : '', { shouldValidate: true })}
+/>
+```
 
+**4. Verifier que `format` de date-fns et `Gift` de lucide-react sont deja importes** (ils le sont).
+
+## Resultat attendu
+
+- Sur mobile : champ texte avec placeholder "jj/mm/aaaa", pave numerique, auto-formatage, et bouton calendrier avec selecteur natif
+- Sur desktop : meme champ texte + popover calendrier
+- Validation en temps reel avec indicateur vert/rouge
+- Coherence visuelle avec le `CompleteProfileModal` et les autres formulaires
