@@ -46,20 +46,20 @@ const ProgressIndicator = ({ progress, step }: { progress: number; step: string 
           progress === 100 ? "bg-green-500" : "bg-primary"
         )}
       />
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
+      <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {progress >= 25 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Identité</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {progress >= 50 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Business</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {progress >= 75 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Contact</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Validation</span>
         </div>
@@ -132,24 +132,24 @@ const EmailSignupProgressIndicator = ({ emailSignUpForm }: { emailSignUpForm: an
           progress === 100 ? "bg-green-500" : "bg-primary"
         )}
       />
-      <div className="flex justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
+      <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {(values.firstName?.length >= 2 && values.lastName?.length >= 2) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Identité</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {values.businessName?.length >= 2 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Business</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Email</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {values.password?.length >= 8 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Mot de passe</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5 text-center">
           {progress === 100 ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
           <span>Validation</span>
         </div>
