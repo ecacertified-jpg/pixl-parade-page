@@ -1,98 +1,28 @@
 
+# Corriger le pays dans le modal de modification admin
 
-# Pages dediees par pays pour Utilisateurs et Entreprises
+## Probleme
 
-## Approche
+Le composant `AdminEditBusinessModal` passe `countryCode="CI"` en dur au `LocationPicker`. Quand un admin modifie une boutique beninoise (comme "Ese Shop"), le selecteur de localisation affiche "Cote d'Ivoire" au lieu du "Benin".
 
-Au lieu de naviguer vers `/admin/users?country=BJ` (qui cause des problemes de race condition avec AdminRoute), creer des routes dediees sous `/admin/countries/:countryCode/users` et `/admin/countries/:countryCode/businesses`. Ces routes reutilisent les composants existants en leur passant le code pays directement via les params de route.
+## Solution
 
-## Modifications
+3 modifications dans `src/components/admin/AdminEditBusinessModal.tsx` :
 
-### 1. Creer `src/pages/Admin/CountryUsersPage.tsx`
+### 1. Ajouter `country_code` a l'interface `Business`
 
-Un composant wrapper leger qui :
-- Lit `countryCode` depuis `useParams()`
-- Resout le nom du pays et le drapeau depuis la config
-- Affiche un header avec "Utilisateurs - Benin" et un bouton retour vers `/admin/countries/BJ`
-- Reutilise la logique de `UserManagement` mais avec le filtre pays force (pas optionnel)
-- Passe `countryCode` comme prop ou l'utilise directement dans le fetch
+Ajouter le champ `country_code: string | null` dans l'interface `Business` pour que le composant recoive cette information.
 
-En pratique, ce sera une version simplifiee de `UserManagement` qui :
-- N'affiche PAS le selecteur de pays (le pays est fixe)
-- Force le filtre `country_code` dans la requete Supabase
-- Affiche le drapeau et le nom du pays dans le titre
-- Conserve toutes les fonctionnalites (recherche, filtres, actions, modals)
+### 2. Ajouter `country_code` au `formData`
 
-### 2. Creer `src/pages/Admin/CountryBusinessesPage.tsx`
+Inclure `country_code` dans l'etat du formulaire, initialise depuis `business.country_code` (avec fallback sur `"CI"`).
 
-Meme principe pour les entreprises :
-- Header "Entreprises - Benin"
-- Filtre `country_code` force
-- Toutes les fonctionnalites de `BusinessManagement` conservees
+### 3. Passer le bon `countryCode` au `LocationPicker`
 
-### 3. Modifier `src/App.tsx`
+Remplacer `countryCode="CI"` par `countryCode={formData.country_code || "CI"}` pour que le selecteur d'adresse affiche le bon pays.
 
-Ajouter deux nouvelles routes :
+## Impact
 
-```
-/admin/countries/:countryCode/users   -> CountryUsersPage
-/admin/countries/:countryCode/businesses -> CountryBusinessesPage
-```
-
-Ces routes sont **imbriquees** sous le pattern existant `/admin/countries/:countryCode`, donc elles restent coherentes avec l'architecture actuelle.
-
-### 4. Modifier `src/pages/Admin/CountryDetailPage.tsx`
-
-Changer `handleNavigate` pour pointer vers les nouvelles routes dediees :
-
-```
-// Avant
-onClick={() => handleNavigate('/admin/users')}
-
-// Apres
-onClick={() => navigate(`/admin/countries/${countryCode}/users`))
-onClick={() => navigate(`/admin/countries/${countryCode}/businesses`))
-```
-
-Plus besoin de `setSelectedCountry` ni de query params pour ces navigations.
-
-## Details techniques
-
-### CountryUsersPage
-
-- Copier la logique essentielle de `UserManagement` (fetch, filtres, table, modals)
-- Le `countryCode` vient de `useParams()` et est **toujours applique** dans la requete :
-  ```
-  query = query.eq('country_code', countryCode);
-  ```
-- Le header affiche : `{flag} Utilisateurs du {countryName}` avec un lien retour vers `/admin/countries/{countryCode}`
-- Le selecteur de pays global dans AdminLayout n'est pas utilise (le contexte est fixe par l'URL)
-
-### CountryBusinessesPage
-
-- Meme architecture que CountryUsersPage mais pour `business_accounts`
-- Conserve la recherche, les filtres de statut, les actions (approuver, rejeter, etc.)
-
-### Routes
-
-Deux nouvelles routes dans App.tsx, protegees par `AdminRoute` :
-
-```
-<Route path="/admin/countries/:countryCode/users" element={<AdminRoute><CountryUsersPage /></AdminRoute>} />
-<Route path="/admin/countries/:countryCode/businesses" element={<AdminRoute><CountryBusinessesPage /></AdminRoute>} />
-```
-
-## Avantages
-
-- Plus de race condition : pas de dependance au `AdminCountryContext` pour le filtrage
-- URLs claires et partageables : `/admin/countries/BJ/users`
-- Navigation intuitive : le breadcrumb est naturel (Countries > Benin > Utilisateurs)
-- Les pages globales `/admin/users` et `/admin/businesses` restent disponibles pour voir tous les pays
-
-## Fichiers impactes
-
-- **Nouveau** : `src/pages/Admin/CountryUsersPage.tsx`
-- **Nouveau** : `src/pages/Admin/CountryBusinessesPage.tsx`
-- **Modifie** : `src/App.tsx` (2 routes ajoutees)
-- **Modifie** : `src/pages/Admin/CountryDetailPage.tsx` (navigation mise a jour)
-
+- 1 seul fichier modifie : `src/components/admin/AdminEditBusinessModal.tsx`
+- Aucune modification de base de donnees
+- Les boutiques de chaque pays afficheront desormais le bon pays dans le modal de modification
