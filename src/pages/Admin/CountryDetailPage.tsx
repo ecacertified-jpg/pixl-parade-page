@@ -78,6 +78,10 @@ const CountryDetailPage = () => {
         navigate(`/admin/countries/${countryCode}/businesses`);
         return;
       }
+      if (path === '/admin/funds') {
+        navigate(`/admin/countries/${countryCode}/funds`);
+        return;
+      }
       setSelectedCountry(countryCode);
       navigate(`${path}?country=${countryCode}`);
     } else {
@@ -321,17 +325,22 @@ const CountryDetailPage = () => {
             </Card>
           </motion.div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Gift className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Cagnottes</p>
-                  <p className="text-xl font-bold">{country.totalFunds} ({country.activeFunds} actives)</p>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 25 }} onClick={() => handleNavigate('/admin/funds')} className="cursor-pointer">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Gift className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Cagnottes</p>
+                      <p className="text-xl font-bold">{country.totalFunds} ({country.activeFunds} actives)</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Monthly Evolution Chart */}
