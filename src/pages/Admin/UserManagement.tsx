@@ -176,7 +176,7 @@ const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
 export default function UserManagement() {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAdmin();
-  const { selectedCountry, accessibleCountries } = useAdminCountry();
+  const { selectedCountry, setSelectedCountry, accessibleCountries } = useAdminCountry();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -359,6 +359,7 @@ export default function UserManagement() {
         <AdminPageHeader
           title="Gestion des utilisateurs"
           description="Gérer tous les comptes utilisateurs"
+          backPath={selectedCountry ? `/admin/countries/${selectedCountry}` : '/admin'}
           actions={
             <div className="flex gap-2 flex-wrap">
               {isSuperAdmin && (
@@ -401,6 +402,33 @@ export default function UserManagement() {
             </div>
           }
         />
+
+        {/* Country context bar */}
+        {selectedCountry && (() => {
+          const country = accessibleCountries.find(c => c.code === selectedCountry);
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/admin/countries/${selectedCountry}`)}
+                className="gap-1.5"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Retour à {country?.flag || ''} {country?.name || selectedCountry}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedCountry(null)}
+                className="text-muted-foreground gap-1"
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Effacer le filtre pays
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Statistics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
