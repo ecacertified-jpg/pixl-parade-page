@@ -27,6 +27,7 @@ interface Business {
   user_id: string;
   latitude: number | null;
   longitude: number | null;
+  country_code: string | null;
 }
 
 interface UserProfile {
@@ -81,6 +82,7 @@ export function AdminEditBusinessModal({
     user_id: '',
     latitude: null as number | null,
     longitude: null as number | null,
+    country_code: '' as string | null,
   });
 
   useEffect(() => {
@@ -99,6 +101,7 @@ export function AdminEditBusinessModal({
         user_id: business.user_id,
         latitude: business.latitude,
         longitude: business.longitude,
+        country_code: business.country_code || 'CI',
       });
       loadUsers();
     }
@@ -270,7 +273,7 @@ export function AdminEditBusinessModal({
             longitude={formData.longitude}
             onAddressChange={(addr) => setFormData({ ...formData, address: addr })}
             onCoordinatesChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
-            countryCode="CI"
+            countryCode={formData.country_code || "CI"}
             label="Localisation de la boutique (Admin)"
           />
 
