@@ -92,7 +92,7 @@ interface Business {
 
 export default function BusinessManagement() {
   const { isSuperAdmin, hasPermission } = useAdmin();
-  const { selectedCountry } = useAdminCountry();
+  const { selectedCountry, accessibleCountries } = useAdminCountry();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -633,7 +633,9 @@ export default function BusinessManagement() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <CardTitle>
-                  Tous les prestataires ({filteredBusinesses.length}
+                  {selectedCountry
+                    ? `Prestataires - ${accessibleCountries.find(c => c.code === selectedCountry)?.flag || ''} ${accessibleCountries.find(c => c.code === selectedCountry)?.name || selectedCountry}`
+                    : 'Tous les prestataires'} ({filteredBusinesses.length}
                   {filteredBusinesses.length !== businesses.length && ` / ${businesses.length}`})
                 </CardTitle>
                 {activeFiltersCount > 0 && (
