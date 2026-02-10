@@ -27,6 +27,7 @@ export const useAdmin = () => {
   });
   const [assignedCountries, setAssignedCountries] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
   const { user, loading: authLoading } = useAuth();
 
   // Safety timeout to prevent infinite loading
@@ -97,6 +98,7 @@ export const useAdmin = () => {
       setAssignedCountries(null);
     } finally {
       setLoading(false);
+      setHasChecked(true);
     }
   };
 
@@ -127,6 +129,7 @@ export const useAdmin = () => {
     permissions,
     assignedCountries,
     loading,
+    hasChecked,
     isAdmin,
     isSuperAdmin,
     isRegionalAdmin,
