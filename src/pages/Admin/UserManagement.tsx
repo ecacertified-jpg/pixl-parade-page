@@ -176,7 +176,7 @@ const CompletionBadge = ({ completion }: { completion: ProfileCompletion }) => {
 export default function UserManagement() {
   const navigate = useNavigate();
   const { isSuperAdmin } = useAdmin();
-  const { selectedCountry } = useAdminCountry();
+  const { selectedCountry, accessibleCountries } = useAdminCountry();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -470,7 +470,9 @@ export default function UserManagement() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  Utilisateurs filtrés
+                  {selectedCountry
+                    ? `Utilisateurs - ${accessibleCountries.find(c => c.code === selectedCountry)?.flag || ''} ${accessibleCountries.find(c => c.code === selectedCountry)?.name || selectedCountry}`
+                    : 'Tous les utilisateurs'}
                   <Badge variant="secondary">{filteredUsers.length}</Badge>
                 </CardTitle>
                 <Button 
