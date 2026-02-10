@@ -14,7 +14,9 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
 import { useCountry, useCountrySafe } from '@/contexts/CountryContext';
 import { handleSmartRedirect } from '@/utils/authRedirect';
@@ -29,6 +31,88 @@ import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
+
+// Client Signup Progress Indicator
+const ClientSignupProgressIndicator = ({ 
+  steps,
+  completedChecks 
+}: { 
+  steps: { label: string; isComplete: boolean }[];
+  completedChecks: boolean[];
+}) => {
+  const filledCount = completedChecks.filter(Boolean).length;
+  const progress = Math.round((filledCount / completedChecks.length) * 100);
+  
+  const getStepLabel = (p: number) => {
+    if (p === 0) return 'Commencez votre inscription';
+    if (p < 50) return 'Continuez...';
+    if (p < 100) return 'Presque terminé !';
+    return 'Prêt !';
+  };
+
+  return (
+    <div className="space-y-3 mb-4 p-4 bg-secondary/30 rounded-xl">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-foreground">{getStepLabel(progress)}</span>
+        <span className="text-sm font-semibold text-primary">{progress}%</span>
+      </div>
+      <Progress 
+        value={progress} 
+        className="h-2" 
+        indicatorClassName={cn(
+          "transition-all duration-500",
+          progress === 100 ? "bg-green-500" : "bg-primary"
+        )}
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-center gap-1">
+            {step.isComplete 
+              ? <Check className="h-3 w-3 text-green-500" /> 
+              : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+            <span>{step.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Phone signup progress wrapper
+const PhoneSignupProgress = ({ form }: { form: any }) => {
+  const values = form.watch();
+  const checks = [
+    !!(values.firstName && values.firstName.length >= 1),
+    !!values.birthday,
+    !!(values.city && values.city.length >= 1),
+    !!(values.phone && /^[0-9]{8,10}$/.test(values.phone)),
+  ];
+  const steps = [
+    { label: 'Identité', isComplete: checks[0] },
+    { label: 'Anniversaire', isComplete: checks[1] },
+    { label: 'Localisation', isComplete: checks[2] },
+    { label: 'Téléphone', isComplete: checks[3] },
+  ];
+  return <ClientSignupProgressIndicator steps={steps} completedChecks={checks} />;
+};
+
+// Email signup progress wrapper
+const EmailSignupProgress = ({ form }: { form: any }) => {
+  const values = form.watch();
+  const checks = [
+    !!(values.firstName && values.firstName.length >= 1),
+    !!values.birthday,
+    !!(values.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)),
+    !!(values.password && values.password.length >= 8 && values.confirmPassword === values.password),
+  ];
+  const steps = [
+    { label: 'Identité', isComplete: checks[0] },
+    { label: 'Anniversaire', isComplete: checks[1] },
+    { label: 'Email', isComplete: checks[2] },
+    { label: 'Mot de passe', isComplete: checks[3] },
+  ];
+  return <ClientSignupProgressIndicator steps={steps} completedChecks={checks} />;
+};
 
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -1242,6 +1326,8 @@ const Auth = () => {
                       </div>
 
                       {authInputMethod === 'phone' ? (
+                        <>
+                        <PhoneSignupProgress form={signUpForm} />
                         <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="firstName">Prénom</Label>
@@ -1313,7 +1399,10 @@ const Auth = () => {
                             {isLoading || isChecking || isServerChecking ? 'Vérification...' : 'Envoyer le code'}
                           </Button>
                         </form>
+                        </>
                       ) : (
+                        <>
+                        <EmailSignupProgress form={emailSignUpForm} />
                         <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="email-firstName">Prénom <span className="text-destructive">*</span></Label>
@@ -1410,6 +1499,7 @@ const Auth = () => {
                             {isLoading ? 'Inscription...' : 'Créer mon compte'}
                           </Button>
                         </form>
+                        </>
                       )}
                     </div>
                   )}
