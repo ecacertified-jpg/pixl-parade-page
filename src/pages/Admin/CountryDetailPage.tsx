@@ -69,6 +69,15 @@ const CountryDetailPage = () => {
 
   const handleNavigate = (path: string) => {
     if (countryCode) {
+      // For users and businesses, use dedicated country pages
+      if (path === '/admin/users') {
+        navigate(`/admin/countries/${countryCode}/users`);
+        return;
+      }
+      if (path === '/admin/businesses') {
+        navigate(`/admin/countries/${countryCode}/businesses`);
+        return;
+      }
       setSelectedCountry(countryCode);
       navigate(`${path}?country=${countryCode}`);
     } else {
