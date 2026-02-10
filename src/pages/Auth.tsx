@@ -64,9 +64,9 @@ const ClientSignupProgressIndicator = ({
           progress === 100 ? "bg-green-500" : "bg-primary"
         )}
       />
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
         {steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-1">
+          <div key={i} className="flex flex-col items-center gap-0.5 text-center">
             {step.isComplete 
               ? <Check className="h-3 w-3 text-green-500" /> 
               : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
