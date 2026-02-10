@@ -1,44 +1,46 @@
 
 
-# Rendre les cartes KPI cliquables sur la page detail pays
+# Filtrer les donnees par pays sur les pages Utilisateurs, Entreprises, Commandes, Analytiques
 
-## Objectif
+## Constat actuel
 
-Sur la page `/admin/countries/:countryCode`, rendre les 7 cartes KPI (Utilisateurs, Entreprises, Revenus, Taux de conversion, Commandes, Panier moyen, Cagnottes) cliquables. Au clic, l'admin est redirige vers la page d'administration correspondante avec le filtre pays automatiquement applique.
+| Page | Filtre pays | Statut |
+|------|------------|--------|
+| Utilisateurs (`/admin/users`) | `selectedCountry` sur `profiles.country_code` | Deja fait |
+| Entreprises (`/admin/businesses`) | `selectedCountry` sur `business_accounts.country_code` | Deja fait |
+| Analytiques (`/admin/business-analytics`) | `getCountryFilter()` passe au hook | Deja fait |
+| **Commandes (`/admin/orders`)** | **Aucun filtre pays** | **A faire** |
+| **Commandes - liste des business** | **Aucun filtre pays** | **A faire** |
 
-## Fonctionnement
+Les pages Utilisateurs, Entreprises et Analytiques filtrent deja correctement par pays quand on clique sur une carte KPI depuis la page detail pays. Seule la page **Commandes** ne tient pas compte du pays selectionne.
 
-Chaque carte navigue vers la page admin dediee tout en changeant le filtre pays global (`AdminCountryContext`) pour pre-filtrer les donnees du pays concerne :
+## Modifications
 
-| Carte | Navigation | Action |
-|-------|-----------|--------|
-| Utilisateurs | `/admin/users` | Filtre pays applique |
-| Entreprises | `/admin/businesses` | Filtre pays applique |
-| Revenus | `/admin/business-analytics` | Filtre pays applique |
-| Taux de conversion | `/admin/business-analytics` | Filtre pays applique |
-| Commandes | `/admin/orders` | Filtre pays applique |
-| Panier moyen | `/admin/orders` | Filtre pays applique |
-| Cagnottes | Reste sur la page (pas de page admin dediee) | Scroll vers la section |
+### 1. `src/hooks/useAdminOrders.ts` - Ajouter le filtre pays
 
-## Modifications techniques
+- Ajouter `countryCode?: string` dans l'interface `OrderFilters`
+- Dans `loadOrders`, si `countryCode` est present, ajouter un filtre sur la jointure existante `business_accounts` :
+  ```
+  query = query.eq('business_accounts.country_code', countryCode)
+  ```
+- Cela fonctionne car la requete utilise deja `business_accounts!inner(...)` comme jointure
 
-### `src/pages/Admin/CountryDetailPage.tsx`
+### 2. `src/pages/Admin/OrdersManagement.tsx` - Utiliser le filtre pays global
 
-1. Importer `useAdminCountry` depuis le contexte existant et `motion` de framer-motion
-2. Creer une fonction `handleNavigate(path)` qui :
-   - Appelle `setSelectedCountry(countryCode)` pour appliquer le filtre global
-   - Navigue vers la page cible avec `navigate(path)`
-3. Wrapper chaque `Card` dans un `motion.div` avec :
-   - `whileHover={{ scale: 1.02 }}` et `whileTap={{ scale: 0.97 }}`
-   - `className="cursor-pointer"`
-   - `onClick={() => handleNavigate('/admin/users')}` (adapte par carte)
-4. Ajouter un indicateur visuel (chevron ou texte "Voir detail") pour signaler que la carte est cliquable
-5. Pour la carte Cagnottes (pas de page dediee), ne pas rendre cliquable ou ajouter un lien futur
+- Importer `useAdminCountry` depuis le contexte
+- Lire `selectedCountry` du contexte
+- Passer `countryCode: selectedCountry` dans les filtres envoyes a `loadOrders()`
+- Ajouter `selectedCountry` comme dependance du `useEffect` qui recharge les commandes
+- Filtrer aussi la liste des business du dropdown par pays (ajouter `.eq('country_code', selectedCountry)` quand un pays est selectionne)
+- Ajouter le composant `AdminPageHeader` et `AdminCountryRestrictionAlert` (deja present)
+
+### 3. Aucune modification pour les cagnottes
+
+Les cagnottes sont deja affichees sur la page de detail pays (`CountryDetailPage.tsx`) avec les stats `totalFunds` et `activeFunds`. Aucune page admin dediee aux cagnottes n'existe encore.
 
 ## Impact
 
-- 1 fichier modifie : `CountryDetailPage.tsx`
-- Aucune nouvelle route ou page necessaire
-- Utilise les pages admin existantes qui supportent deja le filtre via `AdminCountryContext`
-- Animation coherente avec les cartes pays du dashboard principal
-
+- 2 fichiers modifies : `useAdminOrders.ts` et `OrdersManagement.tsx`
+- Les commandes seront automatiquement filtrees par pays quand l'admin navigue depuis la page detail pays
+- Le dropdown de business dans la page commandes sera aussi filtre par pays
+- Coherence complete avec les autres pages admin
