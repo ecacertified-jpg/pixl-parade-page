@@ -594,7 +594,8 @@ export default function UserManagement() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="font-medium truncate">
+                            <p className="font-medium truncate flex items-center gap-1.5">
+                              <CountryBadge countryCode={user.country_code} variant="minimal" />
                               {getUserDisplayName(user)}
                             </p>
                             <p className="text-sm text-muted-foreground truncate">
@@ -681,6 +682,7 @@ export default function UserManagement() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Utilisateur</TableHead>
+                        <TableHead>Pays</TableHead>
                         <TableHead>Téléphone</TableHead>
                         <TableHead>Complétion</TableHead>
                         <TableHead>Date d'inscription</TableHead>
@@ -703,6 +705,9 @@ export default function UserManagement() {
                                 {getUserDisplayName(user)}
                               </span>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <CountryBadge countryCode={user.country_code} variant="compact" />
                           </TableCell>
                           <TableCell>{user.phone || 'Non renseigné'}</TableCell>
                           <TableCell>
