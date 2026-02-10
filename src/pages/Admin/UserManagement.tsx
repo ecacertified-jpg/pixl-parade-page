@@ -214,6 +214,8 @@ export default function UserManagement() {
   const [unifyClientModalOpen, setUnifyClientModalOpen] = useState(false);
   const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
 
+  const activeCountry = selectedCountry || searchParams.get('country');
+
   useEffect(() => {
     fetchUsers();
   }, [selectedCountry]);
@@ -221,13 +223,14 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      const countryFilter = selectedCountry || searchParams.get('country');
       let query = supabase
         .from('profiles')
         .select('user_id, first_name, last_name, phone, city, birthday, avatar_url, bio, created_at, is_suspended, country_code')
         .order('created_at', { ascending: false });
 
-      if (selectedCountry) {
-        query = query.eq('country_code', selectedCountry);
+      if (countryFilter) {
+        query = query.eq('country_code', countryFilter);
       }
 
       const { data, error } = await query;
@@ -378,7 +381,7 @@ export default function UserManagement() {
         <AdminPageHeader
           title="Gestion des utilisateurs"
           description="Gérer tous les comptes utilisateurs"
-          backPath={selectedCountry ? `/admin/countries/${selectedCountry}` : '/admin'}
+          backPath={activeCountry ? `/admin/countries/${activeCountry}` : '/admin'}
           actions={
             <div className="flex gap-2 flex-wrap">
               {isSuperAdmin && (
@@ -423,18 +426,18 @@ export default function UserManagement() {
         />
 
         {/* Country context bar */}
-        {selectedCountry && (() => {
-          const country = accessibleCountries.find(c => c.code === selectedCountry);
+        {activeCountry && (() => {
+          const country = accessibleCountries.find(c => c.code === activeCountry);
           return (
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/admin/countries/${selectedCountry}`)}
+                onClick={() => navigate(`/admin/countries/${activeCountry}`)}
                 className="gap-1.5"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Retour à {country?.flag || ''} {country?.name || selectedCountry}
+                Retour à {country?.flag || ''} {country?.name || activeCountry}
               </Button>
               <Button
                 variant="ghost"
