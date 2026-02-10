@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { getAllCountries } from '@/config/countries';
 
@@ -15,6 +16,7 @@ interface CountryStatsCardsProps {
 
 export function CountryStatsCards({ stats, loading }: CountryStatsCardsProps) {
   const countries = getAllCountries();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -38,7 +40,7 @@ export function CountryStatsCards({ stats, loading }: CountryStatsCardsProps) {
         const countryStats = stats[country.code] || { users: 0, businesses: 0 };
         
         return (
-          <Card key={country.code} className="hover:shadow-md transition-shadow">
+          <Card key={country.code} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/admin/countries/${country.code}`)}>
             <CardContent className="p-5 flex flex-col items-center text-center gap-2">
               <span className="text-4xl">{country.flag}</span>
               <p className="font-semibold text-base">{country.name}</p>
