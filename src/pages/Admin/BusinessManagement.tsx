@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2, Pencil, Trash2 } from 'lucide-react';
+import { Search, MoreVertical, CheckCircle, XCircle, Clock, CheckCheck, Loader2, Shield, Power, Download, Filter, X, Calendar, Building2, Pencil, Trash2, ArrowLeft } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -92,7 +92,8 @@ interface Business {
 
 export default function BusinessManagement() {
   const { isSuperAdmin, hasPermission } = useAdmin();
-  const { selectedCountry, accessibleCountries } = useAdminCountry();
+  const { selectedCountry, setSelectedCountry, accessibleCountries } = useAdminCountry();
+  const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -601,6 +602,7 @@ export default function BusinessManagement() {
         <AdminPageHeader
           title="Gestion des prestataires"
           description="Gérer et valider les comptes business"
+          backPath={selectedCountry ? `/admin/countries/${selectedCountry}` : '/admin'}
           actions={
             <div className="flex flex-wrap gap-2">
               {isSuperAdmin && (
@@ -624,6 +626,33 @@ export default function BusinessManagement() {
             </div>
           }
         />
+
+        {/* Country context bar */}
+        {selectedCountry && (() => {
+          const country = accessibleCountries.find(c => c.code === selectedCountry);
+          return (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/admin/countries/${selectedCountry}`)}
+                className="gap-1.5"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Retour à {country?.flag || ''} {country?.name || selectedCountry}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedCountry(null)}
+                className="text-muted-foreground gap-1"
+              >
+                <X className="h-3.5 w-3.5" />
+                Effacer le filtre pays
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Performance Alerts Banner */}
         <BusinessPerformanceAlertsBanner />
