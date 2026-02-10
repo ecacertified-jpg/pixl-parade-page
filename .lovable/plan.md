@@ -1,47 +1,34 @@
 
+# Rendre les cartes pays cliquables dans le dashboard admin
 
-# Harmoniser l'affichage des cartes pays dans le dashboard admin
+## Constat
 
-## Probleme actuel
+La route `/admin/countries/:countryCode` et la page `CountryDetailPage` existent deja. Il suffit de rendre les cartes cliquables pour naviguer vers cette page.
 
-Les 3 cartes pays (Cote d'Ivoire, Benin, Senegal) dans le dashboard admin ont un affichage desaligne :
-- Le code pays ("CI", "BJ", "SN") s'affiche en gros texte a gauche
-- Le nom du pays et les stats sont mal alignes entre les cartes
-- L'espacement et la mise en page ne sont pas uniformes
-
-## Solution
-
-Redesigner le composant `CountryStatsCards` pour un affichage centre et harmonieux :
-- Drapeau emoji en grand au centre en haut
-- Nom du pays centre en dessous
-- Stats (utilisateurs / prestataires) alignees uniformement en bas
-- Meme hauteur de carte garantie
-
-## Fichier modifie
+## Modification
 
 ### `src/components/admin/CountryStatsCards.tsx`
 
-Remplacer le layout horizontal (flex row) par un layout vertical centre (flex col, text-center) :
+- Ajouter `useNavigate` de `react-router-dom`
+- Ajouter un `onClick` et `cursor-pointer` sur chaque `Card`
+- Naviguer vers `/admin/countries/{code}` au clic
 
 ```tsx
-<Card key={country.code} className="hover:shadow-md transition-shadow">
-  <CardContent className="p-5 flex flex-col items-center text-center gap-2">
-    <span className="text-4xl">{country.flag}</span>
-    <p className="font-semibold text-base">{country.name}</p>
-    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-      <span>{countryStats.users.toLocaleString('fr-FR')} utilisateurs</span>
-      <span>·</span>
-      <span>{countryStats.businesses} prestataires</span>
-    </div>
-  </CardContent>
-</Card>
-```
+import { useNavigate } from 'react-router-dom';
 
-Memes changements pour l'etat loading (skeleton).
+// Dans le composant :
+const navigate = useNavigate();
+
+// Sur chaque Card :
+<Card
+  key={country.code}
+  className="hover:shadow-md transition-shadow cursor-pointer"
+  onClick={() => navigate(`/admin/countries/${country.code}`)}
+>
+```
 
 ## Impact
 
-- 1 fichier modifie : `CountryStatsCards.tsx`
-- Layout vertical centre pour chaque carte
-- Affichage uniforme quelle que soit la longueur du nom de pays
-
+- 1 seul fichier modifie : `CountryStatsCards.tsx`
+- Ajout de 3 lignes (import, hook, onClick)
+- Navigation vers la page de detail pays existante
