@@ -8,6 +8,7 @@ const DISMISS_DURATION_DAYS = 7;
 
 export const InstallBanner = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +32,24 @@ export const InstallBanner = () => {
     }
 
     setIsVisible(true);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsVisible(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleDismiss = () => {
@@ -38,8 +57,17 @@ export const InstallBanner = () => {
     setIsVisible(false);
   };
 
-  const handleInstall = () => {
-    navigate("/install");
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsVisible(false);
+      }
+      setDeferredPrompt(null);
+    } else {
+      navigate("/install");
+    }
   };
 
   if (!isVisible) return null;
