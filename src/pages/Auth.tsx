@@ -14,7 +14,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { getAllCountries, getCountryConfig } from '@/config/countries';
@@ -37,7 +38,7 @@ const ClientSignupProgressIndicator = ({
   steps,
   completedChecks 
 }: { 
-  steps: { label: string; isComplete: boolean }[];
+  steps: { label: string; isComplete: boolean; icon: LucideIcon }[];
   completedChecks: boolean[];
 }) => {
   const filledCount = completedChecks.filter(Boolean).length;
@@ -67,9 +68,9 @@ const ClientSignupProgressIndicator = ({
       <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
         {steps.map((step, i) => (
           <div key={i} className="flex flex-col items-center gap-0.5 text-center">
-            {step.isComplete 
-              ? <Check className="h-3 w-3 text-green-500" /> 
-              : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
+           {step.isComplete 
+              ? <Check className="h-4 w-4 text-green-500" /> 
+              : <step.icon className="h-4 w-4 text-muted-foreground/50" />}
             <span>{step.label}</span>
           </div>
         ))}
@@ -88,10 +89,10 @@ const PhoneSignupProgress = ({ form }: { form: any }) => {
     !!(values.phone && /^[0-9]{8,10}$/.test(values.phone)),
   ];
   const steps = [
-    { label: 'Identité', isComplete: checks[0] },
-    { label: 'Anniversaire', isComplete: checks[1] },
-    { label: 'Localisation', isComplete: checks[2] },
-    { label: 'Téléphone', isComplete: checks[3] },
+    { label: 'Identité', isComplete: checks[0], icon: User },
+    { label: 'Anniversaire', isComplete: checks[1], icon: Gift },
+    { label: 'Localisation', isComplete: checks[2], icon: MapPin },
+    { label: 'Téléphone', isComplete: checks[3], icon: Phone },
   ];
   return <ClientSignupProgressIndicator steps={steps} completedChecks={checks} />;
 };
@@ -106,10 +107,10 @@ const EmailSignupProgress = ({ form }: { form: any }) => {
     !!(values.password && values.password.length >= 8 && values.confirmPassword === values.password),
   ];
   const steps = [
-    { label: 'Identité', isComplete: checks[0] },
-    { label: 'Anniversaire', isComplete: checks[1] },
-    { label: 'Email', isComplete: checks[2] },
-    { label: 'Mot de passe', isComplete: checks[3] },
+    { label: 'Identité', isComplete: checks[0], icon: User },
+    { label: 'Anniversaire', isComplete: checks[1], icon: Gift },
+    { label: 'Email', isComplete: checks[2], icon: Mail },
+    { label: 'Mot de passe', isComplete: checks[3], icon: Lock },
   ];
   return <ClientSignupProgressIndicator steps={steps} completedChecks={checks} />;
 };

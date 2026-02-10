@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Gift, Sparkles, Loader2, Check } from 'lucide-react';
+import { Gift, Sparkles, Loader2, Check, MapPin, Phone } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,13 +149,16 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
                 <span className="text-sm font-semibold text-primary">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" indicatorClassName={cn("transition-all duration-500", progress === 100 ? "bg-green-500" : "bg-primary")} />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                {steps.map((s, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    {s.isComplete ? <Check className="h-3 w-3 text-green-500" /> : <span className="h-3 w-3 rounded-full bg-muted-foreground/30" />}
-                    <span>{s.label}</span>
-                  </div>
-                ))}
+              <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
+                {steps.map((s, i) => {
+                  const StepIcon = [Gift, MapPin, Phone][i];
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-0.5 text-center">
+                      {s.isComplete ? <Check className="h-4 w-4 text-green-500" /> : <StepIcon className="h-4 w-4 text-muted-foreground/50" />}
+                      <span>{s.label}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
