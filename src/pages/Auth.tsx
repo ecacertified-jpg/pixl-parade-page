@@ -1331,7 +1331,7 @@ const Auth = () => {
                       {authInputMethod === 'phone' ? (
                         <>
                         <PhoneSignupProgress form={signUpForm} />
-                        <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">
+                        <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4" noValidate>
                           <div className="space-y-2">
                             <Label htmlFor="firstName">Prénom</Label>
                             <Input
@@ -1401,7 +1401,7 @@ const Auth = () => {
                       ) : (
                         <>
                         <EmailSignupProgress form={emailSignUpForm} />
-                        <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4">
+                        <form onSubmit={emailSignUpForm.handleSubmit(handleEmailSignUp)} className="space-y-4" noValidate>
                           <div className="space-y-2">
                             <Label htmlFor="email-firstName">Prénom <span className="text-destructive">*</span></Label>
                             <Input
