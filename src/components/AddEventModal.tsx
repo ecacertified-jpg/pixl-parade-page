@@ -98,7 +98,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             {isEditing ? 'Modifier l\'événement' : 'Ajouter un événement'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="title">Titre de l'événement</Label>
             <Input
