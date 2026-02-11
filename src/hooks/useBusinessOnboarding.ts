@@ -42,7 +42,7 @@ export const useBusinessOnboarding = (businessId?: string) => {
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       if (!registration) return false;
-      const subscription = await registration.pushManager.getSubscription();
+      const subscription = await (registration as any).pushManager.getSubscription();
       return !!subscription;
     } catch {
       return false;
