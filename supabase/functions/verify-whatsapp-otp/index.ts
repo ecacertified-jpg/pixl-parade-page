@@ -124,12 +124,13 @@ serve(async (req) => {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         phone,
         phone_confirm: true,
-        user_metadata: {
+      user_metadata: {
           first_name: metadata.first_name,
           last_name: metadata.last_name,
           city: metadata.city,
           birthday: metadata.birthday,
           is_business: metadata.is_business,
+          phone,
         },
       });
 
@@ -144,6 +145,16 @@ serve(async (req) => {
       user = newUser.user;
       isNewUser = true;
       console.log(`New user created: ${user.id}`);
+
+      // Explicitly set country_code based on phone prefix
+      const detectedCountry = phone.startsWith('+229') ? 'BJ'
+        : phone.startsWith('+221') ? 'SN'
+        : phone.startsWith('+225') ? 'CI' : 'CI';
+
+      await supabaseAdmin
+        .from('profiles')
+        .update({ country_code: detectedCountry, phone: phone })
+        .eq('user_id', user.id);
     }
 
     // Generate session tokens
