@@ -1,29 +1,38 @@
 
-# Corriger l'erreur "Veuillez respecter le format requis" sur le champ anniversaire
+# Corriger "Veuillez respecter le format requis" dans les modals Ajout d'ami et Ajout d'evenement
 
-## Cause du probleme
+## Cause
 
-Le composant `BirthdayPicker` utilise un `<Input>` avec l'attribut `pattern="[0-9]*"` (pour forcer le pave numerique sur mobile). Cependant, la valeur saisie contient des barres obliques (ex: "02/06/1978"), ce qui ne correspond pas au pattern `[0-9]*` (chiffres uniquement).
+Le meme probleme que celui corrige dans `Auth.tsx` : le composant `BirthdayPicker` utilise `pattern="[0-9]*"` sur son input (pour forcer le pave numerique mobile), mais la valeur formatee contient des barres obliques (ex: "19/07/1976"). La validation HTML5 native du navigateur bloque la soumission du formulaire.
 
-Quand le formulaire est soumis, la **validation HTML5 native du navigateur** detecte cette incompatibilite et affiche le message "Veuillez respecter le format requis" -- avant meme que `react-hook-form` ne prenne le relais.
+La correction `noValidate` a ete appliquee dans `Auth.tsx` mais pas dans les deux autres formulaires qui utilisent `BirthdayPicker` dans une balise `<form>`.
 
 ## Solution
 
-Ajouter l'attribut `noValidate` sur les balises `<form>` dans `Auth.tsx` pour desactiver la validation HTML5 native et laisser `react-hook-form` + `zod` gerer toute la validation.
-
-C'est une pratique standard quand on utilise `react-hook-form` car la librairie gere deja la validation cote JavaScript.
+Ajouter `noValidate` sur les balises `<form>` des deux modals concernes.
 
 ## Fichiers impactes
 
-### `src/pages/Auth.tsx`
+### 1. `src/components/AddFriendModal.tsx` (ligne 85)
 
-Ajouter `noValidate` aux deux formulaires d'inscription :
+Changer :
+```
+<form onSubmit={handleSubmit} className="space-y-4">
+```
+En :
+```
+<form onSubmit={handleSubmit} className="space-y-4" noValidate>
+```
 
-1. **Formulaire telephone** (ligne 1334) :
-   - `<form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4">` 
-   - devient `<form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4" noValidate>`
+### 2. `src/components/AddEventModal.tsx` (ligne 101)
 
-2. **Formulaire email** (chercher le deuxieme `<form>` du signup par email) :
-   - Meme ajout de `noValidate`
+Changer :
+```
+<form onSubmit={handleSubmit} className="space-y-4">
+```
+En :
+```
+<form onSubmit={handleSubmit} className="space-y-4" noValidate>
+```
 
-Aucun autre changement n'est necessaire. La validation `zod` existante continuera de fonctionner normalement.
+Les autres composants utilisant `BirthdayPicker` (`CompleteProfileModal` et `ProfileSettings`) n'utilisent pas de balise `<form>` et ne sont donc pas concernes.
