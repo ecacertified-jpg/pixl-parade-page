@@ -80,13 +80,19 @@ Deno.serve(async (req) => {
     }
 
     // Fetch admin_users + aggregate counts in parallel
-    const [adminResult, userCountsResult, bizCountsResult] = await Promise.all([
+    const [adminResult, userCountsResult, bizCountsResult, directUserCounts, directBizCounts] = await Promise.all([
       supabaseAdmin
         .from('admin_users')
         .select('id, user_id, role, permissions, is_active, created_at, assigned_at, assigned_countries')
         .order('assigned_at', { ascending: false }),
       supabaseAdmin.rpc('get_profiles_count_by_country'),
       supabaseAdmin.rpc('get_businesses_count_by_country'),
+      supabaseAdmin
+        .from('admin_user_assignments')
+        .select('admin_user_id'),
+      supabaseAdmin
+        .from('admin_business_assignments')
+        .select('admin_user_id'),
     ]);
 
     if (adminResult.error) {
@@ -116,6 +122,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Build direct assignment count maps
+    const directUserCountMap: Record<string, number> = {};
+    for (const row of (directUserCounts.data || [])) {
+      directUserCountMap[row.admin_user_id] = (directUserCountMap[row.admin_user_id] || 0) + 1;
+    }
+    const directBizCountMap: Record<string, number> = {};
+    for (const row of (directBizCounts.data || [])) {
+      directBizCountMap[row.admin_user_id] = (directBizCountMap[row.admin_user_id] || 0) + 1;
+    }
+
     // Build admin list with profiles and stats
     const adminsWithProfiles: AdminData[] = [];
 
@@ -143,6 +159,10 @@ Deno.serve(async (req) => {
           businesses += bizCountMap[cc] || 0;
         }
       }
+
+      // Add direct assignments
+      users += directUserCountMap[admin.id] || 0;
+      businesses += directBizCountMap[admin.id] || 0;
       // else: empty array = 0
 
       adminsWithProfiles.push({

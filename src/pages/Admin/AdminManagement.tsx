@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import { AddAdminModal } from '@/components/admin/AddAdminModal';
 import { EditPermissionsModal } from '@/components/admin/EditPermissionsModal';
 import { RevokeAdminDialog } from '@/components/admin/RevokeAdminDialog';
+import { AssignUsersBusinessesModal } from '@/components/admin/AssignUsersBusinessesModal';
 import { COUNTRIES } from '@/config/countries';
 
 interface Admin {
@@ -78,6 +79,7 @@ export default function AdminManagement() {
   const [selectedAdminRole, setSelectedAdminRole] = useState<string>('moderator');
   const [currentPermissions, setCurrentPermissions] = useState<any>({});
   const [currentCountries, setCurrentCountries] = useState<string[] | null>(null);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   useEffect(() => {
     fetchAdmins();
   }, []);
@@ -152,6 +154,13 @@ export default function AdminManagement() {
           setEditPermissionsOpen(true);
         }}>
           Modifier les permissions
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          setSelectedAdminId(admin.id);
+          setSelectedAdminName(getDisplayName(admin));
+          setAssignModalOpen(true);
+        }}>
+          Affecter utilisateurs/entreprises
         </DropdownMenuItem>
         {admin.role !== 'super_admin' && (
           <DropdownMenuItem 
@@ -415,6 +424,14 @@ export default function AdminManagement() {
           adminName={selectedAdminName}
           open={revokeDialogOpen}
           onOpenChange={setRevokeDialogOpen}
+          onSuccess={fetchAdmins}
+        />
+
+        <AssignUsersBusinessesModal
+          open={assignModalOpen}
+          onOpenChange={setAssignModalOpen}
+          adminId={selectedAdminId}
+          adminName={selectedAdminName}
           onSuccess={fetchAdmins}
         />
       </div>
