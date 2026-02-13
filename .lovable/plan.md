@@ -1,64 +1,69 @@
 
 
-# Ajouter le support du Togo, Mali et Burkina Faso
+# Afficher les stats utilisateurs/entreprises par administrateur
 
-## Contexte
+## Objectif
 
-La detection automatique du pays se fait a 4 endroits dans le code. Il faut ajouter les prefixes +228 (Togo), +223 (Mali) et +226 (Burkina Faso) dans chacun d'eux.
+Ajouter deux nouvelles colonnes dans le tableau des administrateurs : le nombre d'utilisateurs et le nombre d'entreprises dans les pays assignes a chaque admin. Cela permet au Super Admin de voir la charge de responsabilite de chaque administrateur.
+
+## Logique metier
+
+La relation admin-utilisateurs est indirecte : chaque admin a des `assigned_countries`, et chaque utilisateur/entreprise a un `country_code`. Les stats seront donc calculees en comptant les profils et business_accounts dont le `country_code` correspond aux pays assignes de l'admin.
+
+- **Super Admin** (assigned_countries = NULL) : voit le total global
+- **Admin Regional / Moderateur** : voit uniquement le total de ses pays assignes
+- **Admin sans pays** : affiche 0
 
 ## Modifications
 
-### 1. Configuration des pays (`src/config/countries.ts`)
+### 1. Edge Function `admin-list-admins`
 
-Ajouter 3 nouvelles entrees dans l'objet `COUNTRIES` :
+Modifier la fonction pour calculer les stats par admin :
 
-- **TG** (Togo, +228) - XOF, WhatsApp fallback active, SMS unavailable
-- **ML** (Mali, +223) - XOF, WhatsApp fallback active, SMS unavailable
-- **BF** (Burkina Faso, +226) - XOF, WhatsApp fallback active, SMS unavailable
+- Executer 2 requetes agreges au debut :
+  - `SELECT country_code, COUNT(*) FROM profiles GROUP BY country_code`
+  - `SELECT country_code, COUNT(*) FROM business_accounts GROUP BY country_code`
+- Pour chaque admin, sommer les compteurs des pays dans `assigned_countries`
+- Ajouter `stats: { users: number, businesses: number }` dans la reponse
 
-Chaque entree inclura : nom, drapeau, devise (XOF/FCFA), prefixe, capitale, coordonnees carte, entite legale placeholder, fournisseurs Mobile Money locaux, et parametres SMS/WhatsApp.
+Cela evite N+1 requetes : seulement 2 requetes supplementaires au total.
 
-### 2. Edge Function `verify-whatsapp-otp` (`supabase/functions/verify-whatsapp-otp/index.ts`)
+### 2. Interface `AdminManagement.tsx`
 
-Etendre la detection du pays (ligne 150-152) :
+- Ajouter l'interface `stats` dans le type `Admin`
+- Ajouter deux colonnes dans le tableau desktop : "Utilisateurs" et "Entreprises"
+- Ajouter ces infos dans la vue mobile (cartes)
+- Afficher les compteurs avec des icones Users et Building2
 
-```text
-Avant:  +229 -> BJ, +221 -> SN, +225 -> CI, defaut -> CI
-Apres:  +229 -> BJ, +221 -> SN, +228 -> TG, +223 -> ML, +226 -> BF, +225 -> CI, defaut -> CI
-```
-
-### 3. Edge Function `admin-create-user` (`supabase/functions/admin-create-user/index.ts`)
-
-Meme ajout dans la detection du pays (ligne 157-161).
-
-### 4. Trigger base de donnees `handle_new_user()`
-
-Migration SQL pour ajouter les 3 nouveaux prefixes dans le CASE :
-
-```sql
-WHEN phone_number LIKE '+228%' THEN 'TG'
-WHEN phone_number LIKE '+223%' THEN 'ML'
-WHEN phone_number LIKE '+226%' THEN 'BF'
-```
-
-## Details techniques
-
-### Fichiers modifies
+### 3. Fichiers concernes
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/config/countries.ts` | Ajout des configs TG, ML, BF |
-| `supabase/functions/verify-whatsapp-otp/index.ts` | 3 nouveaux prefixes dans la detection |
-| `supabase/functions/admin-create-user/index.ts` | 3 nouveaux prefixes dans la detection |
-| Migration SQL (nouveau fichier) | Mise a jour de `handle_new_user()` avec les 3 prefixes |
+| `supabase/functions/admin-list-admins/index.ts` | Ajouter le calcul des stats par pays et les inclure dans la reponse |
+| `src/pages/Admin/AdminManagement.tsx` | Ajouter les colonnes Utilisateurs / Entreprises dans le tableau et les cartes mobiles |
 
-### Informations pays
+### 4. Format des donnees retournees
 
-| Pays | Code | Prefixe | Drapeau | Capitale | Mobile Money |
-|------|------|---------|---------|----------|-------------|
-| Togo | TG | +228 | flag TG | Lome | Flooz, T-Money |
-| Mali | ML | +223 | flag ML | Bamako | Orange Money, Moov Money |
-| Burkina Faso | BF | +226 | flag BF | Ouagadougou | Orange Money, Moov Money |
+Chaque admin dans la reponse inclura :
 
-Tous utilisent le XOF (FCFA), le francais, et auront le SMS marque comme `unavailable` avec WhatsApp fallback active (comme le Benin).
+```text
+{
+  ...donnees existantes,
+  assigned_countries: ["CI", "BJ"],
+  stats: {
+    users: 222,      // somme des utilisateurs dans CI + BJ
+    businesses: 27   // somme des entreprises dans CI + BJ
+  }
+}
+```
+
+### 5. Rendu visuel
+
+Dans le tableau, entre "Pays" et "Date d'attribution", deux nouvelles colonnes :
+
+```text
+| Administrateur | Role | Pays | Utilisateurs | Entreprises | Date | Statut | Actions |
+```
+
+Chaque cellule affichera un nombre avec une icone (Users / Building2) de couleur subtle.
 
