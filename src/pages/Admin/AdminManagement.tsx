@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users, Globe, MapPin } from 'lucide-react';
+import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users, Globe, MapPin, Building2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -40,6 +40,10 @@ interface Admin {
     first_name: string | null;
     last_name: string | null;
     email: string | null;
+  };
+  stats?: {
+    users: number;
+    businesses: number;
   };
 }
 
