@@ -271,6 +271,18 @@ export default function AdminManagement() {
                           </Badge>
                         )}
                       </div>
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          {admin.stats?.users ?? '—'} utilisateurs
+                        </span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3.5 w-3.5" />
+                          {admin.stats?.businesses ?? '—'} entreprises
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-3">
                         Attribué le {formatDate(admin.assigned_at)}
                       </p>
@@ -286,6 +298,8 @@ export default function AdminManagement() {
                         <TableHead>Administrateur</TableHead>
                         <TableHead>Rôle</TableHead>
                         <TableHead>Pays</TableHead>
+                        <TableHead>Utilisateurs</TableHead>
+                        <TableHead>Entreprises</TableHead>
                         <TableHead>Date d'attribution</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -340,6 +354,18 @@ export default function AdminManagement() {
                               ) : (
                                 <span className="text-xs text-muted-foreground">—</span>
                               )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Users className="h-4 w-4" />
+                              <span>{admin.stats?.users ?? '—'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Building2 className="h-4 w-4" />
+                              <span>{admin.stats?.businesses ?? '—'}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
