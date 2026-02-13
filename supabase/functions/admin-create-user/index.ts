@@ -157,6 +157,9 @@ serve(async (req) => {
       if (!businessCountryCode) {
         if (normalizedPhone.startsWith('+229')) businessCountryCode = 'BJ';
         else if (normalizedPhone.startsWith('+221')) businessCountryCode = 'SN';
+        else if (normalizedPhone.startsWith('+228')) businessCountryCode = 'TG';
+        else if (normalizedPhone.startsWith('+223')) businessCountryCode = 'ML';
+        else if (normalizedPhone.startsWith('+226')) businessCountryCode = 'BF';
         else businessCountryCode = 'CI';
       }
 

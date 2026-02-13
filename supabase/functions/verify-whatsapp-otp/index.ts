@@ -149,6 +149,9 @@ serve(async (req) => {
       // Explicitly set country_code based on phone prefix
       const detectedCountry = phone.startsWith('+229') ? 'BJ'
         : phone.startsWith('+221') ? 'SN'
+        : phone.startsWith('+228') ? 'TG'
+        : phone.startsWith('+223') ? 'ML'
+        : phone.startsWith('+226') ? 'BF'
         : phone.startsWith('+225') ? 'CI' : 'CI';
 
       await supabaseAdmin
