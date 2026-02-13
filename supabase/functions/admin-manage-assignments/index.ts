@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
       if (userIds.length > 0) {
         const { data } = await supabaseAdmin
           .from('profiles')
-          .select('user_id, first_name, last_name, avatar_url')
+          .select('user_id, first_name, last_name, avatar_url, phone, country_code, birthday, city, bio, created_at, is_suspended')
           .in('user_id', userIds);
         userProfiles = data || [];
       }
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       if (bizIds.length > 0) {
         const { data } = await supabaseAdmin
           .from('business_accounts')
-          .select('id, business_name, business_type, logo_url')
+          .select('id, business_name, business_type, logo_url, email, phone, country_code, created_at, status, is_active, is_verified')
           .in('id', bizIds);
         businessDetails = data || [];
       }
