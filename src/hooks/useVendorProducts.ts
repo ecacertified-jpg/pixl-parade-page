@@ -4,9 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 function inferCountryFromAddress(address: string | null): string | null {
   if (!address) return null;
   const lower = address.toLowerCase();
-  if (['cotonou', 'porto-novo', 'parakou', 'bohicon', 'abomey'].some(c => lower.includes(c))) return 'BJ';
-  if (['dakar', 'thies', 'kaolack', 'saint-louis', 'ziguinchor'].some(c => lower.includes(c))) return 'SN';
-  if (['abidjan', 'bouake', 'yamoussoukro', 'korhogo', 'daloa'].some(c => lower.includes(c))) return 'CI';
+  if (['cotonou','porto-novo','parakou','bohicon','abomey','ouidah','calavi'].some(c => lower.includes(c))) return 'BJ';
+  if (['dakar','thies','kaolack','saint-louis','ziguinchor','touba','mbour'].some(c => lower.includes(c))) return 'SN';
+  if (['lome','lomé','kara','sokode','sokodé','atakpame','kpalime','kpalimé'].some(c => lower.includes(c))) return 'TG';
+  if (['bamako','sikasso','mopti','segou','ségou','koutiala','kayes'].some(c => lower.includes(c))) return 'ML';
+  if (['ouagadougou','bobo-dioulasso','koudougou','ouahigouya','banfora'].some(c => lower.includes(c))) return 'BF';
+  if (['abidjan','bouake','yamoussoukro','korhogo','daloa'].some(c => lower.includes(c))) return 'CI';
   return null;
 }
 
