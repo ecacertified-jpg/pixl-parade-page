@@ -74,6 +74,59 @@ export type Database = {
           },
         ]
       }
+      admin_business_assignments: {
+        Row: {
+          admin_user_id: string
+          assigned_by: string
+          business_account_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          admin_user_id: string
+          assigned_by: string
+          business_account_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          admin_user_id?: string
+          assigned_by?: string
+          business_account_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_business_assignments_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_business_assignments_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_business_assignments_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "business_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_business_assignments_business_account_id_fkey"
+            columns: ["business_account_id"]
+            isOneToOne: false
+            referencedRelation: "deleted_businesses_with_admin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_growth_alerts: {
         Row: {
           alert_type: string
@@ -395,6 +448,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "admin_sessions_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_user_assignments: {
+        Row: {
+          admin_user_id: string
+          assigned_by: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          assigned_by: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          assigned_by?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_user_assignments_admin_user_id_fkey"
             columns: ["admin_user_id"]
             isOneToOne: false
             referencedRelation: "admin_users"
