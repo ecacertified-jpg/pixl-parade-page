@@ -348,6 +348,7 @@ export default function VendorShop() {
                   <ProductCard
                     key={product.id}
                     product={product}
+                    vendorCountryCode={vendor.countryCode}
                     isFavorite={isFavorite(product.id)}
                     onToggleFavorite={async () => {
                       if (isFavorite(product.id)) {
@@ -384,6 +385,7 @@ export default function VendorShop() {
                   <ProductCard
                     key={product.id}
                     product={product}
+                    vendorCountryCode={vendor.countryCode}
                     isFavorite={isFavorite(product.id)}
                     onToggleFavorite={async () => {
                       if (isFavorite(product.id)) {
@@ -462,17 +464,17 @@ interface ProductCardProps {
     image: string;
     inStock: boolean;
     isExperience: boolean;
-    country_code?: string;
     videoUrl?: string | null;
     videoThumbnailUrl?: string | null;
   };
+  vendorCountryCode: string;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onOrder: () => void;
   onRate: () => void;
 }
 
-function ProductCard({ product, isFavorite, onToggleFavorite, onOrder, onRate }: ProductCardProps) {
+function ProductCard({ product, vendorCountryCode, isFavorite, onToggleFavorite, onOrder, onRate }: ProductCardProps) {
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const hasVideo = !!product.videoUrl;
   const displayImage = product.videoThumbnailUrl || product.image;
@@ -496,7 +498,7 @@ function ProductCard({ product, isFavorite, onToggleFavorite, onOrder, onRate }:
           </div>
         )}
         <div className="absolute top-2 left-2 flex items-center gap-2">
-          <CountryBadge countryCode={product.country_code} variant="compact" />
+          <CountryBadge countryCode={vendorCountryCode} variant="compact" />
           {product.isExperience && (
             <Badge className="bg-purple-600 text-white">
               ✨ EXPÉRIENCE
