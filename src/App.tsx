@@ -68,6 +68,7 @@ import OrdersManagement from "./pages/Admin/OrdersManagement";
 import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ShareAnalytics from "./pages/Admin/ShareAnalytics";
 import IndexNowAnalytics from "./pages/Admin/IndexNowAnalytics";
+import MyAssignments from "./pages/Admin/MyAssignments";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
 import Invitations from "./pages/Invitations";
@@ -488,6 +489,11 @@ const App = () => (
             <Route path="/admin/audit" element={
               <AdminRoute>
                 <AuditLogs />
+              </AdminRoute>
+            } />
+            <Route path="/admin/my-assignments" element={
+              <AdminRoute>
+                <MyAssignments />
               </AdminRoute>
             } />
             <Route path="/admin/performance" element={
