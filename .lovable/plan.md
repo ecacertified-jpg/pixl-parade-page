@@ -1,99 +1,91 @@
 
 
-# Affecter des utilisateurs et entreprises aux administrateurs
+# Permettre aux admins de creer leurs propres listes d'utilisateurs et d'entreprises
 
 ## Objectif
 
-Permettre au Super Admin d'assigner directement des utilisateurs et des entreprises a un administrateur via le menu "Actions" du tableau de gestion des admins.
+Chaque administrateur (pas seulement le Super Admin) pourra se constituer sa propre liste d'utilisateurs et d'entreprises a partir des listes globales. Un utilisateur ou une entreprise ne peut appartenir qu'a un seul administrateur a la fois (exclusivite).
 
-## Architecture
+## Logique metier
 
-Actuellement, la relation admin-utilisateurs est indirecte (via `assigned_countries`). Cette fonctionnalite ajoute une affectation directe, individuelle, en plus de l'affectation par pays.
+- Un admin ouvre une nouvelle page "Mes affectations" dans la sidebar
+- Il voit ses utilisateurs et entreprises deja assignes
+- Il peut ajouter de nouveaux utilisateurs/entreprises depuis les listes globales
+- Les utilisateurs/entreprises deja assignes a un autre admin sont marques comme indisponibles et ne peuvent pas etre selectionnes
+- Le Super Admin conserve sa capacite d'affecter via la page "Administrateurs"
 
-### Nouvelles tables en base de donnees
+## Modifications
 
-**`admin_user_assignments`** - Liaison directe admin <-> utilisateur
+### 1. Nouvelle page : `src/pages/Admin/MyAssignments.tsx`
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Cle primaire |
-| admin_user_id | uuid | FK vers admin_users.id |
-| user_id | uuid | FK vers auth.users.id (utilisateur assigne) |
-| assigned_by | uuid | FK vers auth.users.id (super admin qui a fait l'affectation) |
-| created_at | timestamptz | Date d'affectation |
+Page accessible a tous les admins, avec deux onglets :
 
-Contrainte unique sur (admin_user_id, user_id).
+- **Onglet "Mes utilisateurs"** : liste des utilisateurs assignes a l'admin connecte, avec possibilite de retirer
+- **Onglet "Mes entreprises"** : idem pour les entreprises
 
-**`admin_business_assignments`** - Liaison directe admin <-> entreprise
+Bouton "Ajouter" qui ouvre un modal de selection.
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | Cle primaire |
-| admin_user_id | uuid | FK vers admin_users.id |
-| business_account_id | uuid | FK vers business_accounts.id |
-| assigned_by | uuid | FK vers auth.users.id |
-| created_at | timestamptz | Date d'affectation |
+### 2. Nouveau composant : `src/components/admin/SelfAssignModal.tsx`
 
-Contrainte unique sur (admin_user_id, business_account_id).
+Modal similaire a `AssignUsersBusinessesModal` mais :
 
-Les deux tables auront RLS active avec acces reserve aux admins actifs.
+- L'admin s'affecte a lui-meme (pas besoin de choisir un admin cible)
+- Les utilisateurs/entreprises deja assignes a un autre admin sont **grises avec un label "Deja affecte a [Nom Admin]"**
+- Seuls les elements non assignes ou deja assignes a soi-meme sont cochables
 
-### Nouvelle edge function : `admin-manage-assignments`
+### 3. Mise a jour de l'Edge Function : `admin-manage-assignments`
 
-Gerera les operations CRUD sur les affectations :
+Actuellement reservee aux Super Admins. Modifications :
 
-- **GET** `?admin_id=xxx` : liste les utilisateurs et entreprises assignes a cet admin
-- **POST** : ajouter des affectations (body: `{ admin_id, user_ids?, business_ids? }`)
-- **DELETE** : retirer des affectations (body: `{ admin_id, assignment_ids, type: 'user' | 'business' }`)
+- **GET** : permettre a tout admin actif de lister ses propres affectations (si `admin_id` correspond a son propre `admin_users.id`)
+- **POST** : permettre a tout admin actif d'ajouter des affectations a lui-meme, avec verification d'exclusivite (rejeter si l'utilisateur/entreprise est deja assigne a un autre admin)
+- **DELETE** : permettre a tout admin actif de retirer ses propres affectations
+- Le Super Admin conserve le droit de gerer les affectations de n'importe quel admin
 
-Securite : verification que l'appelant est super_admin actif.
-
-### Nouveau composant : `AssignUsersBusinessesModal`
-
-Modal accessible depuis le menu Actions de chaque admin, avec deux onglets :
-
-- **Onglet "Utilisateurs"** : recherche par nom/email, liste paginee, checkbox pour selectionner, affichage des utilisateurs deja assignes
-- **Onglet "Entreprises"** : recherche par nom, meme logique
-
-Chaque onglet affiche :
-- En haut : barre de recherche
-- Liste avec checkbox : avatar + nom + email/type
-- Les elements deja assignes sont precoches
-- Bouton "Enregistrer" pour sauvegarder les modifications
-
-### Modifications de l'interface existante
-
-**`AdminManagement.tsx`** - Ajouter une entree dans le menu Actions :
+### 4. Nouvelle route dans `App.tsx`
 
 ```text
-Modifier les permissions
-Affecter utilisateurs/entreprises    <-- NOUVEAU
-Revoquer l'acces admin
+/admin/my-assignments -> MyAssignments (AdminRoute, tous les admins)
 ```
 
-Ajouter l'etat et le rendu du nouveau modal.
+### 5. Nouveau lien dans la sidebar (`AdminLayout.tsx`)
 
-**Mise a jour des stats** - Les colonnes "Utilisateurs" et "Entreprises" prendront en compte les affectations directes en plus des pays. La logique dans l'edge function `admin-list-admins` sera mise a jour pour sommer :
-- Utilisateurs/entreprises des pays assignes
-- Utilisateurs/entreprises directement assignes (sans doublons)
+Ajouter entre "Logs d'audit" et "Dashboard" ou a un endroit pertinent :
+
+```text
+{ title: 'Mes affectations', href: '/admin/my-assignments', icon: ClipboardList }
+```
+
+## Verification d'exclusivite (Edge Function)
+
+Avant d'inserer une nouvelle affectation, l'edge function verifiera :
+
+```text
+SELECT admin_user_id FROM admin_user_assignments WHERE user_id = :uid
+-> Si resultat existe et admin_user_id != admin demandeur -> REJET avec message
+```
+
+Meme logique pour les entreprises.
+
+Pour le modal, une requete pre-chargera tous les `user_id` / `business_account_id` deja assignes avec le nom de l'admin, afin d'afficher l'info en temps reel dans la liste.
 
 ## Fichiers concernes
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| Migration SQL (nouveau) | Creer | Tables `admin_user_assignments` et `admin_business_assignments` + RLS |
-| `supabase/functions/admin-manage-assignments/index.ts` | Creer | Edge function GET/POST/DELETE pour gerer les affectations |
-| `src/components/admin/AssignUsersBusinessesModal.tsx` | Creer | Modal avec onglets Utilisateurs/Entreprises |
-| `src/pages/Admin/AdminManagement.tsx` | Modifier | Ajouter entree menu Actions + etat du modal |
-| `supabase/functions/admin-list-admins/index.ts` | Modifier | Inclure les affectations directes dans le calcul des stats |
+| `src/pages/Admin/MyAssignments.tsx` | Creer | Page "Mes affectations" avec onglets et gestion |
+| `src/components/admin/SelfAssignModal.tsx` | Creer | Modal de selection avec filtre d'exclusivite |
+| `supabase/functions/admin-manage-assignments/index.ts` | Modifier | Ouvrir aux admins (self), ajouter verification d'exclusivite |
+| `src/App.tsx` | Modifier | Ajouter la route `/admin/my-assignments` |
+| `src/components/AdminLayout.tsx` | Modifier | Ajouter le lien sidebar "Mes affectations" |
 
 ## Flux utilisateur
 
-1. Super Admin ouvre le menu Actions d'un admin
-2. Clique sur "Affecter utilisateurs/entreprises"
-3. Le modal s'ouvre avec les deux onglets
-4. Recherche et selectionne des utilisateurs/entreprises
-5. Clique sur "Enregistrer"
-6. Les affectations sont sauvegardees, les stats se mettent a jour
-7. Un log d'audit est cree
+1. L'admin clique sur "Mes affectations" dans la sidebar
+2. Il voit ses listes actuelles d'utilisateurs et d'entreprises
+3. Il clique sur "Ajouter des utilisateurs" ou "Ajouter des entreprises"
+4. Le modal s'ouvre avec une recherche et les listes globales
+5. Les elements deja pris par un autre admin sont grises avec indication du responsable
+6. L'admin coche les elements disponibles et enregistre
+7. Les affectations sont sauvegardees, la liste se met a jour
 
