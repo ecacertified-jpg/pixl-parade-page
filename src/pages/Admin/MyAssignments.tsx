@@ -145,7 +145,7 @@ const MyAssignments = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const baseUrl = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/admin-manage-assignments`;
-      await fetch(baseUrl, {
+      const res = await fetch(baseUrl, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -154,6 +154,10 @@ const MyAssignments = () => {
         },
         body: JSON.stringify({ admin_id: adminId, assignment_ids: [assignmentId], type }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || 'Erreur serveur');
+      }
       toast.success('Affectation retirée');
       loadAssignments(adminId);
     } catch (error) {
