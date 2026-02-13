@@ -1,55 +1,63 @@
 
-# Voir les affectations d'un admin depuis "Gestion des administrateurs"
 
-## Objectif
+# Inferer le pays depuis la ville/adresse de livraison
 
-Ajouter une option "Voir les affectations" dans le menu Actions de chaque administrateur sur la page "Gestion des administrateurs". Au clic, un modal s'ouvre et affiche les tableaux detailles (utilisateurs et entreprises) assignes a cet admin, avec les memes colonnes que la page "Mes affectations".
+## Probleme
+
+Le trigger `handle_new_user()` detecte le pays uniquement via le prefixe telephonique. Quand un utilisateur s'inscrit par email (sans telephone), le pays tombe par defaut sur `'CI'` (Cote d'Ivoire), meme si sa ville indique clairement un autre pays.
+
+Exemple concret : Paul (senoupaul4@gmail.com) habite a "Kowegbo, Akpakpa, Cotonou" (Benin) mais est affiche comme etant en Cote d'Ivoire.
+
+## Solution
+
+Ajouter une detection par ville/adresse comme second niveau de fallback dans le trigger, en s'inspirant de la fonction `inferCountryFromAddress` deja utilisee cote frontend.
 
 ## Modifications
 
-### 1. Nouveau composant `ViewAdminAssignmentsModal`
+### 1. Migration SQL : Mettre a jour `handle_new_user()`
 
-Fichier : `src/components/admin/ViewAdminAssignmentsModal.tsx`
+Logique actuelle :
+```text
+phone -> prefixe +229 = BJ, +221 = SN, +225 = CI
+sinon -> CI (defaut)
+```
 
-Un Dialog/modal qui :
-- Recoit `adminId`, `adminName`, `open`, `onOpenChange` en props
-- Charge les affectations via l'edge function `admin-manage-assignments?admin_id=...` (le Super Admin a deja les droits)
-- Affiche deux onglets (Tabs) : Utilisateurs et Entreprises
-- Reutilise la meme structure de tableaux que MyAssignments :
-  - **Utilisateurs** : Avatar/Nom, Pays (CountryBadge), Telephone, Completion (Progress + Tooltip), Date d'inscription
-  - **Entreprises** : Nom, Pays, Type, Contact, Date d'inscription, Statut (Badge colore)
-- Mode lecture seule (pas de bouton Retirer dans ce contexte)
-- Inclut les boutons "Voir le profil" pour ouvrir UserProfileModal / BusinessProfileModal
+Nouvelle logique :
+```text
+1. phone -> prefixe +229 = BJ, +221 = SN, +225 = CI, +228 = TG, +223 = ML, +226 = BF
+2. SI resultat = 'CI' ET pas de telephone -> verifier la ville (city) dans les metadata
+3. city contient 'cotonou', 'porto-novo', 'parakou', 'bohicon', 'abomey' -> BJ
+4. city contient 'dakar', 'thies', 'kaolack', 'saint-louis' -> SN
+5. city contient 'lome', 'kara', 'sokode' -> TG
+6. city contient 'bamako', 'sikasso', 'mopti' -> ML
+7. city contient 'ouagadougou', 'bobo-dioulasso' -> BF
+8. Sinon -> CI (defaut)
+```
 
-Reutilise les fonctions `calculateProfileCompletion` et `getStatusBadge` (extraites ou dupliquees depuis MyAssignments).
-
-### 2. Page `AdminManagement.tsx` - Ajout de l'action
-
-- Importer `ViewAdminAssignmentsModal` et l'icone `ClipboardList` (ou `Eye`)
-- Ajouter un etat `viewAssignmentsOpen: boolean` et reutiliser `selectedAdminId` / `selectedAdminName`
-- Dans `renderAdminActions`, ajouter une option "Voir les affectations" entre "Affecter utilisateurs/entreprises" et "Revoquer l'acces admin"
-- Rendre le modal en bas du composant avec les modals existants
-
-### 3. Structure du menu Actions (resultat final)
+### 2. Migration SQL : Corriger le profil de Paul
 
 ```text
-Desactiver / Activer
-Modifier les permissions
-Affecter utilisateurs/entreprises
-Voir les affectations          <-- NOUVEAU
----
-Revoquer l'acces admin (rouge)
+UPDATE profiles SET country_code = 'BJ'
+WHERE user_id = '9bdeafea-3ad4-4369-8afd-a28e3e1243ab';
 ```
+
+### 3. Migration SQL : Backfill general
+
+Corriger tous les profils existants qui ont `country_code = 'CI'`, pas de telephone, et une ville identifiable dans un autre pays :
+
+```text
+UPDATE profiles SET country_code = 'BJ'
+WHERE country_code = 'CI' AND phone IS NULL
+AND (city ILIKE '%cotonou%' OR city ILIKE '%porto-novo%' OR city ILIKE '%parakou%' ...);
+```
+
+Meme logique pour SN, TG, ML, BF.
 
 ## Fichiers concernes
 
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Creer | Modal avec tableaux detailles des affectations |
-| `src/pages/Admin/AdminManagement.tsx` | Modifier | Ajouter l'action et le rendu du modal |
+| Fichier | Action |
+|---------|--------|
+| `supabase/migrations/[new].sql` | Creer : nouveau trigger + corrections de donnees |
 
-## Details techniques
+Aucune modification frontend necessaire -- la detection se fait au niveau de la base de donnees lors de la creation du compte.
 
-- L'appel a l'edge function `admin-manage-assignments` avec `admin_id` du admin selectionne fonctionne deja pour les Super Admins (la verification `canManageAdmin` autorise les super_admin a gerer n'importe quel admin)
-- Le modal sera en lecture seule pour eviter la confusion avec la page "Mes affectations" qui permet les modifications
-- Les profils detailles (UserProfileModal, BusinessProfileModal) seront accessibles via un bouton dans chaque ligne
