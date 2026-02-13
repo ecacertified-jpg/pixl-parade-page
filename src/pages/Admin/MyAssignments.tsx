@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CountryBadge } from '@/components/CountryBadge';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal } from 'lucide-react';
+import { UserProfileModal } from '@/components/admin/UserProfileModal';
+import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -89,6 +91,10 @@ const MyAssignments = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
+  const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) loadAdminId();
@@ -270,6 +276,11 @@ const MyAssignments = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => { setSelectedUserId(a.user_id); setUserProfileModalOpen(true); }}>
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      Voir le profil
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       className="text-destructive"
                                       disabled={removing === a.id}
@@ -361,6 +372,11 @@ const MyAssignments = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setSelectedBusinessId(a.business_account_id); setBusinessProfileModalOpen(true); }}>
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Voir le profil
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-destructive"
                                     disabled={removing === a.id}
@@ -396,6 +412,9 @@ const MyAssignments = () => {
           onSuccess={() => loadAssignments(adminId)}
         />
       )}
+
+      <UserProfileModal userId={selectedUserId} open={userProfileModalOpen} onOpenChange={setUserProfileModalOpen} />
+      <BusinessProfileModal businessId={selectedBusinessId} open={businessProfileModalOpen} onOpenChange={setBusinessProfileModalOpen} />
     </AdminLayout>
   );
 };
