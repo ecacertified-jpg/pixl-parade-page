@@ -1,91 +1,62 @@
 
 
-# Permettre aux admins de creer leurs propres listes d'utilisateurs et d'entreprises
+# Enrichir l'affichage des affectations avec des tableaux detailles
 
 ## Objectif
 
-Chaque administrateur (pas seulement le Super Admin) pourra se constituer sa propre liste d'utilisateurs et d'entreprises a partir des listes globales. Un utilisateur ou une entreprise ne peut appartenir qu'a un seul administrateur a la fois (exclusivite).
-
-## Logique metier
-
-- Un admin ouvre une nouvelle page "Mes affectations" dans la sidebar
-- Il voit ses utilisateurs et entreprises deja assignes
-- Il peut ajouter de nouveaux utilisateurs/entreprises depuis les listes globales
-- Les utilisateurs/entreprises deja assignes a un autre admin sont marques comme indisponibles et ne peuvent pas etre selectionnes
-- Le Super Admin conserve sa capacite d'affecter via la page "Administrateurs"
+Transformer la page "Mes affectations" pour afficher les utilisateurs et entreprises dans des tableaux riches avec les memes colonnes que les pages de gestion globales (UserManagement et BusinessManagement).
 
 ## Modifications
 
-### 1. Nouvelle page : `src/pages/Admin/MyAssignments.tsx`
+### 1. Edge Function `admin-manage-assignments` - Enrichir les donnees retournees
 
-Page accessible a tous les admins, avec deux onglets :
+Dans le handler GET (quand `admin_id` est fourni), enrichir les requetes pour retourner plus de champs :
 
-- **Onglet "Mes utilisateurs"** : liste des utilisateurs assignes a l'admin connecte, avec possibilite de retirer
-- **Onglet "Mes entreprises"** : idem pour les entreprises
+**Profils utilisateurs** : ajouter `phone`, `country_code`, `birthday`, `city`, `bio`, `created_at`, `is_suspended` aux champs selectionnes dans la requete `profiles`.
 
-Bouton "Ajouter" qui ouvre un modal de selection.
+**Entreprises** : ajouter `email`, `phone`, `country_code`, `created_at`, `status`, `is_active`, `is_verified` aux champs selectionnes dans la requete `business_accounts`.
 
-### 2. Nouveau composant : `src/components/admin/SelfAssignModal.tsx`
+### 2. Page `MyAssignments.tsx` - Tableaux riches
 
-Modal similaire a `AssignUsersBusinessesModal` mais :
+Remplacer les listes simples de cartes par des tableaux structures.
 
-- L'admin s'affecte a lui-meme (pas besoin de choisir un admin cible)
-- Les utilisateurs/entreprises deja assignes a un autre admin sont **grises avec un label "Deja affecte a [Nom Admin]"**
-- Seuls les elements non assignes ou deja assignes a soi-meme sont cochables
+**Onglet Utilisateurs** - Colonnes :
+| Colonne | Donnee |
+|---------|--------|
+| Utilisateur | Avatar + Nom complet |
+| Pays | CountryBadge avec code pays |
+| Telephone | Numero ou "Non renseigne" |
+| Completion | Barre de progression + pourcentage (meme calcul que UserManagement) |
+| Date d'inscription | Format fr-FR |
+| Actions | Menu deroulant (Retirer) |
 
-### 3. Mise a jour de l'Edge Function : `admin-manage-assignments`
+**Onglet Entreprises** - Colonnes :
+| Colonne | Donnee |
+|---------|--------|
+| Nom du business | Nom de l'entreprise |
+| Pays | CountryBadge |
+| Type | Type d'activite |
+| Contact | Email + telephone |
+| Date d'inscription | Format fr-FR |
+| Statut | Badge colore selon statut |
+| Actions | Menu deroulant (Retirer) |
 
-Actuellement reservee aux Super Admins. Modifications :
+Le calcul de completion de profil sera importe depuis la meme logique que `UserManagement.tsx` (fonction `calculateProfileCompletion` avec les poids : prenom 15%, nom 15%, telephone 15%, ville 15%, anniversaire 15%, photo 15%, bio 10%).
 
-- **GET** : permettre a tout admin actif de lister ses propres affectations (si `admin_id` correspond a son propre `admin_users.id`)
-- **POST** : permettre a tout admin actif d'ajouter des affectations a lui-meme, avec verification d'exclusivite (rejeter si l'utilisateur/entreprise est deja assigne a un autre admin)
-- **DELETE** : permettre a tout admin actif de retirer ses propres affectations
-- Le Super Admin conserve le droit de gerer les affectations de n'importe quel admin
+### 3. Composants reutilises
 
-### 4. Nouvelle route dans `App.tsx`
-
-```text
-/admin/my-assignments -> MyAssignments (AdminRoute, tous les admins)
-```
-
-### 5. Nouveau lien dans la sidebar (`AdminLayout.tsx`)
-
-Ajouter entre "Logs d'audit" et "Dashboard" ou a un endroit pertinent :
-
-```text
-{ title: 'Mes affectations', href: '/admin/my-assignments', icon: ClipboardList }
-```
-
-## Verification d'exclusivite (Edge Function)
-
-Avant d'inserer une nouvelle affectation, l'edge function verifiera :
-
-```text
-SELECT admin_user_id FROM admin_user_assignments WHERE user_id = :uid
--> Si resultat existe et admin_user_id != admin demandeur -> REJET avec message
-```
-
-Meme logique pour les entreprises.
-
-Pour le modal, une requete pre-chargera tous les `user_id` / `business_account_id` deja assignes avec le nom de l'admin, afin d'afficher l'info en temps reel dans la liste.
+- `CountryBadge` pour l'affichage du pays
+- `Progress` pour la barre de completion
+- `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, `TableHead` pour la structure
+- `Badge` pour les statuts d'entreprise
+- `DropdownMenu` pour les actions
+- `Avatar` pour les photos de profil
+- `Tooltip` pour le detail des champs de completion
 
 ## Fichiers concernes
 
 | Fichier | Action | Description |
 |---------|--------|-------------|
-| `src/pages/Admin/MyAssignments.tsx` | Creer | Page "Mes affectations" avec onglets et gestion |
-| `src/components/admin/SelfAssignModal.tsx` | Creer | Modal de selection avec filtre d'exclusivite |
-| `supabase/functions/admin-manage-assignments/index.ts` | Modifier | Ouvrir aux admins (self), ajouter verification d'exclusivite |
-| `src/App.tsx` | Modifier | Ajouter la route `/admin/my-assignments` |
-| `src/components/AdminLayout.tsx` | Modifier | Ajouter le lien sidebar "Mes affectations" |
-
-## Flux utilisateur
-
-1. L'admin clique sur "Mes affectations" dans la sidebar
-2. Il voit ses listes actuelles d'utilisateurs et d'entreprises
-3. Il clique sur "Ajouter des utilisateurs" ou "Ajouter des entreprises"
-4. Le modal s'ouvre avec une recherche et les listes globales
-5. Les elements deja pris par un autre admin sont grises avec indication du responsable
-6. L'admin coche les elements disponibles et enregistre
-7. Les affectations sont sauvegardees, la liste se met a jour
+| `supabase/functions/admin-manage-assignments/index.ts` | Modifier | Elargir les champs selectionnes pour profiles et business_accounts |
+| `src/pages/Admin/MyAssignments.tsx` | Modifier | Remplacer les cartes par des tableaux riches avec toutes les colonnes |
 
