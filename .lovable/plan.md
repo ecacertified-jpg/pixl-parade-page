@@ -1,62 +1,60 @@
 
 
-# Enrichir l'affichage des affectations avec des tableaux detailles
+# Ajouter "Voir le profil" dans les actions des affectations
 
 ## Objectif
 
-Transformer la page "Mes affectations" pour afficher les utilisateurs et entreprises dans des tableaux riches avec les memes colonnes que les pages de gestion globales (UserManagement et BusinessManagement).
+Ajouter une option "Voir le profil" dans le menu Actions de chaque ligne des tableaux utilisateurs et entreprises de la page "Mes affectations", en reutilisant les modals existants `UserProfileModal` et `BusinessProfileModal`.
 
 ## Modifications
 
-### 1. Edge Function `admin-manage-assignments` - Enrichir les donnees retournees
+### Fichier unique : `src/pages/Admin/MyAssignments.tsx`
 
-Dans le handler GET (quand `admin_id` est fourni), enrichir les requetes pour retourner plus de champs :
+**1. Imports a ajouter :**
+- `UserProfileModal` depuis `@/components/admin/UserProfileModal`
+- `BusinessProfileModal` depuis `@/components/admin/BusinessProfileModal`
+- Icone `FileText` (ou `Eye`) depuis `lucide-react` pour l'option de menu
 
-**Profils utilisateurs** : ajouter `phone`, `country_code`, `birthday`, `city`, `bio`, `created_at`, `is_suspended` aux champs selectionnes dans la requete `profiles`.
+**2. Nouveaux etats :**
+- `selectedUserId: string | null` - l'ID utilisateur selectionne pour le profil
+- `userProfileModalOpen: boolean` - visibilite du modal profil utilisateur
+- `selectedBusinessId: string | null` - l'ID entreprise selectionne
+- `businessProfileModalOpen: boolean` - visibilite du modal profil entreprise
 
-**Entreprises** : ajouter `email`, `phone`, `country_code`, `created_at`, `status`, `is_active`, `is_verified` aux champs selectionnes dans la requete `business_accounts`.
+**3. Menu Actions - Onglet Utilisateurs :**
 
-### 2. Page `MyAssignments.tsx` - Tableaux riches
+Ajouter avant l'option "Retirer" :
 
-Remplacer les listes simples de cartes par des tableaux structures.
+```text
+Voir le profil  (icone FileText)
+---  (separateur)
+Retirer  (existant, en rouge)
+```
 
-**Onglet Utilisateurs** - Colonnes :
-| Colonne | Donnee |
-|---------|--------|
-| Utilisateur | Avatar + Nom complet |
-| Pays | CountryBadge avec code pays |
-| Telephone | Numero ou "Non renseigne" |
-| Completion | Barre de progression + pourcentage (meme calcul que UserManagement) |
-| Date d'inscription | Format fr-FR |
-| Actions | Menu deroulant (Retirer) |
+Au clic, on set `selectedUserId = a.user_id` et `userProfileModalOpen = true`.
 
-**Onglet Entreprises** - Colonnes :
-| Colonne | Donnee |
-|---------|--------|
-| Nom du business | Nom de l'entreprise |
-| Pays | CountryBadge |
-| Type | Type d'activite |
-| Contact | Email + telephone |
-| Date d'inscription | Format fr-FR |
-| Statut | Badge colore selon statut |
-| Actions | Menu deroulant (Retirer) |
+**4. Menu Actions - Onglet Entreprises :**
 
-Le calcul de completion de profil sera importe depuis la meme logique que `UserManagement.tsx` (fonction `calculateProfileCompletion` avec les poids : prenom 15%, nom 15%, telephone 15%, ville 15%, anniversaire 15%, photo 15%, bio 10%).
+Ajouter avant l'option "Retirer" :
 
-### 3. Composants reutilises
+```text
+Voir le profil  (icone FileText)
+---  (separateur)
+Retirer  (existant, en rouge)
+```
 
-- `CountryBadge` pour l'affichage du pays
-- `Progress` pour la barre de completion
-- `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell`, `TableHead` pour la structure
-- `Badge` pour les statuts d'entreprise
-- `DropdownMenu` pour les actions
-- `Avatar` pour les photos de profil
-- `Tooltip` pour le detail des champs de completion
+Au clic, on set `selectedBusinessId = a.business_account_id` et `businessProfileModalOpen = true`.
 
-## Fichiers concernes
+**5. Rendu des modals :**
 
-| Fichier | Action | Description |
-|---------|--------|-------------|
-| `supabase/functions/admin-manage-assignments/index.ts` | Modifier | Elargir les champs selectionnes pour profiles et business_accounts |
-| `src/pages/Admin/MyAssignments.tsx` | Modifier | Remplacer les cartes par des tableaux riches avec toutes les colonnes |
+Ajouter en fin de composant, avant la fermeture du div principal :
+
+```text
+<UserProfileModal userId={selectedUserId} open={userProfileModalOpen} onOpenChange={setUserProfileModalOpen} />
+<BusinessProfileModal businessId={selectedBusinessId} open={businessProfileModalOpen} onOpenChange={setBusinessProfileModalOpen} />
+```
+
+## Aucun autre fichier impacte
+
+Les composants `UserProfileModal` et `BusinessProfileModal` existent deja et acceptent les memes props que celles utilisees dans `UserManagement.tsx` et `BusinessManagement.tsx`. Aucune modification de l'edge function n'est necessaire.
 
