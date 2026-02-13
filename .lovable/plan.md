@@ -1,46 +1,55 @@
 
-# Corriger l'erreur "Retirer" dans Mes affectations
+# Voir les affectations d'un admin depuis "Gestion des administrateurs"
 
-## Probleme identifie
+## Objectif
 
-L'erreur "Failed to fetch" lors du DELETE indique un echec de la requete preflight CORS. Le navigateur envoie d'abord une requete OPTIONS avant un DELETE, et les headers CORS de l'edge function ne declarent pas explicitement les methodes autorisees (`Access-Control-Allow-Methods`). Certains navigateurs rejettent alors la requete.
+Ajouter une option "Voir les affectations" dans le menu Actions de chaque administrateur sur la page "Gestion des administrateurs". Au clic, un modal s'ouvre et affiche les tableaux detailles (utilisateurs et entreprises) assignes a cet admin, avec les memes colonnes que la page "Mes affectations".
 
-De plus, le code frontend ne verifie pas le statut de la reponse (`res.ok`), ce qui masquerait d'eventuelles erreurs HTTP.
+## Modifications
 
-## Corrections
+### 1. Nouveau composant `ViewAdminAssignmentsModal`
 
-### 1. Edge Function `admin-manage-assignments/index.ts`
+Fichier : `src/components/admin/ViewAdminAssignmentsModal.tsx`
 
-Ajouter `Access-Control-Allow-Methods` dans les headers CORS :
+Un Dialog/modal qui :
+- Recoit `adminId`, `adminName`, `open`, `onOpenChange` en props
+- Charge les affectations via l'edge function `admin-manage-assignments?admin_id=...` (le Super Admin a deja les droits)
+- Affiche deux onglets (Tabs) : Utilisateurs et Entreprises
+- Reutilise la meme structure de tableaux que MyAssignments :
+  - **Utilisateurs** : Avatar/Nom, Pays (CountryBadge), Telephone, Completion (Progress + Tooltip), Date d'inscription
+  - **Entreprises** : Nom, Pays, Type, Contact, Date d'inscription, Statut (Badge colore)
+- Mode lecture seule (pas de bouton Retirer dans ce contexte)
+- Inclut les boutons "Voir le profil" pour ouvrir UserProfileModal / BusinessProfileModal
+
+Reutilise les fonctions `calculateProfileCompletion` et `getStatusBadge` (extraites ou dupliquees depuis MyAssignments).
+
+### 2. Page `AdminManagement.tsx` - Ajout de l'action
+
+- Importer `ViewAdminAssignmentsModal` et l'icone `ClipboardList` (ou `Eye`)
+- Ajouter un etat `viewAssignmentsOpen: boolean` et reutiliser `selectedAdminId` / `selectedAdminName`
+- Dans `renderAdminActions`, ajouter une option "Voir les affectations" entre "Affecter utilisateurs/entreprises" et "Revoquer l'acces admin"
+- Rendre le modal en bas du composant avec les modals existants
+
+### 3. Structure du menu Actions (resultat final)
 
 ```text
-corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-}
-```
-
-### 2. Frontend `MyAssignments.tsx`
-
-Ameliorer la fonction `handleRemove` :
-
-- Verifier `res.ok` apres le fetch
-- Si la reponse n'est pas OK, lire le message d'erreur du serveur et l'afficher
-- Afficher le toast de succes uniquement si la requete a reussi
-
-```text
-const res = await fetch(baseUrl, { ... });
-if (!res.ok) {
-  const err = await res.json().catch(() => null);
-  throw new Error(err?.error || 'Erreur serveur');
-}
-toast.success('Affectation retiree');
+Desactiver / Activer
+Modifier les permissions
+Affecter utilisateurs/entreprises
+Voir les affectations          <-- NOUVEAU
+---
+Revoquer l'acces admin (rouge)
 ```
 
 ## Fichiers concernes
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/admin-manage-assignments/index.ts` | Ajouter `Access-Control-Allow-Methods` aux CORS headers |
-| `src/pages/Admin/MyAssignments.tsx` | Verifier `res.ok` dans `handleRemove` |
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Creer | Modal avec tableaux detailles des affectations |
+| `src/pages/Admin/AdminManagement.tsx` | Modifier | Ajouter l'action et le rendu du modal |
+
+## Details techniques
+
+- L'appel a l'edge function `admin-manage-assignments` avec `admin_id` du admin selectionne fonctionne deja pour les Super Admins (la verification `canManageAdmin` autorise les super_admin a gerer n'importe quel admin)
+- Le modal sera en lecture seule pour eviter la confusion avec la page "Mes affectations" qui permet les modifications
+- Les profils detailles (UserProfileModal, BusinessProfileModal) seront accessibles via un bouton dans chaque ligne
