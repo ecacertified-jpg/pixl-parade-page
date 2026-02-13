@@ -1,60 +1,46 @@
 
+# Corriger l'erreur "Retirer" dans Mes affectations
 
-# Ajouter "Voir le profil" dans les actions des affectations
+## Probleme identifie
 
-## Objectif
+L'erreur "Failed to fetch" lors du DELETE indique un echec de la requete preflight CORS. Le navigateur envoie d'abord une requete OPTIONS avant un DELETE, et les headers CORS de l'edge function ne declarent pas explicitement les methodes autorisees (`Access-Control-Allow-Methods`). Certains navigateurs rejettent alors la requete.
 
-Ajouter une option "Voir le profil" dans le menu Actions de chaque ligne des tableaux utilisateurs et entreprises de la page "Mes affectations", en reutilisant les modals existants `UserProfileModal` et `BusinessProfileModal`.
+De plus, le code frontend ne verifie pas le statut de la reponse (`res.ok`), ce qui masquerait d'eventuelles erreurs HTTP.
 
-## Modifications
+## Corrections
 
-### Fichier unique : `src/pages/Admin/MyAssignments.tsx`
+### 1. Edge Function `admin-manage-assignments/index.ts`
 
-**1. Imports a ajouter :**
-- `UserProfileModal` depuis `@/components/admin/UserProfileModal`
-- `BusinessProfileModal` depuis `@/components/admin/BusinessProfileModal`
-- Icone `FileText` (ou `Eye`) depuis `lucide-react` pour l'option de menu
-
-**2. Nouveaux etats :**
-- `selectedUserId: string | null` - l'ID utilisateur selectionne pour le profil
-- `userProfileModalOpen: boolean` - visibilite du modal profil utilisateur
-- `selectedBusinessId: string | null` - l'ID entreprise selectionne
-- `businessProfileModalOpen: boolean` - visibilite du modal profil entreprise
-
-**3. Menu Actions - Onglet Utilisateurs :**
-
-Ajouter avant l'option "Retirer" :
+Ajouter `Access-Control-Allow-Methods` dans les headers CORS :
 
 ```text
-Voir le profil  (icone FileText)
----  (separateur)
-Retirer  (existant, en rouge)
+corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+}
 ```
 
-Au clic, on set `selectedUserId = a.user_id` et `userProfileModalOpen = true`.
+### 2. Frontend `MyAssignments.tsx`
 
-**4. Menu Actions - Onglet Entreprises :**
+Ameliorer la fonction `handleRemove` :
 
-Ajouter avant l'option "Retirer" :
+- Verifier `res.ok` apres le fetch
+- Si la reponse n'est pas OK, lire le message d'erreur du serveur et l'afficher
+- Afficher le toast de succes uniquement si la requete a reussi
 
 ```text
-Voir le profil  (icone FileText)
----  (separateur)
-Retirer  (existant, en rouge)
+const res = await fetch(baseUrl, { ... });
+if (!res.ok) {
+  const err = await res.json().catch(() => null);
+  throw new Error(err?.error || 'Erreur serveur');
+}
+toast.success('Affectation retiree');
 ```
 
-Au clic, on set `selectedBusinessId = a.business_account_id` et `businessProfileModalOpen = true`.
+## Fichiers concernes
 
-**5. Rendu des modals :**
-
-Ajouter en fin de composant, avant la fermeture du div principal :
-
-```text
-<UserProfileModal userId={selectedUserId} open={userProfileModalOpen} onOpenChange={setUserProfileModalOpen} />
-<BusinessProfileModal businessId={selectedBusinessId} open={businessProfileModalOpen} onOpenChange={setBusinessProfileModalOpen} />
-```
-
-## Aucun autre fichier impacte
-
-Les composants `UserProfileModal` et `BusinessProfileModal` existent deja et acceptent les memes props que celles utilisees dans `UserManagement.tsx` et `BusinessManagement.tsx`. Aucune modification de l'edge function n'est necessaire.
-
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/admin-manage-assignments/index.ts` | Ajouter `Access-Control-Allow-Methods` aux CORS headers |
+| `src/pages/Admin/MyAssignments.tsx` | Verifier `res.ok` dans `handleRemove` |
