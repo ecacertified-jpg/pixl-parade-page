@@ -79,6 +79,7 @@ const navItems: NavItem[] = [
   { title: 'Comparaison Pays', href: '/admin/countries/comparison', icon: GitCompare },
   { title: 'Objectifs Pays', href: '/admin/countries/objectives', icon: Target },
   { title: 'Prévisions', href: '/admin/forecast', icon: Sparkles },
+  { title: 'Mes affectations', href: '/admin/my-assignments', icon: ClipboardList },
   { title: 'Logs d\'audit', href: '/admin/audit', icon: ClipboardList },
 ];
 

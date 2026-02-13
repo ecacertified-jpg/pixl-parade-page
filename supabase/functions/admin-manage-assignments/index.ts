@@ -5,18 +5,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function verifySuperAdmin(supabaseAdmin: any, userId: string) {
+interface AdminInfo {
+  id: string;
+  role: string;
+  is_active: boolean;
+}
+
+async function getAdminInfo(supabaseAdmin: any, userId: string): Promise<AdminInfo | null> {
   const { data, error } = await supabaseAdmin
     .from('admin_users')
-    .select('role, is_active')
+    .select('id, role, is_active')
     .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
 
-  if (error || !data || data.role !== 'super_admin') {
-    return false;
-  }
-  return true;
+  if (error || !data) return null;
+  return data;
+}
+
+function canManageAdmin(callerAdmin: AdminInfo, targetAdminId: string): boolean {
+  // Super admin can manage anyone
+  if (callerAdmin.role === 'super_admin') return true;
+  // Other admins can only manage themselves
+  return callerAdmin.id === targetAdminId;
 }
 
 Deno.serve(async (req) => {
@@ -48,9 +59,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const isSuperAdmin = await verifySuperAdmin(supabaseAdmin, user.id);
-    if (!isSuperAdmin) {
-      return new Response(JSON.stringify({ error: 'Accès réservé aux Super Admins' }), {
+    const callerAdmin = await getAdminInfo(supabaseAdmin, user.id);
+    if (!callerAdmin) {
+      return new Response(JSON.stringify({ error: 'Accès réservé aux administrateurs actifs' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -60,9 +71,78 @@ Deno.serve(async (req) => {
     // GET: list assignments for an admin
     if (req.method === 'GET') {
       const adminId = url.searchParams.get('admin_id');
+      // Special param to get all assignments for exclusivity check
+      const allAssignments = url.searchParams.get('all_assignments') === 'true';
+
+      if (allAssignments) {
+        // Return all assignments with admin names for exclusivity display
+        const [userAssignments, businessAssignments] = await Promise.all([
+          supabaseAdmin
+            .from('admin_user_assignments')
+            .select('admin_user_id, user_id'),
+          supabaseAdmin
+            .from('admin_business_assignments')
+            .select('admin_user_id, business_account_id'),
+        ]);
+
+        // Get admin names
+        const adminIds = new Set<string>();
+        (userAssignments.data || []).forEach((a: any) => adminIds.add(a.admin_user_id));
+        (businessAssignments.data || []).forEach((a: any) => adminIds.add(a.admin_user_id));
+
+        let adminProfiles: any[] = [];
+        if (adminIds.size > 0) {
+          // Get admin user_ids first
+          const { data: admins } = await supabaseAdmin
+            .from('admin_users')
+            .select('id, user_id')
+            .in('id', Array.from(adminIds));
+          
+          if (admins && admins.length > 0) {
+            const userIds = admins.map((a: any) => a.user_id);
+            const { data: profiles } = await supabaseAdmin
+              .from('profiles')
+              .select('user_id, first_name, last_name')
+              .in('user_id', userIds);
+            
+            adminProfiles = (admins || []).map((admin: any) => {
+              const profile = (profiles || []).find((p: any) => p.user_id === admin.user_id);
+              return {
+                admin_id: admin.id,
+                name: profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Admin',
+              };
+            });
+          }
+        }
+
+        const getAdminName = (adminId: string) => {
+          const found = adminProfiles.find((a: any) => a.admin_id === adminId);
+          return found?.name || 'Admin';
+        };
+
+        return new Response(JSON.stringify({
+          user_assignments: (userAssignments.data || []).map((a: any) => ({
+            ...a,
+            admin_name: getAdminName(a.admin_user_id),
+          })),
+          business_assignments: (businessAssignments.data || []).map((a: any) => ({
+            ...a,
+            admin_name: getAdminName(a.admin_user_id),
+          })),
+        }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       if (!adminId) {
         return new Response(JSON.stringify({ error: 'admin_id requis' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!canManageAdmin(callerAdmin, adminId)) {
+        return new Response(JSON.stringify({ error: 'Accès non autorisé' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
@@ -113,7 +193,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST: add assignments
+    // POST: add assignments with exclusivity check
     if (req.method === 'POST') {
       const body = await req.json();
       const { admin_id, user_ids, business_ids } = body;
@@ -124,53 +204,102 @@ Deno.serve(async (req) => {
         });
       }
 
-      const results: any = { users_added: 0, businesses_added: 0 };
-
-      if (user_ids && user_ids.length > 0) {
-        const rows = user_ids.map((uid: string) => ({
-          admin_user_id: admin_id,
-          user_id: uid,
-          assigned_by: user.id,
-        }));
-        const { data, error } = await supabaseAdmin
-          .from('admin_user_assignments')
-          .upsert(rows, { onConflict: 'admin_user_id,user_id', ignoreDuplicates: true })
-          .select();
-        if (error) {
-          console.error('Error adding user assignments:', error);
-          return new Response(JSON.stringify({ error: 'Erreur lors de l\'ajout des utilisateurs' }), {
-            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-        results.users_added = data?.length || 0;
+      if (!canManageAdmin(callerAdmin, admin_id)) {
+        return new Response(JSON.stringify({ error: 'Accès non autorisé' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      if (business_ids && business_ids.length > 0) {
-        const rows = business_ids.map((bid: string) => ({
-          admin_user_id: admin_id,
-          business_account_id: bid,
-          assigned_by: user.id,
-        }));
-        const { data, error } = await supabaseAdmin
-          .from('admin_business_assignments')
-          .upsert(rows, { onConflict: 'admin_user_id,business_account_id', ignoreDuplicates: true })
-          .select();
-        if (error) {
-          console.error('Error adding business assignments:', error);
-          return new Response(JSON.stringify({ error: 'Erreur lors de l\'ajout des entreprises' }), {
-            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+      const results: any = { users_added: 0, businesses_added: 0, conflicts: [] };
+
+      // Add user assignments with exclusivity check
+      if (user_ids && user_ids.length > 0) {
+        // Check for existing assignments to other admins
+        const { data: existing } = await supabaseAdmin
+          .from('admin_user_assignments')
+          .select('user_id, admin_user_id')
+          .in('user_id', user_ids);
+
+        const conflicts = (existing || []).filter((e: any) => e.admin_user_id !== admin_id);
+        if (conflicts.length > 0) {
+          results.conflicts.push(...conflicts.map((c: any) => ({
+            type: 'user',
+            id: c.user_id,
+            assigned_to: c.admin_user_id,
+          })));
         }
-        results.businesses_added = data?.length || 0;
+
+        const availableUserIds = user_ids.filter((uid: string) =>
+          !conflicts.some((c: any) => c.user_id === uid)
+        );
+
+        if (availableUserIds.length > 0) {
+          const rows = availableUserIds.map((uid: string) => ({
+            admin_user_id: admin_id,
+            user_id: uid,
+            assigned_by: user.id,
+          }));
+          const { data, error } = await supabaseAdmin
+            .from('admin_user_assignments')
+            .upsert(rows, { onConflict: 'admin_user_id,user_id', ignoreDuplicates: true })
+            .select();
+          if (error) {
+            console.error('Error adding user assignments:', error);
+            return new Response(JSON.stringify({ error: 'Erreur lors de l\'ajout des utilisateurs' }), {
+              status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          results.users_added = data?.length || 0;
+        }
+      }
+
+      // Add business assignments with exclusivity check
+      if (business_ids && business_ids.length > 0) {
+        const { data: existing } = await supabaseAdmin
+          .from('admin_business_assignments')
+          .select('business_account_id, admin_user_id')
+          .in('business_account_id', business_ids);
+
+        const conflicts = (existing || []).filter((e: any) => e.admin_user_id !== admin_id);
+        if (conflicts.length > 0) {
+          results.conflicts.push(...conflicts.map((c: any) => ({
+            type: 'business',
+            id: c.business_account_id,
+            assigned_to: c.admin_user_id,
+          })));
+        }
+
+        const availableBizIds = business_ids.filter((bid: string) =>
+          !conflicts.some((c: any) => c.business_account_id === bid)
+        );
+
+        if (availableBizIds.length > 0) {
+          const rows = availableBizIds.map((bid: string) => ({
+            admin_user_id: admin_id,
+            business_account_id: bid,
+            assigned_by: user.id,
+          }));
+          const { data, error } = await supabaseAdmin
+            .from('admin_business_assignments')
+            .upsert(rows, { onConflict: 'admin_user_id,business_account_id', ignoreDuplicates: true })
+            .select();
+          if (error) {
+            console.error('Error adding business assignments:', error);
+            return new Response(JSON.stringify({ error: 'Erreur lors de l\'ajout des entreprises' }), {
+              status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          results.businesses_added = data?.length || 0;
+        }
       }
 
       // Audit log
       await supabaseAdmin.from('admin_audit_logs').insert({
         admin_user_id: user.id,
-        action_type: 'assign_resources',
+        action_type: callerAdmin.id === admin_id ? 'self_assign_resources' : 'assign_resources',
         target_type: 'admin_user',
         target_id: admin_id,
-        description: `Affectation: ${results.users_added} utilisateur(s), ${results.businesses_added} entreprise(s)`,
+        description: `Affectation: ${results.users_added} utilisateur(s), ${results.businesses_added} entreprise(s)${results.conflicts.length > 0 ? ` (${results.conflicts.length} conflit(s))` : ''}`,
         metadata: { user_ids, business_ids, results },
       });
 
@@ -187,6 +316,12 @@ Deno.serve(async (req) => {
       if (!admin_id || !assignment_ids || !type) {
         return new Response(JSON.stringify({ error: 'admin_id, assignment_ids et type requis' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!canManageAdmin(callerAdmin, admin_id)) {
+        return new Response(JSON.stringify({ error: 'Accès non autorisé' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
@@ -207,7 +342,7 @@ Deno.serve(async (req) => {
       // Audit log
       await supabaseAdmin.from('admin_audit_logs').insert({
         admin_user_id: user.id,
-        action_type: 'unassign_resources',
+        action_type: callerAdmin.id === admin_id ? 'self_unassign_resources' : 'unassign_resources',
         target_type: 'admin_user',
         target_id: admin_id,
         description: `Retrait de ${assignment_ids.length} ${type === 'user' ? 'utilisateur(s)' : 'entreprise(s)'}`,
