@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users, Globe, MapPin, Building2 } from 'lucide-react';
+import { Shield, Plus, MoreVertical, ShieldCheck, UserCheck, UserX, Users, Globe, MapPin, Building2, ClipboardList } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import { AddAdminModal } from '@/components/admin/AddAdminModal';
 import { EditPermissionsModal } from '@/components/admin/EditPermissionsModal';
 import { RevokeAdminDialog } from '@/components/admin/RevokeAdminDialog';
 import { AssignUsersBusinessesModal } from '@/components/admin/AssignUsersBusinessesModal';
+import { ViewAdminAssignmentsModal } from '@/components/admin/ViewAdminAssignmentsModal';
 import { COUNTRIES } from '@/config/countries';
 
 interface Admin {
@@ -80,6 +81,7 @@ export default function AdminManagement() {
   const [currentPermissions, setCurrentPermissions] = useState<any>({});
   const [currentCountries, setCurrentCountries] = useState<string[] | null>(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [viewAssignmentsOpen, setViewAssignmentsOpen] = useState(false);
   useEffect(() => {
     fetchAdmins();
   }, []);
@@ -161,6 +163,14 @@ export default function AdminManagement() {
           setAssignModalOpen(true);
         }}>
           Affecter utilisateurs/entreprises
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          setSelectedAdminId(admin.id);
+          setSelectedAdminName(getDisplayName(admin));
+          setViewAssignmentsOpen(true);
+        }}>
+          <ClipboardList className="mr-2 h-4 w-4" />
+          Voir les affectations
         </DropdownMenuItem>
         {admin.role !== 'super_admin' && (
           <DropdownMenuItem 
@@ -433,6 +443,13 @@ export default function AdminManagement() {
           adminId={selectedAdminId}
           adminName={selectedAdminName}
           onSuccess={fetchAdmins}
+        />
+
+        <ViewAdminAssignmentsModal
+          adminId={selectedAdminId}
+          adminName={selectedAdminName}
+          open={viewAssignmentsOpen}
+          onOpenChange={setViewAssignmentsOpen}
         />
       </div>
     </AdminLayout>
