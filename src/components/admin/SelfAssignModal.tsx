@@ -60,12 +60,7 @@ export function SelfAssignModal({ open, onOpenChange, adminId, onSuccess }: Self
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Load all assignments for exclusivity check
-      const assignmentsRes = await supabase.functions.invoke('admin-manage-assignments', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: undefined,
-      });
+      // Use fetch for GET with query params
 
       // Use fetch for GET with query params
       const baseUrl = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/admin-manage-assignments`;
