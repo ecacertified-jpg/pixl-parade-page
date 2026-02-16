@@ -49,12 +49,12 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     mapBounds: [[-8.6, 4.3], [-2.5, 10.7]],
     legalEntity: {
       companyName: "AMTEY'S",
-      legalForm: "SARL",
-      registrationNumber: "CI-ABJ-2024-B-XXXXX",
+      legalForm: "SARLU",
+      registrationNumber: "CI-ABJ-03-2026-B13-00031",
       registrationAuthority: "RCCM Abidjan",
-      address: "Abidjan, Côte d'Ivoire",
-      email: "contact@joiedevivre.ci",
-      phone: "+225 07 XX XX XX XX",
+      address: "Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21",
+      email: "contact@joiedevivre-africa.com",
+      phone: "+225 05 46 56 66 46",
       director: "Directeur de Publication AMTEY'S",
       ecommerceLaw: "Loi n° 2013-546 du 30 juillet 2013 relative aux transactions électroniques et Loi n° 2016-412 du 15 juin 2016 relative à la consommation"
     },
