@@ -13,8 +13,8 @@ export const BUILD_DATE = new Date().toISOString().split('T')[0];
 export const COMPANY_INFO = {
   name: "AMTEY'S",
   type: "SARLU",
-  address: "Abidjan, Côte d'Ivoire",
+  address: "Abidjan, Anyama, Carrefour du Lycée Moderne d'Anyama, non loin du Grand Séminaire d'Anyama, Lot 174 ; Ilot 21",
   email: "contact@joiedevivre-africa.com",
-  phone: "+225 05 465 666 46",
+  phone: "+225 05 46 56 66 46",
   website: "https://joiedevivre-africa.com",
 };

@@ -82,7 +82,7 @@ const LegalNotice = () => {
                   <p className="text-sm text-muted-foreground">Forme juridique</p>
                   <p className="font-medium text-foreground">{legal.legalForm}</p>
                   <p className="text-xs text-muted-foreground">
-                    {legal.legalForm === 'SARL' ? 'Société à Responsabilité Limitée' : legal.legalForm}
+                    {legal.legalForm === 'SARLU' ? 'Société à Responsabilité Limitée Unipersonnelle' : legal.legalForm === 'SARL' ? 'Société à Responsabilité Limitée' : legal.legalForm}
                   </p>
                 </div>
               </div>
