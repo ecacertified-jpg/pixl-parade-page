@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const WHATSAPP_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
@@ -32,7 +32,7 @@ function generateOtpCode(): string {
   return String(array[0] % 1000000).padStart(6, '0');
 }
 
-// Format OTP message for WhatsApp
+// Format OTP message for WhatsApp (fallback texte libre)
 function formatOtpMessage(code: string): string {
   return `🔐 *JOIE DE VIVRE*
 
@@ -44,42 +44,81 @@ Ne le partagez avec personne.
 Si vous n'avez pas demandé ce code, ignorez ce message.`;
 }
 
-// Send WhatsApp message
-async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
+// Send WhatsApp message via HSM template with fallback to plain text
+async function sendWhatsAppMessage(to: string, code: string): Promise<boolean> {
   if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
     console.error("WhatsApp credentials not configured");
     return false;
   }
 
-  // Format phone for WhatsApp (remove + prefix)
   const formattedPhone = to.replace(/^\+/, '');
+  const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
+  const headers = {
+    "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+    "Content-Type": "application/json",
+  };
 
+  // 1. Try HSM template first (high deliverability, no 24h window needed)
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
+    const templateResponse = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedPhone,
+        type: "template",
+        template: {
+          name: "joiedevivre_otp",
+          language: { code: "fr" },
+          components: [
+            {
+              type: "body",
+              parameters: [{ type: "text", text: code }],
+            },
+            {
+              type: "button",
+              sub_type: "url",
+              index: "0",
+              parameters: [{ type: "text", text: code }],
+            },
+          ],
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: formattedPhone,
-          type: "text",
-          text: { body: message },
-        }),
-      }
-    );
+      }),
+    });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("WhatsApp API error:", errorData);
+    if (templateResponse.ok) {
+      const result = await templateResponse.json();
+      console.log("WhatsApp OTP sent via template:", result);
+      return true;
+    }
+
+    const templateError = await templateResponse.text();
+    console.warn("Template send failed, falling back to plain text:", templateError);
+  } catch (error) {
+    console.warn("Template send error, falling back to plain text:", error);
+  }
+
+  // 2. Fallback: plain text message
+  try {
+    const textResponse = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: formattedPhone,
+        type: "text",
+        text: { body: formatOtpMessage(code) },
+      }),
+    });
+
+    if (!textResponse.ok) {
+      const errorData = await textResponse.text();
+      console.error("WhatsApp plain text fallback error:", errorData);
       return false;
     }
 
-    const result = await response.json();
-    console.log("WhatsApp message sent:", result);
+    const result = await textResponse.json();
+    console.log("WhatsApp OTP sent via plain text fallback:", result);
     return true;
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
@@ -88,7 +127,6 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -98,7 +136,6 @@ serve(async (req) => {
     
     const { phone, purpose, user_metadata }: SendOtpRequest = await req.json();
 
-    // Validate phone
     if (!phone || !phone.match(/^\+\d{10,15}$/)) {
       return new Response(
         JSON.stringify({ error: 'invalid_phone', message: 'Numéro de téléphone invalide' }),
@@ -106,7 +143,7 @@ serve(async (req) => {
       );
     }
 
-    // Rate limiting: check for recent OTP (60 seconds)
+    // Rate limiting: 60 seconds
     const { data: recentOtp } = await supabaseAdmin
       .from('whatsapp_otp_codes')
       .select('created_at')
@@ -128,11 +165,9 @@ serve(async (req) => {
       );
     }
 
-    // Generate OTP code
     const code = generateOtpCode();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Store OTP in database
     const { error: insertError } = await supabaseAdmin
       .from('whatsapp_otp_codes')
       .insert({
@@ -151,12 +186,9 @@ serve(async (req) => {
       );
     }
 
-    // Send OTP via WhatsApp
-    const message = formatOtpMessage(code);
-    const sent = await sendWhatsAppMessage(phone, message);
+    const sent = await sendWhatsAppMessage(phone, code);
 
     if (!sent) {
-      // Clean up the stored OTP if sending failed
       await supabaseAdmin
         .from('whatsapp_otp_codes')
         .delete()
@@ -169,7 +201,7 @@ serve(async (req) => {
       );
     }
 
-    // Clean up old expired codes for this phone
+    // Clean up expired codes
     await supabaseAdmin
       .from('whatsapp_otp_codes')
       .delete()
@@ -182,7 +214,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Code envoyé via WhatsApp',
-        expires_in: 300 // 5 minutes in seconds
+        expires_in: 300
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

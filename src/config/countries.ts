@@ -33,6 +33,7 @@ export interface CountryConfig {
   // SMS/OTP settings
   smsReliability: SmsReliability;
   whatsappFallbackEnabled: boolean;
+  smsActuallyReliable?: boolean; // true si le SMS fonctionne bien malgré smsReliability='unreliable' (ex: CI)
 }
 
 export const COUNTRIES: Record<string, CountryConfig> = {
@@ -61,9 +62,10 @@ export const COUNTRIES: Record<string, CountryConfig> = {
     mobileMoneyProviders: ["Orange Money", "MTN Mobile Money", "Moov Money", "Wave"],
     dateFormat: "DD/MM/YYYY",
     language: "fr",
-    // SMS fonctionne bien en Côte d'Ivoire via Twilio
-    smsReliability: "reliable",
-    whatsappFallbackEnabled: false
+    // CI : SMS fiable via Twilio + WhatsApp proposé en option
+    smsReliability: "unreliable",
+    whatsappFallbackEnabled: true,
+    smsActuallyReliable: true // flag pour indiquer que le SMS fonctionne bien malgré unreliable
   },
   BJ: {
     code: "BJ",
