@@ -1,71 +1,81 @@
 
 
-## Probleme identifie
+## Probleme
 
-L'admin regional (`aa658506-36fd-474e-a956-67504ce16c3f`) a des permissions incompletes en base de donnees. Il manque `manage_businesses` et `manage_settings` dans son JSON de permissions. C'est pourquoi les actions (Ajouter un produit, Gerer les produits, Modifier le business, Gerer les categories, Voir les commandes) ne s'affichent pas dans le menu.
+Dans le modal "Ajouter un produit" (`AddProductModal.tsx`) utilise par les prestataires dans "Mon Espace Business", les messages d'erreur sont trop generiques :
 
-**Permissions actuelles :**
-- manage_content: true
-- manage_finances: true
-- manage_users: true
-- view_analytics: true
+- **Ligne 165** : `"Veuillez remplir tous les champs obligatoires"` -- ne precise pas quel champ manque (nom ? prix ? business ?)
+- **Ligne 278** : `"Erreur lors de l'ajout du produit"` -- ne montre pas la raison technique (ex: contrainte de base de donnees violee)
+- **Ligne 337** : `"Une erreur est survenue"` -- completement generique
 
-**Permissions manquantes :**
-- manage_businesses (bloque les actions prestataires)
-- manage_admins
-- manage_settings
+## Correction prevue
 
-## Cause racine
+### Fichier : `src/components/AddProductModal.tsx`
 
-Le code actuel dans `EditPermissionsModal.tsx` (ligne 104) donne bien toutes les permissions quand on sauvegarde un regional_admin. Mais cet admin a ete cree ou modifie avant cette logique, donc ses permissions sont restees partielles.
+**1. Validation detaillee des champs (lignes 158-177)**
 
-De plus, le hook `useAdmin` ne compense pas les permissions manquantes pour un regional_admin : il ne fait que lire le JSON tel quel, sans appliquer la regle "regional_admin = toutes les permissions".
-
-## Plan de correction
-
-### 1. Corriger le hook useAdmin (defense en profondeur)
-
-**Fichier** : `src/hooks/useAdmin.ts`
-
-Modifier la logique de chargement des permissions pour que les `regional_admin` aient automatiquement toutes les permissions, comme les `super_admin`. Cela garantit que meme si le JSON en base est incomplet, l'interface fonctionne correctement.
+Remplacer la validation groupee par des verifications individuelles avec messages specifiques :
 
 ```text
-// Avant (ligne 82-91)
-const perms = adminData.permissions as any || {};
-setPermissions({
-  manage_users: perms.manage_users ?? false,
-  ...
-});
+// Avant
+if (!formData.name || !formData.price || !formData.business_id) {
+  toast.error("Veuillez remplir tous les champs obligatoires");
+  return;
+}
 
 // Apres
-if (adminData.role === 'super_admin' || adminData.role === 'regional_admin') {
-  // Super admins et regional admins ont toutes les permissions
-  setPermissions({
-    manage_users: true,
-    manage_admins: true,
-    manage_businesses: true,
-    manage_content: true,
-    manage_finances: true,
-    view_analytics: true,
-    manage_settings: true,
-  });
-} else {
-  const perms = adminData.permissions as any || {};
-  setPermissions({
-    manage_users: perms.manage_users ?? false,
-    ...
-  });
+if (!formData.name.trim()) {
+  toast.error("Le nom du produit est obligatoire");
+  return;
+}
+if (!formData.price || parseFloat(formData.price) <= 0) {
+  toast.error("Le prix du produit est obligatoire et doit etre superieur a 0");
+  return;
+}
+if (!formData.business_id) {
+  toast.error("Veuillez selectionner un business");
+  return;
 }
 ```
 
-### 2. Corriger les donnees existantes en base
+Les validations de categorie existantes (lignes 169-177) sont deja bonnes et restent inchangees.
 
-Mettre a jour les permissions du regional_admin actuel pour refleter la regle. Cela sera fait via une mise a jour SQL directe sur la table `admin_users`.
+**2. Message d'erreur Supabase detaille (ligne 276-279)**
+
+Analyser le code d'erreur Supabase pour donner un message utile :
+
+```text
+// Avant
+toast.error("Erreur lors de l'ajout du produit");
+
+// Apres
+if (error.code === '23505') {
+  toast.error("Un produit avec ce nom existe deja");
+} else if (error.code === '23503') {
+  toast.error("La categorie ou le business selectionne n'existe plus. Rafraichissez la page.");
+} else if (error.code === '23502') {
+  toast.error("Un champ obligatoire est manquant : " + (error.details || error.message));
+} else {
+  toast.error("Erreur lors de l'ajout : " + (error.message || "erreur inconnue"));
+}
+```
+
+**3. Erreur catch generique (ligne 335-337)**
+
+Afficher le message d'erreur reel au lieu du generique :
+
+```text
+// Avant
+toast.error("Une erreur est survenue");
+
+// Apres
+const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+toast.error("Erreur lors de l'ajout du produit : " + errorMessage);
+```
 
 ### Impact
 
-- Les admins regionaux verront immediatement toutes les actions dans le menu des prestataires
-- La suppression de business reste reservee aux Super Admins (controle separe via `isSuperAdmin`)
-- Aucun changement pour les moderateurs, dont les permissions restent granulaires
-- Defense en profondeur : meme si les donnees en base sont incompletes, le hook appliquera la bonne logique
+- Les prestataires verront immediatement quel champ pose probleme
+- Les erreurs de base de donnees seront traduites en messages comprehensibles
+- Aucun changement de fonctionnalite, uniquement des messages plus precis
 
