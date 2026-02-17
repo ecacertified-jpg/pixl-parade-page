@@ -161,8 +161,16 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       return;
     }
 
-    if (!formData.name || !formData.price || !formData.business_id) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
+    if (!formData.name.trim()) {
+      toast.error("Le nom du produit est obligatoire");
+      return;
+    }
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast.error("Le prix du produit est obligatoire et doit être supérieur à 0");
+      return;
+    }
+    if (!formData.business_id) {
+      toast.error("Veuillez sélectionner un business");
       return;
     }
 
@@ -275,7 +283,15 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
 
       if (error) {
         console.error('Error adding product:', error);
-        toast.error("Erreur lors de l'ajout du produit");
+        if (error.code === '23505') {
+          toast.error("Un produit avec ce nom existe déjà");
+        } else if (error.code === '23503') {
+          toast.error("La catégorie ou le business sélectionné n'existe plus. Rafraîchissez la page.");
+        } else if (error.code === '23502') {
+          toast.error("Un champ obligatoire est manquant : " + (error.details || error.message));
+        } else {
+          toast.error("Erreur lors de l'ajout : " + (error.message || "erreur inconnue"));
+        }
         return;
       }
 
@@ -334,7 +350,8 @@ export function AddProductModal({ isOpen, onClose, onProductAdded }: AddProductM
       onClose();
     } catch (error) {
       console.error('Error:', error);
-      toast.error("Une erreur est survenue");
+      const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
+      toast.error("Erreur lors de l'ajout du produit : " + errorMessage);
     } finally {
       setLoading(false);
     }
