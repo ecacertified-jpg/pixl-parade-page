@@ -82,16 +82,29 @@ export const useAdmin = () => {
       setAdminRole(adminData.role as AdminRole);
       setAssignedCountries(adminData.assigned_countries as string[] | null);
       
-      const perms = adminData.permissions as any || {};
-      setPermissions({
-        manage_users: perms.manage_users ?? false,
-        manage_admins: perms.manage_admins ?? false,
-        manage_businesses: perms.manage_businesses ?? false,
-        manage_content: perms.manage_content ?? false,
-        manage_finances: perms.manage_finances ?? false,
-        view_analytics: perms.view_analytics ?? false,
-        manage_settings: perms.manage_settings ?? false,
-      });
+      // Super admins et regional admins ont automatiquement toutes les permissions
+      if (adminData.role === 'super_admin' || adminData.role === 'regional_admin') {
+        setPermissions({
+          manage_users: true,
+          manage_admins: true,
+          manage_businesses: true,
+          manage_content: true,
+          manage_finances: true,
+          view_analytics: true,
+          manage_settings: true,
+        });
+      } else {
+        const perms = adminData.permissions as any || {};
+        setPermissions({
+          manage_users: perms.manage_users ?? false,
+          manage_admins: perms.manage_admins ?? false,
+          manage_businesses: perms.manage_businesses ?? false,
+          manage_content: perms.manage_content ?? false,
+          manage_finances: perms.manage_finances ?? false,
+          view_analytics: perms.view_analytics ?? false,
+          manage_settings: perms.manage_settings ?? false,
+        });
+      }
     } catch (error) {
       console.error('[ADMIN] Error checking admin status:', error);
       setAdminRole(null);
