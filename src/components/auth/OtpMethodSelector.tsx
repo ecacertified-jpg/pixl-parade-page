@@ -40,6 +40,8 @@ export function OtpMethodSelector({
 
   const smsUnavailable = country?.smsReliability === 'unavailable';
   const smsUnreliable = country?.smsReliability === 'unreliable';
+  // CI a smsActuallyReliable=true : ne pas afficher "(peut être lent)"
+  const showSlowWarning = smsUnreliable && !country?.smsActuallyReliable;
 
   return (
     <div className="space-y-3 p-4 bg-secondary/50 rounded-xl border border-border/50">
@@ -61,7 +63,7 @@ export function OtpMethodSelector({
         >
           <MessageSquare className="h-5 w-5" />
           <span className="text-sm font-medium">SMS</span>
-          {smsUnreliable && (
+          {showSlowWarning && (
             <span className="text-xs text-muted-foreground">(peut être lent)</span>
           )}
           {smsUnavailable && (
