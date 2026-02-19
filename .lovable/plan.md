@@ -1,44 +1,44 @@
 
-## Page /data-deletion - Suppression des donnees utilisateur
 
-### Objectif
-Creer une page `/data-deletion` conforme aux exigences Meta pour la suppression des donnees utilisateur, en suivant le meme style que les pages legales existantes (LegalNotice, PrivacyPolicy).
+## Probleme identifie
 
-### Fichiers a creer
+La Edge Function `whatsapp-webhook` existe dans le code (`supabase/functions/whatsapp-webhook/index.ts`) mais **n'est pas deployee** sur Supabase. Quand Meta envoie la requete de verification, elle recoit une erreur 404 (fonction introuvable).
 
-**1. `src/pages/DataDeletion.tsx`**
-Page complete avec :
-- Header avec bouton retour + logo (meme structure que LegalNotice/PrivacyPolicy)
-- Breadcrumb via LegalBreadcrumb
-- SEO Head
-- Sections :
-  - **Introduction** : Explication du droit a la suppression des donnees
-  - **Donnees concernees** : Liste des donnees qui seront supprimees (profil, contacts, contributions, posts, notifications)
-  - **Donnees conservees** : Ce qui est conserve pour obligations legales (transactions financieres 5 ans, logs d'audit 1 an)
-  - **Comment demander la suppression** : 3 methodes (depuis l'app via parametres, par email a contact@joiedevivre-africa.com, via le formulaire sur cette page)
-  - **Formulaire de demande** : Champs email + motif + bouton envoyer (avec toast de confirmation)
-  - **Delais** : 30 jours pour traitement, confirmation par email
-  - **Contact** : Email et telephone
+C'est pourquoi le bouton "Verifier et enregistrer" ne fonctionne pas dans Meta.
 
-### Fichiers a modifier
+## Plan d'action
 
-**2. `src/components/breadcrumbs/LegalBreadcrumb.tsx`**
-- Ajouter `"data-deletion"` au type `LegalPage`
-- Ajouter l'entree dans `LEGAL_PAGES` avec label "Suppression des donnees", path "/data-deletion", icone `Trash2`
+### Etape 1 : Deployer la Edge Function
 
-**3. `src/components/SEOHead.tsx`**
-- Ajouter une config `dataDeletion` dans `SEO_CONFIGS` avec titre "Suppression des Donnees | JOIE DE VIVRE" et description appropriee
+Deployer `whatsapp-webhook` sur Supabase pour qu'elle soit accessible a l'URL :
+```text
+https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/whatsapp-webhook
+```
 
-**4. `src/App.tsx`**
-- Ajouter la route `<Route path="/data-deletion" element={<DataDeletion />} />`
-- Ajouter l'import lazy ou direct du composant
+### Etape 2 : Verifier le deploiement
 
-### Design
-- Meme style visuel que LegalNotice et PrivacyPolicy (Cards avec icones, fond gradient)
-- Formulaire simple : email (obligatoire) + motif (optionnel) + bouton
-- Le formulaire affiche un toast de confirmation (pas d'envoi reel d'email pour l'instant, mais la structure est prete pour integration future avec une edge function)
-- Responsive mobile-first
+Tester la fonction avec un appel GET simulant la verification Meta :
+```text
+GET /whatsapp-webhook?hub.mode=subscribe&hub.verify_token=joiedevivre_webhook_2025&hub.challenge=test123
+```
 
-### URL Meta
-L'URL finale a renseigner dans les parametres Meta sera :
-`https://joiedevivre-africa.com/data-deletion` (ou l'URL Lovable en attendant le domaine custom)
+La fonction doit repondre avec `test123` (le challenge) et un status 200.
+
+### Etape 3 : Re-verifier dans Meta
+
+Une fois la fonction deployee et testee, retourner dans Meta et cliquer a nouveau sur **"Verifier et enregistrer"** avec :
+- **URL de rappel** : `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/whatsapp-webhook`
+- **Verifier le token** : `joiedevivre_webhook_2025`
+
+### Etape 4 : S'abonner aux evenements
+
+Apres verification reussie, cocher le champ **"messages"** dans les abonnements webhook pour recevoir les messages entrants.
+
+---
+
+### Details techniques
+
+- La fonction est configuree avec `verify_jwt = false` dans `config.toml` (correct, car Meta ne peut pas envoyer de JWT)
+- Les secrets necessaires (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `LOVABLE_API_KEY`) sont deja configures
+- Aucune modification de code n'est necessaire, seulement le deploiement
+
