@@ -86,6 +86,7 @@ import LegalNotice from "./pages/LegalNotice";
 import FAQ from "./pages/FAQ";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import DataDeletion from "./pages/DataDeletion";
 import AccountLinking from "./pages/AccountLinking";
 import ResetPassword from "./pages/ResetPassword";
 import ProductPreview from "./pages/ProductPreview";
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/faq" element={<FAQ />} />
 <Route path="/about" element={<About />} />
 <Route path="/contact" element={<Contact />} />
+<Route path="/data-deletion" element={<DataDeletion />} />
 <Route path="/install" element={<Install />} />
 {/* Public product preview with OG meta tags */}
 <Route path="/p/:productId" element={<ProductPreview />} />

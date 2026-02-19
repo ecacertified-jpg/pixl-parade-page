@@ -394,6 +394,14 @@ export const SEO_CONFIGS = {
     aiSummary: "Mentions légales: AMTEY'S SARLU, Abidjan, Côte d'Ivoire. Éditeur et hébergeur du site joiedevivre-africa.com.",
     audience: 'all' as AIAudience,
   },
+  dataDeletion: {
+    title: "Suppression des Données | JOIE DE VIVRE",
+    description: "Demandez la suppression de vos données personnelles sur JOIE DE VIVRE. Découvrez vos droits, les données concernées et les délais de traitement.",
+    keywords: "suppression données, RGPD, droit à l'oubli, protection données personnelles, supprimer compte",
+    aiContentType: 'documentation' as AIContentType,
+    aiSummary: "Page de demande de suppression des données utilisateur conforme aux exigences Meta et RGPD.",
+    audience: 'all' as AIAudience,
+  },
   funds: {
     title: "Cagnottes Publiques - Pot Commun & Cadeaux Collectifs | JOIE DE VIVRE",
     description: "Découvrez et contribuez aux cagnottes collectives pour anniversaires, mariages, naissances et promotions. Participez à la joie de donner en groupe en Afrique.",
