@@ -1,81 +1,44 @@
 
+## Page /data-deletion - Suppression des donnees utilisateur
 
-## Probleme
+### Objectif
+Creer une page `/data-deletion` conforme aux exigences Meta pour la suppression des donnees utilisateur, en suivant le meme style que les pages legales existantes (LegalNotice, PrivacyPolicy).
 
-Dans le modal "Ajouter un produit" (`AddProductModal.tsx`) utilise par les prestataires dans "Mon Espace Business", les messages d'erreur sont trop generiques :
+### Fichiers a creer
 
-- **Ligne 165** : `"Veuillez remplir tous les champs obligatoires"` -- ne precise pas quel champ manque (nom ? prix ? business ?)
-- **Ligne 278** : `"Erreur lors de l'ajout du produit"` -- ne montre pas la raison technique (ex: contrainte de base de donnees violee)
-- **Ligne 337** : `"Une erreur est survenue"` -- completement generique
+**1. `src/pages/DataDeletion.tsx`**
+Page complete avec :
+- Header avec bouton retour + logo (meme structure que LegalNotice/PrivacyPolicy)
+- Breadcrumb via LegalBreadcrumb
+- SEO Head
+- Sections :
+  - **Introduction** : Explication du droit a la suppression des donnees
+  - **Donnees concernees** : Liste des donnees qui seront supprimees (profil, contacts, contributions, posts, notifications)
+  - **Donnees conservees** : Ce qui est conserve pour obligations legales (transactions financieres 5 ans, logs d'audit 1 an)
+  - **Comment demander la suppression** : 3 methodes (depuis l'app via parametres, par email a contact@joiedevivre-africa.com, via le formulaire sur cette page)
+  - **Formulaire de demande** : Champs email + motif + bouton envoyer (avec toast de confirmation)
+  - **Delais** : 30 jours pour traitement, confirmation par email
+  - **Contact** : Email et telephone
 
-## Correction prevue
+### Fichiers a modifier
 
-### Fichier : `src/components/AddProductModal.tsx`
+**2. `src/components/breadcrumbs/LegalBreadcrumb.tsx`**
+- Ajouter `"data-deletion"` au type `LegalPage`
+- Ajouter l'entree dans `LEGAL_PAGES` avec label "Suppression des donnees", path "/data-deletion", icone `Trash2`
 
-**1. Validation detaillee des champs (lignes 158-177)**
+**3. `src/components/SEOHead.tsx`**
+- Ajouter une config `dataDeletion` dans `SEO_CONFIGS` avec titre "Suppression des Donnees | JOIE DE VIVRE" et description appropriee
 
-Remplacer la validation groupee par des verifications individuelles avec messages specifiques :
+**4. `src/App.tsx`**
+- Ajouter la route `<Route path="/data-deletion" element={<DataDeletion />} />`
+- Ajouter l'import lazy ou direct du composant
 
-```text
-// Avant
-if (!formData.name || !formData.price || !formData.business_id) {
-  toast.error("Veuillez remplir tous les champs obligatoires");
-  return;
-}
+### Design
+- Meme style visuel que LegalNotice et PrivacyPolicy (Cards avec icones, fond gradient)
+- Formulaire simple : email (obligatoire) + motif (optionnel) + bouton
+- Le formulaire affiche un toast de confirmation (pas d'envoi reel d'email pour l'instant, mais la structure est prete pour integration future avec une edge function)
+- Responsive mobile-first
 
-// Apres
-if (!formData.name.trim()) {
-  toast.error("Le nom du produit est obligatoire");
-  return;
-}
-if (!formData.price || parseFloat(formData.price) <= 0) {
-  toast.error("Le prix du produit est obligatoire et doit etre superieur a 0");
-  return;
-}
-if (!formData.business_id) {
-  toast.error("Veuillez selectionner un business");
-  return;
-}
-```
-
-Les validations de categorie existantes (lignes 169-177) sont deja bonnes et restent inchangees.
-
-**2. Message d'erreur Supabase detaille (ligne 276-279)**
-
-Analyser le code d'erreur Supabase pour donner un message utile :
-
-```text
-// Avant
-toast.error("Erreur lors de l'ajout du produit");
-
-// Apres
-if (error.code === '23505') {
-  toast.error("Un produit avec ce nom existe deja");
-} else if (error.code === '23503') {
-  toast.error("La categorie ou le business selectionne n'existe plus. Rafraichissez la page.");
-} else if (error.code === '23502') {
-  toast.error("Un champ obligatoire est manquant : " + (error.details || error.message));
-} else {
-  toast.error("Erreur lors de l'ajout : " + (error.message || "erreur inconnue"));
-}
-```
-
-**3. Erreur catch generique (ligne 335-337)**
-
-Afficher le message d'erreur reel au lieu du generique :
-
-```text
-// Avant
-toast.error("Une erreur est survenue");
-
-// Apres
-const errorMessage = error instanceof Error ? error.message : "Erreur inconnue";
-toast.error("Erreur lors de l'ajout du produit : " + errorMessage);
-```
-
-### Impact
-
-- Les prestataires verront immediatement quel champ pose probleme
-- Les erreurs de base de donnees seront traduites en messages comprehensibles
-- Aucun changement de fonctionnalite, uniquement des messages plus precis
-
+### URL Meta
+L'URL finale a renseigner dans les parametres Meta sera :
+`https://joiedevivre-africa.com/data-deletion` (ou l'URL Lovable en attendant le domaine custom)
