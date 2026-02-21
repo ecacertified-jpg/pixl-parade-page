@@ -1,44 +1,44 @@
 
 
-# Corriger la visibilite des affectations pour les admins regionaux
+# Ajouter la section WhatsApp Business API dans la Politique de Confidentialite
 
-## Probleme identifie
+## Ce qui sera fait
 
-La fonction Edge `admin-manage-assignments` contient une restriction trop severe dans la fonction `canManageAdmin` (ligne 27-32) :
+Ajout d'une nouvelle section dediee a l'utilisation de l'API WhatsApp Business de Meta dans la page `/privacy-policy`, requise par Meta pour la validation de l'application.
 
-```text
-super_admin -> peut voir les affectations de tous les admins
-regional_admin -> ne peut voir QUE ses propres affectations (bug)
-moderator -> ne peut voir QUE ses propres affectations
-```
+## Modifications
 
-Un administrateur regional devrait pouvoir consulter les affectations de ses moderateurs (ceux qui partagent les memes pays assignes).
+### 1. Nouvelle section "WhatsApp Business API" (section 4bis, avant le partage actuel)
 
-## Solution
+La section sera inseree entre la section 3 (Utilisation) et la section 4 (Partage), ce qui decalera la numerotation des sections suivantes (4 devient 5, etc., jusqu'a 12 sections au total).
 
-### 1. Modifier la fonction `canManageAdmin` dans l'Edge Function
+**Contenu de la section :**
+- Mention explicite de l'utilisation de l'API WhatsApp Business fournie par Meta Platforms, Inc.
+- Donnees partagees avec Meta : numero de telephone de l'utilisateur
+- Finalites : verification OTP, rappels d'anniversaire, notifications de commandes, confirmations de contributions aux cagnottes
+- Mention que Meta traite ces donnees selon sa propre politique de confidentialite (lien vers https://www.whatsapp.com/legal/privacy-policy)
+- Lien vers la page `/data-deletion` pour exercer le droit de suppression
+- Precision que l'utilisateur peut se desinscrire des notifications WhatsApp
 
-Ajouter une logique qui permet aux `regional_admin` de voir les affectations des admins qui partagent au moins un pays commun dans `assigned_countries`. Cela necessite de recuperer les pays assignes des deux admins pour comparer.
+### 2. Mise a jour du sommaire
 
-**Fichier** : `supabase/functions/admin-manage-assignments/index.ts`
+Ajout de l'entree "WhatsApp Business API" dans le tableau de navigation, avec une icone appropriee (MessageCircle ou Phone).
 
-- Enrichir `getAdminInfo` pour inclure `assigned_countries`
-- Modifier `canManageAdmin` pour qu'un `regional_admin` puisse acceder aux affectations d'un admin ayant au moins un pays en commun
-- Le `regional_admin` pourra uniquement **consulter** (GET) les affectations, pas les modifier (POST/DELETE) pour les autres admins
+### 3. Mise a jour de la date
 
-### 2. Ajouter la verification des pays cibles
+Changement de la date de derniere mise a jour de "27 decembre 2024" a "21 fevrier 2026".
 
-Avant d'autoriser l'acces, la fonction recuperera les `assigned_countries` de l'admin cible et verifiera l'intersection avec ceux de l'appelant.
+### 4. Mise a jour de la section Partage
 
-### Securite
+Ajout de Meta/WhatsApp dans la liste des tiers avec lesquels les donnees sont partagees.
 
-- Seul le **GET** sera elargi aux `regional_admin` pour leurs moderateurs
-- Les operations **POST** et **DELETE** restent reservees aux `super_admin` et a l'admin lui-meme
-- La verification se fait cote serveur dans la Edge Function (pas de changement cote client)
-
-## Fichiers modifies
+## Details techniques
 
 | Fichier | Modification |
 |---------|-------------|
-| `supabase/functions/admin-manage-assignments/index.ts` | Elargir `canManageAdmin` pour les `regional_admin` en lecture |
+| `src/pages/PrivacyPolicy.tsx` | Ajout section WhatsApp, mise a jour sommaire, date, et section partage |
+
+- Import de `MessageSquare` depuis lucide-react pour l'icone de la nouvelle section
+- Import de `Link` deja present pour le lien vers `/data-deletion`
+- Numerotation des sections ajustee de 1-11 a 1-12
 
