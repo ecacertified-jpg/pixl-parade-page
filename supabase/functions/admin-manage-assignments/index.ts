@@ -10,12 +10,13 @@ interface AdminInfo {
   id: string;
   role: string;
   is_active: boolean;
+  assigned_countries: string[] | null;
 }
 
 async function getAdminInfo(supabaseAdmin: any, userId: string): Promise<AdminInfo | null> {
   const { data, error } = await supabaseAdmin
     .from('admin_users')
-    .select('id, role, is_active')
+    .select('id, role, is_active, assigned_countries')
     .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
@@ -24,11 +25,43 @@ async function getAdminInfo(supabaseAdmin: any, userId: string): Promise<AdminIn
   return data;
 }
 
+async function getAdminInfoById(supabaseAdmin: any, adminId: string): Promise<AdminInfo | null> {
+  const { data, error } = await supabaseAdmin
+    .from('admin_users')
+    .select('id, role, is_active, assigned_countries')
+    .eq('id', adminId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data;
+}
+
+function hasSharedCountry(countries1: string[] | null, countries2: string[] | null): boolean {
+  if (!countries1 || !countries2 || countries1.length === 0 || countries2.length === 0) return false;
+  return countries1.some(c => countries2.includes(c));
+}
+
 function canManageAdmin(callerAdmin: AdminInfo, targetAdminId: string): boolean {
   // Super admin can manage anyone
   if (callerAdmin.role === 'super_admin') return true;
   // Other admins can only manage themselves
   return callerAdmin.id === targetAdminId;
+}
+
+async function canViewAdmin(supabaseAdmin: any, callerAdmin: AdminInfo, targetAdminId: string): Promise<boolean> {
+  // Super admin can view anyone
+  if (callerAdmin.role === 'super_admin') return true;
+  // Self
+  if (callerAdmin.id === targetAdminId) return true;
+  // Regional admin can view admins sharing at least one country
+  if (callerAdmin.role === 'regional_admin') {
+    const targetAdmin = await getAdminInfoById(supabaseAdmin, targetAdminId);
+    if (targetAdmin && hasSharedCountry(callerAdmin.assigned_countries, targetAdmin.assigned_countries)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -141,7 +174,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (!canManageAdmin(callerAdmin, adminId)) {
+      const canView = await canViewAdmin(supabaseAdmin, callerAdmin, adminId);
+      if (!canView) {
         return new Response(JSON.stringify({ error: 'Accès non autorisé' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
