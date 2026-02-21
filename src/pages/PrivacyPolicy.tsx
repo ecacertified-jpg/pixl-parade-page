@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink, Building2, CreditCard, FileCheck } from "lucide-react";
+import { ArrowLeft, Shield, Mail, MapPin, Phone, FileText, Users, Database, Share2, UserCheck, Clock, Lock, Cookie, Baby, Bell, ExternalLink, Building2, CreditCard, FileCheck, MessageSquare } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { LegalBreadcrumb } from "@/components/breadcrumbs";
@@ -9,20 +9,21 @@ import logoJV from "@/assets/logo-jv.svg";
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
-  const lastUpdated = "27 décembre 2024";
+  const lastUpdated = "21 février 2026";
 
   const sections = [
     { id: "presentation", title: "1. Présentation", icon: FileText },
     { id: "donnees-collectees", title: "2. Données collectées", icon: Database },
     { id: "utilisation", title: "3. Utilisation des données", icon: Users },
-    { id: "partage", title: "4. Partage des données", icon: Share2 },
-    { id: "droits", title: "5. Vos droits", icon: UserCheck },
-    { id: "conservation", title: "6. Conservation", icon: Clock },
-    { id: "securite", title: "7. Sécurité", icon: Lock },
-    { id: "cookies", title: "8. Cookies", icon: Cookie },
-    { id: "mineurs", title: "9. Mineurs", icon: Baby },
-    { id: "modifications", title: "10. Modifications", icon: Bell },
-    { id: "contact", title: "11. Contact", icon: Mail },
+    { id: "whatsapp", title: "4. WhatsApp Business API", icon: MessageSquare },
+    { id: "partage", title: "5. Partage des données", icon: Share2 },
+    { id: "droits", title: "6. Vos droits", icon: UserCheck },
+    { id: "conservation", title: "7. Conservation", icon: Clock },
+    { id: "securite", title: "8. Sécurité", icon: Lock },
+    { id: "cookies", title: "9. Cookies", icon: Cookie },
+    { id: "mineurs", title: "10. Mineurs", icon: Baby },
+    { id: "modifications", title: "11. Modifications", icon: Bell },
+    { id: "contact", title: "12. Contact", icon: Mail },
   ];
 
   const scrollToSection = (id: string) => {
@@ -214,11 +215,74 @@ const PrivacyPolicy = () => {
 
           <Separator />
 
-          {/* Section 4 - Partage */}
+          {/* Section 4 - WhatsApp Business API */}
+          <section id="whatsapp">
+            <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              4. WhatsApp Business API
+            </h2>
+            <div className="space-y-4 text-muted-foreground">
+              <p>
+                JOIE DE VIVRE utilise l'<strong className="text-foreground">API WhatsApp Business</strong> fournie par 
+                <strong className="text-foreground"> Meta Platforms, Inc.</strong> pour communiquer avec vous via WhatsApp.
+              </p>
+
+              <Card className="p-4">
+                <h4 className="font-semibold text-foreground mb-2">Données partagées avec Meta</h4>
+                <p className="text-sm">
+                  Votre <strong className="text-foreground">numéro de téléphone</strong> est transmis à Meta dans le cadre 
+                  de l'utilisation de l'API WhatsApp Business.
+                </p>
+              </Card>
+
+              <div>
+                <h4 className="font-semibold text-foreground mb-2">Finalités du traitement</h4>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li><strong className="text-foreground">Vérification OTP</strong> : Envoi de codes de vérification pour sécuriser votre compte</li>
+                  <li><strong className="text-foreground">Rappels d'anniversaire</strong> : Notifications pour les anniversaires de vos proches</li>
+                  <li><strong className="text-foreground">Notifications de commandes</strong> : Confirmations et suivi de vos commandes de cadeaux</li>
+                  <li><strong className="text-foreground">Confirmations de contributions</strong> : Accusés de réception pour vos participations aux cagnottes</li>
+                </ul>
+              </div>
+
+              <Card className="p-4 border-primary/20 bg-primary/5">
+                <p className="text-sm text-foreground">
+                  📋 Meta traite ces données conformément à sa propre politique de confidentialité. 
+                  Consultez-la ici :{" "}
+                  <a 
+                    href="https://www.whatsapp.com/legal/privacy-policy" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary font-medium hover:underline inline-flex items-center gap-1"
+                  >
+                    Politique de confidentialité de WhatsApp
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
+              </Card>
+
+              <div className="space-y-2">
+                <p>
+                  Vous pouvez à tout moment <strong className="text-foreground">vous désinscrire des notifications WhatsApp</strong> depuis 
+                  les paramètres de votre compte ou en répondant « STOP » à nos messages.
+                </p>
+                <p>
+                  Pour exercer votre droit de suppression des données partagées avec Meta, consultez notre{" "}
+                  <Link to="/data-deletion" className="text-primary font-medium hover:underline">
+                    page de suppression des données
+                  </Link>.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Section 5 - Partage */}
           <section id="partage">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Share2 className="h-5 w-5 text-primary" />
-              4. Partage des données
+              5. Partage des données
             </h2>
             <div className="space-y-4 text-muted-foreground">
               <p>Vos données peuvent être partagées avec :</p>
@@ -226,6 +290,7 @@ const PrivacyPolicy = () => {
                 <li><strong className="text-foreground">Vendeurs partenaires</strong> : Uniquement les informations nécessaires à la livraison</li>
                 <li><strong className="text-foreground">Prestataires de paiement</strong> : Orange Money, MTN Mobile Money (références uniquement)</li>
                 <li><strong className="text-foreground">Hébergeur</strong> : Supabase (données chiffrées)</li>
+                <li><strong className="text-foreground">Meta / WhatsApp</strong> : Numéro de téléphone pour les notifications via l'API WhatsApp Business (voir section 4)</li>
               </ul>
               
               <Card className="p-4 border-destructive/20 bg-destructive/5 mt-4">
@@ -242,7 +307,7 @@ const PrivacyPolicy = () => {
           <section id="droits">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-primary" />
-              5. Vos droits
+              6. Vos droits
             </h2>
             <div className="space-y-4 text-muted-foreground">
               <p>Conformément à la réglementation, vous disposez des droits suivants :</p>
@@ -303,7 +368,7 @@ const PrivacyPolicy = () => {
           <section id="conservation">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              6. Conservation des données
+              7. Conservation des données
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <ul className="list-disc pl-6 space-y-2">
@@ -321,7 +386,7 @@ const PrivacyPolicy = () => {
           <section id="securite">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Lock className="h-5 w-5 text-primary" />
-              7. Sécurité
+              8. Sécurité
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>Nous mettons en œuvre des mesures de sécurité robustes :</p>
@@ -342,7 +407,7 @@ const PrivacyPolicy = () => {
           <section id="cookies">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Cookie className="h-5 w-5 text-primary" />
-              8. Cookies et technologies similaires
+              9. Cookies et technologies similaires
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>Nous utilisons des cookies pour :</p>
@@ -363,7 +428,7 @@ const PrivacyPolicy = () => {
           <section id="mineurs">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Baby className="h-5 w-5 text-primary" />
-              9. Protection des mineurs
+              10. Protection des mineurs
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
@@ -384,7 +449,7 @@ const PrivacyPolicy = () => {
           <section id="modifications">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
-              10. Modifications de la politique
+              11. Modifications de la politique
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>
@@ -409,7 +474,7 @@ const PrivacyPolicy = () => {
           <section id="contact">
             <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <Mail className="h-5 w-5 text-primary" />
-              11. Nous contacter
+              12. Nous contacter
             </h2>
             <Card className="p-6 border-primary/20 bg-primary/5">
               <h3 className="font-semibold text-foreground mb-4">JOIE DE VIVRE</h3>
