@@ -1,61 +1,64 @@
 
-
-## Logs structures pour verify-whatsapp-otp
+## Monitoring automatique du taux de succes WhatsApp OTP
 
 ### Objectif
-Remplacer les `console.log` / `console.error` eparpilles par un systeme de logging structure avec :
-- Un **request ID** unique par requete pour tracer le flux complet
-- Des **etapes nommees** (step) pour identifier rapidement ou le processus echoue
-- Des **durees** (ms) pour chaque etape afin de detecter les lenteurs
-- Un **log de synthese** en fin de requete avec le resultat global
+Creer une Edge Function CRON qui calcule periodiquement le taux de succes des OTP WhatsApp et genere une alerte admin quand il descend sous un seuil configurable (defaut: 80%).
 
-### Format des logs
+### Architecture
 
-Chaque log sera un objet JSON avec cette structure :
-```text
-{
-  "requestId": "abc123",
-  "step": "profile_lookup",
-  "phone": "+225...",
-  "duration_ms": 45,
-  "result": "found",
-  "details": { "user_id": "..." }
-}
-```
+Le systeme s'integre dans l'infrastructure d'alertes existante en reutilisant :
+- La table `admin_notifications` pour les alertes (avec `type = 'otp_success_rate_drop'`)
+- La table `growth_alert_thresholds` pour le seuil configurable (nouveau `metric_type = 'whatsapp_otp_success_rate'`)
+- Le pattern des CRON jobs existants (pg_cron + net.http_post)
 
-### Etapes tracees
+### Etapes
 
-| Etape | Quand | Informations loguees |
-|-------|-------|---------------------|
-| `request_start` | Debut de la requete | phone (masque), timestamp |
-| `otp_lookup` | Recherche du code OTP | found/not_found, otp_id, attempts |
-| `otp_validation` | Verification du code | valid/invalid, remaining_attempts |
-| `profile_lookup` | Recherche dans profiles | found/not_found, user_id |
-| `listusers_lookup` | Recherche via listUsers | found/not_found, format utilise, user_id |
-| `user_creation` | Creation d'un nouvel utilisateur | success/error, user_id, country |
-| `phone_exists_retry` | Retry apres erreur phone_exists | found/not_found, methode |
-| `email_setup` | Mise a jour email fictif | email genere |
-| `magiclink_generate` | Generation du magiclink | success/error |
-| `session_create` | Verification OTP magiclink | success/error, has_session |
-| `cleanup` | Suppression OTP verifie | success |
-| `request_complete` | Fin de la requete | total_duration_ms, result, is_new_user |
+#### 1. Migration SQL
+- Inserer un seuil par defaut dans `growth_alert_thresholds` :
+  - `metric_type`: `whatsapp_otp_success_rate`
+  - `threshold_type`: `minimum_percentage`
+  - `threshold_value`: `80`
+  - `comparison_period`: `1h` (fenetre glissante d'1 heure)
+  - `is_active`: true
+
+#### 2. Edge Function `check-whatsapp-otp-health`
+Nouvelle fonction qui :
+1. Lit le seuil depuis `growth_alert_thresholds` (ou utilise 80% par defaut)
+2. Calcule les stats OTP sur la derniere heure depuis `whatsapp_otp_codes` :
+   - Nombre total envoyes
+   - Nombre verifies (`verified_at IS NOT NULL`)
+   - Taux de succes = verifies / total * 100
+3. Ne declenche l'alerte que si le volume est significatif (minimum 5 OTP sur la periode, pour eviter les faux positifs)
+4. Verifie si une alerte similaire a deja ete envoyee dans les 2 dernieres heures (anti-spam)
+5. Si le taux est sous le seuil ET pas d'alerte recente :
+   - Insere dans `admin_notifications` avec severity `critical`
+   - Inclut dans les metadata : taux actuel, seuil, nombre d'OTP, periode
+6. Logue un rapport structure en JSON
+
+#### 3. Configuration CRON
+- Job `check-whatsapp-otp-health-hourly` execute toutes les heures
+- Appel via `net.http_post` avec cle `service_role`
+
+#### 4. Config TOML
+- Ajouter l'entree pour `check-whatsapp-otp-health` avec `verify_jwt = false`
 
 ### Details techniques
 
-**Fichier modifie** : `supabase/functions/verify-whatsapp-otp/index.ts`
+**Format de l'alerte admin** :
+| Champ | Valeur |
+|-------|--------|
+| type | `otp_success_rate_drop` |
+| title | `Alerte OTP WhatsApp : taux de succes bas` |
+| message | `Le taux de succes OTP est de X% (seuil: 80%) sur la derniere heure. Y OTP envoyes, Z verifies.` |
+| severity | `critical` |
+| action_url | `/admin/whatsapp-otp` |
+| metadata | `{ success_rate, threshold, total_sent, total_verified, period_hours }` |
 
-**Implementation** :
-- Une fonction helper `createLogger(phone)` qui retourne un objet avec une methode `log(step, data)` et `summary()`
-- Le request ID est genere via `crypto.randomUUID().slice(0, 8)`
-- Le telephone est masque dans les logs (ex: `+225***5445`) pour la securite
-- Chaque appel a `log()` mesure le temps depuis la derniere etape
-- La methode `summary()` produit un log final avec la duree totale et toutes les etapes traversees
-- Les `console.error` existants sont remplaces par des logs structures avec `level: "error"`
+**Anti-spam** : Verification dans `admin_notifications` qu'aucune alerte `otp_success_rate_drop` n'existe dans les 2 dernieres heures avant d'en creer une nouvelle.
 
-**Securite** :
-- Le code OTP n'est jamais logue
-- Le telephone est partiellement masque
-- Les tokens de session ne sont pas logues
+**Seuil minimum de volume** : 5 OTP minimum sur la periode pour eviter les alertes quand il n'y a quasi aucun trafic (ex: 1 echec sur 1 envoi = 0% mais non significatif).
 
-**Pas de migration SQL necessaire** - modifications uniquement dans l'Edge Function.
-
+### Fichiers concernes
+- **Nouveau** : `supabase/functions/check-whatsapp-otp-health/index.ts`
+- **Modifie** : `supabase/config.toml` (ajout verify_jwt = false)
+- **Migration SQL** : seuil par defaut + job CRON
