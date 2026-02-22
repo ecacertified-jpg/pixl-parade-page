@@ -14,29 +14,74 @@ interface VerifyOtpRequest {
   code: string;
 }
 
+// --- Structured Logger ---
+function maskPhone(phone: string): string {
+  if (phone.length <= 6) return '***';
+  return phone.slice(0, 4) + '***' + phone.slice(-4);
+}
+
+function createLogger(phone: string) {
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const maskedPhone = maskPhone(phone);
+  const startTime = Date.now();
+  let lastStepTime = startTime;
+  const steps: string[] = [];
+
+  const log = (step: string, data: Record<string, unknown> = {}, level: 'info' | 'error' = 'info') => {
+    const now = Date.now();
+    const duration_ms = now - lastStepTime;
+    lastStepTime = now;
+    steps.push(step);
+    const entry = { requestId, step, phone: maskedPhone, duration_ms, ...data };
+    if (level === 'error') {
+      console.error(JSON.stringify(entry));
+    } else {
+      console.log(JSON.stringify(entry));
+    }
+  };
+
+  const summary = (result: string, extra: Record<string, unknown> = {}) => {
+    const total_duration_ms = Date.now() - startTime;
+    console.log(JSON.stringify({
+      requestId, step: 'request_complete', phone: maskedPhone,
+      total_duration_ms, result, steps, ...extra,
+    }));
+  };
+
+  // Log start immediately
+  log('request_start', { timestamp: new Date().toISOString() });
+
+  return { log, summary, requestId };
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+  let logger: ReturnType<typeof createLogger> | null = null;
+
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
     const { phone, code }: VerifyOtpRequest = await req.json();
+
+    logger = createLogger(phone || 'unknown');
 
     // Validate inputs
     if (!phone || !code) {
+      logger.summary('error_missing_fields');
       return new Response(
         JSON.stringify({ success: false, error: 'missing_fields', message: 'Téléphone et code requis' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: jsonHeaders }
       );
     }
 
     if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      logger.summary('error_invalid_code_format');
       return new Response(
         JSON.stringify({ success: false, error: 'invalid_code', message: 'Le code doit contenir 6 chiffres' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: jsonHeaders }
       );
     }
 
@@ -52,68 +97,62 @@ serve(async (req) => {
       .maybeSingle();
 
     if (fetchError) {
-      console.error("Error fetching OTP:", fetchError);
+      logger.log('otp_lookup', { result: 'error', error: fetchError.message }, 'error');
+      logger.summary('error_otp_fetch');
       return new Response(
         JSON.stringify({ success: false, error: 'fetch_error', message: 'Erreur lors de la vérification' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: jsonHeaders }
       );
     }
 
+    logger.log('otp_lookup', {
+      result: otpRecord ? 'found' : 'not_found',
+      otp_id: otpRecord?.id,
+      attempts: otpRecord?.attempts,
+    });
+
     if (!otpRecord) {
+      logger.summary('error_no_otp');
       return new Response(
         JSON.stringify({ success: false, error: 'no_otp', message: 'Aucun code valide trouvé. Veuillez en demander un nouveau.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: jsonHeaders }
       );
     }
 
     // Check max attempts
     if (otpRecord.attempts >= otpRecord.max_attempts) {
-      // Delete the OTP record
-      await supabaseAdmin
-        .from('whatsapp_otp_codes')
-        .delete()
-        .eq('id', otpRecord.id);
-
+      await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('id', otpRecord.id);
+      logger.log('otp_validation', { result: 'max_attempts_exceeded' });
+      logger.summary('error_max_attempts');
       return new Response(
         JSON.stringify({ success: false, error: 'max_attempts', message: 'Trop de tentatives. Veuillez demander un nouveau code.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: jsonHeaders }
       );
     }
 
     // Check if code matches
     if (otpRecord.code !== code) {
-      // Increment attempts
-      await supabaseAdmin
-        .from('whatsapp_otp_codes')
-        .update({ attempts: otpRecord.attempts + 1 })
-        .eq('id', otpRecord.id);
-
+      await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
       const remainingAttempts = otpRecord.max_attempts - otpRecord.attempts - 1;
+      logger.log('otp_validation', { result: 'invalid', remaining_attempts: remainingAttempts });
+      logger.summary('error_invalid_code');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'invalid_code', 
-          message: `Code incorrect. ${remainingAttempts} tentative(s) restante(s).`,
-          remaining_attempts: remainingAttempts
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'invalid_code', message: `Code incorrect. ${remainingAttempts} tentative(s) restante(s).`, remaining_attempts: remainingAttempts }),
+        { status: 400, headers: jsonHeaders }
       );
     }
 
+    logger.log('otp_validation', { result: 'valid' });
+
     // Code is valid - mark as verified
-    await supabaseAdmin
-      .from('whatsapp_otp_codes')
-      .update({ verified_at: new Date().toISOString() })
-      .eq('id', otpRecord.id);
+    await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
 
     // Get or create user
     const metadata = otpRecord.user_metadata || {};
-    
-    // Normalize phone formats (auth.users may store with or without +)
     const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
     const phoneWithoutPlus = phone.replace(/^\+/, '');
-    
-    // 1. Search in profiles table first (most reliable)
+
+    // 1. Search in profiles table first
     let existingUser = null;
     const { data: profileData } = await supabaseAdmin
       .from('profiles')
@@ -126,11 +165,15 @@ serve(async (req) => {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileData.user_id);
       if (userData?.user) {
         existingUser = userData.user;
-        console.log(`User found via profiles table: ${existingUser.id}`);
       }
     }
 
-    // 2. If not in profiles, try listUsers with both formats
+    logger.log('profile_lookup', {
+      result: existingUser ? 'found' : 'not_found',
+      user_id: existingUser?.id,
+    });
+
+    // 2. If not in profiles, try listUsers
     if (!existingUser) {
       const { data: listData1 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithPlus });
       existingUser = listData1?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
@@ -139,9 +182,11 @@ serve(async (req) => {
         const { data: listData2 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus });
         existingUser = listData2?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
       }
-      if (existingUser) {
-        console.log(`User found via listUsers: ${existingUser.id}`);
-      }
+
+      logger.log('listusers_lookup', {
+        result: existingUser ? 'found' : 'not_found',
+        user_id: existingUser?.id,
+      });
     }
 
     let user;
@@ -149,7 +194,6 @@ serve(async (req) => {
 
     if (existingUser) {
       user = existingUser;
-      console.log(`Existing user found: ${user.id}`);
     } else {
       // Create new user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -167,8 +211,8 @@ serve(async (req) => {
 
       if (createError) {
         if (createError.message?.includes('phone_exists') || (createError as any).code === 'phone_exists') {
-          console.log("phone_exists detected, searching with both formats...");
-          
+          logger.log('phone_exists_retry', { result: 'retrying' });
+
           const { data: retryProfile } = await supabaseAdmin
             .from('profiles')
             .select('user_id')
@@ -185,28 +229,29 @@ serve(async (req) => {
             const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus, page: 1, perPage: 1000 });
             existingUser = retryData?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
           }
-          
+
           if (existingUser) {
             user = existingUser;
-            console.log(`User found on retry: ${user.id}`);
+            logger.log('phone_exists_retry', { result: 'found', user_id: user.id });
           } else {
-            console.error("User exists but cannot be found even after retry");
+            logger.log('phone_exists_retry', { result: 'not_found' }, 'error');
+            logger.summary('error_user_lookup_failed');
             return new Response(
               JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.' }),
-              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              { status: 500, headers: jsonHeaders }
             );
           }
         } else {
-          console.error("Error creating user:", createError);
+          logger.log('user_creation', { result: 'error', error: createError.message }, 'error');
+          logger.summary('error_user_creation');
           return new Response(
             JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 500, headers: jsonHeaders }
           );
         }
       } else {
         user = newUser.user;
         isNewUser = true;
-        console.log(`New user created: ${user.id}`);
 
         const detectedCountry = phoneWithPlus.startsWith('+229') ? 'BJ'
           : phoneWithPlus.startsWith('+221') ? 'SN'
@@ -215,20 +260,17 @@ serve(async (req) => {
           : phoneWithPlus.startsWith('+226') ? 'BF'
           : phoneWithPlus.startsWith('+225') ? 'CI' : 'CI';
 
-        await supabaseAdmin
-          .from('profiles')
-          .update({ country_code: detectedCountry, phone: phoneWithPlus })
-          .eq('user_id', user.id);
+        await supabaseAdmin.from('profiles').update({ country_code: detectedCountry, phone: phoneWithPlus }).eq('user_id', user.id);
+
+        logger.log('user_creation', { result: 'success', user_id: user.id, country: detectedCountry });
       }
     }
 
-    // Generate session via magiclink + verifyOtp (no temp password)
+    // Generate session via magiclink
     const emailForPhone = `${phone.replace(/\+/g, '')}@phone.joiedevivre.app`;
 
-    // Ensure the user has this email set (needed for magiclink)
-    await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      email: emailForPhone,
-    });
+    await supabaseAdmin.auth.admin.updateUserById(user.id, { email: emailForPhone });
+    logger.log('email_setup', { email: emailForPhone });
 
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
@@ -236,70 +278,53 @@ serve(async (req) => {
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.error("Error generating magiclink:", linkError);
+      logger.log('magiclink_generate', { result: 'error', error: linkError?.message }, 'error');
+      logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          user_id: user.id,
-          is_new_user: isNewUser,
-          message: 'Vérification réussie',
-          requires_reauth: true,
-          phone
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
+        { status: 200, headers: jsonHeaders }
       );
     }
 
-    // Extract token_hash from the generated link
+    logger.log('magiclink_generate', { result: 'success' });
+
+    // Extract token_hash
     const actionUrl = new URL(linkData.properties.action_link);
     const tokenHash = actionUrl.searchParams.get('token') || actionUrl.hash?.match(/token=([^&]+)/)?.[1];
 
     if (!tokenHash) {
-      console.error("No token found in magiclink URL:", linkData.properties.action_link);
+      logger.log('session_create', { result: 'no_token' }, 'error');
+      logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          user_id: user.id,
-          is_new_user: isNewUser,
-          message: 'Vérification réussie',
-          requires_reauth: true,
-          phone
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
+        { status: 200, headers: jsonHeaders }
       );
     }
 
-    // Use verifyOtp with the token_hash to create a proper session
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
       token_hash: tokenHash,
       type: 'magiclink',
     });
 
     if (sessionError || !sessionData.session) {
-      console.error("Error verifying magiclink OTP:", sessionError);
+      logger.log('session_create', { result: 'error', error: sessionError?.message }, 'error');
+      logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          user_id: user.id,
-          is_new_user: isNewUser,
-          message: 'Vérification réussie',
-          requires_reauth: true,
-          phone
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
+        { status: 200, headers: jsonHeaders }
       );
     }
 
-    // Clean up - delete verified OTP
-    await supabaseAdmin
-      .from('whatsapp_otp_codes')
-      .delete()
-      .eq('id', otpRecord.id);
+    logger.log('session_create', { result: 'success', has_session: true });
 
-    console.log(`WhatsApp OTP verified for ${phone}, session created via magiclink`);
+    // Cleanup
+    await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('id', otpRecord.id);
+    logger.log('cleanup', { result: 'success' });
+
+    logger.summary('success', { is_new_user: isNewUser });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         user_id: user.id,
         is_new_user: isNewUser,
@@ -308,11 +333,16 @@ serve(async (req) => {
         expires_in: sessionData.session.expires_in,
         message: 'Connexion réussie'
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: jsonHeaders }
     );
 
   } catch (error) {
-    console.error("Unexpected error:", error);
+    if (logger) {
+      logger.log('unexpected_error', { error: (error as Error).message }, 'error');
+      logger.summary('error_unexpected');
+    } else {
+      console.error(JSON.stringify({ step: 'unexpected_error', error: (error as Error).message }));
+    }
     return new Response(
       JSON.stringify({ success: false, error: 'internal_error', message: 'Une erreur inattendue s\'est produite' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
