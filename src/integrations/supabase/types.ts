@@ -8246,6 +8246,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_whatsapp_otp_stats: { Args: { days_back?: number }; Returns: Json }
       handle_failed_verification: {
         Args: { p_verification_id: string }
         Returns: undefined
