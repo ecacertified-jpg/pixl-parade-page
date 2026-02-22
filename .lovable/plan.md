@@ -1,68 +1,61 @@
 
-## Tableau de bord Admin - Statistiques OTP WhatsApp
+
+## Logs structures pour verify-whatsapp-otp
 
 ### Objectif
-Creer une page d'administration dediee aux statistiques OTP WhatsApp, accessible depuis le menu lateral admin, pour visualiser le taux de succes, le temps moyen de verification et la repartition par pays.
+Remplacer les `console.log` / `console.error` eparpilles par un systeme de logging structure avec :
+- Un **request ID** unique par requete pour tracer le flux complet
+- Des **etapes nommees** (step) pour identifier rapidement ou le processus echoue
+- Des **durees** (ms) pour chaque etape afin de detecter les lenteurs
+- Un **log de synthese** en fin de requete avec le resultat global
 
-### Architecture
+### Format des logs
 
-**1. Page admin : `src/pages/Admin/WhatsAppOtpAnalytics.tsx`**
-- Utilise `AdminLayout`, `AdminPageHeader`, et `AdminCountryRestrictionAlert` (meme pattern que IndexNowAnalytics)
-- Filtre par periode (7j, 30j, 90j)
-- Compatible avec le systeme de filtre par pays existant
+Chaque log sera un objet JSON avec cette structure :
+```text
+{
+  "requestId": "abc123",
+  "step": "profile_lookup",
+  "phone": "+225...",
+  "duration_ms": 45,
+  "result": "found",
+  "details": { "user_id": "..." }
+}
+```
 
-**2. Hook de donnees : `src/hooks/useWhatsAppOtpStats.ts`**
-- Requete la table `whatsapp_otp_codes` pour calculer :
-  - Total d'OTP envoyes
-  - Total verifies (verified_at IS NOT NULL)
-  - Taux de succes (verifies / envoyes)
-  - Temps moyen de verification (verified_at - created_at)
-  - Tentatives moyennes avant succes
-  - Repartition par prefixe telephonique (pays)
-  - Evolution quotidienne sur la periode
-- Utilise TanStack Query pour le cache
+### Etapes tracees
 
-**3. Composant dashboard : `src/components/admin/WhatsAppOtpDashboard.tsx`**
-- **KPI Cards** (4 cartes) :
-  - Total OTP envoyes
-  - Taux de verification (%)
-  - Temps moyen de verification (secondes)
-  - OTP expires (non verifies apres expiration)
-- **Graphique AreaChart** : evolution quotidienne envois vs verifications (Recharts)
-- **PieChart** : repartition par pays (CI, BJ, SN, TG, ML, BF)
-- **Tableau detaille** : derniers OTP avec statut, temps de verification, pays
-
-**4. Integration dans le systeme existant**
-
-Fichiers a modifier :
-- `src/App.tsx` : ajouter la route `/admin/whatsapp-otp`
-- `src/components/AdminLayout.tsx` : ajouter l'entree menu "Stats WhatsApp OTP" avec l'icone `MessageSquare`
-
-Fichiers a creer :
-- `src/pages/Admin/WhatsAppOtpAnalytics.tsx`
-- `src/hooks/useWhatsAppOtpStats.ts`
-- `src/components/admin/WhatsAppOtpDashboard.tsx`
-
-### Mapping pays par prefixe telephonique
-
-| Prefixe | Pays | Drapeau |
-|---------|------|---------|
-| +225 | Cote d'Ivoire | CI |
-| +229 | Benin | BJ |
-| +221 | Senegal | SN |
-| +228 | Togo | TG |
-| +223 | Mali | ML |
-| +226 | Burkina Faso | BF |
+| Etape | Quand | Informations loguees |
+|-------|-------|---------------------|
+| `request_start` | Debut de la requete | phone (masque), timestamp |
+| `otp_lookup` | Recherche du code OTP | found/not_found, otp_id, attempts |
+| `otp_validation` | Verification du code | valid/invalid, remaining_attempts |
+| `profile_lookup` | Recherche dans profiles | found/not_found, user_id |
+| `listusers_lookup` | Recherche via listUsers | found/not_found, format utilise, user_id |
+| `user_creation` | Creation d'un nouvel utilisateur | success/error, user_id, country |
+| `phone_exists_retry` | Retry apres erreur phone_exists | found/not_found, methode |
+| `email_setup` | Mise a jour email fictif | email genere |
+| `magiclink_generate` | Generation du magiclink | success/error |
+| `session_create` | Verification OTP magiclink | success/error, has_session |
+| `cleanup` | Suppression OTP verifie | success |
+| `request_complete` | Fin de la requete | total_duration_ms, result, is_new_user |
 
 ### Details techniques
 
-- Pas de migration SQL necessaire : toutes les donnees existent deja dans `whatsapp_otp_codes`
-- Le calcul du temps de verification utilise `verified_at - created_at` en secondes
-- Le taux d'expiration se calcule via `expires_at < now() AND verified_at IS NULL`
-- Le filtre pays utilise `substring(phone, 1, 4)` pour extraire le prefixe
-- RLS : la table est accessible via service_role dans les Edge Functions ; cote client, on utilisera une RPC ou une politique de lecture admin
-- Si la RLS bloque les requetes cote client, une fonction RPC `get_whatsapp_otp_stats` sera creee pour agreger les donnees cote serveur
+**Fichier modifie** : `supabase/functions/verify-whatsapp-otp/index.ts`
 
-### Securite
-- Page accessible uniquement aux admins via `AdminRoute`
-- Pas d'exposition des codes OTP dans le tableau (seulement statut et metadata)
+**Implementation** :
+- Une fonction helper `createLogger(phone)` qui retourne un objet avec une methode `log(step, data)` et `summary()`
+- Le request ID est genere via `crypto.randomUUID().slice(0, 8)`
+- Le telephone est masque dans les logs (ex: `+225***5445`) pour la securite
+- Chaque appel a `log()` mesure le temps depuis la derniere etape
+- La methode `summary()` produit un log final avec la duree totale et toutes les etapes traversees
+- Les `console.error` existants sont remplaces par des logs structures avec `level: "error"`
+
+**Securite** :
+- Le code OTP n'est jamais logue
+- Le telephone est partiellement masque
+- Les tokens de session ne sont pas logues
+
+**Pas de migration SQL necessaire** - modifications uniquement dans l'Edge Function.
+
