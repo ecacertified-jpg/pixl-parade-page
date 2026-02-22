@@ -221,3 +221,6 @@ verify_jwt = false
 
 [functions.check-fund-contribution-reminders]
 verify_jwt = false
+
+[functions.check-whatsapp-otp-health]
+verify_jwt = false
