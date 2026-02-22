@@ -109,9 +109,11 @@ serve(async (req) => {
     // Get or create user
     const metadata = otpRecord.user_metadata || {};
     
-    // Check if user exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.phone === phone);
+    // Search user by phone using server-side filter (handles 270+ users)
+    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
+      filter: phone
+    });
+    let existingUser = listData?.users?.find(u => u.phone === phone);
 
     let user;
     let isNewUser = false;
@@ -124,7 +126,7 @@ serve(async (req) => {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         phone,
         phone_confirm: true,
-      user_metadata: {
+        user_metadata: {
           first_name: metadata.first_name,
           last_name: metadata.last_name,
           city: metadata.city,
@@ -135,66 +137,114 @@ serve(async (req) => {
       });
 
       if (createError) {
-        console.error("Error creating user:", createError);
-        return new Response(
-          JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // Handle phone_exists: user exists but wasn't found by filter
+        if (createError.message?.includes('phone_exists') || (createError as any).code === 'phone_exists') {
+          console.log("phone_exists detected, re-searching user...");
+          const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({
+            filter: phone,
+            page: 1,
+            perPage: 1000,
+          });
+          existingUser = retryData?.users?.find(u => u.phone === phone);
+          
+          if (existingUser) {
+            user = existingUser;
+            console.log(`User found on retry: ${user.id}`);
+          } else {
+            console.error("User exists but cannot be found even after retry");
+            return new Response(
+              JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.' }),
+              { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        } else {
+          console.error("Error creating user:", createError);
+          return new Response(
+            JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } else {
+        user = newUser.user;
+        isNewUser = true;
+        console.log(`New user created: ${user.id}`);
+
+        // Set country_code based on phone prefix
+        const detectedCountry = phone.startsWith('+229') ? 'BJ'
+          : phone.startsWith('+221') ? 'SN'
+          : phone.startsWith('+228') ? 'TG'
+          : phone.startsWith('+223') ? 'ML'
+          : phone.startsWith('+226') ? 'BF'
+          : phone.startsWith('+225') ? 'CI' : 'CI';
+
+        await supabaseAdmin
+          .from('profiles')
+          .update({ country_code: detectedCountry, phone: phone })
+          .eq('user_id', user.id);
       }
-
-      user = newUser.user;
-      isNewUser = true;
-      console.log(`New user created: ${user.id}`);
-
-      // Explicitly set country_code based on phone prefix
-      const detectedCountry = phone.startsWith('+229') ? 'BJ'
-        : phone.startsWith('+221') ? 'SN'
-        : phone.startsWith('+228') ? 'TG'
-        : phone.startsWith('+223') ? 'ML'
-        : phone.startsWith('+226') ? 'BF'
-        : phone.startsWith('+225') ? 'CI' : 'CI';
-
-      await supabaseAdmin
-        .from('profiles')
-        .update({ country_code: detectedCountry, phone: phone })
-        .eq('user_id', user.id);
     }
 
-    // Generate session tokens
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: `${phone.replace(/\+/g, '')}@phone.joiedevivre.app`,
-      options: {
-        data: { phone }
-      }
-    });
+    // Generate session via magiclink + verifyOtp (no temp password)
+    const emailForPhone = `${phone.replace(/\+/g, '')}@phone.joiedevivre.app`;
 
-    // Use a different approach - create a session directly
-    // Since we can't directly create a session, we'll use signInWithPassword with a generated password
-    
-    // First, set a temporary password for the user
-    const tempPassword = crypto.randomUUID();
+    // Ensure the user has this email set (needed for magiclink)
     await supabaseAdmin.auth.admin.updateUserById(user.id, {
-      password: tempPassword
+      email: emailForPhone,
     });
 
-    // Now sign in with that password to get tokens
-    const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
-      phone,
-      password: tempPassword,
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: emailForPhone,
     });
 
-    if (signInError || !signInData.session) {
-      console.error("Error creating session:", signInError);
-      
-      // Fallback: return user info without session, let client handle it
+    if (linkError || !linkData?.properties?.action_link) {
+      console.error("Error generating magiclink:", linkError);
       return new Response(
         JSON.stringify({ 
           success: true, 
           user_id: user.id,
           is_new_user: isNewUser,
           message: 'Vérification réussie',
-          // Indicate that client should use alternative auth method
+          requires_reauth: true,
+          phone
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract token_hash from the generated link
+    const actionUrl = new URL(linkData.properties.action_link);
+    const tokenHash = actionUrl.searchParams.get('token') || actionUrl.hash?.match(/token=([^&]+)/)?.[1];
+
+    if (!tokenHash) {
+      console.error("No token found in magiclink URL:", linkData.properties.action_link);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          user_id: user.id,
+          is_new_user: isNewUser,
+          message: 'Vérification réussie',
+          requires_reauth: true,
+          phone
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use verifyOtp with the token_hash to create a proper session
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'magiclink',
+    });
+
+    if (sessionError || !sessionData.session) {
+      console.error("Error verifying magiclink OTP:", sessionError);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          user_id: user.id,
+          is_new_user: isNewUser,
+          message: 'Vérification réussie',
           requires_reauth: true,
           phone
         }),
@@ -208,16 +258,16 @@ serve(async (req) => {
       .delete()
       .eq('id', otpRecord.id);
 
-    console.log(`WhatsApp OTP verified for ${phone}, session created`);
+    console.log(`WhatsApp OTP verified for ${phone}, session created via magiclink`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         user_id: user.id,
         is_new_user: isNewUser,
-        access_token: signInData.session.access_token,
-        refresh_token: signInData.session.refresh_token,
-        expires_in: signInData.session.expires_in,
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        expires_in: sessionData.session.expires_in,
         message: 'Connexion réussie'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
