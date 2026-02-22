@@ -1,94 +1,71 @@
 
-# Correction du bug `verify-whatsapp-otp` : recherche d'utilisateur et creation de session
 
-## Probleme identifie
+# Correction de la recherche utilisateur dans `verify-whatsapp-otp`
 
-Le flux de verification OTP WhatsApp echoue a l'etape de creation de session. Deux bugs sont en cause :
+## Probleme racine
 
-1. **Recherche d'utilisateur defaillante** : `listUsers()` retourne seulement la premiere page (~50 utilisateurs). Avec 270+ utilisateurs en base, le numero `+2250707467445` n'est pas trouve, et le code tente de creer un utilisateur deja existant, ce qui declenche l'erreur `phone_exists`.
+Le telephone est stocke dans `auth.users` **sans le prefixe `+`** (ex: `2250707467445`), mais le code cherche avec le `+` (ex: `+2250707467445`). Le filtre `listUsers({ filter: phone })` ne matche donc jamais.
 
-2. **Creation de session fragile** : le mecanisme actuel utilise un mot de passe temporaire + `signInWithPassword`, ce qui est peu fiable et pose des problemes de securite.
+Preuve en base :
+- Stocke : `2250707467445`
+- Recherche : `+2250707467445`
 
-## Solution proposee
+## Solution
 
-Remplacer la logique defaillante dans `verify-whatsapp-otp/index.ts` par :
+Modifier la strategie de recherche dans `verify-whatsapp-otp/index.ts` pour :
 
-### 1. Recherche utilisateur via `listUsers({ filter })` avec gestion `phone_exists`
+1. **Chercher d'abord dans la table `profiles`** (qui contient le `user_id` et le `phone`) via une requete Supabase standard, ce qui est plus fiable que `listUsers` pour trouver un utilisateur par telephone.
 
-Utiliser le filtre natif de l'API Admin pour chercher par telephone au lieu de charger tous les utilisateurs :
+2. **Si non trouve dans `profiles`, chercher via `listUsers` avec les deux formats** : avec et sans le `+`.
 
-```typescript
-// Chercher l'utilisateur par telephone via l'API Admin
-const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-  filter: phone  // Filtre cote serveur, pas besoin de tout charger
-});
-const existingUser = listData?.users?.find(u => u.phone === phone);
-```
-
-En cas de `phone_exists` lors de `createUser`, traiter comme un utilisateur existant au lieu de retourner une erreur.
-
-### 2. Generation de session via `generateLink` au lieu de `signInWithPassword`
-
-Utiliser `generateLink({ type: 'magiclink' })` pour obtenir les proprietes de hachage, puis les utiliser avec `verifyOtp({ type: 'magiclink' })` pour creer une session propre sans mot de passe temporaire :
-
-```typescript
-const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-  type: 'magiclink',
-  email: emailForPhone,
-});
-
-// Extraire le token du lien genere
-const url = new URL(linkData.properties.action_link);
-const token = url.searchParams.get('token');
-
-// Utiliser verifyOtp pour creer une session
-const { data: sessionData } = await supabaseAdmin.auth.verifyOtp({
-  token_hash: token,
-  type: 'magiclink',
-});
-```
-
-### 3. Suppression du mecanisme de mot de passe temporaire
-
-Retirer entierement la logique de `tempPassword` + `signInWithPassword` qui est source de bugs et de failles de securite.
+3. **En dernier recours lors de `phone_exists`**, chercher directement dans `auth.users` via une requete SQL admin.
 
 ## Fichier modifie
 
-- `supabase/functions/verify-whatsapp-otp/index.ts` : refactoring de la section recherche utilisateur (lignes 109-200+)
+`supabase/functions/verify-whatsapp-otp/index.ts` -- section recherche utilisateur (lignes 109-160)
 
 ## Details techniques
 
-### Flux corrige
+### Nouvelle logique de recherche (lignes 109-160)
 
+```typescript
+// 1. Chercher dans profiles par phone
+const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
+const phoneWithoutPlus = phone.replace(/^\+/, '');
+
+const { data: profileData } = await supabaseAdmin
+  .from('profiles')
+  .select('user_id')
+  .or(`phone.eq.${phoneWithPlus},phone.eq.${phoneWithoutPlus}`)
+  .limit(1)
+  .maybeSingle();
+
+let existingUser = null;
+
+if (profileData?.user_id) {
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileData.user_id);
+  if (userData?.user) {
+    existingUser = userData.user;
+  }
+}
+
+// 2. Si pas dans profiles, tenter listUsers avec les deux formats
+if (!existingUser) {
+  const { data: listData1 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithPlus });
+  existingUser = listData1?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus);
+
+  if (!existingUser) {
+    const { data: listData2 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus });
+    existingUser = listData2?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus);
+  }
+}
 ```
-Code OTP valide
-    |
-    v
-Recherche utilisateur par filtre telephone
-    |
-    +-- Trouve --> utiliser l'utilisateur existant
-    |
-    +-- Non trouve --> createUser()
-         |
-         +-- Succes --> nouvel utilisateur
-         |
-         +-- phone_exists --> re-rechercher et utiliser l'existant
-    |
-    v
-Generer un magiclink via l'API Admin
-    |
-    v
-Extraire le token_hash du lien
-    |
-    v
-verifyOtp(token_hash) --> session (access_token + refresh_token)
-    |
-    v
-Retourner la session au client
-```
 
-### Points de securite
+### Gestion `phone_exists` amelioree (retry)
 
-- Suppression du mot de passe temporaire (faille potentielle)
-- Pas de `listUsers()` complet (performance et scalabilite)
-- Email fictif genere de maniere deterministe a partir du telephone pour le magiclink
+En cas de `phone_exists` apres `createUser`, utiliser `getUserById` via la table `profiles` ou chercher avec les deux formats telephone plutot que de refaire un simple `listUsers({ filter })`.
+
+### Pas d'autre changement
+
+Le reste du code (generation magiclink, session) reste identique. Seule la section de recherche utilisateur est corrigee.
+
