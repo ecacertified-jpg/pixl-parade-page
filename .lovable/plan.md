@@ -1,41 +1,26 @@
 
 
-## Test end-to-end du flux WhatsApp OTP via l'interface /auth
+## Verification immediate du code OTP 757224
 
-### Objectif
-Valider le parcours complet : envoi OTP WhatsApp, saisie dans le formulaire UI, creation de session, et redirection apres connexion.
+### Etape 1 : Verifier le code via Edge Function
+- Appeler `verify-whatsapp-otp` avec `phone: +2250707467445` et `code: 757224`
+- Confirmer la creation de session (access_token, refresh_token)
 
-### Etapes
+### Etape 2 : Test UI complet (nouveau code necessaire)
+Le code 757224 sera probablement expire apres approbation du plan. Il faudra :
+1. Envoyer un nouveau code via `send-whatsapp-otp`
+2. Recevoir le code de l'utilisateur
+3. Naviguer vers `/auth` dans le navigateur
+4. Saisir le numero, selectionner WhatsApp, entrer le code OTP
+5. Verifier la redirection apres connexion
 
-1. **Envoyer un nouveau code OTP**
-   - Appeler l'Edge Function `send-whatsapp-otp` avec le numero `+2250707467445`
-   - Confirmer l'envoi reussi
-
-2. **Recevoir le code de l'utilisateur**
-   - Attendre que l'utilisateur communique le code recu sur WhatsApp
-
-3. **Saisir le code dans l'interface /auth**
-   - Naviguer vers `/auth`
-   - Selectionner l'onglet "Telephone"
-   - Entrer le numero `0707467445`
-   - Cliquer "Envoyer le code" puis "WhatsApp (recommande)"
-   - Saisir le code OTP dans le formulaire a 6 chiffres
-   - Soumettre le formulaire
-
-4. **Verifier le resultat**
-   - Confirmer que la session est creee (access_token + refresh_token)
-   - Verifier la redirection vers le dashboard ou la page d'accueil
-   - Verifier les logs console pour toute erreur
+### Etape 3 : Validation
+- Verifier les logs console pour toute erreur
+- Confirmer la redirection vers le dashboard
+- Verifier que la session est active
 
 ### Details techniques
-
-- Edge Function : `send-whatsapp-otp` (envoi) et `verify-whatsapp-otp` (verification)
-- Recherche utilisateur via la table `profiles` (methode fiabilisee)
-- Creation de session via `generateLink({ type: 'magiclink' })` + `verifyOtp({ type: 'magiclink' })`
-- Email fictif au format `${phone}@phone.joiedevivre.app`
-- Le test valide toute la chaine : UI -> Edge Function -> Auth -> Session -> Redirection
-
-### Risque identifie
-- Cliquer "WhatsApp (recommande)" dans l'UI declenche un nouvel OTP, invalidant le precedent
-- Solution : enchainer rapidement ou verifier que le formulaire OTP reste affiche apres l'envoi
+- Edge Functions : `send-whatsapp-otp` et `verify-whatsapp-otp`
+- Session creee via `generateLink({ type: 'magiclink' })` + `verifyOtp({ type: 'magiclink' })`
+- Utilisateur existant : `b8d0d4e4-3eec-45df-a87d-b9ec7e4bf95a`
 
