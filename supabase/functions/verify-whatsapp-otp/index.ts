@@ -109,11 +109,40 @@ serve(async (req) => {
     // Get or create user
     const metadata = otpRecord.user_metadata || {};
     
-    // Search user by phone using server-side filter (handles 270+ users)
-    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({
-      filter: phone
-    });
-    let existingUser = listData?.users?.find(u => u.phone === phone);
+    // Normalize phone formats (auth.users may store with or without +)
+    const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
+    const phoneWithoutPlus = phone.replace(/^\+/, '');
+    
+    // 1. Search in profiles table first (most reliable)
+    let existingUser = null;
+    const { data: profileData } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id')
+      .or(`phone.eq.${phoneWithPlus},phone.eq.${phoneWithoutPlus}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (profileData?.user_id) {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileData.user_id);
+      if (userData?.user) {
+        existingUser = userData.user;
+        console.log(`User found via profiles table: ${existingUser.id}`);
+      }
+    }
+
+    // 2. If not in profiles, try listUsers with both formats
+    if (!existingUser) {
+      const { data: listData1 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithPlus });
+      existingUser = listData1?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
+
+      if (!existingUser) {
+        const { data: listData2 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus });
+        existingUser = listData2?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
+      }
+      if (existingUser) {
+        console.log(`User found via listUsers: ${existingUser.id}`);
+      }
+    }
 
     let user;
     let isNewUser = false;
@@ -124,7 +153,7 @@ serve(async (req) => {
     } else {
       // Create new user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        phone,
+        phone: phoneWithPlus,
         phone_confirm: true,
         user_metadata: {
           first_name: metadata.first_name,
@@ -132,20 +161,30 @@ serve(async (req) => {
           city: metadata.city,
           birthday: metadata.birthday,
           is_business: metadata.is_business,
-          phone,
+          phone: phoneWithPlus,
         },
       });
 
       if (createError) {
-        // Handle phone_exists: user exists but wasn't found by filter
         if (createError.message?.includes('phone_exists') || (createError as any).code === 'phone_exists') {
-          console.log("phone_exists detected, re-searching user...");
-          const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({
-            filter: phone,
-            page: 1,
-            perPage: 1000,
-          });
-          existingUser = retryData?.users?.find(u => u.phone === phone);
+          console.log("phone_exists detected, searching with both formats...");
+          
+          const { data: retryProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('user_id')
+            .or(`phone.eq.${phoneWithPlus},phone.eq.${phoneWithoutPlus}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (retryProfile?.user_id) {
+            const { data: ud } = await supabaseAdmin.auth.admin.getUserById(retryProfile.user_id);
+            if (ud?.user) existingUser = ud.user;
+          }
+
+          if (!existingUser) {
+            const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus, page: 1, perPage: 1000 });
+            existingUser = retryData?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
+          }
           
           if (existingUser) {
             user = existingUser;
@@ -169,17 +208,16 @@ serve(async (req) => {
         isNewUser = true;
         console.log(`New user created: ${user.id}`);
 
-        // Set country_code based on phone prefix
-        const detectedCountry = phone.startsWith('+229') ? 'BJ'
-          : phone.startsWith('+221') ? 'SN'
-          : phone.startsWith('+228') ? 'TG'
-          : phone.startsWith('+223') ? 'ML'
-          : phone.startsWith('+226') ? 'BF'
-          : phone.startsWith('+225') ? 'CI' : 'CI';
+        const detectedCountry = phoneWithPlus.startsWith('+229') ? 'BJ'
+          : phoneWithPlus.startsWith('+221') ? 'SN'
+          : phoneWithPlus.startsWith('+228') ? 'TG'
+          : phoneWithPlus.startsWith('+223') ? 'ML'
+          : phoneWithPlus.startsWith('+226') ? 'BF'
+          : phoneWithPlus.startsWith('+225') ? 'CI' : 'CI';
 
         await supabaseAdmin
           .from('profiles')
-          .update({ country_code: detectedCountry, phone: phone })
+          .update({ country_code: detectedCountry, phone: phoneWithPlus })
           .eq('user_id', user.id);
       }
     }
