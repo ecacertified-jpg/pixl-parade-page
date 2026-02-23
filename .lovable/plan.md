@@ -1,49 +1,96 @@
 
-# Envoi SMS + WhatsApp simultane lors de l'ajout d'un contact
+# Correction WhatsApp : utiliser un template approuve pour les notifications d'ajout de contact
 
-## Objectif
-Modifier la fonction `notify-contact-added` pour envoyer les notifications sur **les deux canaux** (SMS et WhatsApp) au lieu d'un seul, selon les preferences de l'utilisateur.
+## Probleme identifie
 
-## Changements
+L'API WhatsApp Business de Meta accepte les messages texte libre (`type: "text"`) mais ne les **delivre** au destinataire que si celui-ci a envoye un message au numero Business dans les dernieres 24 heures. Pour les messages inities par l'entreprise (comme une notification d'ajout de contact), un **template pre-approuve** est obligatoire.
 
-### Fichier : `supabase/functions/notify-contact-added/index.ts`
+C'est pourquoi le SMS arrive (Twilio delivre directement) mais le WhatsApp est "envoye" cote API sans jamais etre recu par le destinataire.
 
-**1. Construire deux messages distincts (SMS + WhatsApp)**
+## Solution en 2 etapes
 
-Au lieu de choisir un seul canal et un seul message, la fonction construira systematiquement :
-- Un **message SMS** (court, sans emojis, moins de 160 caracteres)
-- Un **message WhatsApp** (avec emojis, plus detaille)
+### Etape 1 : Creer un template dans Meta Business Manager (action manuelle)
 
-**2. Envoyer sur les deux canaux en parallele**
+Aller dans **Meta Business Manager > WhatsApp > Message Templates** et creer un nouveau template :
 
-Remplacer la logique "soit SMS soit WhatsApp" par un envoi simultane :
-- Si `sms_enabled` dans les preferences : envoyer le SMS
-- Si `whatsapp_enabled` dans les preferences : envoyer le WhatsApp
-- Les deux envois se font en parallele via `Promise.allSettled()`
-
-**3. Enregistrer un log par canal**
-
-Au lieu d'un seul enregistrement dans `birthday_contact_alerts`, inserer une ligne par canal utilise (SMS et/ou WhatsApp) pour un suivi precis.
-
-**4. Reponse enrichie**
-
-La reponse inclura le resultat de chaque canal (succes/echec par canal).
-
-## Details techniques
-
-La structure du code modifie sera :
+- **Nom** : `joiedevivre_contact_added`
+- **Categorie** : `MARKETING` (ou `UTILITY`)
+- **Langue** : `fr` (francais)
+- **Corps du message** :
 
 ```text
-1. Construire smsMessage (court, sans emoji)
-2. Construire whatsappMessage (avec emojis, detaille)
-3. Lancer en parallele :
-   - sendSms() si preferences.sms_enabled
-   - sendWhatsApp() si preferences.whatsapp_enabled
-4. Inserer un log par canal dans birthday_contact_alerts
-5. Retourner le resultat combine
+Bonjour ! {{1}} t'a ajoute a son cercle d'amis sur Joie de Vivre !
+
+Ton anniversaire est dans {{2}} jours.
+
+{{3}}
+```
+
+Les variables :
+- `{{1}}` = nom de l'utilisateur qui ajoute
+- `{{2}}` = nombre de jours avant l'anniversaire
+- `{{3}}` = appel a l'action (different selon que le contact a un compte ou non)
+
+Soumettre le template pour approbation par Meta (generalement approuve en quelques minutes a quelques heures).
+
+### Etape 2 : Modifier le code pour utiliser le template
+
+#### Fichier 1 : `supabase/functions/_shared/sms-sender.ts`
+
+Ajouter une nouvelle fonction `sendWhatsAppTemplate` qui envoie un message via template au lieu de texte libre :
+
+```typescript
+export async function sendWhatsAppTemplate(
+  to: string,
+  templateName: string,
+  languageCode: string,
+  bodyParameters: string[]
+): Promise<SmsResult> {
+  // Meme logique de credentials et formatage que sendWhatsApp
+  // Mais avec type: "template" au lieu de type: "text"
+  // Et les composants body avec les parametres
+}
+```
+
+#### Fichier 2 : `supabase/functions/notify-contact-added/index.ts`
+
+Remplacer l'appel `sendWhatsApp(contact_phone, whatsappMessage)` par `sendWhatsAppTemplate(...)` avec :
+- Template : `joiedevivre_contact_added`
+- Parametres : `[userName, daysUntil.toString(), callToAction]`
+- Conserver le fallback vers `sendWhatsApp` texte libre en cas d'echec du template
+
+La logique sera :
+1. Tenter l'envoi via template (fonctionne meme sans interaction prealable)
+2. Si le template echoue (pas encore approuve, etc.), fallback vers texte libre
+3. Logger le canal et la methode utilisee dans `birthday_contact_alerts`
+
+## Diagramme du flux
+
+```text
+Ajout contact
+    |
+    v
++-- Preferences utilisateur --+
+|                              |
+| sms_enabled?     whatsapp_enabled?
+|    |                    |
+|    v                    v
+| sendSms()      sendWhatsAppTemplate()
+| (Twilio)       (Meta template approuve)
+|    |                    |
+|    |              Echec template?
+|    |                    |
+|    |                    v
+|    |           sendWhatsApp() (texte libre)
+|    |           (fallback, fonctionne si
+|    |            conversation < 24h)
+|    |                    |
+|    v                    v
++-- Log dans birthday_contact_alerts --+
 ```
 
 ## Impact
-- La fonction sera redeployee automatiquement apres modification
-- Aucun changement de base de donnees necessaire (la table `birthday_contact_alerts` supporte deja plusieurs lignes par contact)
-- Les preferences utilisateur (`sms_enabled`, `whatsapp_enabled`) sont respectees individuellement
+- **Fichiers modifies** : 2 (`sms-sender.ts` et `notify-contact-added/index.ts`)
+- **Action manuelle requise** : creation du template dans Meta Business Manager
+- **Aucune modification de base de donnees** necessaire
+- Le SMS continue de fonctionner exactement comme avant
