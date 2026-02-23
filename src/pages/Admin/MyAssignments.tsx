@@ -13,6 +13,7 @@ import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText } from 'lucide-react';
+import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -182,6 +183,9 @@ const MyAssignments = () => {
             <Plus className="mr-2 h-4 w-4" /> Ajouter
           </Button>
         </div>
+
+        {/* Admin Share Link Card */}
+        <AdminShareLinkCard />
 
         {loading ? (
           <div className="flex items-center justify-center py-12">

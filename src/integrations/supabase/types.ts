@@ -455,6 +455,47 @@ export type Database = {
           },
         ]
       }
+      admin_share_codes: {
+        Row: {
+          admin_user_id: string
+          assignments_count: number
+          clicks_count: number
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          signups_count: number
+        }
+        Insert: {
+          admin_user_id: string
+          assignments_count?: number
+          clicks_count?: number
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          signups_count?: number
+        }
+        Update: {
+          admin_user_id?: string
+          assignments_count?: number
+          clicks_count?: number
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          signups_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_share_codes_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_user_assignments: {
         Row: {
           admin_user_id: string
@@ -8073,6 +8114,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      generate_admin_share_code: { Args: never; Returns: string }
       generate_event_analytics: { Args: never; Returns: number }
       generate_unique_referral_code: {
         Args: { code_format?: string; user_uuid: string }
@@ -8277,6 +8319,10 @@ export type Database = {
       }
       increment_gratitude_reaction: {
         Args: { p_message_id: string }
+        Returns: undefined
+      }
+      increment_share_code_stat: {
+        Args: { p_code: string; p_field: string }
         Returns: undefined
       }
       increment_share_metrics: {

@@ -29,6 +29,7 @@ import { HowToSchema } from '@/components/schema';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
+import { processAdminAutoAssign } from '@/utils/adminAutoAssign';
 
 // Progress Indicator Component
 const ProgressIndicator = ({ progress, step }: { progress: number; step: string }) => {
@@ -778,6 +779,7 @@ const BusinessAuth = () => {
             title: 'Bienvenue !',
             description: 'Votre espace business est maintenant prêt.',
           });
+          await processAdminAutoAssign(authData.user.id, 'business');
           navigate('/business-account?onboarding=true', { replace: true });
         } else {
           // Connexion - vérifier si un business account existe
@@ -805,6 +807,7 @@ const BusinessAuth = () => {
             title: 'Connexion réussie',
             description: 'Bienvenue dans votre espace business',
           });
+          await processAdminAutoAssign(authData.user.id, 'business');
           navigate('/business-account', { replace: true });
         }
       }
@@ -920,6 +923,7 @@ const BusinessAuth = () => {
         title: 'Bienvenue !',
         description: 'Votre espace business est maintenant prêt.',
       });
+      await processAdminAutoAssign(authenticatedUserId!, 'business');
       navigate('/business-account?onboarding=true', { replace: true });
     } catch (error) {
       toast({
@@ -963,6 +967,7 @@ const BusinessAuth = () => {
         if (businessAccounts && businessAccounts.length > 0) {
           setUserMode('business');
           toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
+          await processAdminAutoAssign(authData.user.id, 'business');
           navigate('/business-account', { replace: true });
         } else {
           setAuthenticatedUserId(authData.user.id);
@@ -1060,6 +1065,7 @@ const BusinessAuth = () => {
           setUserMode('business');
           trackSignUp('email_business');
           toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
+          await processAdminAutoAssign(authData.user.id, 'business');
           navigate('/business-account?onboarding=true', { replace: true });
         }
       }

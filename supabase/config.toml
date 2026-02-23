@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.check-whatsapp-otp-health]
 verify_jwt = false
+
+[functions.admin-auto-assign]
+verify_jwt = false
