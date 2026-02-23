@@ -41,7 +41,7 @@ export default function WishlistCatalog() {
       const [productsRes, categoriesRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, price, currency, image_url, category_id, business_accounts(business_name)")
+          .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
           .eq("is_active", true)
           .order("created_at", { ascending: false })
           .limit(200),
