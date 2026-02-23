@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useContactGiftHistory } from "@/hooks/useContactGiftHistory";
 import { AIRecommendationsSection } from "@/components/AIRecommendationsSection";
+import { ContactWishlistSection } from "@/components/ContactWishlistSection";
 import { useCart } from "@/hooks/useCart";
 import { useFavorites } from "@/hooks/useFavorites";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
@@ -250,6 +251,22 @@ export default function GiftIdeas() {
             )}
           </CardContent>
         </Card>
+
+        {/* Contact Wishlist */}
+        <ContactWishlistSection
+          contactId={contactId}
+          contactName={contact.name}
+          onSelectProduct={(item) => {
+            if (item.product) {
+              handleAddToCart({
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+                image_url: item.product.image_url,
+              });
+            }
+          }}
+        />
 
         {/* AI Recommendations */}
         <AIRecommendationsSection

@@ -79,6 +79,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import BusinessProfileSettings from "./pages/BusinessProfileSettings";
 import Orders from "./pages/Orders";
 import GiftIdeas from "./pages/GiftIdeas";
+import WishlistCatalog from "./pages/WishlistCatalog";
 import BusinessCollectiveFundsManagement from "./pages/BusinessCollectiveFundsManagement";
 import { AdminRoute } from "./components/AdminRoute";
 import { AIChatWidget } from "./components/AIChatWidget";
@@ -381,6 +382,11 @@ const App = () => (
             <Route path="/account-linking" element={
               <ProtectedRoute>
                 <AccountLinking />
+              </ProtectedRoute>
+            } />
+            <Route path="/wishlist-catalog" element={
+              <ProtectedRoute>
+                <WishlistCatalog />
               </ProtectedRoute>
             } />
             {/* Admin routes */}
