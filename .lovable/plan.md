@@ -1,58 +1,65 @@
 
 
-# Notification SMS et Push au client lors de l'acceptation/refus de commande
+# Activer l'envoi WhatsApp pour les notifications d'ajout d'amis
 
-## Probleme actuel
+## Situation actuelle
 
-Quand un prestataire accepte ou refuse une commande dans `handle-order-action`, le client recoit uniquement une **notification in-app** (dans la base de donnees). Il manque :
+Deux lacunes identifiees dans le systeme de notifications d'amis :
 
-- **Aucun SMS** envoye au client
-- **Aucun push** reellement envoye (le code aux lignes 166-176 ne fait que logger sans envoyer)
+1. **Ajout d'un ami** (`notify-contact-added`) : quand le canal prefere est WhatsApp (pays hors CI/SN), le message est seulement "logge" dans la console mais jamais envoye (lignes 202-205).
 
-Le client doit ouvrir l'application pour decouvrir le statut de sa commande, ce qui est une mauvaise experience.
+2. **Completion du cercle d'amis** (`useFriendsCircleReminder`) : la notification de celebration n'est envoyee que par push et in-app, sans SMS ni WhatsApp.
 
-## Solution
+Les secrets WhatsApp (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`) sont deja configures.
 
-Ameliorer la Edge Function `handle-order-action` pour envoyer au client :
-1. Un **SMS** avec le statut de sa commande (via le module `sms-sender.ts` existant)
-2. Des **notifications push** reelles (via le meme pattern que `notify-business-order`)
+---
 
-## Changements techniques
+## Ce qui va changer
 
-### Fichier unique : `supabase/functions/handle-order-action/index.ts`
+### 1. Module partage : `supabase/functions/_shared/sms-sender.ts`
 
-**1. Ajouter l'import du module SMS partage**
+Ajouter une fonction `sendWhatsApp(to, message)` qui envoie un message texte libre via l'API WhatsApp Cloud (meme pattern que dans `send-whatsapp-otp` mais sans template). La fonction `sendNotification()` existante l'utilisera automatiquement au lieu de retourner `WHATSAPP_ROUTING_REQUIRED`.
+
+### 2. Edge Function : `supabase/functions/notify-contact-added/index.ts`
+
+Remplacer le bloc "log placeholder" (lignes 202-205) par un vrai appel a `sendWhatsApp()` pour les contacts hors CI/SN. Le message sera adapte au format WhatsApp (emojis autorises, pas de limite 160 chars).
+
+### 3. Hook : `src/hooks/useFriendsCircleReminder.ts`
+
+Ajouter un appel a une Edge Function pour envoyer un SMS/WhatsApp au moment de la completion du cercle, en plus du push et de la notification in-app.
+
+---
+
+## Details techniques
+
+### Fichier 1 : `supabase/functions/_shared/sms-sender.ts`
+
+Nouvelle fonction exportee :
+
 ```text
-import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
+export async function sendWhatsApp(to: string, message: string): Promise<SmsResult>
 ```
 
-**2. Recuperer le telephone du client dans la requete SQL existante**
+- Lit `WHATSAPP_ACCESS_TOKEN` et `WHATSAPP_PHONE_NUMBER_ID` depuis l'environnement
+- Envoie un message texte simple via `graph.facebook.com/v18.0/{phoneId}/messages`
+- Retourne un `SmsResult` avec `channel: 'whatsapp'`
 
-Ajouter `donor_phone` et `beneficiary_phone` dans le SELECT de la commande pour avoir le numero du client.
+Modification de `sendNotification()` : remplacer le placeholder WhatsApp par l'appel reel a `sendWhatsApp()`.
 
-**3. Envoyer les push notifications au client** (remplacer le bloc commentaire lignes 166-176)
+### Fichier 2 : `supabase/functions/notify-contact-added/index.ts`
 
-Utiliser le meme pattern que `notify-business-order` :
-- Recuperer les `push_subscriptions` actives du client
-- Envoyer via `fetch()` vers l'endpoint de chaque subscription
-- Mettre a jour `last_used_at` ou desactiver les subscriptions echouees
+- Importer `sendWhatsApp` depuis le module partage
+- Remplacer lignes 202-206 par un vrai envoi WhatsApp quand `channel === 'whatsapp'` et `preferences.whatsapp_enabled`
+- Adapter le message WhatsApp avec emojis (plus lisible sur mobile)
 
-**4. Envoyer un SMS au client**
+### Fichier 3 : `src/hooks/useFriendsCircleReminder.ts`
 
-Apres les push, envoyer un SMS au numero du client (priorite `donor_phone`) :
-- Acceptation : `JoieDvivre: Bonne nouvelle! Votre commande #XXXXXXXX chez {nom} est confirmee. Suivez-la sur joiedevivre-africa.com`
-- Refus : `JoieDvivre: Votre commande #XXXXXXXX chez {nom} n'a pas pu etre acceptee. Contactez-nous sur joiedevivre-africa.com`
+- Dans `sendCompletionNotification`, ajouter un appel a `notify-contact-added` (ou une edge function dediee) pour envoyer un SMS/WhatsApp de celebration au propre numero de l'utilisateur
+- Recuperer le telephone de l'utilisateur depuis son profil
 
-Messages optimises a moins de 160 caracteres, ton informel, sans emojis (pour la delivrabilite SMS).
+---
 
-### Aucun autre fichier modifie
+## Aucune migration SQL requise
 
-Le module `sms-sender.ts` et l'infrastructure push existent deja. Pas de migration SQL necessaire.
-
-## Deploiement
-
-La Edge Function `handle-order-action` devra etre deployee manuellement via le CLI Supabase :
-```text
-supabase functions deploy handle-order-action --project-ref vaimfeurvzokepqqqrsl
-```
+Les tables et secrets necessaires existent deja.
 
