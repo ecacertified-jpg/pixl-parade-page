@@ -28,6 +28,7 @@ import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
 import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotificationsSection";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
+import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
@@ -581,6 +582,9 @@ export default function Dashboard() {
         <div className="mb-4">
           <SmartBirthdayReminders hideViewAllButton />
         </div>
+
+        {/* Section Liste de souhaits */}
+        <FavoriteArticlesSection />
 
         {/* Cartes de badges */}
         <div className="grid grid-cols-1 gap-4 mb-4">
