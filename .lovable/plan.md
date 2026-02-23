@@ -1,75 +1,49 @@
 
+# Lien de partage admin : choix Client / Prestataire et redirection vers le bon onglet
 
-# Correction : Les utilisateurs ne s'ajoutent pas via le lien de partage admin
+## Contexte actuel
 
-## Problemes identifies
+- La page `JoinAdmin` (`/join/:code`) redirige toujours vers `/auth` (inscription client), sans offrir l'option de s'inscrire comme prestataire.
+- Les dates d'inscription sont deja affichees dans les deux onglets de "Mes affectations".
+- Le `BusinessAuth` gere deja correctement `admin_ref` via `sessionStorage` et appelle `processAdminAutoAssign(userId, 'business')`.
 
-### Probleme 1 : Les utilisateurs deja connectes ne sont jamais assignes
-C'est le bug principal. Quand un utilisateur **deja connecte** clique sur le lien de partage :
-1. Il arrive sur `/join/:code` qui stocke le code dans `sessionStorage` et redirige vers `/auth?admin_ref=code`
-2. Sur la page `/auth`, le `useEffect` (ligne 231) detecte que l'utilisateur est deja connecte et le redirige immediatement vers le dashboard
-3. **`processAdminAutoAssign` n'est jamais appele** car cette fonction n'est executee que dans les flux de connexion/inscription
+## Modifications
 
-### Probleme 2 : Le site en production renvoie un 404 sur `/join/:code`
-Le fichier `_redirects` a ete cree mais n'a pas encore ete publie. Sans publication, toutes les routes profondes (dont `/join/:code`) retournent un 404 sur `joiedevivre-africa.com`.
+### 1. Transformer JoinAdmin en page d'accueil avec choix
 
-## Solution
+Modifier `src/pages/JoinAdmin.tsx` pour afficher une page de selection quand l'utilisateur n'est pas connecte, avec deux boutons :
 
-### Modification 1 : Traiter l'affectation pour les utilisateurs deja connectes
+- **"Je suis un client"** : redirige vers `/auth?admin_ref=CODE`
+- **"Je suis un prestataire"** : redirige vers `/business-auth?admin_ref=CODE`
 
-**Fichier** : `src/pages/Auth.tsx` (useEffect ligne 230-241)
+Si l'utilisateur est deja connecte, le comportement actuel est conserve (affectation immediate + redirection).
 
-Ajouter l'appel a `processAdminAutoAssign` dans le useEffect qui redirige les utilisateurs deja connectes :
+### 2. Gerer `admin_ref` dans BusinessAuth via URL
 
-```typescript
-// Redirect if already authenticated - check for returnUrl first
-useEffect(() => {
-  if (user) {
-    const handleRedirect = async () => {
-      // Process admin auto-assign if admin_ref is present
-      const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
-      if (adminRef) {
-        await processAdminAutoAssign(user.id);
-      }
+Modifier `src/pages/BusinessAuth.tsx` pour lire `admin_ref` depuis les parametres URL (en plus du `sessionStorage` deja gere par `processAdminAutoAssign`).
 
-      const returnUrl = localStorage.getItem('returnUrl');
-      if (returnUrl) {
-        localStorage.removeItem('returnUrl');
-        navigate(returnUrl);
-      } else {
-        handleSmartRedirect(user, navigate);
-      }
-    };
-    handleRedirect();
-  }
-}, [user, navigate]);
+Ajouter dans le `useEffect` de redirection des utilisateurs deja connectes :
 ```
-
-### Modification 2 : Gerer aussi les utilisateurs connectes directement depuis JoinAdmin
-
-**Fichier** : `src/pages/JoinAdmin.tsx`
-
-Ajouter une verification : si l'utilisateur est deja connecte, appeler directement `processAdminAutoAssign` et rediriger vers le dashboard au lieu de passer par `/auth`.
-
-```typescript
-// Dans le useEffect, apres stockage du code :
-const { data: { session } } = await supabase.auth.getSession();
-if (session?.user) {
-  // Utilisateur deja connecte → assigner directement
-  await processAdminAutoAssign(session.user.id);
-  navigate('/dashboard', { replace: true });
-} else {
-  // Pas connecte → rediriger vers l'inscription
-  navigate(`/auth?admin_ref=${code}`, { replace: true });
+const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
+if (adminRef) {
+  sessionStorage.setItem('jdv_admin_ref', adminRef);
+  await processAdminAutoAssign(user.id, 'business');
 }
 ```
 
-### Etape 3 : Publier le site
-Apres ces modifications, il faudra **publier** pour que le lien fonctionne sur `joiedevivre-africa.com`.
+### 3. Design de la page JoinAdmin
 
-## Resume des modifications
+La page affichera :
+- Le logo / titre JOIE DE VIVRE
+- Un message de bienvenue ("Vous avez ete invite a rejoindre JOIE DE VIVRE")
+- Deux cartes de selection :
+  - **Client** : icone User, description "Offrez des cadeaux a vos proches"
+  - **Prestataire** : icone Store, description "Vendez vos produits sur la plateforme"
+- Le code admin reste stocke dans `sessionStorage` pour etre traite apres l'inscription
+
+## Details techniques
+
 | Fichier | Changement |
 |---------|-----------|
-| `src/pages/JoinAdmin.tsx` | Detecter si l'utilisateur est deja connecte et l'assigner directement |
-| `src/pages/Auth.tsx` | Appeler `processAdminAutoAssign` quand un utilisateur deja connecte arrive avec `admin_ref` |
-
+| `src/pages/JoinAdmin.tsx` | Ajouter page de choix client/prestataire au lieu de rediriger directement vers `/auth` |
+| `src/pages/BusinessAuth.tsx` | Lire `admin_ref` depuis l'URL et stocker dans sessionStorage + traiter l'auto-assign pour les utilisateurs deja connectes |
