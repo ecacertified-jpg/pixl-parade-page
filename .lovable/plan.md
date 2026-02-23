@@ -1,39 +1,105 @@
 
-# Ajouter une alerte email au monitoring OTP WhatsApp
+# Lien de partage unique pour chaque Admin
 
 ## Objectif
-Quand le taux de succes OTP descend sous le seuil critique, envoyer un email aux super admins en plus de la notification admin existante.
+Chaque admin dispose d'un lien de partage unique qu'il peut diffuser sur les reseaux sociaux. Quand un utilisateur ou une entreprise clique sur ce lien et se connecte/s'inscrit, il est automatiquement ajoute aux affectations de l'admin qui a partage le lien.
 
-## Approche
-Modifier la Edge Function `check-whatsapp-otp-health` pour :
-1. Importer Resend et recuperer `RESEND_API_KEY` (deja configure dans les secrets Supabase)
-2. Recuperer les emails des admins actifs (meme pattern que `notify-kpi-alerts`)
-3. Envoyer un email critique avec les stats OTP quand l'alerte est declenchee
+## Flux utilisateur
 
-Le pattern existant dans `notify-kpi-alerts` sera reutilise : lecture des admins actifs, respect des preferences de notification, envoi via Resend depuis `noreply@joiedevivre-africa.com`.
+```text
+Admin copie son lien (ex: joiedevivre.app/join/ADM-XXXX)
+        |
+        v
+Utilisateur clique sur le lien
+        |
+        v
+Redirection vers /auth ou /business-auth
+(avec param ?admin_ref=ADM-XXXX stocke en sessionStorage)
+        |
+        v
+Utilisateur s'inscrit ou se connecte
+        |
+        v
+Edge Function auto-assigne l'utilisateur
+a l'admin correspondant au code
+        |
+        v
+Redirection vers /dashboard ou /business-account
+```
 
 ## Modifications
 
-### Fichier modifie : `supabase/functions/check-whatsapp-otp-health/index.ts`
+### 1. Migration SQL - Table `admin_share_codes`
 
-Apres l'insertion dans `admin_notifications` (etape 6 actuelle), ajouter :
+Nouvelle table pour stocker les codes de partage uniques des admins :
 
-1. **Import Resend** en haut du fichier
-2. **Recuperation des admins** : requete sur `admin_users` avec `is_active = true` et role `super_admin` ou `admin`, puis lecture de l'email via `auth.admin.getUserById` ou `email_override` depuis `admin_report_preferences`
-3. **Construction de l'email HTML** : template professionnel avec fond rouge critique, stats OTP (taux actuel, seuil, nombre envoyes/verifies, periode), et bouton CTA vers `/admin/whatsapp-otp`
-4. **Envoi via Resend** depuis `noreply@joiedevivre-africa.com` avec sujet `[CRITIQUE] Alerte OTP WhatsApp - Taux de succes bas`
-5. **Log du resultat** et ajout de `email_sent: true/false` dans le rapport de retour
+| Colonne | Type | Description |
+|---------|------|-------------|
+| id | uuid | Cle primaire |
+| admin_user_id | uuid | FK vers admin_users.id |
+| code | text | Code unique (ex: ADM-A7X9) |
+| is_active | boolean | Statut actif |
+| clicks_count | integer | Nombre de clics |
+| signups_count | integer | Inscriptions generees |
+| assignments_count | integer | Affectations reussies |
+| created_at | timestamptz | Date de creation |
 
-L'email ne sera envoye que lorsque l'alerte admin est creee (meme condition anti-spam et volume minimum). Si Resend echoue, l'erreur est loguee mais ne bloque pas la reponse (la notification admin reste creee).
+RLS : seuls les admins actifs peuvent voir/gerer leurs propres codes. Fonction `generate_admin_share_code()` pour generer un code unique.
+
+### 2. Route `/join/:code` - Page de redirection
+
+Nouvelle page legere qui :
+- Lit le code admin depuis l'URL
+- Verifie sa validite via requete Supabase
+- Incremente `clicks_count`
+- Stocke le code en `sessionStorage` (`jdv_admin_ref`)
+- Redirige vers `/auth` (utilisateur) ou `/business-auth` (entreprise) avec `?admin_ref=CODE`
+
+### 3. Edge Function `admin-auto-assign`
+
+Nouvelle Edge Function appelee apres inscription/connexion pour :
+- Lire le `admin_ref` depuis les parametres
+- Trouver l'admin correspondant au code
+- Verifier que l'utilisateur n'est pas deja affecte
+- Creer l'affectation dans `admin_user_assignments` ou `admin_business_assignments`
+- Incrementer `signups_count` et `assignments_count`
+- Creer une notification pour l'admin
+
+### 4. Modification de `Auth.tsx` et `BusinessAuth.tsx`
+
+Apres inscription/connexion reussie :
+- Detecter le parametre `admin_ref` dans l'URL ou `sessionStorage`
+- Appeler la Edge Function `admin-auto-assign` avec le code et le user_id
+- Nettoyer le sessionStorage
+
+### 5. Composant `AdminShareLinkCard`
+
+Carte affichee dans "Mes affectations" ET accessible depuis le profil admin :
+- Affiche le lien unique de l'admin
+- Bouton copier le lien
+- Menu de partage (WhatsApp, Facebook, Instagram/TikTok, SMS, Email, natif)
+- Statistiques : clics, inscriptions, affectations
+- Possibilite de regenerer le code
+
+### 6. Composant `AdminShareMenu`
+
+Dialog de partage (reutilisant le pattern de `BusinessShareMenu` et `ReferralShareMenu`) avec :
+- Boutons WhatsApp, Facebook, SMS, Email, Copier, Partage natif
+- Message pre-redige en francais avec le lien
+- Icones coherentes avec l'existant
+
+### 7. Hook `useAdminShareCode`
+
+Hook personnalise pour :
+- Charger le code de l'admin connecte
+- Generer un code si inexistant (auto-generation au premier acces)
+- Regenerer le code
+- Recuperer les statistiques
 
 ## Details techniques
 
-**Template email** :
-- Header rouge (`#dc2626`) avec icone d'alerte
-- Tableau avec : taux actuel, seuil configure, OTP envoyes, OTP verifies, periode
-- Bouton CTA vers le dashboard WhatsApp OTP
-- Footer avec mention de configuration des preferences
-
-**Gestion d'erreur** : l'envoi email est dans un try/catch separe pour ne pas impacter la notification admin si Resend echoue.
-
-**Pas de nouvelle migration SQL** ni de nouveau secret necessaire -- `RESEND_API_KEY` est deja configure.
+- Le code est au format `ADM-XXXX` (4 caracteres alphanumeriques) pour etre court et partageable
+- Le lien est `{origin}/join/{CODE}` - court et propre pour les reseaux sociaux
+- L'auto-affectation respecte la regle d'exclusivite : si l'utilisateur est deja affecte a un autre admin, pas de reassignation
+- Le tracking de clics se fait cote client dans la page `/join/:code` pour simplicite
+- La page `/join/:code` ne necessite pas d'authentification
