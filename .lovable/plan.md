@@ -1,57 +1,58 @@
 
 
-# Ajout du rappel Jour-J avec message de celebration
+# Notification SMS et Push au client lors de l'acceptation/refus de commande
 
-## Resume
+## Probleme actuel
 
-Ajouter un 9e intervalle **Jour-J (le jour meme de l'anniversaire)** au systeme de rappels existant, avec un message de celebration festif envoye aux contacts du cercle d'amis.
+Quand un prestataire accepte ou refuse une commande dans `handle-order-action`, le client recoit uniquement une **notification in-app** (dans la base de donnees). Il manque :
 
-## Changements
+- **Aucun SMS** envoye au client
+- **Aucun push** reellement envoye (le code aux lignes 166-176 ne fait que logger sans envoyer)
 
-### 1. Migration SQL - Nouvelle colonne `alert_day_of`
+Le client doit ouvrir l'application pour decouvrir le statut de sa commande, ce qui est une mauvaise experience.
 
-Ajouter une colonne `alert_day_of` (boolean, defaut `true`) a la table `contact_alert_preferences`.
+## Solution
 
+Ameliorer la Edge Function `handle-order-action` pour envoyer au client :
+1. Un **SMS** avec le statut de sa commande (via le module `sms-sender.ts` existant)
+2. Des **notifications push** reelles (via le meme pattern que `notify-business-order`)
+
+## Changements techniques
+
+### Fichier unique : `supabase/functions/handle-order-action/index.ts`
+
+**1. Ajouter l'import du module SMS partage**
 ```text
-ALTER TABLE public.contact_alert_preferences
-  ADD COLUMN IF NOT EXISTS alert_day_of boolean NOT NULL DEFAULT true;
+import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
 ```
 
-### 2. Edge Function `check-birthday-alerts-for-contacts/index.ts`
+**2. Recuperer le telephone du client dans la requete SQL existante**
 
-- Ajouter l'intervalle Jour-J dans `ALERT_INTERVALS` :
-  ```text
-  { days: 0, column: 'alert_day_of', msgKey: 'j0' }
-  ```
-- Ajouter le message de celebration dans `MESSAGES` :
-  ```text
-  j0: "🎂 JoieDvivre: C'est AUJOURD'HUI l'anniversaire de {nom}! 
-       Souhaitez-lui une belle journee et offrez-lui un cadeau 
-       sur joiedevivre-africa.com 🎁🎉"
-  ```
-- Adapter `getDaysUntilBirthday()` pour retourner `0` quand l'anniversaire est aujourd'hui (gerer le cas `nextBirthday == today` qui retournait 365 au lieu de 0)
+Ajouter `donor_phone` et `beneficiary_phone` dans le SELECT de la commande pour avoir le numero du client.
 
-### 3. Hook `useContactAlertPreferences.ts`
+**3. Envoyer les push notifications au client** (remplacer le bloc commentaire lignes 166-176)
 
-- Ajouter `alert_day_of: boolean` dans l'interface `ContactAlertPreferences`
-- Ajouter `alert_day_of: true` dans `defaultPreferences`
+Utiliser le meme pattern que `notify-business-order` :
+- Recuperer les `push_subscriptions` actives du client
+- Envoyer via `fetch()` vers l'endpoint de chaque subscription
+- Mettre a jour `last_used_at` ou desactiver les subscriptions echouees
 
-### 4. Composant `ContactAlertPreferencesSection.tsx`
+**4. Envoyer un SMS au client**
 
-- Ajouter une checkbox Jour-J apres la checkbox J-1, avec une bordure speciale festive (violet/primary) pour la distinguer :
-  - Label : **Jour-J (Le jour meme)**
-  - Description : "Message de celebration le jour de l'anniversaire"
-  - Style : bordure gauche violette + fond leger celebration
+Apres les push, envoyer un SMS au numero du client (priorite `donor_phone`) :
+- Acceptation : `JoieDvivre: Bonne nouvelle! Votre commande #XXXXXXXX chez {nom} est confirmee. Suivez-la sur joiedevivre-africa.com`
+- Refus : `JoieDvivre: Votre commande #XXXXXXXX chez {nom} n'a pas pu etre acceptee. Contactez-nous sur joiedevivre-africa.com`
 
-### 5. Edge Function `notify-contact-added/index.ts`
+Messages optimises a moins de 160 caracteres, ton informel, sans emojis (pour la delivrabilite SMS).
 
-- Ajouter `alert_day_of: true` dans les preferences par defaut lors de la creation d'un nouveau contact.
+### Aucun autre fichier modifie
 
-## Ordre d'implementation
+Le module `sms-sender.ts` et l'infrastructure push existent deja. Pas de migration SQL necessaire.
 
-1. Migration SQL (ajout colonne `alert_day_of`)
-2. Edge Function `check-birthday-alerts-for-contacts` (intervalle + message + fix `getDaysUntilBirthday`)
-3. Edge Function `notify-contact-added` (defaut)
-4. Hook TypeScript (interface + defaults)
-5. Composant UI (checkbox celebration)
+## Deploiement
+
+La Edge Function `handle-order-action` devra etre deployee manuellement via le CLI Supabase :
+```text
+supabase functions deploy handle-order-action --project-ref vaimfeurvzokepqqqrsl
+```
 
