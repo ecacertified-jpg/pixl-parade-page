@@ -7,7 +7,7 @@ import { useAdminShareCode } from '@/hooks/useAdminShareCode';
 import { AdminShareMenu } from './AdminShareMenu';
 
 export const AdminShareLinkCard = () => {
-  const { shareCode, loading, regenerate, getShareLink } = useAdminShareCode();
+  const { shareCode, aggregatedStats, loading, regenerate, getShareLink } = useAdminShareCode();
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
@@ -82,17 +82,17 @@ export const AdminShareLinkCard = () => {
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-2 bg-secondary/30 rounded-lg">
               <MousePointerClick className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-lg font-semibold">{shareCode.clicks_count}</p>
+              <p className="text-lg font-semibold">{aggregatedStats.total_clicks}</p>
               <p className="text-xs text-muted-foreground">Clics</p>
             </div>
             <div className="text-center p-2 bg-secondary/30 rounded-lg">
               <UserPlus className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-lg font-semibold">{shareCode.signups_count}</p>
+              <p className="text-lg font-semibold">{aggregatedStats.total_signups}</p>
               <p className="text-xs text-muted-foreground">Inscriptions</p>
             </div>
             <div className="text-center p-2 bg-secondary/30 rounded-lg">
               <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-lg font-semibold">{shareCode.assignments_count}</p>
+              <p className="text-lg font-semibold">{aggregatedStats.total_assignments}</p>
               <p className="text-xs text-muted-foreground">Affectations</p>
             </div>
           </div>

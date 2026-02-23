@@ -13,9 +13,16 @@ export interface AdminShareCode {
   created_at: string;
 }
 
+export interface AggregatedStats {
+  total_clicks: number;
+  total_signups: number;
+  total_assignments: number;
+}
+
 export const useAdminShareCode = () => {
   const { user } = useAuth();
   const [shareCode, setShareCode] = useState<AdminShareCode | null>(null);
+  const [aggregatedStats, setAggregatedStats] = useState<AggregatedStats>({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
   const [loading, setLoading] = useState(true);
   const [adminId, setAdminId] = useState<string | null>(null);
 
@@ -38,12 +45,32 @@ export const useAdminShareCode = () => {
       .select('*')
       .eq('admin_user_id', aid)
       .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     return data as AdminShareCode | null;
   }, []);
 
+  const loadAggregatedStats = useCallback(async (aid: string) => {
+    const { data } = await supabase
+      .from('admin_share_codes')
+      .select('clicks_count, signups_count, assignments_count')
+      .eq('admin_user_id', aid);
+
+    if (data && data.length > 0) {
+      const stats = data.reduce(
+        (acc, row) => ({
+          total_clicks: acc.total_clicks + (row.clicks_count || 0),
+          total_signups: acc.total_signups + (row.signups_count || 0),
+          total_assignments: acc.total_assignments + (row.assignments_count || 0),
+        }),
+        { total_clicks: 0, total_signups: 0, total_assignments: 0 }
+      );
+      setAggregatedStats(stats);
+    }
+  }, []);
+
   const generateCode = useCallback(async (aid: string) => {
-    // Generate code via DB function
     const { data: codeData } = await supabase.rpc('generate_admin_share_code');
     if (!codeData) return null;
 
@@ -71,12 +98,13 @@ export const useAdminShareCode = () => {
         code = await generateCode(aid);
       }
       setShareCode(code);
+      await loadAggregatedStats(aid);
     } catch (e) {
       console.error('Error loading share code:', e);
     } finally {
       setLoading(false);
     }
-  }, [loadAdminId, loadShareCode, generateCode]);
+  }, [loadAdminId, loadShareCode, generateCode, loadAggregatedStats]);
 
   useEffect(() => {
     if (user) init();
@@ -84,16 +112,17 @@ export const useAdminShareCode = () => {
 
   const regenerate = useCallback(async () => {
     if (!adminId) return;
-    // Deactivate current code
-    if (shareCode) {
-      await supabase
-        .from('admin_share_codes')
-        .update({ is_active: false })
-        .eq('id', shareCode.id);
-    }
+    // Deactivate ALL codes for this admin
+    await supabase
+      .from('admin_share_codes')
+      .update({ is_active: false })
+      .eq('admin_user_id', adminId)
+      .eq('is_active', true);
+
     const newCode = await generateCode(adminId);
     setShareCode(newCode);
-  }, [adminId, shareCode, generateCode]);
+    await loadAggregatedStats(adminId);
+  }, [adminId, generateCode, loadAggregatedStats]);
 
   const getShareLink = useCallback(() => {
     if (!shareCode) return '';
@@ -102,6 +131,7 @@ export const useAdminShareCode = () => {
 
   return {
     shareCode,
+    aggregatedStats,
     loading,
     regenerate,
     getShareLink,
