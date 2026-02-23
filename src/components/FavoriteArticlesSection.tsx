@@ -1,4 +1,4 @@
-import { Heart, Flame } from "lucide-react";
+import { Heart, Flame, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -14,11 +14,19 @@ export function FavoriteArticlesSection() {
           <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
           <h3 className="font-semibold text-foreground">Ma liste de souhaits</h3>
         </div>
-        <Link to="/favorites">
-          <Button variant="outline" size="sm" className="text-pink-600 border-pink-300 hover:bg-pink-50">
-            Voir tout
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/wishlist-catalog">
+            <Button variant="outline" size="sm" className="text-primary border-primary/30 hover:bg-primary/10">
+              <ShoppingBag className="h-3.5 w-3.5 mr-1" />
+              Parcourir
+            </Button>
+          </Link>
+          <Link to="/favorites">
+            <Button variant="outline" size="sm" className="text-pink-600 border-pink-300 hover:bg-pink-50">
+              Voir tout
+            </Button>
+          </Link>
+        </div>
       </div>
       
       <p className="text-sm text-muted-foreground mb-3">
