@@ -1,70 +1,57 @@
 
-# Nouveaux intervalles de rappel d'anniversaire : J-30, J-21, J-14, J-7, J-5, J-3, J-2, J-1
+
+# Ajout du rappel Jour-J avec message de celebration
+
+## Resume
+
+Ajouter un 9e intervalle **Jour-J (le jour meme de l'anniversaire)** au systeme de rappels existant, avec un message de celebration festif envoye aux contacts du cercle d'amis.
 
 ## Changements
 
-Les anciens intervalles (J-10, J-5, J-3, J-2, J-1, Jour-J) sont remplaces par : **J-30, J-21, J-14, J-7, J-5, J-3, J-2, J-1**.
+### 1. Migration SQL - Nouvelle colonne `alert_day_of`
 
-Cela signifie :
-- **Suppression** de J-10 et Jour-J
-- **Ajout** de J-30, J-21, J-14, J-7
-
-## Fichiers a modifier
-
-### 1. Migration SQL - Table `contact_alert_preferences`
-
-Ajouter 4 nouvelles colonnes et supprimer 2 colonnes :
+Ajouter une colonne `alert_day_of` (boolean, defaut `true`) a la table `contact_alert_preferences`.
 
 ```text
--- Ajout
-alert_30_days  boolean default true
-alert_21_days  boolean default true
-alert_14_days  boolean default true
-alert_7_days   boolean default true
-
--- Suppression
-alert_10_days
-alert_day_of
+ALTER TABLE public.contact_alert_preferences
+  ADD COLUMN IF NOT EXISTS alert_day_of boolean NOT NULL DEFAULT true;
 ```
-
-Mettre a jour les preferences existantes pour activer les nouveaux intervalles par defaut.
 
 ### 2. Edge Function `check-birthday-alerts-for-contacts/index.ts`
 
-- Remplacer `ALERT_INTERVALS` par les 8 nouveaux intervalles
-- Remplacer les `MESSAGES` par 8 messages adaptes :
-  - J-30 : "L'anniversaire de {nom} est dans 1 mois. Commencez a preparer une surprise!"
-  - J-21 : "L'anniversaire de {nom} est dans 3 semaines. Pensez au cadeau ideal!"
-  - J-14 : "L'anniversaire de {nom} est dans 2 semaines. Decouvrez nos idees cadeaux!"
-  - J-7 : "L'anniversaire de {nom} est dans 1 semaine. Il est temps de commander!"
-  - J-5, J-3, J-2, J-1 : messages existants conserves (avec ajustements mineurs)
+- Ajouter l'intervalle Jour-J dans `ALERT_INTERVALS` :
+  ```text
+  { days: 0, column: 'alert_day_of', msgKey: 'j0' }
+  ```
+- Ajouter le message de celebration dans `MESSAGES` :
+  ```text
+  j0: "🎂 JoieDvivre: C'est AUJOURD'HUI l'anniversaire de {nom}! 
+       Souhaitez-lui une belle journee et offrez-lui un cadeau 
+       sur joiedevivre-africa.com 🎁🎉"
+  ```
+- Adapter `getDaysUntilBirthday()` pour retourner `0` quand l'anniversaire est aujourd'hui (gerer le cas `nextBirthday == today` qui retournait 365 au lieu de 0)
 
-### 3. Edge Function `notify-contact-added/index.ts`
+### 3. Hook `useContactAlertPreferences.ts`
 
-Mettre a jour les valeurs par defaut lors de la creation des preferences pour un nouveau contact :
-- Remplacer `alert_10_days` et `alert_day_of` par `alert_30_days`, `alert_21_days`, `alert_14_days`, `alert_7_days`
+- Ajouter `alert_day_of: boolean` dans l'interface `ContactAlertPreferences`
+- Ajouter `alert_day_of: true` dans `defaultPreferences`
 
-### 4. Hook `useContactAlertPreferences.ts`
+### 4. Composant `ContactAlertPreferencesSection.tsx`
 
-- Mettre a jour l'interface `ContactAlertPreferences` : supprimer `alert_10_days` et `alert_day_of`, ajouter les 4 nouveaux champs
-- Mettre a jour `defaultPreferences` avec les nouveaux intervalles
+- Ajouter une checkbox Jour-J apres la checkbox J-1, avec une bordure speciale festive (violet/primary) pour la distinguer :
+  - Label : **Jour-J (Le jour meme)**
+  - Description : "Message de celebration le jour de l'anniversaire"
+  - Style : bordure gauche violette + fond leger celebration
 
-### 5. Composant `ContactAlertPreferencesSection.tsx`
+### 5. Edge Function `notify-contact-added/index.ts`
 
-- Remplacer les 6 checkboxes actuels par 8 checkboxes correspondant aux nouveaux intervalles
-- Descriptions :
-  - J-30 : "Anticipez 1 mois a l'avance"
-  - J-21 : "Rappel 3 semaines avant"
-  - J-14 : "Rappel 2 semaines avant"
-  - J-7 : "Rappel 1 semaine avant"
-  - J-5 : "Rappel pour trouver le cadeau"
-  - J-3 : "Rappel pour commander"
-  - J-2 : "Rappel derniere chance"
-  - J-1 : "Dernier rappel urgent" (avec bordure orange conservee)
+- Ajouter `alert_day_of: true` dans les preferences par defaut lors de la creation d'un nouveau contact.
 
 ## Ordre d'implementation
 
-1. Migration SQL (ajout colonnes, suppression anciennes)
-2. Edge Functions (intervalles + messages)
-3. Hook TypeScript (interface + defaults)
-4. Composant UI (checkboxes)
+1. Migration SQL (ajout colonne `alert_day_of`)
+2. Edge Function `check-birthday-alerts-for-contacts` (intervalle + message + fix `getDaysUntilBirthday`)
+3. Edge Function `notify-contact-added` (defaut)
+4. Hook TypeScript (interface + defaults)
+5. Composant UI (checkbox celebration)
+
