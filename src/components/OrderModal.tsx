@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { ContactWishlistSection } from "@/components/ContactWishlistSection";
+import { ContactWishlistItem } from "@/hooks/useContactWishlist";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Drawer,
@@ -282,12 +284,39 @@ export function OrderModal({
           </div>
 
           {selectedContact && (
-            <Button 
-              onClick={handleGiftToContact}
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              🎁 Offrir à {selectedContact.name}
-            </Button>
+            <>
+              <Button 
+                onClick={handleGiftToContact}
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                🎁 Offrir à {selectedContact.name}
+              </Button>
+
+              {/* Wishlist section for selected contact */}
+              <ContactWishlistSection
+                contactId={selectedContact.id}
+                contactName={selectedContact.name}
+                onSelectProduct={(item: ContactWishlistItem) => {
+                  if (item.product) {
+                    addItem({
+                      id: item.product.id,
+                      productId: item.product.id,
+                      name: item.product.name,
+                      price: item.product.price,
+                      image: item.product.image_url || '',
+                      currency: item.product.currency,
+                    });
+                    toast({
+                      title: "Cadeau ajouté au panier",
+                      description: `${item.product.name} pour ${selectedContact.name}`,
+                    });
+                    navigate("/cart");
+                    handleClose();
+                  }
+                }}
+                compact
+              />
+            </>
           )}
         </>
       ) : !showGiftOptions ? (
