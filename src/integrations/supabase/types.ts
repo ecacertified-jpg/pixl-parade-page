@@ -2262,11 +2262,13 @@ export type Database = {
       contact_alert_preferences: {
         Row: {
           alert_1_day: boolean | null
-          alert_10_days: boolean | null
+          alert_14_days: boolean
           alert_2_days: boolean | null
+          alert_21_days: boolean
           alert_3_days: boolean | null
+          alert_30_days: boolean
           alert_5_days: boolean | null
-          alert_day_of: boolean | null
+          alert_7_days: boolean
           alert_on_contact_add: boolean
           alerts_enabled: boolean
           created_at: string
@@ -2281,11 +2283,13 @@ export type Database = {
         }
         Insert: {
           alert_1_day?: boolean | null
-          alert_10_days?: boolean | null
+          alert_14_days?: boolean
           alert_2_days?: boolean | null
+          alert_21_days?: boolean
           alert_3_days?: boolean | null
+          alert_30_days?: boolean
           alert_5_days?: boolean | null
-          alert_day_of?: boolean | null
+          alert_7_days?: boolean
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string
@@ -2300,11 +2304,13 @@ export type Database = {
         }
         Update: {
           alert_1_day?: boolean | null
-          alert_10_days?: boolean | null
+          alert_14_days?: boolean
           alert_2_days?: boolean | null
+          alert_21_days?: boolean
           alert_3_days?: boolean | null
+          alert_30_days?: boolean
           alert_5_days?: boolean | null
-          alert_day_of?: boolean | null
+          alert_7_days?: boolean
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string

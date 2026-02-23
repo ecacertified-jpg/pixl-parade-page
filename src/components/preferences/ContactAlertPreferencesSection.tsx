@@ -161,19 +161,76 @@ export function ContactAlertPreferencesSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
               <Checkbox
-                id="alert-10-days"
-                checked={preferences.alert_10_days}
+                id="alert-30-days"
+                checked={preferences.alert_30_days}
                 onCheckedChange={(checked) => 
-                  updatePreferences({ alert_10_days: checked === true })
+                  updatePreferences({ alert_30_days: checked === true })
                 }
                 disabled={isDisabled || saving}
               />
               <div className="space-y-1">
-                <Label htmlFor="alert-10-days" className="font-medium cursor-pointer">
-                  J-10 (10 jours avant)
+                <Label htmlFor="alert-30-days" className="font-medium cursor-pointer">
+                  J-30 (1 mois avant)
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Premier rappel pour préparer
+                  Anticipez 1 mois à l'avance
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-21-days"
+                checked={preferences.alert_21_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_21_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-21-days" className="font-medium cursor-pointer">
+                  J-21 (3 semaines avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel 3 semaines avant
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-14-days"
+                checked={preferences.alert_14_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_14_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-14-days" className="font-medium cursor-pointer">
+                  J-14 (2 semaines avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel 2 semaines avant
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <Checkbox
+                id="alert-7-days"
+                checked={preferences.alert_7_days}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_7_days: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-7-days" className="font-medium cursor-pointer">
+                  J-7 (1 semaine avant)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Rappel 1 semaine avant
                 </p>
               </div>
             </div>
@@ -250,25 +307,6 @@ export function ContactAlertPreferencesSection() {
                 </Label>
                 <p className="text-sm text-muted-foreground">
                   Dernier rappel urgent
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border-l-2 border-primary">
-              <Checkbox
-                id="alert-day-of"
-                checked={preferences.alert_day_of}
-                onCheckedChange={(checked) => 
-                  updatePreferences({ alert_day_of: checked === true })
-                }
-                disabled={isDisabled || saving}
-              />
-              <div className="space-y-1">
-                <Label htmlFor="alert-day-of" className="font-medium cursor-pointer">
-                  Jour-J 🎂
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Le jour de l'anniversaire
                 </p>
               </div>
             </div>
