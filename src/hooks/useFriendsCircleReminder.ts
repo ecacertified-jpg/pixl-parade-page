@@ -123,7 +123,7 @@ export function useFriendsCircleReminder() {
         console.log('Push notification sent for friend circle completion');
       }
 
-      // 2. Create in-app notification as fallback
+      // 2. Create in-app notification
       const { error: inAppError } = await supabase
         .from('notifications')
         .insert({
@@ -140,6 +140,32 @@ export function useFriendsCircleReminder() {
         console.error('Error creating in-app notification:', inAppError);
       } else {
         console.log('In-app notification created for friend circle completion');
+      }
+
+      // 3. Send SMS/WhatsApp celebration to user's own phone
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('phone, first_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (userProfile?.phone) {
+        const smsMessage = `🎉 Bravo ${userProfile.first_name || ''} ! Ton cercle d'amis est prêt. Offre ton premier cadeau maintenant 👉 joiedevivre-africa.com/shop`;
+        const { error: smsError } = await supabase.functions.invoke('notify-contact-added', {
+          body: {
+            contact_id: user.id,
+            contact_name: userProfile.first_name || 'Utilisateur',
+            contact_phone: userProfile.phone,
+            birthday: new Date().toISOString(),
+            _celebration: true
+          }
+        });
+
+        if (smsError) {
+          console.error('Error sending SMS/WhatsApp celebration:', smsError);
+        } else {
+          console.log('SMS/WhatsApp celebration sent for circle completion');
+        }
       }
 
     } catch (error) {
