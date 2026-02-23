@@ -11,12 +11,14 @@ export interface ContactAlertPreferences {
   whatsapp_enabled: boolean;
   email_enabled: boolean;
   alert_on_contact_add: boolean;
-  alert_10_days: boolean;
+  alert_30_days: boolean;
+  alert_21_days: boolean;
+  alert_14_days: boolean;
+  alert_7_days: boolean;
   alert_5_days: boolean;
   alert_3_days: boolean;
   alert_2_days: boolean;
   alert_1_day: boolean;
-  alert_day_of: boolean;
   notify_of_adder_birthday: boolean;
   custom_message: string | null;
   created_at: string;
@@ -29,12 +31,14 @@ const defaultPreferences: Omit<ContactAlertPreferences, 'id' | 'user_id' | 'crea
   whatsapp_enabled: true,
   email_enabled: false,
   alert_on_contact_add: true,
-  alert_10_days: true,
+  alert_30_days: true,
+  alert_21_days: true,
+  alert_14_days: true,
+  alert_7_days: true,
   alert_5_days: true,
   alert_3_days: true,
   alert_2_days: true,
   alert_1_day: true,
-  alert_day_of: true,
   notify_of_adder_birthday: true,
   custom_message: null,
 };

@@ -92,12 +92,14 @@ serve(async (req) => {
           whatsapp_enabled: true,
           email_enabled: false,
           alert_on_contact_add: true,
-          alert_10_days: true,
+          alert_30_days: true,
+          alert_21_days: true,
+          alert_14_days: true,
+          alert_7_days: true,
           alert_5_days: true,
           alert_3_days: true,
           alert_2_days: true,
           alert_1_day: true,
-          alert_day_of: true,
           notify_of_adder_birthday: true
         })
         .select()

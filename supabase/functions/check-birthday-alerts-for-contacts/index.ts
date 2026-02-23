@@ -12,22 +12,26 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '
 
 // Alert intervals configuration
 const ALERT_INTERVALS = [
-  { days: 10, column: 'alert_10_days', msgKey: 'j10' },
+  { days: 30, column: 'alert_30_days', msgKey: 'j30' },
+  { days: 21, column: 'alert_21_days', msgKey: 'j21' },
+  { days: 14, column: 'alert_14_days', msgKey: 'j14' },
+  { days: 7, column: 'alert_7_days', msgKey: 'j7' },
   { days: 5, column: 'alert_5_days', msgKey: 'j5' },
   { days: 3, column: 'alert_3_days', msgKey: 'j3' },
   { days: 2, column: 'alert_2_days', msgKey: 'j2' },
   { days: 1, column: 'alert_1_day', msgKey: 'j1' },
-  { days: 0, column: 'alert_day_of', msgKey: 'j0' },
 ];
 
 // Messages per interval
 const MESSAGES: Record<string, (name: string) => string> = {
-  j10: (name) => `JoieDvivre: ${name} fête son anniversaire dans 10 jours. Préparez une surprise!`,
+  j30: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 mois. Commencez à préparer une surprise!`,
+  j21: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 3 semaines. Pensez au cadeau idéal!`,
+  j14: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Découvrez nos idées cadeaux!`,
+  j7: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander!`,
   j5: (name) => `JoieDvivre: ${name} fête son anniversaire dans 5 jours. Avez-vous trouvé le cadeau parfait?`,
   j3: (name) => `JoieDvivre: Plus que 3 jours avant l'anniversaire de ${name}! Découvrez nos idées cadeaux.`,
   j2: (name) => `JoieDvivre: L'anniversaire de ${name} approche (dans 2 jours). Commandez votre cadeau!`,
   j1: (name) => `URGENT JoieDvivre: DEMAIN c'est l'anniversaire de ${name}! Dernier jour pour commander.`,
-  j0: (name) => `JoieDvivre: Aujourd'hui c'est l'anniversaire de ${name}! Souhaitez-lui une bonne fête 🎂`,
 };
 
 // Calculate days until next birthday
