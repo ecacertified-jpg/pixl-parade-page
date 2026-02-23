@@ -20,6 +20,7 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import BusinessAuth from "./pages/BusinessAuth";
 import NotFound from "./pages/NotFound";
+import JoinAdmin from "./pages/JoinAdmin";
 import Dashboard from "./pages/Dashboard";
 import Publications from "./pages/Publications";
 import BusinessAccount from "./pages/BusinessAccount";
@@ -217,6 +218,7 @@ const App = () => (
 <Route path="/go/shop" element={<Navigate to="/shop?utm_source=deep_link" replace />} />
 <Route path="/go/funds" element={<Navigate to="/cagnottes?utm_source=deep_link" replace />} />
 
+<Route path="/join/:code" element={<JoinAdmin />} />
 <Route path="/auth" element={<Auth />} />
 <Route path="/reset-password" element={<ResetPassword />} />
 <Route path="/business-auth" element={<BusinessAuth />} />

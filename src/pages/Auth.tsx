@@ -34,6 +34,7 @@ import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { format } from 'date-fns';
+import { processAdminAutoAssign } from '@/utils/adminAutoAssign';
 
 // Client Signup Progress Indicator
 const ClientSignupProgressIndicator = ({ 
@@ -640,6 +641,8 @@ const Auth = () => {
           description: authMode === 'signup' ? 'Votre compte a été créé avec succès' : 'Vous êtes maintenant connecté',
         });
 
+        // Auto-assign to admin if admin_ref present
+        if (result.user_id) await processAdminAutoAssign(result.user_id);
         navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
         return;
       }
@@ -735,8 +738,10 @@ const Auth = () => {
               return '/dashboard';
             }
           })();
+          await processAdminAutoAssign(authData.user.id);
           navigate(`${redirectPath}?onboarding=true`);
         } else {
+          await processAdminAutoAssign(authData.user.id);
           await handleSmartRedirect(authData.user, navigate);
         }
       }
@@ -886,6 +891,7 @@ const Auth = () => {
           title: 'Connexion réussie',
           description: 'Vous êtes maintenant connecté',
         });
+        await processAdminAutoAssign(authData.user.id);
         await handleSmartRedirect(authData.user, navigate);
       }
     } catch (error: any) {
@@ -967,6 +973,7 @@ const Auth = () => {
             title: 'Compte créé',
             description: 'Votre compte a été créé avec succès !',
           });
+          await processAdminAutoAssign(authData.user.id);
           navigate('/dashboard?onboarding=true');
         }
       }
