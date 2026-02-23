@@ -20,6 +20,7 @@ const ALERT_INTERVALS = [
   { days: 3, column: 'alert_3_days', msgKey: 'j3' },
   { days: 2, column: 'alert_2_days', msgKey: 'j2' },
   { days: 1, column: 'alert_1_day', msgKey: 'j1' },
+  { days: 0, column: 'alert_day_of', msgKey: 'j0' },
 ];
 
 // Messages per interval
@@ -32,6 +33,7 @@ const MESSAGES: Record<string, (name: string) => string> = {
   j3: (name) => `JoieDvivre: Plus que 3 jours avant l'anniversaire de ${name}! Découvrez nos idées cadeaux.`,
   j2: (name) => `JoieDvivre: L'anniversaire de ${name} approche (dans 2 jours). Commandez votre cadeau!`,
   j1: (name) => `URGENT JoieDvivre: DEMAIN c'est l'anniversaire de ${name}! Dernier jour pour commander.`,
+  j0: (name) => `🎂 JoieDvivre: C'est AUJOURD'HUI l'anniversaire de ${name}! Souhaitez-lui une belle journee et offrez-lui un cadeau sur joiedevivre-africa.com 🎁🎉`,
 };
 
 // Calculate days until next birthday
@@ -43,6 +45,10 @@ function getDaysUntilBirthday(birthdayStr: string): number {
   const currentYear = today.getFullYear();
   let nextBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
   nextBirthday.setHours(0, 0, 0, 0);
+  
+  if (nextBirthday.getTime() === today.getTime()) {
+    return 0;
+  }
   
   if (nextBirthday < today) {
     nextBirthday = new Date(currentYear + 1, birthday.getMonth(), birthday.getDate());
