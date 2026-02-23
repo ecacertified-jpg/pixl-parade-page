@@ -19,6 +19,7 @@ export interface ContactAlertPreferences {
   alert_3_days: boolean;
   alert_2_days: boolean;
   alert_1_day: boolean;
+  alert_day_of: boolean;
   notify_of_adder_birthday: boolean;
   custom_message: string | null;
   created_at: string;
@@ -39,6 +40,7 @@ const defaultPreferences: Omit<ContactAlertPreferences, 'id' | 'user_id' | 'crea
   alert_3_days: true,
   alert_2_days: true,
   alert_1_day: true,
+  alert_day_of: true,
   notify_of_adder_birthday: true,
   custom_message: null,
 };

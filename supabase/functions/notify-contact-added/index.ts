@@ -100,6 +100,7 @@ serve(async (req) => {
           alert_3_days: true,
           alert_2_days: true,
           alert_1_day: true,
+          alert_day_of: true,
           notify_of_adder_birthday: true
         })
         .select()

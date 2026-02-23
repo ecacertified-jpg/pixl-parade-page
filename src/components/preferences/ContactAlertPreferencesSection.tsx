@@ -310,6 +310,25 @@ export function ContactAlertPreferencesSection() {
                 </p>
               </div>
             </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border-l-2 border-primary bg-primary/5 md:col-span-2">
+              <Checkbox
+                id="alert-day-of"
+                checked={preferences.alert_day_of}
+                onCheckedChange={(checked) => 
+                  updatePreferences({ alert_day_of: checked === true })
+                }
+                disabled={isDisabled || saving}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="alert-day-of" className="font-medium cursor-pointer">
+                  🎂 Jour-J (Le jour même)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Message de célébration le jour de l'anniversaire
+                </p>
+              </div>
+            </div>
           </div>
 
           <Separator />

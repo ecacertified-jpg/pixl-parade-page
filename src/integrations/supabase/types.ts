@@ -2269,6 +2269,7 @@ export type Database = {
           alert_30_days: boolean
           alert_5_days: boolean | null
           alert_7_days: boolean
+          alert_day_of: boolean
           alert_on_contact_add: boolean
           alerts_enabled: boolean
           created_at: string
@@ -2290,6 +2291,7 @@ export type Database = {
           alert_30_days?: boolean
           alert_5_days?: boolean | null
           alert_7_days?: boolean
+          alert_day_of?: boolean
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string
@@ -2311,6 +2313,7 @@ export type Database = {
           alert_30_days?: boolean
           alert_5_days?: boolean | null
           alert_7_days?: boolean
+          alert_day_of?: boolean
           alert_on_contact_add?: boolean
           alerts_enabled?: boolean
           created_at?: string
