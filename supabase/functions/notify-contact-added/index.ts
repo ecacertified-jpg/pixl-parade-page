@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, sendWhatsApp, getPreferredChannel } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -181,62 +181,76 @@ serve(async (req) => {
       );
     }
 
-    // Build personalized message per channel
-    const channel = getPreferredChannel(contact_phone);
-    let message: string;
+    // Build two distinct messages
+    const pluralS = daysUntil > 1 ? 's' : '';
 
-    if (channel === 'whatsapp') {
-      // WhatsApp: emojis ok, no 160-char limit
-      if (hasExistingAccount) {
-        message = `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`;
-      } else {
-        message = `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
-      }
-    } else {
-      // SMS: <160 chars, no emojis
-      if (hasExistingAccount) {
-        message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
-      } else {
-        message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
-      }
+    // SMS: short, no emojis, <160 chars
+    const smsMessage = hasExistingAccount
+      ? `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${pluralS}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`
+      : `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${pluralS}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
+
+    // WhatsApp: rich, with emojis
+    const whatsappMessage = hasExistingAccount
+      ? `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`
+      : `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
+
+    // Send on both channels in parallel based on preferences
+    const sendPromises: Promise<{ channel: 'sms' | 'whatsapp'; success: boolean; error?: string }>[] = [];
+
+    if (preferences.sms_enabled) {
+      sendPromises.push(
+        sendSms(contact_phone, smsMessage).then(r => ({ channel: 'sms' as const, success: r.success, error: r.error }))
+      );
+    }
+    if (preferences.whatsapp_enabled) {
+      sendPromises.push(
+        sendWhatsApp(contact_phone, whatsappMessage).then(r => ({ channel: 'whatsapp' as const, success: r.success, error: r.error }))
+      );
     }
 
-    // Send via preferred channel
-    let sendResult: { success: boolean; error?: string } = { success: false };
-
-    if (channel === 'sms' && preferences.sms_enabled) {
-      const smsResult = await sendSms(contact_phone, message);
-      sendResult = { success: smsResult.success, error: smsResult.error };
-    } else if (channel === 'whatsapp' && preferences.whatsapp_enabled) {
-      const waResult = await sendWhatsApp(contact_phone, message);
-      sendResult = { success: waResult.success, error: waResult.error };
+    if (sendPromises.length === 0) {
+      console.log('Both SMS and WhatsApp disabled for user:', user.id);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Aucun canal activé' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Record the alert in database
-    await supabaseAdmin
-      .from('birthday_contact_alerts')
-      .insert({
-        user_id: user.id,
-        contact_id: contact_id,
-        contact_phone: contact_phone,
-        contact_name: contact_name,
-        alert_type: 'contact_added',
-        channel: channel,
-        days_before: daysUntil,
-        status: sendResult.success ? 'sent' : 'failed',
-        sent_at: sendResult.success ? new Date().toISOString() : null,
-        error_message: sendResult.error || null
-      });
+    const results = await Promise.allSettled(sendPromises);
+    const channelResults: { channel: string; success: boolean; error?: string }[] = [];
 
-    console.log(`Notification ${sendResult.success ? 'sent' : 'failed'} to ${contact_phone} via ${channel}`);
+    for (const result of results) {
+      const r = result.status === 'fulfilled' ? result.value : { channel: 'unknown', success: false, error: (result.reason as Error)?.message };
+      channelResults.push(r);
+
+      // Record one log per channel
+      await supabaseAdmin
+        .from('birthday_contact_alerts')
+        .insert({
+          user_id: user.id,
+          contact_id: contact_id,
+          contact_phone: contact_phone,
+          contact_name: contact_name,
+          alert_type: 'contact_added',
+          channel: r.channel,
+          days_before: daysUntil,
+          status: r.success ? 'sent' : 'failed',
+          sent_at: r.success ? new Date().toISOString() : null,
+          error_message: r.error || null
+        });
+
+      console.log(`Notification ${r.success ? 'sent' : 'failed'} to ${contact_phone} via ${r.channel}`);
+    }
+
+    const anySuccess = channelResults.some(r => r.success);
 
     return new Response(
       JSON.stringify({
-        success: sendResult.success,
-        channel,
-        message: sendResult.success 
+        success: anySuccess,
+        channels: channelResults,
+        message: anySuccess
           ? `Notification envoyée à ${contact_name}`
-          : `Échec de l'envoi: ${sendResult.error}`
+          : `Échec de l'envoi sur tous les canaux`
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
