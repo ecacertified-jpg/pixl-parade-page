@@ -97,7 +97,7 @@ export const useAdminShareCode = () => {
 
   const getShareLink = useCallback(() => {
     if (!shareCode) return '';
-    return `${window.location.origin}/join/${shareCode.code}`;
+    return `https://joiedevivre-africa.com/join/${shareCode.code}`;
   }, [shareCode]);
 
   return {
