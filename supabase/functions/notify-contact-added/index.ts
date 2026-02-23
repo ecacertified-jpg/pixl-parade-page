@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, getPreferredChannel } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, getPreferredChannel } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -181,28 +181,35 @@ serve(async (req) => {
       );
     }
 
-    // Build personalized message based on account existence (<160 chars)
+    // Build personalized message per channel
+    const channel = getPreferredChannel(contact_phone);
     let message: string;
-    
-    if (hasExistingAccount) {
-      // Existing user → redirect to favorites
-      message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
+
+    if (channel === 'whatsapp') {
+      // WhatsApp: emojis ok, no 160-char limit
+      if (hasExistingAccount) {
+        message = `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`;
+      } else {
+        message = `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
+      }
     } else {
-      // New user → encourage to create account
-      message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
+      // SMS: <160 chars, no emojis
+      if (hasExistingAccount) {
+        message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`;
+      } else {
+        message = `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
+      }
     }
 
-    // Send via preferred channel (SMS for CI/SN, otherwise just log for WhatsApp)
-    const channel = getPreferredChannel(contact_phone);
+    // Send via preferred channel
     let sendResult: { success: boolean; error?: string } = { success: false };
 
     if (channel === 'sms' && preferences.sms_enabled) {
       const smsResult = await sendSms(contact_phone, message);
       sendResult = { success: smsResult.success, error: smsResult.error };
-    } else if (preferences.whatsapp_enabled) {
-      // WhatsApp sending would go here - for now we skip if not SMS
-      console.log(`WhatsApp message would be sent to ${contact_phone}: ${message}`);
-      sendResult = { success: true }; // Consider it sent for tracking
+    } else if (channel === 'whatsapp' && preferences.whatsapp_enabled) {
+      const waResult = await sendWhatsApp(contact_phone, message);
+      sendResult = { success: waResult.success, error: waResult.error };
     }
 
     // Record the alert in database

@@ -226,14 +226,66 @@ export async function sendNotification(
     return sendSms(to, message, { truncate });
   }
   
-  // WhatsApp would be handled by the existing whatsapp module
-  // For now, return a placeholder indicating WhatsApp should be used
-  console.log(`📱 [WhatsApp] Should send via WhatsApp to ${to}`);
-  return {
-    success: false,
-    error: 'WHATSAPP_ROUTING_REQUIRED',
-    channel: 'whatsapp'
-  };
+  return sendWhatsApp(to, message);
+}
+
+/**
+ * Sends a free-form text message via WhatsApp Cloud API
+ */
+export async function sendWhatsApp(
+  to: string,
+  message: string
+): Promise<SmsResult> {
+  const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
+  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
+
+  if (!accessToken || !phoneNumberId) {
+    console.error('❌ [WhatsApp] Credentials not configured');
+    return { success: false, error: 'WHATSAPP_CREDENTIALS_MISSING', channel: 'whatsapp' };
+  }
+
+  const formattedPhone = formatPhoneForTwilio(to).replace('+', '');
+  if (!formattedPhone || formattedPhone.length < 8) {
+    console.error('❌ [WhatsApp] Invalid phone number:', to);
+    return { success: false, error: 'INVALID_PHONE_NUMBER', channel: 'whatsapp' };
+  }
+
+  console.log(`📤 [WhatsApp] Sending to ${formattedPhone.substring(0, 5)}***`);
+
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: formattedPhone,
+          type: 'text',
+          text: { body: message },
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = data?.error?.message || `HTTP ${response.status}`;
+      console.error('❌ [WhatsApp] API error:', errorMsg);
+      return { success: false, error: errorMsg, channel: 'whatsapp' };
+    }
+
+    const messageId = data?.messages?.[0]?.id || 'unknown';
+    console.log(`✅ [WhatsApp] Sent successfully: ${messageId}`);
+    return { success: true, sid: messageId, status: 'sent', channel: 'whatsapp' };
+  } catch (error) {
+    console.error('❌ [WhatsApp] Network error:', error);
+    return { success: false, error: error.message || 'NETWORK_ERROR', channel: 'whatsapp' };
+  }
 }
 
 /**
