@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { processAdminAutoAssign } from '@/utils/adminAutoAssign';
 
 const JoinAdmin = () => {
   const { code } = useParams<{ code: string }>();
@@ -32,8 +33,16 @@ const JoinAdmin = () => {
       // Store in sessionStorage
       sessionStorage.setItem('jdv_admin_ref', code);
 
-      // Redirect to auth with admin_ref param
-      navigate(`/auth?admin_ref=${code}`, { replace: true });
+      // Check if user is already logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // User already authenticated → assign directly and redirect to dashboard
+        await processAdminAutoAssign(session.user.id);
+        navigate('/dashboard', { replace: true });
+      } else {
+        // Not logged in → redirect to auth with admin_ref param
+        navigate(`/auth?admin_ref=${code}`, { replace: true });
+      }
     };
 
     process();

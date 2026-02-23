@@ -230,15 +230,24 @@ const Auth = () => {
   // Redirect if already authenticated - check for returnUrl first
   useEffect(() => {
     if (user) {
-      const returnUrl = localStorage.getItem('returnUrl');
-      if (returnUrl) {
-        localStorage.removeItem('returnUrl');
-        navigate(returnUrl);
-      } else {
-        handleSmartRedirect(user, navigate);
-      }
+      const handleRedirect = async () => {
+        // Process admin auto-assign if admin_ref is present
+        const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
+        if (adminRef) {
+          await processAdminAutoAssign(user.id);
+        }
+
+        const returnUrl = localStorage.getItem('returnUrl');
+        if (returnUrl) {
+          localStorage.removeItem('returnUrl');
+          navigate(returnUrl);
+        } else {
+          handleSmartRedirect(user, navigate);
+        }
+      };
+      handleRedirect();
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchParams]);
 
   // Detect and validate referral code
   useEffect(() => {
