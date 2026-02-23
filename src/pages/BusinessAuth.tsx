@@ -398,10 +398,17 @@ const BusinessAuth = () => {
     }
   }, [countdown]);
 
-  // Redirect based on business account status
+  // Redirect based on business account status + handle admin_ref
   useEffect(() => {
     if (user) {
-      checkExistingBusinessAccount();
+      const handleAdminRef = async () => {
+        const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
+        if (adminRef) {
+          sessionStorage.setItem('jdv_admin_ref', adminRef);
+          await processAdminAutoAssign(user.id, 'business');
+        }
+      };
+      handleAdminRef().then(() => checkExistingBusinessAccount());
     }
   }, [user, navigate]);
 
