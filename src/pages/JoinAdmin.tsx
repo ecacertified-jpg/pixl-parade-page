@@ -113,7 +113,7 @@ const JoinAdmin = () => {
                 <div className="text-left">
                   <h3 className="font-semibold text-foreground font-poppins">Je suis un client</h3>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Offrez des cadeaux à vos proches et célébrez les moments heureux
+                    Recevez des cadeaux de vos proches, offrez-en et célébrez les moments heureux
                   </p>
                 </div>
               </div>
