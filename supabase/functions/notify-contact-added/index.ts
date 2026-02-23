@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, sendWhatsApp } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, sendWhatsAppTemplate } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -189,8 +189,13 @@ serve(async (req) => {
       ? `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${pluralS}. Tes souhaits de cadeaux ? joiedevivre-africa.com/favorites`
       : `${userName} t'a ajouté à son cercle! Ton anniversaire dans ${daysUntil} jour${pluralS}. Ajoute des amis et profite de leur générosité: joiedevivre-africa.com`;
 
-    // WhatsApp: rich, with emojis
-    const whatsappMessage = hasExistingAccount
+    // WhatsApp: template parameters
+    const whatsappCallToAction = hasExistingAccount
+      ? `Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`
+      : `Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
+
+    // WhatsApp fallback (free-form, works only within 24h window)
+    const whatsappFallbackMessage = hasExistingAccount
       ? `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`
       : `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
@@ -203,8 +208,21 @@ serve(async (req) => {
       );
     }
     if (preferences.whatsapp_enabled) {
+      // Try template first (works outside 24h window), fallback to free-form text
       sendPromises.push(
-        sendWhatsApp(contact_phone, whatsappMessage).then(r => ({ channel: 'whatsapp' as const, success: r.success, error: r.error }))
+        sendWhatsAppTemplate(
+          contact_phone,
+          'joiedevivre_contact_added',
+          'fr',
+          [userName, daysUntil.toString(), whatsappCallToAction]
+        ).then(async (r) => {
+          if (!r.success) {
+            console.log(`⚠️ [WhatsApp] Template failed (${r.error}), falling back to free-form text`);
+            const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
+            return { channel: 'whatsapp' as const, success: fallback.success, error: fallback.error };
+          }
+          return { channel: 'whatsapp' as const, success: r.success, error: r.error };
+        })
       );
     }
 
