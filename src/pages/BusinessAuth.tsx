@@ -21,6 +21,7 @@ import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { OtpMethodSelector, useWhatsAppFallback, type OtpMethod } from '@/components/auth/OtpMethodSelector';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -343,6 +344,10 @@ const BusinessAuth = () => {
   const [otpValue, setOtpValue] = useState('');
   const [countryCode, setCountryCode] = useState(country.phonePrefix);
   
+  // États pour WhatsApp OTP fallback
+  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(null);
+  const [pendingPhoneFormData, setPendingPhoneFormData] = useState<SignUpFormData | SignInFormData | null>(null);
+  
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateResult, setDuplicateResult] = useState<DuplicateCheckResult | null>(null);
@@ -389,6 +394,9 @@ const BusinessAuth = () => {
   const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
 
   const businessType = signUpForm.watch('businessType');
+
+  // Check if WhatsApp fallback should be shown
+  const { showFallback, defaultMethod, smsAvailable } = useWhatsAppFallback(countryCode);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -570,18 +578,37 @@ const BusinessAuth = () => {
 
   // Envoyer OTP pour connexion
   const sendOtpSignIn = async (data: SignInFormData) => {
-    setIsLoading(true);
     const fullPhone = `${countryCode}${data.phone}`;
     
+    // Check if we need to show method selector
+    if (showFallback && !otpMethod) {
+      setPendingPhoneFormData(data);
+      return;
+    }
+    
+    const method = otpMethod || defaultMethod;
+    
+    if (method === 'whatsapp') {
+      await sendWhatsAppOtp(fullPhone, 'signin');
+    } else {
+      await sendSmsOtpBusiness(fullPhone, 'signin');
+    }
+  };
+
+  // Send SMS OTP
+  const sendSmsOtpBusiness = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
+    setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
+        options: metadata ? { data: metadata } : undefined,
       });
 
       if (error) {
+        console.error('❌ [Business SMS OTP] Send error:', error);
         toast({
           title: 'Erreur',
-          description: error.message,
+          description: mapAuthError(error.message),
           variant: 'destructive',
         });
         return;
@@ -589,7 +616,6 @@ const BusinessAuth = () => {
 
       setCurrentPhone(fullPhone);
       setOtpSent(true);
-      setAuthMode('signin');
       setCountdown(120);
       toast({
         title: 'Code envoyé',
@@ -598,7 +624,7 @@ const BusinessAuth = () => {
     } catch (error: any) {
       toast({
         title: 'Erreur',
-        description: error?.message || 'Une erreur s\'est produite',
+        description: 'Une erreur inattendue s\'est produite',
         variant: 'destructive',
       });
     } finally {
@@ -606,9 +632,90 @@ const BusinessAuth = () => {
     }
   };
 
+  // Send WhatsApp OTP
+  const sendWhatsAppOtp = async (fullPhone: string, purpose: 'signin' | 'signup', metadata?: any) => {
+    setIsLoading(true);
+    try {
+      console.log('📱 [Business WhatsApp OTP] Sending OTP to:', fullPhone);
+      
+      const { data: result, error } = await supabase.functions.invoke('send-whatsapp-otp', {
+        body: { phone: fullPhone, purpose, user_metadata: metadata },
+      });
+
+      if (error || !result?.success) {
+        console.error('❌ [Business WhatsApp OTP] Send error:', error || result?.error);
+        toast({
+          title: 'Erreur',
+          description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      console.log('✅ [Business WhatsApp OTP] OTP sent successfully');
+      setCurrentPhone(fullPhone);
+      setOtpSent(true);
+      setCountdown(120);
+      toast({
+        title: 'Code envoyé via WhatsApp',
+        description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: 'Une erreur inattendue s\'est produite',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle OTP method selection
+  const handleMethodSelect = async (method: OtpMethod) => {
+    setOtpMethod(method);
+    
+    if (pendingPhoneFormData) {
+      if ('businessName' in pendingPhoneFormData) {
+        // It's a signup form
+        const data = pendingPhoneFormData as SignUpFormData;
+        // Continue signup flow with selected method
+        setPendingPhoneFormData(null);
+        await sendOtpSignUp(data, false);
+      } else {
+        // It's a signin form
+        const data = pendingPhoneFormData as SignInFormData;
+        const fullPhone = `${countryCode}${data.phone}`;
+        setPendingPhoneFormData(null);
+        
+        if (method === 'whatsapp') {
+          await sendWhatsAppOtp(fullPhone, 'signin');
+        } else {
+          await sendSmsOtpBusiness(fullPhone, 'signin');
+        }
+      }
+    }
+  };
+
   // Handler pour le formulaire d'inscription
   const handleSignUpSubmit = async (data: SignUpFormData) => {
+    // Check if we need to show method selector first
+    if (showFallback && !otpMethod) {
+      setPendingPhoneFormData(data);
+      return;
+    }
     await sendOtpSignUp(data, false);
+  };
+
+  // Map technical errors to user-friendly messages
+  const mapAuthError = (message: string): string => {
+    if (message.includes('Database error saving new user')) {
+      return 'Inscription temporairement indisponible, veuillez réessayer dans quelques instants.';
+    }
+    if (message.includes('Invalid login credentials')) {
+      return 'Identifiants incorrects';
+    }
+    return message;
   };
 
   // Envoyer OTP pour inscription
@@ -644,37 +751,24 @@ const BusinessAuth = () => {
       }
     }
     
+    // Use selected method or default
+    const method = otpMethod || defaultMethod;
+    const metadata = {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      is_business: true,
+    };
+    
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: fullPhone,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-            is_business: true,
-          },
-        },
-      });
-
-      if (error) {
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return;
+      if (method === 'whatsapp') {
+        setSignupFormData(data);
+        setAuthMode('signup');
+        await sendWhatsAppOtp(fullPhone, 'signup', metadata);
+      } else {
+        await sendSmsOtpBusiness(fullPhone, 'signup', metadata);
+        setSignupFormData(data);
+        setAuthMode('signup');
       }
-
-      // Sauvegarder les données du formulaire pour après vérification
-      setSignupFormData(data);
-      setCurrentPhone(fullPhone);
-      setOtpSent(true);
-      setAuthMode('signup');
-      setCountdown(120);
-      toast({
-        title: 'Code envoyé',
-        description: `Un code de vérification a été envoyé au ${fullPhone}`,
-      });
     } catch (error: any) {
       toast({
         title: 'Erreur',
@@ -718,6 +812,66 @@ const BusinessAuth = () => {
     setPendingSignUpData(null);
   };
 
+  // Helper to handle post-auth business logic (shared between SMS and WhatsApp)
+  const handlePostAuthBusiness = async (userId: string) => {
+    if (authMode === 'signup' && signupFormData) {
+      const { error: businessError } = await supabase
+        .from('business_accounts')
+        .insert({
+          user_id: userId,
+          business_name: signupFormData.businessName,
+          business_type: signupFormData.businessType || '',
+          phone: currentPhone,
+          address: signupFormData.address || '',
+          description: signupFormData.description || '',
+          is_active: true,
+          status: 'active',
+        });
+
+      if (businessError) {
+        console.error('Error creating business account:', businessError);
+        if (businessError.code !== '23505' && !businessError.message?.includes('duplicate')) {
+          toast({
+            title: 'Erreur de création',
+            description: `Impossible de créer le compte business: ${businessError.message}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      setUserMode('business');
+      await refreshSession();
+      toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
+      await processAdminAutoAssign(userId, 'business');
+      navigate('/business-account?onboarding=true', { replace: true });
+    } else {
+      // Connexion - vérifier si un business account existe
+      const { data: businessAccounts } = await supabase
+        .from('business_accounts')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+
+      if (!businessAccounts || businessAccounts.length === 0) {
+        setAuthenticatedUserId(userId);
+        setAuthenticatedPhone(currentPhone);
+        setShowCompleteRegistration(true);
+        setOtpSent(false);
+        toast({
+          title: 'Inscription incomplète',
+          description: 'Votre compte existe mais l\'inscription business n\'est pas terminée. Veuillez la compléter.',
+        });
+        return;
+      }
+
+      setUserMode('business');
+      toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
+      await processAdminAutoAssign(userId, 'business');
+      navigate('/business-account', { replace: true });
+    }
+  };
+
   // Vérifier OTP
   const verifyOtp = async () => {
     if (otpValue.length !== 6) {
@@ -730,92 +884,65 @@ const BusinessAuth = () => {
     }
 
     setIsLoading(true);
+    const method = otpMethod || defaultMethod;
     
     try {
-      const { data: authData, error } = await supabase.auth.verifyOtp({
-        phone: currentPhone,
-        token: otpValue,
-        type: 'sms',
-      });
-
-      if (error) {
-        toast({
-          title: 'Erreur de vérification',
-          description: error.message,
-          variant: 'destructive',
+      if (method === 'whatsapp') {
+        // Verify via WhatsApp edge function
+        console.log('🔐 [Business WhatsApp OTP Verify] Verifying code for:', currentPhone);
+        
+        const { data: result, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
+          body: { phone: currentPhone, code: otpValue },
         });
-        return;
-      }
 
-      if (authData.user) {
-        // Si c'est une inscription, créer le business_account
-        if (authMode === 'signup' && signupFormData) {
-          const { error: businessError } = await supabase
-            .from('business_accounts')
-            .insert({
-              user_id: authData.user.id,
-              business_name: signupFormData.businessName,
-              business_type: signupFormData.businessType || '',
-              phone: currentPhone,
-              address: signupFormData.address || '',
-              description: signupFormData.description || '',
-              is_active: true,
-              status: 'active',
-            });
+        if (error || !result?.success) {
+          console.error('❌ [Business WhatsApp OTP Verify] Failed:', error || result?.error);
+          toast({
+            title: 'Code invalide',
+            description: result?.message || 'Le code saisi est incorrect ou expiré',
+            variant: 'destructive',
+          });
+          return;
+        }
 
-          if (businessError) {
-            console.error('Error creating business account:', businessError);
-            
-            if (businessError.code === '23505' || businessError.message?.includes('duplicate')) {
-              // Business account already exists - continue
-              console.log('Business account already exists, continuing...');
-            } else {
-              toast({
-                title: 'Erreur de création',
-                description: `Impossible de créer le compte business: ${businessError.message}`,
-                variant: 'destructive',
-              });
-              return;
-            }
-          }
+        console.log('✅ [Business WhatsApp OTP Verify] Success, user:', result.user_id);
 
-          setUserMode('business');
-          await refreshSession();
+        // Set session from WhatsApp verification
+        if (result.access_token && result.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+          });
           
-          toast({
-            title: 'Bienvenue !',
-            description: 'Votre espace business est maintenant prêt.',
-          });
-          await processAdminAutoAssign(authData.user.id, 'business');
-          navigate('/business-account?onboarding=true', { replace: true });
-        } else {
-          // Connexion - vérifier si un business account existe
-          const { data: businessAccounts } = await supabase
-            .from('business_accounts')
-            .select('id')
-            .eq('user_id', authData.user.id)
-            .limit(1);
-
-          if (!businessAccounts || businessAccounts.length === 0) {
-            // Pas de compte business - montrer le formulaire de complétion
-            setAuthenticatedUserId(authData.user.id);
-            setAuthenticatedPhone(currentPhone);
-            setShowCompleteRegistration(true);
-            setOtpSent(false);
-            toast({
-              title: 'Inscription incomplète',
-              description: 'Votre compte existe mais l\'inscription business n\'est pas terminée. Veuillez la compléter.',
-            });
-            return;
+          if (result.user_id) {
+            await handlePostAuthBusiness(result.user_id);
           }
-
-          setUserMode('business');
+        } else if (result.requires_reauth) {
           toast({
-            title: 'Connexion réussie',
-            description: 'Bienvenue dans votre espace business',
+            title: 'Vérification réussie',
+            description: 'Votre compte est vérifié. Veuillez vous reconnecter.',
           });
-          await processAdminAutoAssign(authData.user.id, 'business');
-          navigate('/business-account', { replace: true });
+          resetOtpFlow();
+        }
+      } else {
+        // Standard SMS OTP verification
+        const { data: authData, error } = await supabase.auth.verifyOtp({
+          phone: currentPhone,
+          token: otpValue,
+          type: 'sms',
+        });
+
+        if (error) {
+          toast({
+            title: 'Erreur de vérification',
+            description: mapAuthError(error.message),
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        if (authData.user) {
+          await handlePostAuthBusiness(authData.user.id);
         }
       }
     } catch (error: any) {
@@ -829,38 +956,34 @@ const BusinessAuth = () => {
     }
   };
 
-  // Renvoyer OTP
+  // Renvoyer OTP (via la méthode choisie)
   const resendOtp = async () => {
     if (countdown > 0) return;
     
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: currentPhone,
-      });
-
-      if (error) {
-        toast({
-          title: 'Erreur',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return;
+    const method = otpMethod || defaultMethod;
+    
+    if (method === 'whatsapp') {
+      const metadata = signupFormData ? {
+        first_name: signupFormData.firstName,
+        last_name: signupFormData.lastName,
+        is_business: true,
+      } : undefined;
+      await sendWhatsAppOtp(currentPhone, authMode === 'signup' ? 'signup' : 'signin', metadata);
+    } else {
+      setIsLoading(true);
+      try {
+        const { error } = await supabase.auth.signInWithOtp({ phone: currentPhone });
+        if (error) {
+          toast({ title: 'Erreur', description: mapAuthError(error.message), variant: 'destructive' });
+          return;
+        }
+        setCountdown(120);
+        toast({ title: 'Code renvoyé', description: `Un nouveau code a été envoyé au ${currentPhone}` });
+      } catch (error: any) {
+        toast({ title: 'Erreur', description: 'Une erreur s\'est produite', variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
       }
-
-      setCountdown(120);
-      toast({
-        title: 'Code renvoyé',
-        description: `Un nouveau code a été envoyé au ${currentPhone}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error?.message || 'Une erreur s\'est produite',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -871,6 +994,8 @@ const BusinessAuth = () => {
     setCurrentPhone('');
     setCountdown(0);
     setSignupFormData(null);
+    setOtpMethod(null);
+    setPendingPhoneFormData(null);
   };
 
   // Compléter l'inscription business (après connexion sans business account)
@@ -1563,19 +1688,35 @@ const BusinessAuth = () => {
                           )}
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Envoi du code...
-                            </>
-                          ) : (
-                            <>
-                              <Phone className="mr-2 h-4 w-4" />
-                              Envoyer le code
-                            </>
-                          )}
-                        </Button>
+                        {/* WhatsApp fallback method selector */}
+                        {showFallback && pendingPhoneFormData && !otpMethod && (
+                          <OtpMethodSelector
+                            countryCode={countryCode}
+                            selectedMethod={otpMethod}
+                            onSelectMethod={handleMethodSelect}
+                            disabled={isLoading}
+                          />
+                        )}
+
+                        {showFallback && !pendingPhoneFormData && (
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? (
+                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>
+                            ) : (
+                              <><Phone className="mr-2 h-4 w-4" />Continuer</>
+                            )}
+                          </Button>
+                        )}
+
+                        {!showFallback && (
+                          <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? (
+                              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>
+                            ) : (
+                              <><Phone className="mr-2 h-4 w-4" />Envoyer le code</>
+                            )}
+                          </Button>
+                        )}
                       </form>
                     ) : (
                       <form onSubmit={emailSignInForm.handleSubmit(handleEmailSignIn)} className="space-y-4">
@@ -1718,9 +1859,27 @@ const BusinessAuth = () => {
                             <Label htmlFor="description">Description (optionnel)</Label>
                             <Textarea id="description" placeholder="Décrivez votre activité..." rows={3} {...signUpForm.register('description')} />
                           </div>
-                          <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>) : (<><Phone className="mr-2 h-4 w-4" />Continuer - Vérifier mon numéro</>)}
-                          </Button>
+                          {/* WhatsApp fallback method selector */}
+                          {showFallback && pendingPhoneFormData && !otpMethod && (
+                            <OtpMethodSelector
+                              countryCode={countryCode}
+                              selectedMethod={otpMethod}
+                              onSelectMethod={handleMethodSelect}
+                              disabled={isLoading}
+                            />
+                          )}
+
+                          {showFallback && !pendingPhoneFormData && (
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>) : (<><Phone className="mr-2 h-4 w-4" />Continuer</>)}
+                            </Button>
+                          )}
+
+                          {!showFallback && (
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                              {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi du code...</>) : (<><Phone className="mr-2 h-4 w-4" />Continuer - Vérifier mon numéro</>)}
+                            </Button>
+                          )}
                           <p className="text-xs text-muted-foreground text-center mt-2">Un code de vérification sera envoyé à votre téléphone</p>
                         </form>
                       </>
