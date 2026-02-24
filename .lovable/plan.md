@@ -1,36 +1,53 @@
 
+# Barre de progression circulaire autour du timer OTP
 
-# Augmenter le delai de renvoi OTP a 5 minutes
+## Concept
 
-## Constat
+Remplacer le simple texte "Renvoyer dans 4:59" par un composant visuel avec un cercle SVG animé qui se vide progressivement sur 5 minutes, avec le timer affiche au centre. Quand le decompte atteint 0, le cercle disparait et le bouton "Renvoyer le code" redevient cliquable.
 
-- **Auth.tsx** (page client) : le countdown est fixe a **60 secondes** partout (4 occurrences de `setCountdown(60)`).
-- **BusinessAuth.tsx** (page business) : le countdown est a **120 secondes** (3 occurrences de `setCountdown(120)`).
-- L'utilisateur souhaite uniformiser a **300 secondes (5 minutes)** pour laisser plus de temps avant de proposer le renvoi de code, alignant le comportement avec la duree de validite des codes WhatsApp OTP.
+## Composant a creer
 
-## Modifications
+### `src/components/auth/OtpCountdownCircle.tsx`
 
-### 1. `src/pages/Auth.tsx`
+Un composant reutilisable qui affiche :
+- Un cercle SVG (50px de diametre) avec un trait de progression qui diminue de 100% a 0%
+- Le timer en format `m:ss` au centre du cercle
+- Couleur primaire (violet) pour la progression, muted pour le fond du cercle
+- Quand le countdown atteint 0 : afficher le bouton "Renvoyer le code" a la place
 
-Remplacer les 4 occurrences de `setCountdown(60)` par `setCountdown(300)` :
-- Ligne 341 : apres envoi SMS OTP (signin)
-- Ligne 385 : apres envoi WhatsApp OTP (signin)
-- Ligne 639 : apres envoi OTP signup
-- Ligne 810 : apres renvoi de code (resend)
+Props :
+- `countdown: number` (secondes restantes)
+- `total: number` (duree totale, 300)
+- `onResend: () => void`
+- `disabled: boolean`
 
-### 2. `src/pages/BusinessAuth.tsx`
+Le cercle utilise `stroke-dasharray` et `stroke-dashoffset` sur un `<circle>` SVG, avec une transition CSS fluide.
 
-Remplacer les 3 occurrences de `setCountdown(120)` par `setCountdown(300)` :
-- Ligne 626 : apres envoi SMS OTP
-- Ligne 665 : apres envoi WhatsApp OTP
-- Ligne 994 : apres renvoi de code (resend)
+## Fichiers impactes
 
-### 3. Affichage du timer
+1. **`src/components/auth/OtpCountdownCircle.tsx`** (nouveau) : composant cercle + timer
+2. **`src/pages/Auth.tsx`** : remplacer le bouton texte "Renvoyer dans X:XX" par `<OtpCountdownCircle />`
+3. **`src/pages/BusinessAuth.tsx`** : meme remplacement
 
-Le countdown affiche deja les secondes en format `XXs`. Avec 300 secondes, il affichera `300s`, `299s`, etc. Pour une meilleure lisibilite, convertir l'affichage en minutes:secondes (`4:59`, `4:58`...) dans les deux fichiers. Exemple : `Renvoyer dans 4:32` au lieu de `Renvoyer dans 272s`.
+## Rendu visuel
 
-## Impact
+```text
+        ╭───────╮
+       ╱  4:32   ╲       <-- cercle avec progression
+      │           │           qui diminue dans le sens
+       ╲         ╱            horaire
+        ╰───────╯
+    Renvoyer le code      <-- texte sous le cercle
+    (grise tant que > 0)
+```
 
-- Aucune modification backend necessaire (les codes OTP Supabase et WhatsApp restent valides bien au-dela de 5 minutes).
-- Zero risque de regression : seul le timer d'attente cote UI change.
+Quand le timer atteint 0, le cercle disparait et le bouton "Renvoyer le code" devient actif avec la couleur primaire.
 
+## Details techniques
+
+- Cercle SVG : rayon 22px, stroke-width 3px, viewBox 50x50
+- `stroke-dasharray = 2 * PI * rayon` (perimetre)
+- `stroke-dashoffset = perimetre * (1 - countdown / total)` pour vider le cercle
+- Transition CSS `stroke-dashoffset 1s linear` pour un mouvement fluide
+- Couleurs : `stroke` en `hsl(var(--primary))` pour la progression, `hsl(var(--muted))` pour le fond
+- Le bouton "Modifier le numero" reste inchange en dessous
