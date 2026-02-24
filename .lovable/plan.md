@@ -1,77 +1,36 @@
 
-# Auto-prioriser WhatsApp OTP dans les pays sans SMS
 
-## Probleme actuel
+# Augmenter le delai de renvoi OTP a 5 minutes
 
-Quand un utilisateur au Benin (+229), Togo (+228), Mali (+223) ou Burkina Faso (+226) s'inscrit par telephone, il doit :
+## Constat
 
-1. Remplir le formulaire et cliquer "Continuer"
-2. Voir apparaitre le selecteur de methode OTP
-3. Constater que SMS est grise / indisponible
-4. Cliquer manuellement sur WhatsApp
-5. Attendre l'envoi
+- **Auth.tsx** (page client) : le countdown est fixe a **60 secondes** partout (4 occurrences de `setCountdown(60)`).
+- **BusinessAuth.tsx** (page business) : le countdown est a **120 secondes** (3 occurrences de `setCountdown(120)`).
+- L'utilisateur souhaite uniformiser a **300 secondes (5 minutes)** pour laisser plus de temps avant de proposer le renvoi de code, alignant le comportement avec la duree de validite des codes WhatsApp OTP.
 
-C'est une friction inutile puisque SMS est marque `unavailable` pour ces pays -- le seul choix possible est WhatsApp.
+## Modifications
 
-## Solution
+### 1. `src/pages/Auth.tsx`
 
-### Comportement cible par pays
+Remplacer les 4 occurrences de `setCountdown(60)` par `setCountdown(300)` :
+- Ligne 341 : apres envoi SMS OTP (signin)
+- Ligne 385 : apres envoi WhatsApp OTP (signin)
+- Ligne 639 : apres envoi OTP signup
+- Ligne 810 : apres renvoi de code (resend)
 
-```text
-+------------------+------------------+-------------------------------+
-| Pays             | smsReliability   | Comportement                  |
-+------------------+------------------+-------------------------------+
-| CI (+225)        | unreliable       | Afficher selecteur (2 choix)  |
-|                  | smsActuallyReliable=true                          |
-+------------------+------------------+-------------------------------+
-| SN (+221)        | unreliable       | Afficher selecteur (2 choix)  |
-+------------------+------------------+-------------------------------+
-| BJ, TG, ML, BF   | unavailable      | Auto-WhatsApp, PAS de         |
-|                  |                  | selecteur, envoi direct       |
-+------------------+------------------+-------------------------------+
-```
+### 2. `src/pages/BusinessAuth.tsx`
 
-### Modifications
+Remplacer les 3 occurrences de `setCountdown(120)` par `setCountdown(300)` :
+- Ligne 626 : apres envoi SMS OTP
+- Ligne 665 : apres envoi WhatsApp OTP
+- Ligne 994 : apres renvoi de code (resend)
 
-#### 1. `useWhatsAppFallback` (OtpMethodSelector.tsx)
+### 3. Affichage du timer
 
-Ajouter un nouveau booleen `autoWhatsApp` au retour du hook :
-- `true` quand `smsReliability === 'unavailable'` (BJ, TG, ML, BF)
-- `false` sinon
+Le countdown affiche deja les secondes en format `XXs`. Avec 300 secondes, il affichera `300s`, `299s`, etc. Pour une meilleure lisibilite, convertir l'affichage en minutes:secondes (`4:59`, `4:58`...) dans les deux fichiers. Exemple : `Renvoyer dans 4:32` au lieu de `Renvoyer dans 272s`.
 
-Ajuster `showFallback` pour ne retourner `true` que quand le selecteur doit etre affiche (SMS disponible mais pas fiable). Quand SMS est `unavailable`, `showFallback = false` car on n'affiche pas le selecteur.
+## Impact
 
-#### 2. `OtpMethodSelector` (OtpMethodSelector.tsx)
+- Aucune modification backend necessaire (les codes OTP Supabase et WhatsApp restent valides bien au-dela de 5 minutes).
+- Zero risque de regression : seul le timer d'attente cote UI change.
 
-Quand SMS est `unavailable`, ne plus afficher le composant du tout (retourner `null`), car WhatsApp sera envoye automatiquement. Le composant ne s'affiche que quand l'utilisateur a un vrai choix a faire.
-
-#### 3. `Auth.tsx` - Flow client
-
-Dans `sendOtpSignIn` et `handleSignUpSubmit` :
-- Si `autoWhatsApp` est `true`, definir `otpMethod` a `'whatsapp'` automatiquement et envoyer directement (pas de `setPendingFormData`, pas d'affichage du selecteur).
-- Si `showFallback` est `true` et `otpMethod` est `null`, afficher le selecteur (comportement actuel pour CI/SN).
-- Sinon (SMS fiable), envoyer par SMS directement.
-
-Meme logique pour le resend.
-
-#### 4. `BusinessAuth.tsx` - Flow business
-
-Meme adaptation dans `sendOtpSignIn` et `sendOtpSignUp` :
-- Si `autoWhatsApp`, envoyer directement par WhatsApp sans passer par le selecteur.
-
-#### 5. Petit indicateur UX (optionnel mais recommande)
-
-Quand `autoWhatsApp` est actif, afficher un petit bandeau informatif sous le champ telephone :
-"Votre code sera envoye via WhatsApp" avec l'icone WhatsApp, pour que l'utilisateur sache a quoi s'attendre avant de soumettre.
-
-## Fichiers impactes
-
-- `src/components/auth/OtpMethodSelector.tsx` : hook `useWhatsAppFallback` + composant
-- `src/pages/Auth.tsx` : logique d'envoi OTP (signin + signup)
-- `src/pages/BusinessAuth.tsx` : logique d'envoi OTP (signin + signup)
-
-## Resultat attendu
-
-- BJ/TG/ML/BF : clic sur "Continuer" -> envoi WhatsApp immediat, zero etape supplementaire
-- CI/SN : comportement inchange, selecteur affiche pour laisser le choix
-- Pas de regression pour les pays avec SMS fiable
