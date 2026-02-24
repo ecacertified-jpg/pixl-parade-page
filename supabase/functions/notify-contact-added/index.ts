@@ -214,7 +214,7 @@ serve(async (req) => {
           contact_phone,
           'joiedevivre_contact_added',
           'fr',
-          [userName, daysUntil.toString(), whatsappCallToAction]
+          [userName, daysUntil.toString()]
         ).then(async (r) => {
           if (!r.success) {
             console.log(`⚠️ [WhatsApp] Template failed (${r.error}), falling back to free-form text`);
