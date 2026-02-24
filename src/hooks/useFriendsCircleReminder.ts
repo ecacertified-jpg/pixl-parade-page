@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const COMPLETION_NOTIFICATION_KEY = 'friends_circle_completion_notified_';
+const WELCOME_WA_KEY = 'friends_circle_welcome_wa_sent_';
 
 const MINIMUM_CONTACTS = 2;
 const SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -41,6 +42,33 @@ export function useFriendsCircleReminder() {
     setState(prev => ({ ...prev, shouldShowReminder: false }));
   }, [user?.id, getSnoozeKey]);
 
+  // Send welcome WhatsApp via edge function (once only)
+  const sendWelcomeWhatsApp = useCallback(async () => {
+    if (!user?.id) return;
+
+    const welcomeKey = `${WELCOME_WA_KEY}${user.id}`;
+    if (localStorage.getItem(welcomeKey)) return;
+
+    // Mark immediately to prevent duplicates
+    localStorage.setItem(welcomeKey, 'true');
+
+    try {
+      const { error } = await supabase.functions.invoke('check-friends-circle-reminders', {
+        body: { user_id: user.id, mode: 'welcome' }
+      });
+
+      if (error) {
+        console.error('Error sending welcome WhatsApp:', error);
+        localStorage.removeItem(welcomeKey);
+      } else {
+        console.log('Welcome WhatsApp triggered for friend circle');
+      }
+    } catch (err) {
+      console.error('Error invoking welcome WhatsApp:', err);
+      localStorage.removeItem(welcomeKey);
+    }
+  }, [user?.id]);
+
   const checkReminderStatus = useCallback(async () => {
     if (!user?.id) {
       setState(prev => ({ ...prev, isLoading: false }));
@@ -73,11 +101,16 @@ export function useFriendsCircleReminder() {
         isLoading: false,
         isProfileComplete,
       });
+
+      // Trigger welcome WhatsApp if profile complete and 0 contacts
+      if (isProfileComplete && contactsCount === 0) {
+        sendWelcomeWhatsApp();
+      }
     } catch (error) {
       console.error('Error checking friends circle reminder status:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user?.id, isSnoozed]);
+  }, [user?.id, isSnoozed, sendWelcomeWhatsApp]);
 
   useEffect(() => {
     checkReminderStatus();
