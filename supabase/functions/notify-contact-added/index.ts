@@ -18,6 +18,27 @@ interface NotifyContactRequest {
   birthday: string;
 }
 
+// SMS reliability map by phone prefix (mirrors countries.ts server-side)
+const SMS_RELIABILITY_BY_PREFIX: Record<string, { reliability: string; smsActuallyReliable?: boolean }> = {
+  '225': { reliability: 'unreliable', smsActuallyReliable: true }, // CI - SMS works fine
+  '221': { reliability: 'unreliable' },  // SN - SMS unstable
+  '229': { reliability: 'unavailable' }, // BJ
+  '228': { reliability: 'unavailable' }, // TG
+  '223': { reliability: 'unavailable' }, // ML
+  '226': { reliability: 'unavailable' }, // BF
+};
+
+function getSmsPrefixReliability(phone: string): string {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
+  for (const [prefix, config] of Object.entries(SMS_RELIABILITY_BY_PREFIX)) {
+    if (cleaned.startsWith(prefix)) {
+      if (config.reliability === 'unreliable' && config.smsActuallyReliable) return 'reliable';
+      return config.reliability;
+    }
+  }
+  return 'reliable';
+}
+
 // Calculate days until next birthday
 function getDaysUntilBirthday(birthdayStr: string): number {
   const birthday = new Date(birthdayStr);
@@ -202,12 +223,19 @@ serve(async (req) => {
     // Send on both channels in parallel based on preferences
     const sendPromises: Promise<{ channel: 'sms' | 'whatsapp'; success: boolean; error?: string }>[] = [];
 
-    if (preferences.sms_enabled) {
+    // Smart routing: determine SMS viability based on contact's country
+    const smsReliability = getSmsPrefixReliability(contact_phone);
+    const canSendSms = preferences.sms_enabled && smsReliability !== 'unavailable';
+    const canSendWhatsapp = preferences.whatsapp_enabled;
+
+    console.log(`📡 Routing for ${contact_phone}: smsReliability=${smsReliability}, sms=${canSendSms}, whatsapp=${canSendWhatsapp}`);
+
+    if (canSendSms) {
       sendPromises.push(
         sendSms(contact_phone, smsMessage).then(r => ({ channel: 'sms' as const, success: r.success, error: r.error }))
       );
     }
-    if (preferences.whatsapp_enabled) {
+    if (canSendWhatsapp) {
       // Try template first (works outside 24h window), fallback to free-form text
       sendPromises.push(
         sendWhatsAppTemplate(
@@ -226,11 +254,22 @@ serve(async (req) => {
       );
     }
 
+    // If no channel is active after filtering, force WhatsApp as last resort
     if (sendPromises.length === 0) {
-      console.log('Both SMS and WhatsApp disabled for user:', user.id);
-      return new Response(
-        JSON.stringify({ success: false, message: 'Aucun canal activé' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      console.log(`⚠️ No channel active after routing, forcing WhatsApp for ${contact_phone}`);
+      sendPromises.push(
+        sendWhatsAppTemplate(
+          contact_phone,
+          'joiedevivre_contact_added',
+          'fr',
+          [userName, daysUntil.toString()]
+        ).then(async (r) => {
+          if (!r.success) {
+            const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
+            return { channel: 'whatsapp' as const, success: fallback.success, error: fallback.error };
+          }
+          return { channel: 'whatsapp' as const, success: r.success, error: r.error };
+        })
       );
     }
 
