@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.admin-auto-assign]
 verify_jwt = false
+
+[functions.check-friends-circle-reminders]
+verify_jwt = false
