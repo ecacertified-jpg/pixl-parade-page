@@ -1,11 +1,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, shouldUseSms, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsAppTemplate, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// SMS reliability map by phone prefix
+const SMS_RELIABILITY_BY_PREFIX: Record<string, { reliability: string; smsActuallyReliable?: boolean }> = {
+  '225': { reliability: 'unreliable', smsActuallyReliable: true }, // CI - SMS works
+  '221': { reliability: 'unreliable' },  // SN - SMS unstable
+  '229': { reliability: 'unavailable' }, // BJ
+  '228': { reliability: 'unavailable' }, // TG
+  '223': { reliability: 'unavailable' }, // ML
+  '226': { reliability: 'unavailable' }, // BF
+};
+
+function getSmsPrefixReliability(phone: string): string {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
+  for (const [prefix, config] of Object.entries(SMS_RELIABILITY_BY_PREFIX)) {
+    if (cleaned.startsWith(prefix)) {
+      if (config.reliability === 'unreliable' && config.smsActuallyReliable) return 'reliable';
+      return config.reliability;
+    }
+  }
+  return 'reliable';
+}
 
 interface OrderPayload {
   type: 'INSERT';
@@ -20,6 +41,7 @@ interface OrderPayload {
     delivery_address: string;
     beneficiary_phone: string;
     donor_phone: string;
+    customer_id?: string;
     created_at: string;
   };
   old_record: null;
@@ -31,13 +53,10 @@ serve(async (req) => {
   }
 
   try {
-    // Webhook signature verification for database triggers/webhooks
-    // This function is typically called by Supabase database triggers, not directly by users
-    // Verify using a shared webhook secret if available
+    // Webhook signature verification
     const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
     const signature = req.headers.get('X-Webhook-Signature');
     
-    // If webhook secret is configured, require signature verification
     if (webhookSecret) {
       if (!signature) {
         console.error('❌ No webhook signature provided');
@@ -47,28 +66,17 @@ serve(async (req) => {
         );
       }
       
-      // Simple HMAC verification (in production, use proper crypto)
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(webhookSecret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['verify']
+        'raw', encoder.encode(webhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
       );
       
-      // Get the raw body for verification
       const body = await req.text();
-      const expectedSignature = signature;
       
       try {
-        const signatureBuffer = Uint8Array.from(atob(expectedSignature), c => c.charCodeAt(0));
-        const isValid = await crypto.subtle.verify(
-          'HMAC',
-          key,
-          signatureBuffer,
-          encoder.encode(body)
-        );
+        const signatureBuffer = Uint8Array.from(atob(signature), c => c.charCodeAt(0));
+        const isValid = await crypto.subtle.verify('HMAC', key, signatureBuffer, encoder.encode(body));
         
         if (!isValid) {
           console.error('❌ Invalid webhook signature');
@@ -78,7 +86,6 @@ serve(async (req) => {
           );
         }
         
-        // Parse the body since we already read it
         const payload: OrderPayload = JSON.parse(body);
         return await processOrder(payload);
       } catch (verifyError) {
@@ -90,11 +97,9 @@ serve(async (req) => {
       }
     }
     
-    // If no webhook secret configured, require proper authentication
-    // Only allow Supabase service role or verified user tokens
+    // Fallback: require auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('❌ No authorization header provided');
       return new Response(
         JSON.stringify({ error: 'Unauthorized - Authentication required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -104,9 +109,7 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    // Only allow if called with service role key (internal Supabase calls/database triggers)
     if (token !== serviceRoleKey) {
-      // Verify it's a valid user token for internal calls
       const verifyClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -115,7 +118,6 @@ serve(async (req) => {
       
       const { data: { user }, error: authError } = await verifyClient.auth.getUser();
       if (authError || !user) {
-        console.error('❌ Unauthorized access attempt - invalid token');
         return new Response(
           JSON.stringify({ error: 'Unauthorized - Invalid token' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -132,10 +134,7 @@ serve(async (req) => {
     console.error('❌ Error in notify-business-order:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
@@ -146,176 +145,202 @@ async function processOrder(payload: OrderPayload) {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
-    console.log('📦 [notify-business-order] New order received:', payload.record?.id);
+  console.log('📦 [notify-business-order] New order received:', payload.record?.id);
 
-    if (!payload.record || payload.type !== 'INSERT') {
-      console.log('⚠️ Not an INSERT event or no record, skipping');
-      return new Response(
-        JSON.stringify({ message: 'Not an INSERT event' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+  if (!payload.record || payload.type !== 'INSERT') {
+    console.log('⚠️ Not an INSERT event or no record, skipping');
+    return new Response(
+      JSON.stringify({ message: 'Not an INSERT event' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
-    const order = payload.record;
+  const order = payload.record;
 
-    // Get the business account to find the owner
-    const { data: businessAccount, error: businessError } = await supabaseClient
-      .from('business_accounts')
-      .select('user_id, business_name, phone')
-      .eq('id', order.business_account_id)
-      .single();
+  // Get the business account
+  const { data: businessAccount, error: businessError } = await supabaseClient
+    .from('business_accounts')
+    .select('user_id, business_name, phone')
+    .eq('id', order.business_account_id)
+    .single();
 
-    if (businessError || !businessAccount) {
-      console.error('❌ Error fetching business account:', businessError);
-      return new Response(
-        JSON.stringify({ error: 'Business account not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
+  if (businessError || !businessAccount) {
+    console.error('❌ Error fetching business account:', businessError);
+    return new Response(
+      JSON.stringify({ error: 'Business account not found' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+    );
+  }
 
-    console.log('🏪 Business owner found:', businessAccount.user_id);
+  console.log('🏪 Business owner found:', businessAccount.user_id);
 
-    // Get active push subscriptions for the business owner
-    const { data: subscriptions, error: subsError } = await supabaseClient
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_id', businessAccount.user_id)
-      .eq('is_active', true);
+  // Parse order summary
+  const { itemCount, firstItemName, orderSummaryShort } = parseOrderSummary(order.order_summary);
 
-    if (subsError) {
-      console.error('❌ Error fetching subscriptions:', subsError);
-      throw subsError;
-    }
+  // Get customer name for WhatsApp template
+  const customerName = await getCustomerName(supabaseClient, order.customer_id, order.donor_phone);
 
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log('📭 No active push subscriptions for business owner');
+  // --- Push notifications ---
+  const pushResult = await sendPushNotifications(supabaseClient, businessAccount, order, itemCount, firstItemName);
+
+  // --- In-app notification ---
+  await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name, itemCount);
+
+  // --- WhatsApp + SMS with smart routing ---
+  const messagingResult = await sendBusinessMessaging(
+    businessAccount.phone,
+    order,
+    customerName,
+    orderSummaryShort
+  );
+
+  console.log(`✅ Results: push=${pushResult.sent}/${pushResult.total}, whatsapp=${messagingResult.whatsappSent}, sms=${messagingResult.smsSent}`);
+
+  return new Response(
+    JSON.stringify({
+      sent: pushResult.sent,
+      failed: pushResult.failed,
+      total: pushResult.total,
+      in_app_created: true,
+      whatsapp_sent: messagingResult.whatsappSent,
+      sms_sent: messagingResult.smsSent,
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+  );
+}
+
+// --- Helper functions ---
+
+function parseOrderSummary(orderSummary: any): { itemCount: number; firstItemName: string; orderSummaryShort: string } {
+  let itemCount = 0;
+  let firstItemName = 'Article';
+  let orderSummaryShort = 'Article(s)';
+
+  try {
+    const summary = typeof orderSummary === 'string' ? JSON.parse(orderSummary) : orderSummary;
+    
+    if (summary?.items && Array.isArray(summary.items)) {
+      itemCount = summary.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      firstItemName = summary.items[0]?.name || 'Article';
       
-      // Still create an in-app notification
-      await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name);
-      
-      return new Response(
-        JSON.stringify({ message: 'No push subscriptions, in-app notification created', sent: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse order summary to get item count
-    let itemCount = 0;
-    let firstItemName = 'Article';
-    try {
-      const summary = typeof order.order_summary === 'string' 
-        ? JSON.parse(order.order_summary) 
-        : order.order_summary;
-      
-      if (summary?.items && Array.isArray(summary.items)) {
-        itemCount = summary.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-        firstItemName = summary.items[0]?.name || 'Article';
+      if (summary.items.length === 1) {
+        const qty = summary.items[0]?.quantity || 1;
+        orderSummaryShort = `${firstItemName} x${qty}`;
+      } else {
+        orderSummaryShort = `${itemCount} articles`;
       }
-    } catch (e) {
-      console.log('⚠️ Could not parse order summary');
+      
+      // Truncate for WhatsApp template (max ~50 chars)
+      if (orderSummaryShort.length > 50) {
+        orderSummaryShort = orderSummaryShort.substring(0, 47) + '...';
+      }
     }
+  } catch (e) {
+    console.log('⚠️ Could not parse order summary');
+  }
 
-    // Prepare push payload with quick action buttons
-    const pushPayload = {
-      title: '🎉 Nouvelle commande !',
-      message: itemCount > 1 
-        ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
-        : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
-      body: itemCount > 1 
-        ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
-        : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
-      icon: '/logo-jv.png',
-      badge: '/logo-jv.png',
-      tag: `order-${order.id}`,
-      data: {
-        type: 'new_order',
-        order_id: order.id,
-        business_id: order.business_account_id,
-        business_user_id: businessAccount.user_id,
-        url: '/business-account?tab=orders',
-        requires_action: true,
-      },
-      actions: [
-        { action: 'accept', title: '✅ Accepter' },
-        { action: 'reject', title: '❌ Refuser' },
-        { action: 'view', title: '👁️ Voir' }
-      ],
-      requireInteraction: true,
-    };
+  return { itemCount, firstItemName, orderSummaryShort };
+}
 
-    // Send push notifications using web-push protocol
-    let successCount = 0;
-    let failedCount = 0;
+async function getCustomerName(supabase: any, customerId?: string, donorPhone?: string): Promise<string> {
+  if (!customerId) return donorPhone || 'Client';
+  
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('user_id', customerId)
+      .single();
+    
+    if (profile?.first_name) {
+      return profile.first_name;
+    }
+  } catch (e) {
+    console.log('⚠️ Could not fetch customer name');
+  }
+  
+  return donorPhone || 'Client';
+}
 
-    for (const subscription of subscriptions) {
-      try {
-        const success = await sendWebPush(subscription, pushPayload);
-        
-        if (success) {
-          successCount++;
-          await supabaseClient
-            .from('push_subscriptions')
-            .update({ last_used_at: new Date().toISOString() })
-            .eq('id', subscription.id);
-        } else {
-          failedCount++;
-        }
-      } catch (error) {
-        console.error('❌ Error sending push to subscription:', error);
+async function sendPushNotifications(
+  supabase: any,
+  businessAccount: { user_id: string },
+  order: any,
+  itemCount: number,
+  firstItemName: string
+): Promise<{ sent: number; failed: number; total: number }> {
+  const { data: subscriptions, error: subsError } = await supabase
+    .from('push_subscriptions')
+    .select('*')
+    .eq('user_id', businessAccount.user_id)
+    .eq('is_active', true);
+
+  if (subsError || !subscriptions || subscriptions.length === 0) {
+    console.log('📭 No active push subscriptions for business owner');
+    return { sent: 0, failed: 0, total: 0 };
+  }
+
+  const pushPayload = {
+    title: '🎉 Nouvelle commande !',
+    message: itemCount > 1
+      ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
+      : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
+    body: itemCount > 1
+      ? `${itemCount} articles commandés pour ${order.total_amount.toLocaleString()} ${order.currency}`
+      : `${firstItemName} - ${order.total_amount.toLocaleString()} ${order.currency}`,
+    icon: '/logo-jv.png',
+    badge: '/logo-jv.png',
+    tag: `order-${order.id}`,
+    data: {
+      type: 'new_order',
+      order_id: order.id,
+      business_id: order.business_account_id,
+      business_user_id: businessAccount.user_id,
+      url: '/business-account?tab=orders',
+      requires_action: true,
+    },
+    actions: [
+      { action: 'accept', title: '✅ Accepter' },
+      { action: 'reject', title: '❌ Refuser' },
+      { action: 'view', title: '👁️ Voir' }
+    ],
+    requireInteraction: true,
+  };
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const subscription of subscriptions) {
+    try {
+      const success = await sendWebPush(subscription, pushPayload);
+      if (success) {
+        successCount++;
+        await supabase
+          .from('push_subscriptions')
+          .update({ last_used_at: new Date().toISOString() })
+          .eq('id', subscription.id);
+      } else {
         failedCount++;
       }
+    } catch (error) {
+      console.error('❌ Error sending push to subscription:', error);
+      failedCount++;
     }
+  }
 
-    // Also create an in-app notification
-    await createInAppNotification(supabaseClient, businessAccount.user_id, order, businessAccount.business_name);
-
-    // Send SMS notification if business has a valid phone for SMS
-    let smsSent = false;
-    if (businessAccount.phone && shouldUseSms(businessAccount.phone)) {
-      const shortOrderId = order.id.substring(0, 8).toUpperCase();
-      const smsMessage = `JoieDvivre: Nouvelle commande #${shortOrderId} de ${order.total_amount.toLocaleString()} ${order.currency}. Acceptez dans l'app.`;
-      
-      console.log(`📤 [SMS] Sending order notification to business: ${businessAccount.phone}`);
-      const smsResult = await sendSms(businessAccount.phone, smsMessage);
-      smsSent = smsResult.success;
-      
-      if (smsResult.success) {
-        console.log(`✅ [SMS] Order notification sent: ${smsResult.sid}`);
-      } else {
-        console.log(`⚠️ [SMS] Failed to send: ${smsResult.error}`);
-      }
-    }
-
-    console.log(`✅ Push notifications sent: ${successCount} success, ${failedCount} failed`);
-
-    return new Response(
-      JSON.stringify({ 
-        sent: successCount, 
-        failed: failedCount,
-        total: subscriptions.length,
-        in_app_created: true,
-        sms_sent: smsSent
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    );
+  return { sent: successCount, failed: failedCount, total: subscriptions.length };
 }
 
 async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
   try {
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-    const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
 
     if (!vapidPublicKey || !vapidPrivateKey) {
       console.error('❌ VAPID keys not configured');
       return false;
     }
 
-    // For now, using a simple fetch - in production, use proper web-push encryption
-    // The service worker will receive this and show the notification
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
       headers: {
@@ -329,8 +354,6 @@ async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Push failed:', response.status, errorText);
-      
-      // If subscription is gone (410) or not found (404), mark as inactive
       if (response.status === 404 || response.status === 410) {
         console.log('📭 Subscription expired, will be marked inactive');
       }
@@ -345,24 +368,89 @@ async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
   }
 }
 
+/**
+ * Sends WhatsApp template + SMS to business owner with smart routing.
+ * - WhatsApp: always sent via joiedevivre_new_order template
+ * - SMS: only sent if prefix reliability is not 'unavailable'
+ */
+async function sendBusinessMessaging(
+  businessPhone: string | null,
+  order: any,
+  customerName: string,
+  orderSummaryShort: string
+): Promise<{ whatsappSent: boolean; smsSent: boolean }> {
+  let whatsappSent = false;
+  let smsSent = false;
+
+  if (!businessPhone) {
+    console.log('📭 No business phone number configured, skipping WhatsApp/SMS');
+    return { whatsappSent, smsSent };
+  }
+
+  const smsReliability = getSmsPrefixReliability(businessPhone);
+  const canSendSms = smsReliability !== 'unavailable';
+
+  console.log(`📡 [Routing] phone=${businessPhone.substring(0, 7)}***, smsReliability=${smsReliability}, canSendSms=${canSendSms}`);
+
+  // Always send WhatsApp template
+  try {
+    const formattedAmount = order.total_amount.toLocaleString('fr-FR');
+    
+    console.log(`📤 [WhatsApp] Sending joiedevivre_new_order template to business`);
+    const waResult = await sendWhatsAppTemplate(
+      businessPhone,
+      'joiedevivre_new_order',
+      'fr',
+      [
+        customerName,        // {{1}} - Client name
+        formattedAmount,     // {{2}} - Amount
+        orderSummaryShort,   // {{3}} - Order summary
+      ]
+    );
+    
+    whatsappSent = waResult.success;
+    if (waResult.success) {
+      console.log(`✅ [WhatsApp] Order notification sent: ${waResult.sid}`);
+    } else {
+      console.log(`⚠️ [WhatsApp] Failed to send: ${waResult.error}`);
+    }
+  } catch (error) {
+    console.error('❌ [WhatsApp] Error sending template:', error);
+  }
+
+  // Send SMS only if reliable for this country
+  if (canSendSms) {
+    try {
+      const shortOrderId = order.id.substring(0, 8).toUpperCase();
+      const smsMessage = `JoieDvivre: Nouvelle commande #${shortOrderId} de ${order.total_amount.toLocaleString()} ${order.currency}. Acceptez dans l'app.`;
+      
+      console.log(`📤 [SMS] Sending order notification to business`);
+      const smsResult = await sendSms(businessPhone, smsMessage);
+      smsSent = smsResult.success;
+      
+      if (smsResult.success) {
+        console.log(`✅ [SMS] Order notification sent: ${smsResult.sid}`);
+      } else {
+        console.log(`⚠️ [SMS] Failed to send: ${smsResult.error}`);
+      }
+    } catch (error) {
+      console.error('❌ [SMS] Error sending:', error);
+    }
+  } else {
+    console.log(`⏭️ [SMS] Skipped - unavailable for this prefix`);
+  }
+
+  return { whatsappSent, smsSent };
+}
+
 async function createInAppNotification(
-  supabase: any, 
-  userId: string, 
-  order: any, 
-  businessName: string
+  supabase: any,
+  userId: string,
+  order: any,
+  businessName: string,
+  itemCount: number
 ) {
   try {
-    let itemCount = 0;
-    try {
-      const summary = typeof order.order_summary === 'string' 
-        ? JSON.parse(order.order_summary) 
-        : order.order_summary;
-      
-      if (summary?.items && Array.isArray(summary.items)) {
-        itemCount = summary.items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
-      }
-    } catch (e) {}
-
     const { error } = await supabase
       .from('notifications')
       .insert({
