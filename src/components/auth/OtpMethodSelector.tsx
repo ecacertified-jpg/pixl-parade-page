@@ -96,25 +96,42 @@ export function OtpMethodSelector({
   );
 }
 
+// Small indicator shown when WhatsApp will be used automatically
+export function WhatsAppAutoIndicator({ phonePrefix }: { phonePrefix: string }) {
+  const { autoWhatsApp } = useWhatsAppFallback(phonePrefix);
+  if (!autoWhatsApp) return null;
+  
+  return (
+    <div className="flex items-center gap-2 p-2.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300">
+      <WhatsAppIcon className="h-4 w-4 flex-shrink-0" />
+      <span>Votre code sera envoyé via WhatsApp</span>
+    </div>
+  );
+}
+
 // Hook to determine if WhatsApp fallback should be shown
 export function useWhatsAppFallback(phonePrefix: string): {
   showFallback: boolean;
   defaultMethod: OtpMethod;
   smsAvailable: boolean;
+  autoWhatsApp: boolean;
 } {
   // Utiliser la fonction centralisée pour convertir le préfixe en code pays
   const countryCode = getCountryCodeByPhonePrefix(phonePrefix);
   const country = getCountryConfig(countryCode);
   
   if (!country) {
-    return { showFallback: false, defaultMethod: 'sms', smsAvailable: true };
+    return { showFallback: false, defaultMethod: 'sms', smsAvailable: true, autoWhatsApp: false };
   }
 
   const smsAvailable = country.smsReliability !== 'unavailable';
-  const showFallback = country.whatsappFallbackEnabled === true;
+  const autoWhatsApp = country.smsReliability === 'unavailable' && country.whatsappFallbackEnabled === true;
+  
+  // showFallback = true only when user has a real choice (SMS available but not fully reliable)
+  const showFallback = !autoWhatsApp && country.whatsappFallbackEnabled === true && smsAvailable;
   
   // Default to WhatsApp if SMS is unavailable
   const defaultMethod: OtpMethod = country.smsReliability === 'unavailable' ? 'whatsapp' : 'sms';
   
-  return { showFallback, defaultMethod, smsAvailable };
+  return { showFallback, defaultMethod, smsAvailable, autoWhatsApp };
 }
