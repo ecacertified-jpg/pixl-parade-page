@@ -1,107 +1,98 @@
 
-# Routage intelligent des notifications par pays du contact
+# Template WhatsApp pour les nouvelles commandes prestataires
 
-## Probleme actuel
+## Template a creer dans Meta Business Manager
 
-La Edge Function `notify-contact-added` envoie systematiquement sur les deux canaux (SMS + WhatsApp) sans tenir compte du pays du destinataire. Resultat :
+### Nom du template
+`joiedevivre_new_order`
 
-| Pays du contact | SMS | WhatsApp | Probleme |
-|----------------|-----|----------|----------|
-| CI (+225) | Fonctionne | Fonctionne | Aucun |
-| SN (+221) | Instable | Fonctionne | SMS parfois echoue |
-| BJ (+229) | Echoue | Fonctionne | Appel Twilio inutile |
-| TG (+228) | Echoue | Fonctionne | Appel Twilio inutile |
-| ML (+223) | Echoue | Fonctionne | Appel Twilio inutile |
-| BF (+226) | Echoue | Fonctionne | Appel Twilio inutile |
+### Categorie
+**Utility** (notification transactionnelle liee a une commande)
 
-## Solution proposee
+### Langue
+Francais (`fr`)
 
-Ajouter un routage par prefixe telephonique dans la Edge Function pour determiner si le SMS est viable avant de l'envoyer.
+### Corps du message (Body)
+```
+Nouvelle commande sur Joie de Vivre !
 
-## Modifications
+Client : {{1}}
+Montant : {{2}} XOF
+Commande : {{3}}
 
-### 1. `supabase/functions/notify-contact-added/index.ts`
-
-Ajouter une map de fiabilite SMS par prefixe telephonique (reprenant la logique de `countries.ts` cote serveur) :
-
-```text
-+225 (CI) -> SMS fiable, envoyer SMS + WhatsApp
-+221 (SN) -> SMS instable, envoyer WhatsApp prioritaire + SMS en option
-+229 (BJ) -> SMS indisponible, envoyer WhatsApp uniquement
-+228 (TG) -> SMS indisponible, envoyer WhatsApp uniquement
-+223 (ML) -> SMS indisponible, envoyer WhatsApp uniquement
-+226 (BF) -> SMS indisponible, envoyer WhatsApp uniquement
+Connectez-vous pour accepter ou refuser cette commande.
 ```
 
-La logique sera :
-- Extraire le prefixe du numero de telephone du contact
-- Consulter la map pour determiner `smsReliability`
-- Si `unavailable` : ne pas tenter le SMS, envoyer uniquement WhatsApp
-- Si `unreliable` avec `smsActuallyReliable: true` (CI) : envoyer les deux
-- Si `unreliable` sans flag : envoyer WhatsApp en priorite, SMS en option
-- Si `reliable` : envoyer les deux
+**Parametres :**
+| Variable | Valeur | Exemple |
+|----------|--------|---------|
+| `{{1}}` | Prenom du client | "Aminata" |
+| `{{2}}` | Montant total formate | "25 000" |
+| `{{3}}` | Resume court de la commande (1er article ou nombre d'articles) | "Gateau chocolat x1" |
 
-### 2. Details techniques
+### Footer (statique)
+```
+Repondez rapidement pour satisfaire vos clients
+```
 
-Ajouter en haut de la Edge Function :
+### Boutons (optionnel mais recommande)
+| Type | Texte | Action |
+|------|-------|--------|
+| URL | Voir la commande | `https://joiedevivre-africa.com/business-account?tab=orders` |
+
+> Si vous ajoutez un suffixe dynamique au bouton URL (ex: `&highlight={{1}}`), il faudra passer un composant `button` supplementaire dans l'appel API avec l'ID de commande.
+
+---
+
+## Exemples de contenu pour la soumission Meta
+
+Meta exige des exemples concrets lors de la soumission du template :
+
+| Variable | Exemple |
+|----------|---------|
+| `{{1}}` | Aminata |
+| `{{2}}` | 25 000 |
+| `{{3}}` | Gateau anniversaire x1 |
+
+---
+
+## Integration technique (apres approbation Meta)
+
+### Fichier a modifier : `supabase/functions/notify-new-order/index.ts` (ou equivalent)
+
+Appel a `sendWhatsAppTemplate` avec 3 parametres body :
 
 ```typescript
-const SMS_RELIABILITY_BY_PREFIX: Record<string, { reliability: string; smsActuallyReliable?: boolean }> = {
-  '225': { reliability: 'unreliable', smsActuallyReliable: true },
-  '221': { reliability: 'unreliable' },
-  '229': { reliability: 'unavailable' },
-  '228': { reliability: 'unavailable' },
-  '223': { reliability: 'unavailable' },
-  '226': { reliability: 'unavailable' },
-};
-
-function getSmsPrefixReliability(phone: string): string {
-  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
-  for (const [prefix, config] of Object.entries(SMS_RELIABILITY_BY_PREFIX)) {
-    if (cleaned.startsWith(prefix)) {
-      if (config.reliability === 'unreliable' && config.smsActuallyReliable) return 'reliable';
-      return config.reliability;
-    }
-  }
-  return 'reliable'; // default
-}
+await sendWhatsAppTemplate(
+  businessPhone,          // telephone du prestataire
+  'joiedevivre_new_order',
+  'fr',
+  [
+    customerName,                              // {{1}} - Prenom client
+    totalAmount.toLocaleString('fr-FR'),        // {{2}} - Montant
+    orderSummaryShort                           // {{3}} - Resume commande
+  ]
+);
 ```
 
-Puis modifier la section d'envoi (ligne ~205) :
+### Routage intelligent
 
-```typescript
-const smsReliability = getSmsPrefixReliability(contact_phone);
+Le meme routage par prefixe telephonique (`getSmsPrefixReliability`) sera applique pour determiner si un SMS complementaire est envoye au prestataire ou uniquement le WhatsApp.
 
-if (preferences.sms_enabled && smsReliability !== 'unavailable') {
-  sendPromises.push(
-    sendSms(contact_phone, smsMessage).then(...)
-  );
-}
-if (preferences.whatsapp_enabled) {
-  sendPromises.push(
-    sendWhatsAppTemplate(...).then(...)
-  );
-}
+---
 
-// Si aucun canal n'est actif apres filtrage, forcer WhatsApp
-if (sendPromises.length === 0) {
-  sendPromises.push(
-    sendWhatsAppTemplate(...).then(...)
-  );
-}
-```
+## Etapes pour activer le template
 
-### 3. Logs ameliores
+1. **Meta Business Manager** : Creer le template `joiedevivre_new_order` avec le contenu ci-dessus
+2. **Attendre l'approbation** de Meta (generalement quelques heures)
+3. **Implementer** l'appel dans la Edge Function qui gere la creation de commande
+4. **Deployer** la Edge Function mise a jour
+5. **Tester** avec un numero reel pour verifier la delivrabilite
 
-Ajouter un log indiquant le routage choisi :
+---
 
-```typescript
-console.log(`Routing for ${contact_phone}: smsReliability=${smsReliability}, sms=${preferences.sms_enabled && smsReliability !== 'unavailable'}, whatsapp=${preferences.whatsapp_enabled}`);
-```
+## Notes importantes
 
-## Resultat attendu
-
-- Les contacts au Benin, Togo, Mali et Burkina Faso recoivent uniquement un WhatsApp (pas de tentative SMS vouee a l'echec)
-- Les contacts en Cote d'Ivoire recoivent SMS + WhatsApp
-- Les contacts au Senegal recoivent WhatsApp en priorite
-- Reduction des appels API Twilio inutiles et des logs d'erreur
+- Le template `Utility` a un cout plus bas que `Marketing` et un taux d'approbation plus eleve
+- Garder le resume de commande (`{{3}}`) court (max ~50 caracteres) pour eviter les troncatures
+- Un fallback en texte libre est maintenu pour les cas ou le template echoue (conversation active dans la fenetre de 24h)
