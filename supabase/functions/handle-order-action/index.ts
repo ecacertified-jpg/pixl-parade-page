@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendSms, shouldUseSms, sendWhatsAppTemplate, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
+import { sendWebPushNotification } from "../_shared/web-push.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,32 +13,6 @@ interface OrderActionPayload {
   action: 'accept' | 'reject' | 'view';
   business_user_id: string;
   rejection_reason?: string;
-}
-
-async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
-  try {
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-        'Urgency': 'high',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Push failed:', response.status, errorText);
-      return false;
-    }
-
-    console.log('✅ Push sent to:', subscription.endpoint.substring(0, 50) + '...');
-    return true;
-  } catch (error) {
-    console.error('❌ Error in sendWebPush:', error);
-    return false;
-  }
 }
 
 serve(async (req) => {
@@ -52,7 +27,6 @@ serve(async (req) => {
     console.log('📦 [handle-order-action] Processing action:', action, 'for order:', order_id);
 
     if (!order_id || !action || !business_user_id) {
-      console.error('❌ Missing required fields');
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,67 +38,47 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch the order and verify ownership (includes phone numbers for SMS)
+    // VAPID keys for push
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') || '';
+    const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
+
+    // Fetch the order and verify ownership
     const { data: order, error: orderError } = await supabase
       .from('business_orders')
       .select(`
-        id,
-        status,
-        business_account_id,
-        customer_id,
-        total_amount,
-        currency,
-        order_summary,
-        donor_phone,
-        beneficiary_phone,
-        business_accounts!inner (
-          user_id,
-          business_name
-        )
+        id, status, business_account_id, customer_id, total_amount, currency, order_summary,
+        donor_phone, beneficiary_phone,
+        business_accounts!inner (user_id, business_name)
       `)
       .eq('id', order_id)
       .single();
 
     if (orderError || !order) {
-      console.error('❌ Order not found:', orderError);
       return new Response(
         JSON.stringify({ success: false, error: 'Order not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verify the business_user_id matches the business owner
     const businessAccount = order.business_accounts as any;
     if (businessAccount.user_id !== business_user_id) {
-      console.error('❌ Unauthorized: User does not own this business');
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // For view action, just return the redirect URL
     if (action === 'view') {
-      console.log('👁️ View action - returning redirect URL');
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          action: 'view',
-          redirect_url: `/business-account?tab=orders&highlight=${order_id}`
-        }),
+        JSON.stringify({ success: true, action: 'view', redirect_url: `/business-account?tab=orders&highlight=${order_id}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if order is in a valid state for accept/reject
     if (order.status !== 'pending') {
-      console.log('⚠️ Order is not pending, current status:', order.status);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Order is not in pending status',
-          current_status: order.status
-        }),
+        JSON.stringify({ success: false, error: 'Order is not in pending status', current_status: order.status }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -137,14 +91,12 @@ serve(async (req) => {
       newStatus = 'confirmed';
       notificationTitle = '✅ Commande confirmée';
       notificationMessage = `Votre commande de ${order.total_amount.toLocaleString()} ${order.currency} chez ${businessAccount.business_name} a été confirmée !`;
-      console.log('✅ Accepting order');
     } else if (action === 'reject') {
       newStatus = 'cancelled';
       notificationTitle = '❌ Commande annulée';
       notificationMessage = rejection_reason 
         ? `Votre commande chez ${businessAccount.business_name} a été annulée. Raison: ${rejection_reason}`
         : `Votre commande chez ${businessAccount.business_name} n'a pas pu être acceptée par le prestataire.`;
-      console.log('❌ Rejecting order');
     } else {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid action' }),
@@ -155,89 +107,62 @@ serve(async (req) => {
     // Update order status
     const { error: updateError } = await supabase
       .from('business_orders')
-      .update({ 
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', order_id);
 
     if (updateError) {
-      console.error('❌ Failed to update order:', updateError);
       return new Response(
         JSON.stringify({ success: false, error: 'Failed to update order' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Notify the customer if they have a user_id
+    // Notify the customer
     if (order.customer_id) {
       // 1. In-app notification
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: order.customer_id,
-          type: action === 'accept' ? 'order_confirmed' : 'order_rejected',
-          title: notificationTitle,
-          message: notificationMessage,
-          metadata: {
-            order_id: order_id,
-            action: action,
-            business_name: businessAccount.business_name
-          },
-          is_read: false
-        });
+      await supabase.from('notifications').insert({
+        user_id: order.customer_id,
+        type: action === 'accept' ? 'order_confirmed' : 'order_rejected',
+        title: notificationTitle,
+        message: notificationMessage,
+        metadata: { order_id, action, business_name: businessAccount.business_name },
+        is_read: false
+      });
+      console.log('✅ Customer in-app notification created');
 
-      if (notifError) {
-        console.error('⚠️ Failed to create customer notification:', notifError);
-      } else {
-        console.log('✅ Customer in-app notification created');
-      }
+      // 2. Push notifications
+      if (vapidPublicKey && vapidPrivateKey) {
+        try {
+          const { data: customerSubs } = await supabase
+            .from('push_subscriptions')
+            .select('*')
+            .eq('user_id', order.customer_id)
+            .eq('is_active', true);
 
-      // 2. Push notifications to customer
-      try {
-        const { data: customerSubs } = await supabase
-          .from('push_subscriptions')
-          .select('*')
-          .eq('user_id', order.customer_id)
-          .eq('is_active', true);
+          if (customerSubs && customerSubs.length > 0) {
+            console.log(`📱 Sending push to ${customerSubs.length} customer subscription(s)...`);
+            const pushPayload = JSON.stringify({
+              title: notificationTitle,
+              message: notificationMessage,
+              body: notificationMessage,
+              icon: '/logo-jv.png',
+              badge: '/logo-jv.png',
+              tag: `order-status-${order_id}`,
+              data: { type: action === 'accept' ? 'order_confirmed' : 'order_rejected', order_id, url: '/dashboard' },
+            });
 
-        if (customerSubs && customerSubs.length > 0) {
-          console.log(`📱 Sending push to ${customerSubs.length} customer subscription(s)...`);
-
-          const pushPayload = {
-            title: notificationTitle,
-            message: notificationMessage,
-            body: notificationMessage,
-            icon: '/logo-jv.png',
-            badge: '/logo-jv.png',
-            tag: `order-status-${order_id}`,
-            data: {
-              type: action === 'accept' ? 'order_confirmed' : 'order_rejected',
-              order_id: order_id,
-              url: '/dashboard',
-            },
-          };
-
-          for (const sub of customerSubs) {
-            const success = await sendWebPush(sub, pushPayload);
-            if (success) {
-              await supabase
-                .from('push_subscriptions')
-                .update({ last_used_at: new Date().toISOString() })
-                .eq('id', sub.id);
-            } else {
-              // Deactivate expired/invalid subscriptions
-              await supabase
-                .from('push_subscriptions')
-                .update({ is_active: false })
-                .eq('id', sub.id);
+            for (const sub of customerSubs) {
+              const result = await sendWebPushNotification(sub, pushPayload, vapidPublicKey, vapidPrivateKey, `mailto:${vapidEmail}`);
+              if (result.success) {
+                await supabase.from('push_subscriptions').update({ last_used_at: new Date().toISOString() }).eq('id', sub.id);
+              } else if (result.error === 'subscription_expired') {
+                await supabase.from('push_subscriptions').update({ is_active: false }).eq('id', sub.id);
+              }
             }
           }
-        } else {
-          console.log('📭 No active push subscriptions for customer');
+        } catch (pushError) {
+          console.error('⚠️ Push notification error:', pushError);
         }
-      } catch (pushError) {
-        console.error('⚠️ Push notification error:', pushError);
       }
     }
 
@@ -247,71 +172,39 @@ serve(async (req) => {
       try {
         const orderShortId = order_id.substring(0, 8).toUpperCase();
         const bizName = businessAccount.business_name.substring(0, 25);
-        
-        let smsMessage: string;
-        if (action === 'accept') {
-          smsMessage = `JoieDvivre: Bonne nouvelle! Votre commande #${orderShortId} chez ${bizName} est confirmee. Suivez-la sur joiedevivre-africa.com`;
-        } else {
-          smsMessage = `JoieDvivre: Votre commande #${orderShortId} chez ${bizName} n'a pas pu etre acceptee. Contactez-nous sur joiedevivre-africa.com`;
-        }
+        const smsMessage = action === 'accept'
+          ? `JoieDvivre: Bonne nouvelle! Votre commande #${orderShortId} chez ${bizName} est confirmee. Suivez-la sur joiedevivre-africa.com`
+          : `JoieDvivre: Votre commande #${orderShortId} chez ${bizName} n'a pas pu etre acceptee. Contactez-nous sur joiedevivre-africa.com`;
 
-        console.log(`📤 [SMS] Sending order status SMS to customer...`);
         const smsResult = await sendSms(customerPhone, smsMessage, { truncate: true });
-        
-        if (smsResult.success) {
-          console.log('✅ Customer SMS sent:', smsResult.sid);
-        } else {
-          console.error('⚠️ Customer SMS failed:', smsResult.error);
-        }
+        if (smsResult.success) console.log('✅ Customer SMS sent:', smsResult.sid);
+        else console.error('⚠️ Customer SMS failed:', smsResult.error);
       } catch (smsError) {
         console.error('⚠️ SMS sending error:', smsError);
       }
-    } else {
-      console.log('📭 No customer phone number available for SMS');
     }
 
     // 4. Send WhatsApp template to customer
     if (customerPhone) {
       try {
-        // Fetch customer first name
         let customerFirstName = 'Client';
         if (order.customer_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name')
-            .eq('user_id', order.customer_id)
-            .single();
-          if (profile?.first_name) {
-            customerFirstName = profile.first_name;
-          }
+          const { data: profile } = await supabase.from('profiles').select('first_name').eq('user_id', order.customer_id).single();
+          if (profile?.first_name) customerFirstName = profile.first_name;
         }
-
-        const templateName = action === 'accept' 
-          ? 'joiedevivre_order_confirmed' 
-          : 'joiedevivre_order_rejected';
-        
+        const templateName = action === 'accept' ? 'joiedevivre_order_confirmed' : 'joiedevivre_order_rejected';
         const formattedAmount = order.total_amount.toLocaleString('fr-FR');
         const bizName = businessAccount.business_name.substring(0, 25);
 
-        console.log(`📤 [WhatsApp] Sending ${templateName} to customer...`);
-        const waResult = await sendWhatsAppTemplate(
-          customerPhone,
-          templateName,
-          'fr',
-          [customerFirstName, formattedAmount, bizName]
-        );
-
-        if (waResult.success) {
-          console.log(`✅ [WhatsApp] Status notification sent: ${waResult.sid}`);
-        } else {
-          console.error(`⚠️ [WhatsApp] Failed: ${waResult.error}`);
-        }
+        const waResult = await sendWhatsAppTemplate(customerPhone, templateName, 'fr', [customerFirstName, formattedAmount, bizName]);
+        if (waResult.success) console.log(`✅ [WhatsApp] Status notification sent: ${waResult.sid}`);
+        else console.error(`⚠️ [WhatsApp] Failed: ${waResult.error}`);
       } catch (waError) {
         console.error('⚠️ [WhatsApp] Error:', waError);
       }
     }
 
-    // Track this quick action in analytics
+    // Track analytics
     try {
       await supabase.from('notification_analytics').insert({
         user_id: business_user_id,
@@ -320,12 +213,7 @@ serve(async (req) => {
         clicked_at: new Date().toISOString(),
         action_url: action,
         status: 'clicked',
-        metadata: {
-          quick_action: true,
-          action_type: action,
-          order_id: order_id,
-          from_push: true
-        }
+        metadata: { quick_action: true, action_type: action, order_id, from_push: true }
       });
     } catch (analyticsError) {
       console.log('⚠️ Analytics tracking failed:', analyticsError);
@@ -334,15 +222,9 @@ serve(async (req) => {
     console.log(`✅ Order ${order_id} ${action}ed successfully`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        action: action,
-        new_status: newStatus,
-        redirect_url: `/business-account?tab=orders`
-      }),
+      JSON.stringify({ success: true, action, new_status: newStatus, redirect_url: `/business-account?tab=orders` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('❌ Error in handle-order-action:', error);
     return new Response(
