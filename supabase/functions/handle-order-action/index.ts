@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
+import { sendSms, shouldUseSms, sendWhatsAppTemplate, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,7 +179,7 @@ serve(async (req) => {
           type: action === 'accept' ? 'order_confirmed' : 'order_rejected',
           title: notificationTitle,
           message: notificationMessage,
-          data: {
+          metadata: {
             order_id: order_id,
             action: action,
             business_name: businessAccount.business_name
@@ -268,6 +268,47 @@ serve(async (req) => {
       }
     } else {
       console.log('📭 No customer phone number available for SMS');
+    }
+
+    // 4. Send WhatsApp template to customer
+    if (customerPhone) {
+      try {
+        // Fetch customer first name
+        let customerFirstName = 'Client';
+        if (order.customer_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name')
+            .eq('user_id', order.customer_id)
+            .single();
+          if (profile?.first_name) {
+            customerFirstName = profile.first_name;
+          }
+        }
+
+        const templateName = action === 'accept' 
+          ? 'joiedevivre_order_confirmed' 
+          : 'joiedevivre_order_rejected';
+        
+        const formattedAmount = order.total_amount.toLocaleString('fr-FR');
+        const bizName = businessAccount.business_name.substring(0, 25);
+
+        console.log(`📤 [WhatsApp] Sending ${templateName} to customer...`);
+        const waResult = await sendWhatsAppTemplate(
+          customerPhone,
+          templateName,
+          'fr',
+          [customerFirstName, formattedAmount, bizName]
+        );
+
+        if (waResult.success) {
+          console.log(`✅ [WhatsApp] Status notification sent: ${waResult.sid}`);
+        } else {
+          console.error(`⚠️ [WhatsApp] Failed: ${waResult.error}`);
+        }
+      } catch (waError) {
+        console.error('⚠️ [WhatsApp] Error:', waError);
+      }
     }
 
     // Track this quick action in analytics
