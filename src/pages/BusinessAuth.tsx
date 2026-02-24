@@ -21,7 +21,7 @@ import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { OtpMethodSelector, useWhatsAppFallback, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { OtpMethodSelector, useWhatsAppFallback, WhatsAppAutoIndicator, type OtpMethod } from '@/components/auth/OtpMethodSelector';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -396,7 +396,7 @@ const BusinessAuth = () => {
   const businessType = signUpForm.watch('businessType');
 
   // Check if WhatsApp fallback should be shown
-  const { showFallback, defaultMethod, smsAvailable } = useWhatsAppFallback(countryCode);
+  const { showFallback, defaultMethod, smsAvailable, autoWhatsApp } = useWhatsAppFallback(countryCode);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -580,7 +580,14 @@ const BusinessAuth = () => {
   const sendOtpSignIn = async (data: SignInFormData) => {
     const fullPhone = `${countryCode}${data.phone}`;
     
-    // Check if we need to show method selector
+    // Auto-WhatsApp: send directly without selector (BJ, TG, ML, BF)
+    if (autoWhatsApp) {
+      setOtpMethod('whatsapp');
+      await sendWhatsAppOtp(fullPhone, 'signin');
+      return;
+    }
+    
+    // Check if we need to show method selector (CI, SN)
     if (showFallback && !otpMethod) {
       setPendingPhoneFormData(data);
       return;
@@ -699,7 +706,14 @@ const BusinessAuth = () => {
 
   // Handler pour le formulaire d'inscription
   const handleSignUpSubmit = async (data: SignUpFormData) => {
-    // Check if we need to show method selector first
+    // Auto-WhatsApp: send directly without selector (BJ, TG, ML, BF)
+    if (autoWhatsApp) {
+      setOtpMethod('whatsapp');
+      await sendOtpSignUp(data, false);
+      return;
+    }
+    
+    // Check if we need to show method selector first (CI, SN)
     if (showFallback && !otpMethod) {
       setPendingPhoneFormData(data);
       return;
@@ -1698,6 +1712,8 @@ const BusinessAuth = () => {
                           />
                         )}
 
+                        <WhatsAppAutoIndicator phonePrefix={countryCode} />
+
                         {showFallback && !pendingPhoneFormData && (
                           <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? (
@@ -1868,6 +1884,8 @@ const BusinessAuth = () => {
                               disabled={isLoading}
                             />
                           )}
+
+                          <WhatsAppAutoIndicator phonePrefix={countryCode} />
 
                           {showFallback && !pendingPhoneFormData && (
                             <Button type="submit" className="w-full" disabled={isLoading}>
