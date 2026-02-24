@@ -28,6 +28,7 @@ import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { OtpMethodSelector, useWhatsAppFallback, WhatsAppAutoIndicator, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
@@ -1575,16 +1576,13 @@ const Auth = () => {
               </form>
               
               <div className="space-y-2">
-                <div className="text-center">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={resendOtp}
-                    disabled={countdown > 0 || isLoading}
-                  >
-                    {countdown > 0 ? `Renvoyer dans ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}` : 'Renvoyer le code'}
-                  </Button>
+                <div className="flex justify-center">
+                  <OtpCountdownCircle
+                    countdown={countdown}
+                    total={300}
+                    onResend={resendOtp}
+                    disabled={isLoading}
+                  />
                 </div>
                 
                 <div className="text-center">
