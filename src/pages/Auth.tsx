@@ -338,7 +338,7 @@ const Auth = () => {
       console.log('✅ [SMS OTP] OTP sent successfully to:', fullPhone);
       setCurrentPhone(fullPhone);
       setOtpSent(true);
-      setCountdown(60);
+      setCountdown(300);
       toast({
         title: 'Code envoyé',
         description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
@@ -382,7 +382,7 @@ const Auth = () => {
       console.log('✅ [WhatsApp OTP] OTP sent successfully to:', fullPhone);
       setCurrentPhone(fullPhone);
       setOtpSent(true);
-      setCountdown(60);
+      setCountdown(300);
       toast({
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
@@ -636,7 +636,7 @@ const Auth = () => {
             description: 'Un code SMS vous a été envoyé pour finaliser la connexion.',
           });
           setOtpMethod('sms');
-          setCountdown(60);
+          setCountdown(300);
           return;
         }
 
@@ -807,7 +807,7 @@ const Auth = () => {
       }
 
       console.log('✅ [OTP Resend] OTP resent successfully');
-      setCountdown(60);
+      setCountdown(300);
       toast({
         title: 'Code renvoyé',
         description: 'Un nouveau code a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
@@ -1583,7 +1583,7 @@ const Auth = () => {
                     onClick={resendOtp}
                     disabled={countdown > 0 || isLoading}
                   >
-                    {countdown > 0 ? `Renvoyer dans ${countdown}s` : 'Renvoyer le code'}
+                    {countdown > 0 ? `Renvoyer dans ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}` : 'Renvoyer le code'}
                   </Button>
                 </div>
                 
