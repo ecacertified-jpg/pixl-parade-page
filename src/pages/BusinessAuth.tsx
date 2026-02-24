@@ -22,6 +22,7 @@ import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { OtpMethodSelector, useWhatsAppFallback, WhatsAppAutoIndicator, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
@@ -1495,21 +1496,14 @@ const BusinessAuth = () => {
             </Button>
 
             <div className="text-center space-y-2">
-              <button
-                type="button"
-                onClick={resendOtp}
-                disabled={countdown > 0 || isLoading}
-                className={cn(
-                  "text-sm",
-                  countdown > 0
-                    ? "text-muted-foreground cursor-not-allowed"
-                    : "text-primary hover:underline"
-                )}
-              >
-                {countdown > 0
-                  ? `Renvoyer le code dans ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
-                  : 'Renvoyer le code'}
-              </button>
+              <div className="flex justify-center">
+                <OtpCountdownCircle
+                  countdown={countdown}
+                  total={300}
+                  onResend={resendOtp}
+                  disabled={isLoading}
+                />
+              </div>
 
               <div>
                 <button
