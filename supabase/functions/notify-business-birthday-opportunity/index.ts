@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendWebPushNotification } from "../_shared/web-push.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,28 +43,27 @@ async function sendPushNotificationDirect(
     data?: Record<string, any>;
   }
 ): Promise<boolean> {
-  try {
-    // Use Web Push protocol - simplified version without VAPID
-    // For production, you'd want to use web-push library with VAPID keys
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      console.error(`Push notification failed: ${response.status} ${response.statusText}`);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
+  const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
+  const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') || '';
+  const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
+
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.error('❌ VAPID keys not configured');
     return false;
   }
+
+  const result = await sendWebPushNotification(
+    {
+      endpoint: subscription.endpoint,
+      keys: subscription.keys,
+    },
+    JSON.stringify(payload),
+    vapidPublicKey,
+    vapidPrivateKey,
+    `mailto:${vapidEmail}`
+  );
+
+  return result.success;
 }
 
 // Get email template based on priority

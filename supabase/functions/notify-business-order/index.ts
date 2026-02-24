@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendSms, sendWhatsAppTemplate, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
+import { sendWebPushNotification } from "../_shared/web-push.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -340,40 +341,28 @@ async function sendPushNotifications(
 }
 
 async function sendWebPush(subscription: any, payload: any): Promise<boolean> {
-  try {
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+  const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
+  const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') || '';
+  const vapidEmail = Deno.env.get('VAPID_EMAIL') || 'contact@joiedevivre.app';
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error('❌ VAPID keys not configured');
-      return false;
-    }
-
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-        'Urgency': 'high',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Push failed:', response.status, errorText);
-      if (response.status === 404 || response.status === 410) {
-        console.log('📭 Subscription expired, will be marked inactive');
-      }
-      return false;
-    }
-
-    console.log('✅ Push sent successfully to:', subscription.endpoint.substring(0, 50) + '...');
-    return true;
-  } catch (error) {
-    console.error('❌ Error in sendWebPush:', error);
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.error('❌ VAPID keys not configured');
     return false;
   }
+
+  const result = await sendWebPushNotification(
+    subscription,
+    JSON.stringify(payload),
+    vapidPublicKey,
+    vapidPrivateKey,
+    `mailto:${vapidEmail}`
+  );
+
+  if (!result.success && (result.status === 404 || result.status === 410)) {
+    console.log('📭 Subscription expired, will be marked inactive');
+  }
+
+  return result.success;
 }
 
 /**
