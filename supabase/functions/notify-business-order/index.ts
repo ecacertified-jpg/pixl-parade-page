@@ -97,7 +97,15 @@ serve(async (req) => {
       }
     }
     
-    // Fallback: require auth header
+    // Accept DB trigger calls (pg_net sends X-Source header)
+    const source = req.headers.get('X-Source');
+    if (source === 'db-trigger') {
+      console.log('✅ DB trigger call detected via X-Source header');
+      const payload: OrderPayload = await req.json();
+      return await processOrder(payload);
+    }
+
+    // Fallback: require auth header for direct API calls
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
