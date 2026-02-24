@@ -466,7 +466,7 @@ async function createInAppNotification(
         type: 'new_business_order',
         title: 'Nouvelle commande reçue',
         message: `Vous avez reçu une nouvelle commande de ${order.total_amount.toLocaleString()} ${order.currency}${itemCount > 0 ? ` (${itemCount} article${itemCount > 1 ? 's' : ''})` : ''}`,
-        data: {
+        metadata: {
           order_id: order.id,
           business_id: order.business_account_id,
           amount: order.total_amount,
