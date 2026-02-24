@@ -623,7 +623,7 @@ const BusinessAuth = () => {
 
       setCurrentPhone(fullPhone);
       setOtpSent(true);
-      setCountdown(120);
+      setCountdown(300);
       toast({
         title: 'Code envoyé',
         description: `Un code de vérification a été envoyé au ${fullPhone}`,
@@ -662,7 +662,7 @@ const BusinessAuth = () => {
       console.log('✅ [Business WhatsApp OTP] OTP sent successfully');
       setCurrentPhone(fullPhone);
       setOtpSent(true);
-      setCountdown(120);
+      setCountdown(300);
       toast({
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
@@ -991,7 +991,7 @@ const BusinessAuth = () => {
           toast({ title: 'Erreur', description: mapAuthError(error.message), variant: 'destructive' });
           return;
         }
-        setCountdown(120);
+        setCountdown(300);
         toast({ title: 'Code renvoyé', description: `Un nouveau code a été envoyé au ${currentPhone}` });
       } catch (error: any) {
         toast({ title: 'Erreur', description: 'Une erreur s\'est produite', variant: 'destructive' });
@@ -1507,7 +1507,7 @@ const BusinessAuth = () => {
                 )}
               >
                 {countdown > 0
-                  ? `Renvoyer le code dans ${countdown}s`
+                  ? `Renvoyer le code dans ${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, '0')}`
                   : 'Renvoyer le code'}
               </button>
 
