@@ -1,4 +1,5 @@
 
+
 # Ajouter un badge "Via lien de partage" dans Mes Affectations
 
 ## Contexte
@@ -17,28 +18,23 @@ Valeurs possibles : `'manual'` (defaut, pour les affectations existantes et futu
 
 ### 2. Edge Function `admin-auto-assign/index.ts`
 
-Modifier les deux `INSERT` (lignes 95-99 et 115-119) pour ajouter `assigned_via: 'share_link'` dans les donnees inserees.
+Modifier les deux `INSERT` pour ajouter `assigned_via: 'share_link'` dans les donnees inserees :
+- Ligne 95-99 (business assignments) : ajouter le champ
+- Ligne 115-119 (user assignments) : ajouter le champ
 
 ### 3. Edge Function `admin-manage-assignments/index.ts`
 
 Modifier les requetes SELECT du GET (lignes 187 et 191) pour inclure `assigned_via` dans les champs retournes :
-- `select('id, user_id, created_at, assigned_via')` 
+- `select('id, user_id, created_at, assigned_via')`
 - `select('id, business_account_id, created_at, assigned_via')`
 
 ### 4. Frontend `src/pages/Admin/MyAssignments.tsx`
 
-- Ajouter `assigned_via?: string` aux interfaces `UserAssignment` et `BusinessAssignment`
-- Apres le nom de l'utilisateur (ligne ~241) et le nom de l'entreprise (ligne ~349), ajouter conditionnellement :
+- Ajouter `assigned_via?: string` aux interfaces `UserAssignment` (ligne 50) et `BusinessAssignment` (ligne 57)
+- Apres le badge "Suspendu" (ligne ~244), ajouter conditionnellement un badge bleu "Via lien de partage"
+- Apres le nom de l'entreprise (ligne ~349), ajouter le meme badge conditionnellement
 
-```text
-{a.assigned_via === 'share_link' && (
-  <Badge className="bg-blue-500/15 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 h-4">
-    Via lien de partage
-  </Badge>
-)}
-```
-
-Le badge apparaitra en bleu, compact, juste a cote du nom, uniquement pour les affectations faites via un lien de partage.
+Le badge sera compact, en bleu, et n'apparaitra que pour les affectations faites via un lien de partage.
 
 ## Fichiers modifies
 
@@ -46,3 +42,4 @@ Le badge apparaitra en bleu, compact, juste a cote du nom, uniquement pour les a
 2. **`supabase/functions/admin-auto-assign/index.ts`** : ajout `assigned_via: 'share_link'` dans les INSERT
 3. **`supabase/functions/admin-manage-assignments/index.ts`** : ajout `assigned_via` dans les SELECT
 4. **`src/pages/Admin/MyAssignments.tsx`** : interfaces + affichage conditionnel du badge
+
