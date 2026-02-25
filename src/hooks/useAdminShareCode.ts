@@ -126,8 +126,7 @@ export const useAdminShareCode = () => {
 
   const getShareLink = useCallback(() => {
     if (!shareCode) return '';
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vaimfeurvzokepqqqrsl.supabase.co';
-    return `${supabaseUrl}/functions/v1/join-preview/${shareCode.code}`;
+    return `https://joiedevivre-africa.com/join/${shareCode.code}`;
   }, [shareCode]);
 
   return {
