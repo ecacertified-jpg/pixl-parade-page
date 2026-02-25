@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { isCorruptedSessionError, cleanupCorruptedSession } from '@/utils/authErrorHandler';
 
 interface SessionValidationResult {
   valid: boolean;
@@ -69,7 +70,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshSession = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
-      if (error) throw error;
+      if (error) {
+        // Si l'erreur est une session corrompue, nettoyer au lieu de juste reset le state
+        if (isCorruptedSessionError(error)) {
+          console.warn('🧹 Corrupted session detected during refresh, cleaning up...');
+          await cleanupCorruptedSession();
+          setSession(null);
+          setUser(null);
+          return false;
+        }
+        throw error;
+      }
       
       setSession(data.session);
       setUser(data.session?.user ?? null);
@@ -150,6 +161,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, !!session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -163,8 +175,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // THEN check for existing session - with corrupted session detection
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting initial session:', error);
+        if (isCorruptedSessionError(error)) {
+          console.warn('🧹 Corrupted session detected at startup, cleaning up...');
+          await cleanupCorruptedSession();
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);

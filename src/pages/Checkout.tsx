@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { isCorruptedSessionError, cleanupCorruptedSession } from "@/utils/authErrorHandler";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
@@ -107,7 +108,18 @@ export default function Checkout() {
       
       if (error) {
         console.error('Error loading business accounts:', error);
-        // Distinguer les erreurs RLS des erreurs de session
+        // Détecter les sessions corrompues (bad_jwt, missing sub, etc.)
+        if (isCorruptedSessionError(error)) {
+          console.log('🧹 Corrupted session detected in Checkout, cleaning up...');
+          await cleanupCorruptedSession();
+          toast({
+            title: "Session invalide",
+            description: "Votre session était corrompue. Veuillez vous reconnecter.",
+            variant: "destructive"
+          });
+          navigate('/auth');
+          return;
+        }
         if (error.code === '42501' || error.message?.includes('JWT') || error.code === 'PGRST301') {
           console.log('🔒 RLS/Auth error detected, checking if session is truly expired...');
           const { valid: stillValid } = await ensureValidSession();
