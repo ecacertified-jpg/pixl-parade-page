@@ -8,6 +8,7 @@ import {
   createCacheRedirectResponse,
   getCacheClients,
 } from "../_shared/og-cache-utils.ts";
+import { getPoppinsFontConfig } from "../_shared/og-font-loader.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,16 +94,8 @@ Deno.serve(async (req) => {
 
     const displayName = adminName || "un membre";
 
-    // Load Poppins font
-    let fontData: ArrayBuffer;
-    try {
-      const fontResponse = await fetch(
-        "https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2"
-      );
-      fontData = await fontResponse.arrayBuffer();
-    } catch {
-      fontData = new ArrayBuffer(0);
-    }
+    // Load Poppins font (.ttf format compatible with satori)
+    const fonts = await getPoppinsFontConfig();
 
     // Generate OG image
     const imageResponse = new ImageResponse(
@@ -233,9 +226,7 @@ Deno.serve(async (req) => {
       {
         width: 1200,
         height: 630,
-        fonts: fontData.byteLength > 0
-          ? [{ name: "Poppins", data: fontData, style: "normal" as const, weight: 700 }]
-          : [],
+        fonts,
       }
     );
 
