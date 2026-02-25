@@ -952,6 +952,12 @@ const Auth = () => {
             description: 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
           });
           setAuthMode('signin');
+        } else if ((error as any)?.code === 'weak_password' || error.message?.includes('weak') || error.message?.includes('pwned')) {
+          toast({
+            title: 'Mot de passe trop faible',
+            description: 'Ce mot de passe est trop courant ou a été compromis. Choisissez un mot de passe plus unique (ex: mélangez lettres, chiffres et symboles).',
+            variant: 'destructive',
+          });
         } else {
           toast({
             title: 'Erreur d\'inscription',
