@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -362,16 +362,23 @@ const Auth = () => {
       
       console.log('📱 [WhatsApp OTP] Sending OTP to:', fullPhone);
       
-      const { data: result, error } = await supabase.functions.invoke('send-whatsapp-otp', {
-        body: {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/send-whatsapp-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
           phone: fullPhone,
           purpose,
           user_metadata: metadata,
-        },
+        }),
       });
 
-      if (error || !result?.success) {
-        console.error('❌ [WhatsApp OTP] Send error:', error || result?.error);
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        console.error('❌ [WhatsApp OTP] Send error:', result?.error);
         toast({
           title: 'Erreur',
           description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
