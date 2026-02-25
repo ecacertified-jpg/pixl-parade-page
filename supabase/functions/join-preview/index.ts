@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const SITE_URL = "https://joiedevivre-africa.com";
-const OG_IMAGE = `${SITE_URL}/og-image.png`;
+const SUPABASE_URL = "https://vaimfeurvzokepqqqrsl.supabase.co";
 
 const CRAWLER_PATTERNS = [
   "facebookexternalhit",
@@ -32,6 +32,7 @@ function isCrawler(userAgent: string | null): boolean {
 }
 
 function buildOgHtml(code: string, adminName: string): string {
+  const ogImage = `${SUPABASE_URL}/functions/v1/generate-admin-og-image?code=${code}`;
   const title = adminName
     ? `Rejoins Joie de Vivre ! Invité par ${adminName}`
     : "Rejoins Joie de Vivre ! 🎉";
@@ -51,7 +52,7 @@ function buildOgHtml(code: string, adminName: string): string {
   <meta property="og:type" content="website"/>
   <meta property="og:title" content="${title}"/>
   <meta property="og:description" content="${description}"/>
-  <meta property="og:image" content="${OG_IMAGE}"/>
+  <meta property="og:image" content="${ogImage}"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta property="og:url" content="${url}"/>
@@ -62,7 +63,7 @@ function buildOgHtml(code: string, adminName: string): string {
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="${title}"/>
   <meta name="twitter:description" content="${description}"/>
-  <meta name="twitter:image" content="${OG_IMAGE}"/>
+  <meta name="twitter:image" content="${ogImage}"/>
 
   <!-- hreflang -->
   <link rel="alternate" hreflang="fr-CI" href="${url}"/>
@@ -84,7 +85,7 @@ function buildOgHtml(code: string, adminName: string): string {
     name: title,
     description,
     url,
-    image: OG_IMAGE,
+    image: ogImage,
     publisher: {
       "@type": "Organization",
       name: "Joie de Vivre",

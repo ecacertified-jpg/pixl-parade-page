@@ -230,3 +230,6 @@ verify_jwt = false
 
 [functions.join-preview]
 verify_jwt = false
+
+[functions.generate-admin-og-image]
+verify_jwt = false
