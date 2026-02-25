@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cleanupCorruptedSession } from "@/utils/authErrorHandler";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { useBusinessAnalytics } from "@/hooks/useBusinessAnalytics";
 
@@ -24,19 +25,15 @@ export const BusinessProfileDropdown = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      
-      toast({
-        title: "Déconnexion réussie",
-        description: "À bientôt sur JOIE DE VIVRE !"
-      });
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (error) {
       console.error('Sign out error:', error);
+      await cleanupCorruptedSession();
+    } finally {
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt sur JOIE DE VIVRE !"
       });
-    } finally {
       navigate("/auth", { replace: true });
     }
   };
