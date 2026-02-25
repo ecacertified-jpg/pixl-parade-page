@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cleanupCorruptedSession } from "@/utils/authErrorHandler";
 import { EditBioModal } from "@/components/EditBioModal";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ModeSwitcher } from "@/components/ModeSwitcher";
@@ -61,22 +62,16 @@ export const ProfileDropdown = () => {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
-      
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      await cleanupCorruptedSession();
+    } finally {
       toast({
         title: "Déconnexion réussie",
         description: "À bientôt sur JOIE DE VIVRE !"
       });
-      
       navigate("/auth", { replace: true });
-    } catch (error) {
-      console.error('Sign out error:', error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la déconnexion",
-        variant: "destructive"
-      });
     }
   };
 
