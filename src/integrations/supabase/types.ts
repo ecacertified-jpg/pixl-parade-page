@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           admin_user_id: string
           assigned_by: string
+          assigned_via: string | null
           business_account_id: string
           created_at: string
           id: string
@@ -85,6 +86,7 @@ export type Database = {
         Insert: {
           admin_user_id: string
           assigned_by: string
+          assigned_via?: string | null
           business_account_id: string
           created_at?: string
           id?: string
@@ -92,6 +94,7 @@ export type Database = {
         Update: {
           admin_user_id?: string
           assigned_by?: string
+          assigned_via?: string | null
           business_account_id?: string
           created_at?: string
           id?: string
@@ -500,6 +503,7 @@ export type Database = {
         Row: {
           admin_user_id: string
           assigned_by: string
+          assigned_via: string | null
           created_at: string
           id: string
           user_id: string
@@ -507,6 +511,7 @@ export type Database = {
         Insert: {
           admin_user_id: string
           assigned_by: string
+          assigned_via?: string | null
           created_at?: string
           id?: string
           user_id: string
@@ -514,6 +519,7 @@ export type Database = {
         Update: {
           admin_user_id?: string
           assigned_by?: string
+          assigned_via?: string | null
           created_at?: string
           id?: string
           user_id?: string

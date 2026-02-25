@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
         admin_user_id: adminUser.id,
         business_account_id: business.id,
         assigned_by: adminUser.user_id,
+        assigned_via: 'share_link',
       });
     } else {
       // Check exclusivity - user not already assigned
@@ -116,6 +117,7 @@ Deno.serve(async (req) => {
         admin_user_id: adminUser.id,
         user_id: user_id,
         assigned_by: adminUser.user_id,
+        assigned_via: 'share_link',
       });
     }
 

@@ -184,11 +184,11 @@ Deno.serve(async (req) => {
       const [userAssignments, businessAssignments] = await Promise.all([
         supabaseAdmin
           .from('admin_user_assignments')
-          .select('id, user_id, created_at')
+          .select('id, user_id, created_at, assigned_via')
           .eq('admin_user_id', adminId),
         supabaseAdmin
           .from('admin_business_assignments')
-          .select('id, business_account_id, created_at')
+          .select('id, business_account_id, created_at, assigned_via')
           .eq('admin_user_id', adminId),
       ]);
 
