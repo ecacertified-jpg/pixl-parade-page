@@ -227,3 +227,6 @@ verify_jwt = false
 
 [functions.check-friends-circle-reminders]
 verify_jwt = false
+
+[functions.join-preview]
+verify_jwt = false
