@@ -1,81 +1,56 @@
 
-### Diagnostic précis (à partir de ta capture)
-L’erreur a changé, ce qui confirme que la config est presque bonne mais avec un **mauvais chemin** :
+### Ce que montre ta capture
+- Le bloc d’erreur rouge en haut correspond à une **ancienne tentative** (avant le `git pull`).
+- Après le `git pull`, ton nouveau déploiement affiche :
+  - `Uploading asset ...`
+  - `Deployed Functions on project ... : generate-admin-og-image`
+- Donc le problème d’`entrypoint` est bien corrigé côté déploiement.
 
-1. Avant : le CLI cherchait `supabase/functions/generate-admin-og-image/index.ts` (comportement par défaut).
-2. Maintenant : il cherche `supabase/index.tsx`.
+### Diagnostic complémentaire (vérification backend)
+J’ai vérifié les logs de la fonction `generate-admin-og-image` et il y a maintenant une erreur runtime :
+- `Unsupported OpenType signature wOF2`
+- Cause : `og_edge/satori` n’accepte pas la police `.woff2` utilisée actuellement.
 
-Donc `entrypoint = "./index.tsx"` est interprété **relatif à `supabase/config.toml`**, pas au dossier de la fonction.  
-Il faut pointer vers le fichier complet de la fonction.
-
----
-
-### Correction à appliquer
-Dans `supabase/config.toml`, bloc :
-
-```toml
-[functions.generate-admin-og-image]
-verify_jwt = false
-entrypoint = "./index.tsx"
-```
-
-à remplacer par :
-
-```toml
-[functions.generate-admin-og-image]
-verify_jwt = false
-entrypoint = "./functions/generate-admin-og-image/index.tsx"
-```
+Concrètement :
+- Le déploiement passe
+- Mais l’appel de la fonction peut renvoyer `500 Error generating image` tant que la police reste en `.woff2`.
 
 ---
 
-### Déploiement manuel étape par étape (Windows)
-1. Ouvre un terminal à la racine du projet :
-```bash
-cd C:\Users\FLORENTIN\pixl-parade-page
-```
+### Plan d’action proposé
 
-2. Vérifie rapidement que le fichier existe :
-```bash
-dir supabase\functions\generate-admin-og-image\index.tsx
-```
+#### 1) Finaliser le déploiement fonctionnel
+- Déployer aussi `join-preview` (si pas déjà fait).
+- Vérifier que `join-preview` pointe bien vers `generate-admin-og-image?code=...` dans les balises OG.
 
-3. Modifie `supabase/config.toml` avec le chemin corrigé ci-dessus, puis sauvegarde.
+#### 2) Corriger le crash de génération d’image OG
+- Remplacer la police distante `.woff2` par une police supportée par `satori` (`.ttf` ou `.otf`) **ou** désactiver temporairement l’injection de police custom.
+- Garder un fallback robuste : si chargement police échoue, générer quand même l’image sans police custom (pour éviter tout `500`).
 
-4. Déploie la fonction image :
-```bash
-npx supabase functions deploy generate-admin-og-image --project-ref vaimfeurvzokepqqqrsl
-```
+#### 3) Appliquer la même robustesse aux autres fonctions OG
+Les fonctions suivantes utilisent aussi la même URL `.woff2` et risquent le même crash :
+- `generate-og-image`
+- `generate-fund-og-image`
+- `generate-business-og-image`
+- `generate-admin-og-image`
 
-5. Déploie ensuite `join-preview` :
-```bash
-npx supabase functions deploy join-preview --project-ref vaimfeurvzokepqqqrsl
-```
-
----
-
-### Vérification après déploiement
-1. Tester l’HTML crawler (meta OG) :
-```bash
-curl -i -H "User-Agent: WhatsApp" "https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/join-preview/ADM-RW3R"
-```
-Tu dois voir `og:image` pointant vers `generate-admin-og-image?code=ADM-RW3R`.
-
-2. Tester l’image OG directe :
-```bash
-curl -I "https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/generate-admin-og-image?code=ADM-RW3R"
-```
-Tu dois obtenir `200` (ou `302` vers cache), avec `Content-Type: image/png`.
+#### 4) Vérification de bout en bout
+- Tester l’endpoint image directement (`generate-admin-og-image?code=...`) :
+  - attendu : `200` ou `302` vers cache, jamais `500`
+- Tester `join-preview/<code>` avec user-agent crawler :
+  - attendu : HTML avec `og:image` dynamique
+- Tester un vrai partage (WhatsApp/Facebook) pour confirmer l’aperçu riche.
 
 ---
 
-### Si l’erreur persiste malgré le bon chemin
-1. Vérifie la version CLI (entrypoint custom supporté en CLI récente) :
-```bash
-npx supabase --version
-```
-2. Relance avec debug :
-```bash
-npx supabase functions deploy generate-admin-og-image --project-ref vaimfeurvzokepqqqrsl --debug
-```
-3. Colle-moi la sortie complète `--debug` et je te donne la correction exacte immédiatement.
+### Détails techniques (section technique)
+- Fichier de config déjà correct :
+  - `supabase/config.toml`
+  - `entrypoint = "./functions/generate-admin-og-image/index.tsx"`
+- Le correctif principal n’est plus dans `config.toml`, mais dans le rendu OG (gestion de police compatible `og_edge`).
+- Idéalement, centraliser le chargement de police dans un helper partagé pour éviter les divergences entre fonctions OG.
+
+### Critères de succès
+- Aucun `500` dans les logs `generate-admin-og-image`
+- `join-preview` sert bien les meta tags OG dynamiques
+- L’aperçu de partage affiche la carte personnalisée (nom admin / branding)
