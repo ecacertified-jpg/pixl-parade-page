@@ -51,6 +51,7 @@ interface UserAssignment {
   id: string;
   user_id: string;
   created_at: string;
+  assigned_via?: string;
   profile?: UserProfile;
 }
 
@@ -58,6 +59,7 @@ interface BusinessAssignment {
   id: string;
   business_account_id: string;
   created_at: string;
+  assigned_via?: string;
   business?: BusinessDetail;
 }
 
@@ -242,6 +244,9 @@ const MyAssignments = () => {
                                     {a.profile?.is_suspended && (
                                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Suspendu</Badge>
                                     )}
+                                    {a.assigned_via === 'share_link' && (
+                                      <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0 h-4">Via lien de partage</Badge>
+                                    )}
                                   </div>
                                 </div>
                               </TableCell>
@@ -346,7 +351,12 @@ const MyAssignments = () => {
                                   <AvatarImage src={a.business?.logo_url || undefined} />
                                   <AvatarFallback className="text-xs">{a.business?.business_name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                                 </Avatar>
-                                <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                <div>
+                                  <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                  {a.assigned_via === 'share_link' && (
+                                    <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0 h-4">Via lien de partage</Badge>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
