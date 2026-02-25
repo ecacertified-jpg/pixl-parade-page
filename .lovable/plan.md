@@ -1,53 +1,55 @@
 
-# Barre de progression circulaire autour du timer OTP
 
-## Concept
+# Corriger l'inscription par email : gestion du mot de passe faible
 
-Remplacer le simple texte "Renvoyer dans 4:59" par un composant visuel avec un cercle SVG animé qui se vide progressivement sur 5 minutes, avec le timer affiche au centre. Quand le decompte atteint 0, le cercle disparait et le bouton "Renvoyer le code" redevient cliquable.
+## Diagnostic
 
-## Composant a creer
+J'ai teste le flow d'inscription par email et identifie le probleme exact :
 
-### `src/components/auth/OtpCountdownCircle.tsx`
+Supabase Auth rejette les mots de passe compromis (presents dans des bases de donnees de fuites). L'API retourne une erreur **422** avec le code `weak_password` et la raison `"pwned"`. Le message d'erreur est en anglais : *"Password is known to be weak and easy to guess, please choose a different one."*
 
-Un composant reutilisable qui affiche :
-- Un cercle SVG (50px de diametre) avec un trait de progression qui diminue de 100% a 0%
-- Le timer en format `m:ss` au centre du cercle
-- Couleur primaire (violet) pour la progression, muted pour le fond du cercle
-- Quand le countdown atteint 0 : afficher le bouton "Renvoyer le code" a la place
+**Probleme** : ce code d'erreur n'est pas intercepte dans le code. Il tombe dans le `else` generique qui affiche `error.message` tel quel, en anglais, sans explication claire pour l'utilisateur.
 
-Props :
-- `countdown: number` (secondes restantes)
-- `total: number` (duree totale, 300)
-- `onResend: () => void`
-- `disabled: boolean`
+## Solution
 
-Le cercle utilise `stroke-dasharray` et `stroke-dashoffset` sur un `<circle>` SVG, avec une transition CSS fluide.
+Ajouter une gestion specifique de l'erreur `weak_password` dans les deux pages d'inscription, avec un message en francais clair et actionnable.
 
-## Fichiers impactes
+### 1. `src/pages/Auth.tsx` - fonction `handleEmailSignUp` (lignes ~948-962)
 
-1. **`src/components/auth/OtpCountdownCircle.tsx`** (nouveau) : composant cercle + timer
-2. **`src/pages/Auth.tsx`** : remplacer le bouton texte "Renvoyer dans X:XX" par `<OtpCountdownCircle />`
-3. **`src/pages/BusinessAuth.tsx`** : meme remplacement
+Ajouter un cas pour `weak_password` avant le `else` generique :
 
-## Rendu visuel
-
-```text
-        ╭───────╮
-       ╱  4:32   ╲       <-- cercle avec progression
-      │           │           qui diminue dans le sens
-       ╲         ╱            horaire
-        ╰───────╯
-    Renvoyer le code      <-- texte sous le cercle
-    (grise tant que > 0)
+```
+if (error.message?.includes('User already registered') || ...) {
+  // ... existant
+} else if ((error as any)?.code === 'weak_password') {
+  toast({
+    title: 'Mot de passe trop faible',
+    description: 'Ce mot de passe est trop courant ou a ete compromis. Choisissez un mot de passe plus unique (ex: melangez lettres, chiffres et symboles).',
+    variant: 'destructive',
+  });
+} else {
+  // ... existant
+}
 ```
 
-Quand le timer atteint 0, le cercle disparait et le bouton "Renvoyer le code" devient actif avec la couleur primaire.
+### 2. `src/pages/BusinessAuth.tsx` - fonction `handleEmailSignUp` (lignes ~1162-1172)
 
-## Details techniques
+Meme ajout du cas `weak_password` dans la gestion d'erreur.
 
-- Cercle SVG : rayon 22px, stroke-width 3px, viewBox 50x50
-- `stroke-dasharray = 2 * PI * rayon` (perimetre)
-- `stroke-dashoffset = perimetre * (1 - countdown / total)` pour vider le cercle
-- Transition CSS `stroke-dashoffset 1s linear` pour un mouvement fluide
-- Couleurs : `stroke` en `hsl(var(--primary))` pour la progression, `hsl(var(--muted))` pour le fond
-- Le bouton "Modifier le numero" reste inchange en dessous
+### 3. (Optionnel) Validation pre-soumission
+
+Ajouter une validation Zod renforcee dans `emailSignUpSchema` pour guider l'utilisateur avant meme de soumettre :
+- Exiger au moins une lettre majuscule, une minuscule, un chiffre et un caractere special
+- Afficher les criteres sous le champ mot de passe en temps reel
+
+## Impact
+
+- Aucune modification backend
+- L'utilisateur verra un message clair en francais expliquant pourquoi son mot de passe est refuse
+- Les autres erreurs continuent d'etre gerees normalement
+
+## Fichiers modifies
+
+1. `src/pages/Auth.tsx` : ajout gestion `weak_password`
+2. `src/pages/BusinessAuth.tsx` : ajout gestion `weak_password`
+
