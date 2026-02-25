@@ -1,45 +1,91 @@
 
+# Previsualisation Open Graph pour les liens de partage Admin
 
-# Ajouter un badge "Via lien de partage" dans Mes Affectations
+## Objectif
 
-## Contexte
+Quand un lien `/join/ADM-XXXX` est partage sur WhatsApp, Facebook, Twitter, etc., les reseaux sociaux afficheront une carte riche avec un titre, une description et une image au lieu d'un lien brut.
 
-Les tables `admin_user_assignments` et `admin_business_assignments` n'ont pas de colonne pour distinguer les affectations manuelles des affectations automatiques via lien de partage. Il faut ajouter cette information a la source, puis l'afficher dans l'interface.
+## Architecture
+
+Le meme pattern que `fund-preview` et `product-preview` sera utilise :
+
+```text
+Reseau social crawle le lien
+         |
+         v
+  join-preview (Edge Function)
+         |
+    +----+----+
+    |         |
+ Crawler   Navigateur
+    |         |
+    v         v
+  HTML OG    302 redirect
+  meta tags  vers /join/:code
+```
 
 ## Modifications
 
-### 1. Migration SQL : ajouter une colonne `assigned_via`
+### 1. Nouvelle Edge Function : `supabase/functions/join-preview/index.ts`
 
-Ajouter une colonne `assigned_via TEXT DEFAULT 'manual'` aux deux tables :
-- `admin_user_assignments`
-- `admin_business_assignments`
+- Extrait le code admin depuis l'URL (`/join-preview/ADM-XXXX`)
+- Requete la table `admin_share_codes` pour verifier que le code est actif
+- Recupere le nom de l'admin via `admin_users` + `profiles` (pour personnaliser : "Invite par [Nom]")
+- Si crawler : retourne du HTML avec les meta tags OG :
+  - **og:title** : "Rejoins Joie de Vivre ! Invite par [Nom Admin]"
+  - **og:description** : "Celebrez les moments heureux avec vos proches. Offrez et recevez des cadeaux collectifs en Cote d'Ivoire."
+  - **og:image** : Image OG statique par defaut (`/og-image.png`) ou une image personnalisee
+  - **og:url** : `https://joiedevivre-africa.com/join/ADM-XXXX`
+  - Plus Twitter Card, hreflang, Schema.org
+- Si navigateur normal : redirection 302 vers `/join/:code`
 
-Valeurs possibles : `'manual'` (defaut, pour les affectations existantes et futures manuelles) et `'share_link'` (pour les auto-affectations via lien de partage).
+### 2. Configuration : `supabase/config.toml`
 
-### 2. Edge Function `admin-auto-assign/index.ts`
+Ajouter :
+```toml
+[functions.join-preview]
+verify_jwt = false
+```
 
-Modifier les deux `INSERT` pour ajouter `assigned_via: 'share_link'` dans les donnees inserees :
-- Ligne 95-99 (business assignments) : ajouter le champ
-- Ligne 115-119 (user assignments) : ajouter le champ
+Car les crawlers n'envoient pas de JWT.
 
-### 3. Edge Function `admin-manage-assignments/index.ts`
+### 3. Mise a jour du lien de partage : `src/hooks/useAdminShareCode.ts`
 
-Modifier les requetes SELECT du GET (lignes 187 et 191) pour inclure `assigned_via` dans les champs retournes :
-- `select('id, user_id, created_at, assigned_via')`
-- `select('id, business_account_id, created_at, assigned_via')`
+Modifier `getShareLink()` pour pointer vers l'Edge Function au lieu de `/join/:code` directement :
 
-### 4. Frontend `src/pages/Admin/MyAssignments.tsx`
+```
+Avant : https://joiedevivre-africa.com/join/ADM-XXXX
+Apres : https://[supabase-url]/functions/v1/join-preview/ADM-XXXX
+```
 
-- Ajouter `assigned_via?: string` aux interfaces `UserAssignment` (ligne 50) et `BusinessAssignment` (ligne 57)
-- Apres le badge "Suspendu" (ligne ~244), ajouter conditionnellement un badge bleu "Via lien de partage"
-- Apres le nom de l'entreprise (ligne ~349), ajouter le meme badge conditionnellement
+Cela garantit que les crawlers passent par l'Edge Function (qui retourne les meta OG), tandis que les navigateurs sont rediriges vers la page `/join/:code` existante.
 
-Le badge sera compact, en bleu, et n'apparaitra que pour les affectations faites via un lien de partage.
+### 4. Mise a jour du message de partage : `src/components/admin/AdminShareMenu.tsx`
 
-## Fichiers modifies
+Le message de partage utilisera automatiquement le nouveau lien car il recoit `shareLink` en prop depuis `useAdminShareCode`.
 
-1. **Nouvelle migration SQL** : ajout colonne `assigned_via` aux deux tables
-2. **`supabase/functions/admin-auto-assign/index.ts`** : ajout `assigned_via: 'share_link'` dans les INSERT
-3. **`supabase/functions/admin-manage-assignments/index.ts`** : ajout `assigned_via` dans les SELECT
-4. **`src/pages/Admin/MyAssignments.tsx`** : interfaces + affichage conditionnel du badge
+## Detail technique de l'Edge Function
 
+```text
+1. Parse le code depuis l'URL
+2. SELECT admin_share_codes.admin_user_id WHERE code = :code AND is_active = true
+3. JOIN admin_users.user_id -> profiles.first_name, profiles.last_name
+4. Si crawler -> HTML avec OG meta tags + redirect meta pour les humains
+5. Si navigateur -> 302 vers /join/:code sur joiedevivre-africa.com
+```
+
+## Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/join-preview/index.ts` | Creer |
+| `supabase/config.toml` | Ajouter config JWT |
+| `src/hooks/useAdminShareCode.ts` | Modifier `getShareLink()` |
+
+## Resultat attendu
+
+Quand un admin partage son lien sur WhatsApp ou Facebook, les utilisateurs verront une carte avec :
+- Le logo / image de Joie de Vivre
+- Le titre "Rejoins Joie de Vivre !"
+- Une description engageante mentionnant l'invitation
+- Un lien cliquable qui redirige vers la page d'inscription
