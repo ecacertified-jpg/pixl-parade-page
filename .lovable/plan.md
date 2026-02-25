@@ -1,91 +1,81 @@
 
-# Previsualisation Open Graph pour les liens de partage Admin
 
-## Objectif
+## Image OG dynamique pour les liens admin
 
-Quand un lien `/join/ADM-XXXX` est partage sur WhatsApp, Facebook, Twitter, etc., les reseaux sociaux afficheront une carte riche avec un titre, une description et une image au lieu d'un lien brut.
+### Objectif
+Remplacer l'image OG statique (`og-image.png`) dans la fonction `join-preview` par une image generee dynamiquement qui affiche le nom de l'admin invitant et le branding Joie de Vivre.
 
-## Architecture
+### Fonctionnement actuel
+- La fonction `join-preview` renvoie du HTML avec `og:image` pointant vers une image statique (`https://joiedevivre-africa.com/og-image.png`)
+- Le projet dispose deja d'un systeme de generation d'images OG (`generate-og-image`) avec cache (`og-cache-utils.ts`) et stockage dans le bucket `og-images-cache`
 
-Le meme pattern que `fund-preview` et `product-preview` sera utilise :
-
-```text
-Reseau social crawle le lien
-         |
-         v
-  join-preview (Edge Function)
-         |
-    +----+----+
-    |         |
- Crawler   Navigateur
-    |         |
-    v         v
-  HTML OG    302 redirect
-  meta tags  vers /join/:code
-```
-
-## Modifications
-
-### 1. Nouvelle Edge Function : `supabase/functions/join-preview/index.ts`
-
-- Extrait le code admin depuis l'URL (`/join-preview/ADM-XXXX`)
-- Requete la table `admin_share_codes` pour verifier que le code est actif
-- Recupere le nom de l'admin via `admin_users` + `profiles` (pour personnaliser : "Invite par [Nom]")
-- Si crawler : retourne du HTML avec les meta tags OG :
-  - **og:title** : "Rejoins Joie de Vivre ! Invite par [Nom Admin]"
-  - **og:description** : "Celebrez les moments heureux avec vos proches. Offrez et recevez des cadeaux collectifs en Cote d'Ivoire."
-  - **og:image** : Image OG statique par defaut (`/og-image.png`) ou une image personnalisee
-  - **og:url** : `https://joiedevivre-africa.com/join/ADM-XXXX`
-  - Plus Twitter Card, hreflang, Schema.org
-- Si navigateur normal : redirection 302 vers `/join/:code`
-
-### 2. Configuration : `supabase/config.toml`
-
-Ajouter :
-```toml
-[functions.join-preview]
-verify_jwt = false
-```
-
-Car les crawlers n'envoient pas de JWT.
-
-### 3. Mise a jour du lien de partage : `src/hooks/useAdminShareCode.ts`
-
-Modifier `getShareLink()` pour pointer vers l'Edge Function au lieu de `/join/:code` directement :
-
-```
-Avant : https://joiedevivre-africa.com/join/ADM-XXXX
-Apres : https://[supabase-url]/functions/v1/join-preview/ADM-XXXX
-```
-
-Cela garantit que les crawlers passent par l'Edge Function (qui retourne les meta OG), tandis que les navigateurs sont rediriges vers la page `/join/:code` existante.
-
-### 4. Mise a jour du message de partage : `src/components/admin/AdminShareMenu.tsx`
-
-Le message de partage utilisera automatiquement le nouveau lien car il recoit `shareLink` en prop depuis `useAdminShareCode`.
-
-## Detail technique de l'Edge Function
+### Architecture de la solution
 
 ```text
-1. Parse le code depuis l'URL
-2. SELECT admin_share_codes.admin_user_id WHERE code = :code AND is_active = true
-3. JOIN admin_users.user_id -> profiles.first_name, profiles.last_name
-4. Si crawler -> HTML avec OG meta tags + redirect meta pour les humains
-5. Si navigateur -> 302 vers /join/:code sur joiedevivre-africa.com
+Crawler (WhatsApp/Facebook)
+    |
+    v
+join-preview (HTML avec og:image)
+    |
+    og:image --> generate-admin-og-image?code=ADM-XXXX
+                    |
+                    v
+              Verifie le cache (og_image_cache_metadata)
+                    |
+              Cache hit? --> Redirige vers image en cache
+                    |
+              Cache miss? --> Genere l'image avec og_edge
+                    |           (nom admin + logo + branding)
+                    v
+              Stocke dans og-images-cache bucket
+                    |
+                    v
+              Retourne image PNG 1200x630
 ```
 
-## Fichiers concernes
+### Etapes d'implementation
 
+#### 1. Creer la nouvelle Edge Function `generate-admin-og-image`
+
+Nouveau fichier : `supabase/functions/generate-admin-og-image/index.tsx`
+
+- Accepte un parametre `?code=ADM-XXXX`
+- Recupere le nom de l'admin via les tables `admin_share_codes` > `admin_users` > `profiles`
+- Recupere l'avatar de l'admin depuis `profiles.avatar_url` (optionnel)
+- Genere une image 1200x630 avec `og_edge` (meme librairie que `generate-og-image`)
+- Utilise le systeme de cache existant (`og-cache-utils.ts`)
+- Design de l'image :
+  - Fond gradient violet/rose (couleurs Joie de Vivre)
+  - Emoji cadeau et logo "JOIE DE VIVRE" en haut
+  - Texte principal : "Rejoins-nous !" en grand
+  - Sous-texte : "Invite par [Nom Admin]"
+  - Avatar de l'admin (cercle) si disponible
+  - Footer : "joiedevivre-africa.com"
+  - Police Poppins (meme que les autres OG images)
+
+#### 2. Modifier `join-preview` pour pointer vers l'image dynamique
+
+Dans `supabase/functions/join-preview/index.ts` :
+- Remplacer la constante `OG_IMAGE` statique par l'URL de la nouvelle fonction :
+  `${supabaseUrl}/functions/v1/generate-admin-og-image?code=${code}`
+- Cela permet aux crawlers de recevoir le lien vers l'image dynamique dans les meta tags
+
+#### 3. Mettre a jour le type `entityType` dans `og-cache-utils.ts`
+
+- Ajouter `"admin"` au type union existant (`"product" | "fund" | "business"`) pour supporter le cache des images admin
+
+### Details techniques
+
+**Cache** : Le hash est base sur le nom de l'admin et son avatar. L'image ne sera regeneree que si ces donnees changent. Duree de cache : 7 jours.
+
+**Fallback** : Si le code admin est invalide ou l'admin introuvable, l'image affichera un design generique sans nom (similaire au comportement actuel du titre).
+
+**Deploiement** : La fonction `generate-admin-og-image` sera deployee automatiquement par Lovable. La fonction `join-preview` necessitera un re-deploiement manuel via CLI comme precedemment.
+
+### Fichiers modifies
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/join-preview/index.ts` | Creer |
-| `supabase/config.toml` | Ajouter config JWT |
-| `src/hooks/useAdminShareCode.ts` | Modifier `getShareLink()` |
+| `supabase/functions/generate-admin-og-image/index.tsx` | Creer - Nouvelle Edge Function |
+| `supabase/functions/join-preview/index.ts` | Modifier - Pointer og:image vers la fonction dynamique |
+| `supabase/functions/_shared/og-cache-utils.ts` | Modifier - Ajouter "admin" au type entityType |
 
-## Resultat attendu
-
-Quand un admin partage son lien sur WhatsApp ou Facebook, les utilisateurs verront une carte avec :
-- Le logo / image de Joie de Vivre
-- Le titre "Rejoins Joie de Vivre !"
-- Une description engageante mentionnant l'invitation
-- Un lien cliquable qui redirige vers la page d'inscription
