@@ -211,7 +211,8 @@ async function processOrder(payload: OrderPayload) {
       customerName,
       firstItemName,
       order.total_amount,
-      order.currency
+      order.currency,
+      order.id
     );
   }
 
@@ -496,7 +497,8 @@ async function sendGiftBeneficiaryNotification(
   senderName: string,
   productName: string,
   totalAmount: number,
-  currency: string
+  currency: string,
+  orderId: string
 ): Promise<boolean> {
   try {
     const formattedAmount = totalAmount.toLocaleString('fr-FR');
@@ -506,7 +508,8 @@ async function sendGiftBeneficiaryNotification(
       beneficiaryPhone,
       'joiedevivre_gift_order',
       'fr',
-      [senderName, productName, formattedAmount]
+      [senderName, productName, formattedAmount],
+      [orderId]
     );
 
     if (result.success) {
