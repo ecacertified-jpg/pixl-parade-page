@@ -1,39 +1,44 @@
 
 
-## Modifier notify-business-fund-friends pour notifier aussi les contacts
+## Liaison automatique des contacts a l'inscription
 
-### Contexte
+### Objectif
 
-Actuellement, la fonction ne notifie que les amis via `contact_relationships` (utilisateurs avec un compte). Les contacts du carnet d'adresses de Francoise (table `contacts`) ont des numeros de telephone mais pas de `linked_user_id`, donc ils sont ignores.
+Quand un utilisateur s'inscrit avec un numero de telephone, le systeme verifie automatiquement si ce numero existe dans la table `contacts` d'autres utilisateurs. Si oui, il cree les `contact_relationships` correspondantes et met a jour le `linked_user_id` du contact.
 
-### Modification
+### Approche
 
-**Fichier** : `supabase/functions/notify-business-fund-friends/index.ts`
+Modifier la fonction `handle_new_user()` (trigger sur `auth.users` AFTER INSERT) pour ajouter un bloc supplementaire apres la creation du profil.
 
-Apres le bloc existant d'envoi WhatsApp aux amis `contact_relationships` (ligne 143-166), ajouter un second bloc qui :
+### Logique ajoutee dans handle_new_user()
 
-1. **Recupere les contacts** de la table `contacts` pour le `beneficiary_user_id` qui ont un numero de telephone
-2. **Deduplique** : exclut les numeros deja notifies via `contact_relationships` (pour eviter les doublons, par exemple Florentin qui est dans les deux tables)
-3. **Envoie le template WhatsApp** `joiedevivre_group_contribution` a chaque contact avec telephone, en utilisant leur `name` comme prenom
+```text
+1. Recuperer le phone_number du nouvel utilisateur (deja fait)
+2. Si phone_number n'est pas NULL :
+   a. Chercher tous les contacts avec un numero correspondant
+      (comparaison sur les 8 derniers chiffres, comme dans notify-contact-added)
+   b. Pour chaque contact trouve :
+      - Mettre a jour contacts.linked_user_id = NEW.id
+      - Inserer dans contact_relationships (user_a = contact.user_id, user_b = NEW.id)
+        avec ON CONFLICT DO NOTHING (contrainte unique_relationship existante)
+        et les permissions can_see_events = true, can_see_funds = true
+```
 
-### Logique de deduplication
+### Normalisation des numeros
 
-- Collecter tous les numeros de telephone deja envoyes via les `friendProfiles`
-- Pour chaque contact de la table `contacts`, verifier que son numero n'est pas deja dans la liste
-- Utiliser `formatPhoneForTwilio` pour normaliser les numeros avant comparaison
+La comparaison se fait sur les 8 derniers chiffres (apres suppression des caracteres non-numeriques) pour gerer les variations de format (+225 07..., 07..., etc.).
 
-### Changements dans la reponse
+### Securite
 
-- Ajouter `contacts_whatsapp_sent` au JSON de retour pour distinguer les deux sources
-- Mettre a jour le log final pour inclure les deux compteurs
+- La fonction est deja `SECURITY DEFINER`, donc elle a les droits necessaires pour ecrire dans `contacts` et `contact_relationships`
+- `ON CONFLICT DO NOTHING` evite les doublons si la relation existe deja
+- Le bloc est enveloppe dans un `BEGIN ... EXCEPTION` pour ne jamais bloquer l'inscription
 
-### Suppression du early return
+### Migration SQL
 
-Le `return` actuel quand `contact_relationships` est vide (ligne 70-79) sera supprime, car meme sans amis dans cette table, il peut y avoir des contacts a notifier.
+Un seul fichier de migration qui fait `CREATE OR REPLACE FUNCTION public.handle_new_user()` en reprenant le corps actuel et ajoutant le nouveau bloc apres l'insertion dans `user_reciprocity_preferences`.
 
-### Details techniques
+### Pas de modification frontend
 
-- Import supplementaire de `formatPhoneForTwilio` depuis `_shared/sms-sender.ts`
-- Pas de modification de schema necessaire
-- La fonction sera re-deployee automatiquement
+Tout se passe cote base de donnees, transparent pour l'utilisateur.
 
