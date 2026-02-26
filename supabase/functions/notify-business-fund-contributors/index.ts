@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { sendWhatsAppTemplate } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -185,10 +186,44 @@ serve(async (req) => {
 
     console.log(`Successfully created ${notifications.length} notifications`);
 
+    // Send WhatsApp template to friends with phone numbers (only on fund creation)
+    let whatsappSentCount = 0;
+    if (notification_type === 'created') {
+      // Get friends' phone numbers
+      const { data: friendProfiles } = await supabaseClient
+        .from('profiles')
+        .select('user_id, first_name, phone')
+        .in('user_id', friendIds);
+
+      const formattedTarget = fund?.target_amount?.toLocaleString('fr-FR') || '0';
+
+      for (const friend of (friendProfiles || [])) {
+        if (!friend.phone) continue;
+        try {
+          const result = await sendWhatsAppTemplate(
+            friend.phone,
+            'joiedevivre_group_contribution',
+            'fr',
+            [
+              friend.first_name || 'Ami(e)',
+              beneficiaryName,
+              formattedTarget,
+              productName
+            ]
+          );
+          if (result.success) whatsappSentCount++;
+        } catch (e) {
+          console.error(`WhatsApp send error for ${friend.user_id}:`, e);
+        }
+      }
+      console.log(`📤 WhatsApp group contribution sent to ${whatsappSentCount} friends`);
+    }
+
     return new Response(
       JSON.stringify({ 
         message: `Notifications sent to ${friendIds.length} friends`,
-        notification_count: friendIds.length
+        notification_count: friendIds.length,
+        whatsapp_sent: whatsappSentCount
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
