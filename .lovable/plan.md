@@ -1,79 +1,78 @@
 
-## Dashboard Monitoring Delivrabilite WhatsApp vs SMS
+## Correction du double envoi SMS+WhatsApp dans notify-contact-added
 
-### Contexte
+### Probleme identifie
 
-Les donnees de delivrabilite sont principalement stockees dans la table `birthday_contact_alerts` qui enregistre chaque envoi avec le canal (`whatsapp`/`sms`), le statut (`sent`/`failed`), le type d'alerte, le message d'erreur et le timestamp. Actuellement, 142 envois WhatsApp (sent) et 1 SMS (failed) sont enregistres. La table `whatsapp_otp_codes` couvre uniquement les OTP et a deja son propre dashboard.
+La fonction `notify-contact-added` envoie SMS et WhatsApp **en parallele** pour les numeros +225 (Cote d'Ivoire) et +221 (Senegal). Le contact recoit donc deux messages identiques a chaque ajout.
 
-### Architecture
+Les pays Benin, Togo, Mali et Burkina Faso ne sont pas affectes car leur SMS est marque `unavailable`.
 
-Creer une nouvelle page admin `/admin/messaging-delivery` avec un hook dedie et une fonction RPC pour agreger les statistiques cote serveur.
+La fonction `process-scheduled-notifications` n'existe pas dans le projet, donc rien a corriger de ce cote.
 
-### Composants a creer
+### Solution
 
-#### 1. Fonction RPC SQL : `get_messaging_delivery_stats`
+Remplacer la logique d'envoi parallele par un routage **WhatsApp-first avec fallback SMS** :
 
-Agregation serveur depuis `birthday_contact_alerts` :
-- KPIs globaux : total envoyes, taux succes WhatsApp, taux succes SMS, taux echec global
-- Repartition par canal (whatsapp vs sms) avec comptages sent/failed
-- Repartition par type d'alerte (friends_circle_reminder, birthday_reminder, contribution_reminder, etc.)
-- Tendances quotidiennes sur N jours (parametre `days_back`)
-- Top erreurs (groupees par `error_message`)
-- Repartition par prefixe pays (extraction des 4 premiers caracteres de `contact_phone`)
+1. Tenter WhatsApp en premier (template HSM, puis fallback texte libre si echec)
+2. Si WhatsApp echoue ET que le SMS est viable pour le pays, envoyer le SMS
+3. Si WhatsApp reussit, ne PAS envoyer de SMS
+4. Enregistrer un seul log dans `birthday_contact_alerts` avec le canal effectivement utilise
 
-Parametres : `days_back integer DEFAULT 30`
+### Fichier modifie
 
-#### 2. Hook : `src/hooks/useMessagingDeliveryStats.ts`
+`supabase/functions/notify-contact-added/index.ts`
 
-- Appel RPC `get_messaging_delivery_stats` via TanStack Query
-- Interfaces TypeScript pour les donnees retournees
-- Refresh automatique toutes les 60 secondes
+### Changements techniques
 
-#### 3. Page : `src/pages/Admin/MessagingDeliveryDashboard.tsx`
-
-Structure visuelle (suivant le pattern de NotificationAnalytics/WhatsAppOtpAnalytics) :
+Remplacer les lignes 223-300 (logique d'envoi parallele) par :
 
 ```text
-+-------------------------------------------+
-| Delivrabilite SMS & WhatsApp              |
-| [Selecteur periode] [Rafraichir]          |
-+-------------------------------------------+
-| KPI Cards (4 colonnes)                    |
-| Total Envoyes | WhatsApp OK% | SMS OK% | Echecs |
-+-------------------------------------------+
-| Graphique AreaChart - Tendances par jour  |
-| (lignes: whatsapp_sent, whatsapp_failed,  |
-|  sms_sent, sms_failed)                    |
-+-------------------------------------------+
-| PieChart Canal | PieChart Status           |
-+-------------------------------------------+
-| Tableau par type d'alerte                 |
-| (alert_type, wa_sent, wa_failed,          |
-|  sms_sent, sms_failed, taux_succes)       |
-+-------------------------------------------+
-| Tableau par pays (prefixe tel)            |
-| (+225, +229, +221...) avec taux par canal |
-+-------------------------------------------+
-| Top erreurs recentes                      |
-+-------------------------------------------+
+// 1. Tenter WhatsApp d'abord (si active)
+let finalChannel = 'whatsapp';
+let finalSuccess = false;
+let finalError: string | undefined;
+
+if (canSendWhatsapp) {
+  const waResult = await sendWhatsAppTemplate(...);
+  if (waResult.success) {
+    finalSuccess = true;
+  } else {
+    // Template echec, essayer texte libre
+    const fallback = await sendWhatsApp(...);
+    if (fallback.success) {
+      finalSuccess = true;
+    } else {
+      finalError = fallback.error;
+    }
+  }
+}
+
+// 2. Fallback SMS uniquement si WhatsApp a echoue
+if (!finalSuccess && canSendSms) {
+  finalChannel = 'sms';
+  const smsResult = await sendSms(...);
+  finalSuccess = smsResult.success;
+  finalError = smsResult.error;
+}
+
+// 3. Dernier recours si rien n'etait active
+if (!finalSuccess && !canSendWhatsapp && !canSendSms) {
+  // Forcer WhatsApp comme avant
+  const waResult = await sendWhatsAppTemplate(...);
+  ...
+}
+
+// 4. Un seul log dans birthday_contact_alerts
+await supabaseAdmin.from('birthday_contact_alerts').insert({
+  channel: finalChannel,
+  status: finalSuccess ? 'sent' : 'failed',
+  ...
+});
 ```
 
-#### 4. Integration
+### Impact
 
-- Ajouter la route `/admin/messaging-delivery` dans `App.tsx`
-- Ajouter l'entree dans `navItems` de `AdminLayout.tsx` (icone `MessageSquare` ou `Smartphone`, titre "Delivrabilite SMS/WA")
-
-### Fichiers modifies/crees
-
-| Fichier | Action |
-|---------|--------|
-| Migration SQL (RPC `get_messaging_delivery_stats`) | Creer |
-| `src/hooks/useMessagingDeliveryStats.ts` | Creer |
-| `src/pages/Admin/MessagingDeliveryDashboard.tsx` | Creer |
-| `src/components/AdminLayout.tsx` | Ajouter nav item |
-| `src/App.tsx` | Ajouter route |
-| `src/integrations/supabase/types.ts` | Mis a jour automatiquement apres migration |
-
-### Details techniques
-
-La fonction RPC sera `SECURITY DEFINER` avec verification admin (pattern existant de `get_whatsapp_otp_stats`). Les graphiques utiliseront `recharts` (deja installe). Le selecteur de periode reprendra le composant `SimplePeriodSelector` existant.
+- Les contacts en Cote d'Ivoire et au Senegal ne recevront plus qu'un seul message (WhatsApp en priorite)
+- Le SMS ne sera envoye que si WhatsApp echoue
+- Un seul enregistrement par notification dans la table `birthday_contact_alerts` (au lieu de deux)
+- Le dashboard de delivrabilite refletera des statistiques plus propres
