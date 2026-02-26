@@ -220,6 +220,11 @@ serve(async (req) => {
       ? `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`
       : `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
+    // Determine channel availability based on phone prefix
+    const smsReliability = getSmsPrefixReliability(contact_phone);
+    const canSendSms = smsReliability === 'reliable' && preferences?.sms_enabled !== false;
+    const canSendWhatsapp = preferences?.whatsapp_enabled !== false;
+
     // WhatsApp-first routing with SMS fallback (no double send)
     let finalChannel: 'whatsapp' | 'sms' = 'whatsapp';
     let finalSuccess = false;
