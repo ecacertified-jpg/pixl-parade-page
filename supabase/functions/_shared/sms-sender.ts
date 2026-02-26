@@ -245,9 +245,10 @@ export async function sendWhatsApp(
   }
 
   const formattedPhone = formatPhoneForTwilio(to).replace('+', '');
-  if (!formattedPhone || formattedPhone.length < 8) {
-    console.error('❌ [WhatsApp] Invalid phone number:', to);
-    return { success: false, error: 'INVALID_PHONE_NUMBER', channel: 'whatsapp' };
+  const validation = validatePhoneForWhatsApp(to);
+  if (!validation.valid) {
+    console.warn(`⚠️ [WhatsApp] Skipping invalid phone "${to.substring(0, 6)}***" -> reason: "${validation.reason}"`);
+    return { success: false, error: `INVALID_PHONE: ${validation.reason}`, channel: 'whatsapp' };
   }
 
   console.log(`📤 [WhatsApp] Sending to ${formattedPhone.substring(0, 5)}***`);
@@ -308,9 +309,10 @@ export async function sendWhatsAppTemplate(
   }
 
   const formattedPhone = formatPhoneForTwilio(to).replace('+', '');
-  if (!formattedPhone || formattedPhone.length < 8) {
-    console.error('❌ [WhatsApp Template] Invalid phone number:', to);
-    return { success: false, error: 'INVALID_PHONE_NUMBER', channel: 'whatsapp' };
+  const validation = validatePhoneForWhatsApp(to);
+  if (!validation.valid) {
+    console.warn(`⚠️ [WhatsApp Template] Skipping invalid phone "${to.substring(0, 6)}***" -> reason: "${validation.reason}"`);
+    return { success: false, error: `INVALID_PHONE: ${validation.reason}`, channel: 'whatsapp' };
   }
 
   console.log(`📤 [WhatsApp Template] Sending "${templateName}" to ${formattedPhone.substring(0, 5)}***`);
@@ -371,6 +373,49 @@ export async function sendWhatsAppTemplate(
     console.error('❌ [WhatsApp Template] Network error:', error);
     return { success: false, error: error.message || 'NETWORK_ERROR', channel: 'whatsapp' };
   }
+}
+
+// Expected total digit lengths (without +) per West African country prefix
+const COUNTRY_PHONE_LENGTHS: Record<string, { expected: number; name: string }> = {
+  '225': { expected: 13, name: 'Côte d\'Ivoire' },
+  '221': { expected: 12, name: 'Sénégal' },
+  '229': { expected: 13, name: 'Bénin' },
+  '228': { expected: 11, name: 'Togo' },
+  '223': { expected: 11, name: 'Mali' },
+  '226': { expected: 11, name: 'Burkina Faso' },
+  '227': { expected: 11, name: 'Niger' },
+};
+
+/**
+ * Validates a phone number strictly for WhatsApp delivery.
+ * Returns { valid, reason } with a human-readable rejection reason.
+ */
+export function validatePhoneForWhatsApp(phone: string): { valid: boolean; reason?: string } {
+  const formatted = formatPhoneForTwilio(phone);
+  const digits = formatted.replace('+', '');
+
+  if (/\D/.test(digits)) {
+    return { valid: false, reason: 'Contains non-numeric characters' };
+  }
+
+  if (digits.length < 10) {
+    return { valid: false, reason: `Too short: ${digits.length} digits (min 10)` };
+  }
+  if (digits.length > 15) {
+    return { valid: false, reason: `Too long: ${digits.length} digits (max 15)` };
+  }
+
+  for (const [prefix, { expected, name }] of Object.entries(COUNTRY_PHONE_LENGTHS)) {
+    if (digits.startsWith(prefix)) {
+      if (digits.length !== expected) {
+        return { valid: false, reason: `${name} number must be ${expected} digits, got ${digits.length}` };
+      }
+      return { valid: true };
+    }
+  }
+
+  // Generic E.164 fallback
+  return { valid: true };
 }
 
 /**
