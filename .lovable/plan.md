@@ -1,80 +1,79 @@
 
+## Dashboard Monitoring Delivrabilite WhatsApp vs SMS
 
-## Optimiser `check-friends-circle-reminders` pour eviter le timeout
+### Contexte
 
-### Probleme actuel
+Les donnees de delivrabilite sont principalement stockees dans la table `birthday_contact_alerts` qui enregistre chaque envoi avec le canal (`whatsapp`/`sms`), le statut (`sent`/`failed`), le type d'alerte, le message d'erreur et le timestamp. Actuellement, 142 envois WhatsApp (sent) et 1 SMS (failed) sont enregistres. La table `whatsapp_otp_codes` couvre uniquement les OTP et a deja son propre dashboard.
 
-Le mode CRON execute **2 requetes DB sequentielles par utilisateur** (comptage contacts + verification alertes recentes), puis un appel WhatsApp API. Avec 162+ utilisateurs, cela depasse le timeout de 60 secondes.
+### Architecture
 
-### Solution
+Creer une nouvelle page admin `/admin/messaging-delivery` avec un hook dedie et une fonction RPC pour agreger les statistiques cote serveur.
 
-Remplacer les N requetes individuelles par **une seule requete SQL** qui filtre directement les utilisateurs eligibles, puis traiter les envois **par lots de 20 en parallele**.
+### Composants a creer
 
-### Modifications
+#### 1. Fonction RPC SQL : `get_messaging_delivery_stats`
 
-**Fichier unique** : `supabase/functions/check-friends-circle-reminders/index.ts`
+Agregation serveur depuis `birthday_contact_alerts` :
+- KPIs globaux : total envoyes, taux succes WhatsApp, taux succes SMS, taux echec global
+- Repartition par canal (whatsapp vs sms) avec comptages sent/failed
+- Repartition par type d'alerte (friends_circle_reminder, birthday_reminder, contribution_reminder, etc.)
+- Tendances quotidiennes sur N jours (parametre `days_back`)
+- Top erreurs (groupees par `error_message`)
+- Repartition par prefixe pays (extraction des 4 premiers caracteres de `contact_phone`)
 
-#### 1. Requete SQL unique pour trouver les utilisateurs eligibles
+Parametres : `days_back integer DEFAULT 30`
 
-Au lieu de boucler sur chaque utilisateur pour compter ses contacts et verifier les alertes recentes, une seule requete RPC (ou sous-requetes inline) retourne directement les utilisateurs qui :
-- Ont un profil complet (birthday, city, phone non null)
-- Ont moins de 2 contacts
-- N'ont pas recu de `friends_circle_reminder` dans les 72 dernieres heures
+#### 2. Hook : `src/hooks/useMessagingDeliveryStats.ts`
 
-```text
-Avant (N*2 requetes) :
-  Pour chaque user:
-    -> SELECT count(*) FROM contacts WHERE user_id = X
-    -> SELECT id FROM birthday_contact_alerts WHERE user_id = X AND ...
+- Appel RPC `get_messaging_delivery_stats` via TanStack Query
+- Interfaces TypeScript pour les donnees retournees
+- Refresh automatique toutes les 60 secondes
 
-Apres (1 requete) :
-  SELECT p.user_id, p.first_name, p.phone
-  FROM profiles p
-  WHERE p.birthday IS NOT NULL AND p.city IS NOT NULL AND p.phone IS NOT NULL
-    AND (SELECT count(*) FROM contacts c WHERE c.user_id = p.user_id) < 2
-    AND NOT EXISTS (
-      SELECT 1 FROM birthday_contact_alerts a
-      WHERE a.user_id = p.user_id
-        AND a.alert_type = 'friends_circle_reminder'
-        AND a.created_at >= now() - interval '72 hours'
-    )
-  LIMIT 40;
-```
+#### 3. Page : `src/pages/Admin/MessagingDeliveryDashboard.tsx`
 
-Cette approche sera implementee via une fonction RPC `get_friends_circle_reminder_candidates` pour garder le code propre.
-
-#### 2. Traitement par lots de 20 en parallele
-
-Les utilisateurs eligibles sont decoupes en lots de 20. Dans chaque lot, les envois WhatsApp sont executes en parallele avec `Promise.allSettled()` :
+Structure visuelle (suivant le pattern de NotificationAnalytics/WhatsAppOtpAnalytics) :
 
 ```text
-Lot 1: [user1, user2, ..., user20] -> Promise.allSettled(sends)
-Lot 2: [user21, user22, ..., user40] -> Promise.allSettled(sends)
++-------------------------------------------+
+| Delivrabilite SMS & WhatsApp              |
+| [Selecteur periode] [Rafraichir]          |
++-------------------------------------------+
+| KPI Cards (4 colonnes)                    |
+| Total Envoyes | WhatsApp OK% | SMS OK% | Echecs |
++-------------------------------------------+
+| Graphique AreaChart - Tendances par jour  |
+| (lignes: whatsapp_sent, whatsapp_failed,  |
+|  sms_sent, sms_failed)                    |
++-------------------------------------------+
+| PieChart Canal | PieChart Status           |
++-------------------------------------------+
+| Tableau par type d'alerte                 |
+| (alert_type, wa_sent, wa_failed,          |
+|  sms_sent, sms_failed, taux_succes)       |
++-------------------------------------------+
+| Tableau par pays (prefixe tel)            |
+| (+225, +229, +221...) avec taux par canal |
++-------------------------------------------+
+| Top erreurs recentes                      |
++-------------------------------------------+
 ```
 
-Cela reduit drastiquement le temps total : au lieu de 162 appels sequentiels (~3s chacun = ~8 min), on a 2 lots de 20 appels paralleles (~3s par lot = ~6s).
+#### 4. Integration
 
-#### 3. Limite de 40 utilisateurs par execution CRON
+- Ajouter la route `/admin/messaging-delivery` dans `App.tsx`
+- Ajouter l'entree dans `navItems` de `AdminLayout.tsx` (icone `MessageSquare` ou `Smartphone`, titre "Delivrabilite SMS/WA")
 
-Pour rester sous le timeout de 60 secondes, chaque execution CRON traite au maximum 40 utilisateurs. Le CRON tournant toutes les 24h (ou plus frequemment si necessaire), tous les utilisateurs seront couverts en quelques cycles.
+### Fichiers modifies/crees
 
-#### 4. Correction du double envoi SMS+WhatsApp
+| Fichier | Action |
+|---------|--------|
+| Migration SQL (RPC `get_messaging_delivery_stats`) | Creer |
+| `src/hooks/useMessagingDeliveryStats.ts` | Creer |
+| `src/pages/Admin/MessagingDeliveryDashboard.tsx` | Creer |
+| `src/components/AdminLayout.tsx` | Ajouter nav item |
+| `src/App.tsx` | Ajouter route |
+| `src/integrations/supabase/types.ts` | Mis a jour automatiquement apres migration |
 
-Actuellement, pour les numeros +225, le code envoie WhatsApp **ET** SMS. La correction : n'envoyer le SMS que si le WhatsApp a echoue (`!waResult.success`).
+### Details techniques
 
-### Plan d'execution
-
-| Etape | Action |
-|-------|--------|
-| 1 | Creer la fonction RPC `get_friends_circle_reminder_candidates` via migration SQL |
-| 2 | Refactorer le mode CRON dans l'edge function : requete unique + lots paralleles + limite 40 |
-| 3 | Corriger la logique SMS fallback (SMS seulement si WhatsApp echoue) |
-| 4 | Deployer et tester |
-
-### Impact attendu
-
-- Temps d'execution : de ~8 min (timeout) a ~10-15 secondes
-- Requetes DB : de ~324 (2 par user) a 1 seule
-- Fiabilite : plus de `context canceled`, tous les utilisateurs sont traites
-- Bonus : le double envoi SMS+WhatsApp est corrige
-
+La fonction RPC sera `SECURITY DEFINER` avec verification admin (pattern existant de `get_whatsapp_otp_stats`). Les graphiques utiliseront `recharts` (deja installe). Le selecteur de periode reprendra le composant `SimplePeriodSelector` existant.
