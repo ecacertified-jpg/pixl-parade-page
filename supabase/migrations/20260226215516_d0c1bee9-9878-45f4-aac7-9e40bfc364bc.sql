@@ -1,0 +1,3 @@
+ALTER TABLE business_collective_funds
+ADD CONSTRAINT business_collective_funds_beneficiary_user_id_fkey
+FOREIGN KEY (beneficiary_user_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
