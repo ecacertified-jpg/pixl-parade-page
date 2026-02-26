@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const BATCH_SIZE = 20;
+const MAX_CANDIDATES = 40;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -43,7 +46,6 @@ serve(async (req) => {
         });
       }
 
-      // Check if welcome already sent in DB
       const { data: existing } = await supabaseAdmin
         .from('birthday_contact_alerts')
         .select('id')
@@ -69,7 +71,6 @@ serve(async (req) => {
 
       console.log(`[WhatsApp Template] Welcome result:`, waResult.success ? waResult.sid : waResult.error);
 
-      // Record in DB
       const { error: insertError } = await supabaseAdmin.from('birthday_contact_alerts').insert({
         user_id: userId,
         contact_id: null,
@@ -91,102 +92,108 @@ serve(async (req) => {
       });
     }
 
-    // ========== CRON MODE (default) ==========
-    console.log('Starting check-friends-circle-reminders CRON job...');
+    // ========== CRON MODE (optimized) ==========
+    console.log('Starting check-friends-circle-reminders CRON job (optimized)...');
 
-    // Get all users with complete profiles and phone
-    const { data: users, error: usersError } = await supabaseAdmin
-      .from('profiles')
-      .select('user_id, first_name, phone')
-      .not('birthday', 'is', null)
-      .not('city', 'is', null)
-      .not('phone', 'is', null);
+    // Single RPC query to get all eligible candidates
+    const { data: candidates, error: rpcError } = await supabaseAdmin
+      .rpc('get_friends_circle_reminder_candidates', { max_results: MAX_CANDIDATES });
 
-    if (usersError) {
-      console.error('Error fetching profiles:', usersError);
-      throw usersError;
+    if (rpcError) {
+      console.error('Error fetching candidates via RPC:', rpcError);
+      throw rpcError;
     }
 
-    if (!users || users.length === 0) {
-      console.log('No eligible users found');
-      return new Response(JSON.stringify({ reminders_sent: 0 }), {
+    if (!candidates || candidates.length === 0) {
+      console.log('No eligible candidates found');
+      return new Response(JSON.stringify({ reminders_sent: 0, total_candidates: 0 }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log(`Found ${candidates.length} eligible candidates, processing in batches of ${BATCH_SIZE}...`);
+
     let remindersSent = 0;
     let errors = 0;
 
-    for (const user of users) {
-      try {
-        // Count contacts
-        const { count } = await supabaseAdmin
-          .from('contacts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.user_id);
+    // Process in parallel batches
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch = candidates.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      console.log(`Processing batch ${batchNum} (${batch.length} users)...`);
 
-        if ((count || 0) >= 2) continue;
+      const results = await Promise.allSettled(
+        batch.map(async (user: { user_id: string; first_name: string; phone: string }) => {
+          const firstName = user.first_name || 'Ami(e)';
 
-        // Check if reminder sent in last 72h
-        const since72h = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
-        const { data: recentAlert } = await supabaseAdmin
-          .from('birthday_contact_alerts')
-          .select('id')
-          .eq('user_id', user.user_id)
-          .eq('alert_type', 'friends_circle_reminder')
-          .gte('created_at', since72h)
-          .limit(1);
+          // Send WhatsApp template
+          const waResult = await sendWhatsAppTemplate(
+            user.phone,
+            'joiedevivre_friends_circle_reminder',
+            'fr',
+            [firstName]
+          );
 
-        if (recentAlert && recentAlert.length > 0) continue;
+          // SMS fallback ONLY if WhatsApp failed
+          let finalChannel: 'whatsapp' | 'sms' = 'whatsapp';
+          let finalSuccess = waResult.success;
+          let finalError = waResult.error;
+          let finalSid = waResult.sid;
 
-        console.log(`User ${user.user_id}: ${count || 0} contacts, sending reminder`);
+          if (!waResult.success) {
+            const channel = getPreferredChannel(user.phone);
+            if (channel === 'sms') {
+              const smsMsg = `${firstName}, ton cercle d'amis n'est pas encore complet ! Ajoute des proches: joiedevivre-africa.com/contacts`;
+              const smsResult = await sendSms(user.phone, smsMsg);
+              finalChannel = 'sms';
+              finalSuccess = smsResult.success;
+              finalError = smsResult.error;
+              finalSid = smsResult.sid;
+            }
+          }
 
-        const firstName = user.first_name || 'Ami(e)';
+          // Record alert
+          const { error: insertError } = await supabaseAdmin.from('birthday_contact_alerts').insert({
+            user_id: user.user_id,
+            contact_id: null,
+            contact_phone: user.phone,
+            contact_name: firstName,
+            alert_type: 'friends_circle_reminder',
+            channel: finalChannel,
+            days_before: 0,
+            status: finalSuccess ? 'sent' : 'failed',
+            sent_at: finalSuccess ? new Date().toISOString() : null,
+            error_message: finalError || null,
+          });
 
-        // Send WhatsApp template
-        const waResult = await sendWhatsAppTemplate(
-          user.phone,
-          'joiedevivre_friends_circle_reminder',
-          'fr',
-          [firstName]
-        );
+          if (insertError) {
+            console.error(`Failed to record alert for ${user.user_id}:`, insertError.message);
+          }
 
-        console.log(`[WhatsApp Template] Reminder result for ${user.user_id}:`, waResult.success ? waResult.sid : waResult.error);
+          return { userId: user.user_id, success: finalSuccess, sid: finalSid };
+        })
+      );
 
-        // Also send SMS if preferred channel is SMS
-        const channel = getPreferredChannel(user.phone);
-        if (channel === 'sms') {
-          const smsMsg = `${firstName}, ton cercle d'amis n'est pas encore complet ! Ajoute des proches: joiedevivre-africa.com/contacts`;
-          await sendSms(user.phone, smsMsg);
+      // Count results
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.success) {
+          remindersSent++;
+        } else {
+          errors++;
+          if (result.status === 'rejected') {
+            console.error('Batch item rejected:', result.reason);
+          }
         }
-
-        // Record alert
-        const { error: insertError } = await supabaseAdmin.from('birthday_contact_alerts').insert({
-          user_id: user.user_id,
-          contact_id: null,
-          contact_phone: user.phone,
-          contact_name: firstName,
-          alert_type: 'friends_circle_reminder',
-          channel: waResult.success ? 'whatsapp' : 'sms',
-          days_before: 0,
-          status: waResult.success ? 'sent' : 'failed',
-          sent_at: waResult.success ? new Date().toISOString() : null,
-          error_message: waResult.error || null,
-        });
-        if (insertError) {
-          console.error('Failed to record reminder alert:', insertError.message);
-        }
-
-        remindersSent++;
-      } catch (err) {
-        console.error(`Error processing user ${user.user_id}:`, err);
-        errors++;
       }
     }
 
-    console.log(`CRON completed: ${remindersSent} reminders sent, ${errors} errors`);
+    console.log(`CRON completed: ${remindersSent} reminders sent, ${errors} errors, ${candidates.length} candidates processed`);
 
-    return new Response(JSON.stringify({ reminders_sent: remindersSent, errors }), {
+    return new Response(JSON.stringify({
+      reminders_sent: remindersSent,
+      errors,
+      total_candidates: candidates.length,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
