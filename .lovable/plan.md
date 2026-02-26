@@ -1,44 +1,39 @@
 
 
-## Liaison automatique des contacts a l'inscription
+## Inviter ses contacts depuis le cercle d'amis
 
 ### Objectif
 
-Quand un utilisateur s'inscrit avec un numero de telephone, le systeme verifie automatiquement si ce numero existe dans la table `contacts` d'autres utilisateurs. Si oui, il cree les `contact_relationships` correspondantes et met a jour le `linked_user_id` du contact.
+Ajouter un bouton "Inviter" sur chaque contact du cercle d'amis qui n'a pas encore de compte sur l'app (`linked_user_id` est null). Ce bouton ouvrira le partage natif (WhatsApp, SMS, etc.) avec un message personnalise et un lien d'inscription.
 
-### Approche
+### Modifications
 
-Modifier la fonction `handle_new_user()` (trigger sur `auth.users` AFTER INSERT) pour ajouter un bloc supplementaire apres la creation du profil.
+**Fichier : `src/pages/Dashboard.tsx`**
 
-### Logique ajoutee dans handle_new_user()
+1. **Interface Friend** (ligne 66-73) : ajouter `linked_user_id?: string | null`
+
+2. **loadFriendsFromSupabase** (ligne 209-216) : inclure `linked_user_id` dans le mapping des contacts
+
+3. **Rendu de chaque carte ami** (lignes 712-736) : ajouter un bouton "Inviter" avec l'icone `Send` (lucide) visible uniquement quand `linked_user_id` est null. Ce bouton utilise l'API Web Share (ou fallback copier le lien) pour partager un message personnalise du type :
 
 ```text
-1. Recuperer le phone_number du nouvel utilisateur (deja fait)
-2. Si phone_number n'est pas NULL :
-   a. Chercher tous les contacts avec un numero correspondant
-      (comparaison sur les 8 derniers chiffres, comme dans notify-contact-added)
-   b. Pour chaque contact trouve :
-      - Mettre a jour contacts.linked_user_id = NEW.id
-      - Inserer dans contact_relationships (user_a = contact.user_id, user_b = NEW.id)
-        avec ON CONFLICT DO NOTHING (contrainte unique_relationship existante)
-        et les permissions can_see_events = true, can_see_funds = true
+Salut [nom_contact] ! [prenom_utilisateur] t'invite a rejoindre Joie de Vivre,
+l'app qui celebre les moments heureux. Inscris-toi ici : https://joiedevivre-africa.com/go/register
 ```
 
-### Normalisation des numeros
+4. **Indicateur visuel** : les contacts deja inscrits auront un petit badge vert "Sur l'app" a cote de leur nom
 
-La comparaison se fait sur les 8 derniers chiffres (apres suppression des caracteres non-numeriques) pour gerer les variations de format (+225 07..., 07..., etc.).
+### Logique d'invitation
 
-### Securite
+- Utilise `navigator.share()` si disponible (mobile : WhatsApp, SMS, Telegram en un clic)
+- Sinon, copie le lien dans le presse-papier avec un toast de confirmation
+- Le lien pointe vers `/go/register` (deep link existant dans le projet)
+- Pas besoin d'appeler l'Edge Function `send-invitation` (qui necessite un email) : ici on passe par le partage natif qui est plus adapte aux contacts avec telephone
 
-- La fonction est deja `SECURITY DEFINER`, donc elle a les droits necessaires pour ecrire dans `contacts` et `contact_relationships`
-- `ON CONFLICT DO NOTHING` evite les doublons si la relation existe deja
-- Le bloc est enveloppe dans un `BEGIN ... EXCEPTION` pour ne jamais bloquer l'inscription
+### Details techniques
 
-### Migration SQL
-
-Un seul fichier de migration qui fait `CREATE OR REPLACE FUNCTION public.handle_new_user()` en reprenant le corps actuel et ajoutant le nouveau bloc apres l'insertion dans `user_reciprocity_preferences`.
-
-### Pas de modification frontend
-
-Tout se passe cote base de donnees, transparent pour l'utilisateur.
-
+- Import de `Send`, `CheckCircle` depuis lucide-react
+- Le bouton est petit (icone seule) pour ne pas surcharger la carte
+- Un tooltip "Inviter sur l'app" explique l'action
+- Aucune modification de base de donnees necessaire
+- Aucun nouveau composant : tout est integre dans le rendu existant des cartes ami
