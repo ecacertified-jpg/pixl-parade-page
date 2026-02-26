@@ -1,57 +1,70 @@
 
+## Ajouter l'envoi WhatsApp `joiedevivre_group_contribution` dans le flux de creation de cagnotte business
 
-## Test end-to-end de notify-business-fund-contributors
+### Probleme identifie
 
-### Situation actuelle
+Quand une cagnotte business est creee (via `BusinessCollaborativeGiftModal`), le code appelle la fonction Edge **`notify-business-fund-friends`**, qui ne cree que des notifications `push` et `in_app`. **Aucun WhatsApp n'est envoye.**
 
-La table `business_collective_funds` est **vide** -- l'enregistrement de test n'a pas encore ete insere. La FK manquante a ete corrigee (migration appliquee), et la fonction Edge est deployee.
+La fonction `notify-business-fund-contributors` (qui contient le code WhatsApp) existe mais n'est **jamais appelee** dans ce flux.
 
-### Donnees identifiees pour le test
+### Solution
 
-| Element | Valeur |
-|---------|--------|
-| **Boutique** | NewTech (`6f6556d8-1787-450a-a0cb-bec36ed6df1e`) |
-| **Fund actif** | "Samsung A16 128Go ROM Noir pour Meera" (`3249d41e-5347-4e0b-87dd-e4b34dfb27e9`) - target: 120 000 F |
-| **Produit** | Samsung A16 128Go ROM Noir (`a9a7be60-04a3-4ce6-90b5-b2595db2e46d`) - 120 000 F |
-| **Beneficiaire** | Aboutou WhatsApp (`b8d0d4e4-3eec-45df-a87d-b9ec7e4bf95a`) |
+Integrer l'envoi du template WhatsApp `joiedevivre_group_contribution` directement dans `notify-business-fund-friends`, en suivant le pattern WhatsApp-first existant.
 
-### Etape 1 : Inserer l'enregistrement de test (migration SQL)
+### Modifications
 
-Creer une migration SQL pour inserer un enregistrement dans `business_collective_funds` :
+#### 1. `supabase/functions/notify-business-fund-friends/index.ts`
 
-```sql
-INSERT INTO business_collective_funds (fund_id, business_id, product_id, beneficiary_user_id, auto_notifications)
-VALUES (
-  '3249d41e-5347-4e0b-87dd-e4b34dfb27e9',  -- Fund Samsung A16 pour Meera
-  '6f6556d8-1787-450a-a0cb-bec36ed6df1e',  -- NewTech
-  'a9a7be60-04a3-4ce6-90b5-b2595db2e46d',  -- Samsung A16 128Go ROM Noir
-  'b8d0d4e4-3eec-45df-a87d-b9ec7e4bf95a',  -- Aboutou WhatsApp (Meera)
-  true
-);
-```
+- Importer `sendWhatsAppTemplate` depuis `../_shared/sms-sender.ts`
+- Apres la creation des notifications in-app (ligne 140), ajouter un bloc qui :
+  1. Recupere les profils (first_name, phone) des amis identifies dans `friendIds`
+  2. Pour chaque ami ayant un numero de telephone, envoie le template WhatsApp `joiedevivre_group_contribution` avec les parametres :
+     - `[0]` : prenom de l'ami
+     - `[1]` : nom du beneficiaire
+     - `[2]` : montant objectif formate (ex: "88 000")
+     - `[3]` : nom du produit
+  3. Passe le `fund_id` comme parametre de bouton CTA (pour le lien `/f/{fund_id}`)
+- Ajouter le compteur `whatsapp_sent` dans la reponse JSON
 
-### Etape 2 : Appeler la fonction Edge
+#### 2. Verification et deploiement
 
-Invoquer manuellement `notify-business-fund-contributors` avec :
-
-```json
-{
-  "fund_id": "3249d41e-5347-4e0b-87dd-e4b34dfb27e9",
-  "notification_type": "created"
-}
-```
-
-### Etape 3 : Verifier les resultats
-
-1. **Logs Edge Function** : verifier que l'erreur `PGRST116`/`PGRST200` a disparu
-2. **Table `scheduled_notifications`** : verifier que des notifications ont ete creees pour les amis du beneficiaire
-3. **WhatsApp** : verifier dans les logs si des messages `joiedevivre_group_contribution` ont ete envoyes
-4. **Table `contact_relationships`** : si aucun ami n'est trouve (`can_see_funds = true`), la fonction retournera "No friends to notify" -- ce qui est un comportement normal a documenter
+- Redeployer la fonction `notify-business-fund-friends`
+- Tester en appelant manuellement la fonction avec le fund_id de Francoise (`c694c0d0-2bbe-446d-91de-47d2549b3be3`)
+- Verifier les logs et la table `scheduled_notifications`
 
 ### Details techniques
 
-- Aucune modification du code Edge Function necessaire
-- La fonction utilise `contact_relationships` pour trouver les amis du beneficiaire avec `can_see_funds = true`
-- Si le beneficiaire n'a pas d'amis dans cette table, le flux s'arrete normalement sans erreur
-- Le template WhatsApp `joiedevivre_group_contribution` ne sera envoye que si des amis ont un numero de telephone dans leur profil
+Le code WhatsApp a ajouter suit exactement le meme pattern que dans `notify-business-fund-contributors` (lignes 170-195) :
 
+```text
+// Get friends' phone numbers
+const { data: friendProfiles } = await supabase
+  .from('profiles')
+  .select('user_id, first_name, phone')
+  .in('user_id', friendIds);
+
+const formattedTarget = target_amount?.toLocaleString('fr-FR') || '0';
+let whatsappSentCount = 0;
+
+for (const friend of (friendProfiles || [])) {
+  if (!friend.phone) continue;
+  try {
+    const result = await sendWhatsAppTemplate(
+      friend.phone,
+      'joiedevivre_group_contribution',
+      'fr',
+      [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, product_name],
+      [fund_id]
+    );
+    if (result.success) whatsappSentCount++;
+  } catch (e) {
+    console.error(`WhatsApp error for ${friend.user_id}:`, e);
+  }
+}
+```
+
+### Impact
+
+- Les amis du beneficiaire avec `can_see_funds = true` et un numero de telephone recevront le template WhatsApp
+- Les amis sans numero continueront a recevoir uniquement les notifications push/in-app
+- Aucune modification cote frontend necessaire
