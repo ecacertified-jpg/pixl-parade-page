@@ -45,6 +45,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { getDaysUntilBirthday } from "@/lib/utils";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -467,25 +468,7 @@ export default function Dashboard() {
     setEditingEvent(null);
   };
 
-  // Calculer les jours jusqu'à l'anniversaire
-  const getDaysUntilBirthday = (birthday: Date | string | null | undefined) => {
-    if (!birthday) return 0;
-
-    // Convertir en Date si nécessaire
-    const birthdayDate = birthday instanceof Date ? birthday : new Date(birthday);
-
-    // Vérifier que la date est valide
-    if (isNaN(birthdayDate.getTime())) return 0;
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    let nextBirthday = new Date(currentYear, birthdayDate.getMonth(), birthdayDate.getDate());
-    if (nextBirthday < today) {
-      nextBirthday = new Date(currentYear + 1, birthdayDate.getMonth(), birthdayDate.getDate());
-    }
-    const diffTime = nextBirthday.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  // getDaysUntilBirthday importé depuis utils.ts
 
   // Calculer les jours jusqu'à un événement
   const getDaysUntilEvent = (eventDate: Date) => {

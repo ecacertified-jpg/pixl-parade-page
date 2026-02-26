@@ -5,6 +5,7 @@ import { Cake, Share2, Gift, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
+import { getDaysUntilBirthday } from '@/lib/utils';
 
 interface BirthdayCountdownCardProps {
   birthday: string | null;
@@ -19,35 +20,13 @@ export function BirthdayCountdownCard({ birthday, userName, onCompleteProfile }:
   const countdownData = useMemo(() => {
     if (!birthday) return null;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const birthDate = new Date(birthday);
-    const thisYearBirthday = new Date(
-      today.getFullYear(),
-      birthDate.getMonth(),
-      birthDate.getDate()
-    );
-    thisYearBirthday.setHours(0, 0, 0, 0);
-
-    let nextBirthday = thisYearBirthday;
-    if (thisYearBirthday < today) {
-      nextBirthday = new Date(
-        today.getFullYear() + 1,
-        birthDate.getMonth(),
-        birthDate.getDate()
-      );
-    }
-
-    const daysUntil = Math.ceil(
-      (nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const daysUntil = getDaysUntilBirthday(birthday);
 
     // Calculate progress (365 days cycle)
     const daysSinceLastBirthday = 365 - daysUntil;
     const progress = (daysSinceLastBirthday / 365) * 100;
 
-    return { daysUntil, progress, nextBirthday };
+    return { daysUntil, progress };
   }, [birthday]);
 
   // Visual state based on days remaining

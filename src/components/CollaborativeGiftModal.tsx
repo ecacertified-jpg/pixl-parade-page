@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
+import { getDaysUntilBirthday } from "@/lib/utils";
 
 interface Contact {
   id: string;
@@ -175,12 +176,10 @@ export function CollaborativeGiftModal({
   const getBirthdayText = (birthday?: string) => {
     if (!birthday) return "Aucun favori partagé";
     
-    const today = new Date();
-    const birthDate = new Date(birthday);
-    const daysUntil = Math.ceil((birthDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const daysUntil = getDaysUntilBirthday(birthday);
     
     if (daysUntil <= 7 && daysUntil > 0) {
-      return `Anniversairedans ${daysUntil} jour(s)`;
+      return `Anniversaire dans ${daysUntil} jour(s)`;
     }
     return "Aucun favori partagé";
   };

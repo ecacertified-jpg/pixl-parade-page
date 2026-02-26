@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getDaysUntilBirthday } from '@/lib/utils';
 
 export interface UpcomingBirthday {
   id: string;
@@ -30,31 +31,12 @@ export function useUpcomingBirthdays(daysAhead: number = 7) {
 
       if (error) throw error;
 
-      const today = new Date();
       const upcoming: UpcomingBirthday[] = [];
 
       contacts?.forEach(contact => {
         if (!contact.birthday) return;
 
-        const birthday = new Date(contact.birthday);
-        const thisYearBirthday = new Date(
-          today.getFullYear(),
-          birthday.getMonth(),
-          birthday.getDate()
-        );
-
-        let nextBirthday = thisYearBirthday;
-        if (thisYearBirthday < today) {
-          nextBirthday = new Date(
-            today.getFullYear() + 1,
-            birthday.getMonth(),
-            birthday.getDate()
-          );
-        }
-
-        const daysUntil = Math.ceil(
-          (nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const daysUntil = getDaysUntilBirthday(contact.birthday);
 
         if (daysUntil <= daysAhead && daysUntil >= 0) {
           upcoming.push({
