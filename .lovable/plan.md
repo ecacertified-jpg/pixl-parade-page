@@ -1,64 +1,45 @@
 
 
-## Bouton "Contribuer" avec lien dynamique vers la cagnotte
+## Ajouter une barre de recherche de boutiques dans la page Boutique
 
-### Configuration dans Meta Business Manager
+### Objectif
+Permettre aux utilisateurs de rechercher une boutique specifique par nom dans la page principale `/shop`, en filtrant la section "Boutiques populaires" et en recherchant parmi toutes les boutiques actives.
 
-Le bouton du template `joiedevivre_group_contribution` doit utiliser une **URL dynamique** pour pointer vers la cagnotte specifique.
+### Emplacement
+La barre de recherche sera placee juste au-dessus de la section "Boutiques populaires" (ligne ~779), avec une icone `Store` et un placeholder "Rechercher une boutique...".
 
-**Configuration du bouton :**
+### Comportement
+- **Sans saisie** : La section "Boutiques populaires" s'affiche normalement (top 6 boutiques)
+- **Avec saisie** : Recherche en temps reel parmi toutes les boutiques actives (via `business_public_info`), affichage des resultats correspondants au nom saisi
+- **Clic sur une boutique** : Navigation vers `/boutique/:id` (comportement existant)
 
-| Champ | Valeur |
-|-------|--------|
-| Type de bouton | **Appel a l'action (CTA)** |
-| Type d'action | **Visiter le site web** |
-| Type d'URL | **Dynamique** |
-| URL de base | `https://joiedevivre-africa.com/f/{{1}}` |
-| Texte du bouton | `Contribuer` |
+### Modifications techniques
 
-La variable `{{1}}` du bouton sera remplacee par l'ID de la cagnotte (ex: `a1b2c3d4-...`), generant un lien comme :
-`https://joiedevivre-africa.com/f/a1b2c3d4-5678-9abc-def0-123456789abc`
+**Fichier : `src/pages/Shop.tsx`**
 
-**Important** : Dans Meta Business Manager, les variables du bouton sont numerotees separement de celles du corps. La variable `{{1}}` du bouton est independante des `{{1}}-{{4}}` du corps du message.
+1. Ajouter un state `shopSearchQuery` pour la saisie utilisateur
+2. Ajouter un state `searchedShops` pour les resultats de recherche
+3. Ajouter une fonction `searchShops(query)` qui interroge `business_public_info` avec un filtre `ilike` sur `business_name`
+4. Utiliser un debounce (setTimeout 300ms) pour eviter trop de requetes
+5. Ajouter le champ de recherche (Input avec icone Store) au-dessus de la section "Boutiques populaires"
+6. Afficher `searchedShops` au lieu de `popularShops` quand une recherche est active
+7. Afficher un message "Aucune boutique trouvee" si la recherche ne retourne rien
 
-Ajoutez un **exemple** pour la variable du bouton lors de la soumission (ex: `a1b2c3d4-5678-9abc-def0-123456789abc`).
+### Interface utilisateur
 
----
-
-### Modification du code
-
-Dans `supabase/functions/notify-business-fund-contributors/index.ts`, deux changements :
-
-1. **Ajouter `share_token` a la requete** `collective_funds` (ligne 59-66) pour pouvoir construire le lien de partage
-2. **Passer le `fund_id` comme parametre de bouton** dans l'appel `sendWhatsAppTemplate`
-
-Le helper `sendWhatsAppTemplate` devra recevoir le `fund_id` en parametre supplementaire pour le bouton. Selon l'implementation actuelle du helper, il faudra peut-etre ajouter un parametre `buttonParams` ou simplement ajouter l'ID a la fin du tableau de variables du corps (selon le format attendu par l'API Twilio/Meta).
-
-**Appel modifie :**
-```typescript
-await sendWhatsAppTemplate(
-  friend.phone,
-  'joiedevivre_group_contribution',
-  'fr',
-  [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, productName],
-  // Parametre de bouton URL dynamique
-  [fund_id]
-);
+```text
++------------------------------------------+
+| [Store icon] Rechercher une boutique...  |
++------------------------------------------+
+|  [Logo] Boutique A   [Logo] Boutique B   |  <-- resultats filtres ou populaires
++------------------------------------------+
 ```
 
-### Fichier a modifier
+### Details d'implementation
 
-| Fichier | Modification |
-|---------|-------------|
-| `supabase/functions/notify-business-fund-contributors/index.ts` | Passer le `fund_id` comme parametre de bouton dans l'appel WhatsApp |
-| `supabase/functions/_shared/sms-sender.ts` | Verifier/ajouter le support des parametres de bouton dans `sendWhatsAppTemplate` |
-
-### Resume
-
-| Etape | Ou | Action |
-|-------|----|--------|
-| 1 | Meta Business Manager | Modifier le template `joiedevivre_group_contribution` : ajouter un bouton CTA "Contribuer" de type URL dynamique `https://joiedevivre-africa.com/f/{{1}}` |
-| 2 | Meta Business Manager | Resoumettre le template a examen |
-| 3 | Code | Adapter `sendWhatsAppTemplate` pour supporter les parametres de bouton URL si ce n'est pas deja le cas |
-| 4 | Code | Passer `fund_id` en parametre de bouton dans l'Edge Function |
+- La recherche utilise la vue `business_public_info` (deja utilisee par `loadPopularShops`)
+- Filtre : `.ilike('business_name', '%query%')` avec `.eq('is_active', true)`
+- Les resultats incluent le nombre de produits et la note moyenne (meme logique que `loadPopularShops`)
+- Limite a 10 resultats pour la recherche
+- Un bouton X apparait pour effacer la recherche quand du texte est saisi
 
