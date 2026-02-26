@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendWhatsAppTemplate } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,11 +140,39 @@ serve(async (req) => {
       console.warn('Warning: Failed to create in-app notifications:', inAppError);
     }
 
+    // Send WhatsApp template to friends with phone numbers
+    const { data: friendProfiles } = await supabase
+      .from('profiles')
+      .select('user_id, first_name, phone')
+      .in('user_id', friendIds);
+
+    const formattedTarget = target_amount?.toLocaleString('fr-FR') || '0';
+    let whatsappSentCount = 0;
+
+    for (const friend of (friendProfiles || [])) {
+      if (!friend.phone) continue;
+      try {
+        const result = await sendWhatsAppTemplate(
+          friend.phone,
+          'joiedevivre_group_contribution',
+          'fr',
+          [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, product_name],
+          [fund_id]
+        );
+        if (result.success) whatsappSentCount++;
+      } catch (e) {
+        console.error(`WhatsApp error for ${friend.user_id}:`, e);
+      }
+    }
+
+    console.log(`📱 WhatsApp sent: ${whatsappSentCount}/${friendProfiles?.length || 0}`);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Notified ${friendIds.length} friends`,
-        notified_count: friendIds.length 
+        notified_count: friendIds.length,
+        whatsapp_sent: whatsappSentCount
       }),
       { 
         status: 200, 
