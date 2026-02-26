@@ -65,6 +65,7 @@ export default function Shop() {
     isExperience?: boolean;
     categoryName?: string;
     locationName?: string;
+    businessAddress?: string;
     videoUrl?: string | null;
     videoThumbnailUrl?: string | null;
     countryCode: string | null;
@@ -229,11 +230,12 @@ export default function Shop() {
         latitude: number | null;
         longitude: number | null;
         countryCode: string | null;
+        address: string | null;
       }> = {};
       if (businessIds.length > 0) {
         const { data: businessData, error: businessError } = await supabase
           .from('business_accounts')
-          .select('id, business_name, logo_url, latitude, longitude, country_code')
+          .select('id, business_name, logo_url, latitude, longitude, country_code, address')
           .in('id', businessIds);
         
         if (businessError) {
@@ -247,7 +249,8 @@ export default function Shop() {
               logo: b.logo_url,
               latitude: b.latitude,
               longitude: b.longitude,
-              countryCode: b.country_code
+              countryCode: b.country_code,
+              address: b.address
             };
             return acc;
           }, {} as typeof businessMap);
@@ -329,6 +332,7 @@ export default function Shop() {
           isExperience: product.is_experience || false,
           categoryName: product.category_name,
           locationName: product.location_name || "Non spécifié",
+          businessAddress: businessInfo?.address || "",
           videoUrl: product.video_url || null,
           videoThumbnailUrl: product.video_thumbnail_url || null,
           countryCode: effectiveCountryCode,
@@ -466,7 +470,7 @@ export default function Shop() {
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
     const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
-    const matchesLocation = !selectedLocation || selectedLocation === "Tous les lieux" || product.locationName === selectedLocation;
+    const matchesLocation = !selectedLocation || selectedLocation === "Tous les lieux" || (product.businessAddress && product.businessAddress.toLowerCase().includes(selectedLocation.toLowerCase()));
     
     const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
     const matchesSearch = product.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
