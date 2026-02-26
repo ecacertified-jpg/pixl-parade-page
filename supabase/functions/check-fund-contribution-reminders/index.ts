@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, formatPhoneForTwilio, isValidPhoneForSms } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, sendWhatsAppTemplate, formatPhoneForTwilio, isValidPhoneForSms, getPreferredChannel } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -225,15 +225,30 @@ serve(async (req) => {
           beneficiaryName
         );
         
-        console.log(`📱 Sending SMS: "${message.substring(0, 50)}..."`);
+        const formattedPhone = formatPhoneForTwilio(reminder.target_phone);
+        const channel = getPreferredChannel(formattedPhone);
+        console.log(`📱 Sending via ${channel}: "${message.substring(0, 50)}..."`);
         
-        const smsResult = await sendSms(
-          formatPhoneForTwilio(reminder.target_phone),
-          message
-        );
+        let sendResult;
+        if (channel === 'whatsapp') {
+          // Try template first, fallback to free text
+          const remaining = fund.target_amount - fund.current_amount;
+          sendResult = await sendWhatsAppTemplate(
+            formattedPhone,
+            'joiedevivre_contribution_reminder',
+            'fr',
+            [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`]
+          );
+          if (!sendResult.success) {
+            console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
+            sendResult = await sendWhatsApp(formattedPhone, message);
+          }
+        } else {
+          sendResult = await sendSms(formattedPhone, message);
+        }
         
-        if (smsResult.success) {
-          console.log(`✅ SMS sent successfully: ${smsResult.sid}`);
+        if (sendResult.success) {
+          console.log(`✅ [${channel}] Sent successfully: ${sendResult.sid}`);
           await supabase
             .from('fund_contribution_reminders')
             .update({ 
@@ -244,13 +259,13 @@ serve(async (req) => {
           results.sent++;
           results.details.push({ id: reminder.id, status: 'sent' });
         } else {
-          console.error(`❌ SMS failed: ${smsResult.error}`);
+          console.error(`❌ [${channel}] Failed: ${sendResult.error}`);
           await supabase
             .from('fund_contribution_reminders')
-            .update({ status: 'skipped', skip_reason: 'sms_failed' })
+            .update({ status: 'skipped', skip_reason: `${channel}_failed` })
             .eq('id', reminder.id);
           results.failed++;
-          results.details.push({ id: reminder.id, status: 'failed', reason: smsResult.error });
+          results.details.push({ id: reminder.id, status: 'failed', reason: sendResult.error });
         }
         
       } catch (reminderError) {
