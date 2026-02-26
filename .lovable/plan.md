@@ -1,39 +1,47 @@
 
 
-## Inviter ses contacts depuis le cercle d'amis
+## Validation stricte des numeros de telephone avant envoi WhatsApp
 
-### Objectif
+### Probleme
 
-Ajouter un bouton "Inviter" sur chaque contact du cercle d'amis qui n'a pas encore de compte sur l'app (`linked_user_id` est null). Ce bouton ouvrira le partage natif (WhatsApp, SMS, etc.) avec un message personnalise et un lien d'inscription.
+La validation actuelle dans `sendWhatsApp` et `sendWhatsAppTemplate` est trop permissive : elle accepte tout numero de 8+ chiffres. Des numeros mal formates (ex: codes pays incomplets, numeros trop courts/longs pour leur prefixe) passent la validation et provoquent des erreurs `(#100) Invalid parameter` de l'API WhatsApp.
 
-### Modifications
+### Solution
 
-**Fichier : `src/pages/Dashboard.tsx`**
+Ajouter une fonction `validatePhoneForWhatsApp()` dans `sms-sender.ts` qui effectue des verifications strictes, puis l'utiliser dans `sendWhatsApp` et `sendWhatsAppTemplate` avant l'appel API.
 
-1. **Interface Friend** (ligne 66-73) : ajouter `linked_user_id?: string | null`
+### Fichier modifie : `supabase/functions/_shared/sms-sender.ts`
 
-2. **loadFriendsFromSupabase** (ligne 209-216) : inclure `linked_user_id` dans le mapping des contacts
+**1. Nouvelle fonction `validatePhoneForWhatsApp(phone: string): { valid: boolean; reason?: string }`**
 
-3. **Rendu de chaque carte ami** (lignes 712-736) : ajouter un bouton "Inviter" avec l'icone `Send` (lucide) visible uniquement quand `linked_user_id` est null. Ce bouton utilise l'API Web Share (ou fallback copier le lien) pour partager un message personnalise du type :
+Regles de validation apres formatage E.164 (sans le `+`) :
+- Longueur minimale : 10 chiffres, maximale : 15 chiffres (norme E.164)
+- Ne doit pas contenir de caracteres non-numeriques
+- Validation par prefixe pays connu (Afrique de l'Ouest) :
+  - `225` (Cote d'Ivoire) : total 13 chiffres (225 + 10 chiffres)
+  - `221` (Senegal) : total 12 chiffres (221 + 9 chiffres)
+  - `229` (Benin) : total 13 chiffres (229 + 10 chiffres)
+  - `228` (Togo) : total 11 chiffres (228 + 8 chiffres)
+  - `223` (Mali) : total 11 chiffres (223 + 8 chiffres)
+  - `226` (Burkina) : total 11 chiffres (226 + 8 chiffres)
+  - `227` (Niger) : total 11 chiffres (227 + 8 chiffres)
+- Pour les prefixes non reconnus : accepter si entre 10 et 15 chiffres (fallback generique E.164)
+
+**2. Integration dans `sendWhatsApp` et `sendWhatsAppTemplate`**
+
+Remplacer la validation actuelle (`formattedPhone.length < 8`) par un appel a `validatePhoneForWhatsApp`. En cas d'echec, retourner une erreur avec le motif precis dans les logs :
 
 ```text
-Salut [nom_contact] ! [prenom_utilisateur] t'invite a rejoindre Joie de Vivre,
-l'app qui celebre les moments heureux. Inscris-toi ici : https://joiedevivre-africa.com/go/register
+[WhatsApp] Skipping invalid phone "07123" -> reason: "CI number must be 13 digits, got 8"
 ```
 
-4. **Indicateur visuel** : les contacts deja inscrits auront un petit badge vert "Sur l'app" a cote de leur nom
+**3. Log ameliore**
 
-### Logique d'invitation
+Quand la validation echoue, loguer le numero original (masque partiellement) ET la raison precise du rejet pour faciliter le debug.
 
-- Utilise `navigator.share()` si disponible (mobile : WhatsApp, SMS, Telegram en un clic)
-- Sinon, copie le lien dans le presse-papier avec un toast de confirmation
-- Le lien pointe vers `/go/register` (deep link existant dans le projet)
-- Pas besoin d'appeler l'Edge Function `send-invitation` (qui necessite un email) : ici on passe par le partage natif qui est plus adapte aux contacts avec telephone
+### Impact
 
-### Details techniques
+- Aucune modification frontend
+- Tous les edge functions qui appellent `sendWhatsApp`/`sendWhatsAppTemplate` beneficient automatiquement de la validation renforcee
+- Les numeros invalides sont filtres AVANT l'appel API, evitant les erreurs (#100) et les couts inutiles
 
-- Import de `Send`, `CheckCircle` depuis lucide-react
-- Le bouton est petit (icone seule) pour ne pas surcharger la carte
-- Un tooltip "Inviter sur l'app" explique l'action
-- Aucune modification de base de donnees necessaire
-- Aucun nouveau composant : tout est integre dans le rendu existant des cartes ami
