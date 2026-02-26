@@ -236,4 +236,7 @@ verify_jwt = false
 
 [functions.generate-admin-og-image]
 verify_jwt = false
-entrypoint = "./functions/generate-admin-og-image/index.tsx"
+  entrypoint = "./functions/generate-admin-og-image/index.tsx"
+
+[functions.check-whatsapp-delivery-health]
+verify_jwt = false
