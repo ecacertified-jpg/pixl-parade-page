@@ -98,6 +98,11 @@ export default function Shop() {
   const [ratingProductName, setRatingProductName] = useState<string>("");
   const [contributionTarget, setContributionTarget] = useState<any>(null);
   
+  // Shop search state
+  const [shopSearchQuery, setShopSearchQuery] = useState("");
+  const [searchedShops, setSearchedShops] = useState<typeof popularShops>([]);
+  const [isSearchingShops, setIsSearchingShops] = useState(false);
+
   // State for product detail modal
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailProduct, setDetailProduct] = useState<typeof products[0] | null>(null);
@@ -158,6 +163,81 @@ export default function Shop() {
     fetchLocation();
   }, []);
   
+  // Debounced shop search
+  useEffect(() => {
+    if (!shopSearchQuery.trim()) {
+      setSearchedShops([]);
+      setIsSearchingShops(false);
+      return;
+    }
+    setIsSearchingShops(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data: businessData } = await supabase
+          .from('business_public_info')
+          .select('id, business_name, logo_url, business_type')
+          .ilike('business_name', `%${shopSearchQuery.trim()}%`)
+          .eq('is_active', true)
+          .limit(10);
+
+        if (!businessData || businessData.length === 0) {
+          setSearchedShops([]);
+          setIsSearchingShops(false);
+          return;
+        }
+
+        const businessIds = businessData.map(b => b.id).filter(Boolean) as string[];
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('id, business_account_id')
+          .eq('is_active', true)
+          .in('business_account_id', businessIds);
+
+        const productCountMap: Record<string, number> = {};
+        const productIds: string[] = [];
+        productsData?.forEach(p => {
+          if (p.business_account_id) {
+            productCountMap[p.business_account_id] = (productCountMap[p.business_account_id] || 0) + 1;
+            productIds.push(p.id);
+          }
+        });
+
+        const ratingMap: Record<string, { sum: number; count: number }> = {};
+        if (productIds.length > 0) {
+          const { data: ratingsData } = await supabase
+            .from('product_ratings')
+            .select('product_id, rating')
+            .in('product_id', productIds);
+          const pidToBiz: Record<string, string> = {};
+          productsData?.forEach(p => { if (p.business_account_id) pidToBiz[p.id] = p.business_account_id; });
+          ratingsData?.forEach(r => {
+            const biz = pidToBiz[r.product_id];
+            if (biz) {
+              if (!ratingMap[biz]) ratingMap[biz] = { sum: 0, count: 0 };
+              ratingMap[biz].sum += r.rating;
+              ratingMap[biz].count += 1;
+            }
+          });
+        }
+
+        setSearchedShops(businessData.filter(b => b.id).map(b => ({
+          id: b.id!,
+          name: b.business_name || '',
+          logo: b.logo_url,
+          type: b.business_type,
+          rating: ratingMap[b.id!] ? parseFloat((ratingMap[b.id!].sum / ratingMap[b.id!].count).toFixed(1)) : null,
+          ratingCount: ratingMap[b.id!]?.count || 0,
+          productCount: productCountMap[b.id!] || 0,
+        })));
+      } catch (err) {
+        console.error('Shop search error:', err);
+      } finally {
+        setIsSearchingShops(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [shopSearchQuery]);
+
   // Re-sort products locally when userLocation changes (no new DB request)
   useEffect(() => {
     if (!userLocation || products.length === 0) return;
@@ -776,47 +856,78 @@ export default function Shop() {
           </TabsContent>
         </Tabs>
 
-        {/* Popular Shops Section */}
-        {popularShops.length > 0 && (
+        {/* Shop Search + Popular Shops Section */}
+        {(popularShops.length > 0 || shopSearchQuery.trim()) && (
           <div className="mb-6">
+            {/* Search bar */}
+            <div className="relative mb-3">
+              <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher une boutique..."
+                value={shopSearchQuery}
+                onChange={e => setShopSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {shopSearchQuery && (
+                <button
+                  onClick={() => setShopSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <Store className="h-5 w-5 text-primary" />
-              Boutiques populaires
+              {shopSearchQuery.trim() ? "Résultats de recherche" : "Boutiques populaires"}
             </h2>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {popularShops.map((shop) => (
-                <Card 
-                  key={shop.id}
-                  className="flex-shrink-0 w-32 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/boutique/${shop.id}`)}
-                >
-                  <div className="p-3 flex flex-col items-center text-center">
-                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2 overflow-hidden">
-                      {shop.logo ? (
-                        <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Store className="h-6 w-6 text-primary" />
-                      )}
+
+            {isSearchingShops ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Recherche...</span>
+              </div>
+            ) : shopSearchQuery.trim() && searchedShops.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Aucune boutique trouvée pour "{shopSearchQuery}"
+              </p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {(shopSearchQuery.trim() ? searchedShops : popularShops).map((shop) => (
+                  <Card 
+                    key={shop.id}
+                    className="flex-shrink-0 w-32 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/boutique/${shop.id}`)}
+                  >
+                    <div className="p-3 flex flex-col items-center text-center">
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-2 overflow-hidden">
+                        {shop.logo ? (
+                          <img src={shop.logo} alt={shop.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Store className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
+                      <p className="text-sm font-medium line-clamp-1">{shop.name}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        {shop.rating !== null ? (
+                          <>
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs text-muted-foreground">{shop.rating.toFixed(1)}</span>
+                            <span className="text-xs text-muted-foreground">({shop.ratingCount})</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-primary">✨ Nouveau</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground mt-0.5">
+                        {shop.productCount} produit{shop.productCount > 1 ? 's' : ''}
+                      </span>
                     </div>
-                    <p className="text-sm font-medium line-clamp-1">{shop.name}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      {shop.rating !== null ? (
-                        <>
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs text-muted-foreground">{shop.rating.toFixed(1)}</span>
-                          <span className="text-xs text-muted-foreground">({shop.ratingCount})</span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-primary">✨ Nouveau</span>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-0.5">
-                      {shop.productCount} produit{shop.productCount > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
