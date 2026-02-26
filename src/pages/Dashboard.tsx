@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +70,7 @@ interface Friend {
   relation: string;
   location: string;
   birthday: string | Date;
+  linked_user_id?: string | null;
 }
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -212,7 +213,8 @@ export default function Dashboard() {
         phone: contact.phone || '',
         relation: contact.relationship || '',
         location: contact.notes || '',
-        birthday: contact.birthday || ''
+        birthday: contact.birthday || '',
+        linked_user_id: contact.linked_user_id
       }));
 
       setFriends(contacts);
@@ -712,7 +714,15 @@ export default function Dashboard() {
                 {friends.map(friend => <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium">{friend.name}</div>
+                        <div className="font-medium flex items-center gap-1.5">
+                          {friend.name}
+                          {friend.linked_user_id && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5">
+                              <CheckCircle className="h-3 w-3" />
+                              Sur l'app
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Anniv. dans {getDaysUntilBirthday(friend.birthday)} jours
@@ -722,6 +732,34 @@ export default function Dashboard() {
                         <Badge variant="secondary" className="capitalize">
                           {friend.relation}
                         </Badge>
+                        {!friend.linked_user_id && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={async () => {
+                                  const userName = userProfile?.first_name || user?.user_metadata?.first_name || '';
+                                  const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/register`;
+                                  if (navigator.share) {
+                                    try {
+                                      await navigator.share({ text: message });
+                                    } catch (e) {
+                                      // User cancelled share
+                                    }
+                                  } else {
+                                    await navigator.clipboard.writeText(message);
+                                    toast({ title: "Lien copié", description: "L'invitation a été copiée dans le presse-papier" });
+                                  }
+                                }}
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Inviter sur l'app</TooltipContent>
+                          </Tooltip>
+                        )}
                         <AnimatedGiftButton
                           friendId={friend.id}
                           friendName={friend.name}
