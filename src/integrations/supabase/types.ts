@@ -1218,6 +1218,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "business_collective_funds_beneficiary_user_id_fkey"
+            columns: ["beneficiary_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_beneficiary_user_id_fkey"
+            columns: ["beneficiary_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "business_collective_funds_beneficiary_user_id_fkey"
+            columns: ["beneficiary_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
+          {
             foreignKeyName: "business_collective_funds_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
