@@ -296,7 +296,8 @@ export async function sendWhatsAppTemplate(
   to: string,
   templateName: string,
   languageCode: string,
-  bodyParameters: string[]
+  bodyParameters: string[],
+  buttonParameters?: string[]
 ): Promise<SmsResult> {
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
@@ -320,6 +321,16 @@ export async function sendWhatsAppTemplate(
       components.push({
         type: 'body',
         parameters: bodyParameters.map(value => ({ type: 'text', text: value })),
+      });
+    }
+    if (buttonParameters && buttonParameters.length > 0) {
+      buttonParameters.forEach((value, index) => {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: index.toString(),
+          parameters: [{ type: 'text', text: value }],
+        });
       });
     }
 

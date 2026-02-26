@@ -209,7 +209,8 @@ serve(async (req) => {
               beneficiaryName,
               formattedTarget,
               productName
-            ]
+            ],
+            [fund_id]
           );
           if (result.success) whatsappSentCount++;
         } catch (e) {
