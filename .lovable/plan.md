@@ -1,78 +1,78 @@
 
-## Correction du double envoi SMS+WhatsApp dans notify-contact-added
 
-### Probleme identifie
+## Alerte automatique : taux d'echec WhatsApp > 10% sur 24h
 
-La fonction `notify-contact-added` envoie SMS et WhatsApp **en parallele** pour les numeros +225 (Cote d'Ivoire) et +221 (Senegal). Le contact recoit donc deux messages identiques a chaque ajout.
+### Contexte
 
-Les pays Benin, Togo, Mali et Burkina Faso ne sont pas affectes car leur SMS est marque `unavailable`.
+Le projet dispose deja d'un monitoring OTP WhatsApp (`check-whatsapp-otp-health`) qui surveille les taux de succes OTP. La nouvelle alerte portera sur les **messages WhatsApp de notification** (rappels anniversaire, ajout de contact, cercle d'amis) stockes dans `birthday_contact_alerts`.
 
-La fonction `process-scheduled-notifications` n'existe pas dans le projet, donc rien a corriger de ce cote.
+### Architecture
 
-### Solution
+Nouvelle Edge Function `check-whatsapp-delivery-health` suivant exactement le meme pattern que `check-whatsapp-otp-health` :
 
-Remplacer la logique d'envoi parallele par un routage **WhatsApp-first avec fallback SMS** :
+1. Lire le seuil configurable depuis `growth_alert_thresholds` (metric_type = `whatsapp_delivery_failure_rate`)
+2. Calculer le taux d'echec WhatsApp sur les dernieres 24h depuis `birthday_contact_alerts`
+3. Verifier un volume minimum (10 envois) pour eviter les faux positifs
+4. Anti-spam : ne pas creer d'alerte si une alerte du meme type existe dans les 6 dernieres heures
+5. Creer une notification dans `admin_notifications` avec severite `critical`
+6. Envoyer un email HTML via Resend aux admins actifs
+7. Declenchement via CRON toutes les 6 heures
 
-1. Tenter WhatsApp en premier (template HSM, puis fallback texte libre si echec)
-2. Si WhatsApp echoue ET que le SMS est viable pour le pays, envoyer le SMS
-3. Si WhatsApp reussit, ne PAS envoyer de SMS
-4. Enregistrer un seul log dans `birthday_contact_alerts` avec le canal effectivement utilise
+### Fichiers a creer / modifier
 
-### Fichier modifie
+**1. Edge Function** : `supabase/functions/check-whatsapp-delivery-health/index.ts`
 
-`supabase/functions/notify-contact-added/index.ts`
+- Requete sur `birthday_contact_alerts` : filtrer `channel = 'whatsapp'` sur les dernieres 24h
+- Calculer : total envoyes, total echoues (`status = 'failed'`), taux d'echec
+- Seuil par defaut : 10% d'echec (configurable via `growth_alert_thresholds`)
+- Volume minimum : 10 messages
+- Anti-spam : 6h entre les alertes de type `whatsapp_delivery_failure_rate`
+- Notification in-app dans `admin_notifications` avec `action_url: '/admin/messaging-delivery'`
+- Email HTML aux admins via Resend (meme logique que `check-whatsapp-otp-health`)
 
-### Changements techniques
+**2. Migration SQL** :
 
-Remplacer les lignes 223-300 (logique d'envoi parallele) par :
+- Inserer le seuil par defaut dans `growth_alert_thresholds` :
+  - `metric_type`: `whatsapp_delivery_failure_rate`
+  - `threshold_value`: 10
+  - `comparison_period`: `24h`
+  - `is_active`: true
+
+- Creer le CRON job via `pg_cron` :
+  - Nom : `check-whatsapp-delivery-health-6h`
+  - Frequence : toutes les 6 heures (`0 */6 * * *`)
+  - Appel HTTP POST vers l'Edge Function avec `service_role` key
+
+### Details techniques
 
 ```text
-// 1. Tenter WhatsApp d'abord (si active)
-let finalChannel = 'whatsapp';
-let finalSuccess = false;
-let finalError: string | undefined;
+Flux de la fonction :
 
-if (canSendWhatsapp) {
-  const waResult = await sendWhatsAppTemplate(...);
-  if (waResult.success) {
-    finalSuccess = true;
-  } else {
-    // Template echec, essayer texte libre
-    const fallback = await sendWhatsApp(...);
-    if (fallback.success) {
-      finalSuccess = true;
-    } else {
-      finalError = fallback.error;
-    }
-  }
-}
-
-// 2. Fallback SMS uniquement si WhatsApp a echoue
-if (!finalSuccess && canSendSms) {
-  finalChannel = 'sms';
-  const smsResult = await sendSms(...);
-  finalSuccess = smsResult.success;
-  finalError = smsResult.error;
-}
-
-// 3. Dernier recours si rien n'etait active
-if (!finalSuccess && !canSendWhatsapp && !canSendSms) {
-  // Forcer WhatsApp comme avant
-  const waResult = await sendWhatsAppTemplate(...);
-  ...
-}
-
-// 4. Un seul log dans birthday_contact_alerts
-await supabaseAdmin.from('birthday_contact_alerts').insert({
-  channel: finalChannel,
-  status: finalSuccess ? 'sent' : 'failed',
-  ...
-});
+birthday_contact_alerts (24h, channel=whatsapp)
+  |
+  v
+Calcul taux d'echec = failed / total * 100
+  |
+  v
+Volume < 10 ? --> STOP (insufficient_volume)
+  |
+  v
+Taux <= seuil ? --> STOP (healthy)
+  |
+  v
+Alerte recente < 6h ? --> STOP (anti-spam)
+  |
+  v
+INSERT admin_notifications (critical)
+  |
+  v
+Email Resend --> admins actifs
 ```
 
 ### Impact
 
-- Les contacts en Cote d'Ivoire et au Senegal ne recevront plus qu'un seul message (WhatsApp en priorite)
-- Le SMS ne sera envoye que si WhatsApp echoue
-- Un seul enregistrement par notification dans la table `birthday_contact_alerts` (au lieu de deux)
-- Le dashboard de delivrabilite refletera des statistiques plus propres
+- Les admins seront alertes automatiquement si le WhatsApp echoue pour plus de 10% des notifications
+- Lien direct vers le dashboard `/admin/messaging-delivery` dans la notification
+- Configurable via les parametres admin existants (`growth_alert_thresholds`)
+- Pas d'impact sur les fonctions existantes
+
