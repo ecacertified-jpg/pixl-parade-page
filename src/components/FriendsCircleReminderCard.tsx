@@ -115,7 +115,7 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
           phone: newFriend.phone,
           relationship: newFriend.relationship || 'friend',
           notes: newFriend.location,
-          birthday: newFriend.birthday ? newFriend.birthday.toISOString().split('T')[0] : null
+          birthday: newFriend.birthday ? (() => { const d = newFriend.birthday instanceof Date ? newFriend.birthday : new Date(newFriend.birthday); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : null
         })
         .select('id')
         .single();

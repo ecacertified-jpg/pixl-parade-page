@@ -100,7 +100,8 @@ export function BirthdayPicker({
       return;
     }
 
-    const parsedDate = new Date(dateString);
+    const [y, m, d] = dateString.split('-').map(Number);
+    const parsedDate = new Date(y, m - 1, d);
     
     if (!isValid(parsedDate)) {
       setValidationError("Date invalide");

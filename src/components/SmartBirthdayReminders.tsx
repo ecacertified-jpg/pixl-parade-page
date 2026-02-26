@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BirthdayReminderCard } from "@/components/BirthdayReminderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDaysUntilBirthday } from "@/lib/utils";
 
 interface BirthdayReminder {
   id: string;
@@ -88,14 +89,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
       for (const contact of contacts || []) {
         if (!contact.birthday) continue;
 
-        const birthday = new Date(contact.birthday);
-        const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
-        
-        if (thisYearBirthday < today) {
-          thisYearBirthday.setFullYear(thisYearBirthday.getFullYear() + 1);
-        }
-
-        const daysUntil = Math.ceil((thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntil = getDaysUntilBirthday(contact.birthday);
 
         // Only include upcoming birthdays within 14 days that aren't already in notifications
         if (daysUntil <= 14 && daysUntil >= 0) {
@@ -107,7 +101,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
               contact_name: contact.name,
               contact_relationship: contact.relationship || undefined,
               days_until: daysUntil,
-              birthday_date: thisYearBirthday.toISOString(),
+              birthday_date: contact.birthday,
               reminder_type: daysUntil <= 1 ? 'final' : daysUntil <= 3 ? 'urgent' : 'standard',
               has_active_fund: false,
               gift_suggestions: []

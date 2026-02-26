@@ -69,7 +69,7 @@ interface Friend {
   phone: string;
   relation: string;
   location: string;
-  birthday: Date;
+  birthday: string | Date;
 }
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -212,7 +212,7 @@ export default function Dashboard() {
         phone: contact.phone || '',
         relation: contact.relationship || '',
         location: contact.notes || '',
-        birthday: contact.birthday ? new Date(contact.birthday) : new Date()
+        birthday: contact.birthday || ''
       }));
 
       setFriends(contacts);
@@ -299,7 +299,7 @@ export default function Dashboard() {
         phone: newFriend.phone,
         relationship: newFriend.relation,
         notes: newFriend.location,
-        birthday: newFriend.birthday.toISOString().split('T')[0]
+        birthday: newFriend.birthday ? (() => { const d = newFriend.birthday instanceof Date ? newFriend.birthday : new Date(newFriend.birthday); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })() : null
       }).select('id').single();
 
       if (error) {
@@ -319,7 +319,7 @@ export default function Dashboard() {
             contact_id: insertedContact.id,
             contact_name: newFriend.name,
             contact_phone: newFriend.phone,
-            birthday: newFriend.birthday.toISOString()
+            birthday: newFriend.birthday instanceof Date ? newFriend.birthday.toISOString() : newFriend.birthday
           }
         }).catch(err => {
           console.log('Notification non envoyée (non bloquant):', err);
