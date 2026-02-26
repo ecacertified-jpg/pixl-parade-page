@@ -73,6 +73,7 @@ const navItems: NavItem[] = [
   { title: 'Stats Partages', href: '/admin/share-analytics', icon: Share2 },
   { title: 'IndexNow SEO', href: '/admin/indexnow', icon: Rocket },
   { title: 'Stats WhatsApp OTP', href: '/admin/whatsapp-otp', icon: MessageSquare },
+  { title: 'Délivrabilité SMS/WA', href: '/admin/messaging-delivery', icon: Radio },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },

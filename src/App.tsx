@@ -70,6 +70,7 @@ import AdminNotificationsPage from "./pages/Admin/AdminNotificationsPage";
 import ShareAnalytics from "./pages/Admin/ShareAnalytics";
 import IndexNowAnalytics from "./pages/Admin/IndexNowAnalytics";
 import WhatsAppOtpAnalytics from "./pages/Admin/WhatsAppOtpAnalytics";
+import MessagingDeliveryDashboard from "./pages/Admin/MessagingDeliveryDashboard";
 import MyAssignments from "./pages/Admin/MyAssignments";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
@@ -485,6 +486,11 @@ const App = () => (
             <Route path="/admin/whatsapp-otp" element={
               <AdminRoute>
                 <WhatsAppOtpAnalytics />
+              </AdminRoute>
+            } />
+            <Route path="/admin/messaging-delivery" element={
+              <AdminRoute>
+                <MessagingDeliveryDashboard />
               </AdminRoute>
             } />
             <Route path="/admin/reciprocity" element={

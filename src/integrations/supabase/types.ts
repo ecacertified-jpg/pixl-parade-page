@@ -8204,6 +8204,10 @@ export type Database = {
       }
       get_fund_creator_id: { Args: { p_fund_id: string }; Returns: string }
       get_invitation_stats: { Args: { user_uuid: string }; Returns: Json }
+      get_messaging_delivery_stats: {
+        Args: { days_back?: number }
+        Returns: Json
+      }
       get_platform_seo_stats: { Args: never; Returns: Json }
       get_product_category_name: {
         Args: { p_product_id: string }
