@@ -124,7 +124,7 @@ serve(async (req) => {
       type: 'fund_invitation',
       title: `Cotisation pour ${beneficiaryName}`,
       message: `${business_name} invite à contribuer pour offrir "${product_name}" à ${beneficiaryName}`,
-      data: {
+      metadata: {
         fund_id,
         beneficiary_user_id,
         business_name,
