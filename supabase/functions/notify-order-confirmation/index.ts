@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, sendWhatsAppTemplate, getPreferredChannel } from "../_shared/sms-sender.ts";
 import { sendWebPushNotification } from "../_shared/web-push.ts";
 
 const corsHeaders = {
@@ -120,15 +120,30 @@ serve(async (req) => {
       }
     }
 
-    // SMS for refund requests
+    // SMS/WhatsApp for refund requests
     let smsSent = false;
-    if (!isSatisfied) {
+    if (!isSatisfied && businessPhone) {
       console.log(`🔔 REFUND REQUEST: Order ${orderId}, Rating: ${rating}/5`);
-      if (businessPhone && shouldUseSms(businessPhone)) {
-        const smsMessage = `URGENT JoieDvivre: Demande remboursement #${shortOrderId}. Connectez-vous maintenant.`;
-        const smsResult = await sendSms(businessPhone, smsMessage);
-        smsSent = smsResult.success;
+      const channel = getPreferredChannel(businessPhone);
+      const smsMessage = `URGENT JoieDvivre: Demande remboursement #${shortOrderId}. Connectez-vous maintenant.`;
+      
+      let sendResult;
+      if (channel === 'whatsapp') {
+        console.log(`📤 [WhatsApp] Sending refund alert to business`);
+        sendResult = await sendWhatsAppTemplate(
+          businessPhone,
+          'joiedevivre_refund_alert',
+          'fr',
+          [shortOrderId]
+        );
+        if (!sendResult.success) {
+          console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
+          sendResult = await sendWhatsApp(businessPhone, smsMessage);
+        }
+      } else {
+        sendResult = await sendSms(businessPhone, smsMessage);
       }
+      smsSent = sendResult.success;
     }
 
     return new Response(

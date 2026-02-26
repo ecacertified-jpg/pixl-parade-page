@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, shouldUseSms } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, sendWhatsAppTemplate, getPreferredChannel } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -284,16 +284,34 @@ serve(async (req) => {
           if (profile) userProfilesCache.set(contact.user_id, profile);
         }
 
-        if (userProfile?.phone && shouldUseSms(userProfile.phone)) {
+        if (userProfile?.phone) {
+          const channel = getPreferredChannel(userProfile.phone);
           const smsMessage = `JoieDvivre: L'anniversaire de ${contact.name} est DEMAIN! Offrez un cadeau memorable.`;
-          console.log(`📤 [SMS] Sending critical birthday reminder to user for ${contact.name}`);
           
-          const smsResult = await sendSms(userProfile.phone, smsMessage);
-          if (smsResult.success) {
-            notificationsCreated.smsSent++;
-            console.log(`✅ [SMS] Critical reminder sent: ${smsResult.sid}`);
+          let sendResult;
+          if (channel === 'whatsapp') {
+            console.log(`📤 [WhatsApp] Sending critical birthday reminder for ${contact.name}`);
+            // Try template first, fallback to free text
+            sendResult = await sendWhatsAppTemplate(
+              userProfile.phone,
+              'joiedevivre_birthday_reminder',
+              'fr',
+              [contact.name, '1']
+            );
+            if (!sendResult.success) {
+              console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
+              sendResult = await sendWhatsApp(userProfile.phone, smsMessage);
+            }
           } else {
-            console.log(`⚠️ [SMS] Failed to send: ${smsResult.error}`);
+            console.log(`📤 [SMS] Sending critical birthday reminder for ${contact.name}`);
+            sendResult = await sendSms(userProfile.phone, smsMessage);
+          }
+          
+          if (sendResult.success) {
+            notificationsCreated.smsSent++;
+            console.log(`✅ [${channel}] Critical reminder sent: ${sendResult.sid}`);
+          } else {
+            console.log(`⚠️ [${channel}] Failed to send: ${sendResult.error}`);
           }
         }
       }

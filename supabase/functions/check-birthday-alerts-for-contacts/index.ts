@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendSms, getPreferredChannel } from "../_shared/sms-sender.ts";
+import { sendSms, sendWhatsApp, sendWhatsAppTemplate, getPreferredChannel } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -173,10 +173,22 @@ serve(async (req) => {
         if (channel === 'sms' && preferences.sms_enabled) {
           const smsResult = await sendSms(ownerProfile.phone, message);
           sendResult = { success: smsResult.success, error: smsResult.error };
-        } else if (preferences.whatsapp_enabled) {
-          // WhatsApp sending would go here - for now just log
-          console.log(`WhatsApp message would be sent to ${ownerProfile.phone}: ${message}`);
-          sendResult = { success: true }; // Consider it sent for tracking
+        } else if (channel === 'whatsapp' || preferences.whatsapp_enabled) {
+          // Try WhatsApp template first, fallback to free text
+          console.log(`📤 [WhatsApp] Sending birthday alert to ${ownerProfile.phone}`);
+          const waResult = await sendWhatsAppTemplate(
+            ownerProfile.phone,
+            'joiedevivre_birthday_reminder',
+            'fr',
+            [userName, String(daysUntilBirthday)]
+          );
+          if (waResult.success) {
+            sendResult = { success: true };
+          } else {
+            console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${waResult.error}`);
+            const fallbackResult = await sendWhatsApp(ownerProfile.phone, message);
+            sendResult = { success: fallbackResult.success, error: fallbackResult.error };
+          }
         }
 
         // Record the alert
