@@ -1,78 +1,36 @@
 
 
-## Alerte automatique : taux d'echec WhatsApp > 10% sur 24h
+## Correction de `notify-business-fund-contributors`
 
-### Contexte
+### Probleme identifie
 
-Le projet dispose deja d'un monitoring OTP WhatsApp (`check-whatsapp-otp-health`) qui surveille les taux de succes OTP. La nouvelle alerte portera sur les **messages WhatsApp de notification** (rappels anniversaire, ajout de contact, cercle d'amis) stockes dans `birthday_contact_alerts`.
+La table `business_collective_funds` a une colonne `beneficiary_user_id` mais **aucune cle etrangere** vers `profiles.user_id`. PostgREST ne peut donc pas resoudre la jointure `profiles!beneficiary_user_id` dans la requete de l'Edge Function.
 
-### Architecture
+**FKs existantes** : `fund_id -> collective_funds`, `business_id -> business_accounts`, `product_id -> products`
+**FK manquante** : `beneficiary_user_id -> profiles(user_id)`
 
-Nouvelle Edge Function `check-whatsapp-delivery-health` suivant exactement le meme pattern que `check-whatsapp-otp-health` :
+### Plan de correction
 
-1. Lire le seuil configurable depuis `growth_alert_thresholds` (metric_type = `whatsapp_delivery_failure_rate`)
-2. Calculer le taux d'echec WhatsApp sur les dernieres 24h depuis `birthday_contact_alerts`
-3. Verifier un volume minimum (10 envois) pour eviter les faux positifs
-4. Anti-spam : ne pas creer d'alerte si une alerte du meme type existe dans les 6 dernieres heures
-5. Creer une notification dans `admin_notifications` avec severite `critical`
-6. Envoyer un email HTML via Resend aux admins actifs
-7. Declenchement via CRON toutes les 6 heures
+#### Etape 1 : Migration SQL - Ajouter la cle etrangere
 
-### Fichiers a creer / modifier
+```sql
+ALTER TABLE business_collective_funds
+ADD CONSTRAINT business_collective_funds_beneficiary_user_id_fkey
+FOREIGN KEY (beneficiary_user_id) REFERENCES profiles(user_id) ON DELETE CASCADE;
+```
 
-**1. Edge Function** : `supabase/functions/check-whatsapp-delivery-health/index.ts`
+Cela permettra a PostgREST de resoudre automatiquement la jointure `profiles!beneficiary_user_id`.
 
-- Requete sur `birthday_contact_alerts` : filtrer `channel = 'whatsapp'` sur les dernieres 24h
-- Calculer : total envoyes, total echoues (`status = 'failed'`), taux d'echec
-- Seuil par defaut : 10% d'echec (configurable via `growth_alert_thresholds`)
-- Volume minimum : 10 messages
-- Anti-spam : 6h entre les alertes de type `whatsapp_delivery_failure_rate`
-- Notification in-app dans `admin_notifications` avec `action_url: '/admin/messaging-delivery'`
-- Email HTML aux admins via Resend (meme logique que `check-whatsapp-otp-health`)
+#### Etape 2 : Redeployer et tester
 
-**2. Migration SQL** :
-
-- Inserer le seuil par defaut dans `growth_alert_thresholds` :
-  - `metric_type`: `whatsapp_delivery_failure_rate`
-  - `threshold_value`: 10
-  - `comparison_period`: `24h`
-  - `is_active`: true
-
-- Creer le CRON job via `pg_cron` :
-  - Nom : `check-whatsapp-delivery-health-6h`
-  - Frequence : toutes les 6 heures (`0 */6 * * *`)
-  - Appel HTTP POST vers l'Edge Function avec `service_role` key
+Apres la migration :
+1. Invoquer manuellement `notify-business-fund-contributors` avec un `fund_id` de test
+2. Verifier que l'erreur `PGRST200` disparait
+3. Si la table `business_collective_funds` est vide, inserer un enregistrement de test lie a un `collective_fund` actif existant pour exercer le flux complet jusqu'a l'envoi WhatsApp
 
 ### Details techniques
 
-```text
-Flux de la fonction :
-
-birthday_contact_alerts (24h, channel=whatsapp)
-  |
-  v
-Calcul taux d'echec = failed / total * 100
-  |
-  v
-Volume < 10 ? --> STOP (insufficient_volume)
-  |
-  v
-Taux <= seuil ? --> STOP (healthy)
-  |
-  v
-Alerte recente < 6h ? --> STOP (anti-spam)
-  |
-  v
-INSERT admin_notifications (critical)
-  |
-  v
-Email Resend --> admins actifs
-```
-
-### Impact
-
-- Les admins seront alertes automatiquement si le WhatsApp echoue pour plus de 10% des notifications
-- Lien direct vers le dashboard `/admin/messaging-delivery` dans la notification
-- Configurable via les parametres admin existants (`growth_alert_thresholds`)
-- Pas d'impact sur les fonctions existantes
+- **Aucune modification du code Edge Function** n'est necessaire -- la requete `.select('*, profiles!beneficiary_user_id(...)')` est correcte, il manquait seulement la contrainte en base
+- La table est actuellement vide, donc la migration ne risque pas de violer la contrainte sur des donnees existantes
+- Le `ON DELETE CASCADE` est coherent avec les autres FKs de la table
 
