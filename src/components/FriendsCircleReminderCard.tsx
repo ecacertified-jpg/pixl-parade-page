@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, UserPlus, Clock, PartyPopper, AlertTriangle, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,35 +40,45 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
   
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
-  const [prevContactsCount, setPrevContactsCount] = useState(contactsCount);
+  const prevContactsCount = useRef<number | null>(null);
+  const hasInitiallyLoaded = useRef(false);
+
+  const getCelebratedKey = () => `friends_circle_celebrated_${user?.id}`;
 
   // Detect when we reach the goal
   useEffect(() => {
-    if (prevContactsCount < minimumContacts && contactsCount >= minimumContacts) {
+    // Skip while loading
+    if (isLoading) return;
+
+    const prev = prevContactsCount.current;
+    prevContactsCount.current = contactsCount;
+
+    // First load: just record the value, don't celebrate
+    if (!hasInitiallyLoaded.current) {
+      hasInitiallyLoaded.current = true;
+      return;
+    }
+
+    // Only celebrate on a real transition from < minimum to >= minimum
+    if (prev !== null && prev < minimumContacts && contactsCount >= minimumContacts) {
+      // Check localStorage to never re-celebrate
+      if (user?.id && localStorage.getItem(getCelebratedKey())) return;
+
+      if (user?.id) localStorage.setItem(getCelebratedKey(), 'true');
+
       setJustCompleted(true);
-      // Trigger confetti
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
         colors: ['#7A5DC7', '#FAD4E1', '#C084FC', '#FF4D6D']
       });
-      
-      // Send push notification and in-app notification
       sendCompletionNotification();
-      
-      // Check and award badges for friend circle completion
-      if (user?.id) {
-        checkAndAwardBadges(user.id);
-      }
-      
-      // Hide after celebration
-      setTimeout(() => {
-        setJustCompleted(false);
-      }, 3000);
+      if (user?.id) checkAndAwardBadges(user.id);
+
+      setTimeout(() => setJustCompleted(false), 3000);
     }
-    setPrevContactsCount(contactsCount);
-  }, [contactsCount, prevContactsCount, minimumContacts, sendCompletionNotification, user?.id]);
+  }, [contactsCount, isLoading, minimumContacts, sendCompletionNotification, user?.id]);
 
   const handleAddFriend = async (newFriend: Friend) => {
     if (!user) {
