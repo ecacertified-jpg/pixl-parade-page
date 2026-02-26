@@ -70,9 +70,9 @@ serve(async (req) => {
       console.log(`[WhatsApp Template] Welcome result:`, waResult.success ? waResult.sid : waResult.error);
 
       // Record in DB
-      await supabaseAdmin.from('birthday_contact_alerts').insert({
+      const { error: insertError } = await supabaseAdmin.from('birthday_contact_alerts').insert({
         user_id: userId,
-        contact_id: userId,
+        contact_id: null,
         contact_phone: profile.phone,
         contact_name: firstName,
         alert_type: 'friends_circle_welcome',
@@ -82,6 +82,9 @@ serve(async (req) => {
         sent_at: waResult.success ? new Date().toISOString() : null,
         error_message: waResult.error || null,
       });
+      if (insertError) {
+        console.error('Failed to record welcome alert:', insertError.message);
+      }
 
       return new Response(JSON.stringify({ sent: waResult.success }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -158,9 +161,9 @@ serve(async (req) => {
         }
 
         // Record alert
-        await supabaseAdmin.from('birthday_contact_alerts').insert({
+        const { error: insertError } = await supabaseAdmin.from('birthday_contact_alerts').insert({
           user_id: user.user_id,
-          contact_id: user.user_id,
+          contact_id: null,
           contact_phone: user.phone,
           contact_name: firstName,
           alert_type: 'friends_circle_reminder',
@@ -170,6 +173,9 @@ serve(async (req) => {
           sent_at: waResult.success ? new Date().toISOString() : null,
           error_message: waResult.error || null,
         });
+        if (insertError) {
+          console.error('Failed to record reminder alert:', insertError.message);
+        }
 
         remindersSent++;
       } catch (err) {
