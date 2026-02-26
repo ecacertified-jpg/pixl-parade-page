@@ -1,70 +1,42 @@
 
-## Ajouter l'envoi WhatsApp `joiedevivre_group_contribution` dans le flux de creation de cagnotte business
 
-### Probleme identifie
+## Plan : Créer la relation et tester l'envoi WhatsApp
 
-Quand une cagnotte business est creee (via `BusinessCollaborativeGiftModal`), le code appelle la fonction Edge **`notify-business-fund-friends`**, qui ne cree que des notifications `push` et `in_app`. **Aucun WhatsApp n'est envoye.**
+### Etape 1 -- Insérer la relation contact_relationships
 
-La fonction `notify-business-fund-contributors` (qui contient le code WhatsApp) existe mais n'est **jamais appelee** dans ce flux.
+Insérer une ligne dans `contact_relationships` entre Françoise et Florentin avec `can_see_funds = true` :
 
-### Solution
+- **user_a** : `0b4eb0bb-96dd-4a9d-b7f1-96eaafea95d4` (Françoise)
+- **user_b** : `aae8fedd-8b84-4434-bf18-a7b8e78ffab5` (Florentin)
+- **relationship_type** : `friend`
+- **can_see_funds** : `true`
+- **can_see_events** : `true`
 
-Integrer l'envoi du template WhatsApp `joiedevivre_group_contribution` directement dans `notify-business-fund-friends`, en suivant le pattern WhatsApp-first existant.
+### Etape 2 -- Relancer le test notify-business-fund-friends
 
-### Modifications
+Appeler la fonction Edge `notify-business-fund-friends` avec les memes parametres :
 
-#### 1. `supabase/functions/notify-business-fund-friends/index.ts`
+```text
+fund_id:          c694c0d0-2bbe-446d-91de-47d2549b3be3
+beneficiary_user_id: 0b4eb0bb-96dd-4a9d-b7f1-96eaafea95d4  (Françoise)
+business_name:    NewTech
+product_name:     Samsung Galaxy A16 - 2 Sim
+target_amount:    88000
+currency:         XOF
+```
 
-- Importer `sendWhatsAppTemplate` depuis `../_shared/sms-sender.ts`
-- Apres la creation des notifications in-app (ligne 140), ajouter un bloc qui :
-  1. Recupere les profils (first_name, phone) des amis identifies dans `friendIds`
-  2. Pour chaque ami ayant un numero de telephone, envoie le template WhatsApp `joiedevivre_group_contribution` avec les parametres :
-     - `[0]` : prenom de l'ami
-     - `[1]` : nom du beneficiaire
-     - `[2]` : montant objectif formate (ex: "88 000")
-     - `[3]` : nom du produit
-  3. Passe le `fund_id` comme parametre de bouton CTA (pour le lien `/f/{fund_id}`)
-- Ajouter le compteur `whatsapp_sent` dans la reponse JSON
+### Resultat attendu
 
-#### 2. Verification et deploiement
-
-- Redeployer la fonction `notify-business-fund-friends`
-- Tester en appelant manuellement la fonction avec le fund_id de Francoise (`c694c0d0-2bbe-446d-91de-47d2549b3be3`)
-- Verifier les logs et la table `scheduled_notifications`
+La fonction devrait :
+1. Trouver Florentin comme ami de Françoise avec `can_see_funds = true`
+2. Creer une notification planifiee et une notification in-app pour Florentin
+3. Envoyer le template WhatsApp `joiedevivre_group_contribution` au numero +2250707467445 (Florentin)
+4. Retourner `notified_count: 1` et `whatsapp_sent: 1`
 
 ### Details techniques
 
-Le code WhatsApp a ajouter suit exactement le meme pattern que dans `notify-business-fund-contributors` (lignes 170-195) :
+- Aucune modification de schema necessaire
+- Insertion de donnees via l'outil insert (pas de migration)
+- Test via `curl_edge_functions` pour appeler la fonction deployee
+- Verification des logs Edge Function apres le test
 
-```text
-// Get friends' phone numbers
-const { data: friendProfiles } = await supabase
-  .from('profiles')
-  .select('user_id, first_name, phone')
-  .in('user_id', friendIds);
-
-const formattedTarget = target_amount?.toLocaleString('fr-FR') || '0';
-let whatsappSentCount = 0;
-
-for (const friend of (friendProfiles || [])) {
-  if (!friend.phone) continue;
-  try {
-    const result = await sendWhatsAppTemplate(
-      friend.phone,
-      'joiedevivre_group_contribution',
-      'fr',
-      [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, product_name],
-      [fund_id]
-    );
-    if (result.success) whatsappSentCount++;
-  } catch (e) {
-    console.error(`WhatsApp error for ${friend.user_id}:`, e);
-  }
-}
-```
-
-### Impact
-
-- Les amis du beneficiaire avec `can_see_funds = true` et un numero de telephone recevront le template WhatsApp
-- Les amis sans numero continueront a recevoir uniquement les notifications push/in-app
-- Aucune modification cote frontend necessaire
