@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map, Expand, MapPin, Loader2 } from "lucide-react";
 import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { motion, useReducedMotion } from "framer-motion";
@@ -33,6 +33,7 @@ import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { CountryBadge } from "@/components/CountryBadge";
 import { haversineDistance, formatDistance, requestUserLocation, type GeoLocation } from "@/utils/geoUtils";
+import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 
 export default function Shop() {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ export default function Shop() {
   // Geolocation state
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   
   // State for video playback modal
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
@@ -156,9 +158,25 @@ export default function Shop() {
     fetchLocation();
   }, []);
   
-  // Reload products when userLocation changes
+  // Re-sort products locally when userLocation changes (no new DB request)
   useEffect(() => {
-    loadProducts();
+    if (!userLocation || products.length === 0) return;
+    setProducts(prev => {
+      const updated = prev.map(p => {
+        if (p.businessLatitude && p.businessLongitude) {
+          const distanceKm = haversineDistance(userLocation.lat, userLocation.lng, p.businessLatitude, p.businessLongitude);
+          return { ...p, distanceKm, distance: formatDistance(distanceKm) };
+        }
+        return p;
+      });
+      updated.sort((a, b) => {
+        if (a.distanceKm === null && b.distanceKm === null) return 0;
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+      return updated;
+    });
   }, [userLocation]);
   
   useEffect(() => {
@@ -169,29 +187,52 @@ export default function Shop() {
       localStorage.removeItem('contributionTarget');
     }
 
-    // Load products and popular shops from database
+    // Load products and popular shops in parallel
     loadProducts();
     loadPopularShops();
 
-    // Subscribe to real-time changes on products table
+    // Subscribe to real-time changes on products table (incremental updates)
     const channel = supabase
       .channel('products-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: 'INSERT',
+          schema: 'public',
+          table: 'products'
+        },
+        () => { loadProducts(); } // New product needs full mapping
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'products'
         },
         (payload) => {
-          console.log('Product change detected:', payload);
-          // Reload products when any change occurs
-          loadProducts();
+          const updated = payload.new as any;
+          setProducts(prev => prev.map(p => 
+            String(p.id) === updated.id
+              ? { ...p, name: updated.name, description: updated.description || p.description, price: updated.price, inStock: (updated.stock_quantity || 0) > 0, isExperience: updated.is_experience || false, categoryName: updated.category_name, image: updated.image_url || p.image }
+              : p
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'products'
+        },
+        (payload) => {
+          const deleted = payload.old as any;
+          setProducts(prev => prev.filter(p => String(p.id) !== deleted.id));
         }
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
     return () => {
       supabase.removeChannel(channel);
     };
@@ -199,12 +240,13 @@ export default function Shop() {
 
   const loadProducts = async () => {
     try {
-      // Étape 1: Récupérer les produits
+      // Étape 1: Récupérer les produits (limité à 200)
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200);
 
       if (productsError) {
         console.error('Error loading products:', productsError);
@@ -216,66 +258,53 @@ export default function Shop() {
         return;
       }
 
-      // Étape 2: Extraire les business_account_id uniques
+      // Étape 2: Extraire les IDs
       const businessIds = [...new Set(
         productsData
           .map(p => p.business_account_id)
           .filter(Boolean)
       )] as string[];
+      const productIds = productsData.map(p => p.id);
 
-      // Étape 3: Récupérer les infos des boutiques (nom, logo, latitude, longitude, country_code)
+      // Étape 3: Requêtes business + ratings EN PARALLÈLE
+      const [businessResult, ratingsResult] = await Promise.all([
+        businessIds.length > 0
+          ? supabase
+              .from('business_accounts')
+              .select('id, business_name, logo_url, latitude, longitude, country_code, address')
+              .in('id', businessIds)
+          : Promise.resolve({ data: null, error: null }),
+        productIds.length > 0
+          ? supabase
+              .from('product_ratings')
+              .select('product_id, rating')
+              .in('product_id', productIds)
+          : Promise.resolve({ data: null, error: null }),
+      ]);
+
+      // Build business map
       let businessMap: Record<string, { 
-        name: string; 
-        logo: string | null;
-        latitude: number | null;
-        longitude: number | null;
-        countryCode: string | null;
-        address: string | null;
+        name: string; logo: string | null; latitude: number | null; longitude: number | null; countryCode: string | null; address: string | null;
       }> = {};
-      if (businessIds.length > 0) {
-        const { data: businessData, error: businessError } = await supabase
-          .from('business_accounts')
-          .select('id, business_name, logo_url, latitude, longitude, country_code, address')
-          .in('id', businessIds);
-        
-        if (businessError) {
-          console.error('Error loading business data:', businessError);
-        }
-        
-        if (businessData) {
-          businessMap = businessData.reduce((acc, b) => {
-            acc[b.id] = { 
-              name: b.business_name, 
-              logo: b.logo_url,
-              latitude: b.latitude,
-              longitude: b.longitude,
-              countryCode: b.country_code,
-              address: b.address
-            };
-            return acc;
-          }, {} as typeof businessMap);
-        }
+      if (businessResult.data) {
+        businessMap = businessResult.data.reduce((acc, b) => {
+          acc[b.id] = { 
+            name: b.business_name, logo: b.logo_url, latitude: b.latitude, longitude: b.longitude, countryCode: b.country_code, address: b.address
+          };
+          return acc;
+        }, {} as typeof businessMap);
       }
 
-      // Étape 4: Récupérer les ratings pour tous les produits
-      const productIds = productsData.map(p => p.id);
+      // Build ratings map
       const ratingsMap: Record<string, { sum: number; count: number }> = {};
-      
-      if (productIds.length > 0) {
-        const { data: ratingsData } = await supabase
-          .from('product_ratings')
-          .select('product_id, rating')
-          .in('product_id', productIds);
-
-        if (ratingsData) {
-          ratingsData.forEach(r => {
-            if (!ratingsMap[r.product_id]) {
-              ratingsMap[r.product_id] = { sum: 0, count: 0 };
-            }
-            ratingsMap[r.product_id].sum += r.rating;
-            ratingsMap[r.product_id].count += 1;
-          });
-        }
+      if (ratingsResult.data) {
+        ratingsResult.data.forEach(r => {
+          if (!ratingsMap[r.product_id]) {
+            ratingsMap[r.product_id] = { sum: 0, count: 0 };
+          }
+          ratingsMap[r.product_id].sum += r.rating;
+          ratingsMap[r.product_id].count += 1;
+        });
       }
 
       // Étape 5: Formater les produits avec les noms, logos, coordonnées et country_code
@@ -357,6 +386,8 @@ export default function Shop() {
       setProducts(formattedProducts);
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -833,6 +864,9 @@ export default function Shop() {
         </Card>
 
         {/* Products Grid */}
+        {isInitialLoading ? (
+          <ProductGridSkeleton count={6} columns={2} />
+        ) : (
         <AnimatedProductGrid 
           className="space-y-4"
           keyId={`${selectedCategory}-${activeTab}`}
@@ -1019,6 +1053,7 @@ export default function Shop() {
             ))
           )}
         </AnimatedProductGrid>
+        )}
 
         <div className="pb-20" />
       </main>
