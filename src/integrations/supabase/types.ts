@@ -846,7 +846,7 @@ export type Database = {
         Row: {
           alert_type: string
           channel: string
-          contact_id: string
+          contact_id: string | null
           contact_name: string | null
           contact_phone: string
           created_at: string
@@ -862,7 +862,7 @@ export type Database = {
         Insert: {
           alert_type: string
           channel: string
-          contact_id: string
+          contact_id?: string | null
           contact_name?: string | null
           contact_phone: string
           created_at?: string
@@ -878,7 +878,7 @@ export type Database = {
         Update: {
           alert_type?: string
           channel?: string
-          contact_id?: string
+          contact_id?: string | null
           contact_name?: string | null
           contact_phone?: string
           created_at?: string
