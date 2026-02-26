@@ -1,45 +1,42 @@
 
-
-## Ajouter une barre de recherche de boutiques dans la page Boutique
+## Ajouter un bouton "Voir mon cadeau" au template joiedevivre_gift_order
 
 ### Objectif
-Permettre aux utilisateurs de rechercher une boutique specifique par nom dans la page principale `/shop`, en filtrant la section "Boutiques populaires" et en recherchant parmi toutes les boutiques actives.
+Ajouter un bouton d'appel a l'action (CTA) avec URL dynamique au template WhatsApp `joiedevivre_gift_order`, identique au pattern utilise pour `joiedevivre_group_contribution` avec son bouton "Contribuer".
 
-### Emplacement
-La barre de recherche sera placee juste au-dessus de la section "Boutiques populaires" (ligne ~779), avec une icone `Store` et un placeholder "Rechercher une boutique...".
+### Contexte
+Le template `joiedevivre_group_contribution` utilise deja `sendWhatsAppTemplate` avec un 5e argument `buttonParameters` contenant l'ID de la cagnotte. Ce meme mecanisme sera replique pour le cadeau.
 
-### Comportement
-- **Sans saisie** : La section "Boutiques populaires" s'affiche normalement (top 6 boutiques)
-- **Avec saisie** : Recherche en temps reel parmi toutes les boutiques actives (via `business_public_info`), affichage des resultats correspondants au nom saisi
-- **Clic sur une boutique** : Navigation vers `/boutique/:id` (comportement existant)
+### Modifications
 
-### Modifications techniques
+**Fichier : `supabase/functions/notify-business-order/index.ts`**
 
-**Fichier : `src/pages/Shop.tsx`**
+1. **Modifier la signature de `sendGiftBeneficiaryNotification`** : ajouter un parametre `orderId: string`
+2. **Passer l'ID de commande comme `buttonParameters`** dans l'appel a `sendWhatsAppTemplate` :
 
-1. Ajouter un state `shopSearchQuery` pour la saisie utilisateur
-2. Ajouter un state `searchedShops` pour les resultats de recherche
-3. Ajouter une fonction `searchShops(query)` qui interroge `business_public_info` avec un filtre `ilike` sur `business_name`
-4. Utiliser un debounce (setTimeout 300ms) pour eviter trop de requetes
-5. Ajouter le champ de recherche (Input avec icone Store) au-dessus de la section "Boutiques populaires"
-6. Afficher `searchedShops` au lieu de `popularShops` quand une recherche est active
-7. Afficher un message "Aucune boutique trouvee" si la recherche ne retourne rien
-
-### Interface utilisateur
-
-```text
-+------------------------------------------+
-| [Store icon] Rechercher une boutique...  |
-+------------------------------------------+
-|  [Logo] Boutique A   [Logo] Boutique B   |  <-- resultats filtres ou populaires
-+------------------------------------------+
+```typescript
+const result = await sendWhatsAppTemplate(
+  beneficiaryPhone,
+  'joiedevivre_gift_order',
+  'fr',
+  [senderName, productName, formattedAmount],
+  [orderId]  // <-- nouveau : URL dynamique pour le bouton "Voir mon cadeau"
+);
 ```
 
-### Details d'implementation
+3. **Mettre a jour l'appel** a `sendGiftBeneficiaryNotification` (ligne ~209) pour passer `order.id` comme argument supplementaire
 
-- La recherche utilise la vue `business_public_info` (deja utilisee par `loadPopularShops`)
-- Filtre : `.ilike('business_name', '%query%')` avec `.eq('is_active', true)`
-- Les resultats incluent le nombre de produits et la note moyenne (meme logique que `loadPopularShops`)
-- Limite a 10 resultats pour la recherche
-- Un bouton X apparait pour effacer la recherche quand du texte est saisi
+### Pre-requis cote Meta Business Manager
+Le template `joiedevivre_gift_order` doit etre mis a jour dans Meta Business Manager pour inclure un bouton CTA de type "URL dynamique" pointant vers :
 
+```
+https://pixl-parade-page.lovable.app/order-confirmation?orderId={{1}}
+```
+
+Cette configuration se fait manuellement dans la console Meta (Gestionnaire WhatsApp > Modeles de messages > joiedevivre_gift_order > Ajouter un bouton > URL dynamique).
+
+### Impact
+- Aucune modification de schema de base de donnees
+- Aucun nouveau fichier
+- Seul le fichier `notify-business-order/index.ts` est modifie (3 lignes)
+- Le bouton ne fonctionnera qu'une fois le template mis a jour dans Meta Business Manager
