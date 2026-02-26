@@ -220,91 +220,89 @@ serve(async (req) => {
       ? `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n🎁 Ajoute tes souhaits de cadeaux ici 👉 joiedevivre-africa.com/favorites`
       : `🎉 ${userName} t'a ajouté à son cercle d'amis !\n\n🎂 Ton anniversaire est dans ${daysUntil} jour${pluralS}.\n\n✨ Rejoins la communauté et profite de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
-    // Send on both channels in parallel based on preferences
-    const sendPromises: Promise<{ channel: 'sms' | 'whatsapp'; success: boolean; error?: string }>[] = [];
+    // WhatsApp-first routing with SMS fallback (no double send)
+    let finalChannel: 'whatsapp' | 'sms' = 'whatsapp';
+    let finalSuccess = false;
+    let finalError: string | undefined;
 
-    // Smart routing: determine SMS viability based on contact's country
-    const smsReliability = getSmsPrefixReliability(contact_phone);
-    const canSendSms = preferences.sms_enabled && smsReliability !== 'unavailable';
-    const canSendWhatsapp = preferences.whatsapp_enabled;
-
-    console.log(`📡 Routing for ${contact_phone}: smsReliability=${smsReliability}, sms=${canSendSms}, whatsapp=${canSendWhatsapp}`);
-
-    if (canSendSms) {
-      sendPromises.push(
-        sendSms(contact_phone, smsMessage).then(r => ({ channel: 'sms' as const, success: r.success, error: r.error }))
-      );
-    }
+    // 1. Try WhatsApp first (if enabled)
     if (canSendWhatsapp) {
-      // Try template first (works outside 24h window), fallback to free-form text
-      sendPromises.push(
-        sendWhatsAppTemplate(
-          contact_phone,
-          'joiedevivre_contact_added',
-          'fr',
-          [userName, daysUntil.toString()]
-        ).then(async (r) => {
-          if (!r.success) {
-            console.log(`⚠️ [WhatsApp] Template failed (${r.error}), falling back to free-form text`);
-            const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
-            return { channel: 'whatsapp' as const, success: fallback.success, error: fallback.error };
-          }
-          return { channel: 'whatsapp' as const, success: r.success, error: r.error };
-        })
+      console.log(`📱 [WhatsApp] Trying template for ${contact_phone}`);
+      const waResult = await sendWhatsAppTemplate(
+        contact_phone,
+        'joiedevivre_contact_added',
+        'fr',
+        [userName, daysUntil.toString()]
       );
+      if (waResult.success) {
+        finalSuccess = true;
+        console.log(`✅ [WhatsApp] Template sent to ${contact_phone}`);
+      } else {
+        console.log(`⚠️ [WhatsApp] Template failed (${waResult.error}), trying free-form`);
+        const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
+        if (fallback.success) {
+          finalSuccess = true;
+          console.log(`✅ [WhatsApp] Free-form sent to ${contact_phone}`);
+        } else {
+          finalError = fallback.error;
+          console.log(`❌ [WhatsApp] Free-form also failed (${fallback.error})`);
+        }
+      }
     }
 
-    // If no channel is active after filtering, force WhatsApp as last resort
-    if (sendPromises.length === 0) {
-      console.log(`⚠️ No channel active after routing, forcing WhatsApp for ${contact_phone}`);
-      sendPromises.push(
-        sendWhatsAppTemplate(
-          contact_phone,
-          'joiedevivre_contact_added',
-          'fr',
-          [userName, daysUntil.toString()]
-        ).then(async (r) => {
-          if (!r.success) {
-            const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
-            return { channel: 'whatsapp' as const, success: fallback.success, error: fallback.error };
-          }
-          return { channel: 'whatsapp' as const, success: r.success, error: r.error };
-        })
+    // 2. SMS fallback only if WhatsApp failed
+    if (!finalSuccess && canSendSms) {
+      finalChannel = 'sms';
+      console.log(`📨 [SMS] Fallback for ${contact_phone}`);
+      const smsResult = await sendSms(contact_phone, smsMessage);
+      finalSuccess = smsResult.success;
+      finalError = smsResult.success ? undefined : smsResult.error;
+      console.log(`${finalSuccess ? '✅' : '❌'} [SMS] ${finalSuccess ? 'Sent' : 'Failed'} to ${contact_phone}`);
+    }
+
+    // 3. Last resort: force WhatsApp if no channel was active
+    if (!finalSuccess && !canSendWhatsapp && !canSendSms) {
+      finalChannel = 'whatsapp';
+      console.log(`⚠️ No channel active, forcing WhatsApp for ${contact_phone}`);
+      const waResult = await sendWhatsAppTemplate(
+        contact_phone,
+        'joiedevivre_contact_added',
+        'fr',
+        [userName, daysUntil.toString()]
       );
+      if (waResult.success) {
+        finalSuccess = true;
+      } else {
+        const fallback = await sendWhatsApp(contact_phone, whatsappFallbackMessage);
+        finalSuccess = fallback.success;
+        finalError = fallback.success ? undefined : fallback.error;
+      }
     }
 
-    const results = await Promise.allSettled(sendPromises);
-    const channelResults: { channel: string; success: boolean; error?: string }[] = [];
+    // 4. Single log entry in birthday_contact_alerts
+    await supabaseAdmin
+      .from('birthday_contact_alerts')
+      .insert({
+        user_id: user.id,
+        contact_id: contact_id,
+        contact_phone: contact_phone,
+        contact_name: contact_name,
+        alert_type: 'contact_added',
+        channel: finalChannel,
+        days_before: daysUntil,
+        status: finalSuccess ? 'sent' : 'failed',
+        sent_at: finalSuccess ? new Date().toISOString() : null,
+        error_message: finalError || null
+      });
 
-    for (const result of results) {
-      const r = result.status === 'fulfilled' ? result.value : { channel: 'unknown', success: false, error: (result.reason as Error)?.message };
-      channelResults.push(r);
+    console.log(`Notification ${finalSuccess ? 'sent' : 'failed'} to ${contact_phone} via ${finalChannel}`);
 
-      // Record one log per channel
-      await supabaseAdmin
-        .from('birthday_contact_alerts')
-        .insert({
-          user_id: user.id,
-          contact_id: contact_id,
-          contact_phone: contact_phone,
-          contact_name: contact_name,
-          alert_type: 'contact_added',
-          channel: r.channel,
-          days_before: daysUntil,
-          status: r.success ? 'sent' : 'failed',
-          sent_at: r.success ? new Date().toISOString() : null,
-          error_message: r.error || null
-        });
-
-      console.log(`Notification ${r.success ? 'sent' : 'failed'} to ${contact_phone} via ${r.channel}`);
-    }
-
-    const anySuccess = channelResults.some(r => r.success);
+    const anySuccess = finalSuccess;
 
     return new Response(
       JSON.stringify({
         success: anySuccess,
-        channels: channelResults,
+        channel: finalChannel,
         message: anySuccess
           ? `Notification envoyée à ${contact_name}`
           : `Échec de l'envoi sur tous les canaux`
