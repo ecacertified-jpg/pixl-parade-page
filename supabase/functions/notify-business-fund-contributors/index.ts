@@ -84,24 +84,19 @@ serve(async (req) => {
       .single();
 
     if (fundError || !businessFund) {
-      console.error('Error getting business fund:', fundError);
-      throw new Error('Fund not found');
+      console.error('Error getting business fund:', JSON.stringify(fundError, null, 2));
+      throw new Error(`Fund not found: ${fundError?.message || 'no data'} (code: ${fundError?.code || 'unknown'})`);
     }
 
     // Get beneficiary's friends who can see funds
     const { data: friendRelations, error: friendsError } = await supabaseClient
       .from('contact_relationships')
-      .select(`
-        user_a,
-        user_b,
-        profiles_a:profiles!contact_relationships_user_a_fkey(user_id, first_name, last_name),
-        profiles_b:profiles!contact_relationships_user_b_fkey(user_id, first_name, last_name)
-      `)
+      .select('user_a, user_b')
       .or(`user_a.eq.${businessFund.beneficiary_user_id},user_b.eq.${businessFund.beneficiary_user_id}`)
       .eq('can_see_funds', true);
 
     if (friendsError) {
-      console.error('Error getting friends:', friendsError);
+      console.error('Error getting friends:', JSON.stringify(friendsError, null, 2));
       throw new Error('Error getting beneficiary friends');
     }
 
@@ -230,7 +225,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Error in notify-business-fund-contributors function:', error);
+    console.error('Error in notify-business-fund-contributors function:', error?.message, error?.stack);
     return new Response(
       JSON.stringify({ 
         error: "Une erreur est survenue lors de l'envoi des notifications",
