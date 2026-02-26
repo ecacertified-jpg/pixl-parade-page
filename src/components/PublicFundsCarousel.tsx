@@ -9,36 +9,16 @@ import { useState } from "react";
 import { ValuePropositionModal } from "@/components/ValuePropositionModal";
 import { ContributionModal } from "@/components/ContributionModal";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
-import { isValidImageUrl } from "@/lib/utils";
+import { isValidImageUrl, getDaysUntilBirthday } from "@/lib/utils";
 
-// Fonction pour calculer les jours avant l'anniversaire
-const getDaysUntilBirthday = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
-  // Si on a un nom de bénéficiaire mais pas d'anniversaire, afficher "Pour [nom]"
+// Fonction pour afficher le texte d'anniversaire
+const getBirthdayText = (birthdayDate: string | Date | null | undefined, beneficiaryName?: string): string => {
   if (!birthdayDate && beneficiaryName) {
     return `Pour ${beneficiaryName}`;
   }
-  
   if (!birthdayDate) return "Cadeau surprise";
   
-  const today = new Date();
-  const birthday = new Date(birthdayDate);
-  
-  // Set this year's birthday
-  const thisYearBirthday = new Date(
-    today.getFullYear(),
-    birthday.getMonth(),
-    birthday.getDate()
-  );
-  
-  // If birthday already passed this year, calculate for next year
-  if (thisYearBirthday < today) {
-    thisYearBirthday.setFullYear(today.getFullYear() + 1);
-  }
-  
-  // Calculate difference in days
-  const diffTime = thisYearBirthday.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+  const diffDays = getDaysUntilBirthday(birthdayDate);
   return `Anniv. dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 };
 export function PublicFundsCarousel() {
@@ -155,7 +135,7 @@ export function PublicFundsCarousel() {
                 
                 {/* Occasion - Single Line */}
                 <p className="text-xs text-gray-500 text-center truncate">
-                  {getDaysUntilBirthday(fund.beneficiaryBirthday, fund.beneficiaryName)}
+                  {getBirthdayText(fund.beneficiaryBirthday, fund.beneficiaryName)}
                 </p>
 
                 {/* Amount Progress */}

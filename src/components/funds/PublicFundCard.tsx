@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Gift, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { isValidImageUrl } from "@/lib/utils";
+import { isValidImageUrl, getDaysUntilBirthday } from "@/lib/utils";
 import type { PublicFund } from "@/hooks/usePublicFunds";
 
 interface PublicFundCardProps {
@@ -10,32 +10,13 @@ interface PublicFundCardProps {
   onContribute?: (fund: PublicFund) => void;
 }
 
-/**
- * Calcule les jours avant l'anniversaire
- */
-function getDaysUntilBirthday(birthdayDate: string | null | undefined, beneficiaryName?: string): string {
+function getBirthdayDisplayText(birthdayDate: string | null | undefined, beneficiaryName?: string): string {
   if (!birthdayDate && beneficiaryName) {
     return `Pour ${beneficiaryName}`;
   }
-  
   if (!birthdayDate) return "Cadeau surprise";
   
-  const today = new Date();
-  const birthday = new Date(birthdayDate);
-  
-  const thisYearBirthday = new Date(
-    today.getFullYear(),
-    birthday.getMonth(),
-    birthday.getDate()
-  );
-  
-  if (thisYearBirthday < today) {
-    thisYearBirthday.setFullYear(today.getFullYear() + 1);
-  }
-  
-  const diffTime = thisYearBirthday.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+  const diffDays = getDaysUntilBirthday(birthdayDate);
   return `Anniv. dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
 
@@ -81,7 +62,7 @@ export function PublicFundCard({ fund, onContribute }: PublicFundCardProps) {
         
         {/* Occasion / Birthday */}
         <p className="text-xs text-muted-foreground/70 truncate">
-          {getDaysUntilBirthday(fund.beneficiaryBirthday, fund.beneficiaryName)}
+          {getBirthdayDisplayText(fund.beneficiaryBirthday, fund.beneficiaryName)}
         </p>
 
         {/* Progress bar */}

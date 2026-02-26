@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CountryBadge } from "@/components/CountryBadge";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
+import { getDaysUntilBirthday } from "@/lib/utils";
 
 interface Contributor {
   id: string;
@@ -66,40 +67,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
   const isCreator = user?.id === fund.creatorId;
   
   // Calculer le nombre de jours jusqu'à l'anniversaire
-  const getDaysUntilBirthday = () => {
-    if (!fund.beneficiaryBirthday) return null;
-    
-    const today = new Date();
-    const birthday = new Date(fund.beneficiaryBirthday);
-    
-    // Définir l'anniversaire pour cette année
-    const nextBirthday = new Date(
-      today.getFullYear(),
-      birthday.getMonth(),
-      birthday.getDate()
-    );
-    
-    // Si l'anniversaire est déjà passé cette année, utiliser l'année prochaine
-    if (nextBirthday < today) {
-      nextBirthday.setFullYear(today.getFullYear() + 1);
-    }
-    
-    // Calculer la différence en jours
-    const diffTime = nextBirthday.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
-  };
-  
-  // Fonction pour obtenir le texte d'affichage
-  const getBirthdayDisplayText = () => {
-    if (daysUntilBirthday !== null) {
-      return `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`;
-    }
-    return fund.beneficiaryName ? `Pour: ${fund.beneficiaryName}` : 'Cadeau surprise';
-  };
-  
-  const daysUntilBirthday = getDaysUntilBirthday();
+  const daysUntilBirthday = fund.beneficiaryBirthday ? getDaysUntilBirthday(fund.beneficiaryBirthday) : null;
   
   const handleContribute = () => {
     if (isExpired) {
@@ -245,7 +213,9 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
               <CountryBadge countryCode={fund.countryCode} variant="minimal" />
             </div>
             <p className="text-sm text-muted-foreground">
-              {getBirthdayDisplayText()}
+              {daysUntilBirthday !== null
+                ? `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`
+                : fund.beneficiaryName ? `Pour: ${fund.beneficiaryName}` : 'Cadeau surprise'}
             </p>
           </div>
           <div className="flex items-center gap-2">
