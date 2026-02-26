@@ -203,7 +203,19 @@ async function processOrder(payload: OrderPayload) {
     orderSummaryShort
   );
 
-  console.log(`✅ Results: push=${pushResult.sent}/${pushResult.total}, whatsapp=${messagingResult.whatsappSent}, sms=${messagingResult.smsSent}`);
+  // --- WhatsApp notification to gift beneficiary ---
+  let giftNotificationSent = false;
+  if (order.beneficiary_phone && order.beneficiary_phone !== order.donor_phone) {
+    giftNotificationSent = await sendGiftBeneficiaryNotification(
+      order.beneficiary_phone,
+      customerName,
+      firstItemName,
+      order.total_amount,
+      order.currency
+    );
+  }
+
+  console.log(`✅ Results: push=${pushResult.sent}/${pushResult.total}, whatsapp=${messagingResult.whatsappSent}, sms=${messagingResult.smsSent}, giftNotif=${giftNotificationSent}`);
 
   return new Response(
     JSON.stringify({
@@ -213,6 +225,7 @@ async function processOrder(payload: OrderPayload) {
       in_app_created: true,
       whatsapp_sent: messagingResult.whatsappSent,
       sms_sent: messagingResult.smsSent,
+      gift_notification_sent: giftNotificationSent,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
   );
@@ -471,5 +484,40 @@ async function createInAppNotification(
     }
   } catch (error) {
     console.error('❌ Error in createInAppNotification:', error);
+  }
+}
+
+/**
+ * Sends WhatsApp template notification to the gift beneficiary
+ * Uses the joiedevivre_gift_order template
+ */
+async function sendGiftBeneficiaryNotification(
+  beneficiaryPhone: string,
+  senderName: string,
+  productName: string,
+  totalAmount: number,
+  currency: string
+): Promise<boolean> {
+  try {
+    const formattedAmount = totalAmount.toLocaleString('fr-FR');
+    console.log(`🎁 [Gift] Sending joiedevivre_gift_order to beneficiary ${beneficiaryPhone.substring(0, 7)}***`);
+
+    const result = await sendWhatsAppTemplate(
+      beneficiaryPhone,
+      'joiedevivre_gift_order',
+      'fr',
+      [senderName, productName, formattedAmount]
+    );
+
+    if (result.success) {
+      console.log(`✅ [Gift] Beneficiary notified: ${result.sid}`);
+    } else {
+      console.log(`⚠️ [Gift] Failed to notify beneficiary: ${result.error}`);
+    }
+
+    return result.success;
+  } catch (error) {
+    console.error('❌ [Gift] Error notifying beneficiary:', error);
+    return false;
   }
 }
