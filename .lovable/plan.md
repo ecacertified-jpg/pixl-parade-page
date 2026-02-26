@@ -1,128 +1,64 @@
 
 
-## Creer 2 templates WhatsApp dans Meta Business Manager
+## Bouton "Contribuer" avec lien dynamique vers la cagnotte
 
-Vous avez besoin de deux nouveaux modeles WhatsApp HSM pour notifier les clients lorsqu'un cadeau est offert ou qu'une cotisation groupee est lancee. Voici le guide complet pour les configurer dans Meta Business Manager, puis les integrer dans le code.
+### Configuration dans Meta Business Manager
 
----
+Le bouton du template `joiedevivre_group_contribution` doit utiliser une **URL dynamique** pour pointer vers la cagnotte specifique.
 
-### Template 1 : `joiedevivre_gift_order` (Offrir un cadeau)
-
-**Configuration dans Meta Business Manager :**
+**Configuration du bouton :**
 
 | Champ | Valeur |
 |-------|--------|
-| Nom du modele | `joiedevivre_gift_order` |
-| Categorie | **Utilitaire** |
-| Sous-type | Par defaut |
-| Langue | Francais (`fr`) |
+| Type de bouton | **Appel a l'action (CTA)** |
+| Type d'action | **Visiter le site web** |
+| Type d'URL | **Dynamique** |
+| URL de base | `https://joiedevivre-africa.com/f/{{1}}` |
+| Texte du bouton | `Contribuer` |
 
-**Corps du message :**
-```
-Bonne nouvelle ! 🎁 {{1}} vous a offert un cadeau sur Joie de Vivre !
+La variable `{{1}}` du bouton sera remplacee par l'ID de la cagnotte (ex: `a1b2c3d4-...`), generant un lien comme :
+`https://joiedevivre-africa.com/f/a1b2c3d4-5678-9abc-def0-123456789abc`
 
-Cadeau : {{2}}
-Valeur : {{3}} XOF
+**Important** : Dans Meta Business Manager, les variables du bouton sont numerotees separement de celles du corps. La variable `{{1}}` du bouton est independante des `{{1}}-{{4}}` du corps du message.
 
-Rendez-vous sur l'appli pour decouvrir votre surprise !
-```
-
-**Variables :**
-- `{{1}}` : Prenom de l'expediteur (ex: "Aminata")
-- `{{2}}` : Nom du produit (ex: "Tresse")
-- `{{3}}` : Montant formate (ex: "5 000")
-
-**Bouton (optionnel)** : Ajouter un bouton "Voir mon cadeau" de type URL pointant vers `https://joiedevivre-africa.com/orders`
+Ajoutez un **exemple** pour la variable du bouton lors de la soumission (ex: `a1b2c3d4-5678-9abc-def0-123456789abc`).
 
 ---
 
-### Template 2 : `joiedevivre_group_contribution` (Cotisation groupee)
+### Modification du code
 
-**Configuration dans Meta Business Manager :**
+Dans `supabase/functions/notify-business-fund-contributors/index.ts`, deux changements :
 
-| Champ | Valeur |
-|-------|--------|
-| Nom du modele | `joiedevivre_group_contribution` |
-| Categorie | **Utilitaire** |
-| Sous-type | Par defaut |
-| Langue | Francais (`fr`) |
+1. **Ajouter `share_token` a la requete** `collective_funds` (ligne 59-66) pour pouvoir construire le lien de partage
+2. **Passer le `fund_id` comme parametre de bouton** dans l'appel `sendWhatsAppTemplate`
 
-**Corps du message :**
-```
-Salut {{1}} ! 🤝 Une cotisation groupee a ete lancee pour {{2}} sur Joie de Vivre !
+Le helper `sendWhatsAppTemplate` devra recevoir le `fund_id` en parametre supplementaire pour le bouton. Selon l'implementation actuelle du helper, il faudra peut-etre ajouter un parametre `buttonParams` ou simplement ajouter l'ID a la fin du tableau de variables du corps (selon le format attendu par l'API Twilio/Meta).
 
-Objectif : {{3}} XOF
-Cadeau prevu : {{4}}
-
-Contribuez maintenant pour offrir ensemble un beau cadeau !
-```
-
-**Variables :**
-- `{{1}}` : Prenom du destinataire du message (ex: "Koffi")
-- `{{2}}` : Nom du beneficiaire (ex: "Fatou Bamba")
-- `{{3}}` : Montant objectif formate (ex: "25 000")
-- `{{4}}` : Nom du produit/cadeau (ex: "Tresse")
-
-**Bouton (optionnel)** : Ajouter un bouton "Contribuer" de type URL pointant vers `https://joiedevivre-africa.com/shop`
-
----
-
-### Etapes dans Meta Business Manager
-
-Pour chacun des deux modeles :
-
-1. Aller dans **Gestionnaire WhatsApp > Modeles de messages > Gerer les modeles**
-2. Cliquer **Creer un modele**
-3. Selectionner la categorie **Utilitaire** et le sous-type **Par defaut**
-4. Entrer le nom du modele (exactement comme indique ci-dessus, tout en minuscules avec underscores)
-5. Selectionner la langue **Francais**
-6. Coller le corps du message avec les variables `{{1}}`, `{{2}}`, etc.
-7. Ajouter les exemples de contenu pour chaque variable (Meta les exige pour la validation)
-8. Optionnellement ajouter un bouton CTA de type URL
-9. **Soumettre a examen** - l'approbation prend generalement quelques heures
-
----
-
-### Integration dans le code
-
-Une fois les modeles approuves par Meta, il faudra modifier deux Edge Functions :
-
-#### Fichier 1 : `supabase/functions/notify-business-order/index.ts`
-- Apres la creation de commande, detecter si c'est un cadeau (`beneficiary_phone` present dans la commande)
-- Si oui, envoyer le template `joiedevivre_gift_order` au beneficiaire avec les 3 parametres
-
-#### Fichier 2 : Creer ou modifier la logique dans le flux de cotisation groupee
-- Quand une cotisation groupee est creee (dans `CollectiveCheckout.tsx` ou l'Edge Function associee), envoyer le template `joiedevivre_group_contribution` aux participants invites
-
-#### Exemple d'appel (pattern existant) :
+**Appel modifie :**
 ```typescript
-// Cadeau individuel - notifier le beneficiaire
 await sendWhatsAppTemplate(
-  beneficiaryPhone,
-  'joiedevivre_gift_order',
-  'fr',
-  [senderName, productName, formattedAmount]
-);
-
-// Cotisation groupee - notifier les invites
-await sendWhatsAppTemplate(
-  inviteePhone,
+  friend.phone,
   'joiedevivre_group_contribution',
   'fr',
-  [inviteeName, beneficiaryName, targetAmount, productName]
+  [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, productName],
+  // Parametre de bouton URL dynamique
+  [fund_id]
 );
 ```
 
-Ce pattern est identique a celui deja utilise pour `joiedevivre_new_order`, `joiedevivre_birthday_reminder`, etc.
+### Fichier a modifier
 
----
+| Fichier | Modification |
+|---------|-------------|
+| `supabase/functions/notify-business-fund-contributors/index.ts` | Passer le `fund_id` comme parametre de bouton dans l'appel WhatsApp |
+| `supabase/functions/_shared/sms-sender.ts` | Verifier/ajouter le support des parametres de bouton dans `sendWhatsAppTemplate` |
 
-### Resume des actions
+### Resume
 
-| Etape | Ou | Quoi |
-|-------|----|------|
-| 1 | Meta Business Manager | Creer le template `joiedevivre_gift_order` (Utilitaire, 3 variables) |
-| 2 | Meta Business Manager | Creer le template `joiedevivre_group_contribution` (Utilitaire, 4 variables) |
-| 3 | Meta Business Manager | Soumettre les deux modeles a examen |
-| 4 | Code (apres approbation) | Integrer les appels `sendWhatsAppTemplate` dans les Edge Functions concernees |
+| Etape | Ou | Action |
+|-------|----|--------|
+| 1 | Meta Business Manager | Modifier le template `joiedevivre_group_contribution` : ajouter un bouton CTA "Contribuer" de type URL dynamique `https://joiedevivre-africa.com/f/{{1}}` |
+| 2 | Meta Business Manager | Resoumettre le template a examen |
+| 3 | Code | Adapter `sendWhatsAppTemplate` pour supporter les parametres de bouton URL si ce n'est pas deja le cas |
+| 4 | Code | Passer `fund_id` en parametre de bouton dans l'Edge Function |
 
