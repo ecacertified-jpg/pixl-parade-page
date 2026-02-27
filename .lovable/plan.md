@@ -1,53 +1,38 @@
 
 
-## Rendre le badge "Sur l'app" cliquable
-
-### Objectif
-
-Transformer le badge statique "Sur l'app" en un lien cliquable qui redirige vers la page **Idees cadeaux / wishlist** du contact lie (`/gift-ideas/:contactId`).
+## Ajouter un compteur contacts lies / non lies
 
 ### Modification
 
-**Fichier** : `src/pages/Dashboard.tsx` (lignes 719-724)
+**Fichier** : `src/pages/Dashboard.tsx` (autour de la ligne 699)
 
-Remplacer le `<span>` statique par un `<button>` ou `<span>` cliquable avec `onClick={() => navigate(`/gift-ideas/${friend.id}`)}`. Le badge conservera son style actuel (vert, icone CheckCircle) avec un curseur pointer et un leger effet hover pour indiquer l'interactivite.
+Juste en dessous du titre "Mon cercle d'amis" (ligne 700), ajouter un petit compteur qui calcule dynamiquement le nombre de contacts lies et non lies a partir du tableau `friends` existant.
+
+### Rendu visuel
+
+Le compteur apparaitra sous forme de badges compacts entre le titre et la liste :
+
+```text
+Mon cercle d'amis                    [+ Ajouter]
+  ✓ 28 sur l'app  ·  ✉ 52 a inviter
+```
 
 ### Details techniques
 
-Le badge actuel :
-```text
-<span className="inline-flex items-center gap-0.5 text-[10px] ...">
-  <CheckCircle /> Sur l'app
-</span>
-```
-
-Sera transforme en :
-```text
-<Tooltip>
-  <TooltipTrigger asChild>
-    <button
-      className="inline-flex items-center gap-0.5 text-[10px] font-medium
-                 text-success bg-success/10 rounded-full px-1.5 py-0.5
-                 hover:bg-success/20 transition-colors cursor-pointer"
-      onClick={() => navigate(`/gift-ideas/${friend.id}`)}
-    >
-      <CheckCircle className="h-3 w-3" />
-      Sur l'app
-    </button>
-  </TooltipTrigger>
-  <TooltipContent>Voir les souhaits de {friend.name}</TooltipContent>
-</Tooltip>
-```
-
-### Comportement
-
-- **Clic** : navigue vers `/gift-ideas/{contactId}` qui affiche le profil du contact, son historique de cadeaux, sa wishlist et les recommandations IA
-- **Hover** : fond vert legerement plus fonce + tooltip "Voir les souhaits de {nom}"
-- **Aucun changement** pour les contacts non lies (le bouton "Inviter" reste inchange)
+- Calculer `linkedCount` et `notLinkedCount` directement depuis le tableau `friends` deja charge :
+  ```ts
+  const linkedCount = friends.filter(f => f.linked_user_id).length;
+  const notLinkedCount = friends.length - linkedCount;
+  ```
+- Afficher entre les lignes 705 et 707 (apres le bouton Ajouter, avant la liste) un `div` avec deux petits badges :
+  - Badge vert : `{linkedCount} sur l'app` avec icone `CheckCircle`
+  - Badge gris/muted : `{notLinkedCount} a inviter` avec icone `UserPlus`
+- Ne s'affiche que si `friends.length > 0`
+- Pas de nouveau state ni fetch supplementaire — tout est derive des donnees existantes
 
 ### Fichiers modifies
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/Dashboard.tsx` | Badge "Sur l'app" transforme en bouton cliquable avec navigation et tooltip |
+| `src/pages/Dashboard.tsx` | Ajout du compteur entre le header et la liste de contacts |
 
