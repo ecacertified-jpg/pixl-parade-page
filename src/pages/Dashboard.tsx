@@ -717,10 +717,18 @@ export default function Dashboard() {
                         <div className="font-medium flex items-center gap-1.5">
                           {friend.name}
                           {friend.linked_user_id && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5">
-                              <CheckCircle className="h-3 w-3" />
-                              Sur l'app
-                            </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5 hover:bg-success/20 transition-colors cursor-pointer"
+                                  onClick={() => navigate(`/gift-ideas/${friend.id}`)}
+                                >
+                                  <CheckCircle className="h-3 w-3" />
+                                  Sur l'app
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Voir les souhaits de {friend.name}</TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
