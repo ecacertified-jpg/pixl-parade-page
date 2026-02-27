@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -703,6 +703,20 @@ export default function Dashboard() {
                 Ajouter
               </Button>
             </div>
+
+            {friends.length > 0 && (
+              <div className="flex items-center gap-3 mb-2 text-[11px]">
+                <span className="inline-flex items-center gap-1 text-success font-medium">
+                  <CheckCircle className="h-3 w-3" />
+                  {friends.filter(f => f.linked_user_id).length} sur l'app
+                </span>
+                <span className="text-muted-foreground/40">·</span>
+                <span className="inline-flex items-center gap-1 text-muted-foreground font-medium">
+                  <UserPlus className="h-3 w-3" />
+                  {friends.filter(f => !f.linked_user_id).length} à inviter
+                </span>
+              </div>
+            )}
             
             {friends.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
