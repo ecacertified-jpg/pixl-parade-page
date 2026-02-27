@@ -293,6 +293,59 @@ export async function sendWhatsApp(
  * Sends a WhatsApp message using a pre-approved template (HSM).
  * Templates bypass the 24-hour conversation window requirement.
  */
+/**
+ * Extracts the country prefix from an E.164 phone number.
+ */
+function extractCountryPrefix(phone: string): string {
+  const digits = phone.replace('+', '');
+  const prefixes = ['225', '221', '229', '228', '223', '226', '227'];
+  for (const p of prefixes) {
+    if (digits.startsWith(p)) return '+' + p;
+  }
+  // Fallback: first 2-3 digits
+  return '+' + digits.substring(0, 3);
+}
+
+/**
+ * Fire-and-forget log to whatsapp_template_logs table via service role.
+ */
+function logTemplateResult(
+  templateName: string,
+  formattedPhone: string,
+  languageCode: string,
+  status: 'sent' | 'failed',
+  bodyParameters: string[],
+  buttonParameters?: string[],
+  errorMessage?: string,
+) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceRoleKey) return;
+
+  const maskedPhone = formattedPhone.substring(0, 7) + '***';
+  const countryPrefix = extractCountryPrefix(formattedPhone);
+
+  fetch(`${supabaseUrl}/rest/v1/whatsapp_template_logs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': serviceRoleKey,
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({
+      template_name: templateName,
+      recipient_phone: maskedPhone,
+      country_prefix: countryPrefix,
+      language_code: languageCode,
+      status,
+      error_message: errorMessage || null,
+      body_params: bodyParameters,
+      button_params: buttonParameters || [],
+    }),
+  }).catch(err => console.warn('⚠️ [WA Log] Insert failed:', err.message));
+}
+
 export async function sendWhatsAppTemplate(
   to: string,
   templateName: string,
@@ -366,15 +419,18 @@ export async function sendWhatsAppTemplate(
       const errorSubcode = data?.error?.error_subcode;
       console.error('❌ [WhatsApp Template] API error:', errorMsg);
       console.error(`📋 [WhatsApp Template] DETAIL -> to: "${formattedPhone.substring(0, 6)}***", template: "${templateName}", lang: "${languageCode}", body: ${JSON.stringify(bodyParameters)}, buttons: ${JSON.stringify(buttonParameters || [])}, error_code: ${errorCode}, error_subcode: ${errorSubcode}`);
+      logTemplateResult(templateName, formattedPhone, languageCode, 'failed', bodyParameters, buttonParameters, errorMsg);
       return { success: false, error: errorMsg, channel: 'whatsapp' };
     }
 
     const messageId = data?.messages?.[0]?.id || 'unknown';
     console.log(`✅ [WhatsApp Template] Sent successfully: ${messageId}`);
+    logTemplateResult(templateName, formattedPhone, languageCode, 'sent', bodyParameters, buttonParameters);
     return { success: true, sid: messageId, status: 'sent', channel: 'whatsapp' };
   } catch (error) {
     console.error('❌ [WhatsApp Template] Network error:', error);
     console.error(`📋 [WhatsApp Template] DETAIL -> to: "${formattedPhone.substring(0, 6)}***", template: "${templateName}", lang: "${languageCode}", body: ${JSON.stringify(bodyParameters)}, buttons: ${JSON.stringify(buttonParameters || [])}`);
+    logTemplateResult(templateName, formattedPhone, languageCode, 'failed', bodyParameters, buttonParameters, error.message || 'NETWORK_ERROR');
     return { success: false, error: error.message || 'NETWORK_ERROR', channel: 'whatsapp' };
   }
 }

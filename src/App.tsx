@@ -71,6 +71,7 @@ import ShareAnalytics from "./pages/Admin/ShareAnalytics";
 import IndexNowAnalytics from "./pages/Admin/IndexNowAnalytics";
 import WhatsAppOtpAnalytics from "./pages/Admin/WhatsAppOtpAnalytics";
 import MessagingDeliveryDashboard from "./pages/Admin/MessagingDeliveryDashboard";
+import WhatsAppTemplateDashboard from "./pages/Admin/WhatsAppTemplateDashboard";
 import MyAssignments from "./pages/Admin/MyAssignments";
 import ReciprocityProfile from "./pages/ReciprocityProfile";
 import UserProfile from "./pages/UserProfile";
@@ -491,6 +492,11 @@ const App = () => (
             <Route path="/admin/messaging-delivery" element={
               <AdminRoute>
                 <MessagingDeliveryDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/whatsapp-templates" element={
+              <AdminRoute>
+                <WhatsAppTemplateDashboard />
               </AdminRoute>
             } />
             <Route path="/admin/reciprocity" element={
