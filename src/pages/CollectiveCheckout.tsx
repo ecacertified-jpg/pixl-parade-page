@@ -243,27 +243,25 @@ export default function CollectiveCheckout() {
             .eq('id', createdByBusinessId)
             .single();
 
-          if (beneficiaryUserId) {
-            const { data: notifyResult } = await supabase.functions.invoke('notify-business-fund-friends', {
-              body: {
-                fund_id: fundData.id,
-                beneficiary_user_id: beneficiaryUserId,
-                business_name: businessData?.business_name || 'Un commerce',
-                product_name: items[0]?.name || 'Un cadeau',
-                target_amount: fundData.target_amount,
-                currency: fundData.currency || 'XOF'
-              }
-            });
-            if (notifyResult) {
-              notificationStats = {
-                whatsappSent: (notifyResult.whatsapp_sent || 0) + (notifyResult.contacts_whatsapp_sent || 0),
-                inAppSent: notifyResult.notified_count || 0
-              };
+          const { data: notifyResult } = await supabase.functions.invoke('notify-business-fund-friends', {
+            body: {
+              fund_id: fundData.id,
+              beneficiary_user_id: beneficiaryUserId,
+              creator_user_id: currentUserId,
+              beneficiary_name: item.beneficiaryName || 'un ami',
+              business_name: businessData?.business_name || 'Un commerce',
+              product_name: items[0]?.name || 'Un cadeau',
+              target_amount: fundData.target_amount,
+              currency: fundData.currency || 'XOF'
             }
-            console.log('✅ Notify-business-fund-friends invoked successfully', notificationStats);
-          } else {
-            console.warn('⚠️ No beneficiary user_id found, skipping notify-business-fund-friends');
+          });
+          if (notifyResult) {
+            notificationStats = {
+              whatsappSent: (notifyResult.whatsapp_sent || 0) + (notifyResult.contacts_whatsapp_sent || 0),
+              inAppSent: notifyResult.notified_count || 0
+            };
           }
+          console.log('✅ Notify-business-fund-friends invoked successfully', notificationStats);
         } catch (friendsNotifyError) {
           console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
         }

@@ -9,7 +9,9 @@ const corsHeaders = {
 
 interface NotifyRequest {
   fund_id: string;
-  beneficiary_user_id: string;
+  beneficiary_user_id: string | null;
+  creator_user_id: string;
+  beneficiary_name: string | null;
   business_name: string;
   product_name: string;
   target_amount: number;
@@ -30,34 +32,42 @@ serve(async (req) => {
     const { 
       fund_id, 
       beneficiary_user_id, 
+      creator_user_id,
+      beneficiary_name,
       business_name, 
       product_name, 
       target_amount, 
       currency 
     }: NotifyRequest = await req.json();
 
-    console.log('📧 Notifying friends for business fund:', { fund_id, beneficiary_user_id, business_name });
+    // Determine lookup user: beneficiary if registered, else creator (fallback)
+    const lookupUserId = beneficiary_user_id || creator_user_id;
+    const mode = beneficiary_user_id ? 'beneficiary' : 'creator_fallback';
 
-    // Get beneficiary profile
-    const { data: beneficiaryProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('user_id', beneficiary_user_id)
-      .single();
+    console.log('📧 Notifying friends for business fund:', { fund_id, lookupUserId, mode, business_name });
 
-    if (profileError) {
-      console.error('Error fetching beneficiary profile:', profileError);
+    // Get beneficiary display name
+    let beneficiaryDisplayName = beneficiary_name || 'un ami';
+    if (beneficiary_user_id) {
+      const { data: beneficiaryProfile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('user_id', beneficiary_user_id)
+        .single();
+
+      if (beneficiaryProfile) {
+        const fullName = `${beneficiaryProfile.first_name || ''} ${beneficiaryProfile.last_name || ''}`.trim();
+        if (fullName) beneficiaryDisplayName = fullName;
+      }
     }
 
-    const beneficiaryName = beneficiaryProfile 
-      ? `${beneficiaryProfile.first_name || ''} ${beneficiaryProfile.last_name || ''}`.trim() || 'un ami'
-      : 'un ami';
+    console.log(`👤 Beneficiary name: "${beneficiaryDisplayName}" (mode: ${mode})`);
 
-    // Get all friends of the beneficiary via contact_relationships
+    // Get all friends of lookupUserId via contact_relationships
     const { data: friendships, error: friendshipError } = await supabase
       .from('contact_relationships')
       .select('user_a, user_b, can_see_funds')
-      .or(`user_a.eq.${beneficiary_user_id},user_b.eq.${beneficiary_user_id}`)
+      .or(`user_a.eq.${lookupUserId},user_b.eq.${lookupUserId}`)
       .eq('can_see_funds', true);
 
     if (friendshipError) {
@@ -70,25 +80,25 @@ serve(async (req) => {
     // Extract friend IDs and deduplicate
     const friendIds = [...new Set(
       (friendships || []).map(f => 
-        f.user_a === beneficiary_user_id ? f.user_b : f.user_a
+        f.user_a === lookupUserId ? f.user_b : f.user_a
       )
     )];
 
     console.log('Friend IDs to notify:', friendIds);
 
-    // Create notifications for each friend (only if there are friends)
+    // Create notifications for each friend
     if (friendIds.length > 0) {
       const notifications = friendIds.map(friendId => ({
         user_id: friendId,
         notification_type: 'business_fund_invitation',
-        title: `🎁 Cotisation pour ${beneficiaryName}`,
-        message: `${business_name} a créé une cotisation pour offrir "${product_name}" à ${beneficiaryName}. Objectif: ${target_amount.toLocaleString()} ${currency}. Participez !`,
+        title: `🎁 Cotisation pour ${beneficiaryDisplayName}`,
+        message: `${business_name} a créé une cotisation pour offrir "${product_name}" à ${beneficiaryDisplayName}. Objectif: ${target_amount.toLocaleString()} ${currency}. Participez !`,
         scheduled_for: new Date().toISOString(),
         delivery_methods: ['push', 'in_app'],
         metadata: {
           fund_id,
           beneficiary_user_id,
-          beneficiary_name: beneficiaryName,
+          beneficiary_name: beneficiaryDisplayName,
           business_name,
           product_name,
           target_amount,
@@ -113,8 +123,8 @@ serve(async (req) => {
       const inAppNotifications = friendIds.map(friendId => ({
         user_id: friendId,
         type: 'fund_invitation',
-        title: `Cotisation pour ${beneficiaryName}`,
-        message: `${business_name} invite à contribuer pour offrir "${product_name}" à ${beneficiaryName}`,
+        title: `Cotisation pour ${beneficiaryDisplayName}`,
+        message: `${business_name} invite à contribuer pour offrir "${product_name}" à ${beneficiaryDisplayName}`,
         metadata: {
           fund_id,
           beneficiary_user_id,
@@ -132,7 +142,7 @@ serve(async (req) => {
       }
     }
 
-    // ── BLOCK 1: WhatsApp to friends via contact_relationships ──
+    // ── WhatsApp to friends via contact_relationships ──
     const { data: friendProfiles } = await supabase
       .from('profiles')
       .select('user_id, first_name, phone')
@@ -140,7 +150,7 @@ serve(async (req) => {
 
     const formattedTarget = target_amount?.toLocaleString('fr-FR') || '0';
     let whatsappSentCount = 0;
-    const notifiedPhones = new Set<string>(); // Track phones already notified for dedup
+    const notifiedPhones = new Set<string>();
 
     for (const friend of (friendProfiles || [])) {
       if (!friend.phone) continue;
@@ -150,7 +160,7 @@ serve(async (req) => {
           friend.phone,
           'joiedevivre_group_contribution',
           'fr',
-          [friend.first_name || 'Ami(e)', beneficiaryName, formattedTarget, product_name],
+          [friend.first_name || 'Ami(e)', beneficiaryDisplayName, formattedTarget, product_name],
           [fund_id]
         );
         if (result.success) {
@@ -160,17 +170,16 @@ serve(async (req) => {
       } catch (e) {
         console.error(`WhatsApp error for ${friend.user_id}:`, e);
       }
-      // Even on failure, mark as notified to avoid double-sending
       notifiedPhones.add(normalizedPhone);
     }
 
     console.log(`📱 WhatsApp (friends): ${whatsappSentCount}/${friendProfiles?.length || 0}`);
 
-    // ── BLOCK 2: WhatsApp to contacts from the contacts table ──
+    // ── WhatsApp to contacts from the contacts table ──
     const { data: addressBookContacts, error: contactsError } = await supabase
       .from('contacts')
       .select('id, name, phone')
-      .eq('user_id', beneficiary_user_id)
+      .eq('user_id', lookupUserId)
       .not('phone', 'is', null);
 
     if (contactsError) {
@@ -184,7 +193,6 @@ serve(async (req) => {
 
     for (const contact of contactsWithPhone) {
       const normalizedPhone = formatPhoneForTwilio(contact.phone!);
-      // Dedup: skip if already notified via contact_relationships
       if (notifiedPhones.has(normalizedPhone)) {
         console.log(`⏭️ Skipping contact "${contact.name}" (already notified via friends)`);
         continue;
@@ -195,7 +203,7 @@ serve(async (req) => {
           contact.phone!,
           'joiedevivre_group_contribution',
           'fr',
-          [firstName, beneficiaryName, formattedTarget, product_name],
+          [firstName, beneficiaryDisplayName, formattedTarget, product_name],
           [fund_id]
         );
         if (result.success) contactsWhatsappSent++;
@@ -210,6 +218,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
+        mode,
         message: `Notified ${friendIds.length} friends + ${contactsWithPhone.length} contacts`,
         notified_count: friendIds.length,
         whatsapp_sent: whatsappSentCount,
