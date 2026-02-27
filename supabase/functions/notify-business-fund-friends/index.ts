@@ -67,10 +67,12 @@ serve(async (req) => {
 
     console.log(`Found ${friendships?.length || 0} friends with can_see_funds=true`);
 
-    // Extract friend IDs (no early return — contacts table may still have people to notify)
-    const friendIds = (friendships || []).map(f => 
-      f.user_a === beneficiary_user_id ? f.user_b : f.user_a
-    );
+    // Extract friend IDs and deduplicate
+    const friendIds = [...new Set(
+      (friendships || []).map(f => 
+        f.user_a === beneficiary_user_id ? f.user_b : f.user_a
+      )
+    )];
 
     console.log('Friend IDs to notify:', friendIds);
 
