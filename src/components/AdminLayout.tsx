@@ -74,6 +74,7 @@ const navItems: NavItem[] = [
   { title: 'IndexNow SEO', href: '/admin/indexnow', icon: Rocket },
   { title: 'Stats WhatsApp OTP', href: '/admin/whatsapp-otp', icon: MessageSquare },
   { title: 'Délivrabilité SMS/WA', href: '/admin/messaging-delivery', icon: Radio },
+  { title: 'Templates WA', href: '/admin/whatsapp-templates', icon: MessageSquare },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },

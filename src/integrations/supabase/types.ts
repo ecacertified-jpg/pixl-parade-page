@@ -7340,6 +7340,45 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_template_logs: {
+        Row: {
+          body_params: Json | null
+          button_params: Json | null
+          country_prefix: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          language_code: string | null
+          recipient_phone: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          body_params?: Json | null
+          button_params?: Json | null
+          country_prefix?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          language_code?: string | null
+          recipient_phone: string
+          status?: string
+          template_name: string
+        }
+        Update: {
+          body_params?: Json | null
+          button_params?: Json | null
+          country_prefix?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          language_code?: string | null
+          recipient_phone?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
       wishlist_views: {
         Row: {
           id: string
@@ -8340,6 +8379,10 @@ export type Database = {
         }[]
       }
       get_whatsapp_otp_stats: { Args: { days_back?: number }; Returns: Json }
+      get_whatsapp_template_stats: {
+        Args: { days_back?: number }
+        Returns: Json
+      }
       handle_failed_verification: {
         Args: { p_verification_id: string }
         Returns: undefined
