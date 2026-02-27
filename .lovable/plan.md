@@ -1,120 +1,121 @@
 
 
-## Tableau de bord des templates WhatsApp par template et par pays
+## Corriger la liaison automatique et remplir les `linked_user_id` manquants
 
-### Objectif
+### Diagnostic
 
-Creer un dashboard admin dedie au suivi des taux de succes des envois WhatsApp ventiles par **nom de template** et par **pays** (prefixe telephonique), avec KPIs globaux, graphiques et tableaux detailles.
+- **80 contacts** avec telephone, **0 lies** (`linked_user_id = NULL` partout)
+- **29 contacts** correspondent deja a un utilisateur inscrit (par les 8 derniers chiffres)
+- **Cause racine** : le trigger `handle_new_user` ne s'execute qu'a l'inscription (`INSERT` dans `auth.users`). Tous les utilisateurs existants ont ete crees **avant** l'ajout du code de liaison, et les contacts sont souvent ajoutes **apres** l'inscription.
 
-### Architecture
-
-Le dashboard existant (`/admin/messaging-delivery`) agrege les donnees de `birthday_contact_alerts` uniquement. Il ne connait pas le nom du template utilise. La solution necessite :
-
-1. Une nouvelle table de logs dediee aux templates WhatsApp
-2. Un enregistrement automatique dans `sendWhatsAppTemplate`
-3. Une RPC d'agregation pour le dashboard
-4. Un hook + page frontend
+### Plan en 3 etapes
 
 ---
 
-### 1. Migration SQL
+### Etape 1 — Migration de backfill retroactif
 
-**Nouvelle table `whatsapp_template_logs`**
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid PK | Identifiant |
-| template_name | text NOT NULL | Nom du template (ex: `joiedevivre_otp`) |
-| recipient_phone | text NOT NULL | Numero formate E.164 |
-| country_prefix | text | Prefixe extrait (ex: `+225`) |
-| language_code | text | Code langue (ex: `fr`) |
-| status | text | `sent` ou `failed` |
-| error_message | text | Message d'erreur si echec |
-| body_params | jsonb | Parametres body envoyes |
-| button_params | jsonb | Parametres button envoyes |
-| created_at | timestamptz | Date d'envoi |
-
-- Index sur `(template_name, created_at)` et `(country_prefix, created_at)`
-- RLS active avec politique admin-only (SELECT)
-- Pas de politique INSERT via RLS : les insertions se font depuis les Edge Functions avec le service role
-
-**Nouvelle RPC `get_whatsapp_template_stats(days_back integer)`**
-
-Retourne un JSON avec :
-- **kpis** : total envoyes, total echoues, taux global, nombre de templates distincts
-- **by_template** : pour chaque template -> total, sent, failed, success_rate
-- **by_country** : pour chaque prefixe -> total, sent, failed, success_rate
-- **by_template_country** : croisement template x pays -> total, sent, failed, success_rate
-- **daily** : tendance quotidienne par template (total sent/failed par jour)
-- **top_errors** : top 10 erreurs avec template_name, occurrences, derniere occurrence
-
----
-
-### 2. Modification Edge Function : `supabase/functions/_shared/sms-sender.ts`
-
-Dans `sendWhatsAppTemplate`, apres l'appel API Meta (que ce soit succes ou echec), inserer une ligne dans `whatsapp_template_logs` :
+Script SQL qui parcourt tous les contacts non lies et cherche une correspondance par les 8 derniers chiffres du numero dans `profiles.phone` (qui contient le format E.164).
 
 ```text
-await supabaseAdmin.from('whatsapp_template_logs').insert({
-  template_name,
-  recipient_phone: maskedPhone,     // 6 premiers chiffres + ***
-  country_prefix: extractPrefix(),  // +225, +221, etc.
-  language_code,
-  status: success ? 'sent' : 'failed',
-  error_message: errorMsg || null,
-  body_params: bodyParameters,
-  button_params: buttonParameters,
-});
+-- Pour chaque contact sans linked_user_id, trouver le profil correspondant
+UPDATE contacts c
+SET linked_user_id = p.user_id
+FROM profiles p
+WHERE c.linked_user_id IS NULL
+  AND c.phone IS NOT NULL
+  AND p.phone IS NOT NULL
+  AND RIGHT(regexp_replace(c.phone, '[^0-9]', '', 'g'), 8)
+    = RIGHT(regexp_replace(p.phone, '[^0-9]', '', 'g'), 8)
+  AND c.user_id <> p.user_id;   -- Ne pas se lier soi-meme
 ```
 
-- Le numero est masque pour la securite (6 premiers + ***)
-- L'insertion est en `fire-and-forget` (pas de await bloquant le flux principal) pour ne pas ralentir l'envoi
-- Extraction du prefixe pays via les 3-4 premiers chiffres du numero formate
+Puis creer les `contact_relationships` manquantes pour chaque liaison trouvee :
+
+```text
+INSERT INTO contact_relationships (user_a, user_b, can_see_events, can_see_funds)
+SELECT c.user_id, c.linked_user_id, true, true
+FROM contacts c
+WHERE c.linked_user_id IS NOT NULL
+ON CONFLICT ON CONSTRAINT unique_relationship DO NOTHING;
+```
+
+Resultat attendu : **~29 contacts** lies retroactivement.
 
 ---
 
-### 3. Nouveau hook : `src/hooks/useWhatsAppTemplateStats.ts`
+### Etape 2 — Nouveau trigger sur INSERT dans `contacts`
 
-- Appelle la RPC `get_whatsapp_template_stats` avec le parametre `days_back`
-- Meme pattern que `useMessagingDeliveryStats` (useQuery, staleTime 60s, refetchInterval 60s)
-- Types exportes pour les differentes sections de stats
+Le trigger actuel ne couvre que l'inscription. Il faut aussi lier automatiquement quand un contact est **ajoute** :
+
+```text
+CREATE FUNCTION public.auto_link_contact_on_insert()
+  RETURNS trigger AS $$
+DECLARE
+  clean_phone TEXT;
+  phone_suffix TEXT;
+  found_user_id UUID;
+BEGIN
+  IF NEW.phone IS NULL OR NEW.phone = '' THEN
+    RETURN NEW;
+  END IF;
+
+  clean_phone := regexp_replace(NEW.phone, '[^0-9]', '', 'g');
+  phone_suffix := RIGHT(clean_phone, 8);
+
+  IF LENGTH(phone_suffix) < 8 THEN
+    RETURN NEW;
+  END IF;
+
+  -- Chercher un profil correspondant
+  SELECT user_id INTO found_user_id
+  FROM profiles
+  WHERE phone IS NOT NULL
+    AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 8) = phone_suffix
+    AND user_id <> NEW.user_id
+  LIMIT 1;
+
+  IF found_user_id IS NOT NULL THEN
+    NEW.linked_user_id := found_user_id;
+
+    -- Creer la relation bidirectionnelle
+    INSERT INTO contact_relationships (user_a, user_b, can_see_events, can_see_funds)
+    VALUES (NEW.user_id, found_user_id, true, true)
+    ON CONFLICT ON CONSTRAINT unique_relationship DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER trg_auto_link_contact
+  BEFORE INSERT ON public.contacts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.auto_link_contact_on_insert();
+```
+
+Utilise `BEFORE INSERT` pour pouvoir modifier `NEW.linked_user_id` directement, evitant un UPDATE supplementaire.
 
 ---
 
-### 4. Nouvelle page : `src/pages/Admin/WhatsAppTemplateDashboard.tsx`
+### Etape 3 — Conserver le trigger `handle_new_user` existant
 
-Structure de la page :
-- **Header** : titre "Templates WhatsApp" + selecteur de periode + bouton Rafraichir
-- **4 KPI cards** : Total envoyes, Taux global, Templates actifs, Echecs
-- **AreaChart** : tendance quotidienne des envois (sent vs failed) empilees
-- **Tableau "Par template"** : nom, total, envoyes, echoues, taux de succes avec barre de progression coloree
-- **Tableau "Par pays"** : prefixe, nom du pays, total, envoyes, echoues, taux de succes
-- **Tableau croise "Template x Pays"** : vue detaillee du croisement
-- **Tableau "Top erreurs"** : message d'erreur, template concerne, occurrences, derniere date
+Le code actuel dans `handle_new_user` (liaison a l'inscription) reste en place. Il couvre le cas inverse : un utilisateur s'inscrit et des contacts existants contiennent deja son numero. Les deux triggers sont complementaires :
 
----
-
-### 5. Integration dans l'admin
-
-- **AdminLayout.tsx** : ajouter un lien `{ title: 'Templates WA', href: '/admin/whatsapp-templates', icon: MessageSquare }`
-- **App.tsx** : ajouter la route `/admin/whatsapp-templates` avec `AdminRoute` et import lazy du composant
+| Scenario | Trigger |
+|----------|---------|
+| Utilisateur s'inscrit, contacts existants avec son numero | `handle_new_user` (deja en place) |
+| Utilisateur ajoute un contact dont le numero correspond a un inscrit | `auto_link_contact_on_insert` (nouveau) |
+| Contacts existants jamais lies (historique) | Script de backfill (etape 1) |
 
 ---
 
-### Fichiers crees / modifies
+### Fichiers modifies
 
 | Fichier | Action |
 |---------|--------|
-| Migration SQL (nouvelle table + RPC) | Creer |
-| `supabase/functions/_shared/sms-sender.ts` | Modifier (ajout log insert) |
-| `src/hooks/useWhatsAppTemplateStats.ts` | Creer |
-| `src/pages/Admin/WhatsAppTemplateDashboard.tsx` | Creer |
-| `src/components/AdminLayout.tsx` | Modifier (ajout nav item) |
-| `src/App.tsx` | Modifier (ajout route) |
+| Migration SQL | Creer : backfill UPDATE + nouveau trigger `auto_link_contact_on_insert` |
 
-### Remarques
+### Aucun changement frontend
 
-- Les donnees commenceront a s'accumuler des le deploiement (pas de retroactivite sur les anciens envois)
-- Le masquage du numero dans les logs preserves la confidentialite tout en permettant l'identification du prefixe pays
-- L'insertion est non-bloquante pour ne pas impacter les performances d'envoi
+Le frontend utilise deja `linked_user_id` correctement (badge "Sur l'app", wishlist, invitation). Une fois les donnees remplies, tout fonctionnera automatiquement.
 
