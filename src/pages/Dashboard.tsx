@@ -82,6 +82,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
+  const [friendsWithWishlist, setFriendsWithWishlist] = useState<Set<string>>(new Set());
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -218,6 +219,22 @@ export default function Dashboard() {
       }));
 
       setFriends(contacts);
+
+      // Charger les IDs des contacts avec wishlist active
+      const linkedUserIds = contacts
+        .filter(c => c.linked_user_id)
+        .map(c => c.linked_user_id!);
+
+      if (linkedUserIds.length > 0) {
+        const { data: wishlistData } = await supabase
+          .from('user_favorites')
+          .select('user_id')
+          .in('user_id', linkedUserIds);
+
+        setFriendsWithWishlist(new Set(wishlistData?.map(w => w.user_id) || []));
+      } else {
+        setFriendsWithWishlist(new Set());
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des contacts:', error);
     }
@@ -733,15 +750,22 @@ export default function Dashboard() {
                           {friend.linked_user_id && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button
+                                 <button
                                   className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5 hover:bg-success/20 transition-colors cursor-pointer"
                                   onClick={() => navigate(`/gift-ideas/${friend.id}`)}
-                                >
-                                  <CheckCircle className="h-3 w-3" />
-                                  Sur l'app
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>Voir les souhaits de {friend.name}</TooltipContent>
+                                 >
+                                   <CheckCircle className="h-3 w-3" />
+                                   Sur l'app
+                                   {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id) && (
+                                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse ml-0.5" />
+                                   )}
+                                 </button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                 {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id)
+                                   ? `${friend.name} a des souhaits !`
+                                   : `Voir les souhaits de ${friend.name}`}
+                               </TooltipContent>
                             </Tooltip>
                           )}
                         </div>
