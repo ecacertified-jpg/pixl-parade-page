@@ -1,91 +1,44 @@
 
 
-## Notifier le prestataire par WhatsApp quand une cagnotte business atteint son objectif
+## Ajouter le suivi du template `joiedevivre_fund_ready` dans la page WA Cagnottes
 
-### Contexte
+### Objectif
 
-Aujourd'hui, quand une cagnotte liee a un produit business atteint 100% (`status = 'target_reached'`), seuls les contributeurs recoivent une notification in-app. Le prestataire (vendeur) n'est pas notifie, ce qui retarde la livraison du cadeau.
+La page `/admin/business-fund-wa` ne suit actuellement que le template `joiedevivre_group_contribution` (invitations aux amis). Il faut y ajouter le template `joiedevivre_fund_ready` (notification au prestataire quand la cagnotte atteint 100%) pour avoir une vue complete du cycle de vie WhatsApp des cagnottes business.
 
-### Template Meta a creer manuellement
+### Approche
 
-**Nom** : `joiedevivre_fund_ready`
-**Categorie** : Transactional (Utility)
-**Langue** : fr
-**Corps** :
-```
-Bonjour {{1}} ! 🎁
+Ajouter un systeme d'onglets (Tabs) pour basculer entre les deux templates, avec des KPIs et logs independants pour chacun. Le hook sera modifie pour accepter le nom du template en parametre.
 
-La cagnotte pour "{{2}}" a atteint son objectif de {{3}} XOF !
+### Modifications
 
-Produit a preparer : {{4}}
-Beneficiaire : {{5}}
+**1. Hook `src/hooks/useBusinessFundWhatsAppLogs.ts`**
 
-Merci de preparer la commande.
-```
-**Bouton CTA** : "Voir la commande" -> URL base + `/business/orders/{{1}}`
+- Ajouter un parametre `templateName` (defaut : `joiedevivre_group_contribution`)
+- L'utiliser dans le filtre `.eq('template_name', templateName)`
+- Ajouter `templateName` dans la `queryKey` pour que les deux onglets aient leur propre cache
 
-> Ce template doit etre cree et approuve dans Meta Business Manager avant que le code fonctionne. En attendant l'approbation, le systeme enverra uniquement la notification in-app.
+**2. Page `src/pages/Admin/BusinessFundWhatsAppLogs.tsx`**
 
-### Modification technique
+- Ajouter des onglets (composant `Tabs` de shadcn/ui) : "Invitations amis" et "Notification prestataire"
+- Chaque onglet appelle le hook avec son template respectif
+- L'onglet "Notification prestataire" adapte les labels des colonnes body_params :
+  - `{{1}}` = Prenom prestataire, `{{2}}` = Titre cagnotte, `{{3}}` = Montant, `{{4}}` = Produit, `{{5}}` = Beneficiaire
+- Les KPIs sont recalcules par onglet actif
+- Le sous-titre de la page est mis a jour pour refleter les deux flux
 
-**Fichier** : `supabase/functions/intelligent-notifications/index.ts`
+### Details techniques
 
-Ajouter une **section 5** apres la section "CELEBRATION COLLECTIVE" (ligne 228) qui :
-
-1. Requete les cagnottes `target_reached` de la derniere heure qui ont un `business_product_id` non null (via jointure `business_collective_funds`)
-2. Pour chaque cagnotte trouvee :
-   - Recupere le produit (`products`) et le compte business (`business_accounts`) avec le telephone du prestataire
-   - Recupere le nom du beneficiaire depuis `profiles` ou `contacts`
-   - Envoie le template WhatsApp `joiedevivre_fund_ready` au prestataire avec les parametres : prenom prestataire, titre cagnotte, montant, nom produit, nom beneficiaire
-   - Cree aussi une notification in-app (`scheduled_notifications`) pour le prestataire
-   - Log l'envoi dans `whatsapp_template_logs` (deja gere automatiquement par `sendWhatsAppTemplate`)
-3. Ajoute un import de `sendWhatsAppTemplate` depuis `../_shared/sms-sender.ts`
-
-### Flux de donnees
-
-```text
-collective_funds (status=target_reached, updated_at < 1h)
-  |
-  +-> business_collective_funds (lien fund_id -> business_id, product_id)
-  |     |
-  |     +-> business_accounts (phone du prestataire)
-  |     +-> products (nom du produit)
-  |
-  +-> beneficiary: profiles ou contacts (nom du beneficiaire)
-  |
-  +---> sendWhatsAppTemplate('joiedevivre_fund_ready', ...)
-  +---> scheduled_notifications (in-app pour le prestataire)
-```
-
-### Code ajoute (resume)
-
-```typescript
-// 5. NOTIFICATION PRESTATAIRE - Cagnotte business a 100%
-const { data: businessFunds } = await supabase
-  .from('business_collective_funds')
-  .select('fund_id, business_id, product_id, beneficiary_user_id')
-  .in('fund_id', completedFundIds);
-
-for (const bf of businessFunds) {
-  // Recuperer business phone, product name, beneficiary name
-  // sendWhatsAppTemplate(businessPhone, 'joiedevivre_fund_ready', 'fr', [...])
-  // Insert scheduled_notification for business owner
-}
-```
-
-### Garde-fous
-
-- Deduplication : verifier qu'une notification `fund_ready_business` n'existe pas deja pour ce `fund_id` dans `scheduled_notifications` avant d'en creer une nouvelle
-- Fallback : si le template WhatsApp echoue (non approuve ou erreur), la notification in-app est quand meme creee
-- Le prestataire recoit 1 seule notification par cagnotte, jamais de doublon
+- Extraction des params adaptee par template :
+  - `joiedevivre_group_contribution` : `[prenom, beneficiaire, montant, produit]` (4 params)
+  - `joiedevivre_fund_ready` : `[prenom_prestataire, titre_cagnotte, montant, produit, beneficiaire]` (5 params)
+- Composant interne `LogsTab` pour eviter la duplication du tableau entre les deux onglets
+- Pas de migration ni de nouvelle RPC necessaire
 
 ### Fichiers modifies
 
 | Fichier | Modification |
 |---------|-------------|
-| `supabase/functions/intelligent-notifications/index.ts` | Ajouter import `sendWhatsAppTemplate`, section 5 pour notifier le prestataire quand une cagnotte business atteint 100% |
-
-### Action manuelle requise
-
-Creer le template `joiedevivre_fund_ready` dans Meta Business Manager avec le format decrit ci-dessus, puis attendre son approbation avant de tester l'envoi WhatsApp.
+| `src/hooks/useBusinessFundWhatsAppLogs.ts` | Ajouter parametre `templateName` au hook |
+| `src/pages/Admin/BusinessFundWhatsAppLogs.tsx` | Ajouter Tabs avec deux onglets, composant LogsTab reutilisable, extraction params adaptee par template |
 
