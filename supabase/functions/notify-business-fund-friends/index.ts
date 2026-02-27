@@ -12,6 +12,7 @@ interface NotifyRequest {
   beneficiary_user_id: string | null;
   creator_user_id: string;
   beneficiary_name: string | null;
+  beneficiary_phone: string | null;
   business_name: string;
   product_name: string;
   target_amount: number;
@@ -34,6 +35,7 @@ serve(async (req) => {
       beneficiary_user_id, 
       creator_user_id,
       beneficiary_name,
+      beneficiary_phone,
       business_name, 
       product_name, 
       target_amount, 
@@ -215,6 +217,45 @@ serve(async (req) => {
 
     console.log(`📱 WhatsApp (contacts): ${contactsWhatsappSent}/${contactsWithPhone.length}`);
 
+    // ── WhatsApp invitation to unregistered beneficiary ──
+    let beneficiaryInvited = false;
+    if (!beneficiary_user_id && beneficiary_phone && beneficiary_phone.trim() !== '') {
+      const normalizedBeneficiaryPhone = formatPhoneForTwilio(beneficiary_phone);
+      if (!notifiedPhones.has(normalizedBeneficiaryPhone)) {
+        // Get creator's first name for personalization
+        let creatorName = 'Un ami';
+        const { data: creatorProfile } = await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('user_id', creator_user_id)
+          .single();
+        if (creatorProfile?.first_name) {
+          creatorName = creatorProfile.first_name;
+        }
+
+        console.log(`🎁 Sending beneficiary invite to ${beneficiary_phone} (${beneficiaryDisplayName})`);
+        try {
+          const result = await sendWhatsAppTemplate(
+            beneficiary_phone,
+            'joiedevivre_fund_beneficiary_invite',
+            'fr',
+            [beneficiaryDisplayName, creatorName, product_name, formattedTarget],
+            [fund_id]
+          );
+          if (result.success) {
+            beneficiaryInvited = true;
+            console.log('✅ Beneficiary invite sent successfully');
+          } else {
+            console.warn('⚠️ Beneficiary invite failed:', result);
+          }
+        } catch (e) {
+          console.warn('⚠️ Beneficiary invite error (non-blocking):', e);
+        }
+      } else {
+        console.log('⏭️ Beneficiary phone already notified via friends/contacts, skipping invite');
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -222,7 +263,8 @@ serve(async (req) => {
         message: `Notified ${friendIds.length} friends + ${contactsWithPhone.length} contacts`,
         notified_count: friendIds.length,
         whatsapp_sent: whatsappSentCount,
-        contacts_whatsapp_sent: contactsWhatsappSent
+        contacts_whatsapp_sent: contactsWhatsappSent,
+        beneficiary_invited: beneficiaryInvited
       }),
       { 
         status: 200, 

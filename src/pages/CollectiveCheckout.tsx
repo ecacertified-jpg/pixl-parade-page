@@ -249,6 +249,7 @@ export default function CollectiveCheckout() {
               beneficiary_user_id: beneficiaryUserId,
               creator_user_id: currentUserId,
               beneficiary_name: item.beneficiaryName || 'un ami',
+              beneficiary_phone: beneficiaryPhone,
               business_name: businessData?.business_name || 'Un commerce',
               product_name: items[0]?.name || 'Un cadeau',
               target_amount: fundData.target_amount,
