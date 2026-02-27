@@ -1,87 +1,77 @@
 
 
-## Tracker de delivrabilite WhatsApp via webhook Meta
+## Diagnostiquer et corriger la non-reception WhatsApp pour la cagnotte de Francoise
 
-### Contexte
+### Probleme identifie
 
-Actuellement, le webhook `whatsapp-webhook` traite les status updates de Meta mais ne met a jour que la table `whatsapp_messages` (conversations chatbot). Les templates HSM envoyes via `sendWhatsAppTemplate` (cagnottes, OTP, anniversaires, etc.) sont logues dans `whatsapp_template_logs` mais **sans `whatsapp_message_id`**, donc les callbacks de statut Meta (delivered, read, failed) ne peuvent pas etre correles.
+Les 9 messages WhatsApp `joiedevivre_group_contribution` envoyes a 21h13 pour la cagnotte "Samsung Galaxy A16 pour Marie Belle" ont le statut `sent` dans `whatsapp_template_logs`, mais :
+- **`whatsapp_message_id` est NULL pour TOUS les logs** (24 sur 24), ce qui confirme que les Edge Functions n'ont pas ete redeployees avec le code de capture du `messageId`
+- Sans cet identifiant, le webhook Meta ne peut pas mettre a jour les statuts de delivrabilite (delivered/read/failed)
+- Les amis de Francoise n'ont effectivement pas recu les messages
 
-### Architecture actuelle
+### Causes probables (par ordre de probabilite)
 
+1. **Edge Functions non redeployees** : Le code modifie dans `sms-sender.ts` (capture du `whatsapp_message_id`) n'est pas actif en production
+2. **Jeton Meta expire** : Les jetons temporaires expirent apres 24h. L'API Meta peut retourner HTTP 200 mais ne pas envoyer le message
+3. **Template suspendu** : Le template `joiedevivre_group_contribution` pourrait etre en pause/rejete dans le Meta Business Manager
+
+### Plan d'action
+
+---
+
+#### Etape 1 : Redeployer les Edge Functions
+
+Deployer les 2 fonctions modifiees pour activer la capture du `whatsapp_message_id` :
+- `notify-business-fund-friends`
+- `whatsapp-webhook`
+
+Cela permettra de correler les futures callbacks Meta et de diagnostiquer la delivrabilite reelle.
+
+---
+
+#### Etape 2 : Ajouter un endpoint de test WhatsApp
+
+Creer une Edge Function `test-whatsapp-send` qui :
+- Envoie un message template de test a un numero specifie
+- Retourne la reponse brute de l'API Meta (incluant le `message_id` ou l'erreur exacte)
+- Permet de verifier immediatement si le token est valide et le template est approuve
+
+Fichier : `supabase/functions/test-whatsapp-send/index.ts`
+
+Logique :
 ```text
-sendWhatsAppTemplate() -> Meta API -> retourne message_id
-                       -> whatsapp_template_logs (status: sent/failed, PAS de message_id)
+POST { phone: "+225...", template: "joiedevivre_group_contribution" }
 
-Meta webhook callback -> whatsapp-webhook -> cherche whatsapp_messages.whatsapp_message_id
-                                          -> NE CHERCHE PAS dans whatsapp_template_logs
+1. Appeler l'API Meta avec le template
+2. Retourner la reponse BRUTE (pas juste success/fail)
+   - Si 200 : { success: true, message_id: "wamid.xxx", raw: {...} }
+   - Si erreur : { success: false, error_code: 190, error: "token expired", raw: {...} }
 ```
 
-### Solution
-
-```text
-sendWhatsAppTemplate() -> Meta API -> retourne message_id
-                       -> whatsapp_template_logs (status: sent, whatsapp_message_id: wamid.xxx)
-
-Meta webhook callback -> whatsapp-webhook -> cherche DANS whatsapp_messages
-                                          -> cherche AUSSI DANS whatsapp_template_logs
-                                          -> met a jour status + timestamps (delivered_at, read_at, failed_at)
-```
-
-### Modifications
+Cela permettra de diagnostiquer en temps reel si le probleme vient du token, du template, ou d'autre chose.
 
 ---
 
-**1. Migration SQL : ajouter colonnes a `whatsapp_template_logs`**
+#### Etape 3 : Verifier le jeton et relancer les notifications
 
-Ajouter 4 colonnes :
-- `whatsapp_message_id` (text, nullable, indexed) : l'ID retourne par Meta (ex: `wamid.xxx`)
-- `delivered_at` (timestamptz, nullable) : quand le message a ete delivre
-- `read_at` (timestamptz, nullable) : quand le message a ete lu
-- `failed_at` (timestamptz, nullable) : quand le message a echoue
-
-Index sur `whatsapp_message_id` pour un lookup rapide lors du webhook callback.
+Apres le test :
+- **Si token expire** : L'utilisateur devra generer un nouveau System User Token dans le Meta Business Manager et mettre a jour le secret `WHATSAPP_ACCESS_TOKEN`
+- **Si template rejete** : Verifier le statut dans Meta Business Manager > Templates
+- **Si tout fonctionne** : Re-invoquer `notify-business-fund-friends` pour la cagnotte de Francoise (fund_id: `8b90f407-8c74-4751-8b1f-b25deb871b5a`) afin de renvoyer les WhatsApp aux amis
 
 ---
 
-**2. `supabase/functions/_shared/sms-sender.ts` : sauvegarder le message_id**
+### Resume des fichiers
 
-Modifier `logTemplateResult` pour accepter un parametre optionnel `whatsappMessageId` et l'inclure dans l'insert.
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/notify-business-fund-friends/index.ts` | Redeployer (deja modifie) |
+| `supabase/functions/whatsapp-webhook/index.ts` | Redeployer (deja modifie) |
+| `supabase/functions/test-whatsapp-send/index.ts` | Creer (endpoint diagnostic) |
 
-Modifier `sendWhatsAppTemplate` pour passer le `messageId` retourne par Meta a `logTemplateResult` lors d'un envoi reussi.
+### Verification manuelle requise
 
----
-
-**3. `supabase/functions/whatsapp-webhook/index.ts` : enrichir le traitement des statuts**
-
-Dans le bloc `value.statuses`, actuellement le code ne cherche que dans `whatsapp_messages`. Ajouter une recherche dans `whatsapp_template_logs` par `whatsapp_message_id` :
-
-```text
-SI status update recu (delivered, read, failed) :
-  1. Mettre a jour whatsapp_messages (existant)
-  2. Chercher dans whatsapp_template_logs par whatsapp_message_id
-  3. Si trouve :
-     - Mettre a jour le status
-     - Ecrire le timestamp correspondant (delivered_at, read_at, failed_at)
-     - Si failed : ecrire error_message depuis errors[0].title
-  4. Logger le resultat
-```
-
-Extraire aussi les informations d'erreur de Meta (`errors[0].title`, `errors[0].code`) pour les statuts `failed`.
-
----
-
-### Resume des fichiers modifies
-
-| Fichier | Modification |
-|---------|-------------|
-| Migration SQL | Ajouter `whatsapp_message_id`, `delivered_at`, `read_at`, `failed_at` a `whatsapp_template_logs` |
-| `supabase/functions/_shared/sms-sender.ts` | Passer le message_id Meta dans `logTemplateResult` |
-| `supabase/functions/whatsapp-webhook/index.ts` | Chercher et mettre a jour `whatsapp_template_logs` lors des callbacks de statut |
-
-### Ordre d'implementation
-
-1. Migration SQL (colonnes + index)
-2. `sms-sender.ts` (sauvegarder le message_id)
-3. `whatsapp-webhook` (correlater les statuts)
-4. Deployer les deux Edge Functions
-
+Apres le deploiement, il faudra :
+1. Appeler `test-whatsapp-send` avec un numero de test pour verifier le token et le template
+2. Verifier le statut du template dans [Meta Business Manager](https://business.facebook.com/wa/manage/message-templates/)
+3. Si tout est OK, relancer la notification pour la cagnotte de Francoise
