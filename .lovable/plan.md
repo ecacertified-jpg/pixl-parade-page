@@ -1,56 +1,45 @@
 
 
-## Corriger l'envoi WhatsApp aux amis lors du checkout collectif
+## Afficher le résumé des notifications sur la page de confirmation
 
-### Probleme identifie
+### Objectif
 
-La cagnotte a ete creee via `CollectiveCheckout.tsx` (flux panier boutique), qui appelle `notify-reciprocity` mais **n'appelle pas** `notify-business-fund-friends`. L'appel WhatsApp aux amis du beneficiaire n'existe que dans `BusinessCollaborativeGiftModal.tsx` (un autre chemin de creation non utilise ici).
+Après la création d'une cagnotte collective, afficher sur la page de confirmation combien de notifications WhatsApp et in-app ont été envoyées aux amis du bénéficiaire.
 
-### Correction
+### Modifications
 
-**Fichier** : `src/pages/CollectiveCheckout.tsx`
+**1. `src/pages/CollectiveCheckout.tsx`** -- Capturer la réponse de l'Edge Function
 
-Ajouter l'appel a `notify-business-fund-friends` juste apres l'appel a `notify-reciprocity` (apres ligne 221), en conditionnant sur la presence d'un `createdByBusinessId` (cagnotte business) :
+- Récupérer le `data` retourné par `supabase.functions.invoke('notify-business-fund-friends', ...)` qui contient `{ notified_count, whatsapp_sent, contacts_whatsapp_sent }`
+- Stocker ces stats dans une variable locale `notificationStats`
+- Passer `notificationStats` dans le `navigate("/collective-order-confirmation", { state: { ..., notificationStats } })`
 
-```ts
-// Notifier les amis du beneficiaire via WhatsApp (cagnottes business uniquement)
-if (createdByBusinessId && fundData.id) {
-  try {
-    console.log('📧 Invoking notify-business-fund-friends from checkout');
+**2. `src/pages/CollectiveOrderConfirmation.tsx`** -- Afficher le résumé
 
-    const { data: businessData } = await supabase
-      .from('business_accounts')
-      .select('business_name')
-      .eq('id', createdByBusinessId)
-      .single();
+- Étendre l'interface `ConfirmationState` avec un champ optionnel `notificationStats`
+- Ajouter une carte entre le résumé de commande et les boutons d'action :
+  - Icône MessageSquare (WhatsApp) avec le nombre total de messages envoyés
+  - Icône Bell (in-app) avec le nombre de notifications in-app
+  - Texte explicatif : "Les amis de [bénéficiaire] ont été notifiés"
+- N'afficher cette section que si `notificationStats` existe (compatibilité arrière)
 
-    await supabase.functions.invoke('notify-business-fund-friends', {
-      body: {
-        fund_id: fundData.id,
-        beneficiary_user_id: items[0]?.beneficiaryId || null,
-        business_name: businessData?.business_name || 'Un commerce',
-        product_name: items[0]?.name || 'Un cadeau',
-        target_amount: fundData.target_amount,
-        currency: fundData.currency || 'XOF'
-      }
-    });
-    console.log('✅ Notify-business-fund-friends invoked successfully');
-  } catch (friendsNotifyError) {
-    console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
-  }
-}
+### Rendu visuel attendu
+
+```text
+[Carte commande existante]
+
+--- Notifications envoyées ---
+  📱 8 WhatsApp envoyés
+  🔔 3 notifications in-app
+  Les amis de Françoise ont été prévenus !
+
+[Boutons existants]
 ```
 
-### Pourquoi cela fonctionne
-
-- Le `createdByBusinessId` est deja recupere plus haut dans le code (ligne 144)
-- Le `beneficiaryId` est disponible dans les items du panier
-- L'appel est non-bloquant (try/catch) pour ne pas affecter le flux de commande
-- L'Edge Function `notify-business-fund-friends` gere deja toute la logique : recuperation des amis, deduplication, envoi WhatsApp template
-
-### Fichiers modifies
+### Fichiers modifiés
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/CollectiveCheckout.tsx` | Ajout de l'appel a `notify-business-fund-friends` apres `notify-reciprocity` |
+| `src/pages/CollectiveCheckout.tsx` | Capturer la réponse de l'Edge Function et la passer au state de navigation |
+| `src/pages/CollectiveOrderConfirmation.tsx` | Ajouter l'interface `notificationStats` et la carte de résumé |
 
