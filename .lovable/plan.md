@@ -1,67 +1,71 @@
 
 
-## Corriger le flux de notification WhatsApp quand le beneficiaire n'est pas inscrit
+## Envoyer une invitation WhatsApp au beneficiaire non inscrit
 
-### Probleme
+### Contexte
 
-Quand Francoise cree une cagnotte pour Marie-Belle (non inscrite), le code client detecte `beneficiaryUserId = null` et **saute entierement** l'appel a `notify-business-fund-friends`. Resultat : aucun WhatsApp n'est envoye aux proches.
+Quand Francoise cree une cagnotte pour Marie-Belle (non inscrite), les amis sont notifies mais **Marie-Belle elle-meme ne recoit aucun message**. Le numero de telephone du beneficiaire (`beneficiaryPhone`) est deja collecte dans le formulaire de checkout.
 
 ### Solution
 
-Modifier les deux couches pour utiliser le **creator_id comme fallback** quand le beneficiaire n'est pas un utilisateur inscrit :
+Ajouter un bloc dans l'Edge Function `notify-business-fund-friends` pour envoyer un WhatsApp d'invitation au beneficiaire quand il n'est pas inscrit sur la plateforme (`beneficiary_user_id` est null).
 
 ### Modifications
 
-**1. Client - `src/pages/CollectiveCheckout.tsx` (lignes 225-266)**
+**1. Client - `src/pages/CollectiveCheckout.tsx`**
 
-- Supprimer le `if (beneficiaryUserId)` qui bloque l'appel
-- Ajouter un nouveau parametre `creator_user_id` dans le body envoye a la fonction
-- Ajouter `beneficiary_name` (depuis `item.beneficiaryName`) pour que la fonction puisse nommer le beneficiaire meme sans profil
-- Toujours appeler la fonction, que `beneficiary_user_id` soit null ou non
+Ajouter `beneficiary_phone` dans le body envoye a `notify-business-fund-friends` :
 
 ```typescript
-// AVANT: if (beneficiaryUserId) { ... } else { skip }
-// APRES: toujours appeler, avec fallback
-const { data: notifyResult } = await supabase.functions.invoke('notify-business-fund-friends', {
-  body: {
-    fund_id: fundData.id,
-    beneficiary_user_id: beneficiaryUserId, // peut etre null
-    creator_user_id: currentUserId,         // NOUVEAU - fallback
-    beneficiary_name: item.beneficiaryName, // NOUVEAU - nom du contact
-    business_name: businessData?.business_name || 'Un commerce',
-    product_name: items[0]?.name || 'Un cadeau',
-    target_amount: fundData.target_amount,
-    currency: fundData.currency || 'XOF'
-  }
-});
+body: {
+  // ... champs existants
+  beneficiary_phone: beneficiaryPhone, // NOUVEAU
+}
 ```
 
 **2. Edge Function - `supabase/functions/notify-business-fund-friends/index.ts`**
 
-- Accepter les nouveaux champs `creator_user_id` et `beneficiary_name` dans l'interface `NotifyRequest`
-- Determiner le `lookup_user_id` : utiliser `beneficiary_user_id` s'il existe, sinon `creator_user_id`
-- Utiliser `beneficiary_name` comme nom du beneficiaire si le profil n'est pas trouve
-- Block 1 (friends via `contact_relationships`) : chercher les amis de `lookup_user_id`
-- Block 2 (contacts) : chercher les contacts de `lookup_user_id`
-- Ajouter un log pour indiquer le mode utilise (beneficiaire vs createur)
+- Ajouter `beneficiary_phone` a l'interface `NotifyRequest`
+- Apres les notifications aux amis/contacts, ajouter un bloc d'invitation au beneficiaire :
+  - Condition : `beneficiary_user_id` est null ET `beneficiary_phone` est fourni
+  - Verifier que le numero du beneficiaire n'a pas deja ete notifie (deduplication via `notifiedPhones`)
+  - Envoyer le template WhatsApp `joiedevivre_fund_beneficiary_invite` avec :
+    - Parametres body : `[beneficiary_name, creator_name, product_name, formatted_amount]`
+    - Parametres bouton : `[fund_id]` (CTA vers `/f/{fund_id}`)
+  - Recuperer le `first_name` du createur depuis la table `profiles` pour personnaliser le message
+- Retourner `beneficiary_invited: true/false` dans la reponse
 
-Logique simplifiee :
+**3. Template WhatsApp a creer dans Meta Business Manager**
+
+Nom : `joiedevivre_fund_beneficiary_invite`
+Categorie : Marketing
+Langue : Francais (fr)
+Corps :
 ```
-lookup_user_id = beneficiary_user_id || creator_user_id
-beneficiaryDisplayName = profil_beneficiaire?.nom || beneficiary_name || 'un ami'
-// Chercher friends et contacts de lookup_user_id
+Bonjour {{1}} ! {{2}} a cree une cagnotte pour vous offrir "{{3}}" (objectif : {{4}} XOF). 
+Inscrivez-vous sur Joie de Vivre pour suivre la cagnotte et decouvrir votre cadeau !
+```
+Bouton CTA : "Voir ma cagnotte" -> `https://joiedevivre-africa.com/f/{{1}}`
+
+### Logique simplifiee
+
+```text
+SI beneficiary_user_id est null ET beneficiary_phone existe
+  ET beneficiary_phone PAS dans notifiedPhones (deduplication)
+ALORS
+  -> Envoyer joiedevivre_fund_beneficiary_invite au beneficiaire
+  -> Logger le resultat
+  -> Retourner beneficiary_invited: true
 ```
 
 ### Fichiers modifies
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/CollectiveCheckout.tsx` | Supprimer le guard, ajouter `creator_user_id` et `beneficiary_name` dans le body |
-| `supabase/functions/notify-business-fund-friends/index.ts` | Accepter les nouveaux champs, fallback vers creator pour la recherche d'amis/contacts |
+| `src/pages/CollectiveCheckout.tsx` | Ajouter `beneficiary_phone` dans le body de l'appel |
+| `supabase/functions/notify-business-fund-friends/index.ts` | Ajouter le bloc d'invitation WhatsApp au beneficiaire |
 
-### Comportement attendu apres correction
+### Action manuelle requise
 
-- **Beneficiaire inscrit** : comportement identique a aujourd'hui (amis du beneficiaire notifies)
-- **Beneficiaire non inscrit** : les amis et contacts de la **creatrice** (Francoise) sont notifies par WhatsApp avec le template `joiedevivre_group_contribution`
-- Le nom du beneficiaire (Marie-Belle) est toujours affiche correctement dans le message WhatsApp
+Creer le template `joiedevivre_fund_beneficiary_invite` dans le Meta Business Manager avant de tester. En attendant l'approbation du template, la fonction loguera un warning et continuera sans erreur.
 
