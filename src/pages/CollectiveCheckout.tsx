@@ -221,6 +221,7 @@ export default function CollectiveCheckout() {
       }
 
       // Notifier les amis du bénéficiaire via WhatsApp (cagnottes business uniquement)
+      let notificationStats: { whatsappSent: number; inAppSent: number } | null = null;
       if (createdByBusinessId && fundData.id) {
         try {
           console.log('📧 Invoking notify-business-fund-friends from checkout');
@@ -243,7 +244,7 @@ export default function CollectiveCheckout() {
             .single();
 
           if (beneficiaryUserId) {
-            await supabase.functions.invoke('notify-business-fund-friends', {
+            const { data: notifyResult } = await supabase.functions.invoke('notify-business-fund-friends', {
               body: {
                 fund_id: fundData.id,
                 beneficiary_user_id: beneficiaryUserId,
@@ -253,7 +254,13 @@ export default function CollectiveCheckout() {
                 currency: fundData.currency || 'XOF'
               }
             });
-            console.log('✅ Notify-business-fund-friends invoked successfully');
+            if (notifyResult) {
+              notificationStats = {
+                whatsappSent: (notifyResult.whatsapp_sent || 0) + (notifyResult.contacts_whatsapp_sent || 0),
+                inAppSent: notifyResult.notified_count || 0
+              };
+            }
+            console.log('✅ Notify-business-fund-friends invoked successfully', notificationStats);
           } else {
             console.warn('⚠️ No beneficiary user_id found, skipping notify-business-fund-friends');
           }
@@ -315,7 +322,8 @@ export default function CollectiveCheckout() {
           orderSummary,
           donorPhone,
           deliveryAddress,
-          beneficiaryName: item.beneficiaryName
+          beneficiaryName: item.beneficiaryName,
+          notificationStats
         }
       });
       

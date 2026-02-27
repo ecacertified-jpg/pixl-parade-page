@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CheckCircle, Phone, MapPin } from "lucide-react";
+import { CheckCircle, Phone, MapPin, MessageSquare, Bell } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 interface OrderSummary {
@@ -16,11 +16,16 @@ interface OrderSummary {
   shippingCost: number;
   total: number;
 }
+interface NotificationStats {
+  whatsappSent: number;
+  inAppSent: number;
+}
 interface ConfirmationState {
   orderSummary: OrderSummary;
   donorPhone: string;
   deliveryAddress: string;
   beneficiaryName: string;
+  notificationStats?: NotificationStats | null;
 }
 export default function CollectiveOrderConfirmation() {
   const location = useLocation();
@@ -39,7 +44,8 @@ export default function CollectiveOrderConfirmation() {
     orderSummary,
     donorPhone,
     deliveryAddress,
-    beneficiaryName
+    beneficiaryName,
+    notificationStats
   } = state;
   return <div className="min-h-screen bg-gradient-background">
       <main className="max-w-md mx-auto px-4 py-8">
@@ -87,6 +93,38 @@ export default function CollectiveOrderConfirmation() {
             </div>
           </div>
         </Card>
+
+        {/* Notification Stats */}
+        {notificationStats && (notificationStats.whatsappSent > 0 || notificationStats.inAppSent > 0) && (
+          <Card className="p-5 mb-6 border-accent/30 bg-accent/5">
+            <p className="text-sm font-semibold text-foreground mb-3">Notifications envoyées</p>
+            <div className="space-y-2">
+              {notificationStats.whatsappSent > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <MessageSquare className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span className="text-sm text-foreground">
+                    {notificationStats.whatsappSent} WhatsApp envoyé{notificationStats.whatsappSent > 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+              {notificationStats.inAppSent > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bell className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-foreground">
+                    {notificationStats.inAppSent} notification{notificationStats.inAppSent > 1 ? 's' : ''} in-app
+                  </span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Les amis de {beneficiaryName} ont été prévenus ! 🎉
+            </p>
+          </Card>
+        )}
 
         {/* Action Buttons */}
         <div className="space-y-3">
