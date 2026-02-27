@@ -240,3 +240,6 @@ verify_jwt = false
 
 [functions.check-whatsapp-delivery-health]
 verify_jwt = false
+
+[functions.test-whatsapp-send]
+verify_jwt = false
