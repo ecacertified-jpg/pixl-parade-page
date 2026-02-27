@@ -220,6 +220,33 @@ export default function CollectiveCheckout() {
         console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
       }
 
+      // Notifier les amis du bénéficiaire via WhatsApp (cagnottes business uniquement)
+      if (createdByBusinessId && fundData.id) {
+        try {
+          console.log('📧 Invoking notify-business-fund-friends from checkout');
+
+          const { data: businessData } = await supabase
+            .from('business_accounts')
+            .select('business_name')
+            .eq('id', createdByBusinessId)
+            .single();
+
+          await supabase.functions.invoke('notify-business-fund-friends', {
+            body: {
+              fund_id: fundData.id,
+              beneficiary_user_id: items[0]?.beneficiaryId || null,
+              business_name: businessData?.business_name || 'Un commerce',
+              product_name: items[0]?.name || 'Un cadeau',
+              target_amount: fundData.target_amount,
+              currency: fundData.currency || 'XOF'
+            }
+          });
+          console.log('✅ Notify-business-fund-friends invoked successfully');
+        } catch (friendsNotifyError) {
+          console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
+        }
+      }
+
       // Create collective fund order with all the details
       const orderSummary = {
         items: items.map(item => ({
