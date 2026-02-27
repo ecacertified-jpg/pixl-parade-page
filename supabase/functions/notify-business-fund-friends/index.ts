@@ -157,6 +157,10 @@ serve(async (req) => {
     for (const friend of (friendProfiles || [])) {
       if (!friend.phone) continue;
       const normalizedPhone = formatPhoneForTwilio(friend.phone);
+      if (notifiedPhones.has(normalizedPhone)) {
+        console.log(`⏭️ Skipping friend ${friend.user_id} (phone already notified)`);
+        continue;
+      }
       try {
         const result = await sendWhatsAppTemplate(
           friend.phone,
@@ -167,7 +171,6 @@ serve(async (req) => {
         );
         if (result.success) {
           whatsappSentCount++;
-          notifiedPhones.add(normalizedPhone);
         }
       } catch (e) {
         console.error(`WhatsApp error for ${friend.user_id}:`, e);

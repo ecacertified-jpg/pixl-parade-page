@@ -346,6 +346,78 @@ Deno.serve(async (req) => {
       .eq('user_id', secondary_user_id)
       .select();
 
+    // ── Transfer contact_relationships with deduplication ──
+    let relationshipsTransferred = 0;
+    let relationshipsDeleted = 0;
+    let relationshipsError: string | undefined;
+
+    try {
+      // Fetch all relationships involving the secondary user
+      const { data: secondaryRelations, error: relFetchError } = await supabaseAdmin
+        .from('contact_relationships')
+        .select('id, user_a, user_b, status, can_see_birthday, can_see_funds')
+        .or(`user_a.eq.${secondary_user_id},user_b.eq.${secondary_user_id}`);
+
+      if (relFetchError) throw relFetchError;
+
+      // Fetch all existing relationships for the primary user (for dedup check)
+      const { data: primaryRelations, error: primaryRelFetchError } = await supabaseAdmin
+        .from('contact_relationships')
+        .select('id, user_a, user_b')
+        .or(`user_a.eq.${primary_user_id},user_b.eq.${primary_user_id}`);
+
+      if (primaryRelFetchError) throw primaryRelFetchError;
+
+      // Build a set of existing primary relationship partners
+      const primaryPartners = new Set(
+        (primaryRelations || []).map(r =>
+          r.user_a === primary_user_id ? r.user_b : r.user_a
+        )
+      );
+
+      for (const rel of (secondaryRelations || [])) {
+        const newUserA = rel.user_a === secondary_user_id ? primary_user_id : rel.user_a;
+        const newUserB = rel.user_b === secondary_user_id ? primary_user_id : rel.user_b;
+
+        // Self-reference after replacement → delete
+        if (newUserA === newUserB) {
+          await supabaseAdmin.from('contact_relationships').delete().eq('id', rel.id);
+          relationshipsDeleted++;
+          continue;
+        }
+
+        // Check if primary already has a relationship with this partner
+        const otherUser = newUserA === primary_user_id ? newUserB : newUserA;
+        if (primaryPartners.has(otherUser)) {
+          // Duplicate → delete secondary's version
+          await supabaseAdmin.from('contact_relationships').delete().eq('id', rel.id);
+          relationshipsDeleted++;
+          continue;
+        }
+
+        // Transfer: update the user reference
+        const updatePayload: Record<string, string> = {};
+        if (rel.user_a === secondary_user_id) updatePayload.user_a = primary_user_id;
+        if (rel.user_b === secondary_user_id) updatePayload.user_b = primary_user_id;
+
+        await supabaseAdmin.from('contact_relationships').update(updatePayload).eq('id', rel.id);
+        primaryPartners.add(otherUser);
+        relationshipsTransferred++;
+      }
+
+      console.log(`🔗 contact_relationships: ${relationshipsTransferred} transferred, ${relationshipsDeleted} deleted (dupes/self-refs)`);
+    } catch (e) {
+      relationshipsError = e.message;
+      console.error('Error transferring contact_relationships:', e);
+    }
+
+    transferLogs.push({
+      table: 'contact_relationships',
+      count: relationshipsTransferred,
+      success: !relationshipsError,
+      error: relationshipsError
+    });
+
     transferLogs.push({
       table: 'community_scores',
       count: communityData?.length ?? 0,
