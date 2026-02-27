@@ -1,47 +1,38 @@
 
 
-## Validation stricte des numeros de telephone avant envoi WhatsApp
+## Ajout de logs detailles sur les echecs de templates WhatsApp
 
-### Probleme
+### Objectif
 
-La validation actuelle dans `sendWhatsApp` et `sendWhatsAppTemplate` est trop permissive : elle accepte tout numero de 8+ chiffres. Des numeros mal formates (ex: codes pays incomplets, numeros trop courts/longs pour leur prefixe) passent la validation et provoquent des erreurs `(#100) Invalid parameter` de l'API WhatsApp.
-
-### Solution
-
-Ajouter une fonction `validatePhoneForWhatsApp()` dans `sms-sender.ts` qui effectue des verifications strictes, puis l'utiliser dans `sendWhatsApp` et `sendWhatsAppTemplate` avant l'appel API.
+Quand un appel a `sendWhatsAppTemplate` echoue (erreur API ou erreur reseau), loguer le numero formate, le nom du template, les parametres body et button envoyes pour faciliter le diagnostic.
 
 ### Fichier modifie : `supabase/functions/_shared/sms-sender.ts`
 
-**1. Nouvelle fonction `validatePhoneForWhatsApp(phone: string): { valid: boolean; reason?: string }`**
+### Modifications dans `sendWhatsAppTemplate`
 
-Regles de validation apres formatage E.164 (sans le `+`) :
-- Longueur minimale : 10 chiffres, maximale : 15 chiffres (norme E.164)
-- Ne doit pas contenir de caracteres non-numeriques
-- Validation par prefixe pays connu (Afrique de l'Ouest) :
-  - `225` (Cote d'Ivoire) : total 13 chiffres (225 + 10 chiffres)
-  - `221` (Senegal) : total 12 chiffres (221 + 9 chiffres)
-  - `229` (Benin) : total 13 chiffres (229 + 10 chiffres)
-  - `228` (Togo) : total 11 chiffres (228 + 8 chiffres)
-  - `223` (Mali) : total 11 chiffres (223 + 8 chiffres)
-  - `226` (Burkina) : total 11 chiffres (226 + 8 chiffres)
-  - `227` (Niger) : total 11 chiffres (227 + 8 chiffres)
-- Pour les prefixes non reconnus : accepter si entre 10 et 15 chiffres (fallback generique E.164)
+**1. Log d'erreur API enrichi (bloc `if (!response.ok)`)** — ligne ~350
 
-**2. Integration dans `sendWhatsApp` et `sendWhatsAppTemplate`**
+Ajouter apres le `console.error` existant un log supplementaire avec :
+- Le numero formate (masque partiellement : 6 premiers + ***)
+- Le nom du template
+- Le code langue
+- Les parametres body (tableau complet)
+- Les parametres button (tableau complet)
+- Le code d'erreur et sous-code Meta si presents dans la reponse
 
-Remplacer la validation actuelle (`formattedPhone.length < 8`) par un appel a `validatePhoneForWhatsApp`. En cas d'echec, retourner une erreur avec le motif precis dans les logs :
-
+Exemple de sortie :
 ```text
-[WhatsApp] Skipping invalid phone "07123" -> reason: "CI number must be 13 digits, got 8"
+[WhatsApp Template] DETAIL -> to: "22507***", template: "joiedevivre_group_contribution", lang: "fr", body: ["Ami(e)","Bilal","50000","Gateau"], buttons: ["abc-uuid"], error_code: 100, error_subcode: 2494010
 ```
 
-**3. Log ameliore**
+**2. Log d'erreur reseau enrichi (bloc `catch`)** — ligne ~370
 
-Quand la validation echoue, loguer le numero original (masque partiellement) ET la raison precise du rejet pour faciliter le debug.
+Meme enrichissement pour les erreurs reseau (timeout, DNS, etc.) afin d'avoir les parametres dans les logs meme sans reponse API.
 
 ### Impact
 
-- Aucune modification frontend
-- Tous les edge functions qui appellent `sendWhatsApp`/`sendWhatsAppTemplate` beneficient automatiquement de la validation renforcee
-- Les numeros invalides sont filtres AVANT l'appel API, evitant les erreurs (#100) et les couts inutiles
+- Aucun changement frontend
+- Aucune nouvelle dependance
+- Les numeros sont partiellement masques (6 premiers chiffres + ***) pour la securite
+- Redeploy automatique de toutes les Edge Functions utilisant le module partage
 
