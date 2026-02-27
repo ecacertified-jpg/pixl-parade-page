@@ -1,57 +1,56 @@
 
 
-## Filtrer les contacts via le compteur "Sur l'app" / "À inviter"
+## Corriger l'envoi WhatsApp aux amis lors du checkout collectif
 
-### Objectif
+### Probleme identifie
 
-Rendre les deux badges du compteur cliquables pour filtrer la liste des contacts. Un clic sur "X sur l'app" n'affiche que les contacts liés. Un clic sur "Y à inviter" n'affiche que les non liés. Un second clic sur le filtre actif le désactive et réaffiche tous les contacts.
+La cagnotte a ete creee via `CollectiveCheckout.tsx` (flux panier boutique), qui appelle `notify-reciprocity` mais **n'appelle pas** `notify-business-fund-friends`. L'appel WhatsApp aux amis du beneficiaire n'existe que dans `BusinessCollaborativeGiftModal.tsx` (un autre chemin de creation non utilise ici).
 
-### Modification
+### Correction
 
-**Fichier** : `src/pages/Dashboard.tsx`
+**Fichier** : `src/pages/CollectiveCheckout.tsx`
 
-**1. Nouveau state de filtre**
-
-```ts
-const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
-```
-
-**2. Rendre les badges cliquables**
-
-Transformer les deux `<span>` du compteur (lignes 726-734) en `<button>` avec :
-- Style actif (opacité pleine, soulignement ou fond coloré) quand le filtre correspondant est sélectionné
-- Style inactif (semi-transparent) quand un autre filtre est actif
-- `cursor-pointer` et `hover` sur les deux
-- Un clic bascule entre le filtre et "all"
-
-**3. Filtrer la liste affichée**
-
-Avant le `.map(friend => ...)`, appliquer le filtre :
+Ajouter l'appel a `notify-business-fund-friends` juste apres l'appel a `notify-reciprocity` (apres ligne 221), en conditionnant sur la presence d'un `createdByBusinessId` (cagnotte business) :
 
 ```ts
-const filteredFriends = friends.filter(f => {
-  if (friendFilter === 'linked') return !!f.linked_user_id;
-  if (friendFilter === 'unlinked') return !f.linked_user_id;
-  return true;
-});
+// Notifier les amis du beneficiaire via WhatsApp (cagnottes business uniquement)
+if (createdByBusinessId && fundData.id) {
+  try {
+    console.log('📧 Invoking notify-business-fund-friends from checkout');
+
+    const { data: businessData } = await supabase
+      .from('business_accounts')
+      .select('business_name')
+      .eq('id', createdByBusinessId)
+      .single();
+
+    await supabase.functions.invoke('notify-business-fund-friends', {
+      body: {
+        fund_id: fundData.id,
+        beneficiary_user_id: items[0]?.beneficiaryId || null,
+        business_name: businessData?.business_name || 'Un commerce',
+        product_name: items[0]?.name || 'Un cadeau',
+        target_amount: fundData.target_amount,
+        currency: fundData.currency || 'XOF'
+      }
+    });
+    console.log('✅ Notify-business-fund-friends invoked successfully');
+  } catch (friendsNotifyError) {
+    console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
+  }
+}
 ```
 
-Utiliser `filteredFriends` dans le rendu et pour la condition "liste vide".
+### Pourquoi cela fonctionne
 
-**4. Rendu visuel**
+- Le `createdByBusinessId` est deja recupere plus haut dans le code (ligne 144)
+- Le `beneficiaryId` est disponible dans les items du panier
+- L'appel est non-bloquant (try/catch) pour ne pas affecter le flux de commande
+- L'Edge Function `notify-business-fund-friends` gere deja toute la logique : recuperation des amis, deduplication, envoi WhatsApp template
 
-```text
-Mon cercle d'amis                        [+ Ajouter]
-  [✓ 2 sur l'app]  ·  [✉ 0 à inviter]    ← cliquables
-```
-
-- Filtre actif : fond coloré (bg-success/20 ou bg-muted/20), texte plein
-- Filtre inactif : fond transparent, opacité réduite (opacity-60)
-- Aucun filtre : tous en style normal (état actuel)
-
-### Fichiers modifiés
+### Fichiers modifies
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/Dashboard.tsx` | Ajout state `friendFilter`, badges cliquables, filtrage de la liste |
+| `src/pages/CollectiveCheckout.tsx` | Ajout de l'appel a `notify-business-fund-friends` apres `notify-reciprocity` |
 
