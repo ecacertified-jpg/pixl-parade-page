@@ -14,14 +14,14 @@ function getPeriodStart(period: Period): string {
   }
 }
 
-export function useBusinessFundWhatsAppLogs(period: Period) {
+export function useBusinessFundWhatsAppLogs(period: Period, templateName = 'joiedevivre_group_contribution') {
   const query = useQuery({
-    queryKey: ['business-fund-wa-logs', period],
+    queryKey: ['business-fund-wa-logs', period, templateName],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('whatsapp_template_logs')
         .select('*')
-        .eq('template_name', 'joiedevivre_group_contribution')
+        .eq('template_name', templateName)
         .gte('created_at', getPeriodStart(period))
         .order('created_at', { ascending: false })
         .limit(200);
