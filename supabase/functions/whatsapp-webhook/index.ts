@@ -223,15 +223,47 @@ serve(async (req) => {
 
       // Handle message status updates
       if (value.statuses) {
-        console.log('📊 Status update received:', value.statuses[0]?.status);
-        
         const status = value.statuses[0];
-        if (status?.id) {
-          // Update message status in database
+        const statusValue = status?.status;
+        const statusId = status?.id;
+        const statusTimestamp = status?.timestamp ? new Date(parseInt(status.timestamp) * 1000).toISOString() : new Date().toISOString();
+        const errorInfo = status?.errors?.[0];
+
+        console.log(`📊 Status update: ${statusValue} for ${statusId}${errorInfo ? ` (error: ${errorInfo.code} - ${errorInfo.title})` : ''}`);
+
+        if (statusId) {
+          // 1. Update whatsapp_messages (chatbot conversations)
           await supabase
             .from('whatsapp_messages')
-            .update({ status: status.status })
-            .eq('whatsapp_message_id', status.id);
+            .update({ status: statusValue })
+            .eq('whatsapp_message_id', statusId);
+
+          // 2. Update whatsapp_template_logs (HSM templates)
+          const updatePayload: Record<string, unknown> = { status: statusValue };
+
+          if (statusValue === 'delivered') {
+            updatePayload.delivered_at = statusTimestamp;
+          } else if (statusValue === 'read') {
+            updatePayload.read_at = statusTimestamp;
+          } else if (statusValue === 'failed') {
+            updatePayload.failed_at = statusTimestamp;
+            if (errorInfo) {
+              updatePayload.error_message = `${errorInfo.code}: ${errorInfo.title}`;
+            }
+          }
+
+          const { data: updatedLog, error: logError } = await supabase
+            .from('whatsapp_template_logs')
+            .update(updatePayload)
+            .eq('whatsapp_message_id', statusId)
+            .select('id')
+            .maybeSingle();
+
+          if (updatedLog) {
+            console.log(`✅ Template log updated: ${updatedLog.id} -> ${statusValue}`);
+          } else if (logError) {
+            console.warn(`⚠️ Template log update error:`, logError.message);
+          }
         }
         
         return new Response('OK', { status: 200, headers: corsHeaders });

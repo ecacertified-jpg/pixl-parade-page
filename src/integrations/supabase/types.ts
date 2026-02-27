@@ -7346,36 +7346,48 @@ export type Database = {
           button_params: Json | null
           country_prefix: string | null
           created_at: string
+          delivered_at: string | null
           error_message: string | null
+          failed_at: string | null
           id: string
           language_code: string | null
+          read_at: string | null
           recipient_phone: string
           status: string
           template_name: string
+          whatsapp_message_id: string | null
         }
         Insert: {
           body_params?: Json | null
           button_params?: Json | null
           country_prefix?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
+          failed_at?: string | null
           id?: string
           language_code?: string | null
+          read_at?: string | null
           recipient_phone: string
           status?: string
           template_name: string
+          whatsapp_message_id?: string | null
         }
         Update: {
           body_params?: Json | null
           button_params?: Json | null
           country_prefix?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
+          failed_at?: string | null
           id?: string
           language_code?: string | null
+          read_at?: string | null
           recipient_phone?: string
           status?: string
           template_name?: string
+          whatsapp_message_id?: string | null
         }
         Relationships: []
       }
