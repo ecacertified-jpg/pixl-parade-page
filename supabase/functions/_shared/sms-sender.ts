@@ -317,6 +317,7 @@ function logTemplateResult(
   bodyParameters: string[],
   buttonParameters?: string[],
   errorMessage?: string,
+  whatsappMessageId?: string,
 ) {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -342,6 +343,7 @@ function logTemplateResult(
       error_message: errorMessage || null,
       body_params: bodyParameters,
       button_params: buttonParameters || [],
+      whatsapp_message_id: whatsappMessageId || null,
     }),
   }).catch(err => console.warn('⚠️ [WA Log] Insert failed:', err.message));
 }
@@ -425,7 +427,7 @@ export async function sendWhatsAppTemplate(
 
     const messageId = data?.messages?.[0]?.id || 'unknown';
     console.log(`✅ [WhatsApp Template] Sent successfully: ${messageId}`);
-    logTemplateResult(templateName, formattedPhone, languageCode, 'sent', bodyParameters, buttonParameters);
+    logTemplateResult(templateName, formattedPhone, languageCode, 'sent', bodyParameters, buttonParameters, undefined, messageId !== 'unknown' ? messageId : undefined);
     return { success: true, sid: messageId, status: 'sent', channel: 'whatsapp' };
   } catch (error) {
     console.error('❌ [WhatsApp Template] Network error:', error);
