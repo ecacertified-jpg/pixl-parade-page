@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [friendsWithWishlist, setFriendsWithWishlist] = useState<Set<string>>(new Set());
+  const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -723,26 +724,56 @@ export default function Dashboard() {
 
             {friends.length > 0 && (
               <div className="flex items-center gap-3 mb-2 text-[11px]">
-                <span className="inline-flex items-center gap-1 text-success font-medium">
+                <button
+                  className={`inline-flex items-center gap-1 font-medium rounded-full px-2 py-0.5 transition-all cursor-pointer ${
+                    friendFilter === 'linked'
+                      ? 'text-success bg-success/20'
+                      : friendFilter === 'unlinked'
+                        ? 'text-success/50 opacity-60'
+                        : 'text-success hover:bg-success/10'
+                  }`}
+                  onClick={() => setFriendFilter(prev => prev === 'linked' ? 'all' : 'linked')}
+                >
                   <CheckCircle className="h-3 w-3" />
                   {friends.filter(f => f.linked_user_id).length} sur l'app
-                </span>
+                </button>
                 <span className="text-muted-foreground/40">·</span>
-                <span className="inline-flex items-center gap-1 text-muted-foreground font-medium">
+                <button
+                  className={`inline-flex items-center gap-1 font-medium rounded-full px-2 py-0.5 transition-all cursor-pointer ${
+                    friendFilter === 'unlinked'
+                      ? 'text-muted-foreground bg-muted/40'
+                      : friendFilter === 'linked'
+                        ? 'text-muted-foreground/50 opacity-60'
+                        : 'text-muted-foreground hover:bg-muted/20'
+                  }`}
+                  onClick={() => setFriendFilter(prev => prev === 'unlinked' ? 'all' : 'unlinked')}
+                >
                   <UserPlus className="h-3 w-3" />
                   {friends.filter(f => !f.linked_user_id).length} à inviter
-                </span>
+                </button>
               </div>
             )}
             
-            {friends.length === 0 ? <Card className="p-6 text-center">
+            {(() => {
+              const filteredFriends = friends.filter(f => {
+                if (friendFilter === 'linked') return !!f.linked_user_id;
+                if (friendFilter === 'unlinked') return !f.linked_user_id;
+                return true;
+              });
+              return friends.length === 0 ? <Card className="p-6 text-center">
                 <div className="text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Aucun ami ajouté pour le moment</p>
                   <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
                 </div>
+              </Card> : filteredFriends.length === 0 ? <Card className="p-6 text-center">
+                <div className="text-muted-foreground">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>{friendFilter === 'linked' ? 'Aucun contact sur l\'app' : 'Aucun contact à inviter'}</p>
+                  <button className="text-sm text-primary hover:underline mt-1" onClick={() => setFriendFilter('all')}>Voir tous les contacts</button>
+                </div>
               </Card> : <div className="space-y-3">
-                {friends.map(friend => <Card key={friend.id} className="p-4">
+                {filteredFriends.map(friend => <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="font-medium flex items-center gap-1.5">
@@ -818,7 +849,8 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </Card>)}
-              </div>}
+              </div>;
+            })()}
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
