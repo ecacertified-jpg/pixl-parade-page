@@ -225,23 +225,38 @@ export default function CollectiveCheckout() {
         try {
           console.log('📧 Invoking notify-business-fund-friends from checkout');
 
+          // Récupérer le user_id lié au contact bénéficiaire
+          let beneficiaryUserId: string | null = items[0]?.beneficiaryId || null;
+          if (!beneficiaryUserId && item.beneficiaryContactId) {
+            const { data: contactData } = await supabase
+              .from('contacts')
+              .select('linked_user_id')
+              .eq('id', item.beneficiaryContactId)
+              .single();
+            beneficiaryUserId = contactData?.linked_user_id || null;
+          }
+
           const { data: businessData } = await supabase
             .from('business_accounts')
             .select('business_name')
             .eq('id', createdByBusinessId)
             .single();
 
-          await supabase.functions.invoke('notify-business-fund-friends', {
-            body: {
-              fund_id: fundData.id,
-              beneficiary_user_id: items[0]?.beneficiaryId || null,
-              business_name: businessData?.business_name || 'Un commerce',
-              product_name: items[0]?.name || 'Un cadeau',
-              target_amount: fundData.target_amount,
-              currency: fundData.currency || 'XOF'
-            }
-          });
-          console.log('✅ Notify-business-fund-friends invoked successfully');
+          if (beneficiaryUserId) {
+            await supabase.functions.invoke('notify-business-fund-friends', {
+              body: {
+                fund_id: fundData.id,
+                beneficiary_user_id: beneficiaryUserId,
+                business_name: businessData?.business_name || 'Un commerce',
+                product_name: items[0]?.name || 'Un cadeau',
+                target_amount: fundData.target_amount,
+                currency: fundData.currency || 'XOF'
+              }
+            });
+            console.log('✅ Notify-business-fund-friends invoked successfully');
+          } else {
+            console.warn('⚠️ No beneficiary user_id found, skipping notify-business-fund-friends');
+          }
         } catch (friendsNotifyError) {
           console.warn('⚠️ Error invoking notify-business-fund-friends (non-blocking):', friendsNotifyError);
         }
