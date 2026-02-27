@@ -1,101 +1,53 @@
 
 
-## Ajouter un trigger `auto_link_contact_on_update`
+## Rendre le badge "Sur l'app" cliquable
 
-### Contexte
+### Objectif
 
-Actuellement, la liaison automatique fonctionne pour :
-- L'inscription d'un nouvel utilisateur (`handle_new_user`)
-- L'ajout d'un nouveau contact (`auto_link_contact_on_insert`)
+Transformer le badge statique "Sur l'app" en un lien cliquable qui redirige vers la page **Idees cadeaux / wishlist** du contact lie (`/gift-ideas/:contactId`).
 
-Mais si un utilisateur **modifie** le numero de telephone d'un contact existant, aucune re-liaison n'est effectuee. Ce trigger comble ce manque.
+### Modification
 
-### Implementation
+**Fichier** : `src/pages/Dashboard.tsx` (lignes 719-724)
 
-Une seule migration SQL qui :
-
-1. **Cree la fonction `auto_link_contact_on_update()`** — declenchee `BEFORE UPDATE` sur `contacts`, elle verifie si le numero a change (`OLD.phone IS DISTINCT FROM NEW.phone`). Si oui, elle applique la meme logique de correspondance par les 8 derniers chiffres que le trigger d'insertion :
-   - Trouve un profil correspondant dans `profiles`
-   - Met a jour `NEW.linked_user_id`
-   - Cree une entree dans `contact_relationships` si necessaire
-   - Si le nouveau numero ne correspond a personne, remet `linked_user_id` a `NULL`
-
-2. **Cree le trigger `trg_auto_link_contact_on_update`** sur la table `contacts`
+Remplacer le `<span>` statique par un `<button>` ou `<span>` cliquable avec `onClick={() => navigate(`/gift-ideas/${friend.id}`)}`. Le badge conservera son style actuel (vert, icone CheckCircle) avec un curseur pointer et un leger effet hover pour indiquer l'interactivite.
 
 ### Details techniques
 
+Le badge actuel :
 ```text
-CREATE OR REPLACE FUNCTION public.auto_link_contact_on_update()
-  RETURNS trigger AS $$
-DECLARE
-  clean_phone TEXT;
-  phone_suffix TEXT;
-  found_user_id UUID;
-BEGIN
-  -- Ne rien faire si le telephone n'a pas change
-  IF OLD.phone IS NOT DISTINCT FROM NEW.phone THEN
-    RETURN NEW;
-  END IF;
-
-  -- Si le nouveau numero est vide, retirer la liaison
-  IF NEW.phone IS NULL OR NEW.phone = '' THEN
-    NEW.linked_user_id := NULL;
-    RETURN NEW;
-  END IF;
-
-  clean_phone := regexp_replace(NEW.phone, '[^0-9]', '', 'g');
-  phone_suffix := RIGHT(clean_phone, 8);
-
-  IF LENGTH(phone_suffix) < 8 THEN
-    NEW.linked_user_id := NULL;
-    RETURN NEW;
-  END IF;
-
-  SELECT user_id INTO found_user_id
-  FROM profiles
-  WHERE phone IS NOT NULL
-    AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 8) = phone_suffix
-    AND user_id <> NEW.user_id
-  LIMIT 1;
-
-  IF found_user_id IS NOT NULL THEN
-    NEW.linked_user_id := found_user_id;
-    INSERT INTO contact_relationships (user_a, user_b, can_see_events, can_see_funds)
-    VALUES (NEW.user_id, found_user_id, true, true)
-    ON CONFLICT ON CONSTRAINT unique_relationship DO NOTHING;
-  ELSE
-    NEW.linked_user_id := NULL;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-CREATE TRIGGER trg_auto_link_contact_on_update
-  BEFORE UPDATE ON public.contacts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.auto_link_contact_on_update();
+<span className="inline-flex items-center gap-0.5 text-[10px] ...">
+  <CheckCircle /> Sur l'app
+</span>
 ```
 
-### Points cles
+Sera transforme en :
+```text
+<Tooltip>
+  <TooltipTrigger asChild>
+    <button
+      className="inline-flex items-center gap-0.5 text-[10px] font-medium
+                 text-success bg-success/10 rounded-full px-1.5 py-0.5
+                 hover:bg-success/20 transition-colors cursor-pointer"
+      onClick={() => navigate(`/gift-ideas/${friend.id}`)}
+    >
+      <CheckCircle className="h-3 w-3" />
+      Sur l'app
+    </button>
+  </TooltipTrigger>
+  <TooltipContent>Voir les souhaits de {friend.name}</TooltipContent>
+</Tooltip>
+```
 
-- Utilise `BEFORE UPDATE` pour modifier `NEW.linked_user_id` directement (pas d'UPDATE supplementaire)
-- Ne se declenche que si le numero a reellement change (`IS DISTINCT FROM`)
-- Remet `linked_user_id` a `NULL` si le nouveau numero ne correspond a personne
-- Meme logique de normalisation (8 derniers chiffres) que les triggers existants
-- `SECURITY DEFINER` pour acceder a `profiles` et `contact_relationships` sans restriction RLS
+### Comportement
+
+- **Clic** : navigue vers `/gift-ideas/{contactId}` qui affiche le profil du contact, son historique de cadeaux, sa wishlist et les recommandations IA
+- **Hover** : fond vert legerement plus fonce + tooltip "Voir les souhaits de {nom}"
+- **Aucun changement** pour les contacts non lies (le bouton "Inviter" reste inchange)
 
 ### Fichiers modifies
 
-| Fichier | Action |
-|---------|--------|
-| Migration SQL | Nouvelle migration avec la fonction + le trigger |
-
-### Couverture complete des scenarios
-
-| Scenario | Trigger |
-|----------|---------|
-| Utilisateur s'inscrit | `handle_new_user` |
-| Contact ajoute | `auto_link_contact_on_insert` |
-| **Numero de contact modifie** | **`auto_link_contact_on_update` (nouveau)** |
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/Dashboard.tsx` | Badge "Sur l'app" transforme en bouton cliquable avec navigation et tooltip |
 
