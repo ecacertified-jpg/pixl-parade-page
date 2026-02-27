@@ -362,7 +362,10 @@ export async function sendWhatsAppTemplate(
 
     if (!response.ok) {
       const errorMsg = data?.error?.message || `HTTP ${response.status}`;
+      const errorCode = data?.error?.code;
+      const errorSubcode = data?.error?.error_subcode;
       console.error('❌ [WhatsApp Template] API error:', errorMsg);
+      console.error(`📋 [WhatsApp Template] DETAIL -> to: "${formattedPhone.substring(0, 6)}***", template: "${templateName}", lang: "${languageCode}", body: ${JSON.stringify(bodyParameters)}, buttons: ${JSON.stringify(buttonParameters || [])}, error_code: ${errorCode}, error_subcode: ${errorSubcode}`);
       return { success: false, error: errorMsg, channel: 'whatsapp' };
     }
 
@@ -371,6 +374,7 @@ export async function sendWhatsAppTemplate(
     return { success: true, sid: messageId, status: 'sent', channel: 'whatsapp' };
   } catch (error) {
     console.error('❌ [WhatsApp Template] Network error:', error);
+    console.error(`📋 [WhatsApp Template] DETAIL -> to: "${formattedPhone.substring(0, 6)}***", template: "${templateName}", lang: "${languageCode}", body: ${JSON.stringify(bodyParameters)}, buttons: ${JSON.stringify(buttonParameters || [])}`);
     return { success: false, error: error.message || 'NETWORK_ERROR', channel: 'whatsapp' };
   }
 }
