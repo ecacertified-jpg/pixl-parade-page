@@ -1,65 +1,57 @@
 
 
-## Ajouter un indicateur visuel de wishlist active sur le badge "Sur l'app"
+## Filtrer les contacts via le compteur "Sur l'app" / "À inviter"
 
 ### Objectif
 
-Afficher un petit point colore (dot) a cote du badge "Sur l'app" lorsque le contact lie possede au moins un article dans sa liste de souhaits. Cela permet a l'utilisateur de savoir d'un coup d'oeil quels contacts ont des idees cadeaux disponibles.
+Rendre les deux badges du compteur cliquables pour filtrer la liste des contacts. Un clic sur "X sur l'app" n'affiche que les contacts liés. Un clic sur "Y à inviter" n'affiche que les non liés. Un second clic sur le filtre actif le désactive et réaffiche tous les contacts.
 
-### Approche technique
+### Modification
 
-**1. Charger les IDs des contacts avec wishlist active**
+**Fichier** : `src/pages/Dashboard.tsx`
 
-Dans `loadFriendsFromSupabase()`, apres avoir recupere les contacts, faire une requete supplementaire pour les contacts lies :
-
-```ts
-// Recuperer les linked_user_ids
-const linkedUserIds = contacts
-  .filter(c => c.linked_user_id)
-  .map(c => c.linked_user_id!);
-
-if (linkedUserIds.length > 0) {
-  const { data: wishlistData } = await supabase
-    .from('user_favorites')
-    .select('user_id')
-    .in('user_id', linkedUserIds);
-
-  const usersWithWishlist = new Set(
-    wishlistData?.map(w => w.user_id) || []
-  );
-  // Stocker dans un nouveau state
-  setFriendsWithWishlist(usersWithWishlist);
-}
-```
-
-**2. Nouveau state**
-
-Ajouter un `useState<Set<string>>` pour stocker les IDs des utilisateurs ayant une wishlist :
+**1. Nouveau state de filtre**
 
 ```ts
-const [friendsWithWishlist, setFriendsWithWishlist] = useState<Set<string>>(new Set());
+const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
 ```
 
-**3. Indicateur visuel sur le badge**
+**2. Rendre les badges cliquables**
 
-Ajouter un petit point anime (pulse) en position relative a droite du texte "Sur l'app" quand `friendsWithWishlist.has(friend.linked_user_id)` :
+Transformer les deux `<span>` du compteur (lignes 726-734) en `<button>` avec :
+- Style actif (opacité pleine, soulignement ou fond coloré) quand le filtre correspondant est sélectionné
+- Style inactif (semi-transparent) quand un autre filtre est actif
+- `cursor-pointer` et `hover` sur les deux
+- Un clic bascule entre le filtre et "all"
+
+**3. Filtrer la liste affichée**
+
+Avant le `.map(friend => ...)`, appliquer le filtre :
+
+```ts
+const filteredFriends = friends.filter(f => {
+  if (friendFilter === 'linked') return !!f.linked_user_id;
+  if (friendFilter === 'unlinked') return !f.linked_user_id;
+  return true;
+});
+```
+
+Utiliser `filteredFriends` dans le rendu et pour la condition "liste vide".
+
+**4. Rendu visuel**
 
 ```text
-[CheckCircle] Sur l'app [point violet pulsant]
+Mon cercle d'amis                        [+ Ajouter]
+  [✓ 2 sur l'app]  ·  [✉ 0 à inviter]    ← cliquables
 ```
 
-Le point utilisera les classes :
-- `w-1.5 h-1.5 rounded-full bg-celebration animate-pulse` pour un petit cercle violet avec animation douce
-- Le tooltip sera enrichi : "Voir les souhaits de {nom}" devient "{nom} a des souhaits !" quand la wishlist est active
+- Filtre actif : fond coloré (bg-success/20 ou bg-muted/20), texte plein
+- Filtre inactif : fond transparent, opacité réduite (opacity-60)
+- Aucun filtre : tous en style normal (état actuel)
 
-### Rendu visuel
-
-- **Contact lie AVEC wishlist** : badge vert + petit point violet pulsant + tooltip "{nom} a des souhaits !"
-- **Contact lie SANS wishlist** : badge vert normal (inchange) + tooltip "Voir les souhaits de {nom}"
-
-### Fichiers modifies
+### Fichiers modifiés
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/Dashboard.tsx` | Ajout du state `friendsWithWishlist`, requete supplementaire dans `loadFriendsFromSupabase`, point anime conditionnel sur le badge |
+| `src/pages/Dashboard.tsx` | Ajout state `friendFilter`, badges cliquables, filtrage de la liste |
 
