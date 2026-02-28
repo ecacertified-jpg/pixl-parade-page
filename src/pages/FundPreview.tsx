@@ -139,7 +139,7 @@ export default function FundPreview() {
   }, [fundId]);
 
   const handleContribute = () => {
-    navigate(`/fund/${fundId}`);
+    navigate(`/auth?redirect=/f/${fundId}`);
   };
 
   const formatAmount = (amount: number) => {
