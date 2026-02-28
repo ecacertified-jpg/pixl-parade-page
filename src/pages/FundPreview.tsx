@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -138,8 +139,15 @@ export default function FundPreview() {
     fetchFund();
   }, [fundId]);
 
+  const { user } = useAuth();
+
   const handleContribute = () => {
-    navigate(`/auth?redirect=/f/${fundId}`);
+    const targetPath = `/dashboard?tab=cotisations`;
+    if (user) {
+      navigate(targetPath);
+    } else {
+      navigate(`/auth?redirect=${encodeURIComponent(targetPath)}`);
+    }
   };
 
   const formatAmount = (amount: number) => {
