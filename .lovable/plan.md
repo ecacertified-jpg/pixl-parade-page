@@ -1,22 +1,12 @@
 
 
-## Pre-selectionner "Telephone" comme methode d'inscription/connexion
+## Pre-selectionner "Telephone" sur la page Auth Business
 
-### Probleme
+### Modification
 
-Dans `src/pages/Auth.tsx` (ligne 188), la methode d'authentification par defaut est `'email'` :
+**Fichier : `src/pages/BusinessAuth.tsx`** (ligne 390)
 
-```typescript
-const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
-```
-
-L'utilisateur souhaite que l'onglet "Telephone" soit selectionne par defaut a l'ouverture de la page Auth.
-
-### Solution
-
-**Fichier : `src/pages/Auth.tsx`** (ligne 188)
-
-Changer la valeur initiale de `'email'` a `'phone'` :
+Changer la valeur initiale de `authInputMethod` de `'email'` a `'phone'` :
 
 ```typescript
 const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
@@ -24,7 +14,8 @@ const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone
 
 ### Impact
 
-- L'onglet "Telephone" sera pre-selectionne a l'ouverture de la page d'inscription et de connexion
-- L'utilisateur peut toujours basculer sur "Email" en cliquant dessus
-- Aucun autre fichier n'est impacte
+- Meme changement que celui applique sur la page Auth client
+- L'onglet "Telephone" sera pre-selectionne par defaut sur la page d'inscription/connexion Business
+- L'utilisateur peut toujours basculer sur "Email"
+- Un seul fichier modifie, une seule ligne changee
 
