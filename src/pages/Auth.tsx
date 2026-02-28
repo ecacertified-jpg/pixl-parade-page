@@ -28,6 +28,7 @@ import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
 import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { OtpMethodSelector, useWhatsAppFallback, WhatsAppAutoIndicator, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndicator';
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
@@ -1263,6 +1264,7 @@ const Auth = () => {
                                 className="flex-1"
                               />
                             </div>
+                            <CountryDetectedIndicator phonePrefix={currentCountryCode} />
                             {signInForm.formState.errors.phone && (
                               <p className="text-sm text-destructive">{signInForm.formState.errors.phone.message}</p>
                             )}
@@ -1438,6 +1440,7 @@ const Auth = () => {
                                 className="flex-1"
                               />
                             </div>
+                            <CountryDetectedIndicator phonePrefix={currentCountryCode} />
                             {signUpForm.formState.errors.phone && (
                               <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>
                             )}

@@ -22,6 +22,7 @@ import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { OtpMethodSelector, useWhatsAppFallback, WhatsAppAutoIndicator, type OtpMethod } from '@/components/auth/OtpMethodSelector';
+import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndicator';
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
@@ -1702,6 +1703,7 @@ const BusinessAuth = () => {
                               className="flex-1"
                             />
                           </div>
+                          <CountryDetectedIndicator phonePrefix={countryCode} />
                           {signInForm.formState.errors.phone && (
                             <p className="text-sm text-destructive">
                               {signInForm.formState.errors.phone.message}
@@ -1875,6 +1877,7 @@ const BusinessAuth = () => {
                               </Select>
                               <Input id="phone" type="tel" placeholder="07 XX XX XX XX" {...signUpForm.register('phone')} className="flex-1" />
                             </div>
+                            <CountryDetectedIndicator phonePrefix={countryCode} />
                             {signUpForm.formState.errors.phone && <p className="text-sm text-destructive">{signUpForm.formState.errors.phone.message}</p>}
                           </div>
                           <AddressSelector onAddressChange={(data: AddressResult) => { signUpForm.setValue('address', data.fullAddress); }} label="Adresse de la boutique" cityLabel="Ville / Commune" neighborhoodLabel="Quartier" required={false} showCoordinates={false} />
