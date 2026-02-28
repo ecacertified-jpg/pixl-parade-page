@@ -1,60 +1,60 @@
 
 
-## Corriger l'acces aux cagnottes partagees via WhatsApp
+## Corriger l'affichage de la cagnotte pour les utilisateurs WhatsApp non authentifies
 
-### Probleme identifie
+### Cause racine
 
-Quand les amis de Francoise cliquent sur "Contribuer" dans le WhatsApp, ils arrivent sur `/f/851779a5-...` mais voient "Cagnotte introuvable" car :
+La page `FundPreview.tsx` (`/f/:fundId`) fait une requete Supabase avec des **JOINs** vers 3 tables :
 
-1. **La cagnotte n'est PAS publique** : `is_public = false` dans la base de donnees
-2. **Les politiques RLS bloquent l'acces** : Seuls les utilisateurs connectes (createur, contributeurs, amis) ou les cagnottes publiques (`is_public = true`) sont visibles. Les destinataires WhatsApp ne sont generalement pas connectes a l'app
-3. **La page `FundPreview.tsx` utilise le client Supabase cote navigateur** (clef anon), donc soumise aux RLS
-
-### Solution proposee
-
-Deux corrections complementaires :
-
----
-
-#### Correction 1 : Marquer automatiquement les cagnottes business comme publiques
-
-Dans l'Edge Function `notify-business-fund-friends`, ajouter une mise a jour automatique de `is_public = true` sur la cagnotte avant d'envoyer les WhatsApp. Logique : si on partage le lien par WhatsApp a des non-inscrits, la cagnotte DOIT etre accessible publiquement.
-
-Fichier : `supabase/functions/notify-business-fund-friends/index.ts`
-
-```text
-// Apres recuperation du fund_id, avant l'envoi des notifications :
-await supabaseAdmin
-  .from('collective_funds')
-  .update({ is_public: true })
-  .eq('id', fund_id);
+```
+collective_funds
+  -> contacts (beneficiaire)    -- RLS: auth.uid() = user_id (BLOQUE les anonymes)
+  -> profiles (createur)        -- RLS: auth.uid() = user_id OU privacy=public (BLOQUE si prive)
+  -> products (produit)         -- RLS: is_active = true (OK pour anonymes)
 ```
 
----
+Le probleme : les destinataires WhatsApp arrivent sur la page **sans etre connectes**. La policy RLS de `collective_funds` autorise bien la lecture (`is_public = true`), mais les **JOINs vers `contacts` et `profiles` echouent** car ces tables exigent `auth.uid()` qui est `NULL` pour un visiteur anonyme. PostgREST peut retourner une erreur ou des donnees incompletes qui font echouer `.single()`.
 
-#### Correction 2 : Corriger immediatement la cagnotte de Francoise
+### Solution
 
-Mettre a jour la cagnotte existante `851779a5-7c92-41b0-b429-e5ecbc6f0eb7` pour qu'elle soit visible :
+Modifier `FundPreview.tsx` pour separer la requete en deux parties :
 
+1. **Requete principale sans JOINs sensibles** : Recuperer uniquement les champs de `collective_funds` et le JOIN `products` (qui a une policy publique)
+2. **Affichage gracieux** : Ne plus dependre des donnees `contacts` et `profiles` pour le rendu de la page anonyme. Le nom du beneficiaire et du createur ne seront simplement pas affiches pour les visiteurs non connectes.
+
+### Modifications
+
+**Fichier : `src/pages/FundPreview.tsx`**
+
+Remplacer la requete actuelle :
 ```text
-UPDATE collective_funds 
-SET is_public = true 
-WHERE id = '851779a5-7c92-41b0-b429-e5ecbc6f0eb7';
+// AVANT (echoue pour les anonymes a cause des JOINs contacts/profiles)
+.select(`
+  id, title, ...,
+  products:business_product_id (id, name, image_url, price),
+  contacts:beneficiary_contact_id (id, name, avatar_url),   -- BLOQUE
+  profiles:creator_id (first_name, last_name)                -- BLOQUE
+`)
 ```
 
-Cela rendra la cagnotte immediatement accessible aux amis qui ont deja recu le lien WhatsApp.
+Par une requete en 2 etapes :
+```text
+// APRES : requete de base avec seulement le JOIN products (public)
+.select(`
+  id, title, description, target_amount, current_amount,
+  currency, occasion, status, deadline_date, created_at,
+  products:business_product_id (id, name, image_url, price)
+`)
 
----
+// Puis, seulement si l'utilisateur est connecte, enrichir avec contacts + profiles
+```
 
-### Fichiers modifies
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/notify-business-fund-friends/index.ts` | Ajouter `is_public = true` automatique avant envoi WhatsApp |
-| Base de donnees (SQL direct) | Corriger la cagnotte `851779a5` en `is_public = true` |
+Adapter le composant pour afficher la cagnotte meme sans les donnees du beneficiaire/createur. Le produit, le montant, la progression et le bouton "Contribuer" seront toujours visibles.
 
 ### Impact
 
-- Les amis de Francoise pourront immediatement voir et contribuer a la cagnotte
-- Toutes les futures cagnottes business partagees par WhatsApp seront automatiquement accessibles aux destinataires
+- Les visiteurs WhatsApp non connectes verront la cagnotte avec le produit, le montant et le bouton Contribuer
+- Les visiteurs connectes verront en plus le nom du beneficiaire et du createur
+- Aucune modification de base de donnees necessaire
+- Aucune modification des policies RLS
 
