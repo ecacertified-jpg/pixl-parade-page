@@ -48,6 +48,18 @@ serve(async (req) => {
 
     console.log('📧 Notifying friends for business fund:', { fund_id, lookupUserId, mode, business_name });
 
+    // Mark fund as public so WhatsApp recipients (not logged in) can view it
+    const { error: updateError } = await supabase
+      .from('collective_funds')
+      .update({ is_public: true })
+      .eq('id', fund_id);
+
+    if (updateError) {
+      console.warn('⚠️ Failed to mark fund as public:', updateError);
+    } else {
+      console.log('✅ Fund marked as public for WhatsApp sharing');
+    }
+
     // Get beneficiary display name
     let beneficiaryDisplayName = beneficiary_name || 'un ami';
     if (beneficiary_user_id) {
