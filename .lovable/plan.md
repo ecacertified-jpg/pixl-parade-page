@@ -1,77 +1,82 @@
 
 
-## Diagnostiquer et corriger la non-reception WhatsApp pour la cagnotte de Francoise
+## Optimiser le chargement des cagnottes sur le Dashboard
 
 ### Probleme identifie
 
-Les 9 messages WhatsApp `joiedevivre_group_contribution` envoyes a 21h13 pour la cagnotte "Samsung Galaxy A16 pour Marie Belle" ont le statut `sent` dans `whatsapp_template_logs`, mais :
-- **`whatsapp_message_id` est NULL pour TOUS les logs** (24 sur 24), ce qui confirme que les Edge Functions n'ont pas ete redeployees avec le code de capture du `messageId`
-- Sans cet identifiant, le webhook Meta ne peut pas mettre a jour les statuts de delivrabilite (delivered/read/failed)
-- Les amis de Francoise n'ont effectivement pas recu les messages
+Le Dashboard charge les cagnottes de maniere lente pour 3 raisons principales :
 
-### Causes probables (par ordre de probabilite)
+1. **Appel en double** : Le hook `useCollectiveFunds()` est appele 2 fois independamment - une fois dans `Dashboard.tsx` et une fois dans `PublicFundsCarousel.tsx`. Chaque appel execute toutes les requetes Supabase separement.
 
-1. **Edge Functions non redeployees** : Le code modifie dans `sms-sender.ts` (capture du `whatsapp_message_id`) n'est pas actif en production
-2. **Jeton Meta expire** : Les jetons temporaires expirent apres 24h. L'API Meta peut retourner HTTP 200 mais ne pas envoyer le message
-3. **Template suspendu** : Le template `joiedevivre_group_contribution` pourrait etre en pause/rejete dans le Meta Business Manager
+2. **Cascade de requetes (waterfall)** : Le hook fait 2 vagues sequentielles de requetes :
+   - Vague 1 : `collective_funds` + `contact_relationships` (en parallele)
+   - Vague 2 : `contacts` (amis) + `contacts` (beneficiaires) + `products` (en parallele, mais APRES la vague 1)
+   
+   Soit ~5 requetes reseau en 2 etapes, multipliees par 2 (appel double) = ~10 requetes.
 
-### Plan d'action
+3. **Pas de cache** : Le hook utilise `useState/useEffect` brut au lieu de TanStack Query (deja installe). Chaque montage du composant relance toutes les requetes.
 
----
-
-#### Etape 1 : Redeployer les Edge Functions
-
-Deployer les 2 fonctions modifiees pour activer la capture du `whatsapp_message_id` :
-- `notify-business-fund-friends`
-- `whatsapp-webhook`
-
-Cela permettra de correler les futures callbacks Meta et de diagnostiquer la delivrabilite reelle.
+### Plan d'optimisation
 
 ---
 
-#### Etape 2 : Ajouter un endpoint de test WhatsApp
+#### Etape 1 : Migrer `useCollectiveFunds` vers TanStack Query
 
-Creer une Edge Function `test-whatsapp-send` qui :
-- Envoie un message template de test a un numero specifie
-- Retourne la reponse brute de l'API Meta (incluant le `message_id` ou l'erreur exacte)
-- Permet de verifier immediatement si le token est valide et le template est approuve
+Remplacer le pattern `useState/useEffect` par `useQuery` de TanStack Query. Cela apporte :
+- **Cache automatique** : Les donnees sont mises en cache et partagees entre tous les composants qui appellent le meme hook
+- **Deduplication** : Meme si `Dashboard.tsx` et `PublicFundsCarousel.tsx` appellent le hook en meme temps, une seule requete sera executee
+- **Stale-while-revalidate** : L'UI affiche immediatement les donnees en cache pendant le rafraichissement en arriere-plan
 
-Fichier : `supabase/functions/test-whatsapp-send/index.ts`
+Fichier modifie : `src/hooks/useCollectiveFunds.ts`
 
-Logique :
 ```text
-POST { phone: "+225...", template: "joiedevivre_group_contribution" }
+Avant :
+  const [funds, setFunds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { loadFunds(); }, [user]);
 
-1. Appeler l'API Meta avec le template
-2. Retourner la reponse BRUTE (pas juste success/fail)
-   - Si 200 : { success: true, message_id: "wamid.xxx", raw: {...} }
-   - Si erreur : { success: false, error_code: 190, error: "token expired", raw: {...} }
+Apres :
+  const { data: funds, isLoading: loading, refetch } = useQuery({
+    queryKey: ['collective-funds', user?.id, effectiveCountryFilter],
+    queryFn: () => fetchCollectiveFunds(user, effectiveCountryFilter),
+    enabled: !!user,
+    staleTime: 30_000, // 30s cache
+  });
 ```
 
-Cela permettra de diagnostiquer en temps reel si le probleme vient du token, du template, ou d'autre chose.
+---
+
+#### Etape 2 : Reduire le waterfall en une seule requete optimisee
+
+Restructurer la requete principale pour inclure les contacts du beneficiaire directement dans le SELECT initial via le JOIN existant `contacts!beneficiary_contact_id`. Actuellement ce JOIN est evite "pour eviter les problemes RLS", mais les contacts sont ensuite requetes separement de toute facon.
+
+Plan :
+- Garder la requete principale avec le JOIN `contacts!beneficiary_contact_id(name, birthday, user_id)` directement
+- Eliminer la vague 2 de requetes separees pour les contacts beneficiaires
+- Garder la requete produits en parallele avec la requete principale (au lieu de sequentielle)
+
+Resultat : passer de 2 vagues sequentielles a 1 seule vague de requetes paralleles.
 
 ---
 
-#### Etape 3 : Verifier le jeton et relancer les notifications
+#### Etape 3 : Supprimer les console.log de debug
 
-Apres le test :
-- **Si token expire** : L'utilisateur devra generer un nouveau System User Token dans le Meta Business Manager et mettre a jour le secret `WHATSAPP_ACCESS_TOKEN`
-- **Si template rejete** : Verifier le statut dans Meta Business Manager > Templates
-- **Si tout fonctionne** : Re-invoquer `notify-business-fund-friends` pour la cagnotte de Francoise (fund_id: `8b90f407-8c74-4751-8b1f-b25deb871b5a`) afin de renvoyer les WhatsApp aux amis
+Le hook contient de nombreux `console.log` de debug (lignes 204, 228, 238, 264, 332-336) qui ralentissent le rendu. Les supprimer pour la production.
 
 ---
 
-### Resume des fichiers
+### Impact attendu
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/notify-business-fund-friends/index.ts` | Redeployer (deja modifie) |
-| `supabase/functions/whatsapp-webhook/index.ts` | Redeployer (deja modifie) |
-| `supabase/functions/test-whatsapp-send/index.ts` | Creer (endpoint diagnostic) |
+| Metrique | Avant | Apres |
+|----------|-------|-------|
+| Requetes Supabase | ~10 (2x5) | ~3 (deduplication + JOIN) |
+| Vagues reseau | 2 sequentielles x2 | 1 seule |
+| Cache | Aucun | 30s stale-while-revalidate |
+| Temps de chargement estime | ~2-4s | < 1s |
 
-### Verification manuelle requise
+### Fichiers modifies
 
-Apres le deploiement, il faudra :
-1. Appeler `test-whatsapp-send` avec un numero de test pour verifier le token et le template
-2. Verifier le statut du template dans [Meta Business Manager](https://business.facebook.com/wa/manage/message-templates/)
-3. Si tout est OK, relancer la notification pour la cagnotte de Francoise
+| Fichier | Modification |
+|---------|-------------|
+| `src/hooks/useCollectiveFunds.ts` | Migration vers TanStack Query + reduction du waterfall + suppression logs debug |
+
