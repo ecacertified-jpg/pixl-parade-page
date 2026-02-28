@@ -246,3 +246,6 @@ verify_jwt = false
 
 [functions.notify-fund-ready]
 verify_jwt = false
+
+[functions.notify-contribution-progress]
+verify_jwt = false
