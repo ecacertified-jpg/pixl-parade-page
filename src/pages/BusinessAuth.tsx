@@ -387,7 +387,7 @@ const BusinessAuth = () => {
   });
 
   // Auth input method selector
-  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
   
   // Password visibility toggles
   const [showSignInPassword, setShowSignInPassword] = useState(false);
