@@ -243,3 +243,6 @@ verify_jwt = false
 
 [functions.test-whatsapp-send]
 verify_jwt = false
+
+[functions.notify-fund-ready]
+verify_jwt = false
