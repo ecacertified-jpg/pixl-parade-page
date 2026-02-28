@@ -239,9 +239,13 @@ const Auth = () => {
         }
 
         const returnUrl = localStorage.getItem('returnUrl');
+        const redirectParam = searchParams.get('redirect');
+
         if (returnUrl) {
           localStorage.removeItem('returnUrl');
           navigate(returnUrl);
+        } else if (redirectParam) {
+          navigate(redirectParam);
         } else {
           handleSmartRedirect(user, navigate);
         }
