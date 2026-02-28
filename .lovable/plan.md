@@ -1,54 +1,42 @@
 
 
-## Nettoyer le fundId pour supporter les URLs Meta malformees
+## Corriger la navigation du bouton "Contribuer a cette cagnotte"
 
 ### Probleme
 
-Meta Business Manager encode le placeholder `{{1}}` en texte litteral `%7B%7B1%7D%7D` dans l'URL du bouton CTA, produisant des liens comme :
-```
-/f/%7B%7B1%7D%7D851779a5-7c92-41b0-b429-e5ecbc6f0eb7
-```
-Au lieu de :
-```
-/f/851779a5-7c92-41b0-b429-e5ecbc6f0eb7
+Dans `FundPreview.tsx`, le handler du bouton "Contribuer" utilise une route inexistante :
+
+```typescript
+const handleContribute = () => {
+  navigate(`/fund/${fundId}`);  // /fund/ n'existe pas dans App.tsx
+};
 ```
 
-Le navigateur decode automatiquement `%7B%7B1%7D%7D` en `{{1}}`, donc le `fundId` recu par React Router est :
-```
-{{1}}851779a5-7c92-41b0-b429-e5ecbc6f0eb7
-```
+La seule route definie pour les cagnottes est `/f/:fundId` (ligne 150 de App.tsx). Le bouton redirige donc vers une page 404.
 
 ### Solution
 
-Ajouter un nettoyage du `fundId` dans `FundPreview.tsx` pour supprimer tout prefixe `{{1}}` (ou `{{N}}`) avant d'interroger Supabase. Ce meme nettoyage sera aussi applique aux autres pages qui recoivent des parametres dynamiques de templates WhatsApp (ex: page de confirmation de commande).
-
-### Modifications
-
 **Fichier : `src/pages/FundPreview.tsx`**
 
-Ajouter une fonction de nettoyage et l'appliquer au `fundId` extrait par `useParams` :
+Modifier le handler pour utiliser la bonne route :
 
 ```typescript
-// Nettoyer les prefixes Meta template ({{1}}, {{2}}, etc.)
-const cleanMetaParam = (param: string | undefined): string | undefined => {
-  if (!param) return param;
-  return param.replace(/^\{\{\d+\}\}/, '');
+const handleContribute = () => {
+  navigate(`/f/${fundId}`);
 };
-
-const rawFundId = useParams<{ fundId: string }>().fundId;
-const fundId = cleanMetaParam(rawFundId);
 ```
 
-Cela transformera `{{1}}851779a5-...` en `851779a5-...` (un UUID valide).
+Cependant, cela redirigerait vers la meme page (FundPreview). Si l'intention est de rediriger vers une page de contribution authentifiee (par exemple le Dashboard ou une page de paiement), il faudra rediriger vers la page d'authentification avec un parametre de redirection :
 
-**Fichier : `src/pages/OrderConfirmation.tsx` (ou equivalent)**
+```typescript
+const handleContribute = () => {
+  navigate(`/auth?redirect=/f/${fundId}`);
+};
+```
 
-Appliquer le meme nettoyage pour le parametre `orderId` recu depuis le template `joiedevivre_gift_order`.
+Ou bien, si la page actuelle sert deja a la contribution (avec un formulaire de contribution plus bas pour les utilisateurs connectes), garder `/f/${fundId}` qui rechargera la page dans un contexte authentifie.
 
-### Impact
+### Modification unique
 
-- Tous les liens WhatsApp existants avec le prefixe `{{1}}` fonctionneront immediatement
-- Les liens sans prefixe continueront de fonctionner normalement
-- Aucune modification dans Meta Business Manager requise
-- Compatible avec tous les templates actuels et futurs
+Remplacer `navigate(\`/fund/${fundId}\`)` par `navigate(\`/f/${fundId}\`)` dans le handler `handleContribute` de `FundPreview.tsx`.
 
