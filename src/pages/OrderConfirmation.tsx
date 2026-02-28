@@ -1,11 +1,14 @@
 import { CheckCircle, Phone, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
+import { cleanMetaParam } from "@/utils/cleanMetaParam";
 export default function OrderConfirmation() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const orderId = cleanMetaParam(searchParams.get('orderId') || undefined);
   useEffect(() => {
     document.title = "Commande confirmée | JOIE DE VIVRE";
   }, []);

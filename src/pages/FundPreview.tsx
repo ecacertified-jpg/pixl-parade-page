@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Gift, Users, ArrowRight, Heart } from "lucide-react";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
+import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
 import { FundBreadcrumb } from "@/components/breadcrumbs";
@@ -39,7 +40,8 @@ interface FundData {
 }
 
 export default function FundPreview() {
-  const { fundId } = useParams<{ fundId: string }>();
+  const { fundId: rawFundId } = useParams<{ fundId: string }>();
+  const fundId = cleanMetaParam(rawFundId);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [fund, setFund] = useState<FundData | null>(null);
