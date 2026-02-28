@@ -1,54 +1,53 @@
 
 
-## Corriger la redirection apres connexion depuis une cagnotte
+## Corriger la boucle de redirection du bouton "Contribuer"
 
 ### Probleme
 
-Quand l'utilisateur clique "Contribuer a cette cagnotte", il est redirige vers `/auth?redirect=/f/{fundId}`. Mais dans `Auth.tsx`, le code de redirection (ligne 232-251) ne lit **jamais** le parametre `redirect` de l'URL. Il verifie uniquement `localStorage.getItem('returnUrl')`, qui n'est defini que par `ProtectedRoute.tsx` (quand un utilisateur non connecte tente d'acceder a une route protegee).
-
-Resultat : le parametre `?redirect=/f/{fundId}` est ignore et l'utilisateur est redirige par `handleSmartRedirect` vers le dashboard (onglet AMIS par defaut).
+Quand un utilisateur non connecte clique "Contribuer a cette cagnotte" :
+1. Il est redirige vers `/auth?redirect=/f/{fundId}`
+2. Apres connexion, il revient sur `/f/{fundId}`
+3. `/f/{fundId}` est la page FundPreview -- la meme page publique avec le bouton "Contribuer"
+4. L'utilisateur se retrouve en boucle au lieu d'acceder au flux de contribution
 
 ### Solution
 
-Modifier la logique de redirection dans `Auth.tsx` pour lire aussi le parametre `redirect` des query params de l'URL.
+Deux modifications complementaires :
 
-### Modification
+**1. Changer la destination de redirection dans FundPreview.tsx**
 
-**Fichier : `src/pages/Auth.tsx`** (lignes 232-251)
-
-Ajouter la lecture de `searchParams.get('redirect')` comme source alternative de redirection :
+Au lieu de rediriger vers `/f/{fundId}` (la meme page), rediriger vers le Dashboard onglet COTISATIONS :
 
 ```typescript
-useEffect(() => {
-  if (user) {
-    const handleRedirect = async () => {
-      const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
-      if (adminRef) {
-        await processAdminAutoAssign(user.id);
-      }
-
-      // 1. Check returnUrl from localStorage (set by ProtectedRoute)
-      const returnUrl = localStorage.getItem('returnUrl');
-      // 2. Check redirect param from URL query string (set by FundPreview, etc.)
-      const redirectParam = searchParams.get('redirect');
-
-      if (returnUrl) {
-        localStorage.removeItem('returnUrl');
-        navigate(returnUrl);
-      } else if (redirectParam) {
-        navigate(redirectParam);
-      } else {
-        handleSmartRedirect(user, navigate);
-      }
-    };
-    handleRedirect();
-  }
-}, [user, navigate, searchParams]);
+const handleContribute = () => {
+  navigate(`/auth?redirect=/dashboard?tab=cotisations`);
+};
 ```
+
+**2. Detecter l'utilisateur connecte dans FundPreview.tsx**
+
+Si l'utilisateur est deja connecte quand il visite `/f/{fundId}`, le rediriger directement vers le Dashboard onglet COTISATIONS au lieu d'afficher la page de preview publique :
+
+```typescript
+const { user } = useAuth();
+
+// Si connecte, aller directement au dashboard
+const handleContribute = () => {
+  if (user) {
+    navigate(`/dashboard?tab=cotisations`);
+  } else {
+    navigate(`/auth?redirect=/dashboard?tab=cotisations`);
+  }
+};
+```
+
+### Fichier modifie
+
+- `src/pages/FundPreview.tsx` : modifier `handleContribute` pour diriger vers `/dashboard?tab=cotisations` (connecte ou non)
 
 ### Impact
 
-- Les liens "Contribuer" depuis FundPreview redirigeront correctement vers la cagnotte apres connexion
-- Le comportement existant (returnUrl via ProtectedRoute, smart redirect par defaut) reste inchange
-- Tout autre composant pourra utiliser `?redirect=/chemin` pour forcer une redirection apres authentification
+- Utilisateur non connecte : connexion puis redirection vers l'onglet COTISATIONS
+- Utilisateur deja connecte : acces direct a l'onglet COTISATIONS
+- La page FundPreview reste accessible en tant que page publique de decouverte
 
