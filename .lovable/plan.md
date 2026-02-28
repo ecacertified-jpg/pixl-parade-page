@@ -1,82 +1,60 @@
 
 
-## Optimiser le chargement des cagnottes sur le Dashboard
+## Corriger l'acces aux cagnottes partagees via WhatsApp
 
 ### Probleme identifie
 
-Le Dashboard charge les cagnottes de maniere lente pour 3 raisons principales :
+Quand les amis de Francoise cliquent sur "Contribuer" dans le WhatsApp, ils arrivent sur `/f/851779a5-...` mais voient "Cagnotte introuvable" car :
 
-1. **Appel en double** : Le hook `useCollectiveFunds()` est appele 2 fois independamment - une fois dans `Dashboard.tsx` et une fois dans `PublicFundsCarousel.tsx`. Chaque appel execute toutes les requetes Supabase separement.
+1. **La cagnotte n'est PAS publique** : `is_public = false` dans la base de donnees
+2. **Les politiques RLS bloquent l'acces** : Seuls les utilisateurs connectes (createur, contributeurs, amis) ou les cagnottes publiques (`is_public = true`) sont visibles. Les destinataires WhatsApp ne sont generalement pas connectes a l'app
+3. **La page `FundPreview.tsx` utilise le client Supabase cote navigateur** (clef anon), donc soumise aux RLS
 
-2. **Cascade de requetes (waterfall)** : Le hook fait 2 vagues sequentielles de requetes :
-   - Vague 1 : `collective_funds` + `contact_relationships` (en parallele)
-   - Vague 2 : `contacts` (amis) + `contacts` (beneficiaires) + `products` (en parallele, mais APRES la vague 1)
-   
-   Soit ~5 requetes reseau en 2 etapes, multipliees par 2 (appel double) = ~10 requetes.
+### Solution proposee
 
-3. **Pas de cache** : Le hook utilise `useState/useEffect` brut au lieu de TanStack Query (deja installe). Chaque montage du composant relance toutes les requetes.
-
-### Plan d'optimisation
+Deux corrections complementaires :
 
 ---
 
-#### Etape 1 : Migrer `useCollectiveFunds` vers TanStack Query
+#### Correction 1 : Marquer automatiquement les cagnottes business comme publiques
 
-Remplacer le pattern `useState/useEffect` par `useQuery` de TanStack Query. Cela apporte :
-- **Cache automatique** : Les donnees sont mises en cache et partagees entre tous les composants qui appellent le meme hook
-- **Deduplication** : Meme si `Dashboard.tsx` et `PublicFundsCarousel.tsx` appellent le hook en meme temps, une seule requete sera executee
-- **Stale-while-revalidate** : L'UI affiche immediatement les donnees en cache pendant le rafraichissement en arriere-plan
+Dans l'Edge Function `notify-business-fund-friends`, ajouter une mise a jour automatique de `is_public = true` sur la cagnotte avant d'envoyer les WhatsApp. Logique : si on partage le lien par WhatsApp a des non-inscrits, la cagnotte DOIT etre accessible publiquement.
 
-Fichier modifie : `src/hooks/useCollectiveFunds.ts`
+Fichier : `supabase/functions/notify-business-fund-friends/index.ts`
 
 ```text
-Avant :
-  const [funds, setFunds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { loadFunds(); }, [user]);
-
-Apres :
-  const { data: funds, isLoading: loading, refetch } = useQuery({
-    queryKey: ['collective-funds', user?.id, effectiveCountryFilter],
-    queryFn: () => fetchCollectiveFunds(user, effectiveCountryFilter),
-    enabled: !!user,
-    staleTime: 30_000, // 30s cache
-  });
+// Apres recuperation du fund_id, avant l'envoi des notifications :
+await supabaseAdmin
+  .from('collective_funds')
+  .update({ is_public: true })
+  .eq('id', fund_id);
 ```
 
 ---
 
-#### Etape 2 : Reduire le waterfall en une seule requete optimisee
+#### Correction 2 : Corriger immediatement la cagnotte de Francoise
 
-Restructurer la requete principale pour inclure les contacts du beneficiaire directement dans le SELECT initial via le JOIN existant `contacts!beneficiary_contact_id`. Actuellement ce JOIN est evite "pour eviter les problemes RLS", mais les contacts sont ensuite requetes separement de toute facon.
+Mettre a jour la cagnotte existante `851779a5-7c92-41b0-b429-e5ecbc6f0eb7` pour qu'elle soit visible :
 
-Plan :
-- Garder la requete principale avec le JOIN `contacts!beneficiary_contact_id(name, birthday, user_id)` directement
-- Eliminer la vague 2 de requetes separees pour les contacts beneficiaires
-- Garder la requete produits en parallele avec la requete principale (au lieu de sequentielle)
+```text
+UPDATE collective_funds 
+SET is_public = true 
+WHERE id = '851779a5-7c92-41b0-b429-e5ecbc6f0eb7';
+```
 
-Resultat : passer de 2 vagues sequentielles a 1 seule vague de requetes paralleles.
-
----
-
-#### Etape 3 : Supprimer les console.log de debug
-
-Le hook contient de nombreux `console.log` de debug (lignes 204, 228, 238, 264, 332-336) qui ralentissent le rendu. Les supprimer pour la production.
+Cela rendra la cagnotte immediatement accessible aux amis qui ont deja recu le lien WhatsApp.
 
 ---
-
-### Impact attendu
-
-| Metrique | Avant | Apres |
-|----------|-------|-------|
-| Requetes Supabase | ~10 (2x5) | ~3 (deduplication + JOIN) |
-| Vagues reseau | 2 sequentielles x2 | 1 seule |
-| Cache | Aucun | 30s stale-while-revalidate |
-| Temps de chargement estime | ~2-4s | < 1s |
 
 ### Fichiers modifies
 
-| Fichier | Modification |
-|---------|-------------|
-| `src/hooks/useCollectiveFunds.ts` | Migration vers TanStack Query + reduction du waterfall + suppression logs debug |
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/notify-business-fund-friends/index.ts` | Ajouter `is_public = true` automatique avant envoi WhatsApp |
+| Base de donnees (SQL direct) | Corriger la cagnotte `851779a5` en `is_public = true` |
+
+### Impact
+
+- Les amis de Francoise pourront immediatement voir et contribuer a la cagnotte
+- Toutes les futures cagnottes business partagees par WhatsApp seront automatiquement accessibles aux destinataires
 
