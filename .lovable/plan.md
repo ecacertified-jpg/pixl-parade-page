@@ -1,25 +1,30 @@
 
 
-## Corriger le lien d'invitation "Mon cercle d'amis"
+## Pre-selectionner "Telephone" comme methode d'inscription/connexion
 
 ### Probleme
 
-Dans `Dashboard.tsx` (ligne 821), le bouton d'invitation envoie un message WhatsApp contenant le lien `https://joiedevivre-africa.com/go/register`. Or, cette route **n'existe pas** dans `App.tsx`. La bonne route est `/go/signup` (ligne 209), qui redirige vers `/auth?tab=signup`.
+Dans `src/pages/Auth.tsx` (ligne 188), la methode d'authentification par defaut est `'email'` :
+
+```typescript
+const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('email');
+```
+
+L'utilisateur souhaite que l'onglet "Telephone" soit selectionne par defaut a l'ouverture de la page Auth.
 
 ### Solution
 
-**Fichier : `src/pages/Dashboard.tsx`** (ligne 821)
+**Fichier : `src/pages/Auth.tsx`** (ligne 188)
 
-Remplacer :
-```
-https://joiedevivre-africa.com/go/register
-```
-par :
-```
-https://joiedevivre-africa.com/go/signup
+Changer la valeur initiale de `'email'` a `'phone'` :
+
+```typescript
+const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
 ```
 
-### Detail technique
+### Impact
 
-La route `/go/signup` est deja definie dans `App.tsx` et effectue un `Navigate` vers `/auth?tab=signup&utm_source=deep_link`. Le lien fonctionnera immediatement sans aucune autre modification.
+- L'onglet "Telephone" sera pre-selectionne a l'ouverture de la page d'inscription et de connexion
+- L'utilisateur peut toujours basculer sur "Email" en cliquant dessus
+- Aucun autre fichier n'est impacte
 
