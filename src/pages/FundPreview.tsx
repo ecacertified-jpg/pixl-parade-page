@@ -69,6 +69,7 @@ export default function FundPreview() {
       }
 
       try {
+        // Step 1: Base query without contacts/profiles JOINs (works for anonymous users)
         const { data, error: fetchError } = await supabase
           .from("collective_funds")
           .select(`
@@ -87,19 +88,10 @@ export default function FundPreview() {
               name,
               image_url,
               price
-            ),
-            contacts:beneficiary_contact_id (
-              id,
-              name,
-              avatar_url
-            ),
-            profiles:creator_id (
-              first_name,
-              last_name
             )
           `)
           .eq("id", fundId)
-          .single();
+          .maybeSingle();
 
         if (fetchError || !data) {
           setError("Cagnotte introuvable");
@@ -107,12 +99,32 @@ export default function FundPreview() {
           return;
         }
 
-        setFund({
+        const fundData: FundData = {
           ...data,
           product: data.products as FundData["product"],
-          contact: data.contacts as FundData["contact"],
-          creator: data.profiles as FundData["creator"],
-        });
+          contact: null,
+          creator: null,
+        };
+
+        // Step 2: If user is authenticated, enrich with contacts + profiles
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: enriched } = await supabase
+            .from("collective_funds")
+            .select(`
+              contacts:beneficiary_contact_id (id, name, avatar_url),
+              profiles:creator_id (first_name, last_name)
+            `)
+            .eq("id", fundId)
+            .maybeSingle();
+
+          if (enriched) {
+            fundData.contact = enriched.contacts as FundData["contact"];
+            fundData.creator = enriched.profiles as FundData["creator"];
+          }
+        }
+
+        setFund(fundData);
       } catch (err) {
         console.error("Error fetching fund:", err);
         setError("Erreur lors du chargement");
