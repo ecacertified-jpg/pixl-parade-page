@@ -1,21 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCountry } from '@/contexts/CountryContext';
-import { useToast } from '@/hooks/use-toast';
 
 interface Contributor {
   id: string;
   name: string;
   amount: number;
   avatar?: string;
-}
-
-interface ContactData {
-  id: string;
-  name: string;
-  birthday?: string;
-  user_id?: string;
 }
 
 export interface CollectiveFund {
@@ -34,327 +26,213 @@ export interface CollectiveFund {
   orderData?: any;
   creatorId?: string;
   isPublic?: boolean;
-  priority?: number; // 1: friends' public funds, 2: own funds, 3: contributed funds, 4: general public funds
+  priority?: number;
   isBusinessInitiated?: boolean;
   businessName?: string;
   countryCode?: string;
 }
 
+async function fetchCollectiveFunds(
+  userId: string,
+  effectiveCountryFilter: string | null
+): Promise<CollectiveFund[]> {
+  // Single optimized query with contacts JOIN (eliminates waterfall)
+  const selectQuery = `
+    id,
+    title,
+    target_amount,
+    current_amount,
+    currency,
+    occasion,
+    status,
+    creator_id,
+    is_public,
+    beneficiary_contact_id,
+    created_by_business_id,
+    country_code,
+    contacts!beneficiary_contact_id(name, birthday, user_id),
+    fund_contributions(
+      id,
+      amount,
+      contributor_id,
+      profiles:contributor_id(first_name, last_name)
+    ),
+    collective_fund_orders(
+      id,
+      order_summary,
+      donor_phone,
+      beneficiary_phone,
+      delivery_address,
+      payment_method
+    ),
+    business_collective_funds(
+      business_id,
+      product_id,
+      business_accounts:business_id(business_name)
+    )
+  `;
+
+  let fundsQuery = supabase
+    .from('collective_funds')
+    .select(selectQuery);
+
+  if (effectiveCountryFilter) {
+    fundsQuery = fundsQuery.eq('country_code', effectiveCountryFilter);
+  }
+
+  // All initial queries in parallel (single wave)
+  const [friendsResult, allFundsResult] = await Promise.all([
+    supabase
+      .from('contact_relationships')
+      .select('user_a, user_b')
+      .or(`user_a.eq.${userId},user_b.eq.${userId}`),
+    fundsQuery.order('created_at', { ascending: false })
+  ]);
+
+  const friendsData = friendsResult.data;
+  const allFundsData = allFundsResult.data;
+
+  if (allFundsResult.error) {
+    throw allFundsResult.error;
+  }
+
+  const friendIds = friendsData?.map(rel =>
+    rel.user_a === userId ? rel.user_b : rel.user_a
+  ) || [];
+
+  // Only need product IDs for second parallel wave (contacts already JOINed)
+  const productIds: string[] = [];
+  allFundsData?.forEach(f => {
+    const bcfArray = f.business_collective_funds;
+    if (Array.isArray(bcfArray) && bcfArray.length > 0) {
+      const bcf = bcfArray[0];
+      if (bcf?.product_id) {
+        productIds.push(bcf.product_id as string);
+      }
+    }
+  });
+
+  // Parallel: friend contacts (for priority) + products
+  const [friendContactsResult, productsResult] = await Promise.all([
+    friendIds.length > 0
+      ? supabase.from('contacts').select('id, user_id').in('user_id', friendIds)
+      : Promise.resolve({ data: [] }),
+    productIds.length > 0
+      ? supabase.from('products').select('id, name, image_url, price').in('id', productIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const friendContactIds = friendContactsResult.data?.map(c => c.id) || [];
+  const productsMap = new Map<string, { id: string; name: string; image_url: string | null; price: number }>();
+  productsResult.data?.forEach(p => productsMap.set(p.id, p));
+
+  // Compute priority and transform
+  const transformedFunds: CollectiveFund[] = (allFundsData || []).map(fund => {
+    let priority = 4;
+    if (friendIds.includes(fund.creator_id)) priority = 1;
+    if (fund.beneficiary_contact_id && friendContactIds.includes(fund.beneficiary_contact_id)) {
+      priority = Math.min(priority, 1.5);
+    }
+    if (fund.creator_id === userId) priority = 2;
+    const hasContributed = fund.fund_contributions?.some(c => c.contributor_id === userId);
+    if (hasContributed && fund.creator_id !== userId) priority = Math.min(priority, 3);
+
+    const contributors: Contributor[] = (fund.fund_contributions || []).map(contrib => ({
+      id: contrib.contributor_id,
+      name: contrib.profiles
+        ? `${contrib.profiles.first_name || ''} ${contrib.profiles.last_name || ''}`.trim()
+        : 'Utilisateur',
+      amount: contrib.amount,
+    }));
+
+    // Beneficiary from JOIN (no separate query needed)
+    const contact = fund.contacts as any;
+    let beneficiaryName = 'Bénéficiaire';
+    let beneficiaryBirthday: string | undefined;
+    if (contact?.name) {
+      beneficiaryName = contact.name;
+      beneficiaryBirthday = contact.birthday;
+    } else if (fund.title.includes('pour ')) {
+      beneficiaryName = fund.title.split('pour ')[1];
+    }
+
+    // Product info
+    const orderData = fund.collective_fund_orders?.[0];
+    const orderSummary = orderData?.order_summary as any;
+    const firstItem = orderSummary?.items?.[0];
+    const businessFundData = fund.business_collective_funds?.[0];
+    const productId = businessFundData?.product_id;
+    const productFromMap = productId ? productsMap.get(productId) : null;
+
+    let productName = 'Cadeau';
+    let productImage: string | undefined;
+    if (productFromMap) {
+      productName = productFromMap.name || 'Cadeau';
+      productImage = productFromMap.image_url || undefined;
+    } else if (firstItem) {
+      productName = firstItem.name || 'Cadeau';
+      productImage = firstItem.image;
+    } else {
+      const titleParts = fund.title.split(' pour ');
+      if (titleParts.length > 1) productName = titleParts[0];
+    }
+
+    const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
+    const businessName = businessFundData?.business_accounts?.business_name;
+
+    return {
+      id: fund.id,
+      title: fund.title,
+      beneficiaryName,
+      beneficiaryBirthday,
+      targetAmount: fund.target_amount,
+      currentAmount: fund.current_amount || 0,
+      currency: fund.currency || 'XOF',
+      productName,
+      productImage,
+      contributors,
+      status: fund.status === 'target_reached' ? 'completed' :
+              fund.status === 'expired' ? 'expired' :
+              fund.current_amount >= fund.target_amount ? 'completed' : 'active',
+      occasion: fund.occasion || 'anniversaire',
+      orderData: orderData || null,
+      creatorId: fund.creator_id,
+      isPublic: fund.is_public || false,
+      priority,
+      isBusinessInitiated,
+      businessName,
+      countryCode: fund.country_code,
+    } as CollectiveFund;
+  });
+
+  // Filter relevant funds
+  const relevantFunds = transformedFunds.filter(fund => {
+    if (fund.creatorId === userId) return true;
+    if (fund.contributors.some(c => c.id === userId)) return true;
+    if (fund.priority === 1 || fund.priority === 1.5) return true;
+    if (fund.isBusinessInitiated) return true;
+    return false;
+  });
+
+  relevantFunds.sort((a, b) => (a.priority || 4) - (b.priority || 4));
+  return relevantFunds;
+}
+
 export function useCollectiveFunds() {
-  const [funds, setFunds] = useState<CollectiveFund[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { effectiveCountryFilter } = useCountry();
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const loadFunds = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-
-      // Requête principale sans le JOIN contacts (pour éviter les problèmes RLS)
-      const selectQuery = `
-        id,
-        title,
-        target_amount,
-        current_amount,
-        currency,
-        occasion,
-        status,
-        creator_id,
-        is_public,
-        beneficiary_contact_id,
-        created_by_business_id,
-        country_code,
-        fund_contributions(
-          id,
-          amount,
-          contributor_id,
-          profiles:contributor_id(first_name, last_name)
-        ),
-        collective_fund_orders(
-          id,
-          order_summary,
-          donor_phone,
-          beneficiary_phone,
-          delivery_address,
-          payment_method
-        ),
-        business_collective_funds(
-          business_id,
-          product_id,
-          business_accounts:business_id(business_name)
-        )
-      `;
-
-      // Execute all initial queries in parallel for better performance
-      // Build the funds query with optional country filter
-      let fundsQuery = supabase
-        .from('collective_funds')
-        .select(selectQuery);
-      
-      if (effectiveCountryFilter) {
-        fundsQuery = fundsQuery.eq('country_code', effectiveCountryFilter);
-      }
-      
-      const [friendsResult, allFundsResult] = await Promise.all([
-        // Get friends data
-        supabase
-          .from('contact_relationships')
-          .select('user_a, user_b')
-          .or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
-        // Get all funds - filtered by country if set
-        fundsQuery.order('created_at', { ascending: false })
-      ]);
-
-      const friendsData = friendsResult.data;
-      const allFundsData = allFundsResult.data;
-      const error = allFundsResult.error;
-
-      if (error) {
-        console.error('Erreur lors du chargement des cagnottes:', error);
-        throw error;
-      }
-
-      const friendIds = friendsData?.map(rel => 
-        rel.user_a === user.id ? rel.user_b : rel.user_a
-      ) || [];
-
-      // Get contacts and products data in parallel
-      const contactIds = allFundsData
-        ?.map(f => f.beneficiary_contact_id)
-        .filter(Boolean) || [];
-
-      const productIds: string[] = [];
-      allFundsData?.forEach(f => {
-        const bcfArray = f.business_collective_funds;
-        if (Array.isArray(bcfArray) && bcfArray.length > 0) {
-          const bcf = bcfArray[0];
-          if (bcf?.product_id) {
-            productIds.push(bcf.product_id as string);
-          }
-        }
-      });
-
-      // Parallel queries for contacts and products
-      const [friendContactsResult, contactsResult, productsResult] = await Promise.all([
-        // Friend contacts
-        friendIds.length > 0 ? supabase
-          .from('contacts')
-          .select('id, user_id')
-          .in('user_id', friendIds) : Promise.resolve({ data: [] }),
-        // Beneficiary contacts
-        contactIds.length > 0 ? supabase
-          .from('contacts')
-          .select('id, name, birthday, user_id')
-          .in('id', contactIds) : Promise.resolve({ data: [], error: null }),
-        // Products
-        productIds.length > 0 ? supabase
-          .from('products')
-          .select('id, name, image_url, price')
-          .in('id', productIds) : Promise.resolve({ data: [], error: null })
-      ]);
-
-      const friendContactIds = friendContactsResult.data?.map(c => c.id) || [];
-      const contactsData = contactsResult.data;
-      const productsData = productsResult.data;
-
-      // Créer un Map pour accès rapide aux contacts
-      const contactsMap = new Map<string, ContactData>(
-        contactsData?.map(c => [c.id, c] as [string, ContactData]) || []
-      );
-
-      // Créer un Map pour accès rapide aux produits
-      const productsMap = new Map<string, { id: string; name: string; image_url: string | null; price: number }>();
-      productsData?.forEach(p => {
-        productsMap.set(p.id, p);
-      });
-
-      // Calculer la priorité pour chaque cagnotte
-      const allFunds = (allFundsData || []).map(fund => {
-        let priority = 4; // Par défaut : cagnotte publique générale
-
-        // Priorité 1: Cagnotte créée par un ami
-        if (friendIds.includes(fund.creator_id)) {
-          priority = 1;
-        }
-        
-        // Priorité 1.5: Cagnotte créée POUR un ami (bénéficiaire est un ami)
-        if (fund.beneficiary_contact_id && friendContactIds.includes(fund.beneficiary_contact_id)) {
-          priority = Math.min(priority, 1.5);
-        }
-
-        // Priorité 2: Mes propres cagnottes
-        if (fund.creator_id === user.id) {
-          priority = 2;
-        }
-
-        // Priorité 3: Cagnottes auxquelles j'ai contribué
-        const hasContributed = fund.fund_contributions?.some(
-          contrib => contrib.contributor_id === user.id
-        );
-        if (hasContributed && fund.creator_id !== user.id) {
-          priority = Math.min(priority, 3);
-        }
-
-        return { ...fund, priority };
-      });
-
-      console.log('Données des cagnottes chargées:', allFunds);
-
-      // Transformer les données pour correspondre à l'interface
-      const transformedFunds: CollectiveFund[] = (allFunds || []).map(fund => {
-        const contributors: Contributor[] = (fund.fund_contributions || []).map(contrib => ({
-          id: contrib.contributor_id,
-          name: contrib.profiles 
-            ? `${contrib.profiles.first_name || ''} ${contrib.profiles.last_name || ''}`.trim()
-            : 'Utilisateur',
-          amount: contrib.amount,
-        }));
-
-        // Récupérer le contact depuis le Map
-        const contact: ContactData | undefined = fund.beneficiary_contact_id 
-          ? contactsMap.get(fund.beneficiary_contact_id)
-          : undefined;
-        
-        let beneficiaryName = 'Bénéficiaire';
-        let beneficiaryBirthday: string | undefined = undefined;
-        
-        if (contact?.name) {
-          beneficiaryName = contact.name;
-          beneficiaryBirthday = contact.birthday;
-          
-          console.log('🎂 [DEBUG] Contact trouvé dans le Map:', {
-            fundId: fund.id,
-            fundTitle: fund.title,
-            contactId: contact.id,
-            contactName: beneficiaryName,
-            birthday: beneficiaryBirthday
-          });
-        } else if (fund.title.includes('pour ')) {
-          beneficiaryName = fund.title.split('pour ')[1];
-          
-          console.log('⚠️ [DEBUG] Contact non trouvé, extraction du titre:', {
-            fundId: fund.id,
-            fundTitle: fund.title,
-            extractedName: beneficiaryName,
-            beneficiaryContactId: fund.beneficiary_contact_id,
-            contactInMap: contactsMap.has(fund.beneficiary_contact_id || '')
-          });
-        }
-
-        // Extraire les informations du produit
-        const orderData = fund.collective_fund_orders?.[0];
-        const orderSummary = orderData?.order_summary as any;
-        const firstItem = orderSummary?.items?.[0];
-        
-        // Récupérer le produit depuis le Map (requête séparée)
-        const businessFundData = fund.business_collective_funds?.[0];
-        const productId = businessFundData?.product_id;
-        const productFromMap = productId ? productsMap.get(productId) : null;
-        
-        let productName = 'Cadeau';
-        let productImage: string | undefined = undefined;
-        
-        // Priorité 1: Produit lié via business_collective_funds (depuis le Map)
-        if (productFromMap) {
-          productName = productFromMap.name || 'Cadeau';
-          productImage = productFromMap.image_url || undefined;
-          console.log('🎁 [DEBUG] Produit trouvé dans le Map:', { fundId: fund.id, productName, productImage });
-        } 
-        // Priorité 2: Données de la commande
-        else if (firstItem) {
-          productName = firstItem.name || 'Cadeau';
-          productImage = firstItem.image;
-        } 
-        // Priorité 3: Extraction depuis le titre
-        else {
-          const titleParts = fund.title.split(' pour ');
-          if (titleParts.length > 1) {
-            productName = titleParts[0];
-          }
-        }
-
-        // Déterminer si c'est une cotisation initiée par un commerce
-        const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
-        const businessName = businessFundData?.business_accounts?.business_name;
-
-        return {
-          id: fund.id,
-          title: fund.title,
-          beneficiaryName,
-          beneficiaryBirthday,
-          targetAmount: fund.target_amount,
-          currentAmount: fund.current_amount || 0,
-          currency: fund.currency || 'XOF',
-          productName,
-          productImage,
-          contributors,
-          status: fund.status === 'target_reached' ? 'completed' : 
-                  fund.status === 'expired' ? 'expired' : 
-                  fund.current_amount >= fund.target_amount ? 'completed' : 'active',
-          occasion: fund.occasion || 'anniversaire',
-          orderData: orderData || null,
-          creatorId: fund.creator_id,
-          isPublic: fund.is_public || false,
-          priority: fund.priority || 4,
-          isBusinessInitiated,
-          businessName,
-          countryCode: fund.country_code
-        };
-      });
-
-      // Filtrer pour n'afficher que les cagnottes pertinentes pour l'utilisateur
-      const relevantFunds = transformedFunds.filter(fund => {
-        // Toujours afficher mes propres cagnottes
-        if (fund.creatorId === user.id) return true;
-        
-        // Toujours afficher les cagnottes auxquelles j'ai contribué
-        if (fund.contributors.some(c => c.id === user.id)) return true;
-        
-        // Toujours afficher les cagnottes créées par un ami (priorité 1)
-        if (fund.priority === 1) return true;
-        
-        // Toujours afficher les cagnottes créées POUR un ami (priorité 1.5)
-        if (fund.priority === 1.5) return true;
-        
-        // Afficher les cagnottes initiées par un commerce (pour découverte produits)
-        if (fund.isBusinessInitiated) return true;
-        
-        // Exclure les cagnottes publiques d'utilisateurs inconnus (priorité 4)
-        return false;
-      });
-
-      // Trier par priorité (plus petite = plus prioritaire)
-      relevantFunds.sort((a, b) => (a.priority || 4) - (b.priority || 4));
-      
-      console.log('📋 [DEBUG] Cagnottes filtrées:', {
-        total: transformedFunds.length,
-        relevant: relevantFunds.length,
-        excluded: transformedFunds.length - relevantFunds.length
-      });
-      
-      setFunds(relevantFunds);
-    } catch (error) {
-      console.error('Erreur lors du chargement des cagnottes:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les cagnottes",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFunds();
-  }, [user, effectiveCountryFilter]);
+  const { data: funds = [], isLoading: loading } = useQuery({
+    queryKey: ['collective-funds', user?.id, effectiveCountryFilter],
+    queryFn: () => fetchCollectiveFunds(user!.id, effectiveCountryFilter),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
   return {
     funds,
     loading,
-    refreshFunds: loadFunds
+    refreshFunds: () => queryClient.invalidateQueries({ queryKey: ['collective-funds'] }),
   };
 }
