@@ -1,0 +1,1 @@
+UPDATE collective_funds SET is_public = true WHERE id = '851779a5-7c92-41b0-b429-e5ecbc6f0eb7';
