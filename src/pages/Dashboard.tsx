@@ -818,7 +818,7 @@ export default function Dashboard() {
                                 className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
                                 onClick={async () => {
                                   const userName = userProfile?.first_name || user?.user_metadata?.first_name || '';
-                                  const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/register`;
+                                  const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/signup`;
                                   if (navigator.share) {
                                     try {
                                       await navigator.share({ text: message });
