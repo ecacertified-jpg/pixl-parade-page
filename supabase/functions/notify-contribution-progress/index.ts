@@ -164,7 +164,7 @@ serve(async (req) => {
     }
 
     // 9. Get friends of creator who haven't contributed -> nudge
-    let nudgesSent = 0;
+    let nudgesCreatorFriends = 0;
     const { data: friendRels } = await supabase
       .from('contact_relationships')
       .select('user_a, user_b, can_see_funds')
@@ -175,19 +175,21 @@ serve(async (req) => {
       .map(rel => rel.user_a === fund.creator_id ? rel.user_b : rel.user_a)
       .filter(id => id !== contributor_id && !uniqueContributorIds.includes(id));
 
-    const uniqueFriendIds = [...new Set(friendIds)];
+    const uniqueCreatorFriendIds = [...new Set(friendIds)];
+    const allNotifiedIds = new Set([...uniqueContributorIds, contributor_id]);
 
-    if (uniqueFriendIds.length > 0) {
+    if (uniqueCreatorFriendIds.length > 0) {
       const { data: friendProfiles } = await supabase
         .from('profiles')
         .select('user_id, first_name, phone')
-        .in('user_id', uniqueFriendIds);
+        .in('user_id', uniqueCreatorFriendIds);
 
       for (const profile of (friendProfiles || [])) {
+        allNotifiedIds.add(profile.user_id);
         if (!profile.phone) continue;
         const normalizedPhone = profile.phone.replace(/\s+/g, '');
         if (sentPhones.has(normalizedPhone)) {
-          console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (friend ${profile.user_id})`);
+          console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (creator friend ${profile.user_id})`);
           continue;
         }
         const recipientName = profile.first_name || 'Ami(e)';
@@ -197,17 +199,63 @@ serve(async (req) => {
             'joiedevivre_contribution_update',
             'fr',
             [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
-            [fund_id] // CTA: /f/{fund_id}
+            [fund_id]
           );
           sentPhones.add(normalizedPhone);
-          nudgesSent++;
+          nudgesCreatorFriends++;
         } catch (err) {
-          console.error(`❌ WhatsApp nudge failed for ${profile.user_id}:`, err);
+          console.error(`❌ WhatsApp nudge failed for creator friend ${profile.user_id}:`, err);
         }
       }
     }
 
-    // 10. Create deduplication marker + in-app notification for creator
+    // 10. Get friends of the CONTRIBUTOR who haven't contributed -> nudge
+    let nudgesContributorFriends = 0;
+    if (contributor_id !== fund.creator_id) {
+      const { data: contributorFriendRels } = await supabase
+        .from('contact_relationships')
+        .select('user_a, user_b, can_see_funds')
+        .or(`user_a.eq.${contributor_id},user_b.eq.${contributor_id}`)
+        .eq('can_see_funds', true);
+
+      const contributorFriendIds = (contributorFriendRels || [])
+        .map(rel => rel.user_a === contributor_id ? rel.user_b : rel.user_a)
+        .filter(id => !allNotifiedIds.has(id));
+
+      const uniqueContributorFriendIds = [...new Set(contributorFriendIds)];
+
+      if (uniqueContributorFriendIds.length > 0) {
+        const { data: cFriendProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, phone')
+          .in('user_id', uniqueContributorFriendIds);
+
+        for (const profile of (cFriendProfiles || [])) {
+          if (!profile.phone) continue;
+          const normalizedPhone = profile.phone.replace(/\s+/g, '');
+          if (sentPhones.has(normalizedPhone)) {
+            console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (contributor friend ${profile.user_id})`);
+            continue;
+          }
+          const recipientName = profile.first_name || 'Ami(e)';
+          try {
+            await sendWhatsAppTemplate(
+              profile.phone,
+              'joiedevivre_contribution_update',
+              'fr',
+              [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+              [fund_id]
+            );
+            sentPhones.add(normalizedPhone);
+            nudgesContributorFriends++;
+          } catch (err) {
+            console.error(`❌ WhatsApp nudge failed for contributor friend ${profile.user_id}:`, err);
+          }
+        }
+      }
+    }
+
+    // 11. Create deduplication marker + in-app notification for creator
     await supabase
       .from('scheduled_notifications')
       .insert({
@@ -228,12 +276,13 @@ serve(async (req) => {
         }
       });
 
-    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, Nudges: ${nudgesSent}, Unique phones: ${sentPhones.size}`);
+    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, CreatorFriendNudges: ${nudgesCreatorFriends}, ContributorFriendNudges: ${nudgesContributorFriends}, Unique phones: ${sentPhones.size}`);
 
     return new Response(JSON.stringify({
       success: true,
       updates_sent: updatesSent,
-      nudges_sent: nudgesSent,
+      nudges_creator_friends: nudgesCreatorFriends,
+      nudges_contributor_friends: nudgesContributorFriends,
       percentage,
       days_remaining: daysRemaining
     }), { headers: corsHeaders });
