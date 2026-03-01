@@ -22,6 +22,8 @@ export interface OtpRecentEntry {
   attempts: number;
   status: 'verified' | 'expired' | 'pending';
   verification_seconds: number | null;
+  delivery_status: 'accepted' | 'sent' | 'delivered' | 'failed';
+  delivery_error: string | null;
 }
 
 export interface WhatsAppOtpStats {
