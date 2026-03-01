@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserPlus, Users, X, Share2, Mail } from "lucide-react";
+import { UserPlus, Users, X, Share2, Mail, UserCheck, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InviteFriendsModal } from "@/components/InviteFriendsModal";
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CountryBadge } from "@/components/CountryBadge";
+import { useFriendRequests } from "@/hooks/useFriendRequests";
 
 export function UserSuggestionsSection() {
   const { user } = useAuth();
@@ -21,6 +22,9 @@ export function UserSuggestionsSection() {
   const [dismissedUsers, setDismissedUsers] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const { sendRequest, pendingSent } = useFriendRequests();
+  const [friendRequestSent, setFriendRequestSent] = useState<Set<string>>(new Set());
+  const pendingSentIds = new Set(pendingSent.map(s => s.target_id));
 
   const handleFollow = async (userId: string) => {
     if (!user?.id) return;
@@ -214,6 +218,32 @@ export function UserSuggestionsSection() {
                 >
                   <X className="h-4 w-4" />
                 </Button>
+                {pendingSentIds.has(suggestion.user_id) || friendRequestSent.has(suggestion.user_id) ? (
+                  <Button size="sm" variant="outline" disabled className="gap-1 h-8">
+                    <UserCheck className="h-3 w-3" />
+                    <span className="text-xs">Envoyée</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      setActionLoading(`friend-${suggestion.user_id}`);
+                      const ok = await sendRequest(suggestion.user_id);
+                      if (ok) setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
+                      setActionLoading(null);
+                    }}
+                    disabled={actionLoading === `friend-${suggestion.user_id}`}
+                    className="gap-1 h-8"
+                  >
+                    {actionLoading === `friend-${suggestion.user_id}` ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-3 w-3" />
+                    )}
+                    <span className="text-xs">Ami</span>
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   onClick={() => handleFollow(suggestion.user_id)}

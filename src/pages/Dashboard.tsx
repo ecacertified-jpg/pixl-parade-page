@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +58,9 @@ import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { useFriendshipSuggestions } from "@/hooks/useFriendshipSuggestions";
 import { FriendshipSuggestionsCard } from "@/components/FriendshipSuggestionsCard";
 import { getDaysUntilBirthday } from "@/lib/utils";
+import { useFriendRequests } from "@/hooks/useFriendRequests";
+import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
+import { FriendRequestsNotification } from "@/components/FriendRequestsNotification";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -124,6 +127,19 @@ export default function Dashboard() {
   
   // Friends circle badge celebration
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
+  
+  // Friend requests
+  const {
+    pendingReceived,
+    pendingSent,
+    searchUsers,
+    sendRequest,
+    acceptRequest,
+    declineRequest,
+    refreshRequests,
+  } = useFriendRequests();
+  const [showSearchFriendModal, setShowSearchFriendModal] = useState(false);
+  const pendingSentIds = new Set(pendingSent.map(s => s.target_id));
   
   // Friendship suggestions (contacts linked but no relationship)
   const linkedContacts = friends
@@ -724,10 +740,16 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
-              <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400" onClick={() => setShowAddFriendModal(true)}>
-                <Plus className="h-4 w-4" aria-hidden />
-                Ajouter
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowSearchFriendModal(true)}>
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline">Rechercher</span>
+                </Button>
+                <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400" onClick={() => setShowAddFriendModal(true)}>
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Ajouter
+                </Button>
+              </div>
             </div>
 
             {friends.length > 0 && (
@@ -762,6 +784,16 @@ export default function Dashboard() {
               </div>
             )}
             
+            <FriendRequestsNotification
+              requests={pendingReceived}
+              onAccept={async (requestId, requesterId) => {
+                const ok = await acceptRequest(requestId, requesterId);
+                if (ok) await loadFriendsFromSupabase();
+                return ok;
+              }}
+              onDecline={declineRequest}
+            />
+
             <FriendshipSuggestionsCard
               suggestions={friendshipSuggestions}
               onConfirm={async (contactId, linkedUserId) => {
@@ -1046,6 +1078,14 @@ export default function Dashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <SearchAndAddFriendModal
+          open={showSearchFriendModal}
+          onOpenChange={setShowSearchFriendModal}
+          searchUsers={searchUsers}
+          sendRequest={sendRequest}
+          pendingSentIds={pendingSentIds}
+        />
     </div>
   </>;
 }
