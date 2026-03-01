@@ -1,84 +1,55 @@
 
 
-# Nettoyage des comptes en doublon par numero de telephone
+# Correction des 2 erreurs dans merge-user-accounts
 
-## Analyse des doublons detectes
+## Erreur 1 : `column contact_relationships.status does not exist`
 
-6 groupes de profils partagent le meme numero de telephone (13 comptes au total).
+**Cause** : Ligne 358, le `select` demande la colonne `status` qui n'existe pas dans la table. Les colonnes reelles sont : `id, user_a, user_b, relationship_type, established_at, can_see_events, can_see_funds, created_at`.
 
-### Groupe 1 : +2250707467445 (3 comptes - Votre numero)
+**Correction** : Retirer `status` du select a la ligne 358 et remplacer par les colonnes existantes.
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `b8d0d4e4` | Aboutou WhatsApp | 2 contacts, 1 contribution, 6 relations | **OUI** (le plus actif) |
-| `aae8fedd` | Amtey Florentin Aboutou | 1 contact, 4 relations | Non - a fusionner |
-| `a4132bbc` | Maribelle | 1 relation | Non - a fusionner |
+```text
+Avant : .select('id, user_a, user_b, status, can_see_birthday, can_see_funds')
+Apres : .select('id, user_a, user_b, can_see_funds')
+```
 
-### Groupe 2 : +2250708895257 (Francoise)
+`can_see_birthday` n'existe pas non plus (c'est `can_see_events`), mais cette colonne n'est pas utilisee dans la logique de transfert, donc on peut la retirer du select.
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `0b4eb0bb` | Francoise | 9 contacts, 2 contributions, 1 fund, 3 relations | **OUI** |
-| `2fbdc7e0` | Eca Certified | 1 contact, 1 contribution, 2 funds, 3 relations | Non - a fusionner |
+---
 
-### Groupe 3 : +2290140158347 (Samuel)
+## Erreur 2 : `stack depth limit exceeded` sur community_scores
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `c7a72d56` | Samuel | 0 activite | **OUI** (plus ancien : 14h08) |
-| `3b8297f4` | Samuel | 0 activite | Non - a fusionner |
+**Cause** : Un trigger `update_rankings_after_score_change` se declenche sur chaque UPDATE de `community_scores`. Ce trigger appelle `update_community_rankings()` qui fait un UPDATE sur la meme table, ce qui re-declenche le trigger, causant une recursion infinie.
 
-### Groupe 4 : +2250707287309 (Honorine)
+**Correction** : Au lieu de faire un UPDATE (qui declenche le trigger), supprimer la ligne du secondaire. Le score communautaire est un agrega recalculable ; fusionner deux lignes n'a pas de sens (le primaire garde son propre score).
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `ca469154` | Honrine Koko | 0 activite | **OUI** (plus ancien) |
-| `d5d3b39d` | Honorine | 0 activite | Non - a fusionner |
+```text
+Avant (lignes 343-347) :
+  const { data: communityData, error: communityError } = await supabaseAdmin
+    .from('community_scores')
+    .update({ user_id: primary_user_id })
+    .eq('user_id', secondary_user_id)
+    .select();
 
-### Groupe 5 : +2250506398601 (Augustin)
+Apres :
+  const { data: communityData, error: communityError } = await supabaseAdmin
+    .from('community_scores')
+    .delete()
+    .eq('user_id', secondary_user_id)
+    .select();
+```
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `6c6544e5` | Augustin Kambire | 0 activite | **OUI** (plus ancien) |
-| `447fb553` | Augustin | 0 activite | Non - a fusionner |
+Le DELETE ne declenche pas le trigger `AFTER INSERT OR UPDATE`, donc pas de recursion.
 
-### Groupe 6 : +2250171349089 (Grace Maria)
+---
 
-| Compte | Prenom | Activite | Primaire ? |
-|--------|--------|----------|------------|
-| `02275fd7` | Grace Maria | 0 activite | **OUI** (plus ancien) |
-| `2f635847` | Grace Maria | 0 activite | Non - a fusionner |
+## Fichier modifie
 
-## Plan d'execution
-
-### Etape 1 : Fusionner les 7 comptes secondaires via `merge-user-accounts`
-
-Appeler la Edge Function existante `merge-user-accounts` pour chaque paire :
-
-1. Fusionner `aae8fedd` (Amtey Florentin) -> `b8d0d4e4` (Aboutou WhatsApp)
-2. Fusionner `a4132bbc` (Maribelle) -> `b8d0d4e4` (Aboutou WhatsApp)
-3. Fusionner `2fbdc7e0` (Eca Certified) -> `0b4eb0bb` (Francoise)
-4. Fusionner `3b8297f4` (Samuel) -> `c7a72d56` (Samuel)
-5. Fusionner `ca469154` ou `d5d3b39d` (Honorine) - garder le plus ancien
-6. Fusionner `447fb553` (Augustin) -> `6c6544e5` (Augustin Kambire)
-7. Fusionner `2f635847` (Grace Maria) -> `02275fd7` (Grace Maria)
-
-La fonction `merge-user-accounts` transfere automatiquement : contacts, contributions, cagnottes, relations, posts, et marque le compte secondaire comme fusionne.
-
-### Etape 2 : Verification post-fusion
-
-Requete SQL pour confirmer qu'il n'y a plus de doublons de telephone dans `profiles`.
-
-## Risques et precautions
-
-- La fonction `merge-user-accounts` est deja testee et utilisee par le dashboard admin
-- Les donnees (contributions, cagnottes, contacts) seront transferees au compte primaire
-- Les comptes secondaires seront marques comme fusionnes, pas supprimes physiquement
-- Aucune modification de schema necessaire
+**`supabase/functions/merge-user-accounts/index.ts`** : 2 modifications aux lignes 343-347 et 358.
 
 ## Impact
 
-- 7 comptes secondaires fusionnes dans leurs comptes primaires respectifs
-- Elimination des notifications WhatsApp en double causees par les telephones partages
-- Votre compte "Aboutou WhatsApp" (`b8d0d4e4`) recevra les donnees de vos 2 autres comptes
+- Supprime les 2 erreurs recurrentes dans les logs
+- Aucune modification de schema necessaire
+- Le comportement de fusion reste identique pour toutes les autres tables
 
