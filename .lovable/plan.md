@@ -1,63 +1,67 @@
 
 
-# Suggestions d'amitie : confirmer les relations detectees
+# Demandes d'amitie par recherche de nom
 
 ## Contexte
 
-Actuellement, quand un contact a un `linked_user_id` (telephone reconnu sur l'app), une relation dans `contact_relationships` n'est pas toujours creee automatiquement (bug de numero, timing, etc.). En base, on constate deja plusieurs contacts avec `linked_user_id` mais sans `contact_relationships` correspondante.
+La table `contact_requests` existe deja en base avec les colonnes necessaires (`requester_id`, `target_id`, `status`, `message`, `expires_at`) et les politiques RLS configurees. Il n'y a aucune migration a faire. Il manque uniquement le code frontend.
 
-Ce mecanisme proposera a l'utilisateur de confirmer ces liens manquants directement depuis le Dashboard.
+## Fonctionnalites
 
-## Fonctionnement
-
-1. Au chargement du Dashboard, comparer les contacts ayant un `linked_user_id` avec les `contact_relationships` existantes
-2. Identifier les contacts lies mais sans relation confirmee
-3. Afficher une banniere de suggestion dans la section "Mon cercle d'amis"
-4. L'utilisateur peut confirmer (cree la relation) ou ignorer chaque suggestion
+1. **Recherche d'utilisateurs** : un champ de recherche par nom/prenom dans les profils publics
+2. **Envoi de demande** : bouton pour envoyer une demande avec message optionnel
+3. **Reception et gestion** : notification des demandes recues avec boutons Accepter/Refuser
+4. **Acceptation** : cree automatiquement une `contact_relationship` normalisee (LEAST/GREATEST)
 
 ## Plan technique
 
-### Etape 1 -- Hook `useFriendshipSuggestions`
+### Etape 1 -- Hook `useFriendRequests`
 
-Nouveau fichier `src/hooks/useFriendshipSuggestions.ts` :
+Nouveau fichier `src/hooks/useFriendRequests.ts` :
 
-- Prend en entree la liste des contacts avec `linked_user_id`
-- Charge les `contact_relationships` de l'utilisateur courant
-- Identifie les contacts ou `linked_user_id` existe mais aucune relation `contact_relationships` n'est presente
-- Enrichit chaque suggestion avec le profil du `linked_user_id` (nom, avatar)
-- Expose : `suggestions`, `loading`, `confirmRelationship(contactId, linkedUserId)`, `dismissSuggestion(contactId)`
+- `searchUsers(query)` : recherche dans `profiles` par `first_name` ou `last_name` (ilike), exclut l'utilisateur courant et les amis existants
+- `sendRequest(targetId, message?)` : insert dans `contact_requests` avec `status = 'pending'` et `expires_at = now() + 30 jours`
+- `pendingReceived` : liste des demandes recues en attente (enrichies avec le profil de l'expediteur)
+- `pendingSent` : liste des demandes envoyees en attente
+- `acceptRequest(requestId, requesterId)` : met a jour le statut a 'accepted', insere dans `contact_relationships` avec LEAST/GREATEST
+- `declineRequest(requestId)` : met a jour le statut a 'declined'
 
-La fonction `confirmRelationship` insere dans `contact_relationships` avec `LEAST/GREATEST` (respect de l'index symetrique) et `can_see_funds = true`.
+### Etape 2 -- Composant `SearchAndAddFriendModal`
 
-Les suggestions ignorees sont stockees dans un state local (Set) pour ne pas les reafficher dans la session.
+Nouveau fichier `src/components/SearchAndAddFriendModal.tsx` :
 
-### Etape 2 -- Composant `FriendshipSuggestionsCard`
+- Modal (Dialog) avec un champ de recherche
+- Debounce de 300ms sur la saisie
+- Affiche les resultats avec avatar, nom, bio
+- Bouton "Envoyer une demande" par utilisateur (ou "Demande envoyee" si deja pending)
+- Champ optionnel pour un message personnalise
 
-Nouveau fichier `src/components/FriendshipSuggestionsCard.tsx` :
+### Etape 3 -- Composant `FriendRequestsNotification`
 
-- Carte avec icone et titre "Relations a confirmer"
-- Liste les suggestions avec avatar, nom du contact, nom du profil lie
-- Deux boutons par suggestion : "Confirmer l'amitie" (primary) et "Ignorer" (ghost, X)
-- Animation de sortie quand une suggestion est confirmee/ignoree
-- La carte disparait quand il n'y a plus de suggestions
+Nouveau fichier `src/components/FriendRequestsNotification.tsx` :
 
-### Etape 3 -- Integration dans le Dashboard
+- Badge compteur sur l'icone dans le Dashboard (onglet Amis)
+- Liste des demandes recues avec avatar, nom, message
+- Boutons "Accepter" et "Refuser" par demande
+- Animation de sortie a la confirmation/refus
+- Carte affichee en haut de la section "Mon cercle d'amis" (au-dessus de FriendshipSuggestionsCard)
 
-Dans `src/pages/Dashboard.tsx` :
+### Etape 4 -- Integration
 
-- Apres le chargement des contacts (`loadFriendsFromSupabase`), passer les contacts avec `linked_user_id` au hook
-- Afficher `FriendshipSuggestionsCard` juste au-dessus de la liste des amis, dans la section "Mon cercle d'amis"
-- Apres confirmation, rafraichir la liste des contacts pour mettre a jour les badges
+- **Dashboard.tsx** : ajouter le composant `FriendRequestsNotification` dans l'onglet Amis, ajouter un bouton pour ouvrir `SearchAndAddFriendModal`
+- **UserSuggestionsSection.tsx** : ajouter un bouton "Ajouter en ami" a cote de "Suivre" dans les suggestions (envoie une demande via `contact_requests`)
 
 ### Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `src/hooks/useFriendshipSuggestions.ts` | Creer -- logique de detection et confirmation |
-| `src/components/FriendshipSuggestionsCard.tsx` | Creer -- UI des suggestions |
-| `src/pages/Dashboard.tsx` | Modifier -- integrer le composant et le hook |
+| `src/hooks/useFriendRequests.ts` | Creer -- logique de recherche, envoi, acceptation |
+| `src/components/SearchAndAddFriendModal.tsx` | Creer -- modal de recherche et envoi |
+| `src/components/FriendRequestsNotification.tsx` | Creer -- affichage et gestion des demandes recues |
+| `src/pages/Dashboard.tsx` | Modifier -- integrer les deux composants |
+| `src/components/UserSuggestionsSection.tsx` | Modifier -- ajouter bouton demande d'amitie |
 
-### Aucune migration necessaire
+### Aucune migration SQL necessaire
 
-Les tables `contacts`, `contact_relationships` et `profiles` existent deja avec toutes les colonnes necessaires. L'insertion utilise l'index symetrique `idx_contact_relationships_symmetric` existant.
+La table `contact_requests` et ses RLS existent deja. L'index symetrique sur `contact_relationships` est en place.
 
