@@ -38,6 +38,7 @@ import { useReciprocityScore } from "@/hooks/useReciprocityScore";
 import { ReciprocityBadge } from "@/components/ReciprocityBadge";
 import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotificationsSection";
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
+import { SearchExistingFundsModal } from "@/components/SearchExistingFundsModal";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -109,6 +110,7 @@ export default function Dashboard() {
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
   const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
+  const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
   // Onboarding
   const { shouldShowOnboarding, completeOnboarding } = useOnboarding();
@@ -966,7 +968,7 @@ export default function Dashboard() {
           <TabsContent value="cotisations" className="mt-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
-              <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => setShowShopForCollectiveGiftModal(true)}>
+              <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => setShowSearchFundsModal(true)}>
                 <Plus className="h-4 w-4" aria-hidden />
                 Créer
               </Button>
@@ -1018,6 +1020,11 @@ export default function Dashboard() {
 
         <AddEventModal isOpen={showAddEventModal} onClose={closeEventModal} onAddEvent={handleAddEvent} onEditEvent={handleEditEvent} eventToEdit={editingEvent} />
         
+        <SearchExistingFundsModal
+          isOpen={showSearchFundsModal}
+          onClose={() => setShowSearchFundsModal(false)}
+          onCreateNew={() => setShowShopForCollectiveGiftModal(true)}
+        />
         <ShopForCollectiveGiftModal 
           isOpen={showShopForCollectiveGiftModal} 
           onClose={() => setShowShopForCollectiveGiftModal(false)} 
