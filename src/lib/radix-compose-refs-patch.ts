@@ -5,7 +5,7 @@ type PossibleRef<T> = React.Ref<T> | undefined | null;
 function setRef<T>(ref: PossibleRef<T>, value: T | null) {
   if (typeof ref === "function") {
     ref(value);
-    // Do NOT return cleanup — prevents React 19 infinite loop from any unmemoized composeRefs caller
+    // Do NOT return cleanup — prevents React 19 infinite loop
   } else if (ref !== null && ref !== undefined) {
     (ref as React.MutableRefObject<T | null>).current = value;
   }
@@ -17,9 +17,16 @@ function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
   };
 }
 
-function useComposedRefs<T>(...refs: PossibleRef<T>[]) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useCallback(composeRefs(...refs), refs);
+function useComposedRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
+  // Store latest refs in a ref so the callback identity never changes
+  const refsRef = React.useRef(refs);
+  refsRef.current = refs;
+
+  // Stable callback that never changes identity — prevents React 19 infinite loop
+  // even when inline arrow functions are passed as refs
+  return React.useCallback((node: T | null) => {
+    refsRef.current.forEach((ref) => setRef(ref, node));
+  }, []);
 }
 
 export { composeRefs, useComposedRefs };
