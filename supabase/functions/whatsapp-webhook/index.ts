@@ -210,6 +210,7 @@ serve(async (req) => {
     try {
       const body = await req.json();
       console.log('📨 Webhook payload received');
+      console.log('WEBHOOK_RAW_PAYLOAD:', JSON.stringify(body).substring(0, 2000));
 
       // Validate it's a WhatsApp message
       const entry = body.entry?.[0];
@@ -223,6 +224,7 @@ serve(async (req) => {
 
       // Handle message status updates
       if (value.statuses) {
+        console.log('STATUS_CALLBACKS:', JSON.stringify(value.statuses));
         const status = value.statuses[0];
         const statusValue = status?.status;
         const statusId = status?.id;
