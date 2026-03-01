@@ -10,6 +10,7 @@ export interface PublicFundResult {
   status: string;
   deadline_date: string | null;
   created_at: string;
+  creator_id: string | null;
   beneficiary_name: string | null;
   creator_first_name: string | null;
   creator_last_name: string | null;
@@ -17,17 +18,18 @@ export interface PublicFundResult {
   product_name: string | null;
   product_image_url: string | null;
   contributions_count: number;
+  isOwn: boolean;
 }
 
-export function useSearchPublicFunds() {
+export function useSearchPublicFunds(currentUserId?: string) {
   const [results, setResults] = useState<PublicFundResult[]>([]);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const searchFunds = useCallback((query: string) => {
+  const searchFunds = useCallback((query: string, occasion?: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (query.trim().length < 2) {
+    if (query.trim().length < 2 && !occasion) {
       setResults([]);
       setLoading(false);
       return;
@@ -37,49 +39,58 @@ export function useSearchPublicFunds() {
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const searchPattern = `%${query.trim()}%`;
+        const searchPattern = query.trim().length >= 2 ? `%${query.trim()}%` : null;
 
-        // Search by title
-        const { data: byTitle, error: e1 } = await supabase
-          .from('collective_funds')
-          .select(`
-            id, title, target_amount, current_amount, occasion, status, deadline_date, created_at,
-            beneficiary_contact_id,
-            profiles!collective_funds_creator_id_fkey(first_name, last_name, avatar_url),
-            products!collective_funds_business_product_id_fkey(name, image_url)
-          `)
-          .eq('status', 'active')
-          .eq('is_public', true)
-          .ilike('title', searchPattern)
-          .limit(10);
-
-        // Search by beneficiary contact name
-        const { data: contactMatches } = await supabase
-          .from('contacts')
-          .select('id')
-          .ilike('name', searchPattern)
-          .limit(20);
-
-        let byBeneficiary: typeof byTitle = [];
-        if (contactMatches && contactMatches.length > 0) {
-          const contactIds = contactMatches.map(c => c.id);
-          const { data } = await supabase
+        const buildQuery = () => {
+          let q = supabase
             .from('collective_funds')
             .select(`
-              id, title, target_amount, current_amount, occasion, status, deadline_date, created_at,
+              id, title, target_amount, current_amount, occasion, status, deadline_date, created_at, creator_id,
               beneficiary_contact_id,
               profiles!collective_funds_creator_id_fkey(first_name, last_name, avatar_url),
               products!collective_funds_business_product_id_fkey(name, image_url)
             `)
             .eq('status', 'active')
-            .eq('is_public', true)
-            .in('beneficiary_contact_id', contactIds)
-            .limit(10);
-          byBeneficiary = data || [];
+            .eq('is_public', true);
+
+          if (occasion) {
+            q = q.eq('occasion', occasion);
+          }
+          return q;
+        };
+
+        let byTitle: any[] = [];
+        if (searchPattern) {
+          const { data } = await buildQuery().ilike('title', searchPattern).limit(10);
+          byTitle = data || [];
+        }
+
+        let byBeneficiary: any[] = [];
+        if (searchPattern) {
+          const { data: contactMatches } = await supabase
+            .from('contacts')
+            .select('id')
+            .ilike('name', searchPattern)
+            .limit(20);
+
+          if (contactMatches && contactMatches.length > 0) {
+            const contactIds = contactMatches.map(c => c.id);
+            const { data } = await buildQuery()
+              .in('beneficiary_contact_id', contactIds)
+              .limit(10);
+            byBeneficiary = data || [];
+          }
+        }
+
+        // If only occasion filter (no text query), fetch all matching
+        let byOccasionOnly: any[] = [];
+        if (!searchPattern && occasion) {
+          const { data } = await buildQuery().limit(20);
+          byOccasionOnly = data || [];
         }
 
         // Merge and deduplicate
-        const allFunds = [...(byTitle || []), ...byBeneficiary];
+        const allFunds = [...byTitle, ...byBeneficiary, ...byOccasionOnly];
         const seen = new Set<string>();
         const unique = allFunds.filter(f => {
           if (seen.has(f.id)) return false;
@@ -122,6 +133,7 @@ export function useSearchPublicFunds() {
             status: f.status,
             deadline_date: f.deadline_date,
             created_at: f.created_at,
+            creator_id: f.creator_id,
             beneficiary_name: f.beneficiary_contact_id
               ? contactMap.get(f.beneficiary_contact_id) || null
               : null,
@@ -131,6 +143,7 @@ export function useSearchPublicFunds() {
             product_name: product?.name || null,
             product_image_url: product?.image_url || null,
             contributions_count: contribCounts.get(f.id) || 0,
+            isOwn: currentUserId ? f.creator_id === currentUserId : false,
           };
         });
 
@@ -142,7 +155,7 @@ export function useSearchPublicFunds() {
         setLoading(false);
       }
     }, 300);
-  }, []);
+  }, [currentUserId]);
 
   const clearResults = useCallback(() => {
     setResults([]);

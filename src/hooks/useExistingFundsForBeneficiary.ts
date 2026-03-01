@@ -12,6 +12,7 @@ export interface ExistingFund {
   creatorAvatar?: string;
   occasion: string;
   status: string;
+  deadlineDate: string | null;
 }
 
 export function useExistingFundsForBeneficiary() {
@@ -33,7 +34,7 @@ export function useExistingFundsForBeneficiary() {
       const directQuery = supabase
         .from('collective_funds')
         .select(`
-          id, title, target_amount, current_amount, currency, occasion, status, creator_id,
+          id, title, target_amount, current_amount, currency, occasion, status, creator_id, deadline_date,
           profiles:creator_id(first_name, last_name, avatar_url)
         `)
         .eq('beneficiary_contact_id', contactId)
@@ -57,7 +58,7 @@ export function useExistingFundsForBeneficiary() {
           const { data } = await supabase
             .from('collective_funds')
             .select(`
-              id, title, target_amount, current_amount, currency, occasion, status, creator_id,
+              id, title, target_amount, current_amount, currency, occasion, status, creator_id, deadline_date,
               profiles:creator_id(first_name, last_name, avatar_url)
             `)
             .in('beneficiary_contact_id', linkedContactIds)
@@ -69,7 +70,7 @@ export function useExistingFundsForBeneficiary() {
         const { data: businessFunds } = await supabase
           .from('collective_funds')
           .select(`
-            id, title, target_amount, current_amount, currency, occasion, status, creator_id,
+            id, title, target_amount, current_amount, currency, occasion, status, creator_id, deadline_date,
             profiles:creator_id(first_name, last_name, avatar_url),
             business_collective_funds!inner(beneficiary_user_id)
           `)
@@ -114,7 +115,7 @@ export function useExistingFundsForBeneficiary() {
         const { data } = await supabase
           .from('collective_funds')
           .select(`
-            id, title, target_amount, current_amount, currency, occasion, status, creator_id,
+            id, title, target_amount, current_amount, currency, occasion, status, creator_id, deadline_date,
             profiles:creator_id(first_name, last_name, avatar_url)
           `)
           .in('beneficiary_contact_id', contactIds)
@@ -126,7 +127,7 @@ export function useExistingFundsForBeneficiary() {
       const { data: businessFunds } = await supabase
         .from('collective_funds')
         .select(`
-          id, title, target_amount, current_amount, currency, occasion, status, creator_id,
+          id, title, target_amount, current_amount, currency, occasion, status, creator_id, deadline_date,
           profiles:creator_id(first_name, last_name, avatar_url),
           business_collective_funds!inner(beneficiary_user_id)
         `)
@@ -165,6 +166,7 @@ function formatFunds(funds: any[]): ExistingFund[] {
       creatorAvatar: profile?.avatar_url,
       occasion: f.occasion || '',
       status: f.status,
+      deadlineDate: f.deadline_date || null,
     };
   });
 }
