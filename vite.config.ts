@@ -170,7 +170,10 @@ export default defineConfig(({ mode }) => ({
       'react-dom/client',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
-      '@tanstack/react-query'
+      '@tanstack/react-query',
+      'use-sync-external-store',
+      'use-sync-external-store/shim',
+      'use-sync-external-store/shim/index.js',
     ],
     exclude: [
       '@radix-ui/react-compose-refs',
