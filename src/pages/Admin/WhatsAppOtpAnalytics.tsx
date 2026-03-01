@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
+import { WhatsAppMetaStatus } from '@/components/admin/WhatsAppMetaStatus';
 import { WhatsAppOtpDashboard } from '@/components/admin/WhatsAppOtpDashboard';
 
 export default function WhatsAppOtpAnalytics() {
@@ -12,6 +13,7 @@ export default function WhatsAppOtpAnalytics() {
           description="Suivi des codes de vérification envoyés par WhatsApp"
         />
         <AdminCountryRestrictionAlert />
+        <WhatsAppMetaStatus />
         <WhatsAppOtpDashboard />
       </div>
     </AdminLayout>
