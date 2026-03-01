@@ -128,6 +128,9 @@ serve(async (req) => {
         .filter(id => id !== contributor_id)
     )];
 
+    // Phone deduplication across both passes
+    const sentPhones = new Set<string>();
+
     // 8. Get contributors' phones
     let updatesSent = 0;
     if (uniqueContributorIds.length > 0) {
@@ -138,6 +141,11 @@ serve(async (req) => {
 
       for (const profile of (contributorProfiles || [])) {
         if (!profile.phone) continue;
+        const normalizedPhone = profile.phone.replace(/\s+/g, '');
+        if (sentPhones.has(normalizedPhone)) {
+          console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (contributor ${profile.user_id})`);
+          continue;
+        }
         const recipientName = profile.first_name || 'Ami(e)';
         try {
           await sendWhatsAppTemplate(
@@ -147,6 +155,7 @@ serve(async (req) => {
             [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
             [fund_id] // CTA: /f/{fund_id}
           );
+          sentPhones.add(normalizedPhone);
           updatesSent++;
         } catch (err) {
           console.error(`❌ WhatsApp update failed for ${profile.user_id}:`, err);
@@ -176,6 +185,11 @@ serve(async (req) => {
 
       for (const profile of (friendProfiles || [])) {
         if (!profile.phone) continue;
+        const normalizedPhone = profile.phone.replace(/\s+/g, '');
+        if (sentPhones.has(normalizedPhone)) {
+          console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (friend ${profile.user_id})`);
+          continue;
+        }
         const recipientName = profile.first_name || 'Ami(e)';
         try {
           await sendWhatsAppTemplate(
@@ -185,6 +199,7 @@ serve(async (req) => {
             [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
             [fund_id] // CTA: /f/{fund_id}
           );
+          sentPhones.add(normalizedPhone);
           nudgesSent++;
         } catch (err) {
           console.error(`❌ WhatsApp nudge failed for ${profile.user_id}:`, err);
@@ -213,7 +228,7 @@ serve(async (req) => {
         }
       });
 
-    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, Nudges: ${nudgesSent}`);
+    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, Nudges: ${nudgesSent}, Unique phones: ${sentPhones.size}`);
 
     return new Response(JSON.stringify({
       success: true,
