@@ -1,72 +1,63 @@
 
 
-# Correction de l'integrite des relations symetriques
+# Suggestions d'amitie : confirmer les relations detectees
 
-## Probleme
+## Contexte
 
-La table `contact_relationships` utilise une contrainte `UNIQUE(user_a, user_b)` qui ne detecte pas les inversions. Quand deux utilisateurs s'ajoutent mutuellement, deux lignes sont creees pour la meme amitie. Cela cause :
-- **Notifications en double** (WhatsApp envoye 2 fois si deduplication par telephone absente)
-- **Comptage d'amis incorrect** (un ami compte double)
-- **Donnees incoherentes** (can_see_funds peut differer entre les 2 lignes)
+Actuellement, quand un contact a un `linked_user_id` (telephone reconnu sur l'app), une relation dans `contact_relationships` n'est pas toujours creee automatiquement (bug de numero, timing, etc.). En base, on constate deja plusieurs contacts avec `linked_user_id` mais sans `contact_relationships` correspondante.
 
-**Etat actuel** : 4 paires de doublons sur 34 relations.
+Ce mecanisme proposera a l'utilisateur de confirmer ces liens manquants directement depuis le Dashboard.
 
-## Plan de correction
+## Fonctionnement
 
-### Etape 1 -- Nettoyage des doublons existants
+1. Au chargement du Dashboard, comparer les contacts ayant un `linked_user_id` avec les `contact_relationships` existantes
+2. Identifier les contacts lies mais sans relation confirmee
+3. Afficher une banniere de suggestion dans la section "Mon cercle d'amis"
+4. L'utilisateur peut confirmer (cree la relation) ou ignorer chaque suggestion
 
-Migration SQL :
-1. Pour chaque paire de doublons (A,B) et (B,A), conserver la ligne la plus ancienne et supprimer l'autre
-2. Fusionner les permissions : si l'une des deux lignes a `can_see_funds = true`, la ligne conservee doit aussi l'avoir
+## Plan technique
 
-### Etape 2 -- Normaliser les donnees existantes
+### Etape 1 -- Hook `useFriendshipSuggestions`
 
-Mettre a jour toutes les lignes pour que `user_a` soit toujours le plus petit UUID (LEAST) et `user_b` le plus grand (GREATEST). Cela garantit une forme canonique.
+Nouveau fichier `src/hooks/useFriendshipSuggestions.ts` :
 
-### Etape 3 -- Ajouter un index unique symetrique
+- Prend en entree la liste des contacts avec `linked_user_id`
+- Charge les `contact_relationships` de l'utilisateur courant
+- Identifie les contacts ou `linked_user_id` existe mais aucune relation `contact_relationships` n'est presente
+- Enrichit chaque suggestion avec le profil du `linked_user_id` (nom, avatar)
+- Expose : `suggestions`, `loading`, `confirmRelationship(contactId, linkedUserId)`, `dismissSuggestion(contactId)`
 
-```text
-CREATE UNIQUE INDEX idx_contact_relationships_symmetric
-ON contact_relationships (LEAST(user_a, user_b), GREATEST(user_a, user_b));
-```
+La fonction `confirmRelationship` insere dans `contact_relationships` avec `LEAST/GREATEST` (respect de l'index symetrique) et `can_see_funds = true`.
 
-Cet index empeche toute insertion de (B,A) si (A,B) existe deja, quelle que soit l'ordre.
+Les suggestions ignorees sont stockees dans un state local (Set) pour ne pas les reafficher dans la session.
 
-### Etape 4 -- Modifier les triggers d'auto-link
+### Etape 2 -- Composant `FriendshipSuggestionsCard`
 
-Mettre a jour les fonctions `auto_link_contact_on_insert()` et `auto_link_contact_on_update()` pour :
-- Toujours inserer avec `LEAST/GREATEST` pour normaliser l'ordre
-- Utiliser `ON CONFLICT` sur le nouvel index symetrique
+Nouveau fichier `src/components/FriendshipSuggestionsCard.tsx` :
 
-Changement dans les deux fonctions :
-```text
--- Avant :
-INSERT INTO contact_relationships (user_a, user_b, ...)
-VALUES (NEW.user_id, found_user_id, ...)
+- Carte avec icone et titre "Relations a confirmer"
+- Liste les suggestions avec avatar, nom du contact, nom du profil lie
+- Deux boutons par suggestion : "Confirmer l'amitie" (primary) et "Ignorer" (ghost, X)
+- Animation de sortie quand une suggestion est confirmee/ignoree
+- La carte disparait quand il n'y a plus de suggestions
 
--- Apres :
-INSERT INTO contact_relationships (user_a, user_b, ...)
-VALUES (LEAST(NEW.user_id, found_user_id), GREATEST(NEW.user_id, found_user_id), ...)
-```
+### Etape 3 -- Integration dans le Dashboard
 
-### Etape 5 -- Modifier le trigger handle_new_user
+Dans `src/pages/Dashboard.tsx` :
 
-Meme correction dans la fonction `handle_new_user` (inscription) qui cree aussi des `contact_relationships`.
+- Apres le chargement des contacts (`loadFriendsFromSupabase`), passer les contacts avec `linked_user_id` au hook
+- Afficher `FriendshipSuggestionsCard` juste au-dessus de la liste des amis, dans la section "Mon cercle d'amis"
+- Apres confirmation, rafraichir la liste des contacts pour mettre a jour les badges
 
 ### Fichiers concernes
 
-| Fichier / Ressource | Action |
-|----------------------|--------|
-| Migration SQL (nouvelle) | Nettoyage doublons + index symetrique + normalisation |
-| `auto_link_contact_on_insert()` | LEAST/GREATEST dans l'INSERT (via migration) |
-| `auto_link_contact_on_update()` | LEAST/GREATEST dans l'INSERT (via migration) |
-| `handle_new_user()` | LEAST/GREATEST dans l'INSERT (via migration) |
+| Fichier | Action |
+|---------|--------|
+| `src/hooks/useFriendshipSuggestions.ts` | Creer -- logique de detection et confirmation |
+| `src/components/FriendshipSuggestionsCard.tsx` | Creer -- UI des suggestions |
+| `src/pages/Dashboard.tsx` | Modifier -- integrer le composant et le hook |
 
-### Impact
+### Aucune migration necessaire
 
-- Les 4 paires de doublons existantes seront fusionnees (34 lignes -> 30 lignes)
-- Les ajouts mutuels futurs ne creent plus de doublons
-- Les notifications, comptages d'amis et permissions restent coherents
-- Aucun changement cote frontend (les requetes existantes utilisent deja `OR` pour les deux directions)
-- Aucune perte de donnees : les permissions sont fusionnees avant suppression
+Les tables `contacts`, `contact_relationships` et `profiles` existent deja avec toutes les colonnes necessaires. L'insertion utilise l'index symetrique `idx_contact_relationships_symmetric` existant.
 
