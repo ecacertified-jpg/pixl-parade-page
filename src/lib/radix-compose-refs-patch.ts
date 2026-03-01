@@ -17,7 +17,7 @@ import * as React from "react";
 
 const nodeCallCount = new WeakMap<object, number>();
 const nodeTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
-const MAX_CALLS = 10;
+const MAX_CALLS = 2;
 const RESET_MS = 100;
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
