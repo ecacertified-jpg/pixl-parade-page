@@ -169,7 +169,9 @@ export default defineConfig(({ mode }) => ({
       'react-dom/client',
       'react/jsx-runtime',
       'react/jsx-dev-runtime',
-      '@tanstack/react-query'
+      '@tanstack/react-query',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-compose-refs',
     ],
     force: true
   },
