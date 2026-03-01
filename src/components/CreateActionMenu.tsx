@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { InviteFriendsModal } from '@/components/InviteFriendsModal';
 import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
+import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { AddEventModal } from '@/components/AddEventModal';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
@@ -29,6 +30,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const [postDrawerInitialMode, setPostDrawerInitialMode] = useState<'text' | 'media'>('text');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isSearchFundsModalOpen, setIsSearchFundsModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const { context } = useUserContext();
   const { toast } = useToast();
@@ -79,7 +81,7 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       description: 'Organisez une collecte',
       color: 'text-accent',
       badge: !context.hasCreatedFund ? 'Essayez' : undefined,
-      action: () => handleAction(() => setIsShopModalOpen(true)),
+      action: () => handleAction(() => setIsSearchFundsModalOpen(true)),
     },
     {
       icon: Camera,
@@ -157,6 +159,11 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       <InviteFriendsModal 
         open={isInviteModalOpen}
         onOpenChange={setIsInviteModalOpen}
+      />
+      <SearchExistingFundsModal
+        isOpen={isSearchFundsModalOpen}
+        onClose={() => setIsSearchFundsModalOpen(false)}
+        onCreateNew={() => setIsShopModalOpen(true)}
       />
       <ShopForCollectiveGiftModal 
         isOpen={isShopModalOpen}

@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
+import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { SendBirthdayMessageModal } from '@/components/SendBirthdayMessageModal';
 import { SendGratitudeModal } from '@/components/SendGratitudeModal';
 import { useUpcomingBirthdays } from '@/hooks/useUpcomingBirthdays';
@@ -26,6 +27,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
   const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
   const [postDrawerInitialMode, setPostDrawerInitialMode] = useState<'text' | 'media'>('text');
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+  const [isSearchFundsModalOpen, setIsSearchFundsModalOpen] = useState(false);
   const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false);
   const [isGratitudeModalOpen, setIsGratitudeModalOpen] = useState(false);
   const { birthdays } = useUpcomingBirthdays(7);
@@ -64,7 +66,7 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
       description: 'Pour un événement spécial',
       color: 'text-accent',
       badge: !context.hasCreatedFund ? 'Nouveau' : undefined,
-      action: () => handleAction(() => setIsShopModalOpen(true)),
+      action: () => handleAction(() => setIsSearchFundsModalOpen(true)),
     },
     {
       icon: MessageCircleHeart,
@@ -141,6 +143,12 @@ export function CelebrateMenu({ children }: CelebrateMenuProps) {
           />
         )}
       </AnimatePresence>
+
+      <SearchExistingFundsModal
+        isOpen={isSearchFundsModalOpen}
+        onClose={() => setIsSearchFundsModalOpen(false)}
+        onCreateNew={() => setIsShopModalOpen(true)}
+      />
 
       <AnimatePresence mode="wait">
         {isShopModalOpen && (
