@@ -173,6 +173,7 @@ export default defineConfig(({ mode }) => ({
       'react/jsx-dev-runtime',
       '@tanstack/react-query'
     ],
+    exclude: ['@radix-ui/react-compose-refs'],
     force: true
   },
   build: {
