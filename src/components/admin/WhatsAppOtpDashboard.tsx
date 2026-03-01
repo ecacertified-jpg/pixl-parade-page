@@ -4,11 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, CheckCircle2, Clock, XCircle, ArrowUpRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, Send, CheckCircle2, Clock, XCircle, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const COUNTRY_MAP: Record<string, { name: string; flag: string }> = {
   CI: { name: "Côte d'Ivoire", flag: '🇨🇮' },
@@ -34,7 +38,44 @@ function getCountryFromPhone(phone: string): string {
 
 export function WhatsAppOtpDashboard() {
   const [period, setPeriod] = useState(30);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const { data: stats, isLoading, error } = useWhatsAppOtpStats(period);
+  const queryClient = useQueryClient();
+
+  const handleResendOtp = async (phone: string, otpId: string) => {
+    setResendingId(otpId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Session expirée, veuillez vous reconnecter');
+        return;
+      }
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin-resend-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ phone }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.message || 'Erreur lors du renvoi');
+        return;
+      }
+
+      toast.success('Code OTP renvoyé avec succès');
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-otp-stats'] });
+    } catch (err) {
+      console.error('Resend OTP error:', err);
+      toast.error('Erreur réseau lors du renvoi');
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -155,6 +196,7 @@ export function WhatsAppOtpDashboard() {
                   <TableHead>Livraison</TableHead>
                   <TableHead>Temps</TableHead>
                   <TableHead>Tentatives</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -181,12 +223,36 @@ export function WhatsAppOtpDashboard() {
                         {otp.verification_seconds != null ? `${otp.verification_seconds}s` : '—'}
                       </TableCell>
                       <TableCell>{otp.attempts}</TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <RadixTooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={otp.status === 'verified' || resendingId === otp.id}
+                                onClick={() => handleResendOtp(otp.phone, otp.id)}
+                              >
+                                {resendingId === otp.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {otp.status === 'verified' ? 'Déjà vérifié' : 'Renvoyer le code OTP'}
+                            </TooltipContent>
+                          </RadixTooltip>
+                        </TooltipProvider>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {stats.recent.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       Aucun OTP sur cette période
                     </TableCell>
                   </TableRow>

@@ -252,3 +252,6 @@ verify_jwt = false
 
 [functions.notify-contribution-progress]
 verify_jwt = false
+
+[functions.admin-resend-otp]
+verify_jwt = false
