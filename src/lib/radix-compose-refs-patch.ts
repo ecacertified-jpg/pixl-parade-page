@@ -5,16 +5,19 @@
  * function each render. If any composed ref triggers setState, React re-renders,
  * creating yet another composed ref — infinite loop.
  *
- * Fix: Re-entrancy guard on the DOM node itself (WeakSet). If the same node
- * is already being processed synchronously, skip. Clear after microtask.
+ * Fix: Depth counter per DOM node. Allows a small number of re-entrant ref
+ * calls (needed for Radix internals) but caps them to prevent the infinite
+ * setState loop in React 19.
  *
  * See: https://github.com/radix-ui/primitives/issues/3799
  */
 import * as React from "react";
 
-// Re-entrancy guard: tracks DOM nodes currently being processed
-// to break synchronous infinite loops in React 19's commit phase.
-const processingNodes = new WeakSet<object>();
+// Depth counter per DOM node: allows a small number of re-entrant
+// ref calls (needed for Radix internals) but caps them to prevent
+// the infinite setState loop in React 19.
+const nodeCallCount = new WeakMap<object, number>();
+const MAX_CALLS_PER_TICK = 3;
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (typeof ref === "function") {
@@ -26,20 +29,24 @@ function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
 
 function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
   return (node: T) => {
-    // Guard: if this node is already being processed by a
-    // composeRefs call higher in the synchronous call stack,
-    // skip to break the infinite setState loop.
     if (node != null && typeof node === "object") {
-      if (processingNodes.has(node as object)) return;
-      processingNodes.add(node as object);
+      const count = nodeCallCount.get(node as object) || 0;
+      if (count >= MAX_CALLS_PER_TICK) return; // Break infinite loop
+      nodeCallCount.set(node as object, count + 1);
+
       refs.forEach((ref) => setRef(ref, node));
-      // Clear after microtask so future legitimate updates work
-      Promise.resolve().then(() => {
-        processingNodes.delete(node as object);
-      });
+
+      // Reset after microtask so future legitimate updates work
+      if (count === 0) {
+        Promise.resolve().then(() => {
+          nodeCallCount.delete(node as object);
+        });
+      }
     } else {
       refs.forEach((ref) => setRef(ref, node));
     }
+    // Do NOT return a cleanup function -- prevents React 19
+    // cleanup-then-set cycle when callback identity changes each render.
   };
 }
 
