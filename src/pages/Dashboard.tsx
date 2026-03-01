@@ -675,69 +675,32 @@ export default function Dashboard() {
 
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TooltipProvider>
-            <TabsList className="grid grid-cols-5 gap-0.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="amis" className="flex gap-1 text-xs px-2" aria-label="Gérer mes amis et contacts">
-                    <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-                    <span className="hidden sm:inline">Amis</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Amis</p>
-                </TooltipContent>
-              </Tooltip>
+             <TabsList className="grid grid-cols-5 gap-0.5">
+                <TabsTrigger value="amis" className="flex gap-1 text-xs px-2" aria-label="Gérer mes amis et contacts">
+                  <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                  <span className="hidden sm:inline">Amis</span>
+                </TabsTrigger>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="evenements" className="flex gap-1 text-xs px-2" aria-label="Consulter mes événements et occasions spéciales">
-                    <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-                    <span className="hidden sm:inline">Événements</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Événements</p>
-                </TooltipContent>
-              </Tooltip>
+                <TabsTrigger value="evenements" className="flex gap-1 text-xs px-2" aria-label="Consulter mes événements et occasions spéciales">
+                  <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                  <span className="hidden sm:inline">Événements</span>
+                </TabsTrigger>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="cotisations" className="flex gap-1 text-xs px-2" aria-label="Voir mes cotisations collectives et cagnottes">
-                    <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-                    <span className="hidden sm:inline">Cotisations</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Cotisations</p>
-                </TooltipContent>
-              </Tooltip>
+                <TabsTrigger value="cotisations" className="flex gap-1 text-xs px-2" aria-label="Voir mes cotisations collectives et cagnottes">
+                  <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                  <span className="hidden sm:inline">Cotisations</span>
+                </TabsTrigger>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="cadeaux" className="flex gap-1 text-xs px-2" aria-label="Consulter l'historique de mes cadeaux">
-                    <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
-                    <span className="hidden sm:inline">Cadeaux</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Cadeaux</p>
-                </TooltipContent>
-              </Tooltip>
+                <TabsTrigger value="cadeaux" className="flex gap-1 text-xs px-2" aria-label="Consulter l'historique de mes cadeaux">
+                  <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                  <span className="hidden sm:inline">Cadeaux</span>
+                </TabsTrigger>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TabsTrigger value="badges" className="flex gap-1 text-xs px-2" aria-label="Voir mes badges et récompenses">
-                    <span className="text-base sm:text-sm">🏆</span>
-                    <span className="hidden sm:inline">Badges</span>
-                  </TabsTrigger>
-                </TooltipTrigger>
-                <TooltipContent className="sm:hidden">
-                  <p>Badges</p>
-                </TooltipContent>
-              </Tooltip>
-            </TabsList>
-          </TooltipProvider>
+                <TabsTrigger value="badges" className="flex gap-1 text-xs px-2" aria-label="Voir mes badges et récompenses">
+                  <span className="text-base sm:text-sm">🏆</span>
+                  <span className="hidden sm:inline">Badges</span>
+                </TabsTrigger>
+              </TabsList>
 
           <TabsContent value="amis" className="mt-4">
             <div className="flex items-center justify-between mb-2">
