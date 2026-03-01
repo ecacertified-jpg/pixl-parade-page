@@ -159,6 +159,7 @@ export default defineConfig(({ mode }) => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
       "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
+      "@radix-ui/react-compose-refs": path.resolve(__dirname, "./src/lib/radix-compose-refs-patch.ts"),
     },
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime']
   },
@@ -171,6 +172,7 @@ export default defineConfig(({ mode }) => ({
       'react/jsx-dev-runtime',
       '@tanstack/react-query'
     ],
+    exclude: ['@radix-ui/react-compose-refs'],
     force: true
   },
   build: {
