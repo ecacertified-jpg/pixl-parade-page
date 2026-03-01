@@ -1,53 +1,59 @@
 
-# Indicateur visuel de statut de livraison WhatsApp OTP
 
-## Contexte
+# Section "Statut Meta WhatsApp" dans le dashboard admin
 
-Le tableau "Derniers OTP" affiche actuellement un statut de verification (Verifie / Expire / En attente) mais pas le statut de livraison WhatsApp (delivered / failed / pending). Les colonnes `delivery_status`, `delivery_error`, `delivered_at` et `failed_at` existent deja dans la table `whatsapp_otp_codes` grace a la migration precedente, mais la RPC `get_whatsapp_otp_stats` ne les retourne pas.
+## Objectif
+
+Ajouter une section informative en haut de la page `/admin/whatsapp-otp` (ou en tant que nouvelle page dediee) affichant clairement le mode actuel de l'application Meta (Developpement vs Production) et une checklist des actions requises pour passer en production.
+
+## Approche
+
+Plutot que creer une page separee, ajouter un composant `WhatsAppMetaStatus` directement dans la page `WhatsAppOtpAnalytics.tsx`, au-dessus du dashboard existant. Cette approche est coherente car c'est la page ou l'admin consulte deja les statistiques WhatsApp.
 
 ## Modifications
 
-### 1. Mettre a jour la RPC `get_whatsapp_otp_stats`
+### 1. Nouveau composant `src/components/admin/WhatsAppMetaStatus.tsx`
 
-Ajouter les champs `delivery_status` et `delivery_error` dans la sous-requete "recent OTPs" (lignes 96-117 de la migration) :
+Un composant informatif de type "carte statut" qui affiche :
 
-```sql
-SELECT
-  id, phone, created_at, verified_at, expires_at, attempts,
-  -- statut de verification existant
-  CASE ... END AS status,
-  verification_seconds,
-  -- nouveaux champs
-  COALESCE(delivery_status, 'accepted') AS delivery_status,
-  delivery_error
-FROM whatsapp_otp_codes
-```
+- **Indicateur de mode** : badge colore "Developpement" (orange/warning) ou "Production" (vert/succes), stocke dans une variable d'environnement `VITE_META_APP_MODE` (valeur par defaut : `development`)
+- **Checklist des actions requises** pour passer en production :
+  1. Creer un compte Meta Business verifie
+  2. Associer un numero de telephone verifie au compte WhatsApp Business
+  3. Soumettre l'app pour revue Meta avec video de demonstration
+  4. Obtenir les permissions `whatsapp_business_messaging` et `whatsapp_business_management`
+  5. Activer le mode "En ligne" dans les parametres de l'app
+  6. Configurer un moyen de paiement actif pour les conversations WhatsApp
+- **Informations de configuration actuelles** (en lecture seule) :
+  - Phone Number ID : `1051948151326455`
+  - Namespace : `joiedevivre`
+  - URL du webhook
+- **Liens utiles** vers la documentation Meta et le Business Manager
 
-### 2. Mettre a jour le type `OtpRecentEntry`
+Le composant utilisera les composants existants : `Card`, `Badge`, `Alert`, et les icones Lucide (`Shield`, `CheckCircle2`, `Circle`, `ExternalLink`).
 
-Dans `src/hooks/useWhatsAppOtpStats.ts`, ajouter :
+### 2. Mise a jour de `src/pages/Admin/WhatsAppOtpAnalytics.tsx`
 
-```text
-delivery_status: 'accepted' | 'sent' | 'delivered' | 'failed';
-delivery_error: string | null;
-```
+Importer et placer le nouveau composant entre `AdminCountryRestrictionAlert` et `WhatsAppOtpDashboard`.
 
-### 3. Ajouter la colonne "Livraison" dans le tableau
+### 3. Variable d'environnement (optionnelle)
 
-Dans `src/components/admin/WhatsAppOtpDashboard.tsx` :
+Ajouter `VITE_META_APP_MODE=development` dans `.env` pour controler l'affichage du badge. Quand l'app passera en production, il suffira de changer cette valeur en `production` pour que le badge devienne vert.
 
-- Ajouter un `TableHead` "Livraison" entre "Statut" et "Temps"
-- Ajouter un composant `DeliveryBadge` avec des indicateurs visuels :
-  - **delivered** : badge vert avec icone check -- "Livre"
-  - **failed** : badge rouge avec icone X -- "Echoue" + tooltip avec `delivery_error`
-  - **sent** : badge bleu avec icone fleche -- "Envoye"
-  - **accepted** : badge gris avec icone horloge -- "Accepte"
-- Mettre a jour le `colSpan` de la ligne vide de 6 a 7
+## Details techniques
 
-### Fichiers modifies
+- Le composant est purement informatif (pas d'appel API) -- il utilise des donnees statiques et la variable d'environnement
+- La checklist utilise des icones `CheckCircle2` (vert) pour les etapes deja completees et `Circle` (gris) pour celles restantes
+- Les etapes completees par defaut : creation du compte Meta Business, association du numero, configuration du webhook
+- Les etapes restantes : soumission pour revue, activation du mode en ligne, paiement actif
+- Un bouton "Ouvrir Meta Business Manager" avec lien externe vers `https://business.facebook.com/`
+- Composant repliable (Collapsible) pour ne pas encombrer la page quand tout est OK
 
-| Fichier | Modification |
-|---------|-------------|
-| Nouvelle migration SQL | Mettre a jour la RPC pour inclure `delivery_status` et `delivery_error` |
-| `src/hooks/useWhatsAppOtpStats.ts` | Ajouter les champs au type `OtpRecentEntry` |
-| `src/components/admin/WhatsAppOtpDashboard.tsx` | Ajouter colonne "Livraison" avec badge colore |
+## Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/admin/WhatsAppMetaStatus.tsx` | Nouveau composant |
+| `src/pages/Admin/WhatsAppOtpAnalytics.tsx` | Import et placement |
+| `.env` | Ajout de `VITE_META_APP_MODE` |
+
