@@ -180,9 +180,9 @@ serve(async (req) => {
         try {
           await sendWhatsAppTemplate(
             profile.phone,
-            'joiedevivre_contribution_nudge',
+            'joiedevivre_contribution_update',
             'fr',
-            [recipientName, contributorName, beneficiaryName, String(percentage), daysRemaining],
+            [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
             [fund_id] // CTA: /f/{fund_id}
           );
           nudgesSent++;
