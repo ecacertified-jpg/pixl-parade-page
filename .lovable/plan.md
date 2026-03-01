@@ -1,67 +1,78 @@
 
 
-# Demandes d'amitie par recherche de nom
+# Detection de doublons de cagnottes
 
-## Contexte
+## Objectif
 
-La table `contact_requests` existe deja en base avec les colonnes necessaires (`requester_id`, `target_id`, `status`, `message`, `expires_at`) et les politiques RLS configurees. Il n'y a aucune migration a faire. Il manque uniquement le code frontend.
+Quand un utilisateur selectionne un beneficiaire pour creer une cagnotte, verifier s'il existe deja une cagnotte active pour cette personne et proposer de la rejoindre (contribuer) plutot que d'en creer une nouvelle.
 
-## Fonctionnalites
+## Flux utilisateur
 
-1. **Recherche d'utilisateurs** : un champ de recherche par nom/prenom dans les profils publics
-2. **Envoi de demande** : bouton pour envoyer une demande avec message optionnel
-3. **Reception et gestion** : notification des demandes recues avec boutons Accepter/Refuser
-4. **Acceptation** : cree automatiquement une `contact_relationship` normalisee (LEAST/GREATEST)
+1. L'utilisateur choisit un produit dans la boutique et clique "Organiser une cotisation"
+2. Dans le modal de selection du beneficiaire (`CollaborativeGiftModal`), il choisit un contact
+3. **NOUVEAU** : Avant d'afficher le bouton "Demarrer une cotisation", on verifie s'il existe deja une cagnotte active pour ce contact
+4. Si des cagnottes existent :
+   - Afficher une alerte avec la liste des cagnottes existantes (titre, montant actuel/objectif, createur)
+   - Bouton "Rejoindre cette cagnotte" qui ouvre le flux de contribution
+   - Bouton "Creer quand meme" pour ignorer et continuer la creation
+5. Si aucune cagnotte n'existe : comportement actuel inchange
 
 ## Plan technique
 
-### Etape 1 -- Hook `useFriendRequests`
+### Etape 1 -- Hook `useExistingFundsForBeneficiary`
 
-Nouveau fichier `src/hooks/useFriendRequests.ts` :
+Nouveau fichier `src/hooks/useExistingFundsForBeneficiary.ts` :
 
-- `searchUsers(query)` : recherche dans `profiles` par `first_name` ou `last_name` (ilike), exclut l'utilisateur courant et les amis existants
-- `sendRequest(targetId, message?)` : insert dans `contact_requests` avec `status = 'pending'` et `expires_at = now() + 30 jours`
-- `pendingReceived` : liste des demandes recues en attente (enrichies avec le profil de l'expediteur)
-- `pendingSent` : liste des demandes envoyees en attente
-- `acceptRequest(requestId, requesterId)` : met a jour le statut a 'accepted', insere dans `contact_relationships` avec LEAST/GREATEST
-- `declineRequest(requestId)` : met a jour le statut a 'declined'
+- Fonction `checkExistingFunds(contactId: string)` qui interroge `collective_funds` :
+  ```sql
+  SELECT cf.*, p.first_name, p.last_name, p.avatar_url
+  FROM collective_funds cf
+  LEFT JOIN profiles p ON p.user_id = cf.creator_id
+  WHERE cf.beneficiary_contact_id = contactId
+    AND cf.status = 'active'
+  ```
+- Aussi chercher par `linked_user_id` du contact : si le contact a un `linked_user_id`, chercher egalement les cagnottes ou un autre contact avec le meme `linked_user_id` est beneficiaire
+- Retourne : `existingFunds[]`, `loading`, `checkFunds(contactId)`
 
-### Etape 2 -- Composant `SearchAndAddFriendModal`
+### Etape 2 -- Composant `ExistingFundsAlert`
 
-Nouveau fichier `src/components/SearchAndAddFriendModal.tsx` :
+Nouveau fichier `src/components/ExistingFundsAlert.tsx` :
 
-- Modal (Dialog) avec un champ de recherche
-- Debounce de 300ms sur la saisie
-- Affiche les resultats avec avatar, nom, bio
-- Bouton "Envoyer une demande" par utilisateur (ou "Demande envoyee" si deja pending)
-- Champ optionnel pour un message personnalise
+- Carte d'alerte affichee entre la selection du contact et le bouton d'action
+- Icone d'avertissement avec texte "Une cagnotte existe deja pour [nom]"
+- Pour chaque cagnotte existante : titre, barre de progression, montant, nom du createur
+- Bouton "Contribuer a cette cagnotte" (primary, ouvre `ContributionModal`)
+- Bouton "Creer une nouvelle cagnotte" (outline/secondary, continue le flux normal)
+- Style : fond jaune/ambre pour attirer l'attention, coherent avec le design system
 
-### Etape 3 -- Composant `FriendRequestsNotification`
+### Etape 3 -- Integration dans `CollaborativeGiftModal`
 
-Nouveau fichier `src/components/FriendRequestsNotification.tsx` :
+Modifier `src/components/CollaborativeGiftModal.tsx` :
 
-- Badge compteur sur l'icone dans le Dashboard (onglet Amis)
-- Liste des demandes recues avec avatar, nom, message
-- Boutons "Accepter" et "Refuser" par demande
-- Animation de sortie a la confirmation/refus
-- Carte affichee en haut de la section "Mon cercle d'amis" (au-dessus de FriendshipSuggestionsCard)
+- Importer et utiliser `useExistingFundsForBeneficiary`
+- Quand `handleSelectContact` est appele, lancer `checkFunds(contact.id)`
+- Si des fonds existent, afficher `ExistingFundsAlert` a la place du bouton "Demarrer une cotisation"
+- Ajouter un `ContributionModal` pour permettre la contribution directe depuis ce modal
+- Quand l'utilisateur clique "Creer quand meme", afficher le bouton normal de creation
 
-### Etape 4 -- Integration
+### Etape 4 -- Integration dans `BusinessCollaborativeGiftModal`
 
-- **Dashboard.tsx** : ajouter le composant `FriendRequestsNotification` dans l'onglet Amis, ajouter un bouton pour ouvrir `SearchAndAddFriendModal`
-- **UserSuggestionsSection.tsx** : ajouter un bouton "Ajouter en ami" a cote de "Suivre" dans les suggestions (envoie une demande via `contact_requests`)
+Modifier `src/components/BusinessCollaborativeGiftModal.tsx` :
+
+- Meme logique : quand un utilisateur beneficiaire est selectionne, verifier les cagnottes existantes via son `user_id`
+- Afficher `ExistingFundsAlert` si des cagnottes existent
+- Adapter la recherche pour utiliser `user_id` au lieu de `contact_id` (les business funds utilisent des profils, pas des contacts)
 
 ### Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `src/hooks/useFriendRequests.ts` | Creer -- logique de recherche, envoi, acceptation |
-| `src/components/SearchAndAddFriendModal.tsx` | Creer -- modal de recherche et envoi |
-| `src/components/FriendRequestsNotification.tsx` | Creer -- affichage et gestion des demandes recues |
-| `src/pages/Dashboard.tsx` | Modifier -- integrer les deux composants |
-| `src/components/UserSuggestionsSection.tsx` | Modifier -- ajouter bouton demande d'amitie |
+| `src/hooks/useExistingFundsForBeneficiary.ts` | Creer -- logique de detection |
+| `src/components/ExistingFundsAlert.tsx` | Creer -- UI d'alerte avec options |
+| `src/components/CollaborativeGiftModal.tsx` | Modifier -- integrer la detection |
+| `src/components/BusinessCollaborativeGiftModal.tsx` | Modifier -- integrer la detection |
 
 ### Aucune migration SQL necessaire
 
-La table `contact_requests` et ses RLS existent deja. L'index symetrique sur `contact_relationships` est en place.
+Les colonnes `beneficiary_contact_id`, `status`, `creator_id` existent deja dans `collective_funds`. La recherche par `linked_user_id` utilise la table `contacts` existante.
 
