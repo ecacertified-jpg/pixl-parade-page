@@ -342,7 +342,7 @@ Deno.serve(async (req) => {
     // Transfer community_scores
     const { data: communityData, error: communityError } = await supabaseAdmin
       .from('community_scores')
-      .update({ user_id: primary_user_id })
+      .delete()
       .eq('user_id', secondary_user_id)
       .select();
 
@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
       // Fetch all relationships involving the secondary user
       const { data: secondaryRelations, error: relFetchError } = await supabaseAdmin
         .from('contact_relationships')
-        .select('id, user_a, user_b, status, can_see_birthday, can_see_funds')
+        .select('id, user_a, user_b, can_see_funds')
         .or(`user_a.eq.${secondary_user_id},user_b.eq.${secondary_user_id}`);
 
       if (relFetchError) throw relFetchError;
