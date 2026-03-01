@@ -221,6 +221,20 @@ serve(async (req) => {
       console.log(`📌 Stored message ID ${sendResult.messageId} for OTP tracking`);
     }
 
+    // Log OTP in whatsapp_template_logs for unified tracking
+    if (sendResult.messageId) {
+      const maskedPhone = phone.substring(0, 7) + '****' + phone.substring(phone.length - 2);
+      await supabaseAdmin.from('whatsapp_template_logs').insert({
+        template_name: 'joiedevivre_otp',
+        recipient_phone: maskedPhone,
+        country_prefix: phone.substring(0, 4),
+        whatsapp_message_id: sendResult.messageId,
+        status: 'sent',
+        template_params: { purpose },
+      });
+      console.log(`📊 OTP logged in whatsapp_template_logs for unified tracking`);
+    }
+
     // Clean up expired codes
     await supabaseAdmin
       .from('whatsapp_otp_codes')
