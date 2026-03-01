@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,8 @@ import { Search, Users, ArrowLeft, Heart, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useExistingFundsForBeneficiary } from "@/hooks/useExistingFundsForBeneficiary";
+import { ExistingFundsAlert } from "@/components/ExistingFundsAlert";
 
 interface User {
   user_id: string;
@@ -47,8 +50,11 @@ export function BusinessCollaborativeGiftModal({
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showOutsideZone, setShowOutsideZone] = useState(false);
+  const [forceCreate, setForceCreate] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { existingFunds, loading: checkingFunds, checkFundsByUserId } = useExistingFundsForBeneficiary();
 
   // Fetch users when modal opens or when zone filter changes
   useEffect(() => {
@@ -99,8 +105,15 @@ export function BusinessCollaborativeGiftModal({
     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSelectUser = (user: User) => {
-    setSelectedUser(user);
+  const handleSelectUser = (u: User) => {
+    setSelectedUser(u);
+    setForceCreate(false);
+    checkFundsByUserId(u.user_id);
+  };
+
+  const handleJoinFund = (fundId: string) => {
+    onClose();
+    navigate(`/collective-fund/${fundId}`);
   };
 
   const handleCreateFund = async () => {
@@ -358,8 +371,19 @@ export function BusinessCollaborativeGiftModal({
             )}
           </div>
 
-          {/* Selected User Action */}
-          {selectedUser && (
+          {/* Existing Funds Alert */}
+          {selectedUser && (checkingFunds || (existingFunds.length > 0 && !forceCreate)) && (
+            <ExistingFundsAlert
+              funds={existingFunds}
+              beneficiaryName={getDisplayName(selectedUser)}
+              onJoinFund={handleJoinFund}
+              onCreateAnyway={() => setForceCreate(true)}
+              loading={checkingFunds}
+            />
+          )}
+
+          {/* Selected User Action - only show if no existing funds or user chose to create anyway */}
+          {selectedUser && (existingFunds.length === 0 || forceCreate) && (
             <div className="bg-accent/50 rounded-lg p-4 border border-primary/20">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
