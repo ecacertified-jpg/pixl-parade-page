@@ -1,19 +1,27 @@
 /**
  * Patched version of @radix-ui/react-compose-refs for React 19 compatibility.
  *
- * composeRefs() is called directly in render by Radix Slot, creating a new
- * function every render. If it returns a cleanup, React 19 enters an infinite
- * cleanup-set-rerender loop. Fix: composeRefs never returns cleanup.
- * useComposedRefs is safe because useCallback stabilises identity.
+ * Problem: composeRefs() is called in render by Radix Slot, producing a new
+ * function each render. If any composed ref triggers setState, React re-renders,
+ * creating yet another composed ref — infinite loop.
+ *
+ * Fix: Track the last node set per-ref and skip if unchanged.
  *
  * See: https://github.com/radix-ui/primitives/issues/3799
  */
 import * as React from "react";
 
+const refNodes = new WeakMap<Function, object>();
+
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (typeof ref === "function") {
-    const result = ref(value);
-    return typeof result === "function" ? result : undefined;
+    // Skip if this ref was already called with the same node
+    if (value != null && typeof value === "object") {
+      const prev = refNodes.get(ref as Function);
+      if (prev === value) return;
+      refNodes.set(ref as Function, value as object);
+    }
+    ref(value);
   } else if (ref !== null && ref !== undefined) {
     (ref as React.MutableRefObject<T>).current = value;
   }
