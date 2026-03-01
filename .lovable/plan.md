@@ -1,109 +1,93 @@
 
 
-# Verification de delivrabilite WhatsApp OTP via webhook Meta
+# Diagnostic et correction de la delivrabilite WhatsApp
 
-## Probleme
+## Probleme identifie
 
-Actuellement, `send-whatsapp-otp` envoie le code et recoit un `message_status: "accepted"` de Meta, mais ne suit pas la livraison reelle. Le webhook Meta recoit deja les callbacks de statut (`sent`, `delivered`, `failed`) et met a jour `whatsapp_template_logs` et `whatsapp_messages`, mais **pas** `whatsapp_otp_codes`. Le `whatsapp_message_id` retourne par Meta n'est meme pas stocke dans la table OTP.
+Sur 66 messages WhatsApp template envoyes, **aucun** n'a recu le statut `delivered` ou `read` via le webhook Meta. Tous restent a `sent`. Cela indique que le webhook ne recoit pas correctement les callbacks de statut de Meta, rendant impossible le suivi de la delivrabilite reelle.
 
-## Architecture de la solution
+Les OTP pour les deux numeros (+2250707467445 et +2250708895257) ont ete "acceptes" par l'API Meta mais jamais livres, sans aucune alerte cote application.
 
-```text
-send-whatsapp-otp                 Meta API               whatsapp-webhook
-     |                               |                        |
-     |--- POST template ------------>|                        |
-     |<-- { message_id: wamid.XX } --|                        |
-     |                               |                        |
-     | store message_id              |                        |
-     | in whatsapp_otp_codes         |                        |
-     |                               |--- status: sent ------>|
-     |                               |--- status: delivered ->|
-     |                               |    or status: failed -->|
-     |                               |                        |
-     |                               |    update whatsapp_otp_codes
-     |                               |    delivery_status = delivered/failed
-```
+## Causes probables
 
-## Etape 1 : Migration -- ajouter colonnes de suivi a whatsapp_otp_codes
+1. **Webhook Meta mal configure** : le champ `messages` est abonne mais les statuts ne remontent pas
+2. **Pas de logging des payloads bruts** dans le webhook, donc impossible de diagnostiquer
+3. **Pas d'outil de test** pour verifier la delivrabilite d'un numero specifique
 
-```sql
-ALTER TABLE whatsapp_otp_codes
-  ADD COLUMN whatsapp_message_id TEXT,
-  ADD COLUMN delivery_status TEXT DEFAULT 'accepted',
-  ADD COLUMN delivered_at TIMESTAMPTZ,
-  ADD COLUMN failed_at TIMESTAMPTZ,
-  ADD COLUMN delivery_error TEXT;
+## Plan de correction
 
-CREATE INDEX idx_whatsapp_otp_message_id
-  ON whatsapp_otp_codes (whatsapp_message_id)
-  WHERE whatsapp_message_id IS NOT NULL;
-```
+### Etape 1 : Ajouter un logging complet au webhook
 
-- `delivery_status` : `accepted` -> `sent` -> `delivered` (ou `failed`)
-- L'index permet au webhook de retrouver rapidement l'enregistrement OTP par message ID
+**Fichier** : `supabase/functions/whatsapp-webhook/index.ts`
 
-## Etape 2 : Modifier send-whatsapp-otp pour capturer le message ID
-
-Dans `supabase/functions/send-whatsapp-otp/index.ts` :
-
-- La fonction `sendWhatsAppMessage` retourne actuellement un `boolean`. Elle retournera desormais `{ success: boolean, messageId?: string }`.
-- Apres l'envoi reussi, le `whatsapp_message_id` sera mis a jour dans l'enregistrement `whatsapp_otp_codes` correspondant.
+Ajouter un log JSON complet du payload brut recu par le webhook AVANT tout traitement. Cela permettra de verifier si Meta envoie effectivement les statuts ou non.
 
 ```text
-Avant : return true;
-Apres : return { success: true, messageId: result.messages?.[0]?.id };
+// Au debut du handler POST, juste apres const body = await req.json();
+console.log('WEBHOOK_RAW_PAYLOAD:', JSON.stringify(body).substring(0, 2000));
 ```
 
-Puis dans le handler principal :
+Egalement, ajouter un log specifique quand des statuts sont traites :
 
 ```text
-const result = await sendWhatsAppMessage(phone, code);
-if (result.success && result.messageId) {
-  await supabaseAdmin
-    .from('whatsapp_otp_codes')
-    .update({ whatsapp_message_id: result.messageId })
-    .eq('phone', phone)
-    .eq('code', code);
+if (value.statuses) {
+  console.log('STATUS_CALLBACKS:', JSON.stringify(value.statuses));
+  // ... traitement existant
 }
 ```
 
-## Etape 3 : Modifier whatsapp-webhook pour mettre a jour les OTP
+### Etape 2 : Creer un endpoint de diagnostic de delivrabilite
 
-Dans `supabase/functions/whatsapp-webhook/index.ts`, dans le bloc de traitement des statuts (lignes 225-269), ajouter une 3eme mise a jour pour `whatsapp_otp_codes` :
+**Nouveau fichier** : `supabase/functions/check-whatsapp-delivery/index.ts`
+
+Cet endpoint permettra de :
+- Envoyer un message test a un numero specifique
+- Attendre la reponse de l'API Meta et retourner les details complets (wa_id, message_id, erreurs)
+- Verifier si le numero est enregistre sur WhatsApp via l'API contacts de Meta
+
+Parametres : `{ phone: "+2250707467445" }`
+
+Reponse : statut Meta brut incluant le `wa_id` retourne, ce qui permettra de detecter le probleme de mapping 8/10 chiffres pour les numeros ivoiriens.
+
+### Etape 3 : Enregistrer les OTP dans whatsapp_template_logs
+
+**Fichier** : `supabase/functions/send-whatsapp-otp/index.ts`
+
+Actuellement, les OTP ne sont pas enregistres dans `whatsapp_template_logs`, ce qui empeche leur suivi unifie. Ajouter un insert dans cette table apres chaque envoi OTP reussi :
 
 ```text
-// 3. Update whatsapp_otp_codes (OTP delivery tracking)
-const otpUpdate: Record<string, unknown> = { delivery_status: statusValue };
-
-if (statusValue === 'delivered') {
-  otpUpdate.delivered_at = statusTimestamp;
-} else if (statusValue === 'failed') {
-  otpUpdate.failed_at = statusTimestamp;
-  if (errorInfo) {
-    otpUpdate.delivery_error = `${errorInfo.code}: ${errorInfo.title}`;
-  }
-}
-
-await supabase
-  .from('whatsapp_otp_codes')
-  .update(otpUpdate)
-  .eq('whatsapp_message_id', statusId);
+await supabaseAdmin.from('whatsapp_template_logs').insert({
+  template_name: 'joiedevivre_otp',
+  recipient_phone: maskedPhone,
+  country_prefix: phone.substring(0, 4),
+  whatsapp_message_id: messageId,
+  status: 'sent',
+  template_params: { purpose }
+});
 ```
 
-Ce bloc ne fait rien si le `statusId` ne correspond a aucun OTP (la requete retourne 0 lignes sans erreur).
+Cela permettra au dashboard WhatsApp Templates existant de suivre aussi les OTP.
 
-## Fichiers modifies
+### Etape 4 : Deployer et diagnostiquer
+
+1. Deployer les 3 fonctions modifiees
+2. Utiliser `check-whatsapp-delivery` pour tester les deux numeros problematiques
+3. Consulter les logs du webhook pour verifier si Meta envoie les callbacks de statut
+4. Si Meta ne les envoie pas, il faudra reconfigurer l'abonnement webhook dans le Meta Business Manager (champ `message_deliveries` en plus de `messages`)
+
+## Fichiers concernes
 
 | Fichier | Modification |
 |---------|-------------|
-| Migration SQL | Ajout colonnes `whatsapp_message_id`, `delivery_status`, `delivered_at`, `failed_at`, `delivery_error` + index |
-| `supabase/functions/send-whatsapp-otp/index.ts` | Capturer et stocker le message ID Meta |
-| `supabase/functions/whatsapp-webhook/index.ts` | Ajouter mise a jour OTP dans le traitement des statuts |
+| `supabase/functions/whatsapp-webhook/index.ts` | Logging du payload brut et des statuts |
+| `supabase/functions/send-whatsapp-otp/index.ts` | Ajout d'un insert dans `whatsapp_template_logs` |
+| `supabase/functions/check-whatsapp-delivery/index.ts` | Nouvel endpoint de diagnostic (test d'un numero + verification contacts Meta) |
+| `supabase/config.toml` | Ajout de la config pour la nouvelle fonction (verify_jwt = false) |
 
-## Impact
+## Resultat attendu
 
-- Les OTP non livres seront visibles dans les stats admin (`delivery_status = 'failed'`)
-- Le dashboard OTP existant pourra etre enrichi avec le taux de delivrabilite reelle (pas juste "accepted")
-- Aucun impact sur le flux de verification existant (les colonnes sont optionnelles)
-- Compatible avec le health check `check-whatsapp-otp-health` qui pourra utiliser `delivery_status` a l'avenir
+- Les logs du webhook permettront de confirmer si Meta envoie les callbacks ou non
+- L'endpoint de diagnostic permettra de tester immediatement les deux numeros
+- Les OTP apparaitront dans le dashboard WhatsApp Templates pour un suivi unifie
+- Si Meta ne renvoie pas les statuts, un message clair indiquera de reconfigurer l'abonnement webhook dans le Meta Business Manager
 
