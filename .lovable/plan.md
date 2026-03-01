@@ -1,76 +1,52 @@
 
 
-# Ecran de recherche de cagnottes existantes avant creation
+# Fix: Radix UI compose-refs infinite loop on all buttons
 
-## Objectif
+## Problem
 
-Ajouter une etape intermediaire avant le flux de creation de cagnotte : un ecran qui permet a l'utilisateur de rechercher des cagnottes publiques existantes par nom de beneficiaire ou titre, et de les rejoindre directement. Si rien ne correspond, l'utilisateur continue vers la creation normale.
+The Vite alias for `@radix-ui/react-compose-refs` is not being applied to all Radix packages. When Vite pre-bundles packages like `@radix-ui/react-dropdown-menu`, `@radix-ui/react-dialog`, etc., it inlines their dependency on `compose-refs` directly into bundled chunks (e.g., `chunk-6YGIOMX5.js`). The alias never gets a chance to redirect those internal imports to the patch file.
 
-## Flux utilisateur modifie
+This causes the infinite `setState` loop on any component using Radix refs (dropdowns, dialogs, tooltips, etc.) -- which is why ALL buttons are affected.
 
-1. L'utilisateur clique sur "Creer" (Dashboard, CreateActionMenu, CelebrateMenu)
-2. **NOUVEAU** : Un modal intermediaire `SearchExistingFundsModal` s'ouvre
-   - Champ de recherche par nom de beneficiaire ou titre de cagnotte
-   - Affiche les cagnottes publiques actives correspondantes avec progression, createur, occasion
-   - Bouton "Contribuer" sur chaque resultat pour rejoindre la cagnotte
-   - Bouton "Creer une nouvelle cagnotte" en bas pour continuer vers `ShopForCollectiveGiftModal`
-3. Si l'utilisateur choisit "Creer une nouvelle cagnotte" : le flux actuel reprend normalement (selection produit, puis contact, puis creation)
+## Root Cause
 
-## Plan technique
+1. `optimizeDeps.exclude` only excludes `@radix-ui/react-compose-refs` itself from pre-bundling
+2. Other Radix packages that `import` from it are still pre-bundled, and their internal imports are resolved to the original module during bundling
+3. The patch never intercepts those calls
 
-### Etape 1 -- Hook `useSearchPublicFunds`
+## Solution
 
-Nouveau fichier `src/hooks/useSearchPublicFunds.ts` :
+Two changes:
 
-- `searchFunds(query: string)` : recherche dans `collective_funds` actives et publiques
-  - Joint `contacts` pour chercher par nom de beneficiaire (`ilike`)
-  - Cherche aussi par titre de la cagnotte (`ilike`)
-  - Joint `profiles` sur `creator_id` pour afficher le nom du createur
-  - Joint `products` pour l'image produit
-  - Compte les contributions par fund
-- Retourne `results[]`, `loading`, `searchFunds(query)`, `clearResults()`
-- Debounce integre : ne lance la requete qu'apres 300ms d'inactivite, minimum 2 caracteres
+### 1. Exclude all Radix UI packages from Vite pre-bundling
 
-### Etape 2 -- Composant `SearchExistingFundsModal`
+In `vite.config.ts`, replace the single exclude with a pattern that covers all `@radix-ui/*` packages. This forces Vite to leave Radix imports as-is at runtime, where the alias can properly redirect them to the patch.
 
-Nouveau fichier `src/components/SearchExistingFundsModal.tsx` :
+```ts
+optimizeDeps: {
+  exclude: ['@radix-ui/react-compose-refs'],
+  // Add:
+  exclude: [/^@radix-ui\//],  // or list all radix packages explicitly
+}
+```
 
-- Modal (Dialog) avec :
-  - Titre "Rejoindre ou creer une cagnotte"
-  - Champ de recherche avec icone Search
-  - Etat vide initial : texte explicatif + icone, encourageant a chercher d'abord
-  - Resultats : carte par cagnotte avec image produit, titre, nom beneficiaire, barre de progression, nombre de contributeurs, nom du createur, bouton "Contribuer"
-  - Clic sur "Contribuer" : ferme le modal et navigue vers `/collective-fund/{id}`
-  - Bouton fixe en bas : "Creer une nouvelle cagnotte" qui ferme ce modal et ouvre `ShopForCollectiveGiftModal`
-- Props : `isOpen`, `onClose`, `onCreateNew()` (callback pour ouvrir le flux de creation)
+Since Vite `exclude` doesn't support regex, we'll list the key Radix packages that use compose-refs, or use a `noExternal`-style workaround.
 
-### Etape 3 -- Integration dans les points d'entree
+**Simpler approach**: Use `optimizeDeps.exclude` with all installed `@radix-ui/*` packages so none get pre-bundled.
 
-Modifier 3 fichiers pour inserer le modal intermediaire :
+### 2. Update the patch to match the original API
 
-**`src/pages/Dashboard.tsx`** :
-- Ajouter state `showSearchFundsModal`
-- Le bouton "Creer" ouvre `SearchExistingFundsModal` au lieu de `ShopForCollectiveGiftModal`
-- `onCreateNew` de SearchExistingFundsModal ouvre `ShopForCollectiveGiftModal`
+The current patch doesn't return cleanup functions, which differs from the original module's behavior. Update `src/lib/radix-compose-refs-patch.ts` to properly handle React 19's cleanup return pattern while still preventing re-entrancy.
 
-**`src/components/CreateActionMenu.tsx`** :
-- L'action "Creer une cagnotte" ouvre `SearchExistingFundsModal`
-- `onCreateNew` ouvre `ShopForCollectiveGiftModal`
+## Files to modify
 
-**`src/components/CelebrateMenu.tsx`** :
-- Meme logique : intermediaire avant `ShopForCollectiveGiftModal`
+| File | Action |
+|------|--------|
+| `vite.config.ts` | Exclude all `@radix-ui/*` packages from `optimizeDeps` |
+| `src/lib/radix-compose-refs-patch.ts` | Update to match original API with cleanup support and re-entrancy guard |
 
-### Fichiers concernes
+## Expected outcome
 
-| Fichier | Action |
-|---------|--------|
-| `src/hooks/useSearchPublicFunds.ts` | Creer -- logique de recherche de cagnottes publiques |
-| `src/components/SearchExistingFundsModal.tsx` | Creer -- UI de recherche et resultats |
-| `src/pages/Dashboard.tsx` | Modifier -- inserer le modal intermediaire |
-| `src/components/CreateActionMenu.tsx` | Modifier -- inserer le modal intermediaire |
-| `src/components/CelebrateMenu.tsx` | Modifier -- inserer le modal intermediaire |
-
-### Aucune migration SQL necessaire
-
-La recherche utilise les colonnes existantes de `collective_funds` (`title`, `is_public`, `status`), `contacts` (`name`) et `profiles` (`first_name`, `last_name`). Les politiques RLS existantes sur `collective_funds` autorisent deja la lecture des fonds publics.
+- All Radix-based components (dropdowns, dialogs, tooltips, popovers) will work without triggering infinite `setState` loops
+- The profile dropdown, navigation menus, and all interactive buttons will function correctly
 
