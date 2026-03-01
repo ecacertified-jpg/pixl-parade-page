@@ -425,11 +425,12 @@ Deno.serve(async (req) => {
       error: communityError?.message
     });
 
-    // Mark secondary profile as merged
+    // Mark secondary profile as merged and clear phone to respect unique constraint
     const { error: updateSecondaryError } = await supabaseAdmin
       .from('profiles')
       .update({ 
         is_suspended: true,
+        phone: null,
         bio: `[MERGED] Account merged into ${primary_user_id} on ${new Date().toISOString()}`
       })
       .eq('user_id', secondary_user_id);
