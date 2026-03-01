@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Loader2, Send, CheckCircle2, Clock, XCircle, ArrowUpRight } from 'lucide-react';
+import { Tooltip as RadixTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -88,7 +89,7 @@ export function WhatsAppOtpDashboard() {
                     className="text-xs"
                   />
                   <YAxis className="text-xs" />
-                  <Tooltip
+                   <RechartsTooltip
                     labelFormatter={(v) => format(new Date(v as string), 'dd MMM yyyy', { locale: fr })}
                     contentStyle={{ borderRadius: '0.5rem', border: '1px solid hsl(var(--border))' }}
                   />
@@ -127,7 +128,7 @@ export function WhatsAppOtpDashboard() {
                   <Legend
                     formatter={(value: string) => COUNTRY_MAP[value]?.name || value}
                   />
-                  <Tooltip
+                  <RechartsTooltip
                     formatter={(value: number, name: string) => [value, COUNTRY_MAP[name]?.name || name]}
                   />
                 </PieChart>
@@ -151,6 +152,7 @@ export function WhatsAppOtpDashboard() {
                   <TableHead>Pays</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Statut</TableHead>
+                  <TableHead>Livraison</TableHead>
                   <TableHead>Temps</TableHead>
                   <TableHead>Tentatives</TableHead>
                 </TableRow>
@@ -173,6 +175,9 @@ export function WhatsAppOtpDashboard() {
                         <StatusBadge status={otp.status} />
                       </TableCell>
                       <TableCell>
+                        <DeliveryBadge status={otp.delivery_status} error={otp.delivery_error} />
+                      </TableCell>
+                      <TableCell>
                         {otp.verification_seconds != null ? `${otp.verification_seconds}s` : '—'}
                       </TableCell>
                       <TableCell>{otp.attempts}</TableCell>
@@ -181,7 +186,7 @@ export function WhatsAppOtpDashboard() {
                 })}
                 {stats.recent.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Aucun OTP sur cette période
                     </TableCell>
                   </TableRow>
@@ -228,4 +233,48 @@ function StatusBadge({ status }: { status: string }) {
     default:
       return <Badge variant="secondary">En attente</Badge>;
   }
+}
+
+function DeliveryBadge({ status, error }: { status: string; error: string | null }) {
+  const badge = (() => {
+    switch (status) {
+      case 'delivered':
+        return (
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 gap-1">
+            <CheckCircle2 className="h-3 w-3" /> Livré
+          </Badge>
+        );
+      case 'failed':
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <XCircle className="h-3 w-3" /> Échoué
+          </Badge>
+        );
+      case 'sent':
+        return (
+          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 gap-1">
+            <ArrowUpRight className="h-3 w-3" /> Envoyé
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Clock className="h-3 w-3" /> Accepté
+          </Badge>
+        );
+    }
+  })();
+
+  if (status === 'failed' && error) {
+    return (
+      <TooltipProvider>
+        <RadixTooltip>
+          <TooltipTrigger asChild>{badge}</TooltipTrigger>
+          <TooltipContent className="max-w-xs text-xs">{error}</TooltipContent>
+        </RadixTooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return badge;
 }
