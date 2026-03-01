@@ -1,53 +1,109 @@
 
 
-# Correction du renvoi OTP dans Auth.tsx : respecter la methode WhatsApp
+# Verification de delivrabilite WhatsApp OTP via webhook Meta
 
 ## Probleme
 
-Quand l'utilisateur clique "Renvoyer le code" sur la page client (`Auth.tsx`), le systeme utilise toujours `supabase.auth.signInWithOtp()` (Twilio SMS), meme si le code initial a ete envoye par WhatsApp. Twilio n'etant pas configure, cela provoque l'erreur 20003 (Authentication).
+Actuellement, `send-whatsapp-otp` envoie le code et recoit un `message_status: "accepted"` de Meta, mais ne suit pas la livraison reelle. Le webhook Meta recoit deja les callbacks de statut (`sent`, `delivered`, `failed`) et met a jour `whatsapp_template_logs` et `whatsapp_messages`, mais **pas** `whatsapp_otp_codes`. Le `whatsapp_message_id` retourne par Meta n'est meme pas stocke dans la table OTP.
 
-La page Business (`BusinessAuth.tsx`) gere deja correctement ce cas en verifiant `otpMethod` avant de choisir la methode de renvoi. La page Client ne le fait pas.
-
-## Correction
-
-**Fichier** : `src/pages/Auth.tsx`, fonction `resendOtp` (lignes 796-838)
-
-Aligner la logique de renvoi sur celle de `BusinessAuth.tsx` :
+## Architecture de la solution
 
 ```text
-Avant :
-  const resendOtp = async () => {
-    // Toujours supabase.auth.signInWithOtp (SMS/Twilio)
-    const { error } = await supabase.auth.signInWithOtp({ phone: currentPhone });
-    ...
-  };
-
-Apres :
-  const resendOtp = async () => {
-    const method = otpMethod || defaultMethod;
-
-    if (method === 'whatsapp') {
-      // Reutiliser la fonction WhatsApp existante
-      const metadata = pendingFormData && 'firstName' in pendingFormData ? {
-        first_name: pendingFormData.firstName,
-        last_name: pendingFormData.lastName,
-      } : undefined;
-      await sendWhatsAppOtp(currentPhone, authMode === 'signup' ? 'signup' : 'signin', metadata);
-      return;
-    }
-
-    // Sinon, SMS classique
-    const { error } = await supabase.auth.signInWithOtp({ phone: currentPhone });
-    ...
-  };
+send-whatsapp-otp                 Meta API               whatsapp-webhook
+     |                               |                        |
+     |--- POST template ------------>|                        |
+     |<-- { message_id: wamid.XX } --|                        |
+     |                               |                        |
+     | store message_id              |                        |
+     | in whatsapp_otp_codes         |                        |
+     |                               |--- status: sent ------>|
+     |                               |--- status: delivered ->|
+     |                               |    or status: failed -->|
+     |                               |                        |
+     |                               |    update whatsapp_otp_codes
+     |                               |    delivery_status = delivered/failed
 ```
 
-Les variables `otpMethod`, `defaultMethod`, `sendWhatsAppOtp` et `authMode` sont deja disponibles dans le scope de la fonction. Il suffit d'ajouter la verification conditionnelle.
+## Etape 1 : Migration -- ajouter colonnes de suivi a whatsapp_otp_codes
+
+```sql
+ALTER TABLE whatsapp_otp_codes
+  ADD COLUMN whatsapp_message_id TEXT,
+  ADD COLUMN delivery_status TEXT DEFAULT 'accepted',
+  ADD COLUMN delivered_at TIMESTAMPTZ,
+  ADD COLUMN failed_at TIMESTAMPTZ,
+  ADD COLUMN delivery_error TEXT;
+
+CREATE INDEX idx_whatsapp_otp_message_id
+  ON whatsapp_otp_codes (whatsapp_message_id)
+  WHERE whatsapp_message_id IS NOT NULL;
+```
+
+- `delivery_status` : `accepted` -> `sent` -> `delivered` (ou `failed`)
+- L'index permet au webhook de retrouver rapidement l'enregistrement OTP par message ID
+
+## Etape 2 : Modifier send-whatsapp-otp pour capturer le message ID
+
+Dans `supabase/functions/send-whatsapp-otp/index.ts` :
+
+- La fonction `sendWhatsAppMessage` retourne actuellement un `boolean`. Elle retournera desormais `{ success: boolean, messageId?: string }`.
+- Apres l'envoi reussi, le `whatsapp_message_id` sera mis a jour dans l'enregistrement `whatsapp_otp_codes` correspondant.
+
+```text
+Avant : return true;
+Apres : return { success: true, messageId: result.messages?.[0]?.id };
+```
+
+Puis dans le handler principal :
+
+```text
+const result = await sendWhatsAppMessage(phone, code);
+if (result.success && result.messageId) {
+  await supabaseAdmin
+    .from('whatsapp_otp_codes')
+    .update({ whatsapp_message_id: result.messageId })
+    .eq('phone', phone)
+    .eq('code', code);
+}
+```
+
+## Etape 3 : Modifier whatsapp-webhook pour mettre a jour les OTP
+
+Dans `supabase/functions/whatsapp-webhook/index.ts`, dans le bloc de traitement des statuts (lignes 225-269), ajouter une 3eme mise a jour pour `whatsapp_otp_codes` :
+
+```text
+// 3. Update whatsapp_otp_codes (OTP delivery tracking)
+const otpUpdate: Record<string, unknown> = { delivery_status: statusValue };
+
+if (statusValue === 'delivered') {
+  otpUpdate.delivered_at = statusTimestamp;
+} else if (statusValue === 'failed') {
+  otpUpdate.failed_at = statusTimestamp;
+  if (errorInfo) {
+    otpUpdate.delivery_error = `${errorInfo.code}: ${errorInfo.title}`;
+  }
+}
+
+await supabase
+  .from('whatsapp_otp_codes')
+  .update(otpUpdate)
+  .eq('whatsapp_message_id', statusId);
+```
+
+Ce bloc ne fait rien si le `statusId` ne correspond a aucun OTP (la requete retourne 0 lignes sans erreur).
+
+## Fichiers modifies
+
+| Fichier | Modification |
+|---------|-------------|
+| Migration SQL | Ajout colonnes `whatsapp_message_id`, `delivery_status`, `delivered_at`, `failed_at`, `delivery_error` + index |
+| `supabase/functions/send-whatsapp-otp/index.ts` | Capturer et stocker le message ID Meta |
+| `supabase/functions/whatsapp-webhook/index.ts` | Ajouter mise a jour OTP dans le traitement des statuts |
 
 ## Impact
 
-- Les utilisateurs en Cote d'Ivoire/Senegal qui ont choisi WhatsApp recevront le code via WhatsApp au renvoi
-- Les utilisateurs au Benin/Togo/Mali/Burkina (auto-WhatsApp) recevront aussi via WhatsApp
-- Les utilisateurs ayant choisi SMS continuent via SMS normalement
-- Aucun nouveau fichier, aucune nouvelle dependance
+- Les OTP non livres seront visibles dans les stats admin (`delivery_status = 'failed'`)
+- Le dashboard OTP existant pourra etre enrichi avec le taux de delivrabilite reelle (pas juste "accepted")
+- Aucun impact sur le flux de verification existant (les colonnes sont optionnelles)
+- Compatible avec le health check `check-whatsapp-otp-health` qui pourra utiliser `delivery_status` a l'avenir
 
