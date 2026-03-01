@@ -1,78 +1,76 @@
 
 
-# Detection de doublons de cagnottes
+# Ecran de recherche de cagnottes existantes avant creation
 
 ## Objectif
 
-Quand un utilisateur selectionne un beneficiaire pour creer une cagnotte, verifier s'il existe deja une cagnotte active pour cette personne et proposer de la rejoindre (contribuer) plutot que d'en creer une nouvelle.
+Ajouter une etape intermediaire avant le flux de creation de cagnotte : un ecran qui permet a l'utilisateur de rechercher des cagnottes publiques existantes par nom de beneficiaire ou titre, et de les rejoindre directement. Si rien ne correspond, l'utilisateur continue vers la creation normale.
 
-## Flux utilisateur
+## Flux utilisateur modifie
 
-1. L'utilisateur choisit un produit dans la boutique et clique "Organiser une cotisation"
-2. Dans le modal de selection du beneficiaire (`CollaborativeGiftModal`), il choisit un contact
-3. **NOUVEAU** : Avant d'afficher le bouton "Demarrer une cotisation", on verifie s'il existe deja une cagnotte active pour ce contact
-4. Si des cagnottes existent :
-   - Afficher une alerte avec la liste des cagnottes existantes (titre, montant actuel/objectif, createur)
-   - Bouton "Rejoindre cette cagnotte" qui ouvre le flux de contribution
-   - Bouton "Creer quand meme" pour ignorer et continuer la creation
-5. Si aucune cagnotte n'existe : comportement actuel inchange
+1. L'utilisateur clique sur "Creer" (Dashboard, CreateActionMenu, CelebrateMenu)
+2. **NOUVEAU** : Un modal intermediaire `SearchExistingFundsModal` s'ouvre
+   - Champ de recherche par nom de beneficiaire ou titre de cagnotte
+   - Affiche les cagnottes publiques actives correspondantes avec progression, createur, occasion
+   - Bouton "Contribuer" sur chaque resultat pour rejoindre la cagnotte
+   - Bouton "Creer une nouvelle cagnotte" en bas pour continuer vers `ShopForCollectiveGiftModal`
+3. Si l'utilisateur choisit "Creer une nouvelle cagnotte" : le flux actuel reprend normalement (selection produit, puis contact, puis creation)
 
 ## Plan technique
 
-### Etape 1 -- Hook `useExistingFundsForBeneficiary`
+### Etape 1 -- Hook `useSearchPublicFunds`
 
-Nouveau fichier `src/hooks/useExistingFundsForBeneficiary.ts` :
+Nouveau fichier `src/hooks/useSearchPublicFunds.ts` :
 
-- Fonction `checkExistingFunds(contactId: string)` qui interroge `collective_funds` :
-  ```sql
-  SELECT cf.*, p.first_name, p.last_name, p.avatar_url
-  FROM collective_funds cf
-  LEFT JOIN profiles p ON p.user_id = cf.creator_id
-  WHERE cf.beneficiary_contact_id = contactId
-    AND cf.status = 'active'
-  ```
-- Aussi chercher par `linked_user_id` du contact : si le contact a un `linked_user_id`, chercher egalement les cagnottes ou un autre contact avec le meme `linked_user_id` est beneficiaire
-- Retourne : `existingFunds[]`, `loading`, `checkFunds(contactId)`
+- `searchFunds(query: string)` : recherche dans `collective_funds` actives et publiques
+  - Joint `contacts` pour chercher par nom de beneficiaire (`ilike`)
+  - Cherche aussi par titre de la cagnotte (`ilike`)
+  - Joint `profiles` sur `creator_id` pour afficher le nom du createur
+  - Joint `products` pour l'image produit
+  - Compte les contributions par fund
+- Retourne `results[]`, `loading`, `searchFunds(query)`, `clearResults()`
+- Debounce integre : ne lance la requete qu'apres 300ms d'inactivite, minimum 2 caracteres
 
-### Etape 2 -- Composant `ExistingFundsAlert`
+### Etape 2 -- Composant `SearchExistingFundsModal`
 
-Nouveau fichier `src/components/ExistingFundsAlert.tsx` :
+Nouveau fichier `src/components/SearchExistingFundsModal.tsx` :
 
-- Carte d'alerte affichee entre la selection du contact et le bouton d'action
-- Icone d'avertissement avec texte "Une cagnotte existe deja pour [nom]"
-- Pour chaque cagnotte existante : titre, barre de progression, montant, nom du createur
-- Bouton "Contribuer a cette cagnotte" (primary, ouvre `ContributionModal`)
-- Bouton "Creer une nouvelle cagnotte" (outline/secondary, continue le flux normal)
-- Style : fond jaune/ambre pour attirer l'attention, coherent avec le design system
+- Modal (Dialog) avec :
+  - Titre "Rejoindre ou creer une cagnotte"
+  - Champ de recherche avec icone Search
+  - Etat vide initial : texte explicatif + icone, encourageant a chercher d'abord
+  - Resultats : carte par cagnotte avec image produit, titre, nom beneficiaire, barre de progression, nombre de contributeurs, nom du createur, bouton "Contribuer"
+  - Clic sur "Contribuer" : ferme le modal et navigue vers `/collective-fund/{id}`
+  - Bouton fixe en bas : "Creer une nouvelle cagnotte" qui ferme ce modal et ouvre `ShopForCollectiveGiftModal`
+- Props : `isOpen`, `onClose`, `onCreateNew()` (callback pour ouvrir le flux de creation)
 
-### Etape 3 -- Integration dans `CollaborativeGiftModal`
+### Etape 3 -- Integration dans les points d'entree
 
-Modifier `src/components/CollaborativeGiftModal.tsx` :
+Modifier 3 fichiers pour inserer le modal intermediaire :
 
-- Importer et utiliser `useExistingFundsForBeneficiary`
-- Quand `handleSelectContact` est appele, lancer `checkFunds(contact.id)`
-- Si des fonds existent, afficher `ExistingFundsAlert` a la place du bouton "Demarrer une cotisation"
-- Ajouter un `ContributionModal` pour permettre la contribution directe depuis ce modal
-- Quand l'utilisateur clique "Creer quand meme", afficher le bouton normal de creation
+**`src/pages/Dashboard.tsx`** :
+- Ajouter state `showSearchFundsModal`
+- Le bouton "Creer" ouvre `SearchExistingFundsModal` au lieu de `ShopForCollectiveGiftModal`
+- `onCreateNew` de SearchExistingFundsModal ouvre `ShopForCollectiveGiftModal`
 
-### Etape 4 -- Integration dans `BusinessCollaborativeGiftModal`
+**`src/components/CreateActionMenu.tsx`** :
+- L'action "Creer une cagnotte" ouvre `SearchExistingFundsModal`
+- `onCreateNew` ouvre `ShopForCollectiveGiftModal`
 
-Modifier `src/components/BusinessCollaborativeGiftModal.tsx` :
-
-- Meme logique : quand un utilisateur beneficiaire est selectionne, verifier les cagnottes existantes via son `user_id`
-- Afficher `ExistingFundsAlert` si des cagnottes existent
-- Adapter la recherche pour utiliser `user_id` au lieu de `contact_id` (les business funds utilisent des profils, pas des contacts)
+**`src/components/CelebrateMenu.tsx`** :
+- Meme logique : intermediaire avant `ShopForCollectiveGiftModal`
 
 ### Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `src/hooks/useExistingFundsForBeneficiary.ts` | Creer -- logique de detection |
-| `src/components/ExistingFundsAlert.tsx` | Creer -- UI d'alerte avec options |
-| `src/components/CollaborativeGiftModal.tsx` | Modifier -- integrer la detection |
-| `src/components/BusinessCollaborativeGiftModal.tsx` | Modifier -- integrer la detection |
+| `src/hooks/useSearchPublicFunds.ts` | Creer -- logique de recherche de cagnottes publiques |
+| `src/components/SearchExistingFundsModal.tsx` | Creer -- UI de recherche et resultats |
+| `src/pages/Dashboard.tsx` | Modifier -- inserer le modal intermediaire |
+| `src/components/CreateActionMenu.tsx` | Modifier -- inserer le modal intermediaire |
+| `src/components/CelebrateMenu.tsx` | Modifier -- inserer le modal intermediaire |
 
 ### Aucune migration SQL necessaire
 
-Les colonnes `beneficiary_contact_id`, `status`, `creator_id` existent deja dans `collective_funds`. La recherche par `linked_user_id` utilise la table `contacts` existante.
+La recherche utilise les colonnes existantes de `collective_funds` (`title`, `is_public`, `status`), `contacts` (`name`) et `profiles` (`first_name`, `last_name`). Les politiques RLS existantes sur `collective_funds` autorisent deja la lecture des fonds publics.
 
