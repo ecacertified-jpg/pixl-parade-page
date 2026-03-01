@@ -5,19 +5,19 @@
  * function each render. If any composed ref triggers setState, React re-renders,
  * creating yet another composed ref — infinite loop.
  *
- * Fix: Depth counter per DOM node. Allows a small number of re-entrant ref
- * calls (needed for Radix internals) but caps them to prevent the infinite
- * setState loop in React 19.
+ * Fix: Global synchronous depth counter. Since the problematic calls are nested
+ * in the call stack (dispatchSetState is synchronous during React 19 commit),
+ * we cap the nesting depth. Legitimate Radix nesting is ~2-4 levels; infinite
+ * loops would reach 50+. We cap at 8 for safety.
  *
  * See: https://github.com/radix-ui/primitives/issues/3799
  */
 import * as React from "react";
 
-// Depth counter per DOM node: allows a small number of re-entrant
-// ref calls (needed for Radix internals) but caps them to prevent
-// the infinite setState loop in React 19.
-const nodeCallCount = new WeakMap<object, number>();
-const MAX_CALLS_PER_TICK = 3;
+// Global depth counter for synchronous nested composeRefs calls.
+// Tracks how deep we are in the call stack to break infinite loops.
+let globalDepth = 0;
+const MAX_DEPTH = 8;
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (typeof ref === "function") {
@@ -29,24 +29,16 @@ function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
 
 function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
   return (node: T) => {
-    if (node != null && typeof node === "object") {
-      const count = nodeCallCount.get(node as object) || 0;
-      if (count >= MAX_CALLS_PER_TICK) return; // Break infinite loop
-      nodeCallCount.set(node as object, count + 1);
-
-      refs.forEach((ref) => setRef(ref, node));
-
-      // Reset after microtask so future legitimate updates work
-      if (count === 0) {
-        Promise.resolve().then(() => {
-          nodeCallCount.delete(node as object);
-        });
-      }
-    } else {
-      refs.forEach((ref) => setRef(ref, node));
+    globalDepth++;
+    if (globalDepth > MAX_DEPTH) {
+      globalDepth--;
+      return;
     }
-    // Do NOT return a cleanup function -- prevents React 19
-    // cleanup-then-set cycle when callback identity changes each render.
+    try {
+      refs.forEach((ref) => setRef(ref, node));
+    } finally {
+      globalDepth--;
+    }
   };
 }
 
