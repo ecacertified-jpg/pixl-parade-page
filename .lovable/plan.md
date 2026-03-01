@@ -1,64 +1,72 @@
 
 
-# Correction des notifications `contribution_update` -- Amis du contributeur
+# Correction de l'integrite des relations symetriques
 
-## Probleme identifie
+## Probleme
 
-La fonction `notify-contribution-progress` ne notifie actuellement que **2 audiences** :
-1. Les contributeurs existants de la cagnotte
-2. Les amis du **createur** de la cagnotte (via `contact_relationships`)
+La table `contact_relationships` utilise une contrainte `UNIQUE(user_a, user_b)` qui ne detecte pas les inversions. Quand deux utilisateurs s'ajoutent mutuellement, deux lignes sont creees pour la meme amitie. Cela cause :
+- **Notifications en double** (WhatsApp envoye 2 fois si deduplication par telephone absente)
+- **Comptage d'amis incorrect** (un ami compte double)
+- **Donnees incoherentes** (can_see_funds peut differer entre les 2 lignes)
 
-Elle **ignore les amis du contributeur**, ce qui explique pourquoi vous (Florentin, `3fc4a030`) n'avez pas recu de notification quand Francoise a contribue -- vous etes ami de Francoise dans l'app mais pas dans la table `contact_relationships` avec son user_id createur (`0b4eb0bb`).
+**Etat actuel** : 4 paires de doublons sur 34 relations.
 
-### Verification en base
-- Francoise (createur) `0b4eb0bb` a 2 amis : Amtey (`aae8fedd`) et Aboutou (`b8d0d4e4`)
-- **Aucune relation** entre vous (`3fc4a030`) et Francoise (`0b4eb0bb`) dans `contact_relationships`
-- Meme si cette relation existait, la logique actuelle ne notifie que les amis du createur, pas ceux du contributeur
+## Plan de correction
 
-## Plan de correction (2 volets)
+### Etape 1 -- Nettoyage des doublons existants
 
-### Volet 1 -- Correction de donnees : ajouter la relation manquante
+Migration SQL :
+1. Pour chaque paire de doublons (A,B) et (B,A), conserver la ligne la plus ancienne et supprimer l'autre
+2. Fusionner les permissions : si l'une des deux lignes a `can_see_funds = true`, la ligne conservee doit aussi l'avoir
 
-Inserer une relation `contact_relationships` entre Florentin (`3fc4a030`) et Francoise (`0b4eb0bb`) avec `can_see_funds = true`. Cela corrige le cas immediat.
+### Etape 2 -- Normaliser les donnees existantes
 
-Verifier egalement pourquoi le systeme de liaison automatique (triggers sur les 8 derniers chiffres du telephone) n'a pas cree cette relation -- probablement parce que Francoise n'est pas dans les contacts de Florentin (ou inversement).
+Mettre a jour toutes les lignes pour que `user_a` soit toujours le plus petit UUID (LEAST) et `user_b` le plus grand (GREATEST). Cela garantit une forme canonique.
 
-### Volet 2 -- Amelioration de la logique : notifier aussi les amis du contributeur
-
-Modifier `supabase/functions/notify-contribution-progress/index.ts` pour ajouter une **3eme passe de notification** : les amis du contributeur (pas seulement ceux du createur).
-
-#### Changements dans `notify-contribution-progress/index.ts`
-
-Apres la section 9 actuelle (amis du createur), ajouter une section 10 :
+### Etape 3 -- Ajouter un index unique symetrique
 
 ```text
-// 10. Get friends of the CONTRIBUTOR who haven't contributed
-//     -> same logic as step 9 but using contributor_id instead of creator_id
+CREATE UNIQUE INDEX idx_contact_relationships_symmetric
+ON contact_relationships (LEAST(user_a, user_b), GREATEST(user_a, user_b));
 ```
 
-Logique :
-1. Requeter `contact_relationships` ou `user_a` ou `user_b` = `contributor_id` ET `can_see_funds = true`
-2. Extraire les IDs amis, exclure ceux deja dans `uniqueContributorIds` et le contributeur lui-meme
-3. Exclure les IDs deja traites dans la passe "amis du createur" (eviter les doublons)
-4. Pour chaque ami avec un telephone, envoyer le template `joiedevivre_contribution_update` (meme template, memes 6 parametres)
-5. Utiliser le meme `sentPhones` Set pour la deduplication par telephone
+Cet index empeche toute insertion de (B,A) si (A,B) existe deja, quelle que soit l'ordre.
 
-#### Contraintes respectees
-- Deduplication 4h existante (inchangee -- une seule notification par fund dans la fenetre)
-- Deduplication par telephone (`sentPhones` Set partage entre toutes les passes)
-- Pas de notification au contributeur lui-meme (deja filtre)
-- Pas de nouvelle table ni migration requise
+### Etape 4 -- Modifier les triggers d'auto-link
+
+Mettre a jour les fonctions `auto_link_contact_on_insert()` et `auto_link_contact_on_update()` pour :
+- Toujours inserer avec `LEAST/GREATEST` pour normaliser l'ordre
+- Utiliser `ON CONFLICT` sur le nouvel index symetrique
+
+Changement dans les deux fonctions :
+```text
+-- Avant :
+INSERT INTO contact_relationships (user_a, user_b, ...)
+VALUES (NEW.user_id, found_user_id, ...)
+
+-- Apres :
+INSERT INTO contact_relationships (user_a, user_b, ...)
+VALUES (LEAST(NEW.user_id, found_user_id), GREATEST(NEW.user_id, found_user_id), ...)
+```
+
+### Etape 5 -- Modifier le trigger handle_new_user
+
+Meme correction dans la fonction `handle_new_user` (inscription) qui cree aussi des `contact_relationships`.
 
 ### Fichiers concernes
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/notify-contribution-progress/index.ts` | Ajout de la passe "amis du contributeur" (section 10) |
-| Base de donnees (`contact_relationships`) | Insertion de la relation Florentin-Francoise |
+| Fichier / Ressource | Action |
+|----------------------|--------|
+| Migration SQL (nouvelle) | Nettoyage doublons + index symetrique + normalisation |
+| `auto_link_contact_on_insert()` | LEAST/GREATEST dans l'INSERT (via migration) |
+| `auto_link_contact_on_update()` | LEAST/GREATEST dans l'INSERT (via migration) |
+| `handle_new_user()` | LEAST/GREATEST dans l'INSERT (via migration) |
 
 ### Impact
 
-- Les amis du contributeur verront desormais les mises a jour de progression
-- Le volume de notifications augmente legerement mais reste controle par la deduplication 4h et par telephone
-- Le log final indiquera 3 compteurs : `updates` (contributeurs), `nudges_creator_friends`, `nudges_contributor_friends`
+- Les 4 paires de doublons existantes seront fusionnees (34 lignes -> 30 lignes)
+- Les ajouts mutuels futurs ne creent plus de doublons
+- Les notifications, comptages d'amis et permissions restent coherents
+- Aucun changement cote frontend (les requetes existantes utilisent deja `OR` pour les deux directions)
+- Aucune perte de donnees : les permissions sont fusionnees avant suppression
 
