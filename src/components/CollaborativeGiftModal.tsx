@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/hooks/useCart";
 import { getDaysUntilBirthday } from "@/lib/utils";
+import { useExistingFundsForBeneficiary } from "@/hooks/useExistingFundsForBeneficiary";
+import { ExistingFundsAlert } from "@/components/ExistingFundsAlert";
 
 interface Contact {
   id: string;
@@ -45,10 +47,12 @@ export function CollaborativeGiftModal({
   const [isCreating, setIsCreating] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [forceCreate, setForceCreate] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { addItem } = useCart();
   const navigate = useNavigate();
+  const { existingFunds, loading: checkingFunds, checkFundsByContactId, reset: resetFunds } = useExistingFundsForBeneficiary();
 
   // Fetch contacts from Supabase when modal opens
   useEffect(() => {
@@ -60,7 +64,6 @@ export function CollaborativeGiftModal({
   const loadContacts = async () => {
     setIsLoading(true);
     try {
-      // Vérifier la session Supabase réelle
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -80,7 +83,6 @@ export function CollaborativeGiftModal({
         .order('name');
 
       if (error) {
-        // Gérer les erreurs d'autorisation JWT
         if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
           toast({
             title: "Session expirée",
@@ -99,10 +101,8 @@ export function CollaborativeGiftModal({
         return;
       }
 
-      // Convert Supabase contacts to Contact interface and exclude self
       const formattedContacts: Contact[] = data
         .filter(contact => {
-          // Exclude contacts that might represent the user themselves
           return contact.name !== session.user.user_metadata?.first_name + ' ' + session.user.user_metadata?.last_name &&
                  contact.email !== session.user.email;
         })
@@ -133,6 +133,13 @@ export function CollaborativeGiftModal({
 
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
+    setForceCreate(false);
+    checkFundsByContactId(contact.id);
+  };
+
+  const handleJoinFund = (fundId: string) => {
+    onClose();
+    navigate(`/collective-fund/${fundId}`);
   };
 
   const handleStartFund = async () => {
@@ -140,7 +147,6 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
-      // Utiliser useCart.addItem() au lieu d'écrire directement dans localStorage
       addItem({
         id: product.id,
         productId: product.id,
@@ -175,9 +181,7 @@ export function CollaborativeGiftModal({
 
   const getBirthdayText = (birthday?: string) => {
     if (!birthday) return "Aucun favori partagé";
-    
     const daysUntil = getDaysUntilBirthday(birthday);
-    
     if (daysUntil <= 7 && daysUntil > 0) {
       return `Anniversaire dans ${daysUntil} jour(s)`;
     }
@@ -185,6 +189,9 @@ export function CollaborativeGiftModal({
   };
 
   if (!product) return null;
+
+  const showExistingFundsAlert = selectedContact && existingFunds.length > 0 && !forceCreate;
+  const showCreateButton = selectedContact && (existingFunds.length === 0 || forceCreate);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -283,8 +290,19 @@ export function CollaborativeGiftModal({
             )}
           </div>
 
-          {/* Selected Contact Action */}
-          {selectedContact && (
+          {/* Existing Funds Alert */}
+          {selectedContact && (checkingFunds || showExistingFundsAlert) && (
+            <ExistingFundsAlert
+              funds={existingFunds}
+              beneficiaryName={selectedContact.name}
+              onJoinFund={handleJoinFund}
+              onCreateAnyway={() => setForceCreate(true)}
+              loading={checkingFunds}
+            />
+          )}
+
+          {/* Selected Contact Action - only show if no existing funds or user chose to create anyway */}
+          {showCreateButton && (
             <div className="bg-accent/50 rounded-lg p-4 border border-primary/20">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
