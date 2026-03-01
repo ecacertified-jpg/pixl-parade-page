@@ -1,50 +1,98 @@
 
 
-# Propositions d'amelioration pour la detection de doublons
+# Fix: Radix UI + React 19 Infinite Ref Loop (Root Cause)
 
-Apres analyse du code existant, voici 3 axes d'amelioration concrets, classes par priorite.
+## Problem
 
----
+The current `composeRefs` patch in `src/lib/radix-compose-refs-patch.ts` uses a synchronous `isSettingRef` guard, but this doesn't prevent the loop because it happens **across render cycles**:
 
-## 1. Filtres par occasion dans le SearchExistingFundsModal
+1. `@radix-ui/react-slot` calls `composeRefs()` directly in render (not inside a hook), creating a new function every render
+2. The patched `composeRefs` returns a cleanup function
+3. React 19 detects the ref callback changed (new function) and calls the old cleanup, then the new ref
+4. If any composed ref triggers a state update (common in Radix internals), this causes a re-render, producing yet another new composed ref -- infinite loop
 
-Actuellement la recherche se fait uniquement par texte libre. Ajouter des filtres rapides par type d'occasion (anniversaire, mariage, promotion, etc.) permettrait de trouver plus facilement une cagnotte existante.
+## Solution
 
-**Changements** :
-- `src/components/SearchExistingFundsModal.tsx` : Ajouter une rangee de chips/badges cliquables sous le champ de recherche (Anniversaire, Mariage, Promotion, Autre). Cliquer sur un chip filtre les resultats par `occasion`. Cumulable avec la recherche texte.
-- `src/hooks/useSearchPublicFunds.ts` : Ajouter un parametre `occasion?: string` a `searchFunds()`. Si fourni, ajouter `.eq('occasion', occasion)` aux requetes Supabase.
+Modify the `composeRefs` patch to **never return a cleanup function**. This breaks the cycle because React 19 only triggers the cleanup-then-set loop when it receives a cleanup function from a ref callback.
 
----
+### File: `src/lib/radix-compose-refs-patch.ts`
 
-## 2. Afficher la deadline et le temps restant
+Replace the entire file with a simpler implementation:
 
-Les cartes de resultats n'affichent pas la date limite de la cagnotte. Un utilisateur a besoin de savoir combien de temps il reste avant de decider de contribuer.
+```typescript
+import * as React from "react";
 
-**Changements** :
-- `src/components/SearchExistingFundsModal.tsx` : Sous la barre de progression, afficher "X jours restants" ou "Expire le DD/MM" si `deadline_date` est present. Utiliser `date-fns` (`formatDistanceToNow` ou `differenceInDays`).
-- `src/components/ExistingFundsAlert.tsx` : Meme ajout pour les alertes de doublons dans le CollaborativeGiftModal.
-- `src/hooks/useExistingFundsForBeneficiary.ts` : Ajouter `deadlineDate` au type `ExistingFund` et le remplir depuis `deadline_date`.
+function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
+  if (typeof ref === "function") {
+    const result = ref(value);
+    // Intentionally discard cleanup to prevent React 19 infinite loop
+    // when composeRefs is called directly in render (not memoized)
+    return typeof result === "function" ? result : undefined;
+  } else if (ref !== null && ref !== undefined) {
+    (ref as React.MutableRefObject<T>).current = value;
+  }
+}
 
----
+function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
+  return (node: T) => {
+    // Set all refs but do NOT return a cleanup function.
+    // Returning cleanup from a non-memoized ref callback in React 19
+    // causes an infinite re-render loop because React calls cleanup
+    // on every render when the callback identity changes.
+    refs.forEach((ref) => setRef(ref, node));
+  };
+}
 
-## 3. Exclure les cagnottes creees par l'utilisateur courant de la recherche
+function useComposedRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
+  // In the hook version, we CAN safely return cleanup since
+  // useCallback ensures stable identity across renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return React.useCallback(
+    (node: T) => {
+      const cleanups: ((() => void) | undefined)[] = [];
+      refs.forEach((ref) => {
+        if (typeof ref === "function") {
+          const result = ref(node);
+          if (typeof result === "function") {
+            cleanups.push(result);
+          }
+        } else if (ref !== null && ref !== undefined) {
+          (ref as React.MutableRefObject<T>).current = node;
+        }
+      });
+      
+      if (cleanups.length > 0) {
+        return () => {
+          cleanups.forEach((cleanup) => cleanup?.());
+          refs.forEach((ref) => {
+            if (typeof ref === "function") {
+              ref(null as unknown as T);
+            } else if (ref !== null && ref !== undefined) {
+              (ref as React.MutableRefObject<T>).current = null as unknown as T;
+            }
+          });
+        };
+      }
+    },
+    refs
+  );
+}
 
-Actuellement, si l'utilisateur a deja cree une cagnotte pour "Marie Belle", elle apparait dans ses propres resultats de recherche. Il serait plus pertinent de la distinguer visuellement ou de l'exclure.
+export { composeRefs, useComposedRefs };
+```
 
-**Changements** :
-- `src/hooks/useSearchPublicFunds.ts` : Accepter un `currentUserId?: string` en parametre. Ajouter `.neq('creator_id', currentUserId)` aux requetes, ou alternativement marquer les fonds propres avec un flag `isOwn: true`.
-- `src/components/SearchExistingFundsModal.tsx` : Passer le `user.id` au hook. Les cagnottes propres apparaissent avec un badge "Votre cagnotte" et le bouton change en "Voir" au lieu de "Contribuer".
+### Key difference
 
----
+- **`composeRefs()`** (used by Slot in render): Sets all refs but returns `undefined` -- no cleanup. This prevents React 19 from triggering the cleanup-set-rerender cycle.
+- **`useComposedRefs()`** (used inside hooks): Safely returns cleanup since `useCallback` ensures the function identity is stable across renders.
 
-## Resume des fichiers concernes
+### Why this is safe
 
-| Fichier | Ameliorations |
-|---------|---------------|
-| `src/hooks/useSearchPublicFunds.ts` | Filtre occasion, exclusion createur courant |
-| `src/components/SearchExistingFundsModal.tsx` | Chips occasion, deadline, badge "Votre cagnotte" |
-| `src/components/ExistingFundsAlert.tsx` | Affichage deadline |
-| `src/hooks/useExistingFundsForBeneficiary.ts` | Ajout deadlineDate au type |
+In React 18, ref callbacks that didn't return cleanup were never called with `null` on unmount -- so this matches the old behavior exactly. The cleanup was a React 19 feature that Radix's architecture (calling `composeRefs` in render) is not yet compatible with.
 
-Aucune migration SQL necessaire.
+## Technical Details
+
+- Only one file modified: `src/lib/radix-compose-refs-patch.ts`
+- The Vite alias in `vite.config.ts` already redirects all `@radix-ui/react-compose-refs` imports to this file -- no changes needed there
+- This fixes the error globally for all Radix components (Dialog, Tooltip, Popover, AlertDialog, etc.)
 
