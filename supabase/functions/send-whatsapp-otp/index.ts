@@ -45,10 +45,15 @@ Si vous n'avez pas demandé ce code, ignorez ce message.`;
 }
 
 // Send WhatsApp message via HSM template with fallback to plain text
-async function sendWhatsAppMessage(to: string, code: string): Promise<boolean> {
+interface SendResult {
+  success: boolean;
+  messageId?: string;
+}
+
+async function sendWhatsAppMessage(to: string, code: string): Promise<SendResult> {
   if (!WHATSAPP_PHONE_NUMBER_ID || !WHATSAPP_ACCESS_TOKEN) {
     console.error("WhatsApp credentials not configured");
-    return false;
+    return { success: false };
   }
 
   const formattedPhone = to.replace(/^\+/, '');
@@ -88,8 +93,9 @@ async function sendWhatsAppMessage(to: string, code: string): Promise<boolean> {
 
     if (templateResponse.ok) {
       const result = await templateResponse.json();
-      console.log("WhatsApp OTP sent via template:", result);
-      return true;
+      const messageId = result.messages?.[0]?.id;
+      console.log("WhatsApp OTP sent via template:", result, "messageId:", messageId);
+      return { success: true, messageId };
     }
 
     const templateError = await templateResponse.text();
@@ -118,8 +124,9 @@ async function sendWhatsAppMessage(to: string, code: string): Promise<boolean> {
     }
 
     const result = await textResponse.json();
-    console.log("WhatsApp OTP sent via plain text fallback:", result);
-    return true;
+    const messageId = result.messages?.[0]?.id;
+    console.log("WhatsApp OTP sent via plain text fallback:", result, "messageId:", messageId);
+    return { success: true, messageId };
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
     return false;
@@ -186,9 +193,9 @@ serve(async (req) => {
       );
     }
 
-    const sent = await sendWhatsAppMessage(phone, code);
+    const sendResult = await sendWhatsAppMessage(phone, code);
 
-    if (!sent) {
+    if (!sendResult.success) {
       await supabaseAdmin
         .from('whatsapp_otp_codes')
         .delete()
@@ -199,6 +206,19 @@ serve(async (req) => {
         JSON.stringify({ error: 'send_failed', message: 'Impossible d\'envoyer le code WhatsApp' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Store the WhatsApp message ID for delivery tracking
+    if (sendResult.messageId) {
+      await supabaseAdmin
+        .from('whatsapp_otp_codes')
+        .update({ 
+          whatsapp_message_id: sendResult.messageId,
+          delivery_status: 'accepted'
+        })
+        .eq('phone', phone)
+        .eq('code', code);
+      console.log(`📌 Stored message ID ${sendResult.messageId} for OTP tracking`);
     }
 
     // Clean up expired codes

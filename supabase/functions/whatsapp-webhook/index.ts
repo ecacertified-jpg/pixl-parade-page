@@ -264,6 +264,31 @@ serve(async (req) => {
           } else if (logError) {
             console.warn(`⚠️ Template log update error:`, logError.message);
           }
+
+          // 3. Update whatsapp_otp_codes (OTP delivery tracking)
+          const otpUpdate: Record<string, unknown> = { delivery_status: statusValue };
+
+          if (statusValue === 'delivered') {
+            otpUpdate.delivered_at = statusTimestamp;
+          } else if (statusValue === 'failed') {
+            otpUpdate.failed_at = statusTimestamp;
+            if (errorInfo) {
+              otpUpdate.delivery_error = `${errorInfo.code}: ${errorInfo.title}`;
+            }
+          }
+
+          const { data: updatedOtp, error: otpError } = await supabase
+            .from('whatsapp_otp_codes')
+            .update(otpUpdate)
+            .eq('whatsapp_message_id', statusId)
+            .select('id, delivery_status')
+            .maybeSingle();
+
+          if (updatedOtp) {
+            console.log(`📌 OTP delivery updated: ${updatedOtp.id} -> ${statusValue}`);
+          } else if (otpError) {
+            console.warn(`⚠️ OTP delivery update error:`, otpError.message);
+          }
         }
         
         return new Response('OK', { status: 200, headers: corsHeaders });
