@@ -5,22 +5,19 @@
  * function each render. If any composed ref triggers setState, React re-renders,
  * creating yet another composed ref — infinite loop.
  *
- * Fix: Track the last node set per-ref and skip if unchanged.
+ * Fix: Re-entrancy guard on the DOM node itself (WeakSet). If the same node
+ * is already being processed synchronously, skip. Clear after microtask.
  *
  * See: https://github.com/radix-ui/primitives/issues/3799
  */
 import * as React from "react";
 
-const refNodes = new WeakMap<Function, object>();
+// Re-entrancy guard: tracks DOM nodes currently being processed
+// to break synchronous infinite loops in React 19's commit phase.
+const processingNodes = new WeakSet<object>();
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (typeof ref === "function") {
-    // Skip if this ref was already called with the same node
-    if (value != null && typeof value === "object") {
-      const prev = refNodes.get(ref as Function);
-      if (prev === value) return;
-      refNodes.set(ref as Function, value as object);
-    }
     ref(value);
   } else if (ref !== null && ref !== undefined) {
     (ref as React.MutableRefObject<T>).current = value;
@@ -29,41 +26,26 @@ function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
 
 function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
   return (node: T) => {
-    refs.forEach((ref) => setRef(ref, node));
+    // Guard: if this node is already being processed by a
+    // composeRefs call higher in the synchronous call stack,
+    // skip to break the infinite setState loop.
+    if (node != null && typeof node === "object") {
+      if (processingNodes.has(node as object)) return;
+      processingNodes.add(node as object);
+      refs.forEach((ref) => setRef(ref, node));
+      // Clear after microtask so future legitimate updates work
+      Promise.resolve().then(() => {
+        processingNodes.delete(node as object);
+      });
+    } else {
+      refs.forEach((ref) => setRef(ref, node));
+    }
   };
 }
 
 function useComposedRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useCallback(
-    (node: T) => {
-      const cleanups: ((() => void) | undefined)[] = [];
-      refs.forEach((ref) => {
-        if (typeof ref === "function") {
-          const result = ref(node);
-          if (typeof result === "function") {
-            cleanups.push(result);
-          }
-        } else if (ref !== null && ref !== undefined) {
-          (ref as React.MutableRefObject<T>).current = node;
-        }
-      });
-
-      if (cleanups.length > 0) {
-        return () => {
-          cleanups.forEach((cleanup) => cleanup?.());
-          refs.forEach((ref) => {
-            if (typeof ref === "function") {
-              ref(null as unknown as T);
-            } else if (ref !== null && ref !== undefined) {
-              (ref as React.MutableRefObject<T>).current = null as unknown as T;
-            }
-          });
-        };
-      }
-    },
-    refs
-  );
+  return React.useCallback(composeRefs(...refs), refs);
 }
 
 export { composeRefs, useComposedRefs };
