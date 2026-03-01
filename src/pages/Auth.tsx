@@ -799,8 +799,23 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      console.log('🔄 [OTP Resend] Resending OTP to:', currentPhone);
-      
+      const method = otpMethod || defaultMethod;
+      console.log('🔄 [OTP Resend] Resending OTP to:', currentPhone, 'via:', method);
+
+      if (method === 'whatsapp') {
+        const metadata = pendingFormData && 'firstName' in pendingFormData ? {
+          first_name: (pendingFormData as any).firstName,
+          last_name: (pendingFormData as any).lastName,
+        } : undefined;
+        await sendWhatsAppOtp(currentPhone, authMode === 'signup' ? 'signup' : 'signin', metadata);
+        setCountdown(300);
+        toast({
+          title: 'Code renvoyé',
+          description: 'Un nouveau code a été envoyé via WhatsApp.',
+        });
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone: currentPhone,
       });
