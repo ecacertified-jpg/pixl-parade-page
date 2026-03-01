@@ -55,6 +55,8 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { useFriendshipSuggestions } from "@/hooks/useFriendshipSuggestions";
+import { FriendshipSuggestionsCard } from "@/components/FriendshipSuggestionsCard";
 import { getDaysUntilBirthday } from "@/lib/utils";
 interface UserProfile {
   first_name: string | null;
@@ -123,6 +125,12 @@ export default function Dashboard() {
   // Friends circle badge celebration
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
   
+  // Friendship suggestions (contacts linked but no relationship)
+  const linkedContacts = friends
+    .filter(f => f.linked_user_id)
+    .map(f => ({ id: f.id, name: f.name, linked_user_id: f.linked_user_id! }));
+  const { suggestions: friendshipSuggestions, confirmRelationship, dismissSuggestion } = useFriendshipSuggestions(linkedContacts);
+
   // Show push notification prompt after onboarding is done
   useEffect(() => {
     if (!user) return;
@@ -754,6 +762,15 @@ export default function Dashboard() {
               </div>
             )}
             
+            <FriendshipSuggestionsCard
+              suggestions={friendshipSuggestions}
+              onConfirm={async (contactId, linkedUserId) => {
+                await confirmRelationship(contactId, linkedUserId);
+                await loadFriendsFromSupabase();
+              }}
+              onDismiss={dismissSuggestion}
+            />
+
             {(() => {
               const filteredFriends = friends.filter(f => {
                 if (friendFilter === 'linked') return !!f.linked_user_id;
