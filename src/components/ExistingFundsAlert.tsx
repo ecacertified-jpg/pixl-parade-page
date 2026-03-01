@@ -1,7 +1,6 @@
-import { AlertTriangle, Users, ArrowRight, Clock } from "lucide-react";
+import { AlertTriangle, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { differenceInDays, parseISO } from "date-fns";
 import type { ExistingFund } from "@/hooks/useExistingFundsForBeneficiary";
 
 interface ExistingFundsAlertProps {
@@ -29,15 +28,6 @@ export function ExistingFundsAlert({
 
   if (funds.length === 0) return null;
 
-  const getDaysRemaining = (deadline: string | null) => {
-    if (!deadline) return null;
-    const days = differenceInDays(parseISO(deadline), new Date());
-    if (days < 0) return null;
-    if (days === 0) return "Expire aujourd'hui";
-    if (days === 1) return "1 jour restant";
-    return `${days} jours restants`;
-  };
-
   return (
     <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4 space-y-3">
       <div className="flex items-start gap-2">
@@ -60,7 +50,6 @@ export function ExistingFundsAlert({
             ? Math.min((fund.currentAmount / fund.targetAmount) * 100, 100)
             : 0;
           const creatorName = `${fund.creatorFirstName} ${fund.creatorLastName}`.trim() || 'Quelqu\'un';
-          const daysRemaining = getDaysRemaining(fund.deadlineDate);
 
           return (
             <div
@@ -77,12 +66,6 @@ export function ExistingFundsAlert({
                   <span>{fund.currentAmount.toLocaleString()} {fund.currency}</span>
                   <span>Objectif : {fund.targetAmount.toLocaleString()} {fund.currency}</span>
                 </div>
-                {daysRemaining && (
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{daysRemaining}</span>
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center justify-between">

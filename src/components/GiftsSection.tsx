@@ -128,8 +128,15 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
     if (activeFilter === 'received') filtered = received;
     else if (activeFilter === 'given') filtered = given;
     
+    // Séparer les cadeaux récents des anciens
+    // Les 3 premiers cadeaux sont considérés comme récents
     const recent = filtered.slice(0, 3);
     const older = filtered.slice(3);
+    
+    // Notify parent component of counts
+    if (onGiftCountChange) {
+      onGiftCountChange(received.length, given.length);
+    }
     
     return {
       filteredGifts: filtered,
@@ -138,14 +145,7 @@ export function GiftsSection({ onGiftCountChange }: GiftsSectionProps) {
       recentGifts: recent,
       olderGifts: older
     };
-  }, [gifts, activeFilter, user?.id]);
-
-  // Notify parent component of gift counts (outside useMemo to avoid setState during render)
-  useEffect(() => {
-    if (onGiftCountChange) {
-      onGiftCountChange(receivedGifts.length, givenGifts.length);
-    }
-  }, [receivedGifts.length, givenGifts.length, onGiftCountChange]);
+  }, [gifts, activeFilter, user?.id, onGiftCountChange]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {

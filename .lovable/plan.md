@@ -1,50 +1,76 @@
 
 
-# Propositions d'amelioration pour la detection de doublons
+# Ecran de recherche de cagnottes existantes avant creation
 
-Apres analyse du code existant, voici 3 axes d'amelioration concrets, classes par priorite.
+## Objectif
 
----
+Ajouter une etape intermediaire avant le flux de creation de cagnotte : un ecran qui permet a l'utilisateur de rechercher des cagnottes publiques existantes par nom de beneficiaire ou titre, et de les rejoindre directement. Si rien ne correspond, l'utilisateur continue vers la creation normale.
 
-## 1. Filtres par occasion dans le SearchExistingFundsModal
+## Flux utilisateur modifie
 
-Actuellement la recherche se fait uniquement par texte libre. Ajouter des filtres rapides par type d'occasion (anniversaire, mariage, promotion, etc.) permettrait de trouver plus facilement une cagnotte existante.
+1. L'utilisateur clique sur "Creer" (Dashboard, CreateActionMenu, CelebrateMenu)
+2. **NOUVEAU** : Un modal intermediaire `SearchExistingFundsModal` s'ouvre
+   - Champ de recherche par nom de beneficiaire ou titre de cagnotte
+   - Affiche les cagnottes publiques actives correspondantes avec progression, createur, occasion
+   - Bouton "Contribuer" sur chaque resultat pour rejoindre la cagnotte
+   - Bouton "Creer une nouvelle cagnotte" en bas pour continuer vers `ShopForCollectiveGiftModal`
+3. Si l'utilisateur choisit "Creer une nouvelle cagnotte" : le flux actuel reprend normalement (selection produit, puis contact, puis creation)
 
-**Changements** :
-- `src/components/SearchExistingFundsModal.tsx` : Ajouter une rangee de chips/badges cliquables sous le champ de recherche (Anniversaire, Mariage, Promotion, Autre). Cliquer sur un chip filtre les resultats par `occasion`. Cumulable avec la recherche texte.
-- `src/hooks/useSearchPublicFunds.ts` : Ajouter un parametre `occasion?: string` a `searchFunds()`. Si fourni, ajouter `.eq('occasion', occasion)` aux requetes Supabase.
+## Plan technique
 
----
+### Etape 1 -- Hook `useSearchPublicFunds`
 
-## 2. Afficher la deadline et le temps restant
+Nouveau fichier `src/hooks/useSearchPublicFunds.ts` :
 
-Les cartes de resultats n'affichent pas la date limite de la cagnotte. Un utilisateur a besoin de savoir combien de temps il reste avant de decider de contribuer.
+- `searchFunds(query: string)` : recherche dans `collective_funds` actives et publiques
+  - Joint `contacts` pour chercher par nom de beneficiaire (`ilike`)
+  - Cherche aussi par titre de la cagnotte (`ilike`)
+  - Joint `profiles` sur `creator_id` pour afficher le nom du createur
+  - Joint `products` pour l'image produit
+  - Compte les contributions par fund
+- Retourne `results[]`, `loading`, `searchFunds(query)`, `clearResults()`
+- Debounce integre : ne lance la requete qu'apres 300ms d'inactivite, minimum 2 caracteres
 
-**Changements** :
-- `src/components/SearchExistingFundsModal.tsx` : Sous la barre de progression, afficher "X jours restants" ou "Expire le DD/MM" si `deadline_date` est present. Utiliser `date-fns` (`formatDistanceToNow` ou `differenceInDays`).
-- `src/components/ExistingFundsAlert.tsx` : Meme ajout pour les alertes de doublons dans le CollaborativeGiftModal.
-- `src/hooks/useExistingFundsForBeneficiary.ts` : Ajouter `deadlineDate` au type `ExistingFund` et le remplir depuis `deadline_date`.
+### Etape 2 -- Composant `SearchExistingFundsModal`
 
----
+Nouveau fichier `src/components/SearchExistingFundsModal.tsx` :
 
-## 3. Exclure les cagnottes creees par l'utilisateur courant de la recherche
+- Modal (Dialog) avec :
+  - Titre "Rejoindre ou creer une cagnotte"
+  - Champ de recherche avec icone Search
+  - Etat vide initial : texte explicatif + icone, encourageant a chercher d'abord
+  - Resultats : carte par cagnotte avec image produit, titre, nom beneficiaire, barre de progression, nombre de contributeurs, nom du createur, bouton "Contribuer"
+  - Clic sur "Contribuer" : ferme le modal et navigue vers `/collective-fund/{id}`
+  - Bouton fixe en bas : "Creer une nouvelle cagnotte" qui ferme ce modal et ouvre `ShopForCollectiveGiftModal`
+- Props : `isOpen`, `onClose`, `onCreateNew()` (callback pour ouvrir le flux de creation)
 
-Actuellement, si l'utilisateur a deja cree une cagnotte pour "Marie Belle", elle apparait dans ses propres resultats de recherche. Il serait plus pertinent de la distinguer visuellement ou de l'exclure.
+### Etape 3 -- Integration dans les points d'entree
 
-**Changements** :
-- `src/hooks/useSearchPublicFunds.ts` : Accepter un `currentUserId?: string` en parametre. Ajouter `.neq('creator_id', currentUserId)` aux requetes, ou alternativement marquer les fonds propres avec un flag `isOwn: true`.
-- `src/components/SearchExistingFundsModal.tsx` : Passer le `user.id` au hook. Les cagnottes propres apparaissent avec un badge "Votre cagnotte" et le bouton change en "Voir" au lieu de "Contribuer".
+Modifier 3 fichiers pour inserer le modal intermediaire :
 
----
+**`src/pages/Dashboard.tsx`** :
+- Ajouter state `showSearchFundsModal`
+- Le bouton "Creer" ouvre `SearchExistingFundsModal` au lieu de `ShopForCollectiveGiftModal`
+- `onCreateNew` de SearchExistingFundsModal ouvre `ShopForCollectiveGiftModal`
 
-## Resume des fichiers concernes
+**`src/components/CreateActionMenu.tsx`** :
+- L'action "Creer une cagnotte" ouvre `SearchExistingFundsModal`
+- `onCreateNew` ouvre `ShopForCollectiveGiftModal`
 
-| Fichier | Ameliorations |
-|---------|---------------|
-| `src/hooks/useSearchPublicFunds.ts` | Filtre occasion, exclusion createur courant |
-| `src/components/SearchExistingFundsModal.tsx` | Chips occasion, deadline, badge "Votre cagnotte" |
-| `src/components/ExistingFundsAlert.tsx` | Affichage deadline |
-| `src/hooks/useExistingFundsForBeneficiary.ts` | Ajout deadlineDate au type |
+**`src/components/CelebrateMenu.tsx`** :
+- Meme logique : intermediaire avant `ShopForCollectiveGiftModal`
 
-Aucune migration SQL necessaire.
+### Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| `src/hooks/useSearchPublicFunds.ts` | Creer -- logique de recherche de cagnottes publiques |
+| `src/components/SearchExistingFundsModal.tsx` | Creer -- UI de recherche et resultats |
+| `src/pages/Dashboard.tsx` | Modifier -- inserer le modal intermediaire |
+| `src/components/CreateActionMenu.tsx` | Modifier -- inserer le modal intermediaire |
+| `src/components/CelebrateMenu.tsx` | Modifier -- inserer le modal intermediaire |
+
+### Aucune migration SQL necessaire
+
+La recherche utilise les colonnes existantes de `collective_funds` (`title`, `is_public`, `status`), `contacts` (`name`) et `profiles` (`first_name`, `last_name`). Les politiques RLS existantes sur `collective_funds` autorisent deja la lecture des fonds publics.
 
