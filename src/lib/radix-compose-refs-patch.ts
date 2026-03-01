@@ -4,8 +4,8 @@ type PossibleRef<T> = React.Ref<T> | undefined | null;
 
 function setRef<T>(ref: PossibleRef<T>, value: T | null) {
   if (typeof ref === "function") {
-    ref(value);
-    // Intentionally NOT returning cleanup to avoid React 19 infinite loop
+    const cleanup = ref(value);
+    return typeof cleanup === "function" ? cleanup : undefined;
   } else if (ref !== null && ref !== undefined) {
     (ref as React.MutableRefObject<T | null>).current = value;
   }
@@ -13,7 +13,26 @@ function setRef<T>(ref: PossibleRef<T>, value: T | null) {
 
 function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
   return (node: T | null) => {
-    refs.forEach((ref) => setRef(ref, node));
+    let hasCleanup = false;
+    const cleanups = refs.map((ref) => {
+      const cleanup = setRef(ref, node);
+      if (!hasCleanup && typeof cleanup === "function") {
+        hasCleanup = true;
+      }
+      return cleanup;
+    });
+    if (hasCleanup) {
+      return () => {
+        for (let i = 0; i < cleanups.length; i++) {
+          const cleanup = cleanups[i];
+          if (typeof cleanup === "function") {
+            cleanup();
+          } else {
+            setRef(refs[i], null);
+          }
+        }
+      };
+    }
   };
 }
 
