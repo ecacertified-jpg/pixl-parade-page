@@ -4,12 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { BirthdayAlert } from '@/hooks/useBusinessBirthdayAlerts';
 
 interface BirthdayAlertProductBadgeProps {
@@ -60,54 +54,24 @@ export function BirthdayAlertProductBadge({
 
   if (compact) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <motion.div
-              className={`absolute -top-2 -right-2 z-10 ${styles.glow}`}
-              animate={{
-                scale: alert.priority === 'critical' ? [1, 1.1, 1] : 1
-              }}
-              transition={{
-                duration: 0.6,
-                repeat: alert.priority === 'critical' ? Infinity : 0,
-                ease: "easeInOut"
-              }}
-            >
-              <Badge className={`${styles.badge} px-2 py-1 flex items-center gap-1`}>
-                <Cake className="h-3 w-3" />
-                <span className="text-xs font-bold">{alert.days_until_birthday}j</span>
-              </Badge>
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-xs">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={alert.target_user_avatar || undefined} />
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                    {alert.target_user_name?.charAt(0) || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold">{alert.target_user_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Anniversaire dans {alert.days_until_birthday} jours
-                  </p>
-                </div>
-              </div>
-              <Button 
-                size="sm" 
-                className="w-full gap-2"
-                onClick={() => onCreateFund(alert)}
-              >
-                <Gift className="h-4 w-4" />
-                Créer une cagnotte
-              </Button>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <motion.div
+        className={`absolute -top-2 -right-2 z-10 ${styles.glow}`}
+        title={`${alert.target_user_name} — Anniversaire dans ${alert.days_until_birthday} jours`}
+        animate={{
+          scale: alert.priority === 'critical' ? [1, 1.1, 1] : 1
+        }}
+        transition={{
+          type: "tween",
+          duration: 0.6,
+          repeat: alert.priority === 'critical' ? Infinity : 0,
+          ease: "easeInOut"
+        }}
+      >
+        <Badge className={`${styles.badge} px-2 py-1 flex items-center gap-1 cursor-pointer`}>
+          <Cake className="h-3 w-3" />
+          <span className="text-xs font-bold">{alert.days_until_birthday}j</span>
+        </Badge>
+      </motion.div>
     );
   }
 
