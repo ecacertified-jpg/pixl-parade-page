@@ -7306,37 +7306,52 @@ export type Database = {
           attempts: number | null
           code: string
           created_at: string | null
+          delivered_at: string | null
+          delivery_error: string | null
+          delivery_status: string | null
           expires_at: string
+          failed_at: string | null
           id: string
           max_attempts: number | null
           phone: string
           purpose: string
           user_metadata: Json | null
           verified_at: string | null
+          whatsapp_message_id: string | null
         }
         Insert: {
           attempts?: number | null
           code: string
           created_at?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
           expires_at: string
+          failed_at?: string | null
           id?: string
           max_attempts?: number | null
           phone: string
           purpose?: string
           user_metadata?: Json | null
           verified_at?: string | null
+          whatsapp_message_id?: string | null
         }
         Update: {
           attempts?: number | null
           code?: string
           created_at?: string | null
+          delivered_at?: string | null
+          delivery_error?: string | null
+          delivery_status?: string | null
           expires_at?: string
+          failed_at?: string | null
           id?: string
           max_attempts?: number | null
           phone?: string
           purpose?: string
           user_metadata?: Json | null
           verified_at?: string | null
+          whatsapp_message_id?: string | null
         }
         Relationships: []
       }
