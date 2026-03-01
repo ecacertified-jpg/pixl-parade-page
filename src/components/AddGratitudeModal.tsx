@@ -27,8 +27,7 @@ const gratitudeSchema = z.object({
   message: z.string()
     .trim()
     .min(10, "Le message doit contenir au moins 10 caractères")
-    .max(500, "Le message ne peut pas dépasser 500 caractères")
-    .regex(/^[\w\s\p{P}\p{Emoji}]+$/u, "Le message contient des caractères non autorisés"),
+    .max(500, "Le message ne peut pas dépasser 500 caractères"),
   fundId: z.string().uuid("Identifiant de cagnotte invalide"),
   beneficiaryId: z.string().uuid("Identifiant du bénéficiaire invalide"),
 });
