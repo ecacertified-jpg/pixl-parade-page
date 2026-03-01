@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search } from "lucide-react";
 import {
   AlertDialog,
@@ -793,12 +793,11 @@ export default function Dashboard() {
                         <div className="font-medium flex items-center gap-1.5">
                           {friend.name}
                           {friend.linked_user_id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                  <button
                                   className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5 hover:bg-success/20 transition-colors cursor-pointer"
                                   onClick={() => navigate(`/gift-ideas/${friend.id}`)}
-                                  title={friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id)
-                                    ? `${friend.name} a des souhaits !`
-                                    : `Voir les souhaits de ${friend.name}`}
                                  >
                                    <CheckCircle className="h-3 w-3" />
                                    Sur l'app
@@ -806,6 +805,13 @@ export default function Dashboard() {
                                      <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse ml-0.5" />
                                    )}
                                  </button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                 {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id)
+                                   ? `${friend.name} a des souhaits !`
+                                   : `Voir les souhaits de ${friend.name}`}
+                               </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
@@ -818,11 +824,12 @@ export default function Dashboard() {
                           {friend.relation}
                         </Badge>
                         {!friend.linked_user_id && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
-                                title="Inviter sur l'app"
                                 onClick={async () => {
                                   const userName = userProfile?.first_name || user?.user_metadata?.first_name || '';
                                   const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/signup`;
@@ -840,6 +847,9 @@ export default function Dashboard() {
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Inviter sur l'app</TooltipContent>
+                          </Tooltip>
                         )}
                         <AnimatedGiftButton
                           friendId={friend.id}

@@ -215,7 +215,6 @@ export function BirthdayCountdownCard({ birthday, userName, onCompleteProfile }:
                         scale: [1, 1.1, 1]
                       }}
                       transition={{ 
-                        type: "tween",
                         duration: 0.5, 
                         repeat: Infinity, 
                         repeatDelay: 2 

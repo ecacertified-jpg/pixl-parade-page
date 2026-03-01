@@ -1,81 +1,50 @@
 
 
-# Fix: Profile Dropdown Not Opening (Re-entrancy Guard Too Aggressive)
+# Propositions d'amelioration pour la detection de doublons
 
-## Root Cause
+Apres analyse du code existant, voici 3 axes d'amelioration concrets, classes par priorite.
 
-The current `WeakSet` guard in `radix-compose-refs-patch.ts` blocks ALL subsequent ref calls for the same DOM node within a microtask. This successfully prevents the infinite loop crash, but also prevents the **second legitimate call** that Radix needs to properly initialize dropdown content (positioning, focus management, etc.).
+---
 
-The sequence is:
-1. User clicks profile icon -> Radix opens dropdown -> new DOM nodes created
-2. `composeRefs` ref callback called with node -> node added to WeakSet -> refs set -> one ref triggers `setState`
-3. React re-renders -> creates new `composeRefs` callback -> React calls old(null) + new(node)
-4. **new(node)**: node is still in WeakSet (microtask hasn't cleared) -> **SKIPPED** -- dropdown refs never fully initialized -> dropdown doesn't appear
+## 1. Filtres par occasion dans le SearchExistingFundsModal
 
-## Solution
+Actuellement la recherche se fait uniquement par texte libre. Ajouter des filtres rapides par type d'occasion (anniversaire, mariage, promotion, etc.) permettrait de trouver plus facilement une cagnotte existante.
 
-Replace the boolean WeakSet with a **depth counter** (`WeakMap<object, number>`). Allow up to 2 ref calls per node per microtask (initial + one re-entry from setState), but block at 3+ to prevent the infinite loop (React's limit is 50).
+**Changements** :
+- `src/components/SearchExistingFundsModal.tsx` : Ajouter une rangee de chips/badges cliquables sous le champ de recherche (Anniversaire, Mariage, Promotion, Autre). Cliquer sur un chip filtre les resultats par `occasion`. Cumulable avec la recherche texte.
+- `src/hooks/useSearchPublicFunds.ts` : Ajouter un parametre `occasion?: string` a `searchFunds()`. Si fourni, ajouter `.eq('occasion', occasion)` aux requetes Supabase.
 
-This allows the necessary ref updates for dropdown functionality while still breaking the runaway loop.
+---
 
-## Changes
+## 2. Afficher la deadline et le temps restant
 
-### File: `src/lib/radix-compose-refs-patch.ts`
+Les cartes de resultats n'affichent pas la date limite de la cagnotte. Un utilisateur a besoin de savoir combien de temps il reste avant de decider de contribuer.
 
-Replace the entire file:
+**Changements** :
+- `src/components/SearchExistingFundsModal.tsx` : Sous la barre de progression, afficher "X jours restants" ou "Expire le DD/MM" si `deadline_date` est present. Utiliser `date-fns` (`formatDistanceToNow` ou `differenceInDays`).
+- `src/components/ExistingFundsAlert.tsx` : Meme ajout pour les alertes de doublons dans le CollaborativeGiftModal.
+- `src/hooks/useExistingFundsForBeneficiary.ts` : Ajouter `deadlineDate` au type `ExistingFund` et le remplir depuis `deadline_date`.
 
-```typescript
-import * as React from "react";
+---
 
-// Depth counter per DOM node: allows a small number of re-entrant
-// ref calls (needed for Radix internals) but caps them to prevent
-// the infinite setState loop in React 19.
-const nodeCallCount = new WeakMap<object, number>();
-const MAX_CALLS_PER_TICK = 3;
+## 3. Exclure les cagnottes creees par l'utilisateur courant de la recherche
 
-function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
-  if (typeof ref === "function") {
-    ref(value);
-  } else if (ref !== null && ref !== undefined) {
-    (ref as React.MutableRefObject<T>).current = value;
-  }
-}
+Actuellement, si l'utilisateur a deja cree une cagnotte pour "Marie Belle", elle apparait dans ses propres resultats de recherche. Il serait plus pertinent de la distinguer visuellement ou de l'exclure.
 
-function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
-  return (node: T) => {
-    if (node != null && typeof node === "object") {
-      const count = nodeCallCount.get(node as object) || 0;
-      if (count >= MAX_CALLS_PER_TICK) return; // Break infinite loop
-      nodeCallCount.set(node as object, count + 1);
+**Changements** :
+- `src/hooks/useSearchPublicFunds.ts` : Accepter un `currentUserId?: string` en parametre. Ajouter `.neq('creator_id', currentUserId)` aux requetes, ou alternativement marquer les fonds propres avec un flag `isOwn: true`.
+- `src/components/SearchExistingFundsModal.tsx` : Passer le `user.id` au hook. Les cagnottes propres apparaissent avec un badge "Votre cagnotte" et le bouton change en "Voir" au lieu de "Contribuer".
 
-      refs.forEach((ref) => setRef(ref, node));
+---
 
-      // Reset after microtask so future legitimate updates work
-      if (count === 0) {
-        Promise.resolve().then(() => {
-          nodeCallCount.delete(node as object);
-        });
-      }
-    } else {
-      refs.forEach((ref) => setRef(ref, node));
-    }
-    // Do NOT return a cleanup function -- prevents React 19
-    // cleanup-then-set cycle when callback identity changes each render.
-  };
-}
+## Resume des fichiers concernes
 
-function useComposedRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useCallback(composeRefs(...refs), refs);
-}
+| Fichier | Ameliorations |
+|---------|---------------|
+| `src/hooks/useSearchPublicFunds.ts` | Filtre occasion, exclusion createur courant |
+| `src/components/SearchExistingFundsModal.tsx` | Chips occasion, deadline, badge "Votre cagnotte" |
+| `src/components/ExistingFundsAlert.tsx` | Affichage deadline |
+| `src/hooks/useExistingFundsForBeneficiary.ts` | Ajout deadlineDate au type |
 
-export { composeRefs, useComposedRefs };
-```
-
-### Key differences from previous approach
-
-- **WeakMap counter** instead of WeakSet boolean -- allows 1-2 re-entries (needed by Radix) but blocks at 3+ (infinite loop)
-- **Single microtask cleanup** -- only the first call schedules the cleanup to avoid redundant promises
-- **No cleanup function returned** -- still prevents React 19's cleanup-set cycle
-- `MAX_CALLS_PER_TICK = 3` provides headroom for Radix's legitimate re-entries while staying far below React's 50-update crash limit
+Aucune migration SQL necessaire.
 
