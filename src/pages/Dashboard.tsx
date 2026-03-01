@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -168,10 +168,10 @@ export default function Dashboard() {
   const defaultTab = searchParams.get('tab') || 'amis';
 
   // Callback pour mettre à jour les compteurs de cadeaux
-  const handleGiftCountChange = (received: number, given: number) => {
+  const handleGiftCountChange = useCallback((received: number, given: number) => {
     setReceivedGiftsCount(received);
     setGivenGiftsCount(given);
-  };
+  }, []);
 
   // Nettoyer l'ancien localStorage partagé (bug d'isolation)
   useEffect(() => {
