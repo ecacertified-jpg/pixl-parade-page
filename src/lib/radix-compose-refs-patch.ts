@@ -1,23 +1,24 @@
 /**
  * Patched version of @radix-ui/react-compose-refs for React 19 compatibility.
  *
- * Problem: composeRefs() is called in render by Radix Slot, producing a new
- * function each render. If any composed ref triggers setState, React re-renders,
- * creating yet another composed ref — infinite loop.
+ * Problem: composeRefs() creates a new function each render. In React 19,
+ * when ref identity changes, React runs cleanup then re-applies. If any
+ * composed ref triggers setState, React re-renders, producing yet another
+ * composed ref — infinite loop. Each iteration is a *separate* call stack,
+ * so synchronous depth counters don't work.
  *
- * Fix: Global synchronous depth counter. Since the problematic calls are nested
- * in the call stack (dispatchSetState is synchronous during React 19 commit),
- * we cap the nesting depth. Legitimate Radix nesting is ~2-4 levels; infinite
- * loops would reach 50+. We cap at 8 for safety.
+ * Fix: Per-node call counter with time-based reset. Track how many times
+ * each DOM node receives a ref call within a short window. Legitimate
+ * usage is 1-4 calls; infinite loops hit 50+. We cap at 10.
  *
  * See: https://github.com/radix-ui/primitives/issues/3799
  */
 import * as React from "react";
 
-// Global depth counter for synchronous nested composeRefs calls.
-// Tracks how deep we are in the call stack to break infinite loops.
-let globalDepth = 0;
-const MAX_DEPTH = 8;
+const nodeCallCount = new WeakMap<object, number>();
+const nodeTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+const MAX_CALLS = 10;
+const RESET_MS = 100;
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
   if (typeof ref === "function") {
@@ -29,15 +30,30 @@ function setRef<T>(ref: React.Ref<T> | undefined, value: T) {
 
 function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
   return (node: T) => {
-    globalDepth++;
-    if (globalDepth > MAX_DEPTH) {
-      globalDepth--;
-      return;
-    }
-    try {
+    if (node != null && typeof node === "object") {
+      const key = node as object;
+      const count = (nodeCallCount.get(key) || 0) + 1;
+
+      if (count > MAX_CALLS) {
+        return; // Break infinite loop
+      }
+
+      nodeCallCount.set(key, count);
+
+      // Reset counter after quiet period
+      const existing = nodeTimers.get(key);
+      if (existing) clearTimeout(existing);
+      nodeTimers.set(
+        key,
+        setTimeout(() => {
+          nodeCallCount.delete(key);
+          nodeTimers.delete(key);
+        }, RESET_MS)
+      );
+
       refs.forEach((ref) => setRef(ref, node));
-    } finally {
-      globalDepth--;
+    } else {
+      refs.forEach((ref) => setRef(ref, node));
     }
   };
 }
