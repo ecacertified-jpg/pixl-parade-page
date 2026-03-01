@@ -1,23 +1,19 @@
-/**
- * Patch for @radix-ui/react-compose-refs to prevent infinite ref loops with React 19.
- * React 19 calls ref cleanup functions, which triggers compose-refs to re-assign all refs,
- * causing an infinite setState loop. This patch adds a re-entrancy guard.
- */
+import React from 'react';
+
+type PossibleRef<T> = React.Ref<T> | undefined | null;
 
 let isComposing = false;
 
-type PossibleRef<T> = React.Ref<T> | undefined;
-
-function setRef<T>(ref: PossibleRef<T>, value: T) {
+function setRef<T>(ref: PossibleRef<T>, value: T | null) {
   if (typeof ref === 'function') {
     ref(value);
   } else if (ref !== null && ref !== undefined) {
-    (ref as React.MutableRefObject<T>).current = value;
+    (ref as React.MutableRefObject<T | null>).current = value;
   }
 }
 
-function composeRefs<T>(...refs: PossibleRef<T>[]) {
-  return (node: T) => {
+function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
+  return (node: T | null) => {
     if (isComposing) return;
     isComposing = true;
     try {
@@ -32,7 +28,5 @@ function useComposedRefs<T>(...refs: PossibleRef<T>[]) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useMemo(() => composeRefs(...refs), refs);
 }
-
-import React from 'react';
 
 export { composeRefs, useComposedRefs };
