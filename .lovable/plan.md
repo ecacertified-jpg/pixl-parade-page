@@ -1,52 +1,97 @@
 
 
-# Fix: Radix UI compose-refs infinite loop on all buttons
+# Fix: Radix UI menus not opening -- replace patching strategy
 
 ## Problem
 
-The Vite alias for `@radix-ui/react-compose-refs` is not being applied to all Radix packages. When Vite pre-bundles packages like `@radix-ui/react-dropdown-menu`, `@radix-ui/react-dialog`, etc., it inlines their dependency on `compose-refs` directly into bundled chunks (e.g., `chunk-6YGIOMX5.js`). The alias never gets a chance to redirect those internal imports to the patch file.
+The current approach excludes ALL Radix UI packages from Vite's pre-bundling (`optimizeDeps.exclude`). This causes cascading issues:
+- CommonJS dependencies like `use-sync-external-store` fail to load as ESM
+- Module resolution breaks silently, causing menus not to open
+- Each fix creates a new problem (whack-a-mole)
 
-This causes the infinite `setState` loop on any component using Radix refs (dropdowns, dialogs, tooltips, etc.) -- which is why ALL buttons are affected.
+## Solution: Vite plugin instead of alias + exclude
 
-## Root Cause
+Replace the alias + exclude strategy with a **custom Vite plugin** that intercepts the `compose-refs` module during the `load` phase. This works **during pre-bundling**, so all Radix packages can remain normally bundled.
 
-1. `optimizeDeps.exclude` only excludes `@radix-ui/react-compose-refs` itself from pre-bundling
-2. Other Radix packages that `import` from it are still pre-bundled, and their internal imports are resolved to the original module during bundling
-3. The patch never intercepts those calls
+### Changes
 
-## Solution
+**1. Update `src/lib/radix-compose-refs-patch.ts`**
 
-Two changes:
-
-### 1. Exclude all Radix UI packages from Vite pre-bundling
-
-In `vite.config.ts`, replace the single exclude with a pattern that covers all `@radix-ui/*` packages. This forces Vite to leave Radix imports as-is at runtime, where the alias can properly redirect them to the patch.
+Rewrite to match the original module's API more closely (using `useCallback` instead of `useMemo`, proper cleanup return), but with a re-entrancy guard to prevent the infinite loop:
 
 ```ts
-optimizeDeps: {
-  exclude: ['@radix-ui/react-compose-refs'],
-  // Add:
-  exclude: [/^@radix-ui\//],  // or list all radix packages explicitly
+import * as React from "react";
+
+let isComposing = false;
+
+function setRef(ref, value) {
+  if (typeof ref === "function") {
+    return ref(value);
+  } else if (ref !== null && ref !== undefined) {
+    ref.current = value;
+  }
 }
+
+function composeRefs(...refs) {
+  return (node) => {
+    if (isComposing) return;
+    isComposing = true;
+    try {
+      let hasCleanup = false;
+      const cleanups = refs.map((ref) => {
+        const cleanup = setRef(ref, node);
+        if (!hasCleanup && typeof cleanup === "function") {
+          hasCleanup = true;
+        }
+        return cleanup;
+      });
+      if (hasCleanup) {
+        return () => {
+          if (isComposing) return;
+          isComposing = true;
+          try {
+            for (let i = 0; i < cleanups.length; i++) {
+              const cleanup = cleanups[i];
+              if (typeof cleanup === "function") {
+                cleanup();
+              } else {
+                setRef(refs[i], null);
+              }
+            }
+          } finally {
+            isComposing = false;
+          }
+        };
+      }
+    } finally {
+      isComposing = false;
+    }
+  };
+}
+
+function useComposedRefs(...refs) {
+  return React.useCallback(composeRefs(...refs), refs);
+}
+
+export { composeRefs, useComposedRefs };
 ```
 
-Since Vite `exclude` doesn't support regex, we'll list the key Radix packages that use compose-refs, or use a `noExternal`-style workaround.
+**2. Rewrite `vite.config.ts` optimizeDeps**
 
-**Simpler approach**: Use `optimizeDeps.exclude` with all installed `@radix-ui/*` packages so none get pre-bundled.
+- Remove ALL `@radix-ui/*` entries from `optimizeDeps.exclude` (keep only `@radix-ui/react-compose-refs`)
+- Remove the `use-sync-external-store` entries from `optimizeDeps.include` (no longer needed)
+- Keep the `resolve.alias` for `@radix-ui/react-compose-refs` pointing to the patch file
 
-### 2. Update the patch to match the original API
-
-The current patch doesn't return cleanup functions, which differs from the original module's behavior. Update `src/lib/radix-compose-refs-patch.ts` to properly handle React 19's cleanup return pattern while still preventing re-entrancy.
+This restores normal Radix pre-bundling while the alias still redirects compose-refs to our safe implementation.
 
 ## Files to modify
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `vite.config.ts` | Exclude all `@radix-ui/*` packages from `optimizeDeps` |
-| `src/lib/radix-compose-refs-patch.ts` | Update to match original API with cleanup support and re-entrancy guard |
+| `src/lib/radix-compose-refs-patch.ts` | Rewrite to match original API with re-entrancy guard on both set and cleanup |
+| `vite.config.ts` | Remove all Radix excludes except compose-refs; remove use-sync-external-store includes |
 
-## Expected outcome
+## Expected result
 
-- All Radix-based components (dropdowns, dialogs, tooltips, popovers) will work without triggering infinite `setState` loops
-- The profile dropdown, navigation menus, and all interactive buttons will function correctly
+All Radix-based menus (profile dropdown, dialogs, tooltips, popovers) will open correctly without infinite loops or module resolution errors.
 
