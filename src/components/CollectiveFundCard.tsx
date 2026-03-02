@@ -4,6 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Users, Gift, Trash2, RefreshCw, AlertTriangle, Heart, Globe, Lock, Share2, Store } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ContributionModal } from "./ContributionModal";
@@ -36,6 +46,7 @@ interface CollectiveFundCardProps {
 export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, onDelete }: CollectiveFundCardProps) {
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isPublic, setIsPublic] = useState(fund.isPublic || false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
   const { user } = useAuth();
@@ -248,7 +259,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleDelete}
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
                   className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -441,6 +452,26 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
         fundTitle={fund.title}
         fundDescription={`${fund.beneficiaryName ? `Pour ${fund.beneficiaryName} - ` : ''}${fund.productName}`}
       />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette cagnotte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Toutes les contributions ({fund.currentAmount.toLocaleString()} {fund.currency}) et les commentaires seront perdus.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
