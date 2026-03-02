@@ -1,0 +1,1 @@
+UPDATE profiles SET first_name = 'Aboutou WhatsApp' WHERE user_id = '3fc4a030-46ca-44f7-92d8-eb2d70e1610e';
