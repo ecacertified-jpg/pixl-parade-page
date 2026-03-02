@@ -886,8 +886,10 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center justify-between w-full">
-                          <div className="font-medium flex items-center gap-1.5">
+                          <div className="font-medium">
                             {friend.name}
+                          </div>
+                          <div className="flex items-center gap-1.5">
                             {friend.linked_user_id && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -909,10 +911,10 @@ export default function Dashboard() {
                                  </TooltipContent>
                               </Tooltip>
                             )}
+                            <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
+                              {friend.relation}
+                            </Badge>
                           </div>
-                          <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
-                            {friend.relation}
-                          </Badge>
                         </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
