@@ -1,28 +1,40 @@
 
-# Ajouter une confirmation avant la suppression d'une cagnotte
+# Corriger le profil "Aboutou WhatsApp" et securiser les parametres WhatsApp
 
-## Probleme
+## Correction 1 : Donnees en base
 
-Le bouton suppression (icone poubelle) sur la carte de cagnotte supprime directement sans avertissement. L'utilisateur pourrait supprimer sa cagnotte par erreur, perdant les contributions existantes.
+Mettre a jour le profil `3fc4a030-46ca-44f7-92d8-eb2d70e1610e` pour supprimer l'espace en trop dans `first_name` (passer de `"Aboutou WhatsApp "` a `"Aboutou WhatsApp"`).
 
-## Solution
+- Outil : requete UPDATE via l'outil d'insertion de donnees
 
-Ajouter un `AlertDialog` de confirmation qui s'affiche au clic sur le bouton supprimer, avec un message clair indiquant les consequences (perte des contributions, action irreversible).
+## Correction 2 : Edge Function `notify-contribution-progress`
 
-### Fichier : `src/components/CollectiveFundCard.tsx`
+Ajouter `.trim()` sur tous les parametres textuels passes a `sendWhatsAppTemplate` pour eviter les erreurs Meta `(#100) Invalid parameter` causees par des espaces parasites.
 
-1. **Importer AlertDialog** depuis `@/components/ui/alert-dialog` (AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle)
+### Lignes concernees
 
-2. **Ajouter un state** `showDeleteConfirm` (boolean, default false)
+Chaque appel a `sendWhatsAppTemplate` utilise un tableau de 6 parametres :
+```
+[recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining]
+```
 
-3. **Modifier le bouton Trash2** : au lieu d'appeler `handleDelete` directement, ouvrir le dialog avec `setShowDeleteConfirm(true)`
+Les variables `recipientName`, `contributorName` et `beneficiaryName` proviennent de la base et peuvent contenir des espaces en trop.
 
-4. **Ajouter le composant AlertDialog** dans le JSX avec :
-   - Titre : "Supprimer cette cagnotte ?"
-   - Description : "Cette action est irreversible. Toutes les contributions ({montant} {devise}) et les commentaires seront perdus."
-   - Bouton Annuler
-   - Bouton Confirmer (rouge) qui appelle `handleDelete`
+**Modification** : creer une fonction utilitaire `trimParams` qui applique `.trim()` sur chaque parametre du tableau, et l'utiliser dans les 4 appels `sendWhatsAppTemplate` (lignes 155, 201, 256, 305).
 
-## Fichier modifie
+```text
+// Ajouter apres la ligne 8
+function trimParams(params: string[]): string[] {
+  return params.map(p => p.trim());
+}
 
-- `src/components/CollectiveFundCard.tsx`
+// Remplacer dans les 4 appels :
+[recipientName, contributorName, ...] -> trimParams([recipientName, contributorName, ...])
+```
+
+Cela protege contre tout espace parasite dans n'importe quel champ de profil, pas seulement "Aboutou WhatsApp".
+
+## Fichiers modifies
+
+- Base de donnees : UPDATE sur `profiles` (correction ponctuelle)
+- `supabase/functions/notify-contribution-progress/index.ts` : ajout de `trimParams` + application aux 4 appels WhatsApp
