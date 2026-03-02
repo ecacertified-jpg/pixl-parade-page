@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { UserPlus, Users, X, Share2, Mail, UserCheck, Loader2 } from "lucide-react";
+import { UserPlus, Users, X, Share2, Mail, UserCheck, Loader2, Cake } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InviteFriendsModal } from "@/components/InviteFriendsModal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { isValidImageUrl } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUserSuggestions } from "@/hooks/useUserSuggestions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -181,21 +182,37 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
               key={suggestion.user_id}
               className="flex items-start gap-3 group"
             >
-              <Avatar
-                className="w-12 h-12 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => navigate(`/profile/${suggestion.user_id}`)}
-              >
-                {isValidImageUrl(suggestion.avatar_url) && (
-                  <AvatarImage
-                    src={suggestion.avatar_url}
-                    alt={userName}
-                    className="object-cover"
-                  />
+              <div className="relative">
+                <Avatar
+                  className="w-12 h-12 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => navigate(`/profile/${suggestion.user_id}`)}
+                >
+                  {isValidImageUrl(suggestion.avatar_url) && (
+                    <AvatarImage
+                      src={suggestion.avatar_url}
+                      alt={userName}
+                      className="object-cover"
+                    />
+                  )}
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                {suggestion.days_until_birthday && suggestion.days_until_birthday <= 14 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="absolute -bottom-1 -right-1 bg-gift rounded-full w-5 h-5 flex items-center justify-center ring-2 ring-background">
+                          <Cake className="w-3 h-3 text-white" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Anniversaire dans {suggestion.days_until_birthday} jour{suggestion.days_until_birthday > 1 ? 's' : ''}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary font-medium">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
+              </div>
 
               <div className="flex-1 min-w-0">
                 <h4
