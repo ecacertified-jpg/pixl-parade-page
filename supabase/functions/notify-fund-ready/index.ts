@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-source',
 };
 
+/** Trim all string params to avoid Meta API #100 errors from trailing spaces */
+function trimParams(params: string[]): string[] {
+  return params.map(p => p.trim());
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,7 +33,7 @@ serve(async (req) => {
     // Verify fund is at target
     const { data: fund, error: fundError } = await supabase
       .from('collective_funds')
-      .select('id, title, current_amount, target_amount, status')
+      .select('id, title, current_amount, target_amount, status, creator_id, beneficiary_contact_id')
       .eq('id', fund_id)
       .single();
 
@@ -113,7 +118,9 @@ serve(async (req) => {
 
     const ownerFirstName = ownerProfile?.first_name || business.business_name;
 
-    // Send WhatsApp template
+    // =============================================
+    // SECTION 1: Notify vendor (existing logic)
+    // =============================================
     let whatsappSent = false;
     if (business.phone) {
       try {
@@ -121,7 +128,7 @@ serve(async (req) => {
           business.phone,
           'joiedevivre_fund_ready',
           'fr',
-          [ownerFirstName, fundTitle, String(fundAmount), productName, beneficiaryName],
+          trimParams([ownerFirstName, fundTitle, String(fundAmount), productName, beneficiaryName]),
           [bf.fund_id] // CTA button: /business/orders/{fund_id}
         );
         whatsappSent = waResult.success;
@@ -133,7 +140,7 @@ serve(async (req) => {
       console.warn(`⚠️ No phone for business ${business.business_name}`);
     }
 
-    // Create in-app notification (also serves as deduplication marker)
+    // Create in-app notification for vendor (also serves as deduplication marker)
     await supabase
       .from('scheduled_notifications')
       .insert({
@@ -157,11 +164,170 @@ serve(async (req) => {
 
     console.log(`✅ Vendor notification created for ${business.business_name} (fund: ${fundTitle})`);
 
+    // =============================================
+    // SECTION 2: Notify friends (new logic)
+    // =============================================
+    console.log(`🎉 [notify-fund-ready] Starting friend notifications for fund ${fund_id}`);
+
+    const sentPhones = new Set<string>();
+    const allNotifiedUserIds = new Set<string>();
+    let friendWaSent = 0;
+    let friendWaFailed = 0;
+
+    // Exclude vendor phone from friend notifications
+    if (business.phone) {
+      sentPhones.add(business.phone.replace(/\s+/g, ''));
+    }
+    // Exclude vendor user_id
+    allNotifiedUserIds.add(business.user_id);
+
+    // Helper: send fund_completed WhatsApp + in-app notification
+    async function notifyFriend(profile: { user_id: string; first_name: string | null; phone: string | null }, source: string) {
+      const recipientName = profile.first_name || 'Ami(e)';
+
+      // WhatsApp
+      if (profile.phone) {
+        const normalizedPhone = profile.phone.replace(/\s+/g, '');
+        if (!sentPhones.has(normalizedPhone)) {
+          try {
+            await sendWhatsAppTemplate(
+              profile.phone,
+              'joiedevivre_fund_completed',
+              'fr',
+              trimParams([recipientName, fundTitle, beneficiaryName, String(fundAmount)]),
+              [fund_id] // CTA: /f/{fund_id}
+            );
+            sentPhones.add(normalizedPhone);
+            friendWaSent++;
+            console.log(`📱 Fund completed WA -> ${source} ${profile.user_id}: ✅`);
+          } catch (err) {
+            friendWaFailed++;
+            console.error(`❌ Fund completed WA failed for ${source} ${profile.user_id}:`, err);
+          }
+        } else {
+          console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (${source} ${profile.user_id})`);
+        }
+      }
+
+      // In-app notification (always, regardless of phone)
+      if (!allNotifiedUserIds.has(profile.user_id)) {
+        allNotifiedUserIds.add(profile.user_id);
+        await supabase
+          .from('scheduled_notifications')
+          .insert({
+            user_id: profile.user_id,
+            notification_type: 'fund_completed',
+            smart_notification_category: 'fund_milestone',
+            title: '🎉 Objectif atteint !',
+            message: `La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} XOF ! Merci pour votre générosité.`,
+            scheduled_for: new Date().toISOString(),
+            delivery_methods: ['in_app', 'push'],
+            priority_score: 85,
+            action_data: {
+              fund_id: fund_id,
+              beneficiary_name: beneficiaryName,
+              amount: fundAmount,
+              action_type: 'view_fund'
+            }
+          });
+      }
+    }
+
+    // A. Contributors
+    const { data: contributions } = await supabase
+      .from('fund_contributions')
+      .select('contributor_id')
+      .eq('fund_id', fund_id);
+
+    const uniqueContributorIds = [...new Set((contributions || []).map(c => c.contributor_id))];
+    console.log(`👥 Contributors: ${uniqueContributorIds.length}`);
+
+    if (uniqueContributorIds.length > 0) {
+      const { data: contributorProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, phone')
+        .in('user_id', uniqueContributorIds);
+
+      for (const profile of (contributorProfiles || [])) {
+        await notifyFriend(profile, 'contributor');
+      }
+    }
+
+    // B. Friends of the creator (can_see_funds = true)
+    const { data: creatorFriendRels } = await supabase
+      .from('contact_relationships')
+      .select('user_a, user_b')
+      .or(`user_a.eq.${fund.creator_id},user_b.eq.${fund.creator_id}`)
+      .eq('can_see_funds', true);
+
+    const creatorFriendIds = (creatorFriendRels || [])
+      .map(rel => rel.user_a === fund.creator_id ? rel.user_b : rel.user_a)
+      .filter(id => !allNotifiedUserIds.has(id));
+
+    const uniqueCreatorFriendIds = [...new Set(creatorFriendIds)];
+    console.log(`👫 Creator friends: ${uniqueCreatorFriendIds.length}`);
+
+    if (uniqueCreatorFriendIds.length > 0) {
+      const { data: friendProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, phone')
+        .in('user_id', uniqueCreatorFriendIds);
+
+      for (const profile of (friendProfiles || [])) {
+        await notifyFriend(profile, 'creator_friend');
+      }
+    }
+
+    // C. Friends of the beneficiary (via linked_user_id)
+    let beneficiaryUserId = bf.beneficiary_user_id;
+    if (!beneficiaryUserId && fund.beneficiary_contact_id) {
+      const { data: beneficiaryContact } = await supabase
+        .from('contacts')
+        .select('linked_user_id')
+        .eq('id', fund.beneficiary_contact_id)
+        .single();
+      beneficiaryUserId = beneficiaryContact?.linked_user_id;
+    }
+
+    if (beneficiaryUserId) {
+      const { data: beneficiaryFriendRels } = await supabase
+        .from('contact_relationships')
+        .select('user_a, user_b')
+        .or(`user_a.eq.${beneficiaryUserId},user_b.eq.${beneficiaryUserId}`)
+        .eq('can_see_funds', true);
+
+      const beneficiaryFriendIds = (beneficiaryFriendRels || [])
+        .map(rel => rel.user_a === beneficiaryUserId ? rel.user_b : rel.user_a)
+        .filter(id => !allNotifiedUserIds.has(id));
+
+      const uniqueBeneficiaryFriendIds = [...new Set(beneficiaryFriendIds)];
+      console.log(`👫 Beneficiary friends: ${uniqueBeneficiaryFriendIds.length}`);
+
+      if (uniqueBeneficiaryFriendIds.length > 0) {
+        const { data: bFriendProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, phone')
+          .in('user_id', uniqueBeneficiaryFriendIds);
+
+        for (const profile of (bFriendProfiles || [])) {
+          await notifyFriend(profile, 'beneficiary_friend');
+        }
+      }
+    }
+
+    console.log(`✅ [notify-fund-ready] Done. Vendor: ${business.business_name}, FriendWA: ${friendWaSent} sent / ${friendWaFailed} failed, Unique phones: ${sentPhones.size}, Notified users: ${allNotifiedUserIds.size}`);
+
     return new Response(JSON.stringify({
       success: true,
       whatsapp_sent: whatsappSent,
       business: business.business_name,
-      fund: fundTitle
+      fund: fundTitle,
+      friends_notified: {
+        whatsapp_sent: friendWaSent,
+        whatsapp_failed: friendWaFailed,
+        unique_phones: sentPhones.size,
+        users_notified: allNotifiedUserIds.size
+      }
     }), { headers: corsHeaders });
 
   } catch (error) {

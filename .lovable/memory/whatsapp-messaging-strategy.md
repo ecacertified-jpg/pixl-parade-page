@@ -12,6 +12,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_fund_beneficiary_invite` — Invitation du bénéficiaire non inscrit
 - `joiedevivre_contribution_update` — **Template unifié** : informe contributeurs ET non-contributeurs de la progression (%) et des jours restants. Remplace l'ancien template `joiedevivre_contribution_nudge` qui a été abandonné (rejeté par Meta pour similarité avec `_contribution_reminder`).
 - `joiedevivre_fund_ready` — Alerte prestataire quand la cagnotte atteint 100%
+- `joiedevivre_fund_completed` — **Nouveau** : Félicitations envoyées à tous les amis (contributeurs + non-contributeurs) quand la cagnotte atteint 100%. 4 paramètres : prénom, titre cagnotte, nom bénéficiaire, montant. Bouton CTA : /f/{fund_id}
 
 ## Template supprimé
 
