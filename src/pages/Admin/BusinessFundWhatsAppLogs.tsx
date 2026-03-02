@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Send, CheckCircle, XCircle, Percent, MessageSquare, Users, Store } from 'lucide-react';
+import { RefreshCw, Send, CheckCircle, XCircle, Percent, MessageSquare, Users, Store, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -18,7 +18,7 @@ function maskPhone(phone: string): string {
   return `${prefix} ** ** ** ${last4.slice(0, 2)} ${last4.slice(2)}`;
 }
 
-type TemplateType = 'joiedevivre_group_contribution' | 'joiedevivre_fund_ready';
+type TemplateType = 'joiedevivre_group_contribution' | 'joiedevivre_fund_ready' | 'joiedevivre_fund_completed';
 
 interface ColumnConfig {
   headers: string[];
@@ -38,6 +38,13 @@ const COLUMN_CONFIGS: Record<TemplateType, ColumnConfig> = {
     extract: (params) => {
       const arr = Array.isArray(params) ? params : [];
       return { titre: arr[1], montant: arr[2], produit: arr[3], beneficiaire: arr[4] };
+    },
+  },
+  joiedevivre_fund_completed: {
+    headers: ['Titre cagnotte', 'Bénéficiaire', 'Montant'],
+    extract: (params) => {
+      const arr = Array.isArray(params) ? params : [];
+      return { titre: arr[1], beneficiaire: arr[2], montant: arr[3] };
     },
   },
 };
@@ -146,7 +153,7 @@ export default function BusinessFundWhatsAppLogs() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold font-poppins">WA Cagnottes Business</h1>
-            <p className="text-sm text-muted-foreground">Suivi des envois WhatsApp : invitations amis & notifications prestataires</p>
+            <p className="text-sm text-muted-foreground">Suivi des envois WhatsApp : invitations amis, notifications prestataires & notifications contributeurs</p>
           </div>
           <SimplePeriodSelector value={period} onChange={setPeriod} />
         </div>
@@ -161,12 +168,19 @@ export default function BusinessFundWhatsAppLogs() {
               <Store className="h-4 w-4" />
               Notification prestataire
             </TabsTrigger>
+            <TabsTrigger value="fund_completed" className="flex items-center gap-2">
+              <Gift className="h-4 w-4" />
+              Notification contributeurs
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="contribution">
             <LogsTab templateName="joiedevivre_group_contribution" period={period} />
           </TabsContent>
           <TabsContent value="fund_ready">
             <LogsTab templateName="joiedevivre_fund_ready" period={period} />
+          </TabsContent>
+          <TabsContent value="fund_completed">
+            <LogsTab templateName="joiedevivre_fund_completed" period={period} />
           </TabsContent>
         </Tabs>
       </div>
