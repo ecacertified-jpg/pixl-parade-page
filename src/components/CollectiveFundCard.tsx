@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { CountryBadge } from "@/components/CountryBadge";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { getDaysUntilBirthday } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Contributor {
   id: string;
@@ -217,6 +219,11 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
                 ? `Anniv. dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}`
                 : fund.beneficiaryName ? `Pour: ${fund.beneficiaryName}` : 'Cadeau surprise'}
             </p>
+            {fund.createdAt && (
+              <p className="text-xs text-muted-foreground">
+                Créée le {format(new Date(fund.createdAt), "d MMM yyyy", { locale: fr })}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Badge 
