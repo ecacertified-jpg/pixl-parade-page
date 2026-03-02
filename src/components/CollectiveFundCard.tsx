@@ -202,7 +202,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
           <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200 dark:border-violet-800 rounded-lg">
             <Store className="h-4 w-4 text-violet-600 dark:text-violet-400" />
             <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-              Initié par {fund.businessName || 'commerce'}
+              Initié par {fund.creatorName || fund.businessName || 'commerce'}
             </span>
           </div>
         )}
