@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { InlineUserSearchResults } from "@/components/InlineUserSearchResults";
+import { type SearchResult } from "@/hooks/useFriendRequests";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -144,6 +147,27 @@ export default function Dashboard() {
   const [showSearchFriendModal, setShowSearchFriendModal] = useState(false);
   const pendingSentIds = new Set(pendingSent.map(s => s.target_id));
   
+  // Inline search state
+  const [inlineSearchQuery, setInlineSearchQuery] = useState("");
+  const [inlineSearchResults, setInlineSearchResults] = useState<SearchResult[]>([]);
+  const [inlineSearching, setInlineSearching] = useState(false);
+
+  // Debounced inline search
+  useEffect(() => {
+    if (inlineSearchQuery.trim().length < 2) {
+      setInlineSearchResults([]);
+      setInlineSearching(false);
+      return;
+    }
+    setInlineSearching(true);
+    const timer = setTimeout(async () => {
+      const data = await searchUsers(inlineSearchQuery);
+      setInlineSearchResults(data);
+      setInlineSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inlineSearchQuery, searchUsers]);
+
   // Friendship suggestions (contacts linked but no relationship)
   const linkedContacts = friends
     .filter(f => f.linked_user_id)
@@ -797,36 +821,65 @@ export default function Dashboard() {
               onDecline={declineRequest}
             />
 
-            <FriendshipSuggestionsCard
-              suggestions={friendshipSuggestions}
-              onConfirm={async (contactId, linkedUserId) => {
-                await confirmRelationship(contactId, linkedUserId);
-                await loadFriendsFromSupabase();
-              }}
-              onDismiss={dismissSuggestion}
-            />
+            {/* Inline search bar */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un utilisateur..."
+                value={inlineSearchQuery}
+                onChange={(e) => setInlineSearchQuery(e.target.value)}
+                className="pl-9 pr-8 h-9 text-sm"
+              />
+              {inlineSearchQuery && (
+                <button
+                  onClick={() => setInlineSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
 
-            <UserSuggestionsSection compact />
+            {inlineSearchQuery.trim().length >= 2 ? (
+              <InlineUserSearchResults
+                results={inlineSearchResults}
+                searching={inlineSearching}
+                query={inlineSearchQuery}
+                pendingSentIds={pendingSentIds}
+                sendRequest={sendRequest}
+              />
+            ) : (
+              <>
+                <FriendshipSuggestionsCard
+                  suggestions={friendshipSuggestions}
+                  onConfirm={async (contactId, linkedUserId) => {
+                    await confirmRelationship(contactId, linkedUserId);
+                    await loadFriendsFromSupabase();
+                  }}
+                  onDismiss={dismissSuggestion}
+                />
 
-            {(() => {
-              const filteredFriends = friends.filter(f => {
-                if (friendFilter === 'linked') return !!f.linked_user_id;
-                if (friendFilter === 'unlinked') return !f.linked_user_id;
-                return true;
-              });
-              return friends.length === 0 ? <Card className="p-6 text-center">
-                <div className="text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Aucun ami ajouté pour le moment</p>
-                  <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
-                </div>
-              </Card> : filteredFriends.length === 0 ? <Card className="p-6 text-center">
-                <div className="text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>{friendFilter === 'linked' ? 'Aucun contact sur l\'app' : 'Aucun contact à inviter'}</p>
-                  <button className="text-sm text-primary hover:underline mt-1" onClick={() => setFriendFilter('all')}>Voir tous les contacts</button>
-                </div>
-              </Card> : <div className="space-y-3">
+                <UserSuggestionsSection compact />
+
+                {(() => {
+                  const filteredFriends = friends.filter(f => {
+                    if (friendFilter === 'linked') return !!f.linked_user_id;
+                    if (friendFilter === 'unlinked') return !f.linked_user_id;
+                    return true;
+                  });
+                  return friends.length === 0 ? <Card className="p-6 text-center">
+                    <div className="text-muted-foreground">
+                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Aucun ami ajouté pour le moment</p>
+                      <p className="text-sm">Cliquez sur "Ajouter" pour commencer</p>
+                    </div>
+                  </Card> : filteredFriends.length === 0 ? <Card className="p-6 text-center">
+                    <div className="text-muted-foreground">
+                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>{friendFilter === 'linked' ? 'Aucun contact sur l\'app' : 'Aucun contact à inviter'}</p>
+                      <button className="text-sm text-primary hover:underline mt-1" onClick={() => setFriendFilter('all')}>Voir tous les contacts</button>
+                    </div>
+                  </Card> : <div className="space-y-3">
                 {filteredFriends.map(friend => <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -905,6 +958,8 @@ export default function Dashboard() {
                   </Card>)}
               </div>;
             })()}
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="evenements" className="mt-4">
