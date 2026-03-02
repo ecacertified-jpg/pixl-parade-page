@@ -53,12 +53,6 @@ async function fetchCollectiveFunds(
     country_code,
     created_at,
     contacts!beneficiary_contact_id(name, birthday, user_id),
-    fund_contributions(
-      id,
-      amount,
-      contributor_id,
-      profiles:contributor_id(first_name, last_name)
-    ),
     collective_fund_orders(
       id,
       order_summary,
@@ -114,13 +108,19 @@ async function fetchCollectiveFunds(
     }
   });
 
-  // Parallel: friend contacts (for priority) + products
-  const [friendContactsResult, productsResult] = await Promise.all([
+  // Collect fund IDs for separate contributions query
+  const fundIds = (allFundsData || []).map(f => f.id);
+
+  // Parallel: friend contacts + products + contributions (separate query to avoid PostgREST ambiguity)
+  const [friendContactsResult, productsResult, contributionsResult] = await Promise.all([
     friendIds.length > 0
       ? supabase.from('contacts').select('id, user_id').in('user_id', friendIds)
       : Promise.resolve({ data: [] }),
     productIds.length > 0
       ? supabase.from('products').select('id, name, image_url, price').in('id', productIds)
+      : Promise.resolve({ data: [] }),
+    fundIds.length > 0
+      ? supabase.from('fund_contributions').select('id, fund_id, amount, contributor_id, is_anonymous').in('fund_id', fundIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -128,24 +128,49 @@ async function fetchCollectiveFunds(
   const productsMap = new Map<string, { id: string; name: string; image_url: string | null; price: number }>();
   productsResult.data?.forEach(p => productsMap.set(p.id, p));
 
+  // Build contributions map per fund
+  const allContributions = contributionsResult.data || [];
+  const contributionsByFund = new Map<string, typeof allContributions>();
+  allContributions.forEach(c => {
+    const list = contributionsByFund.get(c.fund_id) || [];
+    list.push(c);
+    contributionsByFund.set(c.fund_id, list);
+  });
+
+  // Fetch contributor profiles (wave 3)
+  const contributorIds = [...new Set(allContributions.map(c => c.contributor_id))];
+  const profilesMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+  if (contributorIds.length > 0) {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, first_name, last_name')
+      .in('user_id', contributorIds);
+    profilesData?.forEach(p => profilesMap.set(p.user_id, p));
+  }
+
   // Compute priority and transform
   const transformedFunds: CollectiveFund[] = (allFundsData || []).map(fund => {
+    const fundContribs = contributionsByFund.get(fund.id) || [];
+
     let priority = 4;
     if (friendIds.includes(fund.creator_id)) priority = 1;
     if (fund.beneficiary_contact_id && friendContactIds.includes(fund.beneficiary_contact_id)) {
       priority = Math.min(priority, 1.5);
     }
     if (fund.creator_id === userId) priority = 2;
-    const hasContributed = fund.fund_contributions?.some(c => c.contributor_id === userId);
+    const hasContributed = fundContribs.some(c => c.contributor_id === userId);
     if (hasContributed && fund.creator_id !== userId) priority = Math.min(priority, 3);
 
-    const contributors: Contributor[] = (fund.fund_contributions || []).map(contrib => ({
-      id: contrib.contributor_id,
-      name: contrib.profiles
-        ? `${contrib.profiles.first_name || ''} ${contrib.profiles.last_name || ''}`.trim()
-        : 'Utilisateur',
-      amount: contrib.amount,
-    }));
+    const contributors: Contributor[] = fundContribs.map(contrib => {
+      const profile = profilesMap.get(contrib.contributor_id);
+      return {
+        id: contrib.contributor_id,
+        name: profile
+          ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Utilisateur'
+          : 'Utilisateur',
+        amount: contrib.amount,
+      };
+    });
 
     // Beneficiary from JOIN (no separate query needed)
     const contact = fund.contacts as any;
