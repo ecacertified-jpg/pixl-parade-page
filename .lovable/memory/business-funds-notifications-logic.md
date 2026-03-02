@@ -8,7 +8,10 @@ Le système de notification des cagnottes business est automatisé via des trigg
 
 3. **Suivi en temps réel** : chaque contribution déclenche `notify-contribution-progress`. Le template **`joiedevivre_contribution_update`** est unifié pour informer contributeurs ET non-contributeurs de la progression (%) et des jours restants (priorité anniversaire bénéficiaire > deadline), avec un intervalle de déduplication de 4h. Ce template utilise 6 paramètres.
 
-4. **À l'achèvement (100%)** : `notify-fund-ready` alerte immédiatement le prestataire par WhatsApp (`joiedevivre_fund_ready`, 5 paramètres) et in-app.
+4. **À l'achèvement (100%)** : `notify-fund-ready` :
+   - Alerte le prestataire par WhatsApp (`joiedevivre_fund_ready`, 5 paramètres) et in-app
+   - **Félicite tous les amis** (contributeurs + amis du créateur + amis du bénéficiaire) par WhatsApp (`joiedevivre_fund_completed`, 4 paramètres) et in-app
+   - Déduplication par téléphone (Set) et par user_id pour éviter les doublons
 
 ## Template unifié (contribution_update)
 
