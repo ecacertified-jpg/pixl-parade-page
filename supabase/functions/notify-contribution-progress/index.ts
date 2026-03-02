@@ -7,6 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-source',
 };
 
+/** Trim all string params to avoid Meta API #100 errors from trailing spaces */
+function trimParams(params: string[]): string[] {
+  return params.map(p => p.trim());
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -152,7 +157,7 @@ serve(async (req) => {
             profile.phone,
             'joiedevivre_contribution_update',
             'fr',
-            [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+            trimParams([recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining]),
             [fund_id] // CTA: /f/{fund_id}
           );
           sentPhones.add(normalizedPhone);
@@ -198,7 +203,7 @@ serve(async (req) => {
             profile.phone,
             'joiedevivre_contribution_update',
             'fr',
-            [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+            trimParams([recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining]),
             [fund_id]
           );
           sentPhones.add(normalizedPhone);
@@ -253,7 +258,7 @@ serve(async (req) => {
                 profile.phone,
                 'joiedevivre_contribution_update',
                 'fr',
-                [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+                trimParams([recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining]),
                 [fund_id]
               );
               sentPhones.add(normalizedPhone);
@@ -302,7 +307,7 @@ serve(async (req) => {
               profile.phone,
               'joiedevivre_contribution_update',
               'fr',
-              [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+              trimParams([recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining]),
               [fund_id]
             );
             sentPhones.add(normalizedPhone);
