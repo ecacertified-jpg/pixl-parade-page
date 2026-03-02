@@ -1,51 +1,36 @@
 
-# Ajouter les amis du beneficiaire aux notifications de progression
+# Corriger le badge "Initié par commerce" et ajouter la date de création
 
-## Contexte
+## Problème 1 : Badge "Initié par commerce" affiché à tort
 
-Quand une contribution est effectuee, l'Edge Function `notify-contribution-progress` envoie le template WhatsApp `joiedevivre_contribution_update` a trois audiences :
-1. Les contributeurs existants
-2. Les amis du **createur** de la cagnotte
-3. Les amis du **contributeur**
+La cagnotte de Françoise pour Marie Belle affiche "Initié par commerce" alors qu'elle a été créée par Françoise (un utilisateur). La cause se trouve dans `useCollectiveFunds.ts` ligne 180 :
 
-Il manque une 4e audience : les **amis du beneficiaire** (ex: Francoise). Ces amis devraient aussi etre informes de la progression pour les encourager a contribuer.
-
-## Modification
-
-### `supabase/functions/notify-contribution-progress/index.ts`
-
-Ajouter un **pass 9bis** (entre le pass 9 et le pass 10 actuel) pour notifier les amis du beneficiaire :
-
-1. **Resoudre le `user_id` du beneficiaire** : a partir de `fund.beneficiary_contact_id`, lire le champ `linked_user_id` dans la table `contacts`. Si ce champ est renseigne, le beneficiaire est un utilisateur inscrit dont on peut chercher les amis.
-
-2. **Chercher les amis du beneficiaire** via `contact_relationships` (meme logique que pour le createur et le contributeur) avec `can_see_funds = true`.
-
-3. **Filtrer les doublons** : exclure les IDs deja notifies (contributeurs, amis du createur, le contributeur lui-meme) via le `Set allNotifiedIds` existant.
-
-4. **Envoyer `joiedevivre_contribution_update`** avec les memes 6 parametres et la meme deduplication par numero de telephone (`sentPhones`).
-
-5. **Logger le compteur** `nudgesBeneficiaryFriends` dans le log final et la reponse JSON.
-
-## Flux apres modification
-
-```text
-Contribution inseree
-       |
-       v
-  [Trigger DB] --> notify-contribution-progress
-       |
-       v
-  1. Contributeurs existants  (WhatsApp)
-  2. Amis du createur          (WhatsApp)
-  3. Amis du beneficiaire      (WhatsApp)  <-- NOUVEAU
-  4. Amis du contributeur      (WhatsApp)
-  5. Notification in-app createur
+```
+const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
 ```
 
-## Comportement si le beneficiaire n'est pas inscrit
+Le `!!businessFundData` est trop permissif : il suffit qu'un produit d'un commerce soit lié à la cagnotte (via `business_collective_funds`) pour que le badge s'affiche. Or, lier un produit ne signifie pas que le commerce a **initié** la cagnotte.
 
-Si `linked_user_id` est `null` (beneficiaire non inscrit), le pass est simplement ignore -- aucune erreur, aucun envoi. Le reste du flux continue normalement.
+**Correction** : ne garder que `!!fund.created_by_business_id` comme condition. Si le champ `created_by_business_id` est null, la cagnotte n'a PAS été initiée par un commerce, même si un produit business y est associé.
 
-## Aucune migration requise
+## Problème 2 : Aucune date de création affichée
 
-Le champ `contacts.linked_user_id` existe deja. Seule la logique de l'Edge Function est modifiee.
+L'utilisateur ne sait pas quand la cagnotte a été créée. Le champ `created_at` est déjà récupéré dans la requête (utilisé pour le tri) mais n'est pas transmis à l'interface.
+
+**Corrections** :
+1. Ajouter `createdAt: string` à l'interface `CollectiveFund` dans `useCollectiveFunds.ts`
+2. Mapper `fund.created_at` vers `createdAt` dans la transformation
+3. Afficher la date de création dans `CollectiveFundCard.tsx`, sous le nom du bénéficiaire, au format "Créée le 28 fév. 2026"
+
+## Fichiers modifiés
+
+### `src/hooks/useCollectiveFunds.ts`
+- Ligne 180 : retirer `|| !!businessFundData` de la condition `isBusinessInitiated`
+- Ajouter `createdAt?: string` à l'interface `CollectiveFund` (ligne 32)
+- Ajouter `created_at` au select query (déjà implicitement récupéré)
+- Ajouter `createdAt: fund.created_at` dans l'objet de retour (ligne 204)
+
+### `src/components/CollectiveFundCard.tsx`
+- Importer `format` depuis `date-fns` et `fr` depuis `date-fns/locale/fr`
+- Sous la ligne "Pour: {fund.beneficiaryName}" (ligne 218), ajouter la date de création formatée : "Créée le 28 fév. 2026"
+- Affichée en texte discret (`text-xs text-muted-foreground`)
