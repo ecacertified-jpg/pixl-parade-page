@@ -219,10 +219,10 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
         )}
 
         {/* Header avec nom du bénéficiaire et statut */}
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg">{fund.title}</h3>
+              <h3 className="font-semibold text-lg truncate">{fund.title}</h3>
               <CountryBadge countryCode={fund.countryCode} variant="minimal" />
             </div>
             <p className="text-sm text-muted-foreground">
@@ -236,7 +236,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Badge 
               variant={isExpired ? "destructive" : isCompleted ? "default" : "secondary"}
               className={
@@ -340,8 +340,8 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
             </span>
           </div>
           
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex -space-x-2 shrink-0">
               {fund.contributors.slice(0, 3).map((contributor) => (
                 <Avatar key={contributor.id} className="w-8 h-8 border-2 border-background">
                   <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white text-xs">
@@ -356,7 +356,7 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
               )}
             </div>
             
-          <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {fund.contributors.length > 0 ? (
                 <div className="text-xs text-muted-foreground">
                   {fund.contributors.slice(0, 2).map(c => `${c.name}: ${c.amount.toLocaleString()}F`).join(', ')}
