@@ -1,29 +1,28 @@
 
-# Afficher le nom du créateur au lieu de "Initié par commerce"
+# Ajouter une confirmation avant la suppression d'une cagnotte
 
-## Problème
+## Probleme
 
-La cagnotte "Samsung Galaxy A16 pour Marie Belle" a `created_by_business_id` défini en base (car créée via un produit business), mais c'est bien Françoise qui l'a initiée (`creator_id`). Le badge affiche "Initié par commerce" au lieu de "Initié par Françoise".
+Le bouton suppression (icone poubelle) sur la carte de cagnotte supprime directement sans avertissement. L'utilisateur pourrait supprimer sa cagnotte par erreur, perdant les contributions existantes.
 
 ## Solution
 
-Remplacer le texte du badge par le nom du créateur de la cagnotte, récupéré depuis la table `profiles`.
+Ajouter un `AlertDialog` de confirmation qui s'affiche au clic sur le bouton supprimer, avec un message clair indiquant les consequences (perte des contributions, action irreversible).
 
-### Fichier 1 : `src/hooks/useCollectiveFunds.ts`
+### Fichier : `src/components/CollectiveFundCard.tsx`
 
-1. **Ajouter `creatorName?: string` à l'interface `CollectiveFund`** (ligne 33)
-2. **Inclure les `creator_id` dans la requête de profils** (wave 3, ligne 141) : fusionner les IDs des contributeurs ET des créateurs pour que les profils des créateurs soient aussi chargés
-3. **Mapper `creatorName`** dans l'objet retourné (ligne 210+) : chercher le profil du créateur dans `profilesMap` et formater son nom
+1. **Importer AlertDialog** depuis `@/components/ui/alert-dialog` (AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle)
 
-### Fichier 2 : `src/components/CollectiveFundCard.tsx`
+2. **Ajouter un state** `showDeleteConfirm` (boolean, default false)
 
-Remplacer le texte du badge (ligne 205) :
-- Avant : `Initié par {fund.businessName || 'commerce'}`
-- Après : `Initié par {fund.creatorName || fund.businessName || 'commerce'}`
+3. **Modifier le bouton Trash2** : au lieu d'appeler `handleDelete` directement, ouvrir le dialog avec `setShowDeleteConfirm(true)`
 
-Cela affichera "Initié par Françoise" quand le profil est disponible, avec fallback sur le nom du commerce puis "commerce".
+4. **Ajouter le composant AlertDialog** dans le JSX avec :
+   - Titre : "Supprimer cette cagnotte ?"
+   - Description : "Cette action est irreversible. Toutes les contributions ({montant} {devise}) et les commentaires seront perdus."
+   - Bouton Annuler
+   - Bouton Confirmer (rouge) qui appelle `handleDelete`
 
-## Fichiers modifiés
+## Fichier modifie
 
-- `src/hooks/useCollectiveFunds.ts` : ajouter champ `creatorName`, inclure créateurs dans le fetch profils
-- `src/components/CollectiveFundCard.tsx` : afficher `creatorName` en priorité dans le badge
+- `src/components/CollectiveFundCard.tsx`
