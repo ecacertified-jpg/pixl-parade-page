@@ -30,6 +30,7 @@ export interface CollectiveFund {
   isBusinessInitiated?: boolean;
   businessName?: string;
   countryCode?: string;
+  createdAt?: string;
 }
 
 async function fetchCollectiveFunds(
@@ -50,6 +51,7 @@ async function fetchCollectiveFunds(
     beneficiary_contact_id,
     created_by_business_id,
     country_code,
+    created_at,
     contacts!beneficiary_contact_id(name, birthday, user_id),
     fund_contributions(
       id,
@@ -177,7 +179,7 @@ async function fetchCollectiveFunds(
       if (titleParts.length > 1) productName = titleParts[0];
     }
 
-    const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
+    const isBusinessInitiated = !!fund.created_by_business_id;
     const businessName = businessFundData?.business_accounts?.business_name;
 
     return {
@@ -202,6 +204,7 @@ async function fetchCollectiveFunds(
       isBusinessInitiated,
       businessName,
       countryCode: fund.country_code,
+      createdAt: fund.created_at,
     } as CollectiveFund;
   });
 
