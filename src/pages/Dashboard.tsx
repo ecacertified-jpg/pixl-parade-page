@@ -948,7 +948,7 @@ export default function Dashboard() {
                           friendId={friend.id}
                           friendName={friend.name}
                           daysUntilBirthday={getDaysUntilBirthday(friend.birthday)}
-                          onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
+                          onClick={() => navigate(`/gift-ideas/${friend.id}`)}
                         />
                         <Button variant="ghost" size="sm" onClick={() => setContactToDelete(friend.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-4 w-4" />

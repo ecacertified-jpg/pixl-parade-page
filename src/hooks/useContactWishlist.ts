@@ -16,6 +16,7 @@ export interface ContactWishlistItem {
     price: number;
     currency: string;
     image_url: string | null;
+    business_account_id: string | null;
   } | null;
 }
 
@@ -56,7 +57,7 @@ export function useContactWishlist(contactId: string | undefined) {
             accept_alternatives,
             notes,
             context_usage,
-            products (id, name, description, price, currency, image_url)
+            products (id, name, description, price, currency, image_url, business_account_id)
           `)
           .eq('user_id', contact.linked_user_id)
           .order('priority_level', { ascending: true });

@@ -256,16 +256,6 @@ export default function GiftIdeas() {
         <ContactWishlistSection
           contactId={contactId}
           contactName={contact.name}
-          onSelectProduct={(item) => {
-            if (item.product) {
-              handleAddToCart({
-                id: item.product.id,
-                name: item.product.name,
-                price: item.product.price,
-                image_url: item.product.image_url,
-              });
-            }
-          }}
         />
 
         {/* AI Recommendations */}
