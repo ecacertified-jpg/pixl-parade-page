@@ -1,44 +1,51 @@
 
-# Corriger le chargement lent du Dashboard
+# Ajouter les amis du beneficiaire aux notifications de progression
 
-## Probleme identifie
+## Contexte
 
-Le Dashboard est extremement lent a cause d'un **bug de boucle infinie** dans le hook `useFriendsCircleBadgeCelebration`. Les logs reseau montrent **20+ requetes identiques** a `user_badges` par seconde.
+Quand une contribution est effectuee, l'Edge Function `notify-contribution-progress` envoie le template WhatsApp `joiedevivre_contribution_update` a trois audiences :
+1. Les contributeurs existants
+2. Les amis du **createur** de la cagnotte
+3. Les amis du **contributeur**
 
-### Cause racine
+Il manque une 4e audience : les **amis du beneficiaire** (ex: Francoise). Ces amis devraient aussi etre informes de la progression pour les encourager a contribuer.
 
-Dans `src/hooks/useFriendsCircleBadgeCelebration.ts` (ligne 112), le `useEffect` a des dependances instables :
+## Modification
+
+### `supabase/functions/notify-contribution-progress/index.ts`
+
+Ajouter un **pass 9bis** (entre le pass 9 et le pass 10 actuel) pour notifier les amis du beneficiaire :
+
+1. **Resoudre le `user_id` du beneficiaire** : a partir de `fund.beneficiary_contact_id`, lire le champ `linked_user_id` dans la table `contacts`. Si ce champ est renseigne, le beneficiaire est un utilisateur inscrit dont on peut chercher les amis.
+
+2. **Chercher les amis du beneficiaire** via `contact_relationships` (meme logique que pour le createur et le contributeur) avec `can_see_funds = true`.
+
+3. **Filtrer les doublons** : exclure les IDs deja notifies (contributeurs, amis du createur, le contributeur lui-meme) via le `Set allNotifiedIds` existant.
+
+4. **Envoyer `joiedevivre_contribution_update`** avec les memes 6 parametres et la meme deduplication par numero de telephone (`sentPhones`).
+
+5. **Logger le compteur** `nudgesBeneficiaryFriends` dans le log final et la reponse JSON.
+
+## Flux apres modification
 
 ```text
-useEffect(() => { ... }, [user, friendCircleBadgeKeys, getCelebratedBadges, checkForNewBadge]);
+Contribution inseree
+       |
+       v
+  [Trigger DB] --> notify-contribution-progress
+       |
+       v
+  1. Contributeurs existants  (WhatsApp)
+  2. Amis du createur          (WhatsApp)
+  3. Amis du beneficiaire      (WhatsApp)  <-- NOUVEAU
+  4. Amis du contributeur      (WhatsApp)
+  5. Notification in-app createur
 ```
 
-- `friendCircleBadgeKeys` (ligne 14) est recree a chaque render via `.map()` -- nouvelle reference a chaque fois
-- `getCelebratedBadges` et `checkForNewBadge` dependent l'un de l'autre via `useCallback`, creant une cascade de recreations
-- Resultat : le `useEffect` se relance en boucle, chaque execution declenchant un re-render qui relance le cycle
+## Comportement si le beneficiaire n'est pas inscrit
 
-## Corrections prevues
+Si `linked_user_id` est `null` (beneficiaire non inscrit), le pass est simplement ignore -- aucune erreur, aucun envoi. Le reste du flux continue normalement.
 
-### 1. `src/hooks/useFriendsCircleBadgeCelebration.ts` -- Stabiliser les dependances
+## Aucune migration requise
 
-- **Memoriser `friendCircleBadgeKeys`** avec `useMemo` au lieu d'un simple `.map()` a chaque render
-- **Utiliser `useRef`** pour `getCelebratedBadges` au lieu de `useCallback` (les fonctions de lecture localStorage n'ont pas besoin d'etre reactives)
-- **Simplifier les dependances du `useEffect`** a `[user?.id]` uniquement, en accedant aux valeurs courantes via refs
-- Cela eliminera completement la boucle de requetes
-
-### 2. `src/hooks/useFriendsCircleBadgeCelebration.ts` -- Dupliquer le canal realtime
-
-Le hook cree un canal `'friend-circle-badges'` avec un nom fixe. Si le hook est monte 2 fois (Dashboard + Home), cela cree un conflit. Ajouter un suffixe unique au nom du canal.
-
-## Impact attendu
-
-- Reduction de ~20 requetes/seconde a 1 seule requete au montage
-- Temps de chargement du Dashboard significativement ameliore
-- Suppression de l'erreur "Lock broken by another request with the 'steal' option" (liee aux requetes concurrentes excessives)
-
-## Details techniques
-
-Le fichier `useFriendsCircleBadgeCelebration.ts` sera refactorise pour :
-1. Deplacer `FRIEND_CIRCLE_BADGES.map(b => b.key)` dans un `useMemo(() => ..., [])` 
-2. Remplacer les `useCallback` imbriques par des refs ou des fonctions inline dans le `useEffect`
-3. Reduire les dependances du `useEffect` principal a `[user?.id]`
+Le champ `contacts.linked_user_id` existe deja. Seule la logique de l'Edge Function est modifiee.
