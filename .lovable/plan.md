@@ -1,47 +1,29 @@
 
+# Ajouter un badge gateau pour les anniversaires proches
 
-# Ajouter une barre de recherche inline dans "Mon cercle d'amis"
+## Objectif
+Afficher un petit badge avec une icone gateau sur l'avatar des utilisateurs suggeres dont l'anniversaire est dans les 14 prochains jours.
 
-## Constat actuel
+## Fichier modifie
 
-Un bouton "Rechercher" existe deja et ouvre un modal (`SearchAndAddFriendModal`). L'objectif est d'ajouter une **barre de recherche inline** directement dans la section "Mon cercle d'amis", sans avoir besoin d'ouvrir un modal, pour une experience plus fluide et accessible.
+### `src/components/UserSuggestionsSection.tsx`
 
-## Changements prevus
+1. **Importer `Cake`** depuis `lucide-react`
+2. **Detecter l'anniversaire proche** : verifier `suggestion.days_until_birthday` (deja fourni par le hook quand l'anniversaire est dans les 30 jours, `null` sinon)
+3. **Ajouter un badge superpose sur l'avatar** : envelopper le composant `Avatar` dans un `div` relatif et ajouter un petit cercle positionne en bas a droite contenant l'icone `Cake` quand `days_until_birthday` est entre 1 et 14
 
-### 1. `src/pages/Dashboard.tsx`
-
-- **Ajouter un champ de recherche inline** entre les filtres (Inscrits / A inviter) et les composants de suggestions (ligne ~789)
-- Le champ `Input` avec une icone `Search` permet de taper un nom/prenom
-- Quand le champ contient au moins 2 caracteres, les resultats de recherche s'affichent directement dans la section (au lieu de la liste de contacts habituelle)
-- Quand le champ est vide, la vue normale (suggestions + contacts) s'affiche
-- Utiliser la fonction `searchUsers` deja fournie par `useFriendRequests` pour la recherche
-- Ajouter un etat `inlineSearchQuery` et `inlineSearchResults` pour gerer la recherche debounced
-
-### 2. Nouveau composant : `src/components/InlineUserSearchResults.tsx`
-
-- Affiche les resultats de recherche inline avec :
-  - Avatar, nom complet, bio (tronquee)
-  - Bouton "Ajouter" pour envoyer une demande d'amitie (via `sendRequest`)
-  - Indicateur "Envoyee" si deja envoyee (`pendingSentIds`)
-  - Option "+ Message" pour ajouter un message personnalise
-- Affiche un skeleton pendant la recherche
-- Affiche "Aucun utilisateur trouve" si aucun resultat
-- Design coherent avec les cartes existantes du Dashboard
-
-### Flux utilisateur
-
+Rendu visuel :
 ```text
-1. L'utilisateur voit la barre de recherche en haut de "Mon cercle d'amis"
-2. Il tape un nom (ex: "Aminata")
-3. Apres 300ms de debounce, les resultats apparaissent inline
-4. Il peut envoyer une demande d'amitie directement
-5. En effacant la recherche, la vue normale reapparait
+  ┌──────────┐
+  │  Avatar  │
+  │          │
+  └────[🎂]──┘   <-- petit badge rose/accent en bas a droite
 ```
 
-### Details techniques
+Le badge sera :
+- Un cercle de 20x20px avec fond `bg-gift` (rose) et icone blanche
+- Positionne en `absolute -bottom-1 -right-1`
+- Avec un `ring-2 ring-background` pour separer visuellement du avatar
+- Un tooltip au survol affichant "Anniversaire dans X jours"
 
-- Debounce de 300ms sur la saisie pour eviter les requetes excessives
-- Reutilisation de `searchUsers` du hook `useFriendRequests` (pas de nouvelle requete Supabase a creer)
-- Le bouton modal "Rechercher" existant est conserve comme alternative (pour les utilisateurs habitues)
-- Aucune modification de base de donnees necessaire
-
+Aucun autre fichier n'est modifie. Le champ `days_until_birthday` est deja calcule et retourne par `useUserSuggestions`.
