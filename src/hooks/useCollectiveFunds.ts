@@ -29,6 +29,7 @@ export interface CollectiveFund {
   priority?: number;
   isBusinessInitiated?: boolean;
   businessName?: string;
+  creatorName?: string;
   countryCode?: string;
   createdAt?: string;
 }
@@ -138,7 +139,8 @@ async function fetchCollectiveFunds(
   });
 
   // Fetch contributor profiles (wave 3)
-  const contributorIds = [...new Set(allContributions.map(c => c.contributor_id))];
+  const creatorIds = (allFundsData || []).map(f => f.creator_id).filter(Boolean);
+  const contributorIds = [...new Set([...allContributions.map(c => c.contributor_id), ...creatorIds])];
   const profilesMap = new Map<string, { first_name: string | null; last_name: string | null }>();
   if (contributorIds.length > 0) {
     const { data: profilesData } = await supabase
@@ -228,6 +230,12 @@ async function fetchCollectiveFunds(
       priority,
       isBusinessInitiated,
       businessName,
+      creatorName: (() => {
+        const cp = profilesMap.get(fund.creator_id);
+        if (!cp) return undefined;
+        const name = `${cp.first_name || ''} ${cp.last_name || ''}`.trim();
+        return name || undefined;
+      })(),
       countryCode: fund.country_code,
       createdAt: fund.created_at,
     } as CollectiveFund;
