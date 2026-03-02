@@ -1,63 +1,64 @@
 
+# Afficher les noms des contributeurs a la cagnotte
 
-# Rediriger "Offrir" et l'icone cadeau vers la boutique du vendeur
+## Probleme identifie
 
-## Probleme
+La cagnotte "Samsung Galaxy A16 pour Marie Belle" a 2 contributions en base de donnees (Aboutou WhatsApp: 17 600 XOF et Francoise: 17 600 XOF), mais l'interface affiche "Contributeurs (0)".
 
-1. Le bouton **"Offrir"** dans la wishlist d'un contact ajoute le produit au panier au lieu de rediriger vers la boutique du vendeur avec les options Commander/Reserver/Cotisation.
-2. Le bouton **icone cadeau** dans "Mon cercle d'amis" redirige vers `/shop?giftFor=...` (boutique generale) au lieu de montrer les souhaits du contact avec acces direct aux boutiques des vendeurs.
+La cause : la requete PostgREST imbrique `profiles:contributor_id(first_name, last_name)` dans `fund_contributions(...)`, mais la FK `fund_contributions_contributor_id_fkey` pointe vers 3 relations (profiles, public_profiles, user_birthday_stats), ce qui peut causer une ambiguite silencieuse. De plus, les politiques RLS sur `fund_contributions` pourraient interferer avec le sous-select imbrique.
 
 ## Solution
 
-### 1. `src/hooks/useContactWishlist.ts` -- Ajouter les infos vendeur
+Separer la recuperation des contributions du query principal et les charger en parallele dans une seconde vague.
 
-Modifier la requete Supabase pour inclure `business_account_id` dans le select des `products` :
+### Fichier 1 : `src/hooks/useCollectiveFunds.ts`
 
-```text
-products (id, name, description, price, currency, image_url, business_account_id)
-```
+1. **Retirer `fund_contributions(...)` du select principal** : ne plus imbriquer les contributions dans la requete `collective_funds`. Cela elimine l'ambiguite PostgREST.
 
-Ajouter `business_account_id: string | null` a l'interface `ContactWishlistItem.product`.
+2. **Ajouter une requete separee pour les contributions** : dans la vague parallele existante (avec productsResult), ajouter une requete directe :
+   ```
+   supabase.from('fund_contributions')
+     .select('id, fund_id, amount, contributor_id, is_anonymous')
+     .in('fund_id', fundIds)
+   ```
 
-### 2. `src/components/ContactWishlistSection.tsx` -- Naviguer vers la boutique
+3. **Recuperer les profils des contributeurs** : apres avoir les contributions, charger les profils via :
+   ```
+   supabase.from('profiles')
+     .select('user_id, first_name, last_name')
+     .in('user_id', contributorIds)
+   ```
 
-- Importer `useNavigate` de react-router-dom
-- Remplacer le comportement du bouton "Offrir" : au lieu d'appeler `onSelect(item)`, naviguer vers `/boutique/{business_account_id}?product={product_id}` 
-- Si `business_account_id` est null (produit sans boutique), conserver le comportement actuel (`onSelect`)
-- Le VendorShop intercepte deja le query param `?product=` pour ouvrir l'OrderModal automatiquement (deep linking existant)
+4. **Reconstruire les contributors** en croisant contributions + profils, avec fallback "Utilisateur" si le profil n'est pas accessible.
 
-### 3. `src/pages/Dashboard.tsx` -- Changer la destination du bouton cadeau
+5. **Adapter la detection `hasContributed`** (pour le calcul de priorite) pour utiliser les contributions separees au lieu de `fund.fund_contributions`.
 
-Actuellement (ligne 951) :
-```text
-onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
-```
+### Fichier 2 : `src/components/CollectiveFundCard.tsx`
 
-Changer pour naviguer vers la page "Idees cadeaux" du contact, qui affiche deja la wishlist :
-```text
-onClick={() => navigate(`/gift-ideas/${friend.id}`)}
-```
+1. **Afficher nom + montant** pour chaque contributeur dans la liste textuelle :
+   - Format : "Francoise: 17 600F, Aboutou: 17 600F"
+   - Pour les contributeurs au-dela de 2 : "et 3 autres"
 
-Cela montre les souhaits du contact avec le bouton "Offrir" qui redirige maintenant vers la boutique du vendeur.
+2. **Afficher la liste complete expandable** quand il y a plus de 3 contributeurs, avec nom et montant pour chacun.
 
-### 4. `src/pages/GiftIdeas.tsx` -- Adapter le handler
-
-Remplacer le `onSelectProduct` qui ajoute au panier par une navigation vers la boutique du vendeur, coherent avec le changement dans `ContactWishlistSection`.
-
-## Flux apres modification
+## Flux de donnees apres modification
 
 ```text
-Dashboard "Mon cercle d'amis"
-  |-- Clic icone cadeau --> /gift-ideas/{contactId}
-       |-- Liste de souhaits avec boutons "Offrir"
-            |-- Clic "Offrir" --> /boutique/{businessId}?product={productId}
-                 |-- OrderModal s'ouvre automatiquement
-                      |-- Options : A moi-meme / Offrir / Cotisation groupee
+Requete 1 (principale) : collective_funds + contacts + orders + business_funds
+Requete 2 (parallele)  : contact_relationships (amis)
+                        
+Vague 2 (parallele) :
+  - products (pour images/noms)
+  - fund_contributions (NOUVEAU - requete directe)
+  - friend contacts (pour priorite)
+
+Vague 3 (sequentielle) :
+  - profiles des contributeurs (NOUVEAU)
+
+Assemblage final : fusion contributions + profils dans l'objet CollectiveFund
 ```
 
 ## Fichiers modifies
 
-- `src/hooks/useContactWishlist.ts` (ajouter business_account_id au select)
-- `src/components/ContactWishlistSection.tsx` (navigation vers boutique vendeur)
-- `src/pages/Dashboard.tsx` (changer destination du bouton cadeau)
-- `src/pages/GiftIdeas.tsx` (adapter le handler onSelectProduct)
+- `src/hooks/useCollectiveFunds.ts` : requete contributions separee + chargement profils
+- `src/components/CollectiveFundCard.tsx` : afficher noms + montants des contributeurs
