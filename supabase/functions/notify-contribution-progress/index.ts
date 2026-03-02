@@ -209,6 +209,65 @@ serve(async (req) => {
       }
     }
 
+    // 9bis. Get friends of the BENEFICIARY -> nudge
+    let nudgesBeneficiaryFriends = 0;
+    if (fund.beneficiary_contact_id) {
+      // Resolve beneficiary's user_id via linked_user_id
+      const { data: beneficiaryContact } = await supabase
+        .from('contacts')
+        .select('linked_user_id')
+        .eq('id', fund.beneficiary_contact_id)
+        .single();
+
+      const beneficiaryUserId = beneficiaryContact?.linked_user_id;
+      if (beneficiaryUserId) {
+        const { data: beneficiaryFriendRels } = await supabase
+          .from('contact_relationships')
+          .select('user_a, user_b, can_see_funds')
+          .or(`user_a.eq.${beneficiaryUserId},user_b.eq.${beneficiaryUserId}`)
+          .eq('can_see_funds', true);
+
+        const beneficiaryFriendIds = (beneficiaryFriendRels || [])
+          .map(rel => rel.user_a === beneficiaryUserId ? rel.user_b : rel.user_a)
+          .filter(id => !allNotifiedIds.has(id));
+
+        const uniqueBeneficiaryFriendIds = [...new Set(beneficiaryFriendIds)];
+
+        if (uniqueBeneficiaryFriendIds.length > 0) {
+          const { data: bFriendProfiles } = await supabase
+            .from('profiles')
+            .select('user_id, first_name, phone')
+            .in('user_id', uniqueBeneficiaryFriendIds);
+
+          for (const profile of (bFriendProfiles || [])) {
+            allNotifiedIds.add(profile.user_id);
+            if (!profile.phone) continue;
+            const normalizedPhone = profile.phone.replace(/\s+/g, '');
+            if (sentPhones.has(normalizedPhone)) {
+              console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (beneficiary friend ${profile.user_id})`);
+              continue;
+            }
+            const recipientName = profile.first_name || 'Ami(e)';
+            try {
+              await sendWhatsAppTemplate(
+                profile.phone,
+                'joiedevivre_contribution_update',
+                'fr',
+                [recipientName, contributorName, beneficiaryName, String(percentage), currentAmountStr, daysRemaining],
+                [fund_id]
+              );
+              sentPhones.add(normalizedPhone);
+              nudgesBeneficiaryFriends++;
+            } catch (err) {
+              console.error(`❌ WhatsApp nudge failed for beneficiary friend ${profile.user_id}:`, err);
+            }
+          }
+        }
+      } else {
+        console.log(`⏭️ Beneficiary contact ${fund.beneficiary_contact_id} has no linked_user_id, skipping beneficiary friends`);
+      }
+    }
+
     // 10. Get friends of the CONTRIBUTOR who haven't contributed -> nudge
     let nudgesContributorFriends = 0;
     if (contributor_id !== fund.creator_id) {
@@ -276,12 +335,13 @@ serve(async (req) => {
         }
       });
 
-    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, CreatorFriendNudges: ${nudgesCreatorFriends}, ContributorFriendNudges: ${nudgesContributorFriends}, Unique phones: ${sentPhones.size}`);
+    console.log(`✅ [notify-contribution-progress] Done. Updates: ${updatesSent}, CreatorFriendNudges: ${nudgesCreatorFriends}, BeneficiaryFriendNudges: ${nudgesBeneficiaryFriends}, ContributorFriendNudges: ${nudgesContributorFriends}, Unique phones: ${sentPhones.size}`);
 
     return new Response(JSON.stringify({
       success: true,
       updates_sent: updatesSent,
       nudges_creator_friends: nudgesCreatorFriends,
+      nudges_beneficiary_friends: nudgesBeneficiaryFriends,
       nudges_contributor_friends: nudgesContributorFriends,
       percentage,
       days_remaining: daysRemaining
