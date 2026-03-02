@@ -345,10 +345,10 @@ export function CollectiveFundCard({ fund, onContribute, onContributionSuccess, 
               )}
             </div>
             
-            <div className="flex-1">
+          <div className="flex-1">
               {fund.contributors.length > 0 ? (
                 <div className="text-xs text-muted-foreground">
-                  {fund.contributors.slice(0, 2).map(c => c.name).join(', ')}
+                  {fund.contributors.slice(0, 2).map(c => `${c.name}: ${c.amount.toLocaleString()}F`).join(', ')}
                   {fund.contributors.length > 2 && ` et ${fund.contributors.length - 2} autre${fund.contributors.length > 3 ? 's' : ''}`}
                 </div>
               ) : (
