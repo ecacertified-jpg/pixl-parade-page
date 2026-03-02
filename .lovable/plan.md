@@ -1,117 +1,99 @@
 
 
-# Fix: Infinite loop caused by unmemoized `composeRefs` in `@radix-ui/react-slot`
+# Fix: Final resolution of Radix/React 19 infinite loop
 
-## The Real Root Cause (Finally!)
+## Current Status
 
-After extensive investigation, the true source of the infinite loop is **not** in `@radix-ui/react-compose-refs` itself, but in how `@radix-ui/react-slot` **uses** it.
+After 5+ attempted fixes, the root cause has been traced through the entire call chain. The current patches (slot-patch + compose-refs-patch) are close but insufficient because:
 
-In `SlotClone` (line 38 of `react-slot/dist/index.mjs`):
-```ts
-props2.ref = forwardedRef ? composeRefs(forwardedRef, childrenRef) : childrenRef;
-```
+- `FocusScope` in `chunk-2JCQJD2B.js` calls `useComposedRefs(forwardedRef, (node) => setContainer(node))`
+- `setContainer` is a `useState` setter (`dispatchSetState`)
+- During React 19's commit phase, calling `dispatchSetState` inside a ref callback can trigger synchronous re-processing of the fiber tree, causing ref callbacks to be re-invoked even if their identity hasn't changed
 
-This calls `composeRefs()` **directly during render** (not memoized), creating a **new function ref every render**. In React 19:
-1. React sees a new ref callback on re-render
-2. It unmounts the old ref (calls with `null`) and mounts the new one (calls with `node`)
-3. Calling the ref triggers `dispatchSetState` internally
-4. This causes a re-render, going back to step 1 -- infinite loop
+## Solution: Add synchronous re-entrancy protection to `setRef`
 
-This is a **known Radix bug** (GitHub issue [#3799](https://github.com/radix-ui/primitives/issues/3799), fix PR [#3804](https://github.com/radix-ui/primitives/pull/3804)) that hasn't been released yet in v1.2.3.
-
-## Why previous patches failed
-
-- Patching only `compose-refs` can't fix this -- the problem is that `SlotClone` calls `composeRefs` (not `useComposedRefs`) in render, so the result is never memoized
-- The re-entrancy guard blocked legitimate nested refs, breaking menus
-- The "no cleanup" approach still loops because the new-callback-every-render triggers React 19's ref lifecycle
-
-## Solution
-
-Patch `@radix-ui/react-slot` via Vite alias to use `useComposedRefs` (memoized) instead of `composeRefs` (unmemoized) in `SlotClone`. This is exactly the fix from PR #3804.
+The fix is to add a **per-node** guard in `setRef` that prevents the same node from being set on the same ref within a single synchronous call stack. This is different from the previous global `isComposing` guard that broke nested refs.
 
 ### Files to modify
 
 | File | Change |
 |------|--------|
-| `src/lib/radix-slot-patch.tsx` | **New file** -- Patched copy of `@radix-ui/react-slot` that uses `useComposedRefs` in `SlotClone` |
-| `src/lib/radix-compose-refs-patch.ts` | Restore cleanup support (original API) since the infinite loop is now prevented at the slot level |
-| `vite.config.ts` | Add alias for `@radix-ui/react-slot` pointing to the patch; keep the `compose-refs` alias and exclude both from pre-bundling |
+| `src/lib/radix-compose-refs-patch.ts` | Add per-call-stack deduplication guard to prevent re-entrant `dispatchSetState` loops |
 
-### 1. `src/lib/radix-slot-patch.tsx` (new)
-
-A patched copy of `@radix-ui/react-slot` where `SlotClone` uses a custom hook with `useComposedRefs` to memoize the composed ref, instead of calling `composeRefs` inline during render.
-
-Key change in `SlotClone`:
-```tsx
-// BEFORE (broken with React 19):
-props2.ref = forwardedRef ? composeRefs(forwardedRef, childrenRef) : childrenRef;
-
-// AFTER (memoized):
-const composedRef = useComposedRefs(forwardedRef, childrenRef);
-props2.ref = forwardedRef ? composedRef : childrenRef;
-```
-
-### 2. `src/lib/radix-compose-refs-patch.ts` (update)
-
-Restore the original API with cleanup support. The infinite loop is now prevented because `SlotClone` no longer creates a new ref callback every render:
+### Implementation
 
 ```ts
-function setRef(ref, value) {
+import * as React from "react";
+
+type PossibleRef<T> = React.Ref<T> | undefined | null;
+
+// Track refs currently being set to prevent re-entrant loops
+// Uses a Set of ref+value pairs to allow different refs to be set
+// but prevent the SAME ref from being called with the SAME value recursively
+const activeSetRefs = new Set<string>();
+let idCounter = 0;
+const refIds = new WeakMap<Function, number>();
+
+function getRefId(ref: Function): number {
+  let id = refIds.get(ref);
+  if (id === undefined) {
+    id = ++idCounter;
+    refIds.set(ref, id);
+  }
+  return id;
+}
+
+function setRef<T>(ref: PossibleRef<T>, value: T | null) {
   if (typeof ref === "function") {
-    return ref(value); // Return cleanup for React 19
+    // Guard: prevent the same function ref from being called recursively
+    // This stops dispatchSetState -> re-render -> ref re-call loops
+    const refId = getRefId(ref);
+    const key = `${refId}`;
+    if (activeSetRefs.has(key)) return;
+    activeSetRefs.add(key);
+    try {
+      ref(value);
+    } finally {
+      activeSetRefs.delete(key);
+    }
+    // Do NOT return cleanup to prevent React 19 cleanup chain loops
   } else if (ref !== null && ref !== undefined) {
-    ref.current = value;
+    (ref as React.MutableRefObject<T | null>).current = value;
   }
 }
 
-function composeRefs(...refs) {
-  return (node) => {
-    let hasCleanup = false;
-    const cleanups = refs.map((ref) => {
-      const cleanup = setRef(ref, node);
-      if (!hasCleanup && typeof cleanup === "function") hasCleanup = true;
-      return cleanup;
-    });
-    if (hasCleanup) {
-      return () => {
-        for (let i = 0; i < cleanups.length; i++) {
-          const cleanup = cleanups[i];
-          typeof cleanup === "function" ? cleanup() : setRef(refs[i], null);
-        }
-      };
-    }
+function composeRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
+  return (node: T | null) => {
+    refs.forEach((ref) => setRef(ref, node));
   };
 }
 
-function useComposedRefs(...refs) {
-  return React.useCallback(composeRefs(...refs), refs);
+function useComposedRefs<T>(...refs: PossibleRef<T>[]): React.RefCallback<T> {
+  const refsRef = React.useRef(refs);
+  refsRef.current = refs;
+
+  return React.useCallback((node: T | null) => {
+    refsRef.current.forEach((ref) => setRef(ref, node));
+  }, []);
 }
+
+export { composeRefs, useComposedRefs };
 ```
 
-### 3. `vite.config.ts` (update)
+### Why this approach works (and previous ones didn't)
 
-```ts
-resolve: {
-  alias: {
-    "@": path.resolve(__dirname, "./src"),
-    "react": ...,
-    "@radix-ui/react-compose-refs": path.resolve(__dirname, "./src/lib/radix-compose-refs-patch.ts"),
-    "@radix-ui/react-slot": path.resolve(__dirname, "./src/lib/radix-slot-patch.tsx"),  // NEW
-  },
-},
-optimizeDeps: {
-  exclude: [
-    '@radix-ui/react-compose-refs',
-    '@radix-ui/react-slot',  // NEW
-  ],
-}
-```
+1. **Per-ref guard, not global**: Each function ref is tracked individually via a WeakMap ID. Ref A being set doesn't block Ref B from being set (this is why the old global `isComposing` broke menus).
 
-## Why this will work
+2. **Prevents self-recursion**: If `dispatchSetState` inside ref A triggers a synchronous re-render that tries to call ref A again, the guard blocks it. The loop is broken.
 
-- `SlotClone` is a `forwardRef` component, so hooks like `useComposedRefs` work inside it
-- `useComposedRefs` uses `useCallback` to return a **stable** ref callback
-- A stable ref callback means React 19 doesn't unmount/remount the ref on every render
-- No new ref every render = no infinite `dispatchSetState` loop
-- All nested Radix components (dropdowns, dialogs, tooltips) pass through `Slot`, so this fixes everything
+3. **WeakMap prevents memory leaks**: Function refs are weakly referenced, so they can be garbage collected normally.
+
+4. **No cleanup return**: We still don't return cleanup functions from `setRef`, so React 19's cleanup chain can't loop.
+
+5. **Compatible with nested refs**: Parent composed ref calling child composed ref works fine because they are different functions with different IDs.
+
+### No changes needed to other files
+
+- `src/lib/radix-slot-patch.tsx` -- already correctly uses `useComposedRefs` (keep as is)
+- `vite.config.ts` -- aliases and exclusions are already correct (keep as is)
 
