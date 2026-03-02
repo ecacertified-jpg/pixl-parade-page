@@ -1,55 +1,37 @@
 
+# Ajouter le template joiedevivre_fund_completed au dashboard WA Cagnottes
 
-# Harmoniser l'affichage des badges sur mobile
+## Modification
 
-## Probleme
+**Fichier** : `src/pages/Admin/BusinessFundWhatsAppLogs.tsx`
 
-Sur mobile, le nom du contact et les deux badges ("Sur l'app" + relation) sont sur la meme ligne avec `justify-between`. Quand le nom est long, les badges se retrouvent colles ou passent a la ligne de maniere desequilibree.
+### 1. Etendre le type `TemplateType` (ligne 21)
 
-## Solution
+Ajouter `'joiedevivre_fund_completed'` au type union.
 
-Passer a un layout en deux lignes sur la premiere zone :
-- **Ligne 1** : nom du contact (pleine largeur)
-- **Ligne 2** : les deux badges alignes a gauche avec un petit `gap`
+### 2. Ajouter la config des colonnes (ligne 28-43)
 
-Cela garantit un affichage propre quelle que soit la longueur du nom.
+Ajouter une entree dans `COLUMN_CONFIGS` pour `joiedevivre_fund_completed` avec les 4 parametres body :
+- `recipientName` (index 0)
+- `fundTitle` (index 1)
+- `beneficiaryName` (index 2)
+- `fundAmount` (index 3)
 
-```text
-Avant (probleme sur mobile) :
-| Aboutou WhatsApp    [Sur l'app] [Famille] |
+Headers affiches : `['Titre cagnotte', 'Beneficiaire', 'Montant']`
 
-Apres :
-| Aboutou WhatsApp                          |
-| [Sur l'app] [Famille]                     |
-```
+### 3. Ajouter un 3e onglet (lignes 154-170)
 
-## Modification technique
+Ajouter un `TabsTrigger` "Notification contributeurs" avec une icone `PartyPopper` (ou `Gift`) et le `TabsContent` correspondant pointant vers `joiedevivre_fund_completed`.
 
-**Fichier** : `src/pages/Dashboard.tsx`, lignes 888-918
+### 4. Mettre a jour la description (ligne 149)
 
-Remplacer le `div flex justify-between` par un `div flex flex-col` :
+Ajouter "& notifications contributeurs" dans le sous-titre de la page.
 
-```tsx
-<div className="w-full">
-  <div className="flex items-center justify-between">
-    <span className="font-medium">{friend.name}</span>
-    <div className="flex items-center gap-1.5 flex-shrink-0">
-      {friend.linked_user_id && (
-        <Tooltip>...</Tooltip>
-      )}
-      <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
-        {friend.relation}
-      </Badge>
-    </div>
-  </div>
-</div>
-```
+### 5. Import
 
-Le changement cle est l'ajout de `flex-shrink-0` sur le conteneur des badges pour empecher leur compression, et `min-w-0` ou `truncate` sur le nom pour qu'il se tronque proprement plutot que de pousser les badges.
+Ajouter l'icone `Gift` depuis lucide-react.
 
-Cela preserve le meme layout `justify-between` mais empeche le debordement sur mobile.
+## Resume des changements
 
-## Fichier modifie
-
-- `src/pages/Dashboard.tsx` (lignes 888-918 uniquement)
-
+- 1 fichier modifie : `src/pages/Admin/BusinessFundWhatsAppLogs.tsx`
+- Aucune modification de base de donnees requise (les logs sont deja enregistres dans `whatsapp_template_logs`)
