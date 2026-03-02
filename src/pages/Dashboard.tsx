@@ -58,6 +58,7 @@ import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeC
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { useFriendshipSuggestions } from "@/hooks/useFriendshipSuggestions";
 import { FriendshipSuggestionsCard } from "@/components/FriendshipSuggestionsCard";
+import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { getDaysUntilBirthday } from "@/lib/utils";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
@@ -804,6 +805,8 @@ export default function Dashboard() {
               }}
               onDismiss={dismissSuggestion}
             />
+
+            <UserSuggestionsSection compact />
 
             {(() => {
               const filteredFriends = friends.filter(f => {
