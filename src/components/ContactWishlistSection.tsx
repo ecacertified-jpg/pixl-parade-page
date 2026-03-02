@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Heart, Gift, ShoppingCart, Sparkles, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +109,16 @@ function WishlistItemCard({
   onSelect?: (item: ContactWishlistItem) => void;
   compact: boolean;
 }) {
+  const navigate = useNavigate();
   const priority = priorityConfig[item.priority_level] || priorityConfig.medium;
+
+  const handleOffer = () => {
+    if (item.product?.business_account_id) {
+      navigate(`/boutique/${item.product.business_account_id}?product=${item.product.id}`);
+    } else if (onSelect) {
+      onSelect(item);
+    }
+  };
 
   return (
     <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
@@ -159,12 +169,12 @@ function WishlistItemCard({
             {item.product.price.toLocaleString()} {item.product.currency}
           </span>
         )}
-        {onSelect && item.product && (
+        {item.product && (
           <Button
             size="sm"
             variant="outline"
             className="h-7 text-xs gap-1"
-            onClick={() => onSelect(item)}
+            onClick={handleOffer}
           >
             <ShoppingCart className="h-3 w-3" />
             Offrir
