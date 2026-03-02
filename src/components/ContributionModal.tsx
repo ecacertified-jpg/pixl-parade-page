@@ -14,6 +14,8 @@ import { SmartAmountSuggestions } from "@/components/SmartAmountSuggestions";
 import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import { z } from "zod";
 
 interface ContributionModalProps {
@@ -28,6 +30,13 @@ interface ContributionModalProps {
   onContributionSuccess?: () => void;
   fundCreatorId?: string;
   occasion?: string;
+}
+
+interface ExistingContribution {
+  id: string;
+  amount: number;
+  message: string | null;
+  is_anonymous: boolean;
 }
 
 const contributionSchema = z.object({
@@ -60,6 +69,8 @@ export function ContributionModal({
   const [retryCount, setRetryCount] = useState(0);
   const [showGratitudeModal, setShowGratitudeModal] = useState(false);
   const [beneficiaryId, setBeneficiaryId] = useState<string>("");
+  const [existingContribution, setExistingContribution] = useState<ExistingContribution | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { trackConversion } = useGoogleAnalytics();
@@ -74,6 +85,47 @@ export function ContributionModal({
     occasion
   );
 
+  // Charger la contribution existante à l'ouverture du modal
+  useEffect(() => {
+    if (isOpen && user && fundId) {
+      const fetchExisting = async () => {
+        setLoadingExisting(true);
+        try {
+          const { data } = await supabase
+            .from('fund_contributions')
+            .select('id, amount, message, is_anonymous')
+            .eq('fund_id', fundId)
+            .eq('contributor_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (data) {
+            setExistingContribution(data);
+            setAmount(data.amount.toString());
+            setMessage(data.message || "");
+            setIsAnonymous(data.is_anonymous);
+          } else {
+            setExistingContribution(null);
+          }
+        } catch (err) {
+          console.error('Erreur chargement contribution existante:', err);
+          setExistingContribution(null);
+        } finally {
+          setLoadingExisting(false);
+        }
+      };
+      fetchExisting();
+    }
+
+    if (!isOpen) {
+      setExistingContribution(null);
+      setAmount("");
+      setMessage("");
+      setIsAnonymous(false);
+    }
+  }, [isOpen, user, fundId]);
+
   // Réinitialiser le retry count quand le modal s'ouvre/ferme
   useEffect(() => {
     if (isOpen) {
@@ -84,7 +136,6 @@ export function ContributionModal({
   const handleRetry = () => {
     if (retryCount < 2) {
       setRetryCount(prev => prev + 1);
-      // Re-soumettre le formulaire après un court délai
       setTimeout(() => {
         const form = document.querySelector('form');
         if (form) {
@@ -94,8 +145,13 @@ export function ContributionModal({
     }
   };
 
+  const isEditMode = !!existingContribution;
+  // En mode édition, le remaining doit inclure le montant existant (puisqu'on le remplace)
+  const effectiveRemainingAmount = isEditMode
+    ? (targetAmount - currentAmount) + existingContribution.amount
+    : targetAmount - currentAmount;
+  const maxAmount = Math.min(effectiveRemainingAmount, 500000);
   const remainingAmount = targetAmount - currentAmount;
-  const maxAmount = Math.min(remainingAmount, 500000); // Limite maximum de 500,000 XOF
 
   const getErrorMessage = (error: any) => {
     console.log('ContributionModal - Analyse d\'erreur complète:', {
@@ -106,7 +162,6 @@ export function ContributionModal({
       hint: error?.hint
     });
     
-    // Erreurs de permissions RLS
     if (error?.message?.includes('new row violates row-level security policy')) {
       return {
         title: "Permissions insuffisantes",
@@ -116,7 +171,6 @@ export function ContributionModal({
       };
     }
 
-    // Erreurs de fonction RPC
     if (error?.code === '42883' || error?.message?.includes('function')) {
       return {
         title: "Erreur système",
@@ -126,7 +180,6 @@ export function ContributionModal({
       };
     }
 
-    // Erreurs de permissions explicites
     if (error?.message?.includes('autorisation') || error?.message?.includes('permission')) {
       return {
         title: "Accès non autorisé",
@@ -136,7 +189,6 @@ export function ContributionModal({
       };
     }
 
-    // Erreurs de validation
     if (error?.message?.includes('violates check constraint') || error?.message?.includes('invalid input')) {
       return {
         title: "Données invalides",
@@ -146,7 +198,6 @@ export function ContributionModal({
       };
     }
 
-    // Erreurs réseau/connectivité
     if (error?.message?.includes('Failed to fetch') || error?.message?.includes('Network')) {
       return {
         title: "Problème de connexion",
@@ -156,7 +207,6 @@ export function ContributionModal({
       };
     }
 
-    // Erreurs par défaut
     return {
       title: "Erreur de contribution",
       description: error?.message || 'Une erreur inattendue s\'est produite lors de la contribution.',
@@ -187,13 +237,25 @@ export function ContributionModal({
       return;
     }
 
+    // Validation spécifique au mode édition
+    if (isEditMode && contributionAmount <= existingContribution.amount) {
+      toast({
+        title: "Montant insuffisant",
+        description: `Le nouveau montant doit être supérieur à votre don actuel de ${existingContribution.amount.toLocaleString()} ${currency}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     console.log('ContributionModal - Début contribution', {
       fundId,
       userId: user.id,
       contributionAmount,
       currency,
       remainingAmount,
-      retryCount
+      retryCount,
+      isEditMode,
+      existingAmount: existingContribution?.amount
     });
 
     if (contributionAmount <= 0) {
@@ -221,10 +283,15 @@ export function ContributionModal({
       return;
     }
 
-    if (contributionAmount > remainingAmount) {
+    // Vérifier le dépassement (en mode édition, on compare le delta au remaining)
+    const effectiveAmount = isEditMode
+      ? contributionAmount - existingContribution.amount
+      : contributionAmount;
+
+    if (effectiveAmount > remainingAmount) {
       toast({
         title: "Erreur", 
-        description: `Le montant ne peut pas dépasser ${remainingAmount.toLocaleString()} ${currency}`,
+        description: `Le montant ne peut pas dépasser ${(remainingAmount + (existingContribution?.amount || 0)).toLocaleString()} ${currency}`,
         variant: "destructive"
       });
       return;
@@ -233,104 +300,128 @@ export function ContributionModal({
     setLoading(true);
 
     try {
-      // Vérifier les permissions avant la contribution
-      console.log('ContributionModal - Vérification des permissions...');
-      const { data: canContribute, error: permissionError } = await supabase
-        .rpc('can_contribute_to_fund', { fund_uuid: fundId });
+      // Vérifier les permissions avant la contribution (seulement pour nouvelle contribution)
+      if (!isEditMode) {
+        console.log('ContributionModal - Vérification des permissions...');
+        const { data: canContribute, error: permissionError } = await supabase
+          .rpc('can_contribute_to_fund', { fund_uuid: fundId });
 
-      console.log('ContributionModal - Résultat permissions:', { 
-        canContribute, 
-        permissionError,
-        errorMessage: permissionError?.message,
-        errorCode: permissionError?.code
-      });
-
-      if (permissionError) {
-        console.error('ContributionModal - Erreur permissions:', permissionError);
-        
-        const errorInfo = getErrorMessage(permissionError);
-        
-        // Afficher le toast avec bouton retry si possible
-        if (errorInfo.canRetry && retryCount < 2) {
-          toast({
-            title: errorInfo.title,
-            description: `${errorInfo.description} Tentative ${retryCount + 1}/3.`,
-            variant: "destructive"
-          });
-          return;
-        } else {
+        if (permissionError) {
+          console.error('ContributionModal - Erreur permissions:', permissionError);
+          const errorInfo = getErrorMessage(permissionError);
           toast({
             title: errorInfo.title,
             description: `${errorInfo.description} ${errorInfo.suggestion}`,
             variant: "destructive"
           });
+          return;
         }
-        return;
+
+        if (!canContribute) {
+          toast({
+            title: "Accès refusé",
+            description: "Vous n'avez pas l'autorisation de contribuer à cette cagnotte. Assurez-vous d'être ami avec le créateur.",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
-      if (!canContribute) {
+      if (isEditMode) {
+        // MODE MODIFICATION : UPDATE de la contribution existante
+        const delta = contributionAmount - existingContribution.amount;
+
+        const { error: updateError } = await supabase
+          .from('fund_contributions')
+          .update({
+            amount: contributionAmount,
+            message: message || null,
+            is_anonymous: isAnonymous
+          })
+          .eq('id', existingContribution.id)
+          .eq('contributor_id', user.id);
+
+        if (updateError) {
+          console.error('ContributionModal - Erreur update:', updateError);
+          const errorInfo = getErrorMessage(updateError);
+          toast({
+            title: errorInfo.title,
+            description: `${errorInfo.description} ${errorInfo.suggestion}`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Mettre à jour le current_amount de la cagnotte avec le delta
+        const { error: fundUpdateError } = await supabase
+          .from('collective_funds')
+          .update({ current_amount: currentAmount + delta })
+          .eq('id', fundId);
+
+        if (fundUpdateError) {
+          console.error('ContributionModal - Erreur mise à jour cagnotte:', fundUpdateError);
+          // Rollback: remettre l'ancien montant
+          await supabase
+            .from('fund_contributions')
+            .update({ amount: existingContribution.amount })
+            .eq('id', existingContribution.id);
+
+          toast({
+            title: "Erreur",
+            description: "Impossible de mettre à jour la cagnotte. Votre contribution a été restaurée.",
+            variant: "destructive"
+          });
+          return;
+        }
+
         toast({
-          title: "Accès refusé",
-          description: "Vous n'avez pas l'autorisation de contribuer à cette cagnotte. Assurez-vous d'être ami avec le créateur.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Créer la contribution
-      console.log('ContributionModal - Insertion contribution...');
-      const { error: contributionError } = await supabase
-        .from('fund_contributions')
-        .insert({
-          fund_id: fundId,
-          contributor_id: user.id,
-          amount: contributionAmount,
-          currency: currency,
-          message: message || null,
-          is_anonymous: isAnonymous
+          title: "Contribution modifiée ! 🎉",
+          description: `Votre don est passé de ${existingContribution.amount.toLocaleString()} à ${contributionAmount.toLocaleString()} ${currency} (+${delta.toLocaleString()} ${currency})`,
         });
 
-      console.log('ContributionModal - Résultat insertion:', { 
-        contributionError,
-        errorMessage: contributionError?.message,
-        errorCode: contributionError?.code
-      });
-      
-      if (contributionError) {
-        console.error('ContributionModal - Erreur contribution:', contributionError);
-        
-        const errorInfo = getErrorMessage(contributionError);
-        
-        // Afficher le toast avec bouton retry si possible
-        if (errorInfo.canRetry && retryCount < 2) {
-          toast({
-            title: errorInfo.title,
-            description: `${errorInfo.description} Tentative ${retryCount + 1}/3.`,
-            variant: "destructive"
+        trackConversion('contribution', delta, currency);
+      } else {
+        // MODE CRÉATION : INSERT classique
+        const { error: contributionError } = await supabase
+          .from('fund_contributions')
+          .insert({
+            fund_id: fundId,
+            contributor_id: user.id,
+            amount: contributionAmount,
+            currency: currency,
+            message: message || null,
+            is_anonymous: isAnonymous
           });
+
+        if (contributionError) {
+          console.error('ContributionModal - Erreur contribution:', contributionError);
+          const errorInfo = getErrorMessage(contributionError);
+          if (errorInfo.canRetry && retryCount < 2) {
+            toast({
+              title: errorInfo.title,
+              description: `${errorInfo.description} Tentative ${retryCount + 1}/3.`,
+              variant: "destructive"
+            });
+            return;
+          } else {
+            toast({
+              title: errorInfo.title,
+              description: `${errorInfo.description} ${errorInfo.suggestion}`,
+              variant: "destructive"
+            });
+          }
           return;
-        } else {
-          toast({
-            title: errorInfo.title,
-            description: `${errorInfo.description} ${errorInfo.suggestion}`,
-            variant: "destructive"
-          });
         }
-        return;
+
+        toast({
+          title: "Contribution ajoutée !",
+          description: `Vous avez contribué ${contributionAmount.toLocaleString()} ${currency} à "${fundTitle}"`,
+        });
+
+        trackConversion('contribution', contributionAmount, currency);
+        await trackContributionConversion(fundId, contributionAmount);
       }
 
-      toast({
-        title: "Contribution ajoutée !",
-        description: `Vous avez contribué ${contributionAmount.toLocaleString()} ${currency} à "${fundTitle}"`,
-      });
-
-      // Track contribution conversion in Google Analytics
-      trackConversion('contribution', contributionAmount, currency);
-
-      // Track share conversion if contribution came from share link
-      await trackContributionConversion(fundId, contributionAmount);
-
-      // Trigger badge check after successful contribution
       triggerBadgeCheckAfterAction('contribution', user.id);
 
       // Réinitialiser le formulaire
@@ -339,18 +430,19 @@ export function ContributionModal({
       setIsAnonymous(false);
       
       // Récupérer le beneficiaryId pour le modal de gratitude
-      const { data: fundData } = await supabase
-        .from('collective_funds')
-        .select('creator_id')
-        .eq('id', fundId)
-        .single();
-      
-      if (fundData?.creator_id) {
-        setBeneficiaryId(fundData.creator_id);
-        setShowGratitudeModal(true);
+      if (!isEditMode) {
+        const { data: fundData } = await supabase
+          .from('collective_funds')
+          .select('creator_id')
+          .eq('id', fundId)
+          .single();
+        
+        if (fundData?.creator_id) {
+          setBeneficiaryId(fundData.creator_id);
+          setShowGratitudeModal(true);
+        }
       }
       
-      // Callback de succès
       if (onContributionSuccess) {
         onContributionSuccess();
       }
@@ -375,7 +467,7 @@ export function ContributionModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-center">
-            💰 Contribuer à la cagnotte
+            {isEditMode ? "✏️ Modifier ma contribution" : "💰 Contribuer à la cagnotte"}
           </DialogTitle>
         </DialogHeader>
 
@@ -392,8 +484,19 @@ export function ContributionModal({
             </div>
           </div>
 
+          {/* Bandeau contribution existante */}
+          {isEditMode && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                Vous avez déjà contribué <strong>{existingContribution.amount.toLocaleString()} {currency}</strong> à cette cagnotte. 
+                Vous pouvez augmenter votre don ci-dessous.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Suggestions intelligentes */}
-          {fundCreatorId && (
+          {fundCreatorId && !isEditMode && (
             <SmartAmountSuggestions
               suggestions={smartSuggestions.suggestions}
               loading={smartSuggestions.loading}
@@ -405,7 +508,9 @@ export function ContributionModal({
           )}
 
           <div>
-            <Label htmlFor="amount">Montant de la contribution *</Label>
+            <Label htmlFor="amount">
+              {isEditMode ? "Nouveau montant de la contribution *" : "Montant de la contribution *"}
+            </Label>
             <div className="relative">
               <Input
                 id="amount"
@@ -414,7 +519,7 @@ export function ContributionModal({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 max={maxAmount}
-                min="1"
+                min={isEditMode ? existingContribution.amount + 1 : 1}
                 required
                 className="pr-16"
               />
@@ -423,7 +528,10 @@ export function ContributionModal({
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Maximum: {maxAmount.toLocaleString()} {currency}
+              {isEditMode 
+                ? `Minimum : ${(existingContribution.amount + 1).toLocaleString()} ${currency} (supérieur à votre don actuel) · Maximum : ${maxAmount.toLocaleString()} ${currency}`
+                : `Maximum: ${maxAmount.toLocaleString()} ${currency}`
+              }
             </div>
           </div>
 
@@ -465,10 +573,15 @@ export function ContributionModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !amount}
+            disabled={loading || !amount || loadingExisting}
             className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
           >
-            {loading ? "Envoi..." : "Contribuer"}
+            {loading 
+              ? "Envoi..." 
+              : isEditMode 
+                ? "Modifier ma contribution" 
+                : "Contribuer"
+            }
           </Button>
         </div>
       </DialogContent>
