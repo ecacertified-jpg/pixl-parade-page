@@ -14,7 +14,11 @@ import { toast } from "sonner";
 import { CountryBadge } from "@/components/CountryBadge";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 
-export function UserSuggestionsSection() {
+interface UserSuggestionsSectionProps {
+  compact?: boolean;
+}
+
+export function UserSuggestionsSection({ compact = false }: UserSuggestionsSectionProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { suggestions, loading, refreshSuggestions } = useUserSuggestions(5);
@@ -65,6 +69,7 @@ export function UserSuggestionsSection() {
   );
 
   if (loading) {
+    if (compact) return null;
     return (
       <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card">
         <CardHeader className="pb-3">
@@ -90,6 +95,7 @@ export function UserSuggestionsSection() {
   }
 
   if (!loading && visibleSuggestions.length === 0) {
+    if (compact) return null;
     return (
       <>
         <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/10">
