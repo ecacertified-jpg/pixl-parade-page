@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InlineUserSearchResults } from "@/components/InlineUserSearchResults";
 import { type SearchResult } from "@/hooks/useFriendRequests";
@@ -66,6 +66,7 @@ import { getDaysUntilBirthday } from "@/lib/utils";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
 import { FriendRequestsNotification } from "@/components/FriendRequestsNotification";
+import { LinkContactDialog } from "@/components/LinkContactDialog";
 interface UserProfile {
   first_name: string | null;
   last_name: string | null;
@@ -92,6 +93,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
+  const [linkContactTarget, setLinkContactTarget] = useState<{ id: string; name: string } | null>(null);
   const [friendsWithWishlist, setFriendsWithWishlist] = useState<Set<string>>(new Set());
   const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
@@ -917,32 +919,47 @@ export default function Dashboard() {
                           {friend.relation}
                         </Badge>
                         {!friend.linked_user_id && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
-                                onClick={async () => {
-                                  const userName = userProfile?.first_name || user?.user_metadata?.first_name || '';
-                                  const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/signup`;
-                                  if (navigator.share) {
-                                    try {
-                                      await navigator.share({ text: message });
-                                    } catch (e) {
-                                      // User cancelled share
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-accent hover:text-accent hover:bg-accent/10"
+                                  onClick={() => setLinkContactTarget({ id: friend.id, name: friend.name })}
+                                >
+                                  <Link2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Lier à un compte</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                                  onClick={async () => {
+                                    const userName = userProfile?.first_name || user?.user_metadata?.first_name || '';
+                                    const message = `Salut ${friend.name} ! ${userName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉 Inscris-toi ici : https://joiedevivre-africa.com/go/signup`;
+                                    if (navigator.share) {
+                                      try {
+                                        await navigator.share({ text: message });
+                                      } catch (e) {
+                                        // User cancelled share
+                                      }
+                                    } else {
+                                      await navigator.clipboard.writeText(message);
+                                      toast({ title: "Lien copié", description: "L'invitation a été copiée dans le presse-papier" });
                                     }
-                                  } else {
-                                    await navigator.clipboard.writeText(message);
-                                    toast({ title: "Lien copié", description: "L'invitation a été copiée dans le presse-papier" });
-                                  }
-                                }}
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Inviter sur l'app</TooltipContent>
-                          </Tooltip>
+                                  }}
+                                >
+                                  <Send className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Inviter sur l'app</TooltipContent>
+                            </Tooltip>
+                          </>
                         )}
                         <AnimatedGiftButton
                           friendId={friend.id}
@@ -1151,6 +1168,19 @@ export default function Dashboard() {
           sendRequest={sendRequest}
           pendingSentIds={pendingSentIds}
         />
+
+        {linkContactTarget && (
+          <LinkContactDialog
+            open={!!linkContactTarget}
+            onOpenChange={(open) => { if (!open) setLinkContactTarget(null); }}
+            contactId={linkContactTarget.id}
+            contactName={linkContactTarget.name}
+            onLinked={() => {
+              setLinkContactTarget(null);
+              loadFriendsFromSupabase();
+            }}
+          />
+        )}
     </div>
   </>;
 }
