@@ -1,36 +1,63 @@
 
-# Corriger le badge "Initié par commerce" et ajouter la date de création
 
-## Problème 1 : Badge "Initié par commerce" affiché à tort
+# Rediriger "Offrir" et l'icone cadeau vers la boutique du vendeur
 
-La cagnotte de Françoise pour Marie Belle affiche "Initié par commerce" alors qu'elle a été créée par Françoise (un utilisateur). La cause se trouve dans `useCollectiveFunds.ts` ligne 180 :
+## Probleme
 
+1. Le bouton **"Offrir"** dans la wishlist d'un contact ajoute le produit au panier au lieu de rediriger vers la boutique du vendeur avec les options Commander/Reserver/Cotisation.
+2. Le bouton **icone cadeau** dans "Mon cercle d'amis" redirige vers `/shop?giftFor=...` (boutique generale) au lieu de montrer les souhaits du contact avec acces direct aux boutiques des vendeurs.
+
+## Solution
+
+### 1. `src/hooks/useContactWishlist.ts` -- Ajouter les infos vendeur
+
+Modifier la requete Supabase pour inclure `business_account_id` dans le select des `products` :
+
+```text
+products (id, name, description, price, currency, image_url, business_account_id)
 ```
-const isBusinessInitiated = !!fund.created_by_business_id || !!businessFundData;
+
+Ajouter `business_account_id: string | null` a l'interface `ContactWishlistItem.product`.
+
+### 2. `src/components/ContactWishlistSection.tsx` -- Naviguer vers la boutique
+
+- Importer `useNavigate` de react-router-dom
+- Remplacer le comportement du bouton "Offrir" : au lieu d'appeler `onSelect(item)`, naviguer vers `/boutique/{business_account_id}?product={product_id}` 
+- Si `business_account_id` est null (produit sans boutique), conserver le comportement actuel (`onSelect`)
+- Le VendorShop intercepte deja le query param `?product=` pour ouvrir l'OrderModal automatiquement (deep linking existant)
+
+### 3. `src/pages/Dashboard.tsx` -- Changer la destination du bouton cadeau
+
+Actuellement (ligne 951) :
+```text
+onClick={() => navigate(`/shop?giftFor=${friend.id}&friendName=${encodeURIComponent(friend.name)}`)}
 ```
 
-Le `!!businessFundData` est trop permissif : il suffit qu'un produit d'un commerce soit lié à la cagnotte (via `business_collective_funds`) pour que le badge s'affiche. Or, lier un produit ne signifie pas que le commerce a **initié** la cagnotte.
+Changer pour naviguer vers la page "Idees cadeaux" du contact, qui affiche deja la wishlist :
+```text
+onClick={() => navigate(`/gift-ideas/${friend.id}`)}
+```
 
-**Correction** : ne garder que `!!fund.created_by_business_id` comme condition. Si le champ `created_by_business_id` est null, la cagnotte n'a PAS été initiée par un commerce, même si un produit business y est associé.
+Cela montre les souhaits du contact avec le bouton "Offrir" qui redirige maintenant vers la boutique du vendeur.
 
-## Problème 2 : Aucune date de création affichée
+### 4. `src/pages/GiftIdeas.tsx` -- Adapter le handler
 
-L'utilisateur ne sait pas quand la cagnotte a été créée. Le champ `created_at` est déjà récupéré dans la requête (utilisé pour le tri) mais n'est pas transmis à l'interface.
+Remplacer le `onSelectProduct` qui ajoute au panier par une navigation vers la boutique du vendeur, coherent avec le changement dans `ContactWishlistSection`.
 
-**Corrections** :
-1. Ajouter `createdAt: string` à l'interface `CollectiveFund` dans `useCollectiveFunds.ts`
-2. Mapper `fund.created_at` vers `createdAt` dans la transformation
-3. Afficher la date de création dans `CollectiveFundCard.tsx`, sous le nom du bénéficiaire, au format "Créée le 28 fév. 2026"
+## Flux apres modification
 
-## Fichiers modifiés
+```text
+Dashboard "Mon cercle d'amis"
+  |-- Clic icone cadeau --> /gift-ideas/{contactId}
+       |-- Liste de souhaits avec boutons "Offrir"
+            |-- Clic "Offrir" --> /boutique/{businessId}?product={productId}
+                 |-- OrderModal s'ouvre automatiquement
+                      |-- Options : A moi-meme / Offrir / Cotisation groupee
+```
 
-### `src/hooks/useCollectiveFunds.ts`
-- Ligne 180 : retirer `|| !!businessFundData` de la condition `isBusinessInitiated`
-- Ajouter `createdAt?: string` à l'interface `CollectiveFund` (ligne 32)
-- Ajouter `created_at` au select query (déjà implicitement récupéré)
-- Ajouter `createdAt: fund.created_at` dans l'objet de retour (ligne 204)
+## Fichiers modifies
 
-### `src/components/CollectiveFundCard.tsx`
-- Importer `format` depuis `date-fns` et `fr` depuis `date-fns/locale/fr`
-- Sous la ligne "Pour: {fund.beneficiaryName}" (ligne 218), ajouter la date de création formatée : "Créée le 28 fév. 2026"
-- Affichée en texte discret (`text-xs text-muted-foreground`)
+- `src/hooks/useContactWishlist.ts` (ajouter business_account_id au select)
+- `src/components/ContactWishlistSection.tsx` (navigation vers boutique vendeur)
+- `src/pages/Dashboard.tsx` (changer destination du bouton cadeau)
+- `src/pages/GiftIdeas.tsx` (adapter le handler onSelectProduct)
