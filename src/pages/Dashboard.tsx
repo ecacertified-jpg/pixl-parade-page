@@ -885,29 +885,34 @@ export default function Dashboard() {
                 {filteredFriends.map(friend => <Card key={friend.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium flex items-center gap-1.5">
-                          {friend.name}
-                          {friend.linked_user_id && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                 <button
-                                  className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5 hover:bg-success/20 transition-colors cursor-pointer"
-                                  onClick={() => navigate(`/gift-ideas/${friend.id}`)}
-                                 >
-                                   <CheckCircle className="h-3 w-3" />
-                                   Sur l'app
-                                   {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id) && (
-                                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse ml-0.5" />
-                                   )}
-                                 </button>
-                               </TooltipTrigger>
-                               <TooltipContent>
-                                 {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id)
-                                   ? `${friend.name} a des souhaits !`
-                                   : `Voir les souhaits de ${friend.name}`}
-                               </TooltipContent>
-                            </Tooltip>
-                          )}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="font-medium flex items-center gap-1.5">
+                            {friend.name}
+                            {friend.linked_user_id && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                   <button
+                                    className="inline-flex items-center gap-0.5 text-[10px] font-medium text-success bg-success/10 rounded-full px-1.5 py-0.5 hover:bg-success/20 transition-colors cursor-pointer"
+                                    onClick={() => navigate(`/gift-ideas/${friend.id}`)}
+                                   >
+                                     <CheckCircle className="h-3 w-3" />
+                                     Sur l'app
+                                     {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id) && (
+                                       <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse ml-0.5" />
+                                     )}
+                                   </button>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                   {friend.linked_user_id && friendsWithWishlist.has(friend.linked_user_id)
+                                     ? `${friend.name} a des souhaits !`
+                                     : `Voir les souhaits de ${friend.name}`}
+                                 </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                          <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
+                            {friend.relation}
+                          </Badge>
                         </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
@@ -915,9 +920,6 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="capitalize">
-                          {friend.relation}
-                        </Badge>
                         {!friend.linked_user_id && (
                           <>
                             <Tooltip>
