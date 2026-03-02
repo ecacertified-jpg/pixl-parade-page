@@ -1,43 +1,44 @@
 
-# Transformer les suggestions en carousel horizontal swipeable sur mobile
+# Corriger le chargement lent du Dashboard
 
-## Objectif
-Sur mobile, afficher les suggestions d'utilisateurs sous forme de cartes individuelles dans un carousel horizontal swipeable (au lieu d'une liste verticale). Sur desktop, conserver la liste verticale actuelle.
+## Probleme identifie
 
-## Fichier modifie
+Le Dashboard est extremement lent a cause d'un **bug de boucle infinie** dans le hook `useFriendsCircleBadgeCelebration`. Les logs reseau montrent **20+ requetes identiques** a `user_badges` par seconde.
 
-### `src/components/UserSuggestionsSection.tsx`
+### Cause racine
 
-1. **Importer les composants carousel** : `Carousel, CarouselContent, CarouselItem` depuis `@/components/ui/carousel`
-2. **Importer `useIsMobile`** depuis `@/hooks/use-mobile`
+Dans `src/hooks/useFriendsCircleBadgeCelebration.ts` (ligne 112), le `useEffect` a des dependances instables :
 
-3. **Refactorer le rendu des suggestions** :
-   - Extraire le contenu de chaque suggestion dans un sous-composant ou une fonction `renderSuggestionCard`
-   - Sur mobile (`isMobile`), envelopper les cartes dans un `Carousel` horizontal avec `CarouselContent` et `CarouselItem`
-   - Sur desktop, conserver le rendu vertical actuel (`space-y-3`)
+```text
+useEffect(() => { ... }, [user, friendCircleBadgeKeys, getCelebratedBadges, checkForNewBadge]);
+```
 
-4. **Design des cartes carousel (mobile)** :
-   - Chaque `CarouselItem` contient une carte verticale compacte (au lieu du layout horizontal actuel)
-   - Layout de la carte :
-     ```text
-     ┌─────────────────┐
-     │    [Avatar]      │  <-- centre, plus grand (w-16 h-16)
-     │     [Badge 🎂]   │
-     │   Nom Prenom     │
-     │   🇨🇮 Pays       │
-     │   "Raison..."    │
-     │  [Ami] [Suivre]  │
-     │      [✕]         │
-     └─────────────────┘
-     ```
-   - Largeur de chaque carte : `basis-[75%]` pour laisser voir la carte suivante (effet peek)
-   - Fond avec gradient subtil `from-primary/5 to-secondary/5`
-   - Coins arrondis `rounded-xl`, padding `p-4`
+- `friendCircleBadgeKeys` (ligne 14) est recree a chaque render via `.map()` -- nouvelle reference a chaque fois
+- `getCelebratedBadges` et `checkForNewBadge` dependent l'un de l'autre via `useCallback`, creant une cascade de recreations
+- Resultat : le `useEffect` se relance en boucle, chaque execution declenchant un re-render qui relance le cycle
 
-5. **Indicateurs de pagination** : ajouter des petits dots sous le carousel indiquant la position actuelle (via l'API embla `selectedScrollSnap`)
+## Corrections prevues
 
-6. **Skeleton loading (mobile)** : afficher 2 cartes skeleton dans un carousel au lieu de 3 lignes
+### 1. `src/hooks/useFriendsCircleBadgeCelebration.ts` -- Stabiliser les dependances
 
-## Aucun autre fichier modifie
-- Les composants `Carousel` et `useIsMobile` existent deja
-- Pas de nouveau hook ou utilitaire necessaire
+- **Memoriser `friendCircleBadgeKeys`** avec `useMemo` au lieu d'un simple `.map()` a chaque render
+- **Utiliser `useRef`** pour `getCelebratedBadges` au lieu de `useCallback` (les fonctions de lecture localStorage n'ont pas besoin d'etre reactives)
+- **Simplifier les dependances du `useEffect`** a `[user?.id]` uniquement, en accedant aux valeurs courantes via refs
+- Cela eliminera completement la boucle de requetes
+
+### 2. `src/hooks/useFriendsCircleBadgeCelebration.ts` -- Dupliquer le canal realtime
+
+Le hook cree un canal `'friend-circle-badges'` avec un nom fixe. Si le hook est monte 2 fois (Dashboard + Home), cela cree un conflit. Ajouter un suffixe unique au nom du canal.
+
+## Impact attendu
+
+- Reduction de ~20 requetes/seconde a 1 seule requete au montage
+- Temps de chargement du Dashboard significativement ameliore
+- Suppression de l'erreur "Lock broken by another request with the 'steal' option" (liee aux requetes concurrentes excessives)
+
+## Details techniques
+
+Le fichier `useFriendsCircleBadgeCelebration.ts` sera refactorise pour :
+1. Deplacer `FRIEND_CIRCLE_BADGES.map(b => b.key)` dans un `useMemo(() => ..., [])` 
+2. Remplacer les `useCallback` imbriques par des refs ou des fonctions inline dans le `useEffect`
+3. Reduire les dependances du `useEffect` principal a `[user?.id]`
