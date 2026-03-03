@@ -68,6 +68,7 @@ import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
 import { FriendRequestsNotification } from "@/components/FriendRequestsNotification";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
@@ -94,7 +95,7 @@ export default function Dashboard() {
   const {
     user
   } = useAuth();
-  const { userProfile, friends, friendsWithWishlist, events, refreshDashboard } = useDashboardData();
+  const { userProfile, friends, friendsWithWishlist, events, loading: dashboardLoading, refreshDashboard } = useDashboardData();
   const {
     hasBusinessAccount,
     isActiveBusinessAccount = false
@@ -451,6 +452,11 @@ export default function Dashboard() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  if (dashboardLoading) {
+    return <DashboardSkeleton />;
+  }
+
   return <>
     <SEOHead {...SEO_CONFIGS.dashboard} />
     <div className="min-h-screen bg-gradient-background">
