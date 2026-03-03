@@ -208,6 +208,42 @@ export default function CollectiveCheckout() {
 
       console.log('Fund created successfully:', fundData);
 
+      // Insert into business_collective_funds for business-initiated funds
+      if (createdByBusinessId && fundData.id && businessProductId) {
+        try {
+          let beneficiaryUserIdForBcf: string | null = items[0]?.beneficiaryId || null;
+          if (!beneficiaryUserIdForBcf && item.beneficiaryContactId) {
+            const { data: contactData } = await supabase
+              .from('contacts')
+              .select('linked_user_id')
+              .eq('id', item.beneficiaryContactId)
+              .single();
+            beneficiaryUserIdForBcf = contactData?.linked_user_id || null;
+          }
+
+          if (beneficiaryUserIdForBcf) {
+            const { error: bcfError } = await supabase
+              .from('business_collective_funds')
+              .insert({
+                fund_id: fundData.id,
+                business_id: createdByBusinessId,
+                product_id: businessProductId,
+                beneficiary_user_id: beneficiaryUserIdForBcf
+              });
+
+            if (bcfError) {
+              console.error('⚠️ business_collective_funds insert error (non-blocking):', bcfError);
+            } else {
+              console.log('✅ business_collective_funds inserted for fund:', fundData.id);
+            }
+          } else {
+            console.warn('⚠️ No beneficiary_user_id found, skipping business_collective_funds insert');
+          }
+        } catch (bcfErr) {
+          console.warn('⚠️ business_collective_funds insert failed (non-blocking):', bcfErr);
+        }
+      }
+
       // Appeler la fonction edge pour notifications de réciprocité (non-bloquant)
       try {
         console.log('🔔 Invoking notify-reciprocity for fund:', fundData.id);
