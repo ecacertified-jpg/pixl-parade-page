@@ -1,62 +1,51 @@
 
-# Optimiser le chargement de la page Shop avec TanStack Query
+# Accelerer l'affichage initial avec le lazy loading
 
-## Probleme identifie
+## Probleme
 
-La page `Shop.tsx` declenche **5+ requetes Supabase** au montage sans cache ni deduplication :
+`App.tsx` importe **~90 pages de maniere synchrone** (eager imports). Avant d'afficher quoi que ce soit -- meme la simple page Landing -- le navigateur doit telecharger et parser l'integralite du code de l'application : Dashboard (1086 lignes + 50 composants), toutes les pages Admin, Shop, etc.
 
-| Source | Requetes |
-|--------|:--------:|
-| `loadProducts()` | 3 (products + business_accounts + product_ratings en parallele) |
-| `loadPopularShops()` | 3 (business_public_info + products + product_ratings) |
-| `useFavorites()` | 1 (deja migre vers TanStack Query) |
-| Shop search (debounced) | 2-3 par recherche |
-| Canal Realtime `products-changes` | 1 subscription |
-
-**Total : ~6 requetes au montage + 1 canal Realtime**, sans cache. Chaque navigation vers /shop relance tout.
+Resultat : ecran blanc pendant plusieurs secondes.
 
 ## Solution
 
-Extraire la logique de chargement dans deux hooks TanStack Query dedies, puis simplifier `Shop.tsx`.
+Convertir tous les imports de pages en `lazy()` sauf les pages critiques du premier affichage (Landing, Auth). Cela permet a Vite de creer des chunks separes : seul le code de la page visitee est telecharge.
 
-### Etape 1 : Creer `src/hooks/useShopProducts.ts`
+## Changements
 
-Nouveau hook qui encapsule `loadProducts()` avec `useQuery` :
-- **Query key** : `['shop-products']`
-- **staleTime** : `30000` (30 secondes)
-- **queryFn** : la logique actuelle de `loadProducts()` (fetch products, business_accounts, ratings en parallele, puis formatage)
-- Retourne les produits formates, sans gestion de geolocation (celle-ci reste locale dans Shop.tsx via `useMemo`)
-- Le canal Realtime declenche `queryClient.invalidateQueries` au lieu de manipuler le state directement
+### Fichier : `src/App.tsx`
 
-### Etape 2 : Creer `src/hooks/usePopularShops.ts`
+1. **Garder en import direct** (pages du premier rendu, petites) :
+   - `Landing`, `Auth`, `NotFound`
 
-Nouveau hook qui encapsule `loadPopularShops()` avec `useQuery` :
-- **Query key** : `['popular-shops']`
-- **staleTime** : `60000` (60 secondes, change rarement)
-- **queryFn** : la logique actuelle (fetch businesses, product counts, ratings, tri par popularite)
+2. **Convertir en `lazy()`** toutes les autres pages (~85 imports) :
+   - Dashboard, Home, Index, Shop, Favorites, etc.
+   - Toutes les pages Admin (deja partiellement lazy pour quelques-unes)
+   - BusinessAuth, BusinessDashboard, Orders, etc.
 
-### Etape 3 : Simplifier `Shop.tsx`
-
-- Remplacer `loadProducts()` et son `useEffect` par `useShopProducts()`
-- Remplacer `loadPopularShops()` et son state par `usePopularShops()`
-- Supprimer les `useState` pour `products`, `popularShops`, `isInitialLoading`
-- Garder la logique de tri par distance via `useMemo` applique sur les donnees du cache
-- Deplacer le canal Realtime dans `useShopProducts` avec invalidation du cache
-
-## Resultat attendu
+3. **Wrapper chaque route lazy** avec `<Suspense fallback={<LoadingTransition />}>` en utilisant le composant `LoadingTransition` deja existant dans le projet
 
 ```text
 Avant :
-  Navigation vers /shop -> 6 requetes a chaque fois (~1-2s)
+  import Dashboard from "./pages/Dashboard"     // charge immediatement
+  import Shop from "./pages/Shop"               // charge immediatement
+  import AdminDashboard from "./pages/Admin/..." // charge immediatement
+  ... x90
 
 Apres :
-  Premier chargement -> 6 requetes (identique)
-  Navigations suivantes dans les 30s -> 0 requetes (instantane depuis le cache)
-  Retour au shop apres >30s -> refetch en arriere-plan (donnees affichees immediatement)
+  const Dashboard = lazy(() => import("./pages/Dashboard"))
+  const Shop = lazy(() => import("./pages/Shop"))
+  const AdminDashboard = lazy(() => import("./pages/Admin/..."))
+  ... code splitte en chunks
 ```
 
-## Fichiers
+### Impact attendu
 
-1. **Nouveau** : `src/hooks/useShopProducts.ts` -- hook TanStack Query pour les produits
-2. **Nouveau** : `src/hooks/usePopularShops.ts` -- hook TanStack Query pour les boutiques populaires
-3. **Modifie** : `src/pages/Shop.tsx` -- remplacement des fetches manuels par les nouveaux hooks
+- **Bundle initial** : reduit de ~80% (seuls Landing + Auth + framework)
+- **Temps d'affichage** : de plusieurs secondes a moins d'1 seconde
+- **Navigation** : chaque page charge son chunk a la demande avec un spinner anime
+- **Cache navigateur** : les chunks sont caches individuellement par Vite
+
+### Fichier modifie
+
+1. `src/App.tsx` -- conversion des imports en lazy + wrapping Suspense
