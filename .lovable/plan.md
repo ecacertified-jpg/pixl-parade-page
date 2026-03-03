@@ -1,21 +1,32 @@
 
 
-# Redirection automatique vers le dashboard business en cas d'échec
+# Rediriger vers l'onglet Commandes du Dashboard Business
 
-## Contexte
+## Probleme
 
-Actuellement, quand le RPC et le fallback échouent tous les deux, l'utilisateur voit une page statique "Cagnotte introuvable" avec un bouton manuel. L'objectif est d'ajouter une redirection automatique après quelques secondes.
+Toutes les redirections dans `BusinessFundOrderView.tsx` pointent vers `/business-collective-funds` (page "Gestion des cagnottes"), alors que l'utilisateur s'attend a atterrir sur l'onglet **Commandes** du dashboard business (`/business-dashboard`).
 
-## Modification
+## Solution
 
-**Fichier** : `src/pages/BusinessFundOrderView.tsx`
+### 1. Supporter un parametre de tab dans BusinessDashboard
 
-Dans le bloc d'erreur (quand `error || !fund`), ajouter :
+Le composant `BusinessDashboard.tsx` utilise `<Tabs defaultValue="overview">`. Il faut lire un query param `?tab=orders` pour ouvrir directement l'onglet Commandes :
 
-1. Un `useEffect` qui démarre un compte à rebours de 5 secondes quand l'état `error` est `true`
-2. À la fin du compte à rebours, `navigate('/business-collective-funds')` automatiquement
-3. Afficher un message indiquant la redirection imminente avec le décompte ("Redirection dans X secondes...")
-4. Conserver le bouton manuel pour ceux qui veulent cliquer immédiatement
+- Lire `searchParams.get('tab')` avec `useSearchParams`
+- Utiliser une valeur controlée (`value` + `onValueChange`) au lieu de `defaultValue`
+- Initialiser avec le query param ou `"overview"` par defaut
 
-Le composant utilisera `useNavigate` de react-router-dom (déjà disponible via les imports existants).
+### 2. Mettre a jour les redirections dans BusinessFundOrderView
+
+Remplacer toutes les occurrences de `/business-collective-funds` par `/business-dashboard?tab=orders` :
+
+- La redirection automatique (countdown navigate)
+- Le bouton manuel "Voir toutes mes cagnottes"
+- Le bouton retour (fleche)
+- Le lien en bas de page
+
+### Fichiers concernes
+
+- **Modifie** : `src/pages/BusinessDashboard.tsx` — ajout du support `?tab=` via `useSearchParams`
+- **Modifie** : `src/pages/BusinessFundOrderView.tsx` — remplacer 4 liens `/business-collective-funds` par `/business-dashboard?tab=orders`
 
