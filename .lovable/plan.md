@@ -1,77 +1,65 @@
 
 
-# Fix : Rendre l'insertion business_collective_funds robuste + reparer la cagnotte existante
+# Correction des parametres WhatsApp dans `notify-fund-ready`
 
-## Problemes identifies
+## Analyse : Code actuel vs Templates Meta
 
-### 1. Cagnotte existante non reparee
-La cagnotte "Tecno Pop10" (`4224309f`) a atteint 100% AVANT le correctif. Elle n'a pas de ligne dans `business_collective_funds`, donc `notify-fund-ready` l'a ignoree avec `"reason":"not_business_fund"`.
+### Template `joiedevivre_fund_ready` (prestataire)
 
-### 2. Le correctif actuel saute l'insertion si pas de beneficiary_user_id
-Le code ajoute dans le dernier commit :
+Le template Meta attend :
+
+| Variable | Attendu (Meta) | Envoye par le code | Statut |
+|----------|----------------|---------------------|--------|
+| {{1}} | Prenom du prestataire (ex: "Alain") | `ownerFirstName` | OK |
+| {{2}} | Nom du beneficiaire (ex: "Francoise") | `fundTitle` ("Tecno Pop10 64 Go...") | ERREUR |
+| {{3}} | Montant (ex: "30000") | `String(fundAmount)` | OK |
+| {{4}} | Nom du produit (ex: "Collier en or") | `productName` | OK |
+| {{5}} | Nom du beneficiaire (ex: "Francoise") | `beneficiaryName` | OK |
+| Bouton {{1}} | fund_id (URL commande) | `bf.fund_id` | OK |
+
+**Probleme** : Le parametre {{2}} recoit le titre complet de la cagnotte au lieu du nom du beneficiaire. Le titre "Tecno Pop10 64 Go 3+3 -2 SIM pour Marie Belle" est trop long et ne correspond pas au format attendu.
+
+### Template `joiedevivre_fund_completed` (amis/contributeurs)
+
+D'apres la memoire du projet, ce template attend 4 parametres : `recipientName`, `fundTitle`, `beneficiaryName`, `fundAmount`.
+
+| Variable | Attendu (Meta) | Envoye par le code | Statut |
+|----------|----------------|---------------------|--------|
+| {{1}} | Prenom du destinataire | `recipientName` | OK |
+| {{2}} | Titre de la cagnotte | `fundTitle` | OK |
+| {{3}} | Nom du beneficiaire | `beneficiaryName` | OK |
+| {{4}} | Montant | `String(fundAmount)` | OK |
+| Bouton {{1}} | fund_id (URL cagnotte) | `fund_id` | OK |
+
+Ce template semble correctement alimente. L'erreur Meta #100/#132012 sur ce template pourrait venir de la longueur du `fundTitle` (ex: "Tecno Pop10 64 Go 3+3 -2 SIM pour Marie Belle" = 48 chars) qui depasse une limite Meta, ou de caracteres speciaux.
+
+## Corrections a appliquer
+
+### Fichier : `supabase/functions/notify-fund-ready/index.ts`
+
+**Correction 1 (ligne 131)** -- `joiedevivre_fund_ready` : Remplacer `fundTitle` par `beneficiaryName` en position {{2}}
+
 ```text
-if (beneficiaryUserIdForBcf) {  // <-- Si null, on saute tout !
-    await supabase.from('business_collective_funds').insert(...)
+Avant :  trimParams([ownerFirstName, fundTitle, String(fundAmount), productName, beneficiaryName])
+Apres :  trimParams([ownerFirstName, beneficiaryName, String(fundAmount), productName, beneficiaryName])
+```
+
+**Correction 2** -- Securiser la longueur des parametres : Ajouter une fonction de troncature pour s'assurer qu'aucun parametre ne depasse la limite Meta (1024 chars pour le body, mais en pratique des textes trop longs causent des rejets).
+
+```text
+function safeParam(value: string, maxLen = 200): string {
+  const cleaned = value.trim();
+  return cleaned.length > maxLen ? cleaned.substring(0, maxLen) : cleaned;
 }
 ```
-Or le contact "Marie Belle" n'a pas de `linked_user_id`. Le champ `beneficiary_user_id` est nullable dans la table -- l'insertion devrait se faire meme sans beneficiaire lie.
 
-## Corrections
+**Correction 3** -- Appliquer `safeParam` aux deux appels de template pour tronquer les noms/titres trop longs.
 
-### Etape 1 : Migration SQL -- Reparer les cagnottes existantes
+### Apres deploiement
 
-Inserer les lignes manquantes dans `business_collective_funds` pour toutes les cagnottes business qui n'ont pas de ligne correspondante :
-
-```text
-INSERT INTO business_collective_funds (fund_id, business_id, product_id, beneficiary_user_id)
-SELECT
-  cf.id,
-  p.business_id,
-  cf.business_product_id,
-  c.linked_user_id  -- peut etre null, c'est OK
-FROM collective_funds cf
-JOIN products p ON p.id = cf.business_product_id
-LEFT JOIN contacts c ON c.id = cf.beneficiary_contact_id
-WHERE cf.business_product_id IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM business_collective_funds bcf WHERE bcf.fund_id = cf.id
-  )
-```
-
-Puis relancer `notify-fund-ready` pour la cagnotte "Tecno Pop10" deja a 100%.
-
-### Etape 2 : Modifier `CollectiveCheckout.tsx`
-
-Supprimer la condition `if (beneficiaryUserIdForBcf)` qui empeche l'insertion quand le beneficiaire n'a pas de compte. L'insertion doit se faire avec `beneficiary_user_id: null` dans ce cas :
-
-```text
-Avant :
-  if (beneficiaryUserIdForBcf) {
-    await supabase.from('business_collective_funds').insert({...})
-  } else {
-    console.warn('skipping...')
-  }
-
-Apres :
-  await supabase.from('business_collective_funds').insert({
-    fund_id: fundData.id,
-    business_id: createdByBusinessId,
-    product_id: businessProductId,
-    beneficiary_user_id: beneficiaryUserIdForBcf  // null accepte
-  })
-```
-
-### Etape 3 : Appeler notify-fund-ready pour les cagnottes reparees
-
-Apres la migration, invoquer manuellement l'Edge Function pour la cagnotte `4224309f` afin de declencher les WhatsApp en attente. La deduplication dans la fonction empechera les doublons si elle est relancee.
+Relancer `notify-fund-ready` pour la cagnotte "Tecno Pop10" (`4224309f`) afin de verifier que les WhatsApp passent correctement avec les bons parametres.
 
 ## Fichiers modifies
 
-1. **Migration SQL** -- insertion des lignes manquantes + re-declenchement
-2. **`src/pages/CollectiveCheckout.tsx`** -- suppression de la condition bloquante sur `beneficiary_user_id`
-
-## Resultat attendu
-
-- La cagnotte "Tecno Pop10" sera reparee et les WhatsApp envoyes au prestataire et aux amis
-- Les futures cagnottes business insereront toujours dans `business_collective_funds`, meme si le beneficiaire n'a pas de compte
+1. `supabase/functions/notify-fund-ready/index.ts` -- correction du parametre {{2}} et ajout de la protection de longueur
 
