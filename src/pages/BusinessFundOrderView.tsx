@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { useAuth } from "@/contexts/AuthContext";
@@ -126,9 +126,30 @@ export default function BusinessFundOrderView() {
   const { fundId: rawFundId } = useParams<{ fundId: string }>();
   const fundId = cleanMetaParam(rawFundId);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [fund, setFund] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    if (!error && fund) return;
+    if (loading) return;
+    if (!error) return;
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          navigate('/business-collective-funds');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [error, loading, fund, navigate]);
 
   useEffect(() => {
     if (!fundId || !user?.id) return;
@@ -223,6 +244,9 @@ export default function BusinessFundOrderView() {
         <h2 className="text-lg font-semibold font-poppins">Cagnotte introuvable</h2>
         <p className="text-sm text-muted-foreground">
           Cette cagnotte n'existe pas ou vous n'y avez pas accès.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}…
         </p>
         <Button asChild variant="outline">
           <Link to="/business-collective-funds">
