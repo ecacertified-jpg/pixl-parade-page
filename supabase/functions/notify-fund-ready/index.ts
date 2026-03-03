@@ -12,6 +12,12 @@ function trimParams(params: string[]): string[] {
   return params.map(p => p.trim());
 }
 
+/** Truncate params to avoid Meta API rejections on overly long values */
+function safeParam(value: string, maxLen = 200): string {
+  const cleaned = value.trim();
+  return cleaned.length > maxLen ? cleaned.substring(0, maxLen) : cleaned;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -128,7 +134,7 @@ serve(async (req) => {
           business.phone,
           'joiedevivre_fund_ready',
           'fr',
-          trimParams([ownerFirstName, fundTitle, String(fundAmount), productName, beneficiaryName]),
+          trimParams([safeParam(ownerFirstName), safeParam(beneficiaryName), String(fundAmount), safeParam(productName), safeParam(beneficiaryName)]),
           [bf.fund_id] // CTA button: /business/orders/{fund_id}
         );
         whatsappSent = waResult.success;
@@ -194,7 +200,7 @@ serve(async (req) => {
               profile.phone,
               'joiedevivre_fund_completed',
               'fr',
-              trimParams([recipientName, fundTitle, beneficiaryName, String(fundAmount)]),
+              trimParams([safeParam(recipientName), safeParam(fundTitle), safeParam(beneficiaryName), String(fundAmount)]),
               [fund_id] // CTA: /f/{fund_id}
             );
             sentPhones.add(normalizedPhone);
