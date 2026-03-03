@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Search, ArrowLeft, ShoppingCart, Heart, Star, Lightbulb, Gem, Sparkles, Smartphone, Shirt, Hammer, UtensilsCrossed, Home, HeartHandshake, Gift, Gamepad2, Baby, Briefcase, Hotel, PartyPopper, GraduationCap, Camera, Palette, X, Store, Video, Play, Share2, Map, Expand, MapPin, Loader2 } from "lucide-react";
+import { useShopProducts } from "@/hooks/useShopProducts";
+import { usePopularShops } from "@/hooks/usePopularShops";
 import { FullscreenGallery } from "@/components/FullscreenGallery";
 import { motion, useReducedMotion } from "framer-motion";
 import { ProductShareMenu } from "@/components/ProductShareMenu";
@@ -42,55 +44,43 @@ export default function Shop() {
   const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
   const { toast } = useToast();
+  const { products: rawProducts, isLoading: isInitialLoading } = useShopProducts();
+  const { popularShops } = usePopularShops();
+  
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
-  const [products, setProducts] = useState<Array<{
-    id: string | number;
-    name: string;
-    description: string;
-    price: number;
-    currency: string;
-    image: string;
-    images?: string[];
-    category: string;
-    vendor: string;
-    vendorId: string | null;
-    vendorLogo: string | null;
-    distance: string;
-    rating: number;
-    reviews: number;
-    inStock: boolean;
-    isExperience?: boolean;
-    categoryName?: string;
-    locationName?: string;
-    businessAddress?: string;
-    videoUrl?: string | null;
-    videoThumbnailUrl?: string | null;
-    countryCode: string | null;
-    businessLatitude: number | null;
-    businessLongitude: number | null;
-    distanceKm: number | null;
-  }>>([]);
   
   // Geolocation state
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   
+
+  // Derive distance-sorted products from cached data
+  const products = useMemo(() => {
+    if (!rawProducts.length) return rawProducts;
+    const withDistance = rawProducts.map(p => {
+      if (userLocation && p.businessLatitude && p.businessLongitude) {
+        const dist = haversineDistance(userLocation.lat, userLocation.lng, p.businessLatitude, p.businessLongitude);
+        return { ...p, distanceKm: dist, distance: formatDistance(dist) };
+      }
+      return p;
+    });
+    if (userLocation) {
+      withDistance.sort((a, b) => {
+        if (a.distanceKm === null && b.distanceKm === null) return 0;
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+    }
+    return withDistance;
+  }, [rawProducts, userLocation]);
+
   // State for video playback modal
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; title: string } | null>(null);
-  const [popularShops, setPopularShops] = useState<Array<{
-    id: string;
-    name: string;
-    logo: string | null;
-    type: string | null;
-    rating: number | null;
-    ratingCount: number;
-    productCount: number;
-  }>>([]);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
@@ -238,335 +228,16 @@ export default function Shop() {
     return () => clearTimeout(timer);
   }, [shopSearchQuery]);
 
-  // Re-sort products locally when userLocation changes (no new DB request)
+  // Check if user came from contribution flow
   useEffect(() => {
-    if (!userLocation || products.length === 0) return;
-    setProducts(prev => {
-      const updated = prev.map(p => {
-        if (p.businessLatitude && p.businessLongitude) {
-          const distanceKm = haversineDistance(userLocation.lat, userLocation.lng, p.businessLatitude, p.businessLongitude);
-          return { ...p, distanceKm, distance: formatDistance(distanceKm) };
-        }
-        return p;
-      });
-      updated.sort((a, b) => {
-        if (a.distanceKm === null && b.distanceKm === null) return 0;
-        if (a.distanceKm === null) return 1;
-        if (b.distanceKm === null) return -1;
-        return a.distanceKm - b.distanceKm;
-      });
-      return updated;
-    });
-  }, [userLocation]);
-  
-  useEffect(() => {
-    // Check if user came from contribution flow
     const target = localStorage.getItem('contributionTarget');
     if (target) {
       setContributionTarget(JSON.parse(target));
       localStorage.removeItem('contributionTarget');
     }
-
-    // Load products and popular shops in parallel
-    loadProducts();
-    loadPopularShops();
-
-    // Subscribe to real-time changes on products table (incremental updates)
-    const channel = supabase
-      .channel('products-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'products'
-        },
-        () => { loadProducts(); } // New product needs full mapping
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'products'
-        },
-        (payload) => {
-          const updated = payload.new as any;
-          setProducts(prev => prev.map(p => 
-            String(p.id) === updated.id
-              ? { ...p, name: updated.name, description: updated.description || p.description, price: updated.price, inStock: (updated.stock_quantity || 0) > 0, isExperience: updated.is_experience || false, categoryName: updated.category_name, image: updated.image_url || p.image }
-              : p
-          ));
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'products'
-        },
-        (payload) => {
-          const deleted = payload.old as any;
-          setProducts(prev => prev.filter(p => String(p.id) !== deleted.id));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
-  const loadProducts = async () => {
-    try {
-      // Étape 1: Récupérer les produits (limité à 200)
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(200);
 
-      if (productsError) {
-        console.error('Error loading products:', productsError);
-        return;
-      }
-
-      if (!productsData || productsData.length === 0) {
-        setProducts([]);
-        return;
-      }
-
-      // Étape 2: Extraire les IDs
-      const businessIds = [...new Set(
-        productsData
-          .map(p => p.business_account_id)
-          .filter(Boolean)
-      )] as string[];
-      const productIds = productsData.map(p => p.id);
-
-      // Étape 3: Requêtes business + ratings EN PARALLÈLE
-      const [businessResult, ratingsResult] = await Promise.all([
-        businessIds.length > 0
-          ? supabase
-              .from('business_accounts')
-              .select('id, business_name, logo_url, latitude, longitude, country_code, address')
-              .in('id', businessIds)
-          : Promise.resolve({ data: null, error: null }),
-        productIds.length > 0
-          ? supabase
-              .from('product_ratings')
-              .select('product_id, rating')
-              .in('product_id', productIds)
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      // Build business map
-      let businessMap: Record<string, { 
-        name: string; logo: string | null; latitude: number | null; longitude: number | null; countryCode: string | null; address: string | null;
-      }> = {};
-      if (businessResult.data) {
-        businessMap = businessResult.data.reduce((acc, b) => {
-          acc[b.id] = { 
-            name: b.business_name, logo: b.logo_url, latitude: b.latitude, longitude: b.longitude, countryCode: b.country_code, address: b.address
-          };
-          return acc;
-        }, {} as typeof businessMap);
-      }
-
-      // Build ratings map
-      const ratingsMap: Record<string, { sum: number; count: number }> = {};
-      if (ratingsResult.data) {
-        ratingsResult.data.forEach(r => {
-          if (!ratingsMap[r.product_id]) {
-            ratingsMap[r.product_id] = { sum: 0, count: 0 };
-          }
-          ratingsMap[r.product_id].sum += r.rating;
-          ratingsMap[r.product_id].count += 1;
-        });
-      }
-
-      // Étape 5: Formater les produits avec les noms, logos, coordonnées et country_code
-      const formattedProducts = productsData.map(product => {
-        const businessInfo = product.business_account_id ? businessMap[product.business_account_id] : null;
-        const ratingInfo = ratingsMap[product.id];
-        const avgRating = ratingInfo && ratingInfo.count > 0 
-          ? ratingInfo.sum / ratingInfo.count 
-          : 0;
-        const reviewCount = ratingInfo?.count || 0;
-        
-        // Construire le tableau d'images (image principale + images additionnelles)
-        // Utiliser video_thumbnail_url comme fallback si pas d'image_url
-        const mainImage = product.image_url 
-          || product.video_thumbnail_url 
-          || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png";
-        const additionalImages = Array.isArray(product.images) ? (product.images as string[]) : [];
-        const allImages = [mainImage, ...additionalImages.filter(img => img !== mainImage)];
-        
-        // Country code: priorité au produit, sinon la boutique
-        const effectiveCountryCode = product.country_code || businessInfo?.countryCode || null;
-        
-        // Coordonnées de la boutique
-        const businessLat = businessInfo?.latitude || null;
-        const businessLng = businessInfo?.longitude || null;
-        
-        // Calcul de distance si on a la position utilisateur et les coordonnées boutique
-        let distanceKm: number | null = null;
-        if (userLocation && businessLat && businessLng) {
-          distanceKm = haversineDistance(
-            userLocation.lat, 
-            userLocation.lng, 
-            businessLat, 
-            businessLng
-          );
-        }
-        
-        return {
-          id: product.id,
-          name: product.name,
-          description: product.description || "Description non disponible",
-          price: product.price,
-          currency: product.currency || "F",
-          image: mainImage,
-          images: allImages,
-          category: product.category_name || "Produit",
-          vendor: businessInfo?.name || "Boutique",
-          vendorId: product.business_account_id || null,
-          vendorLogo: businessInfo?.logo || null,
-          distance: distanceKm !== null ? formatDistance(distanceKm) : "Distance inconnue",
-          rating: parseFloat(avgRating.toFixed(1)),
-          reviews: reviewCount,
-          inStock: (product.stock_quantity || 0) > 0,
-          isExperience: product.is_experience || false,
-          categoryName: product.category_name,
-          locationName: product.location_name || "Non spécifié",
-          businessAddress: businessInfo?.address || "",
-          videoUrl: product.video_url || null,
-          videoThumbnailUrl: product.video_thumbnail_url || null,
-          countryCode: effectiveCountryCode,
-          businessLatitude: businessLat,
-          businessLongitude: businessLng,
-          distanceKm: distanceKm
-        };
-      });
-      
-      // Étape 6: Trier par distance (les plus proches en premier)
-      // Si pas de géolocalisation, garder l'ordre par date de création
-      if (userLocation) {
-        formattedProducts.sort((a, b) => {
-          // Produits sans distance à la fin
-          if (a.distanceKm === null && b.distanceKm === null) return 0;
-          if (a.distanceKm === null) return 1;
-          if (b.distanceKm === null) return -1;
-          return a.distanceKm - b.distanceKm;
-        });
-      }
-      
-      setProducts(formattedProducts);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsInitialLoading(false);
-    }
-  };
-
-  const loadPopularShops = async () => {
-    try {
-      // Fetch active businesses
-      const { data: businesses, error } = await supabase
-        .from('business_public_info')
-        .select('id, business_name, logo_url, business_type')
-        .eq('is_active', true)
-        .limit(10);
-
-      if (error) {
-        console.error('Error loading popular shops:', error);
-        return;
-      }
-
-      if (!businesses || businesses.length === 0) {
-        setPopularShops([]);
-        return;
-      }
-
-      const businessIds = businesses.map(b => b.id);
-
-      // Get products for these businesses
-      const { data: productsData } = await supabase
-        .from('products')
-        .select('id, business_account_id')
-        .eq('is_active', true)
-        .in('business_account_id', businessIds);
-
-      const productCountMap: Record<string, number> = {};
-      const productIdToBusinessMap: Record<string, string> = {};
-      
-      if (productsData) {
-        productsData.forEach(p => {
-          if (p.business_account_id) {
-            productCountMap[p.business_account_id] = (productCountMap[p.business_account_id] || 0) + 1;
-            productIdToBusinessMap[p.id] = p.business_account_id;
-          }
-        });
-      }
-
-      // Get ratings for all products of these businesses
-      const productIds = productsData?.map(p => p.id) || [];
-      const ratingMap: Record<string, { sum: number; count: number }> = {};
-
-      if (productIds.length > 0) {
-        const { data: ratingsData } = await supabase
-          .from('product_ratings')
-          .select('product_id, rating')
-          .in('product_id', productIds);
-
-        if (ratingsData) {
-          ratingsData.forEach(r => {
-            const businessId = productIdToBusinessMap[r.product_id];
-            if (businessId) {
-              if (!ratingMap[businessId]) {
-                ratingMap[businessId] = { sum: 0, count: 0 };
-              }
-              ratingMap[businessId].sum += r.rating;
-              ratingMap[businessId].count += 1;
-            }
-          });
-        }
-      }
-
-      // Format shops with real ratings
-      const formattedShops = businesses
-        .map(b => {
-          const ratingInfo = ratingMap[b.id];
-          const avgRating = ratingInfo && ratingInfo.count > 0 
-            ? ratingInfo.sum / ratingInfo.count 
-            : null;
-          
-          return {
-            id: b.id,
-            name: b.business_name,
-            logo: b.logo_url,
-            type: b.business_type,
-            rating: avgRating,
-            ratingCount: ratingInfo?.count || 0,
-            productCount: productCountMap[b.id] || 0
-          };
-        })
-        .filter(s => s.productCount > 0) // Only show shops with products
-        .sort((a, b) => {
-          // Sort by popularity score: rating weight + rating count + product count
-          const scoreA = (a.rating || 0) * 10 + a.ratingCount * 2 + a.productCount;
-          const scoreB = (b.rating || 0) * 10 + b.ratingCount * 2 + b.productCount;
-          return scoreB - scoreA;
-        })
-        .slice(0, 6); // Top 6 shops
-
-      setPopularShops(formattedShops);
-    } catch (error) {
-      console.error('Error loading popular shops:', error);
-    }
-  };
 
   const getCategoryCount = (categoryName: string, isExperience: boolean) => {
     if (categoryName === "Tous") {
