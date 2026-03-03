@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -17,45 +17,32 @@ interface BusinessAccount {
   longitude?: number | null;
 }
 
+const fetchBusinessAccount = async (userId: string): Promise<BusinessAccount | null> => {
+  const { data, error } = await supabase
+    .from('business_accounts')
+    .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url, latitude, longitude')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking business account:', error);
+    return null;
+  }
+  return data;
+};
+
 export const useBusinessAccount = () => {
-  const [businessAccount, setBusinessAccount] = useState<BusinessAccount | null>(null);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!user) {
-      setBusinessAccount(null);
-      setLoading(false);
-      return;
-    }
-
-    checkBusinessAccount();
-  }, [user]);
-
-  const checkBusinessAccount = async () => {
-    try {
-      // Use order + limit to avoid "multiple rows" error with maybeSingle
-      const { data, error } = await supabase
-        .from('business_accounts')
-        .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url, latitude, longitude')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking business account:', error);
-        setBusinessAccount(null);
-      } else {
-        setBusinessAccount(data);
-      }
-    } catch (error) {
-      console.error('Error checking business account:', error);
-      setBusinessAccount(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: businessAccount = null, isLoading: loading } = useQuery({
+    queryKey: ['business-account', user?.id],
+    queryFn: () => fetchBusinessAccount(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
 
   const hasBusinessAccount = businessAccount !== null;
   const isActiveBusinessAccount = businessAccount?.is_active === true;
@@ -65,6 +52,6 @@ export const useBusinessAccount = () => {
     hasBusinessAccount,
     isActiveBusinessAccount,
     loading,
-    refetch: checkBusinessAccount,
+    refetch: () => queryClient.invalidateQueries({ queryKey: ['business-account', user?.id] }),
   };
 };

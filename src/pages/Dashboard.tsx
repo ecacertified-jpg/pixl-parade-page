@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,13 +67,9 @@ import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
 import { FriendRequestsNotification } from "@/components/FriendRequestsNotification";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
-interface UserProfile {
-  first_name: string | null;
-  last_name: string | null;
-  city: string | null;
-  phone: string | null;
-  birthday: string | null;
-}
+import { useDashboardData } from "@/hooks/useDashboardData";
+
+// UserProfile interface moved to useDashboardData
 interface Friend {
   id: string;
   name: string;
@@ -89,19 +85,16 @@ export default function Dashboard() {
   const [showGiftHistory, setShowGiftHistory] = useState(false);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [linkContactTarget, setLinkContactTarget] = useState<{ id: string; name: string } | null>(null);
-  const [friendsWithWishlist, setFriendsWithWishlist] = useState<Set<string>>(new Set());
   const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const {
     user
   } = useAuth();
+  const { userProfile, friends, friendsWithWishlist, events, refreshDashboard } = useDashboardData();
   const {
     hasBusinessAccount,
     isActiveBusinessAccount = false
@@ -206,13 +199,6 @@ export default function Dashboard() {
     localStorage.removeItem('events');
   }, []);
 
-  // Charger les données depuis Supabase uniquement
-  useEffect(() => {
-    loadFriendsFromSupabase();
-    loadEventsFromSupabase();
-    loadUserProfile();
-  }, [user]);
-
   // Handle URL parameters for tab switching and auto-open modals
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -222,117 +208,21 @@ export default function Dashboard() {
       setActiveTab('amis');
       if (add === 'true') {
         setShowAddFriendModal(true);
-        // Clean up URL params after opening modal
         searchParams.delete('add');
         setSearchParams(searchParams);
       }
     }
   }, [searchParams, setSearchParams]);
-  const loadUserProfile = async () => {
-    if (!user) return;
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('first_name, last_name, city, phone, birthday').eq('user_id', user.id).single();
-      if (error) {
-        console.error('Erreur lors du chargement du profil:', error);
-        return;
-      }
-      setUserProfile(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    }
-  };
-  const loadFriendsFromSupabase = async () => {
-    if (!user) {
-      setFriends([]); // Nettoyer si pas d'utilisateur connecté
-      return;
-    }
-    try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-        
-      if (error) {
-        console.error('Erreur lors du chargement des contacts:', error);
-        return;
-      }
-
-      // Convertir uniquement les contacts Supabase (source unique de vérité)
-      const contacts: Friend[] = data.map(contact => ({
-        id: contact.id,
-        name: contact.name,
-        phone: contact.phone || '',
-        relation: contact.relationship || '',
-        location: contact.notes || '',
-        birthday: contact.birthday || '',
-        linked_user_id: contact.linked_user_id
-      }));
-
-      setFriends(contacts);
-
-      // Charger les IDs des contacts avec wishlist active
-      const linkedUserIds = contacts
-        .filter(c => c.linked_user_id)
-        .map(c => c.linked_user_id!);
-
-      if (linkedUserIds.length > 0) {
-        const { data: wishlistData } = await supabase
-          .from('user_favorites')
-          .select('user_id')
-          .in('user_id', linkedUserIds);
-
-        setFriendsWithWishlist(new Set(wishlistData?.map(w => w.user_id) || []));
-      } else {
-        setFriendsWithWishlist(new Set());
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement des contacts:', error);
-    }
-  };
-  const loadEventsFromSupabase = async () => {
-    if (!user) {
-      setEvents([]);
-      return;
-    }
-    try {
-      const { data, error } = await supabase
-        .from('user_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('event_date', { ascending: true });
-        
-      if (error) {
-        console.error('Erreur lors du chargement des événements:', error);
-        return;
-      }
-
-      const userEvents: Event[] = data.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.event_date),
-        type: event.event_type
-      }));
-
-      setEvents(userEvents);
-    } catch (error) {
-      console.error('Erreur lors du chargement des événements:', error);
-    }
-  };
 
   // Écouter les événements ajoutés depuis d'autres composants
   useEffect(() => {
     const handleEventAdded = () => {
-      loadEventsFromSupabase();
+      refreshDashboard();
     };
 
     window.addEventListener('eventAdded', handleEventAdded);
     return () => window.removeEventListener('eventAdded', handleEventAdded);
-  }, [user]);
-
+  }, [refreshDashboard]);
   // Fonction pour ajouter un ami
   const handleAddFriend = async (newFriend: Friend) => {
     if (!user) return;
@@ -400,7 +290,7 @@ export default function Dashboard() {
       }
 
       // Recharger les contacts depuis Supabase
-      await loadFriendsFromSupabase();
+      await refreshDashboard();
       
       if (existingUser?.user_id) {
         toast({
@@ -443,7 +333,7 @@ export default function Dashboard() {
       }
       
       // Recharger les contacts depuis Supabase
-      await loadFriendsFromSupabase();
+      await refreshDashboard();
     } catch (error) {
       console.error('Erreur lors de la suppression du contact:', error);
     }
@@ -471,7 +361,7 @@ export default function Dashboard() {
         return;
       }
 
-      await loadEventsFromSupabase();
+      await refreshDashboard();
       toast({
         title: "Événement ajouté",
         description: `${eventData.title} a été ajouté`
@@ -506,7 +396,7 @@ export default function Dashboard() {
         return;
       }
 
-      await loadEventsFromSupabase();
+      await refreshDashboard();
       setEditingEvent(null);
     } catch (error) {
       console.error('Erreur lors de la modification de l\'événement:', error);
@@ -534,7 +424,7 @@ export default function Dashboard() {
         return;
       }
 
-      await loadEventsFromSupabase();
+      await refreshDashboard();
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'événement:', error);
     }
@@ -579,7 +469,7 @@ export default function Dashboard() {
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Rappel cercle d'amis */}
         <div className="mb-4">
-          <FriendsCircleReminderCard onFriendAdded={() => loadFriendsFromSupabase()} />
+          <FriendsCircleReminderCard onFriendAdded={() => refreshDashboard()} />
         </div>
 
         {/* Compte à rebours anniversaire */}
@@ -817,7 +707,7 @@ export default function Dashboard() {
               requests={pendingReceived}
               onAccept={async (requestId, requesterId) => {
                 const ok = await acceptRequest(requestId, requesterId);
-                if (ok) await loadFriendsFromSupabase();
+                if (ok) await refreshDashboard();
                 return ok;
               }}
               onDecline={declineRequest}
@@ -856,7 +746,7 @@ export default function Dashboard() {
                   suggestions={friendshipSuggestions}
                   onConfirm={async (contactId, linkedUserId) => {
                     await confirmRelationship(contactId, linkedUserId);
-                    await loadFriendsFromSupabase();
+                    await refreshDashboard();
                   }}
                   onDismiss={dismissSuggestion}
                 />
@@ -1115,7 +1005,7 @@ export default function Dashboard() {
           onComplete={() => {
             markProfileComplete();
             setShowCompleteProfileModal(false);
-            loadUserProfile(); // Refresh profile data
+            refreshDashboard(); // Refresh profile data
           }}
           initialData={initialData}
         />
@@ -1181,7 +1071,7 @@ export default function Dashboard() {
             contactName={linkContactTarget.name}
             onLinked={() => {
               setLinkContactTarget(null);
-              loadFriendsFromSupabase();
+              refreshDashboard();
             }}
           />
         )}

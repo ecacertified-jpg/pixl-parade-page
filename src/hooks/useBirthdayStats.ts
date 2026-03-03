@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -12,53 +12,36 @@ interface BirthdayStats {
   yearsCelebrated: number[];
 }
 
+const fetchBirthdayStats = async (userId: string): Promise<BirthdayStats | null> => {
+  const { data, error } = await supabase
+    .from('user_birthday_stats')
+    .select('*')
+    .eq('auth_user_id', userId)
+    .single();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    userId: data.user_id,
+    userName: data.user_name,
+    badgeLevel: data.badge_level,
+    badgeName: data.badge_name,
+    totalCelebrations: data.total_birthdays_celebrated || 0,
+    firstBirthdayOnPlatform: data.first_birthday_on_platform,
+    yearsCelebrated: data.years_celebrated || [],
+  };
+};
+
 export const useBirthdayStats = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<BirthdayStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+  const { data: stats = null, isLoading: loading, error } = useQuery({
+    queryKey: ['birthday-stats', user?.id],
+    queryFn: () => fetchBirthdayStats(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
 
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Get stats from the view
-        const { data, error: statsError } = await supabase
-          .from('user_birthday_stats')
-          .select('*')
-          .eq('auth_user_id', user.id)
-          .single();
-
-        if (statsError) throw statsError;
-
-        if (data) {
-          setStats({
-            userId: data.user_id,
-            userName: data.user_name,
-            badgeLevel: data.badge_level,
-            badgeName: data.badge_name,
-            totalCelebrations: data.total_birthdays_celebrated || 0,
-            firstBirthdayOnPlatform: data.first_birthday_on_platform,
-            yearsCelebrated: data.years_celebrated || []
-          });
-        }
-      } catch (err: any) {
-        console.error('Error fetching birthday stats:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [user]);
-
-  return { stats, loading, error };
+  return { stats, loading, error: error?.message || null };
 };

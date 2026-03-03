@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,48 +17,39 @@ interface ReciprocityScore {
   promotion_contributions: number;
 }
 
+const fetchReciprocityScore = async (userId: string): Promise<ReciprocityScore | null> => {
+  const { data, error } = await supabase
+    .from('reciprocity_scores')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error loading reciprocity score:', error);
+    return null;
+  }
+  if (!data) return null;
+  return {
+    ...data,
+    badge_level: data.badge_level as ReciprocityScore['badge_level'],
+  };
+};
+
 export const useReciprocityScore = () => {
   const { user } = useAuth();
-  const [score, setScore] = useState<ReciprocityScore | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadScore = async () => {
-    if (!user) {
-      setScore(null);
-      setLoading(false);
-      return;
-    }
+  const { data: score = null, isLoading: loading } = useQuery({
+    queryKey: ['reciprocity-score', user?.id],
+    queryFn: () => fetchReciprocityScore(user!.id),
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
 
-    try {
-      const { data, error } = await supabase
-        .from('reciprocity_scores')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading reciprocity score:', error);
-        setScore(null);
-      } else if (data) {
-        setScore({
-          ...data,
-          badge_level: data.badge_level as 'newcomer' | 'helper' | 'generous' | 'champion'
-        });
-      } else {
-        setScore(null);
-      }
-    } catch (error) {
-      console.error('Error loading reciprocity score:', error);
-      setScore(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Realtime invalidation
   useEffect(() => {
-    loadScore();
+    if (!user?.id) return;
 
-    // Écouter les changements sur le score
     const channel = supabase
       .channel('reciprocity-score-changes')
       .on(
@@ -66,10 +58,10 @@ export const useReciprocityScore = () => {
           event: '*',
           schema: 'public',
           table: 'reciprocity_scores',
-          filter: `user_id=eq.${user?.id}`
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
-          loadScore();
+          queryClient.invalidateQueries({ queryKey: ['reciprocity-score', user.id] });
         }
       )
       .subscribe();
@@ -77,7 +69,11 @@ export const useReciprocityScore = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, queryClient]);
 
-  return { score, loading, refreshScore: loadScore };
+  return {
+    score,
+    loading,
+    refreshScore: () => queryClient.invalidateQueries({ queryKey: ['reciprocity-score', user?.id] }),
+  };
 };
