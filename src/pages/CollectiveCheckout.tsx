@@ -228,7 +228,7 @@ export default function CollectiveCheckout() {
               business_id: createdByBusinessId,
               product_id: businessProductId,
               beneficiary_user_id: beneficiaryUserIdForBcf // null accepté
-            } as any);
+            });
 
           if (bcfError) {
             console.error('⚠️ business_collective_funds insert error (non-blocking):', bcfError);
