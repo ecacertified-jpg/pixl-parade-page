@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type PriorityLevel = 'urgent' | 'high' | 'medium' | 'low';
 export type OccasionType = 'birthday' | 'wedding' | 'promotion' | 'achievement' | 'christmas' | 'valentines' | 'other';
@@ -33,260 +35,133 @@ export interface FavoriteStats {
   estimatedBudget: number;
 }
 
+const fetchFavorites = async (userId: string): Promise<EnrichedFavorite[]> => {
+  const { data, error } = await supabase
+    .from('user_favorites')
+    .select(`*, products (*)`)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((item: any) => ({
+    ...item,
+    product: item.products,
+  })) as EnrichedFavorite[];
+};
+
 export function useFavorites() {
-  const [favorites, setFavorites] = useState<EnrichedFavorite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<FavoriteStats>({ total: 0, urgent: 0, estimatedBudget: 0 });
+  const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const userId = user?.id;
 
-  const loadFavorites = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setFavorites([]);
-        return;
-      }
+  const queryKey = ['favorites', userId];
 
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select(`
-          *,
-          products (*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+  const { data: favorites = [], isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: () => fetchFavorites(userId!),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
 
-      if (error) throw error;
+  const stats = useMemo<FavoriteStats>(() => ({
+    total: favorites.length,
+    urgent: favorites.filter(f => f.priority_level === 'urgent').length,
+    estimatedBudget: favorites.reduce((sum, f) => sum + (f.product?.price || 0), 0),
+  }), [favorites]);
 
-      const enrichedFavorites = (data || []).map((item: any) => ({
-        ...item,
-        product: item.products
-      })) as EnrichedFavorite[];
-      setFavorites(enrichedFavorites);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['favorites'] });
 
-      // Calculate stats
-      const urgentCount = enrichedFavorites.filter(f => f.priority_level === 'urgent').length;
-      const totalBudget = enrichedFavorites.reduce((sum, f) => sum + (f.product?.price || 0), 0);
-      
-      setStats({
-        total: enrichedFavorites.length,
-        urgent: urgentCount,
-        estimatedBudget: totalBudget
-      });
+  const addMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      if (!userId) throw new Error('Not authenticated');
+      const existing = favorites.find(f => f.product_id === productId);
+      if (existing) throw new Error('ALREADY_EXISTS');
 
-    } catch (error: any) {
-      console.error('Error loading favorites:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les favoris",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updatePriority = async (favoriteId: string, priority: PriorityLevel) => {
-    try {
       const { error } = await supabase
         .from('user_favorites')
-        .update({ priority_level: priority })
-        .eq('id', favoriteId);
-
+        .insert({ user_id: userId, product_id: productId, priority_level: 'medium', accept_alternatives: true, context_usage: [] });
       if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast({ title: "Ajouté aux favoris", description: "L'article a été ajouté à votre liste de souhaits" });
+    },
+    onError: (error: Error) => {
+      if (error.message === 'ALREADY_EXISTS') {
+        toast({ title: "Déjà dans les favoris", description: "Cet article est déjà dans vos favoris" });
+      } else if (error.message === 'Not authenticated') {
+        toast({ title: "Connexion requise", description: "Veuillez vous connecter pour ajouter des favoris", variant: "destructive" });
+      } else {
+        toast({ title: "Erreur", description: "Impossible d'ajouter aux favoris", variant: "destructive" });
+      }
+    },
+  });
 
-      await loadFavorites();
-      toast({
-        title: "Priorité mise à jour",
-        description: `Priorité changée en ${priority}`,
-      });
-    } catch (error: any) {
-      console.error('Error updating priority:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la priorité",
-        variant: "destructive"
-      });
-    }
+  const removeMutation = useMutation({
+    mutationFn: async (favoriteId: string) => {
+      const { error } = await supabase.from('user_favorites').delete().eq('id', favoriteId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast({ title: "Favori supprimé", description: "L'article a été retiré de vos favoris" });
+    },
+    onError: () => {
+      toast({ title: "Erreur", description: "Impossible de supprimer le favori", variant: "destructive" });
+    },
+  });
+
+  const updateFieldMutation = useMutation({
+    mutationFn: async ({ favoriteId, updates }: { favoriteId: string; updates: Record<string, any> }) => {
+      const { error } = await supabase.from('user_favorites').update(updates).eq('id', favoriteId);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidate(),
+    onError: () => {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour", variant: "destructive" });
+    },
+  });
+
+  const updatePriority = async (favoriteId: string, priority: PriorityLevel) => {
+    await updateFieldMutation.mutateAsync({ favoriteId, updates: { priority_level: priority } });
+    toast({ title: "Priorité mise à jour", description: `Priorité changée en ${priority}` });
   };
 
   const updateOccasion = async (favoriteId: string, occasion: OccasionType | null) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .update({ occasion_type: occasion })
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      await loadFavorites();
-      toast({
-        title: "Occasion mise à jour",
-        description: occasion ? `Occasion changée en ${occasion}` : "Occasion supprimée",
-      });
-    } catch (error: any) {
-      console.error('Error updating occasion:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour l'occasion",
-        variant: "destructive"
-      });
-    }
+    await updateFieldMutation.mutateAsync({ favoriteId, updates: { occasion_type: occasion } });
+    toast({ title: "Occasion mise à jour", description: occasion ? `Occasion changée en ${occasion}` : "Occasion supprimée" });
   };
 
   const toggleAlternatives = async (favoriteId: string, accept: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .update({ accept_alternatives: accept })
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      await loadFavorites();
-    } catch (error: any) {
-      console.error('Error toggling alternatives:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour les préférences",
-        variant: "destructive"
-      });
-    }
+    await updateFieldMutation.mutateAsync({ favoriteId, updates: { accept_alternatives: accept } });
   };
 
   const updateContextUsage = async (favoriteId: string, contexts: string[]) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .update({ context_usage: contexts })
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      await loadFavorites();
-    } catch (error: any) {
-      console.error('Error updating context usage:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le contexte",
-        variant: "destructive"
-      });
-    }
+    await updateFieldMutation.mutateAsync({ favoriteId, updates: { context_usage: contexts } });
   };
 
   const updateNotes = async (favoriteId: string, notes: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .update({ notes })
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      await loadFavorites();
-      toast({
-        title: "Notes mises à jour",
-        description: "Vos notes ont été enregistrées",
-      });
-    } catch (error: any) {
-      console.error('Error updating notes:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour les notes",
-        variant: "destructive"
-      });
-    }
+    await updateFieldMutation.mutateAsync({ favoriteId, updates: { notes } });
+    toast({ title: "Notes mises à jour", description: "Vos notes ont été enregistrées" });
   };
 
   const addFavorite = async (productId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Connexion requise",
-          description: "Veuillez vous connecter pour ajouter des favoris",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      // Check if already in favorites
-      const existing = favorites.find(f => f.product_id === productId);
-      if (existing) {
-        toast({
-          title: "Déjà dans les favoris",
-          description: "Cet article est déjà dans vos favoris",
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from('user_favorites')
-        .insert({
-          user_id: user.id,
-          product_id: productId,
-          priority_level: 'medium',
-          accept_alternatives: true,
-          context_usage: []
-        });
-
-      if (error) throw error;
-
-      await loadFavorites();
-      toast({
-        title: "Ajouté aux favoris",
-        description: "L'article a été ajouté à votre liste de souhaits",
-      });
+      await addMutation.mutateAsync(productId);
       return true;
-    } catch (error: any) {
-      console.error('Error adding favorite:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter aux favoris",
-        variant: "destructive"
-      });
+    } catch {
       return false;
     }
   };
 
   const removeFavorite = async (favoriteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_favorites')
-        .delete()
-        .eq('id', favoriteId);
-
-      if (error) throw error;
-
-      await loadFavorites();
-      toast({
-        title: "Favori supprimé",
-        description: "L'article a été retiré de vos favoris",
-      });
-    } catch (error: any) {
-      console.error('Error removing favorite:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le favori",
-        variant: "destructive"
-      });
-    }
+    await removeMutation.mutateAsync(favoriteId);
   };
 
-  const isFavorite = (productId: string) => {
-    return favorites.some(f => f.product_id === productId);
-  };
-
-  const getFavoriteId = (productId: string) => {
-    return favorites.find(f => f.product_id === productId)?.id;
-  };
-
-  useEffect(() => {
-    loadFavorites();
-  }, []);
+  const isFavorite = (productId: string) => favorites.some(f => f.product_id === productId);
+  const getFavoriteId = (productId: string) => favorites.find(f => f.product_id === productId)?.id;
 
   return {
     favorites,
@@ -301,6 +176,6 @@ export function useFavorites() {
     removeFavorite,
     isFavorite,
     getFavoriteId,
-    refresh: loadFavorites
+    refresh: () => invalidate(),
   };
 }
