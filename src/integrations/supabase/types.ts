@@ -1185,7 +1185,7 @@ export type Database = {
       business_collective_funds: {
         Row: {
           auto_notifications: boolean | null
-          beneficiary_user_id: string
+          beneficiary_user_id: string | null
           business_id: string
           created_at: string | null
           fund_id: string
@@ -1196,7 +1196,7 @@ export type Database = {
         }
         Insert: {
           auto_notifications?: boolean | null
-          beneficiary_user_id: string
+          beneficiary_user_id?: string | null
           business_id: string
           created_at?: string | null
           fund_id: string
@@ -1207,7 +1207,7 @@ export type Database = {
         }
         Update: {
           auto_notifications?: boolean | null
-          beneficiary_user_id?: string
+          beneficiary_user_id?: string | null
           business_id?: string
           created_at?: string | null
           fund_id?: string

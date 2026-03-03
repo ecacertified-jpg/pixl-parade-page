@@ -221,23 +221,19 @@ export default function CollectiveCheckout() {
             beneficiaryUserIdForBcf = contactData?.linked_user_id || null;
           }
 
-          if (beneficiaryUserIdForBcf) {
-            const { error: bcfError } = await supabase
-              .from('business_collective_funds')
-              .insert({
-                fund_id: fundData.id,
-                business_id: createdByBusinessId,
-                product_id: businessProductId,
-                beneficiary_user_id: beneficiaryUserIdForBcf
-              });
+          const { error: bcfError } = await supabase
+            .from('business_collective_funds')
+            .insert({
+              fund_id: fundData.id,
+              business_id: createdByBusinessId,
+              product_id: businessProductId,
+              beneficiary_user_id: beneficiaryUserIdForBcf // null accepté
+            } as any);
 
-            if (bcfError) {
-              console.error('⚠️ business_collective_funds insert error (non-blocking):', bcfError);
-            } else {
-              console.log('✅ business_collective_funds inserted for fund:', fundData.id);
-            }
+          if (bcfError) {
+            console.error('⚠️ business_collective_funds insert error (non-blocking):', bcfError);
           } else {
-            console.warn('⚠️ No beneficiary_user_id found, skipping business_collective_funds insert');
+            console.log('✅ business_collective_funds inserted for fund:', fundData.id);
           }
         } catch (bcfErr) {
           console.warn('⚠️ business_collective_funds insert failed (non-blocking):', bcfErr);
