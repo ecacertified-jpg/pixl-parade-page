@@ -32,6 +32,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Publications = lazy(() => import("./pages/Publications"));
 const BusinessAccount = lazy(() => import("./pages/BusinessAccount"));
 const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+const BusinessFundOrderView = lazy(() => import("./pages/BusinessFundOrderView"));
 const Shop = lazy(() => import("./pages/Shop"));
 const VendorShop = lazy(() => import("./pages/VendorShop"));
 const Favorites = lazy(() => import("./pages/Favorites"));
@@ -255,8 +256,8 @@ const App = () => (
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
 
-            {/* Redirect WhatsApp CTA link to business collective funds page */}
-            <Route path="/business/orders/:fundId" element={<ProtectedRoute><Navigate to="/business-collective-funds" replace /></ProtectedRoute>} />
+            {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
+            <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />
             <Route path="/business/orders" element={<ProtectedRoute><Navigate to="/business-collective-funds" replace /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
