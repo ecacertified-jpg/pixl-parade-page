@@ -1,51 +1,52 @@
 
-# Accelerer l'affichage initial avec le lazy loading
 
-## Probleme
+# Fix: Notifications non envoyees a 100% -- insertion manquante dans `business_collective_funds`
 
-`App.tsx` importe **~90 pages de maniere synchrone** (eager imports). Avant d'afficher quoi que ce soit -- meme la simple page Landing -- le navigateur doit telecharger et parser l'integralite du code de l'application : Dashboard (1086 lignes + 50 composants), toutes les pages Admin, Shop, etc.
+## Cause racine
 
-Resultat : ecran blanc pendant plusieurs secondes.
+Le flux de creation de cagnotte via **`CollectiveCheckout.tsx`** insere directement dans la table `collective_funds` (ligne 156) mais **n'insere jamais dans `business_collective_funds`**. 
 
-## Solution
-
-Convertir tous les imports de pages en `lazy()` sauf les pages critiques du premier affichage (Landing, Auth). Cela permet a Vite de creer des chunks separes : seul le code de la page visitee est telecharge.
-
-## Changements
-
-### Fichier : `src/App.tsx`
-
-1. **Garder en import direct** (pages du premier rendu, petites) :
-   - `Landing`, `Auth`, `NotFound`
-
-2. **Convertir en `lazy()`** toutes les autres pages (~85 imports) :
-   - Dashboard, Home, Index, Shop, Favorites, etc.
-   - Toutes les pages Admin (deja partiellement lazy pour quelques-unes)
-   - BusinessAuth, BusinessDashboard, Orders, etc.
-
-3. **Wrapper chaque route lazy** avec `<Suspense fallback={<LoadingTransition />}>` en utilisant le composant `LoadingTransition` deja existant dans le projet
+Quand la cagnotte atteint 100%, le trigger `notify_on_target_reached` appelle l'Edge Function `notify-fund-ready`. Cette fonction cherche une ligne dans `business_collective_funds` pour identifier le prestataire, le produit et le beneficiaire. Elle n'en trouve pas, log "Not a business fund, skipping" et s'arrete sans envoyer aucune notification.
 
 ```text
-Avant :
-  import Dashboard from "./pages/Dashboard"     // charge immediatement
-  import Shop from "./pages/Shop"               // charge immediatement
-  import AdminDashboard from "./pages/Admin/..." // charge immediatement
-  ... x90
-
-Apres :
-  const Dashboard = lazy(() => import("./pages/Dashboard"))
-  const Shop = lazy(() => import("./pages/Shop"))
-  const AdminDashboard = lazy(() => import("./pages/Admin/..."))
-  ... code splitte en chunks
+CollectiveCheckout.tsx
+  |-- INSERT INTO collective_funds       --> OK
+  |-- INSERT INTO collective_fund_orders --> OK
+  |-- INSERT INTO business_collective_funds --> MANQUANT !
+  
+Quand 100% atteint:
+  notify-fund-ready --> SELECT FROM business_collective_funds WHERE fund_id = ... --> vide --> SKIP
 ```
 
-### Impact attendu
+A noter : la fonction RPC `create_business_collective_fund` fait correctement les deux insertions, mais elle n'est utilisee que par `BusinessCollaborativeGiftModal.tsx`, pas par le checkout standard.
 
-- **Bundle initial** : reduit de ~80% (seuls Landing + Auth + framework)
-- **Temps d'affichage** : de plusieurs secondes a moins d'1 seconde
-- **Navigation** : chaque page charge son chunk a la demande avec un spinner anime
-- **Cache navigateur** : les chunks sont caches individuellement par Vite
+## Correction
+
+### Fichier modifie : `src/pages/CollectiveCheckout.tsx`
+
+Ajouter une insertion dans `business_collective_funds` juste apres la creation du fund (ligne ~209), quand `createdByBusinessId` est present :
+
+```text
+Apres "Fund created successfully" (ligne 209) :
+  SI createdByBusinessId ET fundData.id :
+    INSERT INTO business_collective_funds (
+      fund_id       = fundData.id,
+      business_id   = createdByBusinessId,
+      product_id    = businessProductId,
+      beneficiary_user_id = beneficiaryUserId (recupere du contact ou item)
+    )
+```
+
+Le `beneficiary_user_id` sera recupere de la meme maniere que plus bas dans le code (lignes 230-238) -- en utilisant `items[0]?.beneficiaryId` ou en faisant un lookup via `contacts.linked_user_id`.
+
+### Impact
+
+- Le prestataire recevra le WhatsApp `joiedevivre_fund_ready` a l'achevement
+- Les contributeurs et amis recevront le WhatsApp `joiedevivre_fund_completed`
+- Les notifications in-app seront creees pour tous les participants
+- Aucun changement cote base de donnees ni Edge Functions
 
 ### Fichier modifie
 
-1. `src/App.tsx` -- conversion des imports en lazy + wrapping Suspense
+1. `src/pages/CollectiveCheckout.tsx` -- ajout de l'insertion `business_collective_funds` apres la creation du fund
+
