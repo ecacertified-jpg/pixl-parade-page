@@ -24,15 +24,22 @@ export default function BusinessFundOrderView() {
         setLoading(true);
         setError(false);
 
+        console.log("BusinessFundOrderView - IDs:", { rawFundId, fundId, userId: user?.id });
+
         const { data, error: rpcError } = await supabase.rpc(
           'get_business_fund_for_owner' as any,
           { p_fund_id: fundId }
         );
 
         if (rpcError) {
-          console.error("RPC error:", rpcError);
+          console.error("BusinessFundOrderView - RPC error:", rpcError);
           setError(true);
           return;
+        }
+
+        if (!data) {
+          console.warn("BusinessFundOrderView - No data returned from RPC");
+          setError(true);
         }
 
         if (!data) {
