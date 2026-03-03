@@ -8253,6 +8253,10 @@ export type Database = {
           website_url: string
         }[]
       }
+      get_business_fund_for_owner: {
+        Args: { p_fund_id: string }
+        Returns: Json
+      }
       get_favorites_suggestions: {
         Args: { p_user_id: string }
         Returns: {

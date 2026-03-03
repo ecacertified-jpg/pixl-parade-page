@@ -11,7 +11,6 @@ export default function BusinessFundOrderView() {
   const { fundId } = useParams<{ fundId: string }>();
   const { user } = useAuth();
   const [fund, setFund] = useState<any>(null);
-  const [contributors, setContributors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -23,24 +22,13 @@ export default function BusinessFundOrderView() {
         setLoading(true);
         setError(false);
 
-        // Single targeted query - RLS handles access control
-        const { data, error: fetchError } = await supabase
-          .from("business_collective_funds")
-          .select(`
-            *,
-            collective_funds!fund_id (
-              id, title, description, target_amount, current_amount,
-              currency, status, occasion, deadline_date
-            ),
-            products!product_id (
-              id, name, description, price, currency, image_url
-            )
-          `)
-          .eq("fund_id", fundId)
-          .maybeSingle();
+        const { data, error: rpcError } = await supabase.rpc(
+          'get_business_fund_for_owner' as any,
+          { p_fund_id: fundId }
+        );
 
-        if (fetchError) {
-          console.error("Error loading fund:", fetchError);
+        if (rpcError) {
+          console.error("RPC error:", rpcError);
           setError(true);
           return;
         }
@@ -50,77 +38,37 @@ export default function BusinessFundOrderView() {
           return;
         }
 
-        // Get beneficiary profile
-        let beneficiary = null;
-        if (data.beneficiary_user_id) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("user_id, first_name, last_name, phone")
-            .eq("user_id", data.beneficiary_user_id)
-            .single();
-          beneficiary = profile;
-        }
+        const result = data as any;
+        const cf = result.fund;
+        const product = result.product;
+        const beneficiary = result.beneficiary;
+        const contributors = result.contributors || [];
+        const order = result.order;
 
-        // Get contributors
-        const { data: contribs } = await supabase
-          .from("fund_contributions")
-          .select("id, amount, contributor_id")
-          .eq("fund_id", fundId);
-
-        const contributorsList: any[] = [];
-        if (contribs?.length) {
-          const uniqueIds = [...new Set(contribs.map(c => c.contributor_id))];
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("user_id, first_name, last_name")
-            .in("user_id", uniqueIds);
-
-          const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-          for (const c of contribs) {
-            const p = profileMap.get(c.contributor_id);
-            contributorsList.push({
-              id: c.id,
-              name: p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Anonyme" : "Anonyme",
-              amount: c.amount,
-            });
-          }
-        }
-
-        // Get order data
-        let orderData = undefined;
-        const fundData = Array.isArray(data.collective_funds) ? data.collective_funds[0] : data.collective_funds;
-        if (fundData) {
-          const { data: order } = await supabase
-            .from("business_orders")
-            .select("donor_phone, beneficiary_phone, delivery_address, payment_method, order_summary")
-            .eq("fund_id", fundData.id)
-            .maybeSingle();
-          if (order) {
-            orderData = order as any;
-          }
-        }
-
-        const product = Array.isArray(data.products) ? data.products[0] : data.products;
         const benefName = beneficiary
           ? `${beneficiary.first_name || ""} ${beneficiary.last_name || ""}`.trim()
           : "Bénéficiaire";
 
         setFund({
-          id: fundData?.id || fundId,
-          title: fundData?.title || "Cagnotte",
+          id: cf?.id || fundId,
+          title: cf?.title || "Cagnotte",
           beneficiaryName: benefName,
-          targetAmount: fundData?.target_amount || 0,
-          currentAmount: fundData?.current_amount || 0,
-          currency: fundData?.currency || "XOF",
+          targetAmount: cf?.target_amount || 0,
+          currentAmount: cf?.current_amount || 0,
+          currency: cf?.currency || "XOF",
           productImage: product?.image_url,
           productName: product?.name || "Produit",
-          contributors: contributorsList,
-          status: fundData?.status || "active",
-          occasion: fundData?.occasion || "",
-          orderData,
+          contributors,
+          status: cf?.status || "active",
+          occasion: cf?.occasion || "",
+          orderData: order ? {
+            donor_phone: order.donor_phone,
+            beneficiary_phone: order.beneficiary_phone,
+            delivery_address: order.delivery_address,
+            payment_method: order.payment_method,
+            order_summary: order.order_summary,
+          } : undefined,
         });
-        setContributors(contributorsList);
       } catch (err) {
         console.error("Error:", err);
         setError(true);
