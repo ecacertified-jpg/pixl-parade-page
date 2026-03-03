@@ -255,6 +255,10 @@ const App = () => (
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
 
+            {/* Redirect WhatsApp CTA link to business collective funds page */}
+            <Route path="/business/orders/:fundId" element={<ProtectedRoute><Navigate to="/business-collective-funds" replace /></ProtectedRoute>} />
+            <Route path="/business/orders" element={<ProtectedRoute><Navigate to="/business-collective-funds" replace /></ProtectedRoute>} />
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </AnimatedRoutes>
