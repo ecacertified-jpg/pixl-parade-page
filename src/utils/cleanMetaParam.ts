@@ -5,5 +5,5 @@
  */
 export const cleanMetaParam = (param: string | undefined): string | undefined => {
   if (!param) return param;
-  return param.replace(/^\{\{\d+\}\}/, '');
+  return param.replace(/^\{\{\d+\}\}\s*/, '').trim();
 };
