@@ -1,28 +1,31 @@
 
 
-# Fix : Nettoyage du prefixe Meta avec espace
+# Diagnostic : Pourquoi "Cagnotte introuvable" persiste
 
-## Probleme
+## Verification effectuee
 
-L'URL generee par Meta contient un espace apres le placeholder : `{{1}} efacddcb-...`. La regex actuelle supprime `{{1}}` mais ne gere pas l'espace qui suit, produisant ` efacddcb-...` (avec espace) qui n'est pas un UUID valide.
+J'ai teste la fonction RPC directement en base avec le user_id du prestataire NewTech (`aae8fedd-...`) et le fund_id `efacddcb-...` : **la fonction retourne correctement toutes les donnees** (cagnotte, produit Samsung Galaxy A16, 2 contributeurs, 88000 XOF).
 
-## Solution
+Le code est aussi correct. Le probleme n'est ni dans la RPC ni dans le nettoyage de l'URL.
 
-Modifier `cleanMetaParam.ts` pour aussi supprimer les espaces apres le prefixe Meta :
+## Cause probable
 
-```typescript
-return param.replace(/^\{\{\d+\}\}\s*/, '').trim();
-```
+L'application sur `joiedevivre-africa.com` (domaine de production) utilise probablement une version **anterieure** du code -- celle d'avant l'ajout de la fonction RPC. Les modifications recentes (RPC + cleanMetaParam) ne sont actives que sur le preview Lovable. Il faut **publier** l'application pour que les changements soient visibles en production.
 
-Le `.trim()` supplementaire gere aussi d'eventuels espaces en fin de chaine (encodage URL).
+## Plan d'action
 
-## Fichier concerne
+### 1. Ajouter du logging de debug dans `BusinessFundOrderView.tsx`
 
-`src/utils/cleanMetaParam.ts` -- une seule ligne a modifier.
+Pour diagnostiquer les futurs problemes, ajouter des `console.log` qui tracent :
+- Le `fundId` brut et nettoyé
+- Le `user.id` au moment de l'appel
+- La reponse et l'erreur de la RPC
 
-## Configuration Meta CTA (rappel)
+### 2. Publier l'application
 
-- **Base URL** : `https://joiedevivre-africa.com/business/orders/`
-- **Suffixe dynamique** : `{{1}}`
-- **Exemple** : `https://joiedevivre-africa.com/business/orders/efacddcb-3b07-4652-9c45-123297b48a64`
+Apres le deploiement du logging, il faudra **publier** l'app vers la production (`joiedevivre-africa.com`) pour que les changements (RPC, cleanMetaParam, logging) soient actifs.
+
+### Fichier concerne
+
+- **Modifie** : `src/pages/BusinessFundOrderView.tsx` (ajout de 3 console.log)
 
