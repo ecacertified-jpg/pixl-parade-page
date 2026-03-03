@@ -141,7 +141,7 @@ export default function BusinessFundOrderView() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          navigate('/business-collective-funds');
+          navigate('/business-dashboard?tab=orders');
           return 0;
         }
         return prev - 1;
@@ -249,9 +249,9 @@ export default function BusinessFundOrderView() {
           Redirection automatique dans {countdown} seconde{countdown > 1 ? 's' : ''}…
         </p>
         <Button asChild variant="outline">
-          <Link to="/business-collective-funds">
+          <Link to="/business-dashboard?tab=orders">
             <Gift className="h-4 w-4 mr-2" />
-            Voir toutes mes cagnottes
+            Voir mes commandes
           </Link>
         </Button>
       </div>
@@ -262,7 +262,7 @@ export default function BusinessFundOrderView() {
     <div className="p-4 max-w-2xl mx-auto space-y-4">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="icon">
-          <Link to="/business-collective-funds">
+          <Link to="/business-dashboard?tab=orders">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
@@ -272,8 +272,8 @@ export default function BusinessFundOrderView() {
       <CollectiveFundBusinessCard fund={fund} />
 
       <Button asChild variant="outline" className="w-full">
-        <Link to="/business-collective-funds">
-          Voir toutes mes cagnottes
+        <Link to="/business-dashboard?tab=orders">
+          Voir mes commandes
         </Link>
       </Button>
     </div>

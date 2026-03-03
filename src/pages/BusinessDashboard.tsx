@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCollectiveFunds } from "@/hooks/useCollectiveFunds";
 import { useBusinessProducts } from "@/hooks/useBusinessProducts";
@@ -89,6 +89,8 @@ interface BusinessAccount {
 }
 export default function BusinessDashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const {
     user
   } = useAuth();
@@ -936,7 +938,7 @@ export default function BusinessDashboard() {
           </Card>
         )}
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-5 text-xs">
             <TabsTrigger value="overview" className="flex flex-col gap-1">
               <Eye className="h-4 w-4" />
