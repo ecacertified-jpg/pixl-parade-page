@@ -1,81 +1,62 @@
 
-
-# Optimiser la vitesse de chargement du Dashboard
+# Optimiser le chargement de la page Shop avec TanStack Query
 
 ## Probleme identifie
 
-Le Dashboard declenche **15+ requetes Supabase independantes** et ouvre **3+ canaux Realtime** au montage initial. Chaque hook utilise `useState`/`useEffect` brut sans cache ni deduplication. Voici l'inventaire :
+La page `Shop.tsx` declenche **5+ requetes Supabase** au montage sans cache ni deduplication :
 
-### Requetes au montage (toutes en cascade, non cachees)
+| Source | Requetes |
+|--------|:--------:|
+| `loadProducts()` | 3 (products + business_accounts + product_ratings en parallele) |
+| `loadPopularShops()` | 3 (business_public_info + products + product_ratings) |
+| `useFavorites()` | 1 (deja migre vers TanStack Query) |
+| Shop search (debounced) | 2-3 par recherche |
+| Canal Realtime `products-changes` | 1 subscription |
 
-| Source | Requetes Supabase | Canal Realtime |
-|--------|:-:|:-:|
-| Dashboard (loadFriends) | 2 (contacts + user_favorites) | - |
-| Dashboard (loadEvents) | 1 | - |
-| Dashboard (loadUserProfile) | 1 | - |
-| useCollectiveFunds | 1 | - |
-| useBusinessAccount | 1 | - |
-| useReciprocityScore | 1 | 1 |
-| useOnboarding | 1 | - |
-| useProfileCompletion | 1 | - |
-| useFriendRequests | 2-4 (requests + profiles) | - |
-| useFriendsCircleBadgeCelebration | 1 | 1 |
-| useFriendsCircleReminder | 1+ | - |
-| SmartBirthdayReminders | 2 (notifications + contacts) | - |
-| ReciprocityNotificationsSection | 1 | 1 |
-| BirthdayStatsCard (useBirthdayStats) | 1 | - |
-| FavoriteArticlesSection (useFavorites) | 1 | - |
-| useFriendshipSuggestions | 1-2 | - |
+**Total : ~6 requetes au montage + 1 canal Realtime**, sans cache. Chaque navigation vers /shop relance tout.
 
-**Total : ~20 requetes Supabase + 3 canaux Realtime** au premier rendu.
+## Solution
 
-## Solution : Migrer les hooks critiques vers TanStack Query
+Extraire la logique de chargement dans deux hooks TanStack Query dedies, puis simplifier `Shop.tsx`.
 
-Migrer les 6 hooks les plus frequemment appeles vers TanStack Query avec `staleTime: 30000` pour partager le cache et eviter les re-fetches. Regrouper certaines requetes du Dashboard dans un seul hook.
+### Etape 1 : Creer `src/hooks/useShopProducts.ts`
 
-### Etape 1 : Hook `useDashboardData` consolide
+Nouveau hook qui encapsule `loadProducts()` avec `useQuery` :
+- **Query key** : `['shop-products']`
+- **staleTime** : `30000` (30 secondes)
+- **queryFn** : la logique actuelle de `loadProducts()` (fetch products, business_accounts, ratings en parallele, puis formatage)
+- Retourne les produits formates, sans gestion de geolocation (celle-ci reste locale dans Shop.tsx via `useMemo`)
+- Le canal Realtime declenche `queryClient.invalidateQueries` au lieu de manipuler le state directement
 
-Creer un hook `useDashboardData.ts` qui regroupe les 4 requetes directes du Dashboard (profil, contacts, wishlists des contacts, evenements) en un seul `useQuery` avec `Promise.all`. Cela reduit 4 requetes sequentielles en 1 appel parallele cache.
+### Etape 2 : Creer `src/hooks/usePopularShops.ts`
 
-### Etape 2 : Migrer `useReciprocityScore` vers TanStack Query
+Nouveau hook qui encapsule `loadPopularShops()` avec `useQuery` :
+- **Query key** : `['popular-shops']`
+- **staleTime** : `60000` (60 secondes, change rarement)
+- **queryFn** : la logique actuelle (fetch businesses, product counts, ratings, tri par popularite)
 
-Remplacer `useState`/`useEffect` par `useQuery` avec cle `['reciprocity-score', userId]` et `staleTime: 30000`. Garder le canal Realtime pour l'invalidation du cache.
+### Etape 3 : Simplifier `Shop.tsx`
 
-### Etape 3 : Migrer `useBusinessAccount` vers TanStack Query
-
-Remplacer par `useQuery` avec cle `['business-account', userId]` et `staleTime: 60000` (change rarement).
-
-### Etape 4 : Migrer `useBirthdayStats` vers TanStack Query
-
-Remplacer par `useQuery` avec cle `['birthday-stats', userId]` et `staleTime: 60000`.
-
-### Etape 5 : Migrer `useFriendRequests` vers TanStack Query
-
-Remplacer par `useQuery` avec cle `['friend-requests', userId]` et `staleTime: 15000`.
-
-### Etape 6 : Mettre a jour Dashboard.tsx
-
-Remplacer les appels directs (`loadFriendsFromSupabase`, `loadEventsFromSupabase`, `loadUserProfile`) par le nouveau `useDashboardData`. Supprimer les `useState` et `useEffect` correspondants.
+- Remplacer `loadProducts()` et son `useEffect` par `useShopProducts()`
+- Remplacer `loadPopularShops()` et son state par `usePopularShops()`
+- Supprimer les `useState` pour `products`, `popularShops`, `isInitialLoading`
+- Garder la logique de tri par distance via `useMemo` applique sur les donnees du cache
+- Deplacer le canal Realtime dans `useShopProducts` avec invalidation du cache
 
 ## Resultat attendu
 
 ```text
-Avant:
-  20 requetes independantes -> ~2-4s de chargement
+Avant :
+  Navigation vers /shop -> 6 requetes a chaque fois (~1-2s)
 
-Apres:
-  ~8 requetes (dedupliquees et cachees) -> <1s au premier chargement
-  Navigations suivantes : donnees instantanees depuis le cache
+Apres :
+  Premier chargement -> 6 requetes (identique)
+  Navigations suivantes dans les 30s -> 0 requetes (instantane depuis le cache)
+  Retour au shop apres >30s -> refetch en arriere-plan (donnees affichees immediatement)
 ```
 
-## Fichiers modifies
+## Fichiers
 
-1. **Nouveau** : `src/hooks/useDashboardData.ts` -- hook consolide (profil + contacts + events)
-2. **Modifie** : `src/hooks/useReciprocityScore.ts` -- migration TanStack Query
-3. **Modifie** : `src/hooks/useBusinessAccount.ts` -- migration TanStack Query
-4. **Modifie** : `src/hooks/useBirthdayStats.ts` -- migration TanStack Query
-5. **Modifie** : `src/hooks/useFriendRequests.ts` -- migration TanStack Query
-6. **Modifie** : `src/pages/Dashboard.tsx` -- utiliser `useDashboardData`, supprimer les fetches manuels
-
-Aucune modification de la base de donnees. L'interface publique de chaque hook reste identique pour eviter de casser les autres composants consommateurs.
-
+1. **Nouveau** : `src/hooks/useShopProducts.ts` -- hook TanStack Query pour les produits
+2. **Nouveau** : `src/hooks/usePopularShops.ts` -- hook TanStack Query pour les boutiques populaires
+3. **Modifie** : `src/pages/Shop.tsx` -- remplacement des fetches manuels par les nouveaux hooks
