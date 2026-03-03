@@ -1,46 +1,59 @@
 
-
-# Fix : Politique RLS SELECT manquante pour les prestataires sur `business_collective_funds`
+# Fix : Page vide apres clic sur le lien WhatsApp du prestataire
 
 ## Diagnostic
 
-La table `business_collective_funds` a les politiques RLS suivantes :
-- **SELECT** : "Beneficiaries can view business funds created for them" -- verifie `beneficiary_user_id = auth.uid()`
-- **INSERT** : "Authenticated users can create business fund links" -- `WITH CHECK (true)`
-- **INSERT** : "Business owners can create collective funds" -- verifie propriete du commerce
-- **DELETE** : "Business owners can delete their collective funds" -- verifie propriete du commerce
+L'analyse approfondie montre que :
+- La politique RLS SELECT est correcte et en place
+- Les donnees existent dans la table `business_collective_funds`
+- Les jointures FK sont non-ambigues
+- Aucune politique RESTRICTIVE ne bloque l'acces
 
-**Il manque une politique SELECT pour les prestataires.** Le prestataire NewTech (`user_id: aae8fedd-...`) possede le business (`id: 6f6556d8-...`), mais aucune politique ne lui permet de lire les lignes ou `business_id` correspond a son commerce. Le backfill a bien insere la ligne, mais elle est invisible pour le prestataire.
+Le probleme probable est lie au navigateur integre de WhatsApp : le hook `useBusinessCollectiveFunds` effectue deux requetes sequentielles (business_accounts puis business_collective_funds avec jointures) et un filtre cote client. Dans le navigateur WhatsApp, la session auth peut ne pas etre completement initialisee au moment ou le hook s'execute, ce qui retourne un tableau vide.
 
-De plus, la ligne backfillee a `beneficiary_user_id: NULL`, donc meme la politique SELECT existante pour les beneficiaires ne s'applique pas.
+## Solution
 
-## Correction
+Creer une page dediee `/business/orders/:fundId` qui charge directement la cagnotte specifique par son `fund_id`, au lieu de rediriger vers la page generique.
 
-### Migration SQL
+### 1. Nouvelle page `BusinessFundOrderView.tsx`
 
-Ajouter une politique RLS SELECT pour les proprietaires de commerce :
+Creer `src/pages/BusinessFundOrderView.tsx` :
+- Recupere le `fundId` depuis les parametres de route (`useParams`)
+- Charge directement depuis `business_collective_funds` en filtrant par `fund_id`
+- Joint `collective_funds`, `products`, et `profiles` (beneficiaire) en une seule requete
+- Charge les contributeurs separement
+- Affiche la cagnotte avec le composant `CollectiveFundBusinessCard` existant
+- Inclut un lien vers la page de gestion complete
 
-```sql
-CREATE POLICY "Business owners can view their collective funds"
-ON public.business_collective_funds
-FOR SELECT
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.business_accounts ba
-    WHERE ba.id = business_collective_funds.business_id
-    AND ba.user_id = auth.uid()
-  )
-  OR business_id = auth.uid()
-);
+Avantages :
+- Une seule requete ciblee au lieu de charger toutes les cagnottes
+- Pas de filtre cote client (RLS gere tout)
+- Plus resilient aux problemes de timing d'authentification
+- Meilleure UX : le prestataire voit directement LA cagnotte concernee
+
+### 2. Modification de `App.tsx`
+
+Remplacer le `Navigate` par le nouveau composant :
+
+```text
+<Route path="/business/orders/:fundId" element={
+  <ProtectedRoute>
+    <L><BusinessFundOrderView /></L>
+  </ProtectedRoute>
+} />
 ```
 
-Cette politique permet au prestataire de voir toutes les lignes `business_collective_funds` dont le `business_id` correspond a un de ses comptes business.
+Garder le redirect `/business/orders` (sans fundId) vers `/business-collective-funds`.
 
-## Resultat attendu
+### 3. Contenu de la page
 
-Apres cette migration, le prestataire NewTech verra la cagnotte "Samsung Galaxy A16" sur la page `/business-collective-funds` lorsqu'il clique sur le lien WhatsApp.
+La page affichera :
+- Header avec titre "Commande cagnotte" et bouton retour
+- Les details complets de la cagnotte (produit, progression, contributeurs, infos de livraison)
+- Un bouton "Voir toutes mes cagnottes" pointant vers `/business-collective-funds`
+- Un etat de chargement et un etat d'erreur si la cagnotte n'est pas trouvee
 
-## Fichiers modifies
+## Fichiers concernes
 
-1. **Migration SQL** -- Ajout de la politique RLS SELECT pour les proprietaires de commerce
+1. **Nouveau** : `src/pages/BusinessFundOrderView.tsx` -- page dediee pour le lien WhatsApp
+2. **Modifie** : `src/App.tsx` -- route mise a jour pour pointer vers le nouveau composant
