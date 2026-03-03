@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { useAuth } from "@/contexts/AuthContext";
 import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessCard";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, AlertCircle, Gift } from "lucide-react";
 
 export default function BusinessFundOrderView() {
-  const { fundId } = useParams<{ fundId: string }>();
+  const { fundId: rawFundId } = useParams<{ fundId: string }>();
+  const fundId = cleanMetaParam(rawFundId);
   const { user } = useAuth();
   const [fund, setFund] = useState<any>(null);
   const [loading, setLoading] = useState(true);
