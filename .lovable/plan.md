@@ -1,94 +1,62 @@
 
 
-# Fix : Cagnotte invisible pour le prestataire via le lien WhatsApp
+# Fix : "Cagnotte introuvable" via lien WhatsApp + configuration Meta CTA
 
 ## Diagnostic
 
-Toutes les politiques RLS sont correctement configurees et les donnees existent en base. Le probleme vient probablement d'un conflit subtil entre les multiples politiques SELECT (8 politiques sur `business_collective_funds` + jointures vers `collective_funds` et `products` qui ont aussi leurs propres RLS). Dans le navigateur WhatsApp, ce cumul de verifications RLS imbriquees echoue silencieusement et retourne `null`.
+Deux problemes identifies :
 
-## Solution : Fonction RPC SECURITY DEFINER
+1. **Prefixe Meta `{{1}}`** : Meta Business Manager peut encoder le placeholder comme texte litteral dans l'URL, produisant `/business/orders/{{1}}efacddcb-3b07-4652-9c45-123297b48a64` au lieu de `/business/orders/efacddcb-...`. La page `BusinessFundOrderView` n'utilise pas `cleanMetaParam` (contrairement a `FundPreview` qui le fait), donc le `fundId` contient un prefixe invalide et la requete RPC retourne `NULL`.
 
-Creer une fonction PostgreSQL `get_business_fund_for_owner` qui :
-- Prend un `fund_id` en parametre
-- Verifie cote serveur que l'utilisateur connecte possede un commerce lie a cette cagnotte
-- Retourne toutes les donnees necessaires en une seule requete (cagnotte, produit, beneficiaire, contributeurs, commande)
-- Fonctionne en SECURITY DEFINER pour contourner les conflits RLS
+2. **Configuration Meta CTA** : Le modele `joiedevivre_fund_ready` doit avoir le bon format d'URL de base dans Meta Business Manager.
 
-Cela remplace les 4-5 requetes client actuelles par un seul appel RPC fiable.
+## Solution
 
-## Modifications
+### 1. Ajouter `cleanMetaParam` dans `BusinessFundOrderView.tsx`
 
-### 1. Migration SQL -- Fonction RPC `get_business_fund_for_owner`
-
-```sql
-CREATE OR REPLACE FUNCTION public.get_business_fund_for_owner(p_fund_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  result jsonb;
-  v_user_id uuid := auth.uid();
-BEGIN
-  -- Verifier que l'utilisateur possede un commerce lie a cette cagnotte
-  IF NOT EXISTS (
-    SELECT 1 FROM business_collective_funds bcf
-    JOIN business_accounts ba ON ba.id = bcf.business_id
-    WHERE bcf.fund_id = p_fund_id AND ba.user_id = v_user_id
-  ) THEN
-    RETURN NULL;
-  END IF;
-
-  -- Recuperer toutes les donnees en une seule requete
-  SELECT jsonb_build_object(
-    'fund', row_to_json(cf.*),
-    'product', row_to_json(p.*),
-    'beneficiary', (SELECT row_to_json(pr.*) FROM profiles pr WHERE pr.user_id = bcf.beneficiary_user_id),
-    'contributors', COALESCE((
-      SELECT jsonb_agg(jsonb_build_object(
-        'id', fc.id,
-        'amount', fc.amount,
-        'name', COALESCE(NULLIF(TRIM(CONCAT(pr2.first_name, ' ', pr2.last_name)), ''), 'Anonyme')
-      ))
-      FROM fund_contributions fc
-      LEFT JOIN profiles pr2 ON pr2.user_id = fc.contributor_id
-      WHERE fc.fund_id = p_fund_id
-    ), '[]'::jsonb),
-    'order', (
-      SELECT row_to_json(bo.*)
-      FROM business_orders bo
-      WHERE bo.fund_id = p_fund_id
-      LIMIT 1
-    )
-  ) INTO result
-  FROM business_collective_funds bcf
-  JOIN collective_funds cf ON cf.id = bcf.fund_id
-  LEFT JOIN products p ON p.id = bcf.product_id
-  WHERE bcf.fund_id = p_fund_id
-  LIMIT 1;
-
-  RETURN result;
-END;
-$$;
-```
-
-### 2. Mise a jour de `BusinessFundOrderView.tsx`
-
-Remplacer les multiples requetes Supabase par un seul appel RPC :
+Modifier la page pour nettoyer le parametre `fundId` avant de l'utiliser dans l'appel RPC, exactement comme le fait deja `FundPreview.tsx` :
 
 ```typescript
-const { data, error } = await supabase.rpc('get_business_fund_for_owner', {
-  p_fund_id: fundId
-});
+import { cleanMetaParam } from "@/utils/cleanMetaParam";
+
+// Dans le composant :
+const { fundId: rawFundId } = useParams<{ fundId: string }>();
+const fundId = cleanMetaParam(rawFundId);
 ```
 
-Puis transformer le resultat JSON en props pour `CollectiveFundBusinessCard`.
+### 2. Configuration du CTA dans Meta Business Manager
 
-La page reste la meme (pas de page supplementaire) -- on simplifie juste le chargement des donnees pour le rendre fiable.
+Pour le modele `joiedevivre_fund_ready`, le bouton CTA doit etre configure ainsi :
 
-### Fichiers concernes
+- **Type** : Call to Action - URL
+- **URL type** : Dynamic
+- **Base URL** : `https://joiedevivre-africa.com/business/orders/`
+- **Suffixe dynamique** : `{{1}}`
 
-1. **Migration SQL** -- Nouvelle fonction RPC `get_business_fund_for_owner`
-2. **Modifie** : `src/pages/BusinessFundOrderView.tsx` -- Utiliser l'appel RPC au lieu des requetes directes
+L'URL finale generee sera :
+```
+https://joiedevivre-africa.com/business/orders/efacddcb-3b07-4652-9c45-123297b48a64
+```
+
+**Exemple concret pour la cagnotte existante** :
+```
+https://joiedevivre-africa.com/business/orders/efacddcb-3b07-4652-9c45-123297b48a64
+```
+
+Le code edge function passe deja correctement le `fund_id` comme parametre du bouton (ligne 138 de `notify-fund-ready/index.ts`) :
+```typescript
+[bf.fund_id] // CTA button: /business/orders/{fund_id}
+```
+
+### 3. Ajouter du logging de debug temporaire
+
+Ajouter un `console.log` du `fundId` brut et nettoyé pour faciliter le debug en cas de probleme persistant.
+
+## Fichiers concernes
+
+1. **Modifie** : `src/pages/BusinessFundOrderView.tsx` -- ajout de `cleanMetaParam` + logging
+
+## Pas de nouvelle page
+
+Cette correction se fait uniquement dans la page existante. Aucune nouvelle page n'est creee.
 
