@@ -1,26 +1,64 @@
 
-# Fix: "record new has no field fund_id" error on contribution
 
-## Root Cause
+# Optimiser le chargement des favoris
 
-The function `handle_fund_completion()` was originally written for the `fund_contributions` table (which has a `fund_id` column). Later, the trigger was correctly moved to the `collective_funds` table, but the function body was never updated. It still references `NEW.fund_id` instead of `NEW.id`.
+## Probleme
 
-When a contribution reaches 100% of the target:
-1. `fund_contributions` is updated (or inserted)
-2. `collective_funds.current_amount` is recalculated by another trigger
-3. `trigger_handle_fund_completion` fires on `collective_funds`
-4. `handle_fund_completion()` tries `NEW.fund_id` -- CRASH: `collective_funds` has no `fund_id` column
+Le hook `useFavorites` utilise `useState`/`useEffect` bruts sans cache. Il est appele dans 11 composants differents (Dashboard, Shop, WishlistCatalog, Favorites, CategoryPage, VendorShop, etc.), et chaque instance declenche sa propre requete Supabase independante. Cela cause :
+- Des requetes reseau dupliquees (meme donnees chargees plusieurs fois)
+- Un appel supplementaire a `supabase.auth.getUser()` a chaque chargement
+- Un rechargement complet apres chaque mutation (add, remove, update)
 
-## Fix
+## Solution
 
-**Database migration** -- Recreate `handle_fund_completion()` replacing all `NEW.fund_id` references with `NEW.id`, since the trigger now runs on `collective_funds` where the row's primary key is `id`.
+Migrer `useFavorites` vers **TanStack Query** (deja installe dans le projet) pour beneficier de :
+- **Deduplication automatique** : un seul fetch partage entre tous les composants
+- **Cache de 30 secondes** (staleTime) pour eviter les re-fetches inutiles
+- **Invalidation ciblee** apres les mutations au lieu de tout recharger
+- **Mises a jour optimistes** pour les actions rapides (ajouter/supprimer un favori)
 
-Changes in the function:
-- Line 17: `WHERE id = NEW.fund_id` becomes `WHERE id = NEW.id` (or simply use `NEW` directly since we already are on `collective_funds`)
-- Remove the initial `SELECT * INTO fund_record FROM collective_funds WHERE id = ...` since `NEW` already IS the `collective_funds` row
-- Use `NEW.current_amount >= NEW.target_amount` directly instead of fetching `fund_record`
-- Keep the business order creation logic intact using `NEW.id` as the fund ID
+## Changements techniques
 
-## Technical Details
+### Fichier : `src/hooks/useFavorites.ts`
 
-Single SQL migration to `CREATE OR REPLACE FUNCTION handle_fund_completion()` with corrected column references. No schema changes, no new tables, no frontend changes needed.
+1. Remplacer `useState`/`useEffect` par `useQuery` pour le chargement des favoris
+2. Utiliser `useMutation` + `queryClient.invalidateQueries` pour les mutations (add, remove, update)
+3. Ajouter un `staleTime` de 30 secondes pour eviter les requetes repetees
+4. Calculer les stats directement depuis les donnees du cache (pas de state separe)
+5. Supprimer l'appel `supabase.auth.getUser()` dans chaque mutation en utilisant le user du contexte auth existant
+
+```text
+Avant (architecture actuelle):
++------------------+    +------------------+    +------------------+
+| Dashboard        |    | Shop             |    | WishlistCatalog  |
+| useFavorites()   |    | useFavorites()   |    | useFavorites()   |
+|   -> fetch #1    |    |   -> fetch #2    |    |   -> fetch #3    |
++------------------+    +------------------+    +------------------+
+
+Apres (avec TanStack Query):
++------------------+    +------------------+    +------------------+
+| Dashboard        |    | Shop             |    | WishlistCatalog  |
+| useFavorites()   |    | useFavorites()   |    | useFavorites()   |
++--------+---------+    +--------+---------+    +--------+---------+
+         |                       |                       |
+         +----------+------------+-----------+-----------+
+                    |                        |
+              useQuery('favorites')     (cache partage)
+                    |
+              1 seul fetch Supabase
+```
+
+### Approche detaillee
+
+- **Query key** : `['favorites', userId]` pour isoler par utilisateur
+- **staleTime** : 30 secondes -- les donnees sont considerees fraiches pendant 30s
+- **Mutations** : chaque mutation (addFavorite, removeFavorite, updatePriority, etc.) utilise `queryClient.invalidateQueries({ queryKey: ['favorites'] })` pour rafraichir le cache apres modification
+- **Stats calculees** : les stats (total, urgent, estimatedBudget) sont derivees avec `useMemo` depuis les donnees du cache, pas de state separee
+- L'interface publique du hook (noms de fonctions, types) reste identique pour eviter de modifier les 11 fichiers consommateurs
+
+### Resume
+
+- 1 fichier modifie : `src/hooks/useFavorites.ts`
+- Aucun changement dans les composants consommateurs (API identique)
+- Aucun changement de base de donnees
+
