@@ -353,7 +353,8 @@ export async function sendWhatsAppTemplate(
   templateName: string,
   languageCode: string,
   bodyParameters: string[],
-  buttonParameters?: string[]
+  buttonParameters?: string[],
+  headerImageUrl?: string
 ): Promise<SmsResult> {
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
@@ -374,6 +375,13 @@ export async function sendWhatsAppTemplate(
 
   try {
     const components: Record<string, unknown>[] = [];
+    // Header image component (required for templates with media header)
+    if (headerImageUrl) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'image', image: { link: headerImageUrl } }],
+      });
+    }
     if (bodyParameters.length > 0) {
       components.push({
         type: 'body',
