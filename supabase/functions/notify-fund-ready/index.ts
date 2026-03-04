@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendWhatsAppTemplate } from "../_shared/sms-sender.ts";
+import { sendWhatsAppTemplate, sendWhatsApp } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -212,12 +212,35 @@ serve(async (req) => {
               friendWaSent++;
               console.log(`📱 Fund completed WA -> ${source} ${profile.user_id}: ✅`);
             } else {
-              friendWaFailed++;
-              console.error(`❌ Fund completed WA -> ${source} ${profile.user_id}: ${waResult.error}`);
+              // Fallback: texte libre
+              const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+              const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+              if (fallbackResult.success) {
+                sentPhones.add(normalizedPhone);
+                friendWaSent++;
+                console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+              } else {
+                friendWaFailed++;
+                console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+              }
             }
           } catch (err) {
-            friendWaFailed++;
-            console.error(`❌ Fund completed WA failed for ${source} ${profile.user_id}:`, err);
+            // Catch: also try fallback
+            try {
+              const fallbackMsg = `🎉 Félicitations ${profile.first_name || 'Ami(e)'} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+              const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+              if (fallbackResult.success) {
+                sentPhones.add(normalizedPhone);
+                friendWaSent++;
+                console.log(`📱 Fund completed WA catch-fallback -> ${source} ${profile.user_id}: ✅`);
+              } else {
+                friendWaFailed++;
+                console.error(`❌ Fund completed WA catch+fallback -> ${source} ${profile.user_id}: catch=${err}, fallback=${fallbackResult.error}`);
+              }
+            } catch (fallbackErr) {
+              friendWaFailed++;
+              console.error(`❌ Fund completed WA all failed for ${source} ${profile.user_id}:`, err, fallbackErr);
+            }
           }
         } else {
           console.log(`⏭️ Dedup phone: ${normalizedPhone} already sent (${source} ${profile.user_id})`);
