@@ -187,6 +187,9 @@ serve(async (req) => {
     // Exclude vendor user_id
     allNotifiedUserIds.add(business.user_id);
 
+    // Header image URL for the fund_completed template
+    const FUND_COMPLETED_HEADER_IMAGE = 'https://joiedevivre-africa.com/og-image.png';
+
     // Helper: send fund_completed WhatsApp + in-app notification
     async function notifyFriend(profile: { user_id: string; first_name: string | null; phone: string | null }, source: string) {
       const recipientName = profile.first_name || 'Ami(e)';
@@ -201,7 +204,8 @@ serve(async (req) => {
               'joiedevivre_fund_completed',
               'fr',
               trimParams([safeParam(recipientName), safeParam(fundTitle), safeParam(beneficiaryName), String(fundAmount)]),
-              [fund_id] // CTA: /f/{fund_id}
+              [fund_id], // CTA: /f/{fund_id}
+              FUND_COMPLETED_HEADER_IMAGE
             );
             sentPhones.add(normalizedPhone);
             friendWaSent++;
