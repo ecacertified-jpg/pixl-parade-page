@@ -7,6 +7,7 @@ import { CollectiveFundBusinessCard } from "@/components/CollectiveFundBusinessC
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, AlertCircle, Gift } from "lucide-react";
+import { toast } from "sonner";
 
 async function fallbackLoadFund(fundId: string, userId: string) {
   console.log("BusinessFundOrderView - Fallback: starting direct query", { fundId, userId });
@@ -141,6 +142,7 @@ export default function BusinessFundOrderView() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
+          toast.info("Votre cagnotte est visible dans l'onglet Commandes", { duration: 5000 });
           navigate('/business-account?tab=commandes');
           return 0;
         }
