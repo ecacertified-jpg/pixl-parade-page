@@ -1,49 +1,48 @@
 
 
-# Corriger l'envoi du template `joiedevivre_fund_completed`
+# Diagnostic: `joiedevivre_fund_completed` - 0 envois dans Meta
 
-## Diagnostic
+## Analyse des logs
 
-Tous les envois de `joiedevivre_fund_completed` échouent avec l'erreur Meta **#132012** ("Parameter format does not match format in the created template"). Les logs montrent 3 échecs consécutifs.
+Voici ce qui s'est passé lors des 2 derniers appels de `notify-fund-ready` pour le fund `efacddcb...` :
 
-**Cause probable** : le template a un **HEADER IMAGE** (visible dans la capture Meta). Pour les templates WhatsApp avec un header média (image/vidéo), Meta exige de passer l'URL de l'image dans un composant `header` à chaque envoi, même si une image sample a été fournie lors de la création du template. Or, la fonction `sendWhatsAppTemplate` ne supporte actuellement que les composants `body` et `button` — aucun composant `header` n'est envoyé.
+| Destinataire | Telephone | Statut | Erreur |
+|---|---|---|---|
+| Françoise (créatrice) | 0708*** | "sent" (API) | Aucune, mais Meta compte 0 |
+| Aboutou WhatsApp | 0546*** | failed | `(#100) Invalid parameter` |
+| Aboutou WhatsApp | 0707*** | **ignoré** | Phone identique au prestataire NewTech (dedup) |
+| Amtey Florentin | aucun | - | Pas de telephone, in-app uniquement |
 
-## Solution
+## Problemes identifies
 
-### 1. Étendre `sendWhatsAppTemplate` (sms-sender.ts)
+### 1. Retour de `sendWhatsAppTemplate` non verifie (bug code)
+Dans `notifyFriend()`, le resultat de `sendWhatsAppTemplate` n'est pas inspecte. Meme si la fonction retourne `{ success: false }`, le code compte quand meme `friendWaSent++` et ajoute le phone au Set de deduplication. Cela fausse les compteurs et empeche les re-envois.
 
-Ajouter un paramètre optionnel `headerImageUrl` à la signature. Quand fourni, insérer un composant `header` avec type `image` avant les composants body/button :
+### 2. Meta dashboard a 0 malgre un `wamid` valide
+L'API Meta a accepte le message pour Françoise (retourne un `wamid`), mais le template `joiedevivre_fund_completed` est categorise **Marketing** dans Meta. Les templates Marketing sont soumis a des restrictions de delivrabilite (opt-in, qualite). Le message a ete accepte par l'API mais probablement non delivre.
 
+### 3. Erreur `(#100)` pour Aboutou 0546
+Le numero `+2250546566646` n'est probablement pas enregistre sur WhatsApp, ou il y a un probleme de format.
+
+## Plan de correction
+
+### Etape 1 : Corriger la verification du retour dans `notify-fund-ready`
 ```typescript
-// Nouveau paramètre optionnel
-headerImageUrl?: string
-
-// Composant ajouté dans le tableau components
-if (headerImageUrl) {
-  components.unshift({
-    type: 'header',
-    parameters: [{ type: 'image', image: { link: headerImageUrl } }],
-  });
+const waResult = await sendWhatsAppTemplate(...);
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  friendWaFailed++;
+  console.error(`...`);
 }
 ```
 
-### 2. Passer l'image dans `notify-fund-ready` (appel fund_completed)
+### Etape 2 : Re-deployer et re-tester
+- Supprimer les notifications de dedup existantes
+- Appeler `notify-fund-ready` avec le fund test
+- Verifier les logs et le dashboard Meta
 
-Utiliser l'URL publique du logo Joie de Vivre hébergé (à confirmer — probablement dans le bucket Supabase storage ou un CDN). Ajouter `headerImageUrl` à l'appel `sendWhatsAppTemplate` pour le template `joiedevivre_fund_completed` uniquement.
-
-### 3. Déployer et tester
-
-- Déployer les deux edge functions modifiées
-- Supprimer la notification de déduplication existante pour le fund test
-- Appeler `notify-fund-ready` avec le fund `efacddcb...` pour vérifier l'envoi réel
-
-## Fichiers concernés
-
-- **Modifié** : `supabase/functions/_shared/sms-sender.ts` — ajout du support header image
-- **Modifié** : `supabase/functions/notify-fund-ready/index.ts` — passer l'URL image au template fund_completed
-- **Déploiement** : `notify-fund-ready`
-
-## Question ouverte
-
-Il me faut l'URL publique exacte de l'image header du template (le logo Joie de Vivre avec les cadeaux visible dans la capture Meta). Est-ce une image hébergée dans votre storage Supabase, ou avez-vous une URL CDN à utiliser ?
+### Fichier modifie
+- `supabase/functions/notify-fund-ready/index.ts` : verifier `waResult.success` avant de compter comme envoye
 
