@@ -1,48 +1,40 @@
 
 
-# Diagnostic: `joiedevivre_fund_completed` - 0 envois dans Meta
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-## Analyse des logs
+## Modification
 
-Voici ce qui s'est passé lors des 2 derniers appels de `notify-fund-ready` pour le fund `efacddcb...` :
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-| Destinataire | Telephone | Statut | Erreur |
-|---|---|---|---|
-| Françoise (créatrice) | 0708*** | "sent" (API) | Aucune, mais Meta compte 0 |
-| Aboutou WhatsApp | 0546*** | failed | `(#100) Invalid parameter` |
-| Aboutou WhatsApp | 0707*** | **ignoré** | Phone identique au prestataire NewTech (dedup) |
-| Amtey Florentin | aucun | - | Pas de telephone, in-app uniquement |
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-## Problemes identifies
-
-### 1. Retour de `sendWhatsAppTemplate` non verifie (bug code)
-Dans `notifyFriend()`, le resultat de `sendWhatsAppTemplate` n'est pas inspecte. Meme si la fonction retourne `{ success: false }`, le code compte quand meme `friendWaSent++` et ajoute le phone au Set de deduplication. Cela fausse les compteurs et empeche les re-envois.
-
-### 2. Meta dashboard a 0 malgre un `wamid` valide
-L'API Meta a accepte le message pour Françoise (retourne un `wamid`), mais le template `joiedevivre_fund_completed` est categorise **Marketing** dans Meta. Les templates Marketing sont soumis a des restrictions de delivrabilite (opt-in, qualite). Le message a ete accepte par l'API mais probablement non delivre.
-
-### 3. Erreur `(#100)` pour Aboutou 0546
-Le numero `+2250546566646` n'est probablement pas enregistre sur WhatsApp, ou il y a un probleme de format.
-
-## Plan de correction
-
-### Etape 1 : Corriger la verification du retour dans `notify-fund-ready`
 ```typescript
-const waResult = await sendWhatsAppTemplate(...);
 if (waResult.success) {
   sentPhones.add(normalizedPhone);
   friendWaSent++;
 } else {
-  friendWaFailed++;
-  console.error(`...`);
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
 }
 ```
 
-### Etape 2 : Re-deployer et re-tester
-- Supprimer les notifications de dedup existantes
-- Appeler `notify-fund-ready` avec le fund test
-- Verifier les logs et le dashboard Meta
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-### Fichier modifie
-- `supabase/functions/notify-fund-ready/index.ts` : verifier `waResult.success` avant de compter comme envoye
+## Note importante
+
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+
+## Déploiement
+
+Redéployer `notify-fund-ready` après la modification.
 
