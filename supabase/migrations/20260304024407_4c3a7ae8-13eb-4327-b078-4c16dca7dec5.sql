@@ -1,0 +1,1 @@
+DELETE FROM scheduled_notifications WHERE notification_type IN ('fund_completed', 'fund_ready_business') AND action_data->>'fund_id' = 'efacddcb-3b07-4652-9c45-123297b48a64';

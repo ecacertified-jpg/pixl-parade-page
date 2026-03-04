@@ -199,7 +199,7 @@ serve(async (req) => {
         const normalizedPhone = profile.phone.replace(/\s+/g, '');
         if (!sentPhones.has(normalizedPhone)) {
           try {
-            await sendWhatsAppTemplate(
+            const waResult = await sendWhatsAppTemplate(
               profile.phone,
               'joiedevivre_fund_completed',
               'fr',
@@ -207,9 +207,14 @@ serve(async (req) => {
               [fund_id], // CTA: /f/{fund_id}
               FUND_COMPLETED_HEADER_IMAGE
             );
-            sentPhones.add(normalizedPhone);
-            friendWaSent++;
-            console.log(`📱 Fund completed WA -> ${source} ${profile.user_id}: ✅`);
+            if (waResult.success) {
+              sentPhones.add(normalizedPhone);
+              friendWaSent++;
+              console.log(`📱 Fund completed WA -> ${source} ${profile.user_id}: ✅`);
+            } else {
+              friendWaFailed++;
+              console.error(`❌ Fund completed WA -> ${source} ${profile.user_id}: ${waResult.error}`);
+            }
           } catch (err) {
             friendWaFailed++;
             console.error(`❌ Fund completed WA failed for ${source} ${profile.user_id}:`, err);
