@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Upload, Receipt, Gift, TrendingUp, Package, ShoppingCart, MapPin, Truck, Phone, Bell, Check, X, Edit, Trash2, Download, Plus, AlertCircle, DollarSign, Star, BarChart3, Users, Calendar, FileText, CreditCard, Clock, UserPlus, Target, PieChart, Settings, Smartphone, EyeOff, Eye } from "lucide-react";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { BusinessInitiatedFundsSection } from "@/components/BusinessInitiatedFundsSection";
@@ -36,6 +36,8 @@ import { toast } from "sonner";
 
 export default function BusinessAccount() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'vue-ensemble');
   const { user } = useAuth();
   const { selectedBusinessId, selectedBusiness, businesses: contextBusinesses, loading: loadingSelector, selectBusiness, refetch } = useSelectedBusiness();
   
@@ -967,7 +969,7 @@ interface RecentOrderItem {
         </Card>
 
         {/* Dashboard avec onglets */}
-        <Tabs defaultValue="vue-ensemble" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-5 text-xs mx-0 my-0 px-0 py-0">
             <TabsTrigger value="vue-ensemble" className="flex flex-col gap-1">
               <BarChart3 className="h-4 w-4" />
