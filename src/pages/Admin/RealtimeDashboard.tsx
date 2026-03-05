@@ -25,6 +25,7 @@ export default function RealtimeDashboard() {
     clearEvents,
     refetchStats,
   } = useRealtimeDashboard();
+  const { onlineUsers, onlineCount } = useOnlineUsers();
 
   // Transform events for map (ensure correct interface)
   const mapEvents = events.map(e => ({
