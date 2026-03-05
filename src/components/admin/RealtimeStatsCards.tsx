@@ -76,9 +76,16 @@ function StatCard({ icon: Icon, label, value, suffix, color, format = 'number' }
   );
 }
 
-export function RealtimeStatsCards({ stats }: RealtimeStatsCardsProps) {
+export function RealtimeStatsCards({ stats, onlineCount }: RealtimeStatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+      <StatCard
+        icon={Wifi}
+        label="En ligne"
+        value={onlineCount ?? 0}
+        suffix="maintenant"
+        color="bg-emerald-500"
+      />
       <StatCard
         icon={Users}
         label="Utilisateurs"
