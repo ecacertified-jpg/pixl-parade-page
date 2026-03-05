@@ -1,40 +1,43 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Héberger les vidéos de célébration dans Supabase Storage
 
-## Modification
+## Solution
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Créer un bucket dédié `birthday-videos` dans Supabase Storage pour stocker les vidéos MP4 de célébration. Ces vidéos seront publiques (accessibles via URL directe par l'API WhatsApp de Meta).
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Étapes
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+### 1. Créer le bucket `birthday-videos`
+
+Migration SQL pour créer le bucket public avec les politiques RLS appropriées :
+- Bucket **public** (Meta doit pouvoir accéder à l'URL directement)
+- Lecture publique pour tous
+- Upload/delete réservé aux admins uniquement
+
+### 2. Mettre à jour `birthday-wishes/index.ts`
+
+Remplacer la référence à `BIRTHDAY_CELEBRATION_VIDEO_URL` par une construction d'URL vers le bucket :
+```
+https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/birthday-videos/default-celebration.mp4
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+L'edge function cherchera d'abord une vidéo personnalisée (`{user_id}.mp4`), sinon utilisera `default-celebration.mp4`.
 
-## Note importante
+### 3. Workflow d'utilisation
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+1. Uploader une vidéo MP4 générique dans `birthday-videos/default-celebration.mp4` via le dashboard Supabase Storage
+2. Optionnellement, uploader des vidéos personnalisées par utilisateur (`birthday-videos/{user_id}.mp4`)
+3. L'edge function construit l'URL publique et la passe à `sendWhatsAppTemplate` via `headerVideoUrl`
 
-## Déploiement
+### Contraintes Meta rappelées
+- MP4 uniquement, max **16 Mo**, durée < 30s recommandée, 720p minimum
+- L'URL doit être **publiquement accessible** sans authentification
 
-Redéployer `notify-fund-ready` après la modification.
+### Fichiers modifiés
+
+| Fichier | Modification |
+|---------|-------------|
+| Migration SQL | Créer bucket `birthday-videos` + politiques RLS |
+| `supabase/functions/birthday-wishes/index.ts` | Construire l'URL vidéo depuis le bucket au lieu d'une variable d'environnement |
 
