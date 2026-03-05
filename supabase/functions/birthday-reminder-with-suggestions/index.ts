@@ -317,6 +317,79 @@ serve(async (req) => {
       }
 
       console.log(`Created birthday reminder for ${contact.name} (${daysUntilBirthday} days) with ${suggestions.length} suggestions`);
+
+      // --- WhatsApp: Send friend alert if there's an active fund ---
+      if (hasActiveFund && daysUntilBirthday <= 7) {
+        try {
+          // Get the active fund details
+          const { data: activeFund } = await supabase
+            .from('collective_funds')
+            .select('id, title, target_amount, creator_id')
+            .eq('beneficiary_contact_id', contact.id)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (activeFund) {
+            // Get creator name
+            const { data: creatorProfile } = await supabase
+              .from('profiles')
+              .select('first_name')
+              .eq('user_id', activeFund.creator_id)
+              .single();
+            const creatorName = creatorProfile?.first_name || 'Un ami';
+
+            // Get friends from fund contributors + user's contacts with phones
+            const { data: friendProfiles } = await supabase
+              .from('fund_contributions')
+              .select('contributor_id')
+              .eq('fund_id', activeFund.id);
+
+            const contributorIds = new Set(friendProfiles?.map((c: any) => c.contributor_id) || []);
+
+            // Also get user's contacts who have phone numbers (potential friends to notify)
+            const { data: userContacts } = await supabase
+              .from('contacts')
+              .select('phone, name')
+              .eq('user_id', contact.user_id)
+              .not('phone', 'is', null);
+
+            const notifiedPhones = new Set<string>();
+
+            for (const friendContact of userContacts || []) {
+              if (!friendContact.phone) continue;
+              const normalizedPhone = formatPhoneForTwilio(friendContact.phone);
+              if (notifiedPhones.has(normalizedPhone)) continue;
+
+              const channel = getPreferredChannel(friendContact.phone);
+              if (channel === 'whatsapp') {
+                const waResult = await sendWhatsAppTemplate(
+                  friendContact.phone,
+                  'joiedevivre_birthday_friend_alert',
+                  'fr',
+                  [
+                    contact.name,
+                    String(daysUntilBirthday),
+                    creatorName,
+                    String(activeFund.target_amount || 0)
+                  ],
+                  [activeFund.id] // CTA button suffix = fund_id
+                );
+
+                if (waResult.success) {
+                  notifiedPhones.add(normalizedPhone);
+                  console.log(`📤 [WhatsApp] Birthday friend alert sent for ${contact.name} to ${friendContact.name}`);
+                } else {
+                  console.warn(`⚠️ [WhatsApp] Friend alert failed for ${friendContact.name}: ${waResult.error}`);
+                }
+              }
+            }
+
+            console.log(`📊 Birthday friend alerts: ${notifiedPhones.size} sent for ${contact.name}'s fund`);
+          }
+        } catch (friendAlertError) {
+          console.error(`⚠️ Error sending friend alerts for ${contact.name}:`, friendAlertError);
+        }
+      }
     }
 
     console.log('Birthday reminder with suggestions check completed:', notificationsCreated);
