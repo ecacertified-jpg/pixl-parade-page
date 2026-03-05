@@ -1,11 +1,13 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
+import { useOnlineUsers } from '@/hooks/useOnlineUsers';
 import { RealtimeConnectionStatus } from '@/components/admin/RealtimeConnectionStatus';
 import { RealtimeStatsCards } from '@/components/admin/RealtimeStatsCards';
 import { RealtimeActivityFeed } from '@/components/admin/RealtimeActivityFeed';
 import { RealtimeChart } from '@/components/admin/RealtimeChart';
 import { RealtimeMapCard } from '@/components/admin/RealtimeMapCard';
+import { RealtimeOnlineUsers } from '@/components/admin/RealtimeOnlineUsers';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { RefreshCw } from 'lucide-react';
@@ -23,6 +25,7 @@ export default function RealtimeDashboard() {
     clearEvents,
     refetchStats,
   } = useRealtimeDashboard();
+  const { onlineUsers, onlineCount } = useOnlineUsers();
 
   // Transform events for map (ensure correct interface)
   const mapEvents = events.map(e => ({
@@ -66,7 +69,13 @@ export default function RealtimeDashboard() {
         />
 
         {/* Stats Cards */}
-        <RealtimeStatsCards stats={liveStats} />
+        <RealtimeStatsCards stats={liveStats} onlineCount={onlineCount} />
+
+        {/* Online Users + Charts and Activity Feed */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <RealtimeOnlineUsers users={onlineUsers} />
+          <div className="lg:col-span-2" />
+        </div>
 
         {/* Charts and Activity Feed */}
         <div className="grid lg:grid-cols-2 gap-6">

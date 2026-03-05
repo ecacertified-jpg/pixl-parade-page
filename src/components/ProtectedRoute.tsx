@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
+import { usePresenceTracker } from '@/hooks/usePresenceTracker';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +9,9 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+
+  // Track user presence for admin realtime dashboard
+  usePresenceTracker();
 
   if (loading) {
     return (

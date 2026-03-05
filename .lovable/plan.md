@@ -1,61 +1,40 @@
 
 
-# Système de présence en temps réel — `/admin/realtime`
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-## Approche
+## Modification
 
-Utiliser **Supabase Realtime Presence** via `channel.track()` côté utilisateur et `channel.presenceState()` côté admin pour afficher les utilisateurs connectés en direct.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-## Architecture
-
-### 1. Hook `usePresenceTracker` (côté utilisateur)
-
-Fichier : `src/hooks/usePresenceTracker.ts`
-
-- Appelé dans le layout principal (ou `App.tsx`) quand l'utilisateur est authentifié
-- Rejoint un channel `presence:online-users` et appelle `channel.track()` avec `{ user_id, first_name, last_name, avatar_url, connected_at }`
-- Se désinscrit au unmount
-- Léger, pas de state local nécessaire
-
-### 2. Hook `useOnlineUsers` (côté admin)
-
-Fichier : `src/hooks/useOnlineUsers.ts`
-
-- Rejoint le même channel `presence:online-users`
-- Écoute les événements `sync`, `join`, `leave` via `channel.on('presence', ...)`
-- Maintient un state `onlineUsers[]` avec les infos de chaque utilisateur connecté
-- Expose `onlineCount` et `onlineUsers`
-
-### 3. Composant `RealtimeOnlineUsers`
-
-Fichier : `src/components/admin/RealtimeOnlineUsers.tsx`
-
-- Card affichant le nombre d'utilisateurs en ligne avec un indicateur vert pulsant
-- Liste scrollable des utilisateurs connectés (avatar, nom, durée de connexion)
-- Animations framer-motion pour join/leave
-
-### 4. Intégration
-
-- **`RealtimeDashboard.tsx`** : Ajouter la card `RealtimeOnlineUsers` entre les stats cards et les charts
-- **`useRealtimeDashboard`** : Ajouter `onlineCount` aux `LiveStats` (nouvelle stat card "En ligne")
-- **Layout principal** : Appeler `usePresenceTracker` dans `App.tsx` ou le composant racine authentifié pour que chaque utilisateur connecté soit tracké
-
-### 5. Données trackées par utilisateur
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
 ```typescript
-interface PresenceState {
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  avatar_url: string | null;
-  connected_at: string; // ISO timestamp
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
 }
 ```
 
-## Points techniques
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-- Supabase Presence ne nécessite aucune table ni migration — tout passe par le channel Realtime
-- Le tracking se fait automatiquement via le heartbeat Supabase (toutes les 30s)
-- Quand l'utilisateur ferme l'onglet, Supabase détecte la déconnexion après ~30s
-- Pas de surcharge serveur : c'est du pur WebSocket côté Supabase
+## Note importante
+
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+
+## Déploiement
+
+Redéployer `notify-fund-ready` après la modification.
 

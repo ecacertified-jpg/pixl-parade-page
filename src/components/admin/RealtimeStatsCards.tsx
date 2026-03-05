@@ -1,4 +1,4 @@
-import { Users, Store, ShoppingCart, Gift, Coins } from 'lucide-react';
+import { Users, Store, ShoppingCart, Gift, Coins, Wifi } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { LiveStats } from '@/hooks/useRealtimeDashboard';
@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface RealtimeStatsCardsProps {
   stats: LiveStats;
+  onlineCount?: number;
 }
 
 interface StatCardProps {
@@ -75,9 +76,16 @@ function StatCard({ icon: Icon, label, value, suffix, color, format = 'number' }
   );
 }
 
-export function RealtimeStatsCards({ stats }: RealtimeStatsCardsProps) {
+export function RealtimeStatsCards({ stats, onlineCount }: RealtimeStatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+      <StatCard
+        icon={Wifi}
+        label="En ligne"
+        value={onlineCount ?? 0}
+        suffix="maintenant"
+        color="bg-emerald-500"
+      />
       <StatCard
         icon={Users}
         label="Utilisateurs"
