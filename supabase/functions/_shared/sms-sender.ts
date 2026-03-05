@@ -354,7 +354,8 @@ export async function sendWhatsAppTemplate(
   languageCode: string,
   bodyParameters: string[],
   buttonParameters?: string[],
-  headerImageUrl?: string
+  headerImageUrl?: string,
+  headerVideoUrl?: string
 ): Promise<SmsResult> {
   const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
   const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
