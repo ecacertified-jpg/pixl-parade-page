@@ -1,40 +1,27 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Fix: Fallback géolocalisation → pays d'origine au lieu de CI
 
-## Modification
+## Problème
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
-
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
-
+Ligne 253 de `Shop.tsx`, quand la géolocalisation échoue, le fallback est hardcodé à `'CI'` :
 ```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : 'CI');
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+Un utilisateur béninois sans géolocalisation voit uniquement les produits CI au lieu des produits BJ.
 
-## Note importante
+## Correction
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+Dans `src/pages/Shop.tsx` :
+1. Importer `profileCountryCode` depuis `useCountry()` (déjà disponible dans le contexte)
+2. Remplacer le fallback `'CI'` par `profileCountryCode || 'CI'` — utilise le pays d'origine de l'utilisateur, avec CI en dernier recours pour les non-connectés
 
-## Déploiement
+```typescript
+const { effectiveCountryFilter, profileCountryCode } = useCountry();
+// ...
+const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : (profileCountryCode || 'CI'));
+```
 
-Redéployer `notify-fund-ready` après la modification.
+Un seul fichier modifié, une seule ligne changée.
 
