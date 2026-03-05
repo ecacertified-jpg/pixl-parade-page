@@ -1,40 +1,22 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Harmoniser les hauteurs des cartes Expériences
 
-## Modification
+## Problème
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Les cartes du carrousel "Expériences Premium" ont des hauteurs différentes car le contenu textuel (description, catégorie, prix) varie d'une carte à l'autre. La description utilise `line-clamp-2` mais si une carte n'a pas de description, elle est plus courte.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Solution
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
-```
+Appliquer une structure à hauteur fixe sur chaque carte en utilisant `flex` et en forçant les zones de contenu à occuper un espace constant :
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+### Fichier : `src/components/FeaturedExperiencesCarousel.tsx`
 
-## Note importante
+1. **Card** : ajouter `h-full` pour que toutes les cartes prennent la hauteur du conteneur
+2. **CardContent** : utiliser `flex flex-col h-full` pour structurer verticalement
+3. **Description** : toujours rendre le `<p>` même sans description (avec `min-h-[2.5rem]` + `line-clamp-2`) pour réserver l'espace
+4. **Metadata row** : ajouter `min-h-[1.5rem]` pour uniformiser
+5. **Footer prix/bouton** : utiliser `mt-auto` pour le pousser en bas de la carte
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
-
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+Cela garantit que toutes les cartes ont exactement la même hauteur, quel que soit le contenu.
 
