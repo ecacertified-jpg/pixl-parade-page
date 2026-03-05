@@ -1,40 +1,31 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Ajouter la page courante dans la présence en temps réel
 
-## Modification
+## Approche
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Ajouter `current_page` au payload de présence Supabase, mis à jour à chaque changement de route via `useLocation`. L'admin voit la page active de chaque utilisateur dans la liste.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Modifications
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
-```
+### 1. `usePresenceTracker.ts`
+- Importer `useLocation` de react-router-dom
+- Ajouter `current_page: location.pathname` dans le `channel.track()` initial
+- Ajouter un `useEffect` sur `location.pathname` qui appelle `channel.track()` avec la page mise à jour (re-track met à jour la présence sans déconnecter)
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+### 2. `useOnlineUsers.ts`
+- Ajouter `current_page: string` à l'interface `OnlineUser`
 
-## Note importante
+### 3. `RealtimeOnlineUsers.tsx`
+- Afficher la page courante sous le nom de l'utilisateur avec une icône et un badge stylisé (ex: `/home` → badge gris avec texte)
+- Ajouter une fonction helper `formatPageName` pour rendre les routes lisibles (ex: `/gifts/create` → "Créer un cadeau", `/home` → "Accueil")
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+### Fichiers impactés
+| Fichier | Changement |
+|---------|-----------|
+| `src/hooks/usePresenceTracker.ts` | Ajouter `useLocation`, re-track sur changement de route |
+| `src/hooks/useOnlineUsers.ts` | Ajouter `current_page` à l'interface |
+| `src/components/admin/RealtimeOnlineUsers.tsx` | Afficher la page courante par utilisateur |
 
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+Pas de migration SQL nécessaire — tout passe par le payload Presence.
 
