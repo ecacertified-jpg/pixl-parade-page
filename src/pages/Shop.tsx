@@ -40,7 +40,7 @@ import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 export default function Shop() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { effectiveCountryFilter } = useCountry();
+  const { effectiveCountryFilter, profileCountryCode } = useCountry();
   const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
   const { toast } = useToast();
@@ -249,8 +249,8 @@ export default function Shop() {
     ).length;
   };
 
-  // Determine active country filter: use effectiveCountryFilter, or fallback to CI when geolocation unavailable
-  const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : 'CI');
+  // Determine active country filter: use effectiveCountryFilter, or fallback to user's home country (then CI) when geolocation unavailable
+  const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : (profileCountryCode || 'CI'));
 
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
