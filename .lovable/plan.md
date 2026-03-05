@@ -1,35 +1,40 @@
 
 
-# Fix: Country flag display and proximity filtering in Shop
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-## Problems identified
+## Modification
 
-1. **No country filter applied**: `effectiveCountryFilter` is imported (line 43) but **never used** in the `filteredProducts` filter (lines 252-262). All products from all countries are shown regardless of the user's detected country.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-2. **Wrong flag on Benin products**: Products show the flag from `product.countryCode` which comes from `product.country_code || businessInfo?.countryCode` (line 110 in `useShopProducts.ts`). If the product's own `country_code` is incorrectly set to 'CI' in the database, the business fallback never kicks in. This is a data issue compounded by the missing filter.
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-3. **No CI fallback when geolocation fails**: When geolocation fails, all products are shown instead of defaulting to CI-only products.
-
-## Changes
-
-### 1. `src/pages/Shop.tsx` — Add country filtering + CI fallback
-
-In the `filteredProducts` filter (line 252), add a `matchesCountry` condition:
-- If `effectiveCountryFilter` is set (not null), only show products where `product.countryCode === effectiveCountryFilter`
-- If `effectiveCountryFilter` is null (show all mode), show everything
-
-For the geolocation fallback: when `userLocation` is null (geolocation failed/denied) AND `effectiveCountryFilter` is null, default to showing only CI products.
-
-### 2. `src/hooks/useShopProducts.ts` — Prioritize business country_code
-
-Change line 110 to prioritize the business's `country_code` over the product's own `country_code`, since the business country is more reliably set via triggers:
 ```typescript
-const effectiveCountryCode = businessInfo?.countryCode || product.country_code || null;
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
+}
 ```
 
-### Files impacted
-| File | Change |
-|------|--------|
-| `src/pages/Shop.tsx` | Add country filter to `filteredProducts`, add CI fallback logic |
-| `src/hooks/useShopProducts.ts` | Swap priority: business countryCode first |
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+
+## Note importante
+
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+
+## Déploiement
+
+Redéployer `notify-fund-ready` après la modification.
 
