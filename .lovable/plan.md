@@ -1,40 +1,54 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Notifications push pour utilisateurs inactifs (7+ jours)
 
-## Modification
+## Approche
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Créer une edge function CRON qui s'exécute quotidiennement, identifie les utilisateurs sans session depuis 7 jours, et leur envoie une notification push de ré-engagement via le système `_shared/web-push.ts` existant. Tracker les envois pour éviter le spam.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Modifications
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+### 1. Table `inactive_user_notifications` (migration)
+
+```sql
+CREATE TABLE public.inactive_user_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  days_inactive integer NOT NULL,
+  notification_type text NOT NULL DEFAULT 'push',
+  message_variant text -- pour A/B testing futur
+);
+CREATE INDEX idx_inactive_notif_user ON inactive_user_notifications(user_id, sent_at DESC);
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+RLS : admins SELECT all, users SELECT own.
 
-## Note importante
+### 2. Edge function `check-inactive-users`
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+- Auth par service role (CRON only)
+- Requête : utilisateurs dont la dernière session (`user_session_logs.last_active_at`) date de 7+ jours
+- Exclure ceux déjà notifiés dans les 7 derniers jours (via `inactive_user_notifications`)
+- Exclure les comptes suspendus
+- Pour chaque utilisateur inactif : envoyer push via `_shared/web-push.ts` directement (pas via `send-push-notification` qui requiert auth utilisateur)
+- Messages variés et engageants en français (rotation aléatoire parmi 5-6 messages)
+- Insérer un log dans `inactive_user_notifications`
+- Créer aussi une notification in-app dans la table `notifications`
 
-## Déploiement
+### 3. Config CRON (via SQL insert)
 
-Redéployer `notify-fund-ready` après la modification.
+Planifier l'exécution quotidienne à 10h00 UTC (midi heure Abidjan).
+
+### 4. Config `supabase/config.toml`
+
+Ajouter `[functions.check-inactive-users]` avec `verify_jwt = false`.
+
+### Fichiers impactés
+
+| Fichier | Action |
+|---------|--------|
+| Migration SQL | Créer `inactive_user_notifications` + RLS + index |
+| `supabase/functions/check-inactive-users/index.ts` | Nouvelle edge function |
+| `supabase/config.toml` | Ajouter config fonction |
+| SQL insert (CRON) | Planifier job quotidien |
 
