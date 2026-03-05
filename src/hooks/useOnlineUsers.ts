@@ -7,6 +7,7 @@ export interface OnlineUser {
   last_name: string;
   avatar_url: string | null;
   connected_at: string;
+  current_page: string;
 }
 
 export function useOnlineUsers() {

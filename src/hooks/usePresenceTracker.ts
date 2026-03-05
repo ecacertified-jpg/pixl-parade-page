@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,9 +10,12 @@ import { useAuth } from '@/contexts/AuthContext';
  */
 export function usePresenceTracker() {
   const { user } = useAuth();
+  const location = useLocation();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const profileRef = useRef<{ first_name: string; last_name: string; avatar_url: string | null } | null>(null);
+  const subscribedRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -23,6 +27,8 @@ export function usePresenceTracker() {
         .select('first_name, last_name, avatar_url')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      profileRef.current = profile || { first_name: '', last_name: '', avatar_url: null };
 
       // Insert session log
       const { data: sessionLog } = await supabase
@@ -59,12 +65,14 @@ export function usePresenceTracker() {
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
+            subscribedRef.current = true;
             await channel.track({
               user_id: user.id,
-              first_name: profile?.first_name || '',
-              last_name: profile?.last_name || '',
-              avatar_url: profile?.avatar_url || null,
+              first_name: profileRef.current?.first_name || '',
+              last_name: profileRef.current?.last_name || '',
+              avatar_url: profileRef.current?.avatar_url || null,
               connected_at: new Date().toISOString(),
+              current_page: location.pathname,
             });
           }
         });
@@ -75,6 +83,8 @@ export function usePresenceTracker() {
     setupPresence();
 
     return () => {
+      subscribedRef.current = false;
+
       // Close session log
       if (sessionIdRef.current) {
         supabase
@@ -99,4 +109,18 @@ export function usePresenceTracker() {
       }
     };
   }, [user?.id]);
+
+  // Re-track on route change
+  useEffect(() => {
+    if (subscribedRef.current && channelRef.current && profileRef.current && user) {
+      channelRef.current.track({
+        user_id: user.id,
+        first_name: profileRef.current.first_name || '',
+        last_name: profileRef.current.last_name || '',
+        avatar_url: profileRef.current.avatar_url || null,
+        connected_at: new Date().toISOString(),
+        current_page: location.pathname,
+      });
+    }
+  }, [location.pathname]);
 }
