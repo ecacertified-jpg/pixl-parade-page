@@ -107,7 +107,7 @@ async function fetchShopProducts(): Promise<ShopProduct[]> {
     const additionalImages = Array.isArray(product.images) ? (product.images as string[]) : [];
     const allImages = [mainImage, ...additionalImages.filter(img => img !== mainImage)];
 
-    const effectiveCountryCode = product.country_code || businessInfo?.countryCode || null;
+    const effectiveCountryCode = businessInfo?.countryCode || product.country_code || null;
     const businessLat = businessInfo?.latitude || null;
     const businessLng = businessInfo?.longitude || null;
 

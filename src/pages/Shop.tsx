@@ -249,6 +249,9 @@ export default function Shop() {
     ).length;
   };
 
+  // Determine active country filter: use effectiveCountryFilter, or fallback to CI when geolocation unavailable
+  const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : 'CI');
+
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
     const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
@@ -258,7 +261,9 @@ export default function Shop() {
     const matchesSearch = product.name.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
                          product.description.toLowerCase().includes(currentSearchQuery.toLowerCase());
     
-    return matchesTab && matchesCategory && matchesLocation && matchesSearch;
+    const matchesCountry = !activeCountryFilter || product.countryCode === activeCountryFilter;
+    
+    return matchesTab && matchesCategory && matchesLocation && matchesSearch && matchesCountry;
   });
   const productCategories = [
     { name: "Tous", icon: Gift },
