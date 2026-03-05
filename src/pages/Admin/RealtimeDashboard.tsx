@@ -9,6 +9,7 @@ import { RealtimeChart } from '@/components/admin/RealtimeChart';
 import { RealtimeMapCard } from '@/components/admin/RealtimeMapCard';
 import { RealtimeOnlineUsers } from '@/components/admin/RealtimeOnlineUsers';
 import { RealtimeSessionHistory } from '@/components/admin/RealtimeSessionHistory';
+import { AdminInactiveUsersTable } from '@/components/admin/AdminInactiveUsersTable';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { RefreshCw } from 'lucide-react';
@@ -77,6 +78,9 @@ export default function RealtimeDashboard() {
           <RealtimeOnlineUsers users={onlineUsers} />
           <div className="lg:col-span-2" />
         </div>
+
+        {/* Inactive Users & Re-engagement */}
+        <AdminInactiveUsersTable />
 
         {/* Session History */}
         <RealtimeSessionHistory />
