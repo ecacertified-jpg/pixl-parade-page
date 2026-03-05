@@ -1,4 +1,4 @@
-import { Users, Store, ShoppingCart, Gift, Coins } from 'lucide-react';
+import { Users, Store, ShoppingCart, Gift, Coins, Wifi } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { LiveStats } from '@/hooks/useRealtimeDashboard';
@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface RealtimeStatsCardsProps {
   stats: LiveStats;
+  onlineCount?: number;
 }
 
 interface StatCardProps {
