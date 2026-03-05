@@ -1,40 +1,33 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Deuxième palier de notification : 14 jours d'inactivité
 
-## Modification
+## Approche
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Modifier la edge function `check-inactive-users` pour gérer deux paliers d'inactivité avec des messages différents selon la durée. Le palier 14 jours utilise des messages plus urgents avec mention d'une offre spéciale. La colonne `message_variant` existante dans `inactive_user_notifications` suffit pour distinguer les paliers -- on ajoute un champ `tier` pour tracker explicitement le palier.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Modifications
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
-```
+### 1. Migration : ajouter colonne `tier` à `inactive_user_notifications`
+- Ajouter `tier integer NOT NULL DEFAULT 1` pour distinguer palier 1 (7j) et palier 2 (14j)
+- Permet de vérifier le cooldown par palier (un user peut recevoir le palier 1 à J7, puis le palier 2 à J14, mais pas deux fois le même palier dans les 7 jours)
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+### 2. Edge function `check-inactive-users`
+- Ajouter un tableau `urgentReengagementMessages` avec 5-6 messages urgents mentionnant une offre spéciale (ex: "Offre exclusive : -20% sur ta première cagnotte !")
+- Modifier la logique de filtrage : pour chaque utilisateur inactif, calculer `daysSinceActive` et déterminer le palier (1 si 7-13 jours, 2 si 14+ jours)
+- Vérifier le cooldown par palier : un utilisateur ne reçoit pas le même palier deux fois en 7 jours
+- Utiliser les messages urgents pour le palier 2, les messages standard pour le palier 1
+- Ajouter `tier` et `has_special_offer: true` dans les metadata de la notification in-app pour le palier 2
+- Logger le `tier` dans `inactive_user_notifications`
 
-## Note importante
+### Messages palier 2 (exemples)
+- "Dernière chance ! Offre -20% sur ta première cagnotte"
+- "Tes amis célèbrent sans toi... Reviens avec un bonus exclusif"
+- "Offre spéciale : crée une cagnotte gratuite cette semaine"
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
-
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+### Fichiers impactés
+| Fichier | Action |
+|---------|--------|
+| Migration SQL | Ajouter `tier` à `inactive_user_notifications` |
+| `supabase/functions/check-inactive-users/index.ts` | Logique double palier + messages urgents |
 
