@@ -347,9 +347,22 @@ serve(async (req) => {
                 ? `${age} ans, un cap magnifique !`
                 : `Que cette année soit exceptionnelle !`;
 
-              // Video URL for celebration (default generic video from Supabase Storage)
-              const celebrationVideoUrl = Deno.env.get('BIRTHDAY_CELEBRATION_VIDEO_URL') 
-                || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/birthday-celebration.mp4';
+              // Video URL: try personalized video first, fallback to default
+              const storageBase = `${supabaseUrl}/storage/v1/object/public/birthday-videos`;
+              let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
+
+              // Check if a personalized video exists for this user
+              try {
+                const { data: personalVideo } = await supabase.storage
+                  .from('birthday-videos')
+                  .list('', { search: `${user.id}.mp4` });
+                if (personalVideo && personalVideo.length > 0) {
+                  celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
+                  console.log(`🎬 Using personalized video for ${firstName}`);
+                }
+              } catch (storageErr) {
+                console.warn(`⚠️ Storage check failed, using default video:`, storageErr);
+              }
 
               const waResult = await sendWhatsAppTemplate(
                 profile.phone,
