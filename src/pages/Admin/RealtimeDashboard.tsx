@@ -69,7 +69,13 @@ export default function RealtimeDashboard() {
         />
 
         {/* Stats Cards */}
-        <RealtimeStatsCards stats={liveStats} />
+        <RealtimeStatsCards stats={liveStats} onlineCount={onlineCount} />
+
+        {/* Online Users + Charts and Activity Feed */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <RealtimeOnlineUsers users={onlineUsers} />
+          <div className="lg:col-span-2" />
+        </div>
 
         {/* Charts and Activity Feed */}
         <div className="grid lg:grid-cols-2 gap-6">
