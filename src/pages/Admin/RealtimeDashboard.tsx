@@ -8,6 +8,7 @@ import { RealtimeActivityFeed } from '@/components/admin/RealtimeActivityFeed';
 import { RealtimeChart } from '@/components/admin/RealtimeChart';
 import { RealtimeMapCard } from '@/components/admin/RealtimeMapCard';
 import { RealtimeOnlineUsers } from '@/components/admin/RealtimeOnlineUsers';
+import { RealtimeSessionHistory } from '@/components/admin/RealtimeSessionHistory';
 import { AdminCountryRestrictionAlert } from '@/components/admin/AdminCountryRestrictionAlert';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { RefreshCw } from 'lucide-react';
