@@ -1,31 +1,40 @@
 
 
-# Fix: Distance aberrante quand la géolocalisation retourne des coordonnées hors-pays
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-## Problème
+## Modification
 
-La géolocalisation du navigateur retourne des coordonnées (donc "réussit"), mais ces coordonnées sont souvent celles du serveur/VPN/ISP (ex: Europe), pas celles de l'utilisateur réel en Côte d'Ivoire. Résultat : 5335 km pour un produit à Angré alors que l'utilisateur est à Abidjan.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-## Solution
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-Valider les coordonnées retournées par le navigateur en les comparant aux `mapBounds` du pays de l'utilisateur. Si les coordonnées tombent hors des limites du pays, utiliser les coordonnées du centre économique du pays comme fallback.
+```typescript
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
+}
+```
 
-### Fichier 1 : `src/utils/geoUtils.ts`
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-Ajouter une fonction `isLocationInCountryBounds(location, countryCode)` qui vérifie si les coordonnées sont dans les `mapBounds` du pays (avec une marge de tolérance de ~100 km).
+## Note importante
 
-### Fichier 2 : `src/pages/Shop.tsx`
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
 
-Après `requestUserLocation()`, vérifier si la position retournée est dans les bounds du pays de l'utilisateur :
-- **Si oui** : utiliser ces coordonnées (comportement actuel)
-- **Si non** : utiliser les coordonnées du `mapCenter` du pays comme position approximative, et afficher un toast adapté ("Position approximative utilisée")
+## Déploiement
 
-Cela garantit que les distances affichées sont cohérentes (ex: 2-15 km pour des produits dans la même ville) au lieu de 5335 km.
-
-### Résumé des changements
-
-| Fichier | Modification |
-|---------|-------------|
-| `src/utils/geoUtils.ts` | Ajouter `isLocationInCountryBounds()` |
-| `src/pages/Shop.tsx` | Valider la géolocalisation contre les bounds du pays, fallback vers `mapCenter` |
+Redéployer `notify-fund-ready` après la modification.
 

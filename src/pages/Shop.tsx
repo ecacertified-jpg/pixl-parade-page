@@ -34,7 +34,8 @@ import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { CountryBadge } from "@/components/CountryBadge";
-import { haversineDistance, formatDistance, requestUserLocation, type GeoLocation } from "@/utils/geoUtils";
+import { haversineDistance, formatDistance, requestUserLocation, isLocationInCountryBounds, type GeoLocation } from "@/utils/geoUtils";
+import { getCountryConfig } from "@/config/countries";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 
 export default function Shop() {
@@ -141,11 +142,21 @@ export default function Shop() {
     const fetchLocation = async () => {
       setIsLocating(true);
       const location = await requestUserLocation();
-      if (location) {
+      const countryConfig = getCountryConfig(profileCountryCode || 'CI');
+      
+      if (location && isLocationInCountryBounds(location, countryConfig.mapBounds)) {
         setUserLocation(location);
         toast({
           title: "Position détectée",
           description: "Les produits sont triés par proximité",
+        });
+      } else if (location) {
+        // Browser returned coordinates outside user's country (VPN/ISP issue)
+        const [lng, lat] = countryConfig.mapCenter;
+        setUserLocation({ lat, lng });
+        toast({
+          title: "Position approximative",
+          description: `Localisation estimée à ${countryConfig.economicCapital}`,
         });
       }
       setIsLocating(false);
@@ -345,11 +356,20 @@ export default function Shop() {
                   if (!userLocation) {
                     setIsLocating(true);
                     const location = await requestUserLocation();
-                    if (location) {
+                    const countryConfig = getCountryConfig(profileCountryCode || 'CI');
+                    
+                    if (location && isLocationInCountryBounds(location, countryConfig.mapBounds)) {
                       setUserLocation(location);
                       toast({
                         title: "Position détectée",
                         description: "Les produits sont triés par proximité",
+                      });
+                    } else if (location) {
+                      const [lng, lat] = countryConfig.mapCenter;
+                      setUserLocation({ lat, lng });
+                      toast({
+                        title: "Position approximative",
+                        description: `Localisation estimée à ${countryConfig.economicCapital}`,
                       });
                     } else {
                       toast({
