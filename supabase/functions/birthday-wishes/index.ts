@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { sendWhatsAppTemplate, sendWhatsApp, getPreferredChannel, formatPhoneForTwilio } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -328,6 +329,54 @@ serve(async (req) => {
           console.error(`Error creating notification for user ${user.id}:`, notifError);
         } else {
           console.log(`Birthday notification created for ${firstName} (${user.id}) - Badge: ${badgeName} (${totalCelebrations} anniversaires)`);
+        }
+
+        // --- WhatsApp: Send birthday celebration video template ---
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('phone')
+            .eq('user_id', user.id)
+            .single();
+
+          if (profile?.phone) {
+            const channel = getPreferredChannel(profile.phone);
+            if (channel === 'whatsapp') {
+              // Build personalized short message for param {{2}}
+              const shortMsg = isMilestone && age
+                ? `${age} ans, un cap magnifique !`
+                : `Que cette année soit exceptionnelle !`;
+
+              // Video URL for celebration (default generic video from Supabase Storage)
+              const celebrationVideoUrl = Deno.env.get('BIRTHDAY_CELEBRATION_VIDEO_URL') 
+                || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/birthday-celebration.mp4';
+
+              const waResult = await sendWhatsAppTemplate(
+                profile.phone,
+                'joiedevivre_birthday_celebration',
+                'fr',
+                [firstName, shortMsg],          // body params
+                ['birthday'],                    // button CTA suffix
+                undefined,                       // no header image
+                celebrationVideoUrl              // header video
+              );
+
+              if (waResult.success) {
+                console.log(`🎬 [WhatsApp] Birthday celebration video sent to ${firstName}: ${waResult.sid}`);
+              } else {
+                // Fallback: free text
+                const fallbackMsg = `🎉🎂 Joyeux anniversaire ${firstName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour ! ${shortMsg}`;
+                const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+                if (fallbackResult.success) {
+                  console.log(`📱 [WhatsApp] Birthday celebration fallback sent to ${firstName}: ${fallbackResult.sid}`);
+                } else {
+                  console.warn(`⚠️ [WhatsApp] Birthday celebration failed for ${firstName}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+                }
+              }
+            }
+          }
+        } catch (waError) {
+          console.error(`⚠️ [WhatsApp] Error sending birthday celebration for ${user.id}:`, waError);
         }
 
       } catch (userError) {
