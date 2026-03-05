@@ -142,11 +142,21 @@ export default function Shop() {
     const fetchLocation = async () => {
       setIsLocating(true);
       const location = await requestUserLocation();
-      if (location) {
+      const countryConfig = getCountryConfig(profileCountryCode || 'CI');
+      
+      if (location && isLocationInCountryBounds(location, countryConfig.mapBounds)) {
         setUserLocation(location);
         toast({
           title: "Position détectée",
           description: "Les produits sont triés par proximité",
+        });
+      } else if (location) {
+        // Browser returned coordinates outside user's country (VPN/ISP issue)
+        const [lng, lat] = countryConfig.mapCenter;
+        setUserLocation({ lat, lng });
+        toast({
+          title: "Position approximative",
+          description: `Localisation estimée à ${countryConfig.economicCapital}`,
         });
       }
       setIsLocating(false);
