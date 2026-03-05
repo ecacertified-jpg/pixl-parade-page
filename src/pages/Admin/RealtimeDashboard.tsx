@@ -78,6 +78,9 @@ export default function RealtimeDashboard() {
           <div className="lg:col-span-2" />
         </div>
 
+        {/* Session History */}
+        <RealtimeSessionHistory />
+
         {/* Charts and Activity Feed */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Chart */}
