@@ -44,6 +44,23 @@ export function formatDistance(distanceKm: number | null): string {
  * Request user's current location
  * @returns Promise resolving to GeoLocation or null if denied/unavailable
  */
+/**
+ * Check if a location falls within a country's map bounds (with ~1° tolerance ≈ 100km)
+ */
+export function isLocationInCountryBounds(
+  location: GeoLocation,
+  mapBounds: [[number, number], [number, number]]
+): boolean {
+  const TOLERANCE = 1; // ~100km margin
+  const [[minLng, minLat], [maxLng, maxLat]] = mapBounds;
+  return (
+    location.lat >= minLat - TOLERANCE &&
+    location.lat <= maxLat + TOLERANCE &&
+    location.lng >= minLng - TOLERANCE &&
+    location.lng <= maxLng + TOLERANCE
+  );
+}
+
 export function requestUserLocation(): Promise<GeoLocation | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {

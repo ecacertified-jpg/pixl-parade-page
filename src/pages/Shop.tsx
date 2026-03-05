@@ -34,7 +34,8 @@ import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { CountryBadge } from "@/components/CountryBadge";
-import { haversineDistance, formatDistance, requestUserLocation, type GeoLocation } from "@/utils/geoUtils";
+import { haversineDistance, formatDistance, requestUserLocation, isLocationInCountryBounds, type GeoLocation } from "@/utils/geoUtils";
+import { getCountryConfig } from "@/config/countries";
 import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 
 export default function Shop() {
