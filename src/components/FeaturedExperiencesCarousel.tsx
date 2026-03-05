@@ -84,9 +84,9 @@ export const FeaturedExperiencesCarousel = () => {
         <CarouselContent className="-ml-2 md:-ml-4">
           {experiences.map((experience) => (
             <CarouselItem key={experience.id} className="pl-2 md:pl-4 basis-[85%] md:basis-[45%]">
-              <Card className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:border-primary/30 group cursor-pointer">
-                <CardContent className="p-0" onClick={() => navigate("/shop?tab=experiences")}>
-                  <div className="relative h-48 overflow-hidden">
+              <Card className="overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:border-primary/30 group cursor-pointer h-full">
+                <CardContent className="p-0 flex flex-col h-full" onClick={() => navigate("/shop?tab=experiences")}>
+                  <div className="relative h-48 overflow-hidden flex-shrink-0">
                     {experience.image_url ? (
                       <img
                         src={experience.image_url}
@@ -106,19 +106,17 @@ export const FeaturedExperiencesCarousel = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   </div>
 
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 flex flex-col flex-1">
                     <div>
                       <h3 className="font-poppins font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                         {experience.name}
                       </h3>
-                      {experience.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                          {experience.description}
-                        </p>
-                      )}
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1 min-h-[2.5rem]">
+                        {experience.description || "\u00A0"}
+                      </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground min-h-[1.5rem] mt-2">
                       {experience.category_name && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
@@ -135,7 +133,7 @@ export const FeaturedExperiencesCarousel = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-auto">
                       <div>
                         <p className="text-xs text-muted-foreground">À partir de</p>
                         <p className="text-lg font-bold text-primary">
