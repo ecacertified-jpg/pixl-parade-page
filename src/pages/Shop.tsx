@@ -40,7 +40,7 @@ import { ProductGridSkeleton } from "@/components/ProductGridSkeleton";
 export default function Shop() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { effectiveCountryFilter } = useCountry();
+  const { effectiveCountryFilter, profileCountryCode } = useCountry();
   const { itemCount, addItem } = useCart();
   const { addFavorite, removeFavorite, isFavorite, getFavoriteId, stats } = useFavorites();
   const { toast } = useToast();
