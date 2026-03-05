@@ -1,0 +1,1 @@
+ALTER TABLE public.inactive_user_notifications ADD COLUMN tier integer NOT NULL DEFAULT 1;
