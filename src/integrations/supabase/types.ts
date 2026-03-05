@@ -3676,6 +3676,7 @@ export type Database = {
           message_variant: string | null
           notification_type: string
           sent_at: string
+          tier: number
           user_id: string
         }
         Insert: {
@@ -3684,6 +3685,7 @@ export type Database = {
           message_variant?: string | null
           notification_type?: string
           sent_at?: string
+          tier?: number
           user_id: string
         }
         Update: {
@@ -3692,6 +3694,7 @@ export type Database = {
           message_variant?: string | null
           notification_type?: string
           sent_at?: string
+          tier?: number
           user_id?: string
         }
         Relationships: []
