@@ -7134,6 +7134,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_session_logs: {
+        Row: {
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          ip_address: string | null
+          last_active_at: string
+          started_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          ip_address?: string | null
+          last_active_at?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sync_preferences: {
         Row: {
           created_at: string
