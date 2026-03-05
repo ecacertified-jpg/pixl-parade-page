@@ -79,6 +79,9 @@ export default function RealtimeDashboard() {
           <div className="lg:col-span-2" />
         </div>
 
+        {/* Inactive Users & Re-engagement */}
+        <AdminInactiveUsersTable />
+
         {/* Session History */}
         <RealtimeSessionHistory />
 
