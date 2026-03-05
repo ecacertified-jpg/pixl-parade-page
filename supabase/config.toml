@@ -255,3 +255,6 @@ verify_jwt = false
 
 [functions.admin-resend-otp]
 verify_jwt = false
+
+[functions.check-inactive-users]
+verify_jwt = false

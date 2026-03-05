@@ -3669,6 +3669,33 @@ export type Database = {
           },
         ]
       }
+      inactive_user_notifications: {
+        Row: {
+          days_inactive: number
+          id: string
+          message_variant: string | null
+          notification_type: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          days_inactive: number
+          id?: string
+          message_variant?: string | null
+          notification_type?: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          days_inactive?: number
+          id?: string
+          message_variant?: string | null
+          notification_type?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       indexnow_submissions: {
         Row: {
           created_at: string | null
