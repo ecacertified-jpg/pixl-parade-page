@@ -399,7 +399,21 @@ export default function AdminManagement() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            {renderAdminActions(admin)}
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedAdminId(admin.id);
+                                  setSelectedAdminName(getDisplayName(admin));
+                                  setViewAssignmentsOpen(true);
+                                }}
+                              >
+                                <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                                Affectations
+                              </Button>
+                              {renderAdminActions(admin)}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
