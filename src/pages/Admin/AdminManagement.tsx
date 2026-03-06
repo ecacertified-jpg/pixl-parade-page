@@ -429,6 +429,9 @@ export default function AdminManagement() {
                               >
                                 <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
                                 Affectations
+                                <Badge variant="secondary" className="ml-1.5 h-5 min-w-[20px] px-1.5 text-[10px]">
+                                  {(admin.stats?.users ?? 0) + (admin.stats?.businesses ?? 0)}
+                                </Badge>
                               </Button>
                               {renderAdminActions(admin)}
                             </div>
