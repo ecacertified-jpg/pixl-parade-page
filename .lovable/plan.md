@@ -1,40 +1,34 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+# Ajouter un bouton "Voir les affectations" visible dans la liste des admins
 
-## Modification
+## Problème
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+Actuellement, "Voir les affectations" est caché dans le menu déroulant (⋮) des actions. Il faut le rendre plus visible directement dans le tableau et les cartes mobiles.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+## Solution
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+Ajouter un **bouton explicite** "Voir les affectations" à côté du menu d'actions existant, visible dans :
+- **Desktop (tableau)** : un bouton `outline` avec icône `ClipboardList` dans la colonne Actions, avant le menu ⋮
+- **Mobile (cartes)** : un bouton compact en bas de chaque carte admin
+
+Le bouton restera aussi dans le dropdown pour la cohérence.
+
+## Fichier modifié
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/Admin/AdminManagement.tsx` | Ajouter un `Button` visible dans la cellule Actions (desktop) et dans les cartes (mobile) qui ouvre le `ViewAdminAssignmentsModal` |
+
+### Détails
+
+**Desktop** (ligne ~401, colonne Actions) : ajouter avant `renderAdminActions(admin)` :
+```tsx
+<Button variant="outline" size="sm" onClick={() => { setSelectedAdminId(admin.id); setSelectedAdminName(getDisplayName(admin)); setViewAssignmentsOpen(true); }}>
+  <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+  Affectations
+</Button>
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
-
-## Note importante
-
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
-
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+**Mobile** (cartes, vers ligne ~305) : ajouter un bouton similaire en bas de chaque carte, avant la date.
 
