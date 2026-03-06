@@ -282,6 +282,11 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                     {a.profile?.is_suspended && (
                                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Suspendu</Badge>
                                     )}
+                                    {a.assigned_via === 'share_link' && (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                        <Link className="h-2.5 w-2.5 mr-0.5" /> Via lien
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                               </TableCell>
