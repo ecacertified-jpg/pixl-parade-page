@@ -47,6 +47,7 @@ interface UserAssignment {
   id: string;
   user_id: string;
   created_at: string;
+  assigned_via?: string | null;
   profile?: UserProfile;
 }
 
@@ -54,7 +55,15 @@ interface BusinessAssignment {
   id: string;
   business_account_id: string;
   created_at: string;
+  assigned_via?: string | null;
   business?: BusinessDetail;
+}
+
+interface ShareCodeInfo {
+  code: string;
+  clicks_count: number;
+  signups_count: number;
+  assignments_count: number;
 }
 
 interface ViewAdminAssignmentsModalProps {
