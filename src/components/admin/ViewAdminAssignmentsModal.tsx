@@ -102,6 +102,8 @@ const getInitials = (first?: string | null, last?: string | null) =>
 export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChange }: ViewAdminAssignmentsModalProps) {
   const [userAssignments, setUserAssignments] = useState<UserAssignment[]>([]);
   const [businessAssignments, setBusinessAssignments] = useState<BusinessAssignment[]>([]);
+  const [shareCode, setShareCode] = useState<ShareCodeInfo | null>(null);
+  const [aggregatedStats, setAggregatedStats] = useState({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
   const [loading, setLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
@@ -111,12 +113,40 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   useEffect(() => {
     if (open && adminId) {
       loadAssignments(adminId);
+      loadShareCodes(adminId);
     }
     if (!open) {
       setUserAssignments([]);
       setBusinessAssignments([]);
+      setShareCode(null);
+      setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
     }
   }, [open, adminId]);
+
+  const loadShareCodes = async (aid: string) => {
+    try {
+      const { data } = await supabase
+        .from('admin_share_codes')
+        .select('code, clicks_count, signups_count, assignments_count')
+        .eq('admin_user_id', aid);
+
+      if (data && data.length > 0) {
+        const active = data[0];
+        setShareCode(active);
+        const stats = data.reduce(
+          (acc, row) => ({
+            total_clicks: acc.total_clicks + (row.clicks_count || 0),
+            total_signups: acc.total_signups + (row.signups_count || 0),
+            total_assignments: acc.total_assignments + (row.assignments_count || 0),
+          }),
+          { total_clicks: 0, total_signups: 0, total_assignments: 0 }
+        );
+        setAggregatedStats(stats);
+      }
+    } catch (e) {
+      console.error('Error loading share codes:', e);
+    }
+  };
 
   const loadAssignments = async (aid: string) => {
     setLoading(true);
