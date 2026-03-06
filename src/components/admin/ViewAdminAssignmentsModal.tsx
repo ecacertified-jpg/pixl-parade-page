@@ -188,15 +188,63 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Tabs defaultValue="users">
-              <TabsList>
-                <TabsTrigger value="users" className="gap-2">
-                  <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
-                </TabsTrigger>
-                <TabsTrigger value="businesses" className="gap-2">
-                  <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
-                </TabsTrigger>
-              </TabsList>
+            <div className="space-y-4">
+              {/* Share Link Section */}
+              {shareCode && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Link className="h-4 w-4 text-primary" />
+                      Lien de partage
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 p-2.5 bg-muted rounded-lg">
+                      <p className="text-xs font-mono break-all flex-1">
+                        https://joiedevivre-africa.com/join/{shareCode.code}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-7 w-7"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://joiedevivre-africa.com/join/${shareCode.code}`);
+                          toast.success('Lien copié !');
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <MousePointerClick className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_clicks}</p>
+                        <p className="text-xs text-muted-foreground">Clics</p>
+                      </div>
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <UserPlus className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_signups}</p>
+                        <p className="text-xs text-muted-foreground">Inscriptions</p>
+                      </div>
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_assignments}</p>
+                        <p className="text-xs text-muted-foreground">Affectations</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Tabs defaultValue="users">
+                <TabsList>
+                  <TabsTrigger value="users" className="gap-2">
+                    <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="businesses" className="gap-2">
+                    <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
+                  </TabsTrigger>
+                </TabsList>
 
               <TabsContent value="users">
                 {userAssignments.length === 0 ? (
