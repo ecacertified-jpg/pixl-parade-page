@@ -407,6 +407,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                 )}
               </TabsContent>
             </Tabs>
+            </div>
           )}
         </DialogContent>
       </Dialog>
