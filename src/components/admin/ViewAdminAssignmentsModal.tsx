@@ -368,7 +368,14 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                   <AvatarImage src={a.business?.logo_url || undefined} />
                                   <AvatarFallback className="text-xs">{a.business?.business_name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                                 </Avatar>
-                                <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                <div>
+                                  <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                  {a.assigned_via === 'share_link' && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                      <Link className="h-2.5 w-2.5 mr-0.5" /> Via lien
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
