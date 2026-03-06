@@ -302,9 +302,24 @@ export default function AdminManagement() {
                           {admin.stats?.businesses ?? '—'} entreprises
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-3">
-                        Attribué le {formatDate(admin.assigned_at)}
-                      </p>
+                      <div className="flex items-center justify-between mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            setSelectedAdminId(admin.id);
+                            setSelectedAdminName(getDisplayName(admin));
+                            setViewAssignmentsOpen(true);
+                          }}
+                        >
+                          <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+                          Affectations
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Attribué le {formatDate(admin.assigned_at)}
+                        </p>
+                      </div>
                     </Card>
                   ))}
                 </div>
