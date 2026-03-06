@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Loader2, FileText } from 'lucide-react';
+import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -47,6 +47,7 @@ interface UserAssignment {
   id: string;
   user_id: string;
   created_at: string;
+  assigned_via?: string | null;
   profile?: UserProfile;
 }
 
@@ -54,7 +55,15 @@ interface BusinessAssignment {
   id: string;
   business_account_id: string;
   created_at: string;
+  assigned_via?: string | null;
   business?: BusinessDetail;
+}
+
+interface ShareCodeInfo {
+  code: string;
+  clicks_count: number;
+  signups_count: number;
+  assignments_count: number;
 }
 
 interface ViewAdminAssignmentsModalProps {
@@ -93,6 +102,8 @@ const getInitials = (first?: string | null, last?: string | null) =>
 export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChange }: ViewAdminAssignmentsModalProps) {
   const [userAssignments, setUserAssignments] = useState<UserAssignment[]>([]);
   const [businessAssignments, setBusinessAssignments] = useState<BusinessAssignment[]>([]);
+  const [shareCode, setShareCode] = useState<ShareCodeInfo | null>(null);
+  const [aggregatedStats, setAggregatedStats] = useState({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
   const [loading, setLoading] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
@@ -102,12 +113,40 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   useEffect(() => {
     if (open && adminId) {
       loadAssignments(adminId);
+      loadShareCodes(adminId);
     }
     if (!open) {
       setUserAssignments([]);
       setBusinessAssignments([]);
+      setShareCode(null);
+      setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
     }
   }, [open, adminId]);
+
+  const loadShareCodes = async (aid: string) => {
+    try {
+      const { data } = await supabase
+        .from('admin_share_codes')
+        .select('code, clicks_count, signups_count, assignments_count')
+        .eq('admin_user_id', aid);
+
+      if (data && data.length > 0) {
+        const active = data[0];
+        setShareCode(active);
+        const stats = data.reduce(
+          (acc, row) => ({
+            total_clicks: acc.total_clicks + (row.clicks_count || 0),
+            total_signups: acc.total_signups + (row.signups_count || 0),
+            total_assignments: acc.total_assignments + (row.assignments_count || 0),
+          }),
+          { total_clicks: 0, total_signups: 0, total_assignments: 0 }
+        );
+        setAggregatedStats(stats);
+      }
+    } catch (e) {
+      console.error('Error loading share codes:', e);
+    }
+  };
 
   const loadAssignments = async (aid: string) => {
     setLoading(true);
@@ -149,15 +188,63 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <Tabs defaultValue="users">
-              <TabsList>
-                <TabsTrigger value="users" className="gap-2">
-                  <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
-                </TabsTrigger>
-                <TabsTrigger value="businesses" className="gap-2">
-                  <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
-                </TabsTrigger>
-              </TabsList>
+            <div className="space-y-4">
+              {/* Share Link Section */}
+              {shareCode && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Link className="h-4 w-4 text-primary" />
+                      Lien de partage
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 p-2.5 bg-muted rounded-lg">
+                      <p className="text-xs font-mono break-all flex-1">
+                        https://joiedevivre-africa.com/join/{shareCode.code}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-7 w-7"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://joiedevivre-africa.com/join/${shareCode.code}`);
+                          toast.success('Lien copié !');
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <MousePointerClick className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_clicks}</p>
+                        <p className="text-xs text-muted-foreground">Clics</p>
+                      </div>
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <UserPlus className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_signups}</p>
+                        <p className="text-xs text-muted-foreground">Inscriptions</p>
+                      </div>
+                      <div className="text-center p-2 bg-secondary/30 rounded-lg">
+                        <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-lg font-semibold">{aggregatedStats.total_assignments}</p>
+                        <p className="text-xs text-muted-foreground">Affectations</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Tabs defaultValue="users">
+                <TabsList>
+                  <TabsTrigger value="users" className="gap-2">
+                    <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="businesses" className="gap-2">
+                    <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
+                  </TabsTrigger>
+                </TabsList>
 
               <TabsContent value="users">
                 {userAssignments.length === 0 ? (
@@ -194,6 +281,11 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                     </p>
                                     {a.profile?.is_suspended && (
                                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Suspendu</Badge>
+                                    )}
+                                    {a.assigned_via === 'share_link' && (
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                        <Link className="h-2.5 w-2.5 mr-0.5" /> Via lien
+                                      </Badge>
                                     )}
                                   </div>
                                 </div>
@@ -276,7 +368,14 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                   <AvatarImage src={a.business?.logo_url || undefined} />
                                   <AvatarFallback className="text-xs">{a.business?.business_name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                                 </Avatar>
-                                <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                <div>
+                                  <p className="font-medium text-sm">{a.business?.business_name || 'Entreprise'}</p>
+                                  {a.assigned_via === 'share_link' && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                      <Link className="h-2.5 w-2.5 mr-0.5" /> Via lien
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -320,6 +419,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                 )}
               </TabsContent>
             </Tabs>
+            </div>
           )}
         </DialogContent>
       </Dialog>
