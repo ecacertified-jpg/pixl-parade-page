@@ -47,11 +47,10 @@ export function AssetUploader() {
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const handleUpload = useCallback(async (file: globalThis.File) => {
     setUploading(true);
-    const fileName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const { error } = await supabase.storage.from('assets').upload(fileName, selectedFile, {
+    const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const { error } = await supabase.storage.from('assets').upload(fileName, file, {
       cacheControl: '3600',
       upsert: true,
     });
@@ -64,7 +63,7 @@ export function AssetUploader() {
       fetchFiles();
     }
     setUploading(false);
-  };
+  }, [fetchFiles]);
 
   const handleDelete = async (fileName: string) => {
     const { error } = await supabase.storage.from('assets').remove([fileName]);
@@ -86,8 +85,8 @@ export function AssetUploader() {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) setSelectedFile(file);
-  }, []);
+    if (file) handleUpload(file);
+  }, [handleUpload]);
 
   return (
     <Card>
@@ -112,26 +111,20 @@ export function AssetUploader() {
             input.accept = 'image/*,video/*,.pdf';
             input.onchange = (e) => {
               const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) setSelectedFile(file);
+              if (file) handleUpload(file);
             };
             input.click();
           }}
         >
-          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+          {uploading ? (
+            <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin text-primary" />
+          ) : (
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+          )}
           <p className="text-sm text-muted-foreground">
-            Glissez un fichier ici ou cliquez pour sélectionner
+            {uploading ? 'Upload en cours...' : 'Glissez un fichier ici ou cliquez pour sélectionner'}
           </p>
         </div>
-
-        {selectedFile && (
-          <div className="flex items-center gap-3 p-3 rounded-md bg-muted">
-            <span className="text-sm font-medium truncate flex-1">{selectedFile.name}</span>
-            <span className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</span>
-            <Button size="sm" onClick={handleUpload} disabled={uploading}>
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Uploader'}
-            </Button>
-          </div>
-        )}
 
         {/* File list */}
         <div className="space-y-2">
