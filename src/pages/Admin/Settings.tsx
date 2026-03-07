@@ -114,20 +114,41 @@ export default function Settings() {
           showCountryIndicator={false}
         />
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="general">Général</TabsTrigger>
-            <TabsTrigger value="my-notifications">🔔 Mes notifications</TabsTrigger>
-            <TabsTrigger value="objectives">Objectifs</TabsTrigger>
-            <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
-            <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
-            <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
-            <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
-            <TabsTrigger value="finance">Finance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
-            <TabsTrigger value="assets">📁 Assets</TabsTrigger>
-            <TabsTrigger value="security">Sécurité</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {isMobile ? (
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Choisir une section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">Général</SelectItem>
+                <SelectItem value="my-notifications">🔔 Mes notifications</SelectItem>
+                <SelectItem value="objectives">Objectifs</SelectItem>
+                <SelectItem value="alerts">Alertes croissance</SelectItem>
+                <SelectItem value="business-alerts">Alertes business</SelectItem>
+                <SelectItem value="reports">📊 Rapports</SelectItem>
+                <SelectItem value="profile-reminders">📧 Relances profils</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
+                <SelectItem value="notifications">Notifications plateforme</SelectItem>
+                <SelectItem value="assets">📁 Assets</SelectItem>
+                <SelectItem value="security">Sécurité</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <TabsList className="w-full overflow-x-auto flex-nowrap justify-start mb-4">
+              <TabsTrigger value="general">Général</TabsTrigger>
+              <TabsTrigger value="my-notifications">🔔 Mes notifications</TabsTrigger>
+              <TabsTrigger value="objectives">Objectifs</TabsTrigger>
+              <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
+              <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
+              <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
+              <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
+              <TabsTrigger value="finance">Finance</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
+              <TabsTrigger value="assets">📁 Assets</TabsTrigger>
+              <TabsTrigger value="security">Sécurité</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="my-notifications">
             <Card>
