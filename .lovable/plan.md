@@ -1,44 +1,40 @@
 
 
-# Notifications admin automatiques pour anniversaires J-1
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-## Objectif
+## Modification
 
-Créer une Edge Function CRON qui s'exécute quotidiennement et insère des notifications dans `admin_notifications` pour tous les anniversaires (utilisateurs + contacts) qui tombent dans les prochaines 24h. Les admins verront ces alertes dans leur centre de notifications existant.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-## Architecture
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-### 1. Nouvelle Edge Function : `supabase/functions/notify-admin-birthdays/index.ts`
+```typescript
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
+}
+```
 
-- Récupère tous les `profiles` et `contacts` avec un birthday non null
-- Calcule `daysUntilBirthday` pour chacun
-- Filtre ceux avec `daysUntil === 0` (jour J) et `daysUntil === 1` (demain)
-- Récupère tous les admins actifs depuis `admin_users`
-- Vérifie les doublons via `admin_notifications` (même `entity_id` + `type` aujourd'hui)
-- Insère une notification par admin pour chaque anniversaire imminent :
-  - `type`: `'birthday_approaching'`
-  - `severity`: `'info'` (J-1) ou `'warning'` (Jour J)
-  - `title`: "🎂 Anniversaire demain : {nom}" ou "🎂 Anniversaire aujourd'hui : {nom}"
-  - `entity_type`: `'user'` ou `'contact'`
-  - `entity_id`: l'id du profil/contact
-  - `action_url`: `/admin/birthdays`
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-### 2. Config CRON
+## Note importante
 
-Ajouter dans `supabase/config.toml` la vérification JWT désactivée pour cette fonction.
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
 
-Fournir le SQL pour créer le CRON job via pg_cron (à exécuter manuellement) — exécution quotidienne à 00h15 UTC, juste avant le CRON existant des alertes contacts (00h30).
+## Déploiement
 
-### 3. Type NotificationType
-
-Ajouter `'birthday_approaching'` au type dans `admin-notify-critical` n'est pas nécessaire car on insère directement dans `admin_notifications` sans passer par cette fonction.
-
-## Fichiers
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/notify-admin-birthdays/index.ts` | Créer |
-| `supabase/config.toml` | Ajouter `[functions.notify-admin-birthdays]` |
-
-Aucune migration DB — la table `admin_notifications` existe déjà avec les colonnes nécessaires.
+Redéployer `notify-fund-ready` après la modification.
 
