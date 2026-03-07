@@ -1078,7 +1078,7 @@ const BusinessAuth = () => {
         title: 'Bienvenue !',
         description: 'Votre espace business est maintenant prêt.',
       });
-      await processAdminAutoAssign(authenticatedUserId!, 'business');
+      processAdminAutoAssign(authenticatedUserId!, 'business').catch(console.error);
       navigate('/business-account?onboarding=true', { replace: true });
     } catch (error) {
       toast({
