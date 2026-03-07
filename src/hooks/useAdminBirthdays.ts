@@ -46,7 +46,7 @@ export function useAdminBirthdays() {
       // Fetch user profiles with birthdays
       let profilesQuery = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, birthday, country_code')
+        .select('user_id, first_name, last_name, birthday, country_code, avatar_url, phone, city, bio, created_at, is_suspended, total_birthdays_celebrated')
         .not('birthday', 'is', null);
 
       if (countryFilter) {
@@ -56,13 +56,26 @@ export function useAdminBirthdays() {
       // Fetch contacts with birthdays
       let contactsQuery = supabase
         .from('contacts')
-        .select('id, name, birthday, user_id')
+        .select('id, name, birthday, user_id, avatar_url, phone, email, relationship, notes, created_at')
         .not('birthday', 'is', null);
 
       const [profilesRes, contactsRes] = await Promise.all([
         profilesQuery,
         contactsQuery,
       ]);
+
+      // Build a map of owner names for contacts
+      const ownerIds = [...new Set((contactsRes.data || []).map(c => c.user_id).filter(Boolean))];
+      let ownerMap: Record<string, string> = {};
+      if (ownerIds.length > 0) {
+        const { data: owners } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', ownerIds);
+        (owners || []).forEach(o => {
+          ownerMap[o.user_id] = [o.first_name, o.last_name].filter(Boolean).join(' ') || 'Sans nom';
+        });
+      }
 
       const entries: BirthdayEntry[] = [];
 
@@ -74,6 +87,14 @@ export function useAdminBirthdays() {
           birthday: p.birthday,
           daysUntil: getDaysUntilBirthday(p.birthday),
           type: 'user',
+          avatarUrl: p.avatar_url ?? undefined,
+          phone: p.phone ?? undefined,
+          city: p.city ?? undefined,
+          countryCode: p.country_code ?? undefined,
+          bio: p.bio ?? undefined,
+          createdAt: p.created_at ?? undefined,
+          isSuspended: p.is_suspended ?? false,
+          totalBirthdaysCelebrated: p.total_birthdays_celebrated ?? 0,
         });
       });
 
@@ -86,6 +107,13 @@ export function useAdminBirthdays() {
           daysUntil: getDaysUntilBirthday(c.birthday),
           type: 'contact',
           ownerId: c.user_id,
+          ownerName: ownerMap[c.user_id] || undefined,
+          avatarUrl: c.avatar_url ?? undefined,
+          phone: c.phone ?? undefined,
+          email: c.email ?? undefined,
+          relationship: c.relationship ?? undefined,
+          notes: c.notes ?? undefined,
+          createdAt: c.created_at ?? undefined,
         });
       });
 

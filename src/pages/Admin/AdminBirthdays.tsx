@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Cake, CalendarDays, Users, Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAdminBirthdays } from '@/hooks/useAdminBirthdays';
+import { useAdminBirthdays, type BirthdayEntry } from '@/hooks/useAdminBirthdays';
 import { AdminLayout } from '@/components/AdminLayout';
+import { BirthdayDetailSheet } from '@/components/admin/BirthdayDetailSheet';
 
 const PERIODS = [
   { label: "Jour J", days: 0 },
