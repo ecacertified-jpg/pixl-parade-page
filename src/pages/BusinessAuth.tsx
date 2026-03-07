@@ -1122,7 +1122,7 @@ const BusinessAuth = () => {
         if (businessAccounts && businessAccounts.length > 0) {
           setUserMode('business');
           toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
-          await processAdminAutoAssign(authData.user.id, 'business');
+          processAdminAutoAssign(authData.user.id, 'business').catch(console.error);
           navigate('/business-account', { replace: true });
         } else {
           setAuthenticatedUserId(authData.user.id);
