@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
