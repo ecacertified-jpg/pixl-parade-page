@@ -121,6 +121,7 @@ export default function Settings() {
             <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
             <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
+            <TabsTrigger value="assets">📁 Assets</TabsTrigger>
             <TabsTrigger value="security">Sécurité</TabsTrigger>
           </TabsList>
 
