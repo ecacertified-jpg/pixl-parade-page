@@ -1226,7 +1226,7 @@ const BusinessAuth = () => {
           setUserMode('business');
           trackSignUp('email_business');
           toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
-          await processAdminAutoAssign(authData.user.id, 'business');
+          processAdminAutoAssign(authData.user.id, 'business').catch(console.error);
           navigate('/business-account?onboarding=true', { replace: true });
         }
       }
