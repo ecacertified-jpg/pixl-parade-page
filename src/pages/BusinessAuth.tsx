@@ -866,7 +866,7 @@ const BusinessAuth = () => {
       setUserMode('business');
       await refreshSession();
       toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
-      await processAdminAutoAssign(userId, 'business');
+      processAdminAutoAssign(userId, 'business').catch(console.error);
       navigate('/business-account?onboarding=true', { replace: true });
     } else {
       // Connexion - vérifier si un business account existe
