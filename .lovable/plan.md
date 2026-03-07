@@ -1,29 +1,40 @@
 
 
-## Plan: Harmonize Admin Platform Settings Layout (Mobile + Desktop)
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-### Problem
-The Settings page has 11 tabs in a single `TabsList` with only `flex-wrap`. On mobile, this creates a messy, hard-to-navigate wall of small tab buttons. The content cards also lack consistent spacing and responsive grids.
+## Modification
 
-### Solution
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-**1. Replace horizontal tabs with a responsive layout:**
-- **Desktop**: Keep horizontal `TabsList` but use a scrollable container with `overflow-x-auto` and consistent sizing
-- **Mobile**: Switch to a vertical sidebar-style navigation using a `Select` dropdown or a vertical `TabsList` that's easier to tap
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-Approach: Use a `Select` component on mobile (`< md`) to pick the settings section, and keep the horizontal `TabsList` on desktop (`>= md`). This is the cleanest pattern for 11+ tabs.
+```typescript
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
+}
+```
 
-**2. Improve tab content cards:**
-- Add consistent `gap` and `p` spacing
-- Use `grid grid-cols-1 md:grid-cols-2` for form fields where appropriate (e.g., Finance has 2 inputs that can sit side-by-side on desktop)
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-**3. Implementation details:**
-- Import `useIsMobile` hook
-- Import `Select` component from shadcn/ui
-- On mobile: render a `Select` with all tab labels, controlling the active tab via state
-- On desktop: render the existing `TabsList` with `overflow-x-auto` and `scrollbar-hide` styling
-- Keep all `TabsContent` blocks unchanged
+## Note importante
 
-### File to modify
-- `src/pages/Admin/Settings.tsx` -- Add mobile select, improve responsive layout
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+
+## Déploiement
+
+Redéployer `notify-fund-ready` après la modification.
 

@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { usePlatformSettings } from '@/hooks/usePlatformSettings';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { GrowthAlertsSettings } from '@/components/admin/GrowthAlertsSettings';
 import { ObjectivesEditor } from '@/components/admin/ObjectivesEditor';
 import { BusinessAlertThresholdsSettings } from '@/components/admin/BusinessAlertThresholdsSettings';
@@ -19,6 +21,8 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AssetUploader } from '@/components/admin/AssetUploader';
 
 export default function Settings() {
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('general');
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
 
   // Local state for form values
@@ -110,20 +114,41 @@ export default function Settings() {
           showCountryIndicator={false}
         />
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="flex-wrap">
-            <TabsTrigger value="general">Général</TabsTrigger>
-            <TabsTrigger value="my-notifications">🔔 Mes notifications</TabsTrigger>
-            <TabsTrigger value="objectives">Objectifs</TabsTrigger>
-            <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
-            <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
-            <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
-            <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
-            <TabsTrigger value="finance">Finance</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
-            <TabsTrigger value="assets">📁 Assets</TabsTrigger>
-            <TabsTrigger value="security">Sécurité</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {isMobile ? (
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full mb-4">
+                <SelectValue placeholder="Choisir une section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">Général</SelectItem>
+                <SelectItem value="my-notifications">🔔 Mes notifications</SelectItem>
+                <SelectItem value="objectives">Objectifs</SelectItem>
+                <SelectItem value="alerts">Alertes croissance</SelectItem>
+                <SelectItem value="business-alerts">Alertes business</SelectItem>
+                <SelectItem value="reports">📊 Rapports</SelectItem>
+                <SelectItem value="profile-reminders">📧 Relances profils</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
+                <SelectItem value="notifications">Notifications plateforme</SelectItem>
+                <SelectItem value="assets">📁 Assets</SelectItem>
+                <SelectItem value="security">Sécurité</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <TabsList className="w-full overflow-x-auto flex-nowrap justify-start mb-4">
+              <TabsTrigger value="general">Général</TabsTrigger>
+              <TabsTrigger value="my-notifications">🔔 Mes notifications</TabsTrigger>
+              <TabsTrigger value="objectives">Objectifs</TabsTrigger>
+              <TabsTrigger value="alerts">Alertes croissance</TabsTrigger>
+              <TabsTrigger value="business-alerts">Alertes business</TabsTrigger>
+              <TabsTrigger value="reports">📊 Rapports</TabsTrigger>
+              <TabsTrigger value="profile-reminders">📧 Relances profils</TabsTrigger>
+              <TabsTrigger value="finance">Finance</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications plateforme</TabsTrigger>
+              <TabsTrigger value="assets">📁 Assets</TabsTrigger>
+              <TabsTrigger value="security">Sécurité</TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="my-notifications">
             <Card>
@@ -248,26 +273,28 @@ export default function Settings() {
                   Gestion des commissions et paiements
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="commission-rate">Taux de commission (%)</Label>
-                  <Input 
-                    id="commission-rate" 
-                    type="number" 
-                    value={financeSettings.commission_rate}
-                    onChange={(e) => setFinanceSettings({...financeSettings, commission_rate: Number(e.target.value)})}
-                    min="0" 
-                    max="100" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="free-delivery">Seuil de livraison gratuite (FCFA)</Label>
-                  <Input 
-                    id="free-delivery" 
-                    type="number" 
-                    value={financeSettings.free_delivery_threshold}
-                    onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
-                  />
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="commission-rate">Taux de commission (%)</Label>
+                    <Input 
+                      id="commission-rate" 
+                      type="number" 
+                      value={financeSettings.commission_rate}
+                      onChange={(e) => setFinanceSettings({...financeSettings, commission_rate: Number(e.target.value)})}
+                      min="0" 
+                      max="100" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="free-delivery">Seuil de livraison gratuite (FCFA)</Label>
+                    <Input 
+                      id="free-delivery" 
+                      type="number" 
+                      value={financeSettings.free_delivery_threshold}
+                      onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
+                    />
+                  </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
                   Enregistrer les modifications
