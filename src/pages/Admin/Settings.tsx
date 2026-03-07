@@ -21,6 +21,8 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { AssetUploader } from '@/components/admin/AssetUploader';
 
 export default function Settings() {
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState('general');
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
 
   // Local state for form values
