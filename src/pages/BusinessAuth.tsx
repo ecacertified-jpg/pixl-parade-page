@@ -890,7 +890,7 @@ const BusinessAuth = () => {
 
       setUserMode('business');
       toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
-      await processAdminAutoAssign(userId, 'business');
+      processAdminAutoAssign(userId, 'business').catch(console.error);
       navigate('/business-account', { replace: true });
     }
   };
