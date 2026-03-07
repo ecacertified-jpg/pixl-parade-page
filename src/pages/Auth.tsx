@@ -232,26 +232,23 @@ const Auth = () => {
   // Redirect if already authenticated - check for returnUrl first
   useEffect(() => {
     if (user) {
-      const handleRedirect = async () => {
-        // Process admin auto-assign if admin_ref is present
-        const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
-        if (adminRef) {
-          await processAdminAutoAssign(user.id);
-        }
+      // Fire-and-forget admin auto-assign (non-blocking)
+      const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
+      if (adminRef) {
+        processAdminAutoAssign(user.id).catch(console.error);
+      }
 
-        const returnUrl = localStorage.getItem('returnUrl');
-        const redirectParam = searchParams.get('redirect');
+      const returnUrl = localStorage.getItem('returnUrl');
+      const redirectParam = searchParams.get('redirect');
 
-        if (returnUrl) {
-          localStorage.removeItem('returnUrl');
-          navigate(returnUrl);
-        } else if (redirectParam) {
-          navigate(redirectParam);
-        } else {
-          handleSmartRedirect(user, navigate);
-        }
-      };
-      handleRedirect();
+      if (returnUrl) {
+        localStorage.removeItem('returnUrl');
+        navigate(returnUrl);
+      } else if (redirectParam) {
+        navigate(redirectParam);
+      } else {
+        handleSmartRedirect(user, navigate);
+      }
     }
   }, [user, navigate, searchParams]);
 
@@ -678,7 +675,7 @@ const Auth = () => {
         });
 
         // Auto-assign to admin if admin_ref present
-        if (result.user_id) await processAdminAutoAssign(result.user_id);
+        if (result.user_id) processAdminAutoAssign(result.user_id).catch(console.error);
         navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
         return;
       }
@@ -774,11 +771,11 @@ const Auth = () => {
               return '/dashboard';
             }
           })();
-          await processAdminAutoAssign(authData.user.id);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
           navigate(`${redirectPath}?onboarding=true`);
         } else {
-          await processAdminAutoAssign(authData.user.id);
-          await handleSmartRedirect(authData.user, navigate);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
+          // Let useEffect handle redirect via onAuthStateChange
         }
       }
     } catch (error: any) {
@@ -942,8 +939,8 @@ const Auth = () => {
           title: 'Connexion réussie',
           description: 'Vous êtes maintenant connecté',
         });
-        await processAdminAutoAssign(authData.user.id);
-        await handleSmartRedirect(authData.user, navigate);
+        // Don't await - let the useEffect handle redirect via onAuthStateChange
+        // This prevents the race condition between form handler and useEffect
       }
     } catch (error: any) {
       toast({
@@ -1030,7 +1027,7 @@ const Auth = () => {
             title: 'Compte créé',
             description: 'Votre compte a été créé avec succès !',
           });
-          await processAdminAutoAssign(authData.user.id);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
           navigate('/dashboard?onboarding=true');
         }
       }

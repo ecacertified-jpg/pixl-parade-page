@@ -411,14 +411,15 @@ const BusinessAuth = () => {
   // Redirect based on business account status + handle admin_ref
   useEffect(() => {
     if (user) {
-      const handleAdminRef = async () => {
+      const handleAdminRef = () => {
         const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
         if (adminRef) {
           sessionStorage.setItem('jdv_admin_ref', adminRef);
-          await processAdminAutoAssign(user.id, 'business');
+          processAdminAutoAssign(user.id, 'business').catch(console.error);
         }
       };
-      handleAdminRef().then(() => checkExistingBusinessAccount());
+      handleAdminRef();
+      checkExistingBusinessAccount();
     }
   }, [user, navigate]);
 
@@ -866,7 +867,7 @@ const BusinessAuth = () => {
       setUserMode('business');
       await refreshSession();
       toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
-      await processAdminAutoAssign(userId, 'business');
+      processAdminAutoAssign(userId, 'business').catch(console.error);
       navigate('/business-account?onboarding=true', { replace: true });
     } else {
       // Connexion - vérifier si un business account existe
@@ -890,7 +891,7 @@ const BusinessAuth = () => {
 
       setUserMode('business');
       toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
-      await processAdminAutoAssign(userId, 'business');
+      processAdminAutoAssign(userId, 'business').catch(console.error);
       navigate('/business-account', { replace: true });
     }
   };
@@ -1078,7 +1079,7 @@ const BusinessAuth = () => {
         title: 'Bienvenue !',
         description: 'Votre espace business est maintenant prêt.',
       });
-      await processAdminAutoAssign(authenticatedUserId!, 'business');
+      processAdminAutoAssign(authenticatedUserId!, 'business').catch(console.error);
       navigate('/business-account?onboarding=true', { replace: true });
     } catch (error) {
       toast({
@@ -1122,7 +1123,7 @@ const BusinessAuth = () => {
         if (businessAccounts && businessAccounts.length > 0) {
           setUserMode('business');
           toast({ title: 'Connexion réussie', description: 'Bienvenue dans votre espace business' });
-          await processAdminAutoAssign(authData.user.id, 'business');
+          processAdminAutoAssign(authData.user.id, 'business').catch(console.error);
           navigate('/business-account', { replace: true });
         } else {
           setAuthenticatedUserId(authData.user.id);
@@ -1226,7 +1227,7 @@ const BusinessAuth = () => {
           setUserMode('business');
           trackSignUp('email_business');
           toast({ title: 'Bienvenue !', description: 'Votre espace business est maintenant prêt.' });
-          await processAdminAutoAssign(authData.user.id, 'business');
+          processAdminAutoAssign(authData.user.id, 'business').catch(console.error);
           navigate('/business-account?onboarding=true', { replace: true });
         }
       }
