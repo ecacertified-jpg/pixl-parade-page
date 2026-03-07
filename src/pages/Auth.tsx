@@ -1027,7 +1027,7 @@ const Auth = () => {
             title: 'Compte créé',
             description: 'Votre compte a été créé avec succès !',
           });
-          await processAdminAutoAssign(authData.user.id);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
           navigate('/dashboard?onboarding=true');
         }
       }
