@@ -338,32 +338,42 @@ serve(async (req) => {
               .single();
             const creatorName = creatorProfile?.first_name || 'Un ami';
 
-            // Get friends from fund contributors + user's contacts with phones
-            const { data: friendProfiles } = await supabase
-              .from('fund_contributions')
-              .select('contributor_id')
-              .eq('fund_id', activeFund.id);
+            // Header image for the template
+            const headerImageUrl = Deno.env.get('BIRTHDAY_FRIEND_ALERT_IMAGE_URL') 
+              || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-friend-alert.png`;
 
-            const contributorIds = new Set(friendProfiles?.map((c: any) => c.contributor_id) || []);
-
-            // Also get user's contacts who have phone numbers (potential friends to notify)
-            const { data: userContacts } = await supabase
-              .from('contacts')
-              .select('phone, name')
-              .eq('user_id', contact.user_id)
-              .not('phone', 'is', null);
-
+            // Collect all phones to notify (deduplication set)
             const notifiedPhones = new Set<string>();
+            let friendAlertsSent = 0;
+            let friendAlertsFailed = 0;
 
-            for (const friendContact of userContacts || []) {
-              if (!friendContact.phone) continue;
-              const normalizedPhone = formatPhoneForTwilio(friendContact.phone);
-              if (notifiedPhones.has(normalizedPhone)) continue;
+            // Helper: send alert to a phone number
+            async function sendFriendAlert(phone: string, recipientName: string, source: string) {
+              const normalizedPhone = formatPhoneForTwilio(phone).replace(/\s/g, '');
+              if (!normalizedPhone || notifiedPhones.has(normalizedPhone)) return;
 
-              const channel = getPreferredChannel(friendContact.phone);
+              // Deduplication: check if already sent today
+              const todayStr = new Date().toISOString().slice(0, 10);
+              const { data: existingAlert } = await supabase
+                .from('birthday_contact_alerts')
+                .select('id')
+                .eq('contact_phone', normalizedPhone)
+                .eq('alert_type', 'friend_birthday_alert')
+                .gte('created_at', todayStr)
+                .maybeSingle();
+
+              if (existingAlert) {
+                console.log(`⏭️ Friend alert already sent today to ${normalizedPhone} (${source})`);
+                notifiedPhones.add(normalizedPhone);
+                return;
+              }
+
+              const channel = getPreferredChannel(phone);
+              let sendResult: { success: boolean; error?: string; sid?: string } = { success: false };
+
               if (channel === 'whatsapp') {
-                const waResult = await sendWhatsAppTemplate(
-                  friendContact.phone,
+                sendResult = await sendWhatsAppTemplate(
+                  phone,
                   'joiedevivre_birthday_friend_alert',
                   'fr',
                   [
@@ -372,19 +382,83 @@ serve(async (req) => {
                     creatorName,
                     String(activeFund.target_amount || 0)
                   ],
-                  [activeFund.id] // CTA button suffix = fund_id
+                  [activeFund.id], // CTA button suffix = fund_id
+                  headerImageUrl
                 );
 
-                if (waResult.success) {
-                  notifiedPhones.add(normalizedPhone);
-                  console.log(`📤 [WhatsApp] Birthday friend alert sent for ${contact.name} to ${friendContact.name}`);
-                } else {
-                  console.warn(`⚠️ [WhatsApp] Friend alert failed for ${friendContact.name}: ${waResult.error}`);
+                // Fallback to free text if template fails
+                if (!sendResult.success) {
+                  console.log(`⚠️ [WhatsApp] Template failed for ${recipientName}, trying free text: ${sendResult.error}`);
+                  const fallbackMsg = `🎂 L'anniversaire de ${contact.name} approche (dans ${daysUntilBirthday} jour${daysUntilBirthday > 1 ? 's' : ''}) ! ${creatorName} organise une cagnotte cadeau. Participez ici : https://joiedevivre-africa.com/f/${activeFund.id}`;
+                  sendResult = await sendWhatsApp(phone, fallbackMsg);
+                }
+              } else {
+                // SMS fallback
+                const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est dans ${daysUntilBirthday}j ! ${creatorName} organise une cagnotte: joiedevivre-africa.com/f/${activeFund.id}`;
+                sendResult = await sendSms(phone, smsMsg);
+              }
+
+              // Record in birthday_contact_alerts
+              await supabase.from('birthday_contact_alerts').insert({
+                user_id: contact.user_id,
+                contact_id: contact.id,
+                contact_phone: normalizedPhone,
+                contact_name: recipientName,
+                alert_type: 'friend_birthday_alert',
+                channel,
+                days_before: daysUntilBirthday,
+                status: sendResult.success ? 'sent' : 'failed',
+                sent_at: sendResult.success ? new Date().toISOString() : null,
+                error_message: sendResult.error || null,
+              });
+
+              notifiedPhones.add(normalizedPhone);
+              if (sendResult.success) {
+                friendAlertsSent++;
+                console.log(`📤 [${channel}] Birthday friend alert -> ${source} ${recipientName}: ✅`);
+              } else {
+                friendAlertsFailed++;
+                console.warn(`❌ [${channel}] Birthday friend alert -> ${source} ${recipientName}: ${sendResult.error}`);
+              }
+            }
+
+            // 1. Notify user's contacts who have phone numbers
+            const { data: userContacts } = await supabase
+              .from('contacts')
+              .select('phone, name')
+              .eq('user_id', contact.user_id)
+              .not('phone', 'is', null);
+
+            for (const friendContact of userContacts || []) {
+              if (!friendContact.phone) continue;
+              await sendFriendAlert(friendContact.phone, friendContact.name || 'Ami(e)', 'contact');
+            }
+
+            // 2. Notify registered users who have the birthday person in their contacts
+            // (reverse lookup: find profiles that added a contact matching this person's phone)
+            if (contact.phone) {
+              const { data: reverseContacts } = await supabase
+                .from('contacts')
+                .select('user_id')
+                .eq('phone', contact.phone)
+                .neq('user_id', contact.user_id); // exclude the owner
+
+              if (reverseContacts?.length) {
+                const reverseUserIds = [...new Set(reverseContacts.map((c: any) => c.user_id))];
+                const { data: reverseProfiles } = await supabase
+                  .from('profiles')
+                  .select('user_id, first_name, phone')
+                  .in('user_id', reverseUserIds)
+                  .not('phone', 'is', null);
+
+                for (const profile of reverseProfiles || []) {
+                  if (!profile.phone) continue;
+                  await sendFriendAlert(profile.phone, profile.first_name || 'Ami(e)', 'platform_user');
                 }
               }
             }
 
-            console.log(`📊 Birthday friend alerts: ${notifiedPhones.size} sent for ${contact.name}'s fund`);
+            console.log(`📊 Birthday friend alerts for ${contact.name}'s fund: ${friendAlertsSent} sent, ${friendAlertsFailed} failed, ${notifiedPhones.size} unique phones`);
           }
         } catch (friendAlertError) {
           console.error(`⚠️ Error sending friend alerts for ${contact.name}:`, friendAlertError);
