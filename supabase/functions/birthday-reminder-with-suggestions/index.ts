@@ -435,13 +435,12 @@ serve(async (req) => {
             }
 
             // 2. Notify registered users who have the birthday person in their contacts
-            // (reverse lookup: find profiles that added a contact matching this person's phone)
             if (contact.phone) {
               const { data: reverseContacts } = await supabase
                 .from('contacts')
                 .select('user_id')
                 .eq('phone', contact.phone)
-                .neq('user_id', contact.user_id); // exclude the owner
+                .neq('user_id', contact.user_id);
 
               if (reverseContacts?.length) {
                 const reverseUserIds = [...new Set(reverseContacts.map((c: any) => c.user_id))];
@@ -462,6 +461,110 @@ serve(async (req) => {
           }
         } catch (friendAlertError) {
           console.error(`⚠️ Error sending friend alerts for ${contact.name}:`, friendAlertError);
+        }
+      }
+      // --- NEW: Send friend alert even WITHOUT a fund (free text WhatsApp + SMS fallback) ---
+      else if (!hasActiveFund && daysUntilBirthday <= 7) {
+        try {
+          const notifiedPhones = new Set<string>();
+          let noFundAlertsSent = 0;
+          let noFundAlertsFailed = 0;
+
+          async function sendNoFundFriendAlert(phone: string, recipientName: string, source: string) {
+            const normalizedPhone = formatPhoneForTwilio(phone).replace(/\s/g, '');
+            if (!normalizedPhone || notifiedPhones.has(normalizedPhone)) return;
+
+            // Deduplication: check if already sent today
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const { data: existingAlert } = await supabase
+              .from('birthday_contact_alerts')
+              .select('id')
+              .eq('contact_phone', normalizedPhone)
+              .eq('alert_type', 'friend_birthday_alert_no_fund')
+              .gte('created_at', todayStr)
+              .maybeSingle();
+
+            if (existingAlert) {
+              console.log(`⏭️ No-fund friend alert already sent today to ${normalizedPhone} (${source})`);
+              notifiedPhones.add(normalizedPhone);
+              return;
+            }
+
+            const channel = getPreferredChannel(phone);
+            let sendResult: { success: boolean; error?: string; sid?: string } = { success: false };
+
+            const dayLabel = daysUntilBirthday === 1 ? 'demain' : `dans ${daysUntilBirthday} jours`;
+            const waMsg = `🎂 L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com 🎁`;
+            const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez un cadeau: joiedevivre-africa.com`;
+
+            if (channel === 'whatsapp') {
+              sendResult = await sendWhatsApp(phone, waMsg);
+            } else {
+              sendResult = await sendSms(phone, smsMsg);
+            }
+
+            // Record in birthday_contact_alerts with distinct alert_type
+            await supabase.from('birthday_contact_alerts').insert({
+              user_id: contact.user_id,
+              contact_id: contact.id,
+              contact_phone: normalizedPhone,
+              contact_name: recipientName,
+              alert_type: 'friend_birthday_alert_no_fund',
+              channel,
+              days_before: daysUntilBirthday,
+              status: sendResult.success ? 'sent' : 'failed',
+              sent_at: sendResult.success ? new Date().toISOString() : null,
+              error_message: sendResult.error || null,
+            });
+
+            notifiedPhones.add(normalizedPhone);
+            if (sendResult.success) {
+              noFundAlertsSent++;
+              console.log(`📤 [${channel}] No-fund birthday alert -> ${source} ${recipientName}: ✅`);
+            } else {
+              noFundAlertsFailed++;
+              console.warn(`❌ [${channel}] No-fund birthday alert -> ${source} ${recipientName}: ${sendResult.error}`);
+            }
+          }
+
+          // 1. Notify user's contacts
+          const { data: userContacts } = await supabase
+            .from('contacts')
+            .select('phone, name')
+            .eq('user_id', contact.user_id)
+            .not('phone', 'is', null);
+
+          for (const friendContact of userContacts || []) {
+            if (!friendContact.phone) continue;
+            await sendNoFundFriendAlert(friendContact.phone, friendContact.name || 'Ami(e)', 'contact');
+          }
+
+          // 2. Reverse lookup: registered users who have this person in their contacts
+          if (contact.phone) {
+            const { data: reverseContacts } = await supabase
+              .from('contacts')
+              .select('user_id')
+              .eq('phone', contact.phone)
+              .neq('user_id', contact.user_id);
+
+            if (reverseContacts?.length) {
+              const reverseUserIds = [...new Set(reverseContacts.map((c: any) => c.user_id))];
+              const { data: reverseProfiles } = await supabase
+                .from('profiles')
+                .select('user_id, first_name, phone')
+                .in('user_id', reverseUserIds)
+                .not('phone', 'is', null);
+
+              for (const profile of reverseProfiles || []) {
+                if (!profile.phone) continue;
+                await sendNoFundFriendAlert(profile.phone, profile.first_name || 'Ami(e)', 'platform_user');
+              }
+            }
+          }
+
+          console.log(`📊 No-fund birthday alerts for ${contact.name}: ${noFundAlertsSent} sent, ${noFundAlertsFailed} failed, ${notifiedPhones.size} unique phones`);
+        } catch (noFundAlertError) {
+          console.error(`⚠️ Error sending no-fund friend alerts for ${contact.name}:`, noFundAlertError);
         }
       }
     }
