@@ -352,6 +352,10 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="assets">
+            <AssetUploader />
+          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>
