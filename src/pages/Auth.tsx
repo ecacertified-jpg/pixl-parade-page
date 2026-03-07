@@ -675,7 +675,7 @@ const Auth = () => {
         });
 
         // Auto-assign to admin if admin_ref present
-        if (result.user_id) await processAdminAutoAssign(result.user_id);
+        if (result.user_id) processAdminAutoAssign(result.user_id).catch(console.error);
         navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
         return;
       }
