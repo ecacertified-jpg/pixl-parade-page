@@ -939,8 +939,8 @@ const Auth = () => {
           title: 'Connexion réussie',
           description: 'Vous êtes maintenant connecté',
         });
-        await processAdminAutoAssign(authData.user.id);
-        await handleSmartRedirect(authData.user, navigate);
+        // Don't await - let the useEffect handle redirect via onAuthStateChange
+        // This prevents the race condition between form handler and useEffect
       }
     } catch (error: any) {
       toast({
