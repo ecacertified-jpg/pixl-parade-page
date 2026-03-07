@@ -273,26 +273,28 @@ export default function Settings() {
                   Gestion des commissions et paiements
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="commission-rate">Taux de commission (%)</Label>
-                  <Input 
-                    id="commission-rate" 
-                    type="number" 
-                    value={financeSettings.commission_rate}
-                    onChange={(e) => setFinanceSettings({...financeSettings, commission_rate: Number(e.target.value)})}
-                    min="0" 
-                    max="100" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="free-delivery">Seuil de livraison gratuite (FCFA)</Label>
-                  <Input 
-                    id="free-delivery" 
-                    type="number" 
-                    value={financeSettings.free_delivery_threshold}
-                    onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
-                  />
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="commission-rate">Taux de commission (%)</Label>
+                    <Input 
+                      id="commission-rate" 
+                      type="number" 
+                      value={financeSettings.commission_rate}
+                      onChange={(e) => setFinanceSettings({...financeSettings, commission_rate: Number(e.target.value)})}
+                      min="0" 
+                      max="100" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="free-delivery">Seuil de livraison gratuite (FCFA)</Label>
+                    <Input 
+                      id="free-delivery" 
+                      type="number" 
+                      value={financeSettings.free_delivery_threshold}
+                      onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
+                    />
+                  </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
                   Enregistrer les modifications
