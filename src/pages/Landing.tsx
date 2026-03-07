@@ -90,12 +90,12 @@ const Landing = () => {
                 <span className="text-primary">Bonheur</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                Offrez et recevez des cadeaux pour les anniversaires, promotions, mariages et toutes les occasions qui comptent. Créez des cagnottes collectives et partagez la joie avec vos proches.
+                Combien de personnes se souviennent de votre date d'anniversaire chaque année ? Êtes-vous sûr(e) de recevoir un cadeau à votre anniversaire ? Enregistrez votre date d'anniversaire pour que vos proches ne vous oublient pas désormais !
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
-                  Commencer gratuitement
-                  <Sparkles className="ml-2 h-5 w-5" />
+                  Enregistrer son anniversaire
+                  <Calendar className="ml-2 h-5 w-5" />
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => navigate("/business-auth")}>
                   Espace Vendeur
