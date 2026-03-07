@@ -29,7 +29,8 @@ import {
   Sparkles,
   Share2,
   Rocket,
-  MessageSquare
+  MessageSquare,
+  Cake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
