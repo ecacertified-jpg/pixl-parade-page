@@ -47,11 +47,10 @@ export function AssetUploader() {
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const handleUpload = useCallback(async (file: globalThis.File) => {
     setUploading(true);
-    const fileName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const { error } = await supabase.storage.from('assets').upload(fileName, selectedFile, {
+    const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const { error } = await supabase.storage.from('assets').upload(fileName, file, {
       cacheControl: '3600',
       upsert: true,
     });
@@ -64,7 +63,7 @@ export function AssetUploader() {
       fetchFiles();
     }
     setUploading(false);
-  };
+  }, [fetchFiles]);
 
   const handleDelete = async (fileName: string) => {
     const { error } = await supabase.storage.from('assets').remove([fileName]);
