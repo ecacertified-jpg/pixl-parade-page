@@ -1,40 +1,38 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+## Upload de l'image birthday-friend-alert dans Storage
 
-## Modification
+### Constat
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+1. Le bucket `assets` **n'existe pas encore** — il faut le créer (public, pour que l'URL soit accessible depuis les Edge Functions).
+2. Le code dans `birthday-reminder-with-suggestions/index.ts` (ligne 343) référence `birthday-friend-alert.png` mais l'image est en **JPG**.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+### Plan
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+#### 1. Créer le bucket `assets` (migration SQL)
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('assets', 'assets', true);
+
+-- Politique de lecture publique
+CREATE POLICY "Public read access on assets"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'assets');
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+#### 2. Corriger la référence dans le code
+Dans `supabase/functions/birthday-reminder-with-suggestions/index.ts` ligne 343, changer l'extension de `.png` à `.jpg` :
+```
+birthday-friend-alert.png → birthday-friend-alert.jpg
+```
 
-## Note importante
+#### 3. Upload manuel de l'image
+Après création du bucket, vous devrez uploader le fichier JPG via le dashboard Supabase Storage (le nommer `birthday-friend-alert.jpg`).
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+### Fichiers
 
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+| Ressource | Action |
+|-----------|--------|
+| Migration SQL | Créer bucket `assets` + politique RLS |
+| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Modifier ligne 343 : `.png` → `.jpg` |
 
