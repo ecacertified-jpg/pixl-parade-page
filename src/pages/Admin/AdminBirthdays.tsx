@@ -200,6 +200,12 @@ export default function AdminBirthdays() {
           </CardContent>
         </Card>
       </div>
+
+      <BirthdayDetailSheet
+        entry={selectedEntry}
+        open={!!selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+      />
     </AdminLayout>
   );
 }
