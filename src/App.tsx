@@ -108,6 +108,7 @@ const CountryFundsPage = lazy(() => import("./pages/Admin/CountryFundsPage"));
 const CountryObjectivesPage = lazy(() => import("./pages/Admin/CountryObjectivesPage"));
 const CountryMonthlyComparisonPage = lazy(() => import("./pages/Admin/CountryMonthlyComparisonPage"));
 const ForecastPage = lazy(() => import("./pages/Admin/ForecastPage"));
+const AdminBirthdays = lazy(() => import("./pages/Admin/AdminBirthdays"));
 const OrdersManagement = lazy(() => import("./pages/Admin/OrdersManagement"));
 const AdminNotificationsPage = lazy(() => import("./pages/Admin/AdminNotificationsPage"));
 const ShareAnalytics = lazy(() => import("./pages/Admin/ShareAnalytics"));
@@ -255,6 +256,7 @@ const App = () => (
             <Route path="/admin/countries/objectives" element={<AdminRoute><L><CountryObjectivesPage /></L></AdminRoute>} />
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
+            <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
             <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />
