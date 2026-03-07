@@ -171,7 +171,11 @@ export default function AdminBirthdays() {
                 </TableHeader>
                 <TableBody>
                   {entries.map((entry) => (
-                    <TableRow key={`${entry.type}-${entry.id}`}>
+                    <TableRow
+                      key={`${entry.type}-${entry.id}`}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedEntry(entry)}
+                    >
                       <TableCell className="font-medium">{entry.name}</TableCell>
                       <TableCell>{formatBirthday(entry.birthday)}</TableCell>
                       <TableCell>
