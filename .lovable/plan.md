@@ -1,40 +1,30 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+## Plan: Add CRON job for `birthday-reminder-with-suggestions`
 
-## Modification
+### Problem
+The Edge Function `birthday-reminder-with-suggestions` exists but has no CRON job to trigger it. Only `check-birthday-alerts-for-contacts` is scheduled (at 00:30 UTC). The `birthday-reminder-with-suggestions` function — which handles the `joiedevivre_birthday_friend_alert` template and fund-linked alerts — is never called automatically.
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+### Solution
+Create a new pg_cron job to invoke `birthday-reminder-with-suggestions` daily. Schedule it at **01:00 UTC** (after the contacts check at 00:30).
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+### Implementation
+Run this SQL via the SQL Editor (not a migration, since it contains project-specific keys):
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+```sql
+SELECT cron.schedule(
+  'birthday-reminder-with-suggestions-daily',
+  '0 1 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-reminder-with-suggestions',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504"}'::jsonb,
+    body := concat('{"timestamp": "', now(), '"}')::jsonb
+  ) AS request_id;
+  $$
+);
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
-
-## Note importante
-
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
-
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+### Files to modify
+- None. This is a SQL-only change to run in the Supabase SQL Editor.
 
