@@ -232,26 +232,23 @@ const Auth = () => {
   // Redirect if already authenticated - check for returnUrl first
   useEffect(() => {
     if (user) {
-      const handleRedirect = async () => {
-        // Process admin auto-assign if admin_ref is present
-        const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
-        if (adminRef) {
-          await processAdminAutoAssign(user.id);
-        }
+      // Fire-and-forget admin auto-assign (non-blocking)
+      const adminRef = searchParams.get('admin_ref') || sessionStorage.getItem('jdv_admin_ref');
+      if (adminRef) {
+        processAdminAutoAssign(user.id).catch(console.error);
+      }
 
-        const returnUrl = localStorage.getItem('returnUrl');
-        const redirectParam = searchParams.get('redirect');
+      const returnUrl = localStorage.getItem('returnUrl');
+      const redirectParam = searchParams.get('redirect');
 
-        if (returnUrl) {
-          localStorage.removeItem('returnUrl');
-          navigate(returnUrl);
-        } else if (redirectParam) {
-          navigate(redirectParam);
-        } else {
-          handleSmartRedirect(user, navigate);
-        }
-      };
-      handleRedirect();
+      if (returnUrl) {
+        localStorage.removeItem('returnUrl');
+        navigate(returnUrl);
+      } else if (redirectParam) {
+        navigate(redirectParam);
+      } else {
+        handleSmartRedirect(user, navigate);
+      }
     }
   }, [user, navigate, searchParams]);
 
