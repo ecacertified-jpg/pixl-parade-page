@@ -11,6 +11,17 @@ export interface BirthdayEntry {
   type: 'user' | 'contact';
   ownerName?: string;
   ownerId?: string;
+  avatarUrl?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  countryCode?: string;
+  bio?: string;
+  relationship?: string;
+  notes?: string;
+  createdAt?: string;
+  isSuspended?: boolean;
+  totalBirthdaysCelebrated?: number;
 }
 
 type ViewMode = 'period' | 'month';
