@@ -45,6 +45,7 @@ function formatBirthday(dateStr: string): string {
 }
 
 export default function AdminBirthdays() {
+  const [selectedEntry, setSelectedEntry] = useState<BirthdayEntry | null>(null);
   const {
     entries, loading, viewMode, setViewMode,
     selectedDays, setSelectedDays,
