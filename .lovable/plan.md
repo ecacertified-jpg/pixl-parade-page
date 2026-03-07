@@ -1,70 +1,40 @@
 
 
-## Permettre aux admins d'uploader dans le bucket `assets`
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-### Constat
+## Modification
 
-Le bucket `assets` n'a qu'une politique SELECT (lecture publique). Il manque les politiques INSERT, UPDATE et DELETE pour que les admins puissent uploader/gérer des fichiers.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-### Plan
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-#### 1. Migration SQL — Ajouter les politiques RLS d'upload pour admins
-
-Ajouter 3 politiques sur `storage.objects` pour le bucket `assets` :
-
-```sql
--- INSERT : admins actifs peuvent uploader
-CREATE POLICY "Admins can upload to assets"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'assets'
-  AND EXISTS (
-    SELECT 1 FROM public.admin_users
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-);
-
--- UPDATE : admins peuvent modifier
-CREATE POLICY "Admins can update assets"
-ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'assets'
-  AND EXISTS (
-    SELECT 1 FROM public.admin_users
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-);
-
--- DELETE : admins peuvent supprimer
-CREATE POLICY "Admins can delete assets"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'assets'
-  AND EXISTS (
-    SELECT 1 FROM public.admin_users
-    WHERE user_id = auth.uid() AND is_active = true
-  )
-);
+```typescript
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
+}
 ```
 
-#### 2. Créer `src/components/admin/AssetUploader.tsx`
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-Composant simple avec :
-- Zone de drop/click pour sélectionner un fichier (images, vidéos)
-- Affichage du nom de fichier et taille avant upload
-- Bouton "Uploader" qui utilise `supabase.storage.from('assets').upload(fileName, file)`
-- Affichage de l'URL publique après upload réussi (avec bouton copier)
-- Liste des fichiers existants dans le bucket avec possibilité de supprimer
+## Note importante
 
-#### 3. Intégrer dans `src/pages/Admin/Settings.tsx`
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
 
-Ajouter un nouvel onglet "Assets / Médias" dans les Tabs existants, contenant le composant `AssetUploader`.
+## Déploiement
 
-### Fichiers
-
-| Fichier | Action |
-|---------|--------|
-| Migration SQL | Créer — politiques INSERT/UPDATE/DELETE pour admins |
-| `src/components/admin/AssetUploader.tsx` | Créer — composant d'upload et gestion |
-| `src/pages/Admin/Settings.tsx` | Modifier — ajouter onglet "Assets" |
+Redéployer `notify-fund-ready` après la modification.
 
