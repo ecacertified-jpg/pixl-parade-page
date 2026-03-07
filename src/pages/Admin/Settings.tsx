@@ -16,6 +16,7 @@ import { ProfileReminderSettings } from '@/components/admin/ProfileReminderSetti
 import { AdminNotificationPreferencesSettings } from '@/components/admin/AdminNotificationPreferencesSettings';
 import { VideoDurationLimitsSettings } from '@/components/admin/VideoDurationLimitsSettings';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { AssetUploader } from '@/components/admin/AssetUploader';
 
 export default function Settings() {
   const { settings, isLoading, updateSetting, isUpdating, getSetting } = usePlatformSettings();
