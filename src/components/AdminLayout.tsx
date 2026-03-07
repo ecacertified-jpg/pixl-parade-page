@@ -78,6 +78,7 @@ const navItems: NavItem[] = [
   { title: 'Délivrabilité SMS/WA', href: '/admin/messaging-delivery', icon: Radio },
   { title: 'Templates WA', href: '/admin/whatsapp-templates', icon: MessageSquare },
   { title: 'WA Cagnottes', href: '/admin/business-fund-wa', icon: Gift },
+  { title: 'Anniversaires', href: '/admin/birthdays', icon: Cake },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
   { title: 'Paramètres', href: '/admin/settings', icon: Settings, requiresSuperAdmin: true },
   { title: 'Administrateurs', href: '/admin/admins', icon: Shield, requiresSuperAdmin: true },
