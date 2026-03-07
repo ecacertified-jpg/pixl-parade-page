@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -331,6 +331,30 @@ const BusinessAuth = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isLoading) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: 'Délai dépassé',
+          description: 'La connexion prend trop de temps. Veuillez réessayer.',
+          variant: 'destructive',
+        });
+      }, 8000);
+    } else {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isLoading]);
   const [businessNameError, setBusinessNameError] = useState<string | null>(null);
   const [showCompleteRegistration, setShowCompleteRegistration] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);

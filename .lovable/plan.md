@@ -1,49 +1,40 @@
 
 
-## Plan: Login Button Loading Timeout (8s Safety Net)
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-### What
-Add a safety timeout mechanism: if `isLoading` stays `true` for more than 8 seconds after any login action, automatically reset it to `false` and show an error toast suggesting the user retry.
+## Modification
 
-### How
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-**Both `src/pages/Auth.tsx` and `src/pages/BusinessAuth.tsx`:**
-
-1. Add a `useRef` for the timeout timer and a `useEffect` that watches `isLoading`:
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
 ```typescript
-const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-useEffect(() => {
-  if (isLoading) {
-    loadingTimeoutRef.current = setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: 'Délai dépassé',
-        description: 'La connexion prend trop de temps. Veuillez réessayer.',
-        variant: 'destructive',
-      });
-    }, 8000);
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
   } else {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = null;
-    }
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
   }
-  return () => {
-    if (loadingTimeoutRef.current) {
-      clearTimeout(loadingTimeoutRef.current);
-    }
-  };
-}, [isLoading]);
+}
 ```
 
-This is a simple, self-contained solution: no other code changes needed. When loading completes normally (via `finally` blocks), the timeout is cleared. If it doesn't complete within 8s, the UI recovers automatically.
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-**Also apply to `src/pages/AdminAuth.tsx`** for consistency (same pattern).
+## Note importante
 
-### Files to modify
-- `src/pages/Auth.tsx` — Add timeout useEffect + useRef
-- `src/pages/BusinessAuth.tsx` — Same
-- `src/pages/AdminAuth.tsx` — Same
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
+
+## Déploiement
+
+Redéployer `notify-fund-ready` après la modification.
 
