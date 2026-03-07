@@ -256,6 +256,7 @@ const App = () => (
             <Route path="/admin/countries/objectives" element={<AdminRoute><L><CountryObjectivesPage /></L></AdminRoute>} />
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
+            <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
             <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />
