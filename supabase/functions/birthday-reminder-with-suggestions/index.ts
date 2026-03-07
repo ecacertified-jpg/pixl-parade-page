@@ -340,7 +340,7 @@ serve(async (req) => {
 
             // Header image for the template
             const headerImageUrl = Deno.env.get('BIRTHDAY_FRIEND_ALERT_IMAGE_URL') 
-              || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-friend-alert.png`;
+              || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-friend-alert.jpg`;
 
             // Collect all phones to notify (deduplication set)
             const notifiedPhones = new Set<string>();
