@@ -771,11 +771,11 @@ const Auth = () => {
               return '/dashboard';
             }
           })();
-          await processAdminAutoAssign(authData.user.id);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
           navigate(`${redirectPath}?onboarding=true`);
         } else {
-          await processAdminAutoAssign(authData.user.id);
-          await handleSmartRedirect(authData.user, navigate);
+          processAdminAutoAssign(authData.user.id).catch(console.error);
+          // Let useEffect handle redirect via onAuthStateChange
         }
       }
     } catch (error: any) {
