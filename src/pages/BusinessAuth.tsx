@@ -418,7 +418,8 @@ const BusinessAuth = () => {
           processAdminAutoAssign(user.id, 'business').catch(console.error);
         }
       };
-      handleAdminRef().then(() => checkExistingBusinessAccount());
+      handleAdminRef();
+      checkExistingBusinessAccount();
     }
   }, [user, navigate]);
 
