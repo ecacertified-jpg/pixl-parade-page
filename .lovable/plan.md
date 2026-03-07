@@ -1,40 +1,60 @@
 
 
-# Fallback texte libre pour `joiedevivre_fund_completed`
+## Diagnosis: Assets Upload Broken — Wrong RLS Role
 
-## Modification
+### Root Cause
 
-**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
+The storage RLS policies for the `assets` bucket have **`roles: {public}`** on INSERT, UPDATE, and DELETE. In Supabase, the `public` role applies to **unauthenticated** requests only. When an admin is logged in, they use the `authenticated` role — so the INSERT policy **never matches**, and the upload silently fails.
 
-1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
-2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
+The `with_check` clause requires `auth.uid()` to match an active admin, which is correct logic — but it never executes because the policy doesn't apply to the `authenticated` role.
 
-```typescript
-if (waResult.success) {
-  sentPhones.add(normalizedPhone);
-  friendWaSent++;
-} else {
-  // Fallback: texte libre
-  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
-  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-  if (fallbackResult.success) {
-    sentPhones.add(normalizedPhone);
-    friendWaSent++;
-    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
-  } else {
-    friendWaFailed++;
-    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-  }
-}
+### Fix
+
+**1. SQL Migration — Fix RLS policies on `storage.objects`**
+
+Drop the 3 broken policies and recreate them with `TO authenticated`:
+
+```sql
+DROP POLICY "Admins can upload to assets" ON storage.objects;
+DROP POLICY "Admins can update assets" ON storage.objects;
+DROP POLICY "Admins can delete assets" ON storage.objects;
+
+CREATE POLICY "Admins can upload to assets"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'assets'
+  AND EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE user_id = auth.uid() AND is_active = true
+  )
+);
+
+CREATE POLICY "Admins can update assets"
+ON storage.objects FOR UPDATE TO authenticated
+USING (
+  bucket_id = 'assets'
+  AND EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE user_id = auth.uid() AND is_active = true
+  )
+);
+
+CREATE POLICY "Admins can delete assets"
+ON storage.objects FOR DELETE TO authenticated
+USING (
+  bucket_id = 'assets'
+  AND EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE user_id = auth.uid() AND is_active = true
+  )
+);
 ```
 
-3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
+**2. UX Improvement in `AssetUploader.tsx`** (minor)
 
-## Note importante
+Optionally auto-trigger upload after file selection to remove the confusing two-step flow (select → then click "Uploader"). This way clicking the drop zone directly uploads.
 
-Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
-
-## Déploiement
-
-Redéployer `notify-fund-ready` après la modification.
+### Files to modify
+- **New SQL migration** — Fix the 3 RLS policies from `public` to `authenticated`
+- **`src/components/admin/AssetUploader.tsx`** — Optional: auto-upload on file selection
 
