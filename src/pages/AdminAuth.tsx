@@ -24,6 +24,30 @@ const AdminAuth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isLoading) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: 'Délai dépassé',
+          description: 'La connexion prend trop de temps. Veuillez réessayer.',
+          variant: 'destructive',
+        });
+      }, 8000);
+    } else {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isLoading]);
   const navigate = useNavigate();
   const { user } = useAuth();
 
