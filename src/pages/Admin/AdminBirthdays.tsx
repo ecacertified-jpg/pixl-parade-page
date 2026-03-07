@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Cake, CalendarDays, Users, Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAdminBirthdays } from '@/hooks/useAdminBirthdays';
+import { useAdminBirthdays, type BirthdayEntry } from '@/hooks/useAdminBirthdays';
 import { AdminLayout } from '@/components/AdminLayout';
+import { BirthdayDetailSheet } from '@/components/admin/BirthdayDetailSheet';
 
 const PERIODS = [
   { label: "Jour J", days: 0 },
@@ -43,6 +45,7 @@ function formatBirthday(dateStr: string): string {
 }
 
 export default function AdminBirthdays() {
+  const [selectedEntry, setSelectedEntry] = useState<BirthdayEntry | null>(null);
   const {
     entries, loading, viewMode, setViewMode,
     selectedDays, setSelectedDays,
@@ -168,7 +171,11 @@ export default function AdminBirthdays() {
                 </TableHeader>
                 <TableBody>
                   {entries.map((entry) => (
-                    <TableRow key={`${entry.type}-${entry.id}`}>
+                    <TableRow
+                      key={`${entry.type}-${entry.id}`}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedEntry(entry)}
+                    >
                       <TableCell className="font-medium">{entry.name}</TableCell>
                       <TableCell>{formatBirthday(entry.birthday)}</TableCell>
                       <TableCell>
@@ -193,6 +200,12 @@ export default function AdminBirthdays() {
           </CardContent>
         </Card>
       </div>
+
+      <BirthdayDetailSheet
+        entry={selectedEntry}
+        open={!!selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+      />
     </AdminLayout>
   );
 }

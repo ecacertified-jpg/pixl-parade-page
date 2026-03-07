@@ -1,63 +1,40 @@
 
 
-## Détails complets utilisateurs/contacts depuis les anniversaires admin
+# Fallback texte libre pour `joiedevivre_fund_completed`
 
-### Objectif
+## Modification
 
-Ajouter un panneau de détail (Dialog/Sheet) qui s'ouvre quand un admin clique sur une ligne du tableau d'anniversaires, affichant les informations complètes de l'utilisateur ou du contact.
+**Fichier** : `supabase/functions/notify-fund-ready/index.ts`
 
-### Approche
+1. **Ajouter `sendWhatsApp`** à l'import depuis `_shared/sms-sender.ts`
+2. **Dans `notifyFriend()`**, quand `waResult.success === false`, tenter un envoi texte libre via `sendWhatsApp` avec un message de félicitations formaté :
 
-#### 1. Enrichir les données dans `useAdminBirthdays.ts`
-
-Récupérer plus de champs lors du chargement :
-
-- **Profiles** : ajouter `avatar_url, phone, email (via auth?), city, country_code, bio, created_at, is_suspended, total_birthdays_celebrated`
-- **Contacts** : ajouter `avatar_url, phone, email, relationship, notes, created_at`
-- Pour les contacts, aussi récupérer le nom du propriétaire via un lookup sur profiles (`ownerName`)
-
-Étendre l'interface `BirthdayEntry` avec ces champs optionnels :
 ```typescript
-export interface BirthdayEntry {
-  // existants...
-  avatarUrl?: string;
-  phone?: string;
-  email?: string;
-  city?: string;
-  countryCode?: string;
-  bio?: string;
-  relationship?: string;
-  notes?: string;
-  createdAt?: string;
-  isSuspended?: boolean;
-  totalBirthdaysCelebrated?: number;
+if (waResult.success) {
+  sentPhones.add(normalizedPhone);
+  friendWaSent++;
+} else {
+  // Fallback: texte libre
+  const fallbackMsg = `🎉 Félicitations ${recipientName} ! La cagnotte "${fundTitle}" pour ${beneficiaryName} a atteint son objectif de ${fundAmount} FCFA ! Voir : https://joiedevivre-africa.com/f/${fund_id}`;
+  const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+  if (fallbackResult.success) {
+    sentPhones.add(normalizedPhone);
+    friendWaSent++;
+    console.log(`📱 Fund completed WA fallback -> ${source} ${profile.user_id}: ✅`);
+  } else {
+    friendWaFailed++;
+    console.error(`❌ Fund completed WA template+fallback -> ${source} ${profile.user_id}: template=${waResult.error}, fallback=${fallbackResult.error}`);
+  }
 }
 ```
 
-#### 2. Créer un composant `BirthdayDetailSheet`
+3. **Même logique dans le `catch`** : tenter le fallback texte libre avant d'abandonner
 
-Nouveau fichier `src/components/admin/BirthdayDetailSheet.tsx` :
+## Note importante
 
-- Utilise `Sheet` (panneau latéral) de shadcn/ui
-- Affiche selon le type :
-  - **Utilisateur** : avatar, nom complet, téléphone, ville/pays, bio, date d'inscription, statut (suspendu ou non), nombre d'anniversaires célébrés, lien vers `/admin/users`
-  - **Contact** : avatar, nom, téléphone, email, relation, notes, propriétaire (avec lien), date de création
-- Badge d'urgence anniversaire en haut
-- Bouton d'action "Voir le profil complet" qui navigue vers la page admin détaillée
+Le fallback texte libre (`sendWhatsApp`) ne fonctionne que si le destinataire a envoyé un message dans les dernières 24h (fenêtre de conversation Meta). Si ce n'est pas le cas, le fallback échouera aussi — mais au moins on tente les deux voies et les logs seront explicites.
 
-#### 3. Modifier `AdminBirthdays.tsx`
+## Déploiement
 
-- Ajouter un state `selectedEntry` pour l'entrée sélectionnée
-- Rendre chaque `TableRow` cliquable (`onClick` + `cursor-pointer`)
-- Intégrer `BirthdayDetailSheet` avec `open/onClose`
-
-### Fichiers
-
-| Fichier | Action |
-|---------|--------|
-| `src/hooks/useAdminBirthdays.ts` | Modifier — enrichir les requêtes et l'interface |
-| `src/components/admin/BirthdayDetailSheet.tsx` | Créer — panneau de détail |
-| `src/pages/Admin/AdminBirthdays.tsx` | Modifier — lignes cliquables + intégration Sheet |
-
-Aucune migration DB nécessaire.
+Redéployer `notify-fund-ready` après la modification.
 
