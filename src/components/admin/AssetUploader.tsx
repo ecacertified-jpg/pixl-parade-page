@@ -20,11 +20,10 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const getFileIcon = (mimetype: string) => {
-  if (mimetype?.startsWith('image/')) return <FileImage className="h-4 w-4 text-primary" />;
-  if (mimetype?.startsWith('video/')) return <FileVideo className="h-4 w-4 text-accent" />;
-  return <File className="h-4 w-4 text-muted-foreground" />;
-};
+const isImage = (mimetype: string) => mimetype?.startsWith('image/');
+
+const getPublicUrl = (fileName: string) =>
+  `${SUPABASE_URL}/storage/v1/object/public/assets/${fileName}`;
 
 export function AssetUploader() {
   const [files, setFiles] = useState<StorageFile[]>([]);
