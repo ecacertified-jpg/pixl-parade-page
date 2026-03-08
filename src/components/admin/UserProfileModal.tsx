@@ -48,6 +48,29 @@ interface UserStats {
   communityPoints: number;
 }
 
+interface UserContact {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  birthday: string | null;
+  relationship: string | null;
+  avatar_url: string | null;
+}
+
+const RELATIONSHIP_LABELS: Record<string, { label: string; className: string }> = {
+  family: { label: 'Famille', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  father: { label: 'Père', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  mother: { label: 'Mère', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  sister: { label: 'Sœur', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  brother: { label: 'Frère', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  friend: { label: 'Ami(e)', className: 'bg-blue-500/10 text-blue-600 border-blue-500/30' },
+  colleague: { label: 'Collègue', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
+  spouse: { label: 'Conjoint(e)', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  child: { label: 'Enfant', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  other: { label: 'Autre', className: 'bg-muted text-muted-foreground border-border' },
+};
+
 interface ProfileCompletionField {
   key: string;
   label: string;
