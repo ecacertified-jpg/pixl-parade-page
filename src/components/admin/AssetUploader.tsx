@@ -177,16 +177,47 @@ export function AssetUploader() {
               {files.map((file) => (
                 <div key={file.id} className="flex items-center gap-3 px-3 py-2">
                   {getFileIcon(file.metadata?.mimetype || '')}
-                  <span className="text-sm truncate flex-1">{file.name}</span>
+                  {renamingFile === file.name ? (
+                    <form
+                      className="flex items-center gap-2 flex-1 min-w-0"
+                      onSubmit={(e) => { e.preventDefault(); handleRename(); }}
+                    >
+                      <Input
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && cancelRename()}
+                        className="h-7 text-sm flex-1"
+                        autoFocus
+                      />
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
+                      </span>
+                      <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
+                        <Check className="h-4 w-4 text-success" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </form>
+                  ) : (
+                    <span className="text-sm truncate flex-1">{file.name}</span>
+                  )}
                   <span className="text-xs text-muted-foreground hidden sm:block">
                     {file.metadata?.size ? formatFileSize(file.metadata.size) : '—'}
                   </span>
-                  <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {renamingFile !== file.name && (
+                    <>
+                      <Button variant="ghost" size="icon" onClick={() => startRename(file.name)} title="Renommer">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
