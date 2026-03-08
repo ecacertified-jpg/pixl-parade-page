@@ -1,22 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan: Filtre par type de fichier dans Assets
+## Implémenté ✅
 
-### Modification
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-**Fichier** : `src/components/admin/AssetUploader.tsx`
-
-1. **State** : Ajouter `fileFilter: 'all' | 'images' | 'videos' | 'others'` (defaut `'all'`)
-
-2. **Filtrage** : Creer une variable `filteredFiles` derivee de `files` qui filtre selon le mimetype :
-   - `images` → `mimetype.startsWith('image/')`
-   - `videos` → `mimetype.startsWith('video/')`
-   - `others` → ni image ni video
-
-3. **UI** : Ajouter un groupe de `Tabs` (shadcn) au-dessus de la liste des fichiers avec 4 onglets : Tous, Images, Videos, Autres — avec un compteur entre parentheses pour chaque type
-
-4. **Rendu** : Remplacer `files.map(...)` par `filteredFiles.map(...)`
-
-### Imports a ajouter
-- `Tabs, TabsList, TabsTrigger` depuis `@/components/ui/tabs`
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`

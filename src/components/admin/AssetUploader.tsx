@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,6 +6,9 @@ import { toast } from 'sonner';
 import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File, Pencil, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+type FileFilter = 'all' | 'images' | 'videos' | 'others';
 
 interface StorageFile {
   name: string;
@@ -34,6 +37,23 @@ export function AssetUploader() {
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [previewFile, setPreviewFile] = useState<string | null>(null);
+  const [fileFilter, setFileFilter] = useState<FileFilter>('all');
+
+  const counts = useMemo(() => {
+    const imgs = files.filter(f => f.metadata?.mimetype?.startsWith('image/')).length;
+    const vids = files.filter(f => f.metadata?.mimetype?.startsWith('video/')).length;
+    return { all: files.length, images: imgs, videos: vids, others: files.length - imgs - vids };
+  }, [files]);
+
+  const filteredFiles = useMemo(() => {
+    if (fileFilter === 'all') return files;
+    return files.filter(f => {
+      const mt = f.metadata?.mimetype || '';
+      if (fileFilter === 'images') return mt.startsWith('image/');
+      if (fileFilter === 'videos') return mt.startsWith('video/');
+      return !mt.startsWith('image/') && !mt.startsWith('video/');
+    });
+  }, [files, fileFilter]);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -167,15 +187,27 @@ export function AssetUploader() {
         {/* File list */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-foreground">Fichiers existants</h4>
+          {!loading && files.length > 0 && (
+            <Tabs value={fileFilter} onValueChange={(v) => setFileFilter(v as FileFilter)} className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="all" className="flex-1">Tous ({counts.all})</TabsTrigger>
+                <TabsTrigger value="images" className="flex-1">Images ({counts.images})</TabsTrigger>
+                <TabsTrigger value="videos" className="flex-1">Vidéos ({counts.videos})</TabsTrigger>
+                <TabsTrigger value="others" className="flex-1">Autres ({counts.others})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
           {loading ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
-          ) : files.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Aucun fichier</p>
+          ) : filteredFiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              {files.length === 0 ? 'Aucun fichier' : 'Aucun fichier dans cette catégorie'}
+            </p>
           ) : (
             <div className="divide-y divide-border rounded-md border">
-              {files.map((file) => {
+              {filteredFiles.map((file) => {
                 const mimetype = file.metadata?.mimetype || '';
                 const fileIsImage = isImage(mimetype);
                 const fileIcon = fileIsImage
