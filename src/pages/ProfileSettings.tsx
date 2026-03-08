@@ -605,6 +605,13 @@ const ProfileSettings = () => {
         currentAvatarUrl={profile.avatar_url}
         onAvatarUpdate={handleAvatarUpdate}
       />
+
+      {/* Email Change Dialog */}
+      <ChangeEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        currentEmail={user?.email || ''}
+      />
     </div>
   );
 };
