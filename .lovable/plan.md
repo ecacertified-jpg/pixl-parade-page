@@ -1,23 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan: Apercu en temps reel de la page boutique dans le formulaire business
+## Implémenté ✅
 
-### Concept
-Ajouter une section "Apercu de votre boutique" en bas du formulaire `AddBusinessModal`, avant les boutons d'action. Cette section affiche en temps reel une mini-version de la carte de contact (`VendorContactCard`) telle qu'elle apparaitra aux visiteurs, en se basant sur les valeurs actuelles du formulaire.
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-### Modifications
-
-#### 1. `src/components/AddBusinessModal.tsx`
-
-Ajouter une nouvelle `Card` "Apercu de votre boutique" apres la section paiement (ligne ~482), contenant :
-
-- **En-tete** : icone Eye + "Apercu de votre boutique" + badge "Temps reel"
-- **Mini VendorContactCard** : reutiliser directement le composant `VendorContactCard` existant avec les props du formulaire (`formData.phone`, `formData.email`, `formData.address`, `formData.website_url`, `countryCode`)
-- **Message vide** : si aucun champ contact n'est rempli, afficher un texte explicatif "Remplissez les champs ci-dessus pour voir l'apercu"
-- Le bouton "Voir sur la carte" du `VendorContactCard` sera desactive dans l'apercu (pas de `onShowMap`)
-
-Le composant `VendorContactCard` est deja concu pour masquer automatiquement les champs vides — il suffit de lui passer les valeurs du formulaire.
-
-#### Aucun autre fichier modifie
-Le `VendorContactCard` existant est reutilise tel quel.
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`

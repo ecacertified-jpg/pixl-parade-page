@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Plus, Store } from "lucide-react";
+import { Edit, Trash2, Plus, Store, Eye } from "lucide-react";
+import { VendorContactCard } from "@/components/VendorContactCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -481,6 +482,28 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             </div>
           </Card>
         </div>
+
+        {/* Aperçu en temps réel */}
+        <Card className="p-4 border-dashed border-2 bg-muted/30">
+          <div className="flex items-center gap-2 mb-4">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium font-poppins">Aperçu de votre boutique</h4>
+            <Badge variant="outline" className="ml-auto text-[10px]">Temps réel</Badge>
+          </div>
+          {formData.phone || formData.email || formData.address || formData.website_url ? (
+            <VendorContactCard
+              phone={formData.phone}
+              email={formData.email}
+              address={formData.address}
+              websiteUrl={formData.website_url}
+              countryCode={countryCode}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Remplissez les champs ci-dessus pour voir l'aperçu
+            </p>
+          )}
+        </Card>
 
         <div className="flex gap-3 pt-4">
           <Button variant="outline" onClick={onClose} className="flex-1">
