@@ -125,6 +125,11 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+
+  // Check if user has email identity (not phone-only or Google-only)
+  const hasEmailIdentity = user?.app_metadata?.providers?.includes('email') ||
+    user?.identities?.some((i) => i.provider === 'email');
   
   // Validation errors state
   const [errors, setErrors] = useState({
