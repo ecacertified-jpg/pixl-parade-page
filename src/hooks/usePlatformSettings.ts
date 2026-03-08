@@ -29,6 +29,11 @@ const validateSetting = (key: string, value: any) => {
         throw new Error('La durée de session doit être entre 5 et 1440 minutes');
       }
       break;
+    case 'price_markup_rate':
+      if (value.value < 0 || value.value > 100) {
+        throw new Error('Le taux de majoration doit être entre 0 et 100%');
+      }
+      break;
   }
 };
 

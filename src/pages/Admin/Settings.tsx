@@ -298,6 +298,20 @@ export default function Settings() {
                       onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="markup-rate">Taux de majoration des prix (%)</Label>
+                    <Input 
+                      id="markup-rate" 
+                      type="number" 
+                      value={financeSettings.price_markup_rate}
+                      onChange={(e) => setFinanceSettings({...financeSettings, price_markup_rate: Number(e.target.value)})}
+                      min="0" 
+                      max="100" 
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ce taux est appliqué aux prix affichés aux clients. Ex : un article à 1 000 F avec 10% → 1 100 F.
+                    </p>
+                  </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
                   Enregistrer les modifications

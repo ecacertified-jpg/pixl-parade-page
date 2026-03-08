@@ -149,7 +149,7 @@ export function useVendorProducts(businessId: string | undefined) {
           id: product.id,
           name: product.name,
           description: product.description || "Description non disponible",
-          price: product.price,
+          price: applyMarkup(product.price, markupRate),
           currency: product.currency || "F",
           image: product.video_thumbnail_url || product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
           images: product.images as string[] | undefined,
