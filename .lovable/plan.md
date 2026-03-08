@@ -1,52 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan : Taux de majoration des prix (markup) depuis Admin
+## Implémenté ✅
 
-### Concept
-Ajouter un paramètre `price_markup_rate` dans les paramètres financiers Admin. Ce taux sera appliqué automatiquement aux prix affichés aux clients sur les pages publiques (boutiques, produits). Le prestataire garde son prix d'origine dans son back-office.
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-### 1. Ajouter le paramètre en base
-
-Insérer une nouvelle entrée dans `platform_settings` :
-```sql
-INSERT INTO platform_settings (setting_key, setting_value, setting_category, description)
-VALUES ('price_markup_rate', '{"value": 0, "unit": "percent"}', 'finance', 'Taux de majoration appliqué aux prix des produits affichés aux clients');
-```
-
-### 2. Modifier `src/pages/Admin/Settings.tsx`
-
-- Ajouter `price_markup_rate` dans `financeSettings` state (à côté de `commission_rate`)
-- Ajouter un champ Input dans l'onglet Finance : "Taux de majoration des prix (%)" avec description explicative
-- Sauvegarder via `handleSaveFinance`
-
-### 3. Ajouter la validation dans `src/hooks/usePlatformSettings.ts`
-
-Ajouter un case `price_markup_rate` dans `validateSetting` (0-100%).
-
-### 4. Créer un utilitaire `src/utils/applyMarkup.ts`
-
-```typescript
-export function applyMarkup(price: number, markupRate: number): number {
-  return Math.round(price * (1 + markupRate / 100));
-}
-```
-
-### 5. Appliquer le markup dans `src/hooks/useVendorProducts.ts`
-
-- Fetcher le `price_markup_rate` depuis `platform_settings` au chargement
-- Appliquer `applyMarkup()` au prix de chaque produit dans le mapping
-
-C'est le point central : tous les prix affichés côté client (boutique, partage, cagnotte, favoris, etc.) passent par ce hook, donc le markup sera appliqué partout automatiquement.
-
-### 6. Appliquer aussi dans les pages produit autonomes
-
-Vérifier si `/p/:productId` ou d'autres pages chargent les prix directement (hors `useVendorProducts`) et appliquer le markup là aussi.
-
-### Fichiers concernés
-- `platform_settings` table (INSERT data)
-- `src/pages/Admin/Settings.tsx` (modifier)
-- `src/hooks/usePlatformSettings.ts` (modifier validation)
-- `src/utils/applyMarkup.ts` (nouveau)
-- `src/hooks/useVendorProducts.ts` (modifier)
-- Autres hooks/pages affichant des prix côté client si nécessaire
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`

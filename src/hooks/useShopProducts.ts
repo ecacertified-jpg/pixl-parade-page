@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { applyMarkup } from '@/utils/applyMarkup';
 
 export interface ShopProduct {
   id: string | number;
@@ -31,6 +32,17 @@ export interface ShopProduct {
 }
 
 async function fetchShopProducts(): Promise<ShopProduct[]> {
+  // Fetch markup rate
+  let markupRate = 0;
+  const { data: markupSetting } = await supabase
+    .from('platform_settings')
+    .select('setting_value')
+    .eq('setting_key', 'price_markup_rate')
+    .single();
+  if (markupSetting?.setting_value && typeof markupSetting.setting_value === 'object' && 'value' in (markupSetting.setting_value as any)) {
+    markupRate = (markupSetting.setting_value as any).value || 0;
+  }
+
   // Step 1: Fetch products (limit 200)
   const { data: productsData, error: productsError } = await supabase
     .from('products')
@@ -115,7 +127,7 @@ async function fetchShopProducts(): Promise<ShopProduct[]> {
       id: product.id,
       name: product.name,
       description: product.description || "Description non disponible",
-      price: product.price,
+      price: applyMarkup(product.price, markupRate),
       currency: product.currency || "F",
       image: mainImage,
       images: allImages,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { applyMarkup } from '@/utils/applyMarkup';
 
 function inferCountryFromAddress(address: string | null): string | null {
   if (!address) return null;
@@ -105,6 +106,17 @@ export function useVendorProducts(businessId: string | undefined) {
         websiteUrl: businessData.website_url || null,
       });
 
+      // Charger le taux de majoration
+      let markupRate = 0;
+      const { data: markupSetting } = await supabase
+        .from('platform_settings')
+        .select('setting_value')
+        .eq('setting_key', 'price_markup_rate')
+        .single();
+      if (markupSetting?.setting_value && typeof markupSetting.setting_value === 'object' && 'value' in (markupSetting.setting_value as any)) {
+        markupRate = (markupSetting.setting_value as any).value || 0;
+      }
+
       // Charger les produits du prestataire
       const { data: productsData, error: productsError } = await supabase
         .from('products')
@@ -137,7 +149,7 @@ export function useVendorProducts(businessId: string | undefined) {
           id: product.id,
           name: product.name,
           description: product.description || "Description non disponible",
-          price: product.price,
+          price: applyMarkup(product.price, markupRate),
           currency: product.currency || "F",
           image: product.video_thumbnail_url || product.image_url || "/lovable-uploads/1c257532-9180-4894-83a0-d853a23a3bc1.png",
           images: product.images as string[] | undefined,

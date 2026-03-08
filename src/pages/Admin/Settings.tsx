@@ -35,6 +35,7 @@ export default function Settings() {
   const [financeSettings, setFinanceSettings] = useState({
     commission_rate: 8,
     free_delivery_threshold: 25000,
+    price_markup_rate: 0,
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -59,6 +60,7 @@ export default function Settings() {
       setFinanceSettings({
         commission_rate: getSetting('commission_rate') || 8,
         free_delivery_threshold: getSetting('free_delivery_threshold') || 25000,
+        price_markup_rate: getSetting('price_markup_rate') || 0,
       });
 
       setNotificationSettings({
@@ -83,6 +85,7 @@ export default function Settings() {
   const handleSaveFinance = () => {
     updateSetting({ setting_key: 'commission_rate', setting_value: { value: financeSettings.commission_rate, unit: 'percent' } });
     updateSetting({ setting_key: 'free_delivery_threshold', setting_value: { value: financeSettings.free_delivery_threshold, currency: 'XOF' } });
+    updateSetting({ setting_key: 'price_markup_rate', setting_value: { value: financeSettings.price_markup_rate, unit: 'percent' } });
   };
 
   const handleSaveNotifications = () => {
@@ -294,6 +297,20 @@ export default function Settings() {
                       value={financeSettings.free_delivery_threshold}
                       onChange={(e) => setFinanceSettings({...financeSettings, free_delivery_threshold: Number(e.target.value)})}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="markup-rate">Taux de majoration des prix (%)</Label>
+                    <Input 
+                      id="markup-rate" 
+                      type="number" 
+                      value={financeSettings.price_markup_rate}
+                      onChange={(e) => setFinanceSettings({...financeSettings, price_markup_rate: Number(e.target.value)})}
+                      min="0" 
+                      max="100" 
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ce taux est appliqué aux prix affichés aux clients. Ex : un article à 1 000 F avec 10% → 1 100 F.
+                    </p>
                   </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
