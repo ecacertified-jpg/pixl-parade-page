@@ -483,6 +483,28 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
           </Card>
         </div>
 
+        {/* Aperçu en temps réel */}
+        <Card className="p-4 border-dashed border-2 bg-muted/30">
+          <div className="flex items-center gap-2 mb-4">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium font-poppins">Aperçu de votre boutique</h4>
+            <Badge variant="outline" className="ml-auto text-[10px]">Temps réel</Badge>
+          </div>
+          {formData.phone || formData.email || formData.address || formData.website_url ? (
+            <VendorContactCard
+              phone={formData.phone}
+              email={formData.email}
+              address={formData.address}
+              websiteUrl={formData.website_url}
+              countryCode={countryCode}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Remplissez les champs ci-dessus pour voir l'aperçu
+            </p>
+          )}
+        </Card>
+
         <div className="flex gap-3 pt-4">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Annuler
