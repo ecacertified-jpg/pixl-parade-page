@@ -17,6 +17,8 @@ import { CountrySelector } from "@/components/CountrySelector";
 import { CountryInfoCard } from "@/components/CountryInfoCard";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
+import { ChangeEmailDialog } from "@/components/ChangeEmailDialog";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { format, parse, isValid } from "date-fns";
 import { AccountBreadcrumb } from "@/components/breadcrumbs";
@@ -123,6 +125,11 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+
+  // Check if user has email identity (not phone-only or Google-only)
+  const hasEmailIdentity = user?.app_metadata?.providers?.includes('email') ||
+    user?.identities?.some((i) => i.provider === 'email');
   
   // Validation errors state
   const [errors, setErrors] = useState({
@@ -425,18 +432,20 @@ const ProfileSettings = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      value={user?.email || ""}
-                      readOnly
-                      className="pl-10 bg-muted cursor-default"
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        value={user?.email || ""}
+                        readOnly
+                        className="pl-10 bg-muted cursor-default"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setIsEmailDialogOpen(true)}>
+                      Modifier
+                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Pour modifier votre email, rendez-vous dans l'onglet <strong>Méthodes de connexion</strong>.
-                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -509,6 +518,9 @@ const ProfileSettings = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Password change - only for email-identity users */}
+            {hasEmailIdentity && <ChangePasswordForm />}
           </TabsContent>
 
           {/* Privacy Tab */}
@@ -592,6 +604,13 @@ const ProfileSettings = () => {
         userId={user?.id || ""}
         currentAvatarUrl={profile.avatar_url}
         onAvatarUpdate={handleAvatarUpdate}
+      />
+
+      {/* Email Change Dialog */}
+      <ChangeEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        currentEmail={user?.email || ''}
       />
     </div>
   );
