@@ -47,7 +47,7 @@ export function useAdminBirthdays() {
       // Fetch user profiles with birthdays
       let profilesQuery = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, birthday, country_code, avatar_url, phone, city, bio, created_at, is_suspended, total_birthdays_celebrated')
+        .select('user_id, first_name, last_name, birthday, country_code, avatar_url, phone, email, city, neighborhood, bio, created_at, is_suspended, total_birthdays_celebrated')
         .not('birthday', 'is', null);
 
       if (countryFilter) {
