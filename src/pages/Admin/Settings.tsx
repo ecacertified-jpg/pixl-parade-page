@@ -315,6 +315,19 @@ export default function Settings() {
                       Ce taux est appliqué aux prix affichés aux clients. Ex : un article à 1 000 F avec 10% → 1 100 F.
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-wave-phone">Numéro Wave JDV (réception commissions)</Label>
+                    <Input 
+                      id="platform-wave-phone" 
+                      type="tel"
+                      value={financeSettings.platform_wave_phone}
+                      onChange={(e) => setFinanceSettings({...financeSettings, platform_wave_phone: e.target.value})}
+                      placeholder="+225 07 XX XX XX XX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Numéro Wave sur lequel la plateforme reçoit la commission (différence prix majoré − prix prestataire).
+                    </p>
+                  </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
                   Enregistrer les modifications

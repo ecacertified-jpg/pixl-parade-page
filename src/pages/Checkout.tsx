@@ -386,6 +386,17 @@ export default function Checkout() {
           }
           
           console.log('✅ Business order created successfully:', businessOrderResult);
+
+          // If Wave payment, trigger payment split processing
+          if (paymentMethod === 'wave' && businessOrderResult?.[0]?.id) {
+            console.log('💳 Processing Wave payment split for order:', businessOrderResult[0].id);
+            supabase.functions.invoke('process-wave-payment', {
+              body: { business_order_id: businessOrderResult[0].id }
+            }).then(({ data, error }) => {
+              if (error) console.error('⚠️ Wave split error (non-blocking):', error);
+              else console.log('✅ Wave split result:', data);
+            });
+          }
         }
         
         console.log('🎉 All business orders processed successfully!');
