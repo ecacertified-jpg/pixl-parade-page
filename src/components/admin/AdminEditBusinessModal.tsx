@@ -28,6 +28,7 @@ interface Business {
   latitude: number | null;
   longitude: number | null;
   country_code: string | null;
+  wave_merchant_phone: string | null;
 }
 
 interface UserProfile {
