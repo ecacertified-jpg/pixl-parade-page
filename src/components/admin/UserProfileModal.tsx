@@ -251,9 +251,16 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
           </div>
         ) : profile ? (
           <Tabs defaultValue="informations" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="informations">Informations</TabsTrigger>
               <TabsTrigger value="statistiques">Statistiques</TabsTrigger>
+              <TabsTrigger value="contacts">
+                <Contact className="h-3.5 w-3.5 mr-1.5" />
+                Contacts
+                {contacts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">{contacts.length}</Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="informations" className="space-y-6 mt-4">
