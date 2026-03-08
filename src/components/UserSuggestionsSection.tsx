@@ -26,6 +26,7 @@ interface UserSuggestionsSectionProps {
 export function UserSuggestionsSection({ compact = false }: UserSuggestionsSectionProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { suggestions, loading, refreshSuggestions } = useUserSuggestions(5);
   const [followingUsers, setFollowingUsers] = useState<Set<string>>(new Set());
