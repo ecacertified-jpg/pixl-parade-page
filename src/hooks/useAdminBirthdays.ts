@@ -15,6 +15,7 @@ export interface BirthdayEntry {
   phone?: string;
   email?: string;
   city?: string;
+  neighborhood?: string;
   countryCode?: string;
   bio?: string;
   relationship?: string;
