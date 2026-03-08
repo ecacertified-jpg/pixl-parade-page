@@ -1,12 +1,32 @@
 
-# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Implémenté ✅
+## Plan: Harmoniser "Ma liste de souhaits" mobile et desktop
 
-**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+### Probleme
+Sur mobile, le titre et les 2 boutons sont sur la meme ligne, ce qui cause un retour a la ligne disgracieux du titre (visible sur le screenshot).
 
-Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
-1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
-2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
-3. SMS fallback conservé tel quel
-4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
+### Modification
+
+**Fichier** : `src/components/FavoriteArticlesSection.tsx`
+
+Remplacer le layout du header par un design responsive :
+
+1. **Mobile** : Titre + icone coeur sur une ligne, boutons en dessous (flex-col)
+2. **Desktop** : Tout sur une ligne comme actuellement (md:flex-row md:items-center md:justify-between)
+
+```
+<div className="flex flex-col gap-2 mb-3">
+  <div className="flex items-center gap-2">
+    <Heart ... />
+    <h3 ...>Ma liste de souhaits</h3>
+  </div>
+  <div className="flex items-center gap-2">
+    <!-- boutons Parcourir + Voir tout -->
+  </div>
+</div>
+```
+
+Sur desktop (`md:`), repasser en `md:flex-row md:items-center md:justify-between` pour garder le layout horizontal.
+
+Aucun autre fichier modifie.
+
