@@ -31,6 +31,8 @@ export function AssetUploader() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<globalThis.File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
