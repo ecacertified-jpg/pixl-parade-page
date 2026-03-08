@@ -99,6 +99,15 @@ const MyAssignments = () => {
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
+  const [sortByBirthday, setSortByBirthday] = useState(false);
+
+  const sortedUserAssignments = sortByBirthday
+    ? [...userAssignments].sort((a, b) => {
+        const dA = a.profile?.birthday ? getDaysUntilBirthday(a.profile.birthday) : 999;
+        const dB = b.profile?.birthday ? getDaysUntilBirthday(b.profile.birthday) : 999;
+        return dA - dB;
+      })
+    : userAssignments;
 
   useEffect(() => {
     if (user) loadAdminId();
