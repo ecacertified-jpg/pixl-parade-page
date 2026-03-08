@@ -937,6 +937,7 @@ export type Database = {
           status: string | null
           updated_at: string
           user_id: string
+          wave_merchant_phone: string | null
           website_url: string | null
         }
         Insert: {
@@ -967,6 +968,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id: string
+          wave_merchant_phone?: string | null
           website_url?: string | null
         }
         Update: {
@@ -997,6 +999,7 @@ export type Database = {
           status?: string | null
           updated_at?: string
           user_id?: string
+          wave_merchant_phone?: string | null
           website_url?: string | null
         }
         Relationships: []
@@ -4643,6 +4646,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payment_splits: {
+        Row: {
+          business_order_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          markup_rate: number
+          payment_method: string
+          platform_amount: number
+          platform_transfer_ref: string | null
+          platform_transfer_status: string
+          platform_wave_phone: string | null
+          processed_at: string | null
+          total_client_amount: number
+          vendor_amount: number
+          vendor_transfer_ref: string | null
+          vendor_transfer_status: string
+          vendor_wave_phone: string | null
+        }
+        Insert: {
+          business_order_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          markup_rate?: number
+          payment_method?: string
+          platform_amount: number
+          platform_transfer_ref?: string | null
+          platform_transfer_status?: string
+          platform_wave_phone?: string | null
+          processed_at?: string | null
+          total_client_amount: number
+          vendor_amount: number
+          vendor_transfer_ref?: string | null
+          vendor_transfer_status?: string
+          vendor_wave_phone?: string | null
+        }
+        Update: {
+          business_order_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          markup_rate?: number
+          payment_method?: string
+          platform_amount?: number
+          platform_transfer_ref?: string | null
+          platform_transfer_status?: string
+          platform_wave_phone?: string | null
+          processed_at?: string | null
+          total_client_amount?: number
+          vendor_amount?: number
+          vendor_transfer_ref?: string | null
+          vendor_transfer_status?: string
+          vendor_wave_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_splits_business_order_id_fkey"
+            columns: ["business_order_id"]
+            isOneToOne: false
+            referencedRelation: "business_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_transactions: {
         Row: {

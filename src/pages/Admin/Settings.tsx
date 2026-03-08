@@ -36,6 +36,7 @@ export default function Settings() {
     commission_rate: 8,
     free_delivery_threshold: 25000,
     price_markup_rate: 0,
+    platform_wave_phone: '',
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -61,6 +62,7 @@ export default function Settings() {
         commission_rate: getSetting('commission_rate') || 8,
         free_delivery_threshold: getSetting('free_delivery_threshold') || 25000,
         price_markup_rate: getSetting('price_markup_rate') || 0,
+        platform_wave_phone: getSetting('platform_wave_phone') || '',
       });
 
       setNotificationSettings({
@@ -86,6 +88,7 @@ export default function Settings() {
     updateSetting({ setting_key: 'commission_rate', setting_value: { value: financeSettings.commission_rate, unit: 'percent' } });
     updateSetting({ setting_key: 'free_delivery_threshold', setting_value: { value: financeSettings.free_delivery_threshold, currency: 'XOF' } });
     updateSetting({ setting_key: 'price_markup_rate', setting_value: { value: financeSettings.price_markup_rate, unit: 'percent' } });
+    updateSetting({ setting_key: 'platform_wave_phone', setting_value: { value: financeSettings.platform_wave_phone } });
   };
 
   const handleSaveNotifications = () => {
@@ -310,6 +313,19 @@ export default function Settings() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Ce taux est appliqué aux prix affichés aux clients. Ex : un article à 1 000 F avec 10% → 1 100 F.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-wave-phone">Numéro Wave JDV (réception commissions)</Label>
+                    <Input 
+                      id="platform-wave-phone" 
+                      type="tel"
+                      value={financeSettings.platform_wave_phone}
+                      onChange={(e) => setFinanceSettings({...financeSettings, platform_wave_phone: e.target.value})}
+                      placeholder="+225 07 XX XX XX XX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Numéro Wave sur lequel la plateforme reçoit la commission (différence prix majoré − prix prestataire).
                     </p>
                   </div>
                 </div>

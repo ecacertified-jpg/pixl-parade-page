@@ -57,6 +57,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
     email: "",
     latitude: null,
     longitude: null,
+    wave_merchant_phone: "",
     opening_hours: {
       lundi: { open: "09:00", close: "18:00" },
       mardi: { open: "09:00", close: "18:00" },
@@ -88,6 +89,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         email: "",
         latitude: null,
         longitude: null,
+        wave_merchant_phone: "",
         opening_hours: {
           lundi: { open: "09:00", close: "18:00" },
           mardi: { open: "09:00", close: "18:00" },
@@ -190,7 +192,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             payment_info: formData.payment_info,
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
-            longitude: formData.longitude
+            longitude: formData.longitude,
+            wave_merchant_phone: formData.wave_merchant_phone || null
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -218,6 +221,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
+            wave_merchant_phone: formData.wave_merchant_phone || null,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -458,7 +462,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
           {/* Informations de paiement */}
           <Card className="p-4">
             <h3 className="font-medium mb-4">Informations de paiement</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="mobile_money">Mobile Money</Label>
                 <Input
@@ -478,6 +482,21 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                   placeholder="Nom complet"
                   className="mt-1"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="wave_merchant_phone">Numéro Wave marchand</Label>
+                <Input
+                  id="wave_merchant_phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={formData.wave_merchant_phone || ""}
+                  onChange={(e) => handleInputChange('wave_merchant_phone', e.target.value)}
+                  placeholder="+225 07 XX XX XX XX"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Numéro Wave sur lequel vous recevrez les paiements des commandes
+                </p>
               </div>
             </div>
           </Card>
