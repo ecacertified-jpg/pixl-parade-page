@@ -346,7 +346,7 @@ export default function Checkout() {
             donor_phone: donorPhoneNumber,
             beneficiary_phone: beneficiaryPhoneNumber,
             delivery_address: fullDeliveryAddress,
-            payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
+            payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : paymentMethod === "wave" ? "wave" : "mobile_money",
             status: "pending"
           };
           
