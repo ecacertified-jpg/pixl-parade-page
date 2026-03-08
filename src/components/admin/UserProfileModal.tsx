@@ -498,6 +498,66 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="contacts" className="space-y-4 mt-4">
+              {contactsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : contacts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Contact className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Aucun contact ajouté</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Cet utilisateur n'a pas encore ajouté de contacts</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[400px]">
+                  <div className="space-y-2 pr-3">
+                    {contacts.map((contact) => {
+                      const rel = contact.relationship?.toLowerCase();
+                      const relInfo = rel ? RELATIONSHIP_LABELS[rel] : null;
+                      return (
+                        <div key={contact.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Avatar className="h-10 w-10">
+                            {contact.avatar_url && <AvatarImage src={contact.avatar_url} alt={contact.name} />}
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {contact.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium truncate">{contact.name}</p>
+                              {relInfo && (
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${relInfo.className}`}>
+                                  {relInfo.label}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                              {contact.phone && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" /> {contact.phone}
+                                </span>
+                              )}
+                              {contact.email && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3" /> {contact.email}
+                                </span>
+                              )}
+                              {contact.birthday && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Cake className="h-3 w-3" /> {format(new Date(contact.birthday), 'dd MMM yyyy', { locale: fr })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
           </Tabs>
         ) : null}
       </DialogContent>
