@@ -78,6 +78,40 @@ export function AssetUploader() {
     }
   };
 
+  const startRename = (fileName: string) => {
+    const lastDot = fileName.lastIndexOf('.');
+    setRenamingFile(fileName);
+    setNewName(lastDot > 0 ? fileName.substring(0, lastDot) : fileName);
+  };
+
+  const cancelRename = () => {
+    setRenamingFile(null);
+    setNewName('');
+  };
+
+  const handleRename = async () => {
+    if (!renamingFile || !newName.trim()) return;
+    const lastDot = renamingFile.lastIndexOf('.');
+    const ext = lastDot > 0 ? renamingFile.substring(lastDot) : '';
+    const sanitized = newName.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const finalName = sanitized + ext;
+
+    if (finalName === renamingFile) { cancelRename(); return; }
+
+    const { data: blob, error: dlError } = await supabase.storage.from('assets').download(renamingFile);
+    if (dlError || !blob) { toast.error('Erreur téléchargement'); return; }
+
+    const { error: upError } = await supabase.storage.from('assets').upload(finalName, blob, { upsert: true });
+    if (upError) { toast.error(`Erreur upload : ${upError.message}`); return; }
+
+    const { error: rmError } = await supabase.storage.from('assets').remove([renamingFile]);
+    if (rmError) { toast.error(`Erreur suppression ancien : ${rmError.message}`); return; }
+
+    toast.success(`Renommé en "${finalName}"`);
+    cancelRename();
+    fetchFiles();
+  };
+
   const copyUrl = (fileName: string) => {
     const url = `${SUPABASE_URL}/storage/v1/object/public/assets/${fileName}`;
     navigator.clipboard.writeText(url);
