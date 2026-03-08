@@ -84,6 +84,7 @@ export function AdminEditBusinessModal({
     latitude: null as number | null,
     longitude: null as number | null,
     country_code: '' as string | null,
+    wave_merchant_phone: '',
   });
 
   useEffect(() => {
