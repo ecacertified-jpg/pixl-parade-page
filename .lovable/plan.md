@@ -1,23 +1,32 @@
 
+# Architecture de Split de Paiement Wave
 
-## Plan : Ajouter le champ Wave marchand aux formulaires admin
+## Implémenté ✅
 
-Le champ `wave_merchant_phone` existe deja dans `AddBusinessModal.tsx` (cote prestataire). Il manque dans les 2 modales admin :
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
 
-### Fichiers a modifier
+### 2. Edge Function `process-wave-payment`
+- Calcule le split côté serveur à partir des prix originaux des produits (sans markup)
+- `vendor_amount` = somme des prix DB × quantité
+- `platform_amount` = montant payé client − vendor_amount
+- Enregistre dans `payment_splits` avec statut `simulated`
+- Récupère les numéros Wave du prestataire et de la plateforme
 
-#### 1. `src/components/admin/AdminEditBusinessModal.tsx`
-- Ajouter `wave_merchant_phone` dans l'interface `Business` (ligne 15-31)
-- Ajouter `wave_merchant_phone: ''` dans le `formData` state (ligne 71-86)
-- Charger la valeur existante dans le `useEffect` (ligne 88-108)
-- Inclure `wave_merchant_phone` dans l'objet `updateData` du `handleSubmit` (ligne 133-146)
-- Ajouter le champ Input apres le champ "Site web" (apres ligne 299), avec label "Numero Wave marchand", type tel, placeholder "+225 07 XX XX XX XX"
+### 3. Formulaire prestataire (`AddBusinessModal`)
+- Champ "Numéro Wave marchand" ajouté dans la section Informations de paiement
+- Sauvegardé dans `business_accounts.wave_merchant_phone`
 
-#### 2. `src/components/admin/AdminAddBusinessToOwnerModal.tsx`
-- Ajouter `wave_merchant_phone: ''` dans le `formData` state
-- Ajouter `wave_merchant_phone` dans le `resetForm()`
-- Inclure `wave_merchant_phone` dans l'insert Supabase du `handleSubmit`
-- Ajouter le champ Input dans le formulaire, apres le champ "Site web"
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" ajouté pour recevoir les commissions
+- Stocké dans `platform_settings.platform_wave_phone`
 
-Pas de migration SQL necessaire — la colonne `wave_merchant_phone` existe deja sur `business_accounts`.
+### 5. Checkout
+- Après création d'une `business_order` Wave, appel non-bloquant à `process-wave-payment`
+- Le split est enregistré automatiquement en arrière-plan
 
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave Transfer API pour dispatcher les fonds

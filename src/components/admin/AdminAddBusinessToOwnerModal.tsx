@@ -57,6 +57,7 @@ export function AdminAddBusinessToOwnerModal({
     address: '',
     description: '',
     website_url: '',
+    wave_merchant_phone: '',
   });
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export function AdminAddBusinessToOwnerModal({
           address: formData.address.trim() || null,
           description: formData.description.trim() || null,
           website_url: formData.website_url.trim() || null,
+          wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
           is_active: true,
           is_verified: false,
           status: 'active',
@@ -179,6 +181,7 @@ export function AdminAddBusinessToOwnerModal({
       address: '',
       description: '',
       website_url: '',
+      wave_merchant_phone: '',
     });
   };
 
@@ -310,6 +313,20 @@ export function AdminAddBusinessToOwnerModal({
               onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
               placeholder="https://www.example.com"
             />
+          </div>
+
+          {/* Wave Merchant Phone */}
+          <div className="space-y-2">
+            <Label>Numéro Wave marchand</Label>
+            <Input
+              type="tel"
+              value={formData.wave_merchant_phone}
+              onChange={(e) => setFormData({ ...formData, wave_merchant_phone: e.target.value })}
+              placeholder="+225 07 XX XX XX XX"
+            />
+            <p className="text-xs text-muted-foreground">
+              Numéro Wave pour recevoir les paiements
+            </p>
           </div>
 
           {/* Actions */}
