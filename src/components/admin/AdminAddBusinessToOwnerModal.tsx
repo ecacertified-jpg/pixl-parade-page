@@ -136,6 +136,7 @@ export function AdminAddBusinessToOwnerModal({
           address: formData.address.trim() || null,
           description: formData.description.trim() || null,
           website_url: formData.website_url.trim() || null,
+          wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
           is_active: true,
           is_verified: false,
           status: 'active',
