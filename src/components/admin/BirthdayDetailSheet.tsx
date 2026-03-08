@@ -3,7 +3,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, Phone, Mail, MapPin, Calendar, Gift, Users, AlertTriangle, Cake, FileText, Heart, ExternalLink } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, Gift, Users, AlertTriangle, Cake, FileText, Heart, ExternalLink, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { BirthdayEntry } from '@/hooks/useAdminBirthdays';
 
@@ -11,6 +11,24 @@ interface BirthdayDetailSheetProps {
   entry: BirthdayEntry | null;
   open: boolean;
   onClose: () => void;
+}
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
+function getRelationshipLabel(rel?: string): string {
+  if (!rel) return '';
+  return RELATIONSHIP_LABELS[rel.toLowerCase()] || rel;
 }
 
 function getUrgencyVariant(daysUntil: number): 'destructive' | 'default' | 'secondary' | 'outline' {
@@ -58,6 +76,10 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-4 mb-1">{children}</p>;
+}
+
 export function BirthdayDetailSheet({ entry, open, onClose }: BirthdayDetailSheetProps) {
   const navigate = useNavigate();
 
@@ -76,7 +98,7 @@ export function BirthdayDetailSheet({ entry, open, onClose }: BirthdayDetailShee
             </Avatar>
             <div className="min-w-0">
               <SheetTitle className="text-left truncate">{entry.name}</SheetTitle>
-              <SheetDescription className="text-left flex items-center gap-2 mt-1">
+              <SheetDescription className="text-left flex flex-wrap items-center gap-2 mt-1">
                 <Badge variant={entry.type === 'user' ? 'default' : 'outline'} className="text-xs">
                   {entry.type === 'user' ? (
                     <><Users className="h-3 w-3 mr-1" /> Utilisateur</>
@@ -84,6 +106,12 @@ export function BirthdayDetailSheet({ entry, open, onClose }: BirthdayDetailShee
                     <><Gift className="h-3 w-3 mr-1" /> Contact</>
                   )}
                 </Badge>
+                {entry.relationship && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Heart className="h-3 w-3 mr-1" />
+                    {getRelationshipLabel(entry.relationship)}
+                  </Badge>
+                )}
               </SheetDescription>
             </div>
           </div>
@@ -102,19 +130,28 @@ export function BirthdayDetailSheet({ entry, open, onClose }: BirthdayDetailShee
 
         <Separator className="my-2" />
 
-        {/* Details */}
-        <div className="space-y-1 mt-3">
+        {/* Coordonnées */}
+        <SectionLabel>Coordonnées</SectionLabel>
+        <div className="space-y-0">
           <InfoRow icon={Phone} label="Téléphone" value={entry.phone} />
           <InfoRow icon={Mail} label="Email" value={entry.email} />
           <InfoRow icon={MapPin} label="Ville" value={[entry.city, entry.countryCode].filter(Boolean).join(', ')} />
-          <InfoRow icon={FileText} label="Bio" value={entry.bio} />
-          <InfoRow icon={Heart} label="Relation" value={entry.relationship} />
-          <InfoRow icon={FileText} label="Notes" value={entry.notes} />
+          <InfoRow icon={Home} label="Quartier" value={entry.neighborhood} />
+        </div>
 
+        {/* Profil */}
+        <SectionLabel>Profil</SectionLabel>
+        <div className="space-y-0">
+          <InfoRow icon={FileText} label="Bio" value={entry.bio} />
+          <InfoRow icon={FileText} label="Notes" value={entry.notes} />
           {entry.type === 'contact' && entry.ownerName && (
             <InfoRow icon={User} label="Propriétaire du contact" value={entry.ownerName} />
           )}
+        </div>
 
+        {/* Activité */}
+        <SectionLabel>Activité</SectionLabel>
+        <div className="space-y-0">
           <InfoRow icon={Calendar} label="Inscrit le" value={formatDate(entry.createdAt)} />
 
           {entry.type === 'user' && entry.totalBirthdaysCelebrated != null && (

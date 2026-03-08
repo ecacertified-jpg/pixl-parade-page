@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cake, CalendarDays, Users, Gift } from 'lucide-react';
+import { Cake, CalendarDays, Users, Gift, Phone, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,24 @@ const MONTHS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
+function getRelationshipLabel(rel?: string): string {
+  if (!rel) return '—';
+  return RELATIONSHIP_LABELS[rel.toLowerCase()] || rel;
+}
 
 function getUrgencyVariant(daysUntil: number): 'destructive' | 'default' | 'secondary' | 'outline' {
   if (daysUntil === 0) return 'destructive';
@@ -167,6 +185,9 @@ export default function AdminBirthdays() {
                     <TableHead>Date</TableHead>
                     <TableHead>Échéance</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Relation</TableHead>
+                    <TableHead className="hidden md:table-cell">Téléphone</TableHead>
+                    <TableHead className="hidden md:table-cell">Propriétaire</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -191,6 +212,26 @@ export default function AdminBirthdays() {
                             <><Gift className="h-3 w-3 mr-1" /> Contact</>
                           )}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {entry.relationship ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {getRelationshipLabel(entry.relationship)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {entry.phone || '—'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {entry.type === 'contact' && entry.ownerName ? (
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {entry.ownerName}
+                          </span>
+                        ) : '—'}
                       </TableCell>
                     </TableRow>
                   ))}

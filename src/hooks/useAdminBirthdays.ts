@@ -15,6 +15,7 @@ export interface BirthdayEntry {
   phone?: string;
   email?: string;
   city?: string;
+  neighborhood?: string;
   countryCode?: string;
   bio?: string;
   relationship?: string;
@@ -46,7 +47,7 @@ export function useAdminBirthdays() {
       // Fetch user profiles with birthdays
       let profilesQuery = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, birthday, country_code, avatar_url, phone, city, bio, created_at, is_suspended, total_birthdays_celebrated')
+        .select('user_id, first_name, last_name, birthday, country_code, avatar_url, phone, city, neighborhood, bio, created_at, is_suspended, total_birthdays_celebrated')
         .not('birthday', 'is', null);
 
       if (countryFilter) {
@@ -90,6 +91,7 @@ export function useAdminBirthdays() {
           avatarUrl: p.avatar_url ?? undefined,
           phone: p.phone ?? undefined,
           city: p.city ?? undefined,
+          neighborhood: p.neighborhood ?? undefined,
           countryCode: p.country_code ?? undefined,
           bio: p.bio ?? undefined,
           createdAt: p.created_at ?? undefined,
