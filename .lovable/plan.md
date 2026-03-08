@@ -1,12 +1,25 @@
 
-# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Implémenté ✅
+## Plan : Tri par anniversaire le plus proche dans "Mes affectations"
 
-**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+### Modification : `src/pages/Admin/MyAssignments.tsx`
 
-Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
-1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
-2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
-3. SMS fallback conservé tel quel
-4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
+1. **Ajouter un state de tri** : `sortByBirthday` (boolean, default `false`)
+2. **Rendre le header "Anniversaire" cliquable** avec une icone de tri (ArrowUpDown de lucide-react)
+3. **Trier la liste** avant le `.map()` : quand le tri est actif, utiliser `getDaysUntilBirthday` pour trier par anniversaire le plus proche en premier. Les utilisateurs sans anniversaire sont placés en fin de liste.
+
+```typescript
+const sortedUserAssignments = sortByBirthday
+  ? [...userAssignments].sort((a, b) => {
+      const dA = a.profile?.birthday ? getDaysUntilBirthday(a.profile.birthday) : 999;
+      const dB = b.profile?.birthday ? getDaysUntilBirthday(b.profile.birthday) : 999;
+      return dA - dB;
+    })
+  : userAssignments;
+```
+
+Le header "Anniversaire" deviendra un bouton toggle pour activer/desactiver le tri.
+
+### Fichier concerne
+- `src/pages/Admin/MyAssignments.tsx` uniquement
+
