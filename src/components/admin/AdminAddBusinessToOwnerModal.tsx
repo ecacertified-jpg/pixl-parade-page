@@ -181,6 +181,7 @@ export function AdminAddBusinessToOwnerModal({
       address: '',
       description: '',
       website_url: '',
+      wave_merchant_phone: '',
     });
   };
 
