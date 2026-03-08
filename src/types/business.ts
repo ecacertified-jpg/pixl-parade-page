@@ -18,4 +18,5 @@ export interface Business {
   updated_at?: string;
   latitude?: number | null;
   longitude?: number | null;
+  wave_merchant_phone?: string;
 }
