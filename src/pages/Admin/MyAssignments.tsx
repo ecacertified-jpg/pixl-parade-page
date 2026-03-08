@@ -12,7 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake } from 'lucide-react';
+import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -221,6 +222,7 @@ const MyAssignments = () => {
                           <TableHead>Utilisateur</TableHead>
                           <TableHead>Pays</TableHead>
                           <TableHead>Téléphone</TableHead>
+                          <TableHead>Anniversaire</TableHead>
                           <TableHead>Complétion</TableHead>
                           <TableHead>Date d'inscription</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
@@ -255,6 +257,26 @@ const MyAssignments = () => {
                               </TableCell>
                               <TableCell className="text-sm">
                                 {a.profile?.phone || <span className="text-muted-foreground italic">Non renseigné</span>}
+                              </TableCell>
+                              <TableCell>
+                                {a.profile?.birthday ? (() => {
+                                  const days = getDaysUntilBirthday(a.profile.birthday);
+                                  const parts = a.profile.birthday.split('-');
+                                  const formatted = `${parts[2]}/${parts[1]}`;
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <Cake className="h-4 w-4 text-pink-500" />
+                                      <span className="text-sm">{formatted}</span>
+                                      {days <= 30 && (
+                                        <Badge variant={days === 0 ? 'destructive' : days <= 3 ? 'default' : days <= 7 ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 h-4">
+                                          {days === 0 ? "Aujourd'hui" : days === 1 ? 'Demain' : `${days}j`}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground italic text-sm">Non renseigné</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <TooltipProvider>
