@@ -127,7 +127,7 @@ async function fetchShopProducts(): Promise<ShopProduct[]> {
       id: product.id,
       name: product.name,
       description: product.description || "Description non disponible",
-      price: product.price,
+      price: applyMarkup(product.price, markupRate),
       currency: product.currency || "F",
       image: mainImage,
       images: allImages,
