@@ -1,15 +1,47 @@
 
-# Alerte anniversaire aux proches SANS cagnotte
 
-## Implémenté ✅
+## Plan: Utiliser `sendWhatsAppTemplate` pour `joiedevivre_birthday_no_fund_alert`
+
+Le template Meta est approuve. Il faut remplacer l'envoi en texte libre par l'appel au template HSM dans la fonction `sendNoFundFriendAlert`.
+
+### Modification
 
 **Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-Ajout d'un bloc `else if (!hasActiveFund && daysUntilBirthday <= 7)` qui :
-1. Envoie un message texte libre WhatsApp (ou SMS fallback) aux proches
-2. Message : "🎂 L'anniversaire de {nom} est {dans X jours / demain} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com 🎁"
-3. Déduplication via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
-4. Même logique de collecte des destinataires (contacts directs + reverse lookup)
+**Lignes 496-504** : Remplacer le bloc texte libre par :
 
-## Note
-Le texte libre WhatsApp ne fonctionne que dans la fenêtre de 24h. Un template HSM `joiedevivre_birthday_no_fund_alert` pourra être créé ultérieurement sur Meta pour les envois hors fenêtre.
+1. Ajouter une URL d'image header (meme pattern que le bloc `hasActiveFund` ligne 342) via variable d'env `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` avec fallback Supabase Storage
+2. Remplacer `sendWhatsApp(phone, waMsg)` par `sendWhatsAppTemplate` avec le template `joiedevivre_birthday_no_fund_alert`, 3 parametres body (`contact.name`, `dayLabel`, `'JOIE DE VIVRE'`) et `headerImageUrl`
+3. Garder le SMS fallback tel quel pour le canal SMS
+
+```typescript
+// Avant
+const waMsg = `🎂 L'anniversaire de ${contact.name} est ${dayLabel} !...`;
+if (channel === 'whatsapp') {
+  sendResult = await sendWhatsApp(phone, waMsg);
+} else {
+  sendResult = await sendSms(phone, smsMsg);
+}
+
+// Apres
+const noFundImageUrl = Deno.env.get('BIRTHDAY_NO_FUND_ALERT_IMAGE_URL')
+  || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-no-fund-alert.jpg`;
+
+if (channel === 'whatsapp') {
+  sendResult = await sendWhatsAppTemplate(
+    phone,
+    'joiedevivre_birthday_no_fund_alert',
+    [contact.name, dayLabel, 'JOIE DE VIVRE'],
+    [],
+    noFundImageUrl
+  );
+} else {
+  sendResult = await sendSms(phone, smsMsg);
+}
+```
+
+### Memoire
+Mettre a jour `.lovable/memory` et `.lovable/plan.md` pour documenter le passage au template HSM.
+
+### Aucune migration DB requise
+
