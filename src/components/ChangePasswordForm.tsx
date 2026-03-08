@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { generateSecurePassword } from '@/utils/generatePassword';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Lock, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Lock, Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
 
 const passwordSchema = z.object({
   password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
@@ -98,6 +99,21 @@ export function ChangePasswordForm() {
             <EyeToggle />
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              const pwd = generateSecurePassword();
+              setPassword(pwd);
+              setConfirm(pwd);
+              setShowPassword(true);
+              setErrors({});
+              toast({ title: 'Mot de passe suggéré', description: 'Pensez à le noter ou le copier avant de continuer.' });
+            }}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Suggérer un mot de passe sécurisé
+          </button>
         </div>
 
         <div className="space-y-2">

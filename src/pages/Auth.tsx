@@ -14,7 +14,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock, Sparkles } from 'lucide-react';
+import { generateSecurePassword } from '@/utils/generatePassword';
 import type { LucideIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -1577,6 +1578,21 @@ const Auth = () => {
                             {emailSignUpForm.formState.errors.password && (
                               <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const pwd = generateSecurePassword();
+                                emailSignUpForm.setValue('password', pwd);
+                                emailSignUpForm.setValue('confirmPassword', pwd);
+                                setShowSignUpPassword(true);
+                                setShowSignUpConfirmPassword(true);
+                                toast({ title: 'Mot de passe suggéré', description: 'Pensez à le noter ou le copier avant de continuer.' });
+                              }}
+                              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Suggérer un mot de passe sécurisé
+                            </button>
                           </div>
 
                           <div className="space-y-2">

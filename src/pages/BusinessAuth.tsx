@@ -16,7 +16,8 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail, Eye, EyeOff, User, Lock, CheckCircle } from 'lucide-react';
+import { Store, ArrowLeft, Loader2, Phone, Edit2, Check, Mail, Eye, EyeOff, User, Lock, CheckCircle, Sparkles } from 'lucide-react';
+import { generateSecurePassword } from '@/utils/generatePassword';
 import { getAllCountries } from '@/config/countries';
 import { useCountry } from '@/contexts/CountryContext';
 import { cn } from '@/lib/utils';
@@ -2004,6 +2005,21 @@ const BusinessAuth = () => {
                             </button>
                           </div>
                           {emailSignUpForm.formState.errors.password && <p className="text-sm text-destructive">{emailSignUpForm.formState.errors.password.message}</p>}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const pwd = generateSecurePassword();
+                              emailSignUpForm.setValue('password', pwd);
+                              emailSignUpForm.setValue('confirmPassword', pwd);
+                              setShowSignUpPassword(true);
+                              setShowSignUpConfirmPassword(true);
+                              toast({ title: 'Mot de passe suggéré', description: 'Pensez à le noter ou le copier avant de continuer.' });
+                            }}
+                            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Suggérer un mot de passe sécurisé
+                          </button>
                         </div>
                         <div className="space-y-2">
                           <Label className="flex items-center gap-1">Confirmer le mot de passe <span className="text-destructive">*</span></Label>
