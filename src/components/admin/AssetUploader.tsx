@@ -37,6 +37,23 @@ export function AssetUploader() {
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [previewFile, setPreviewFile] = useState<string | null>(null);
+  const [fileFilter, setFileFilter] = useState<FileFilter>('all');
+
+  const counts = useMemo(() => {
+    const imgs = files.filter(f => f.metadata?.mimetype?.startsWith('image/')).length;
+    const vids = files.filter(f => f.metadata?.mimetype?.startsWith('video/')).length;
+    return { all: files.length, images: imgs, videos: vids, others: files.length - imgs - vids };
+  }, [files]);
+
+  const filteredFiles = useMemo(() => {
+    if (fileFilter === 'all') return files;
+    return files.filter(f => {
+      const mt = f.metadata?.mimetype || '';
+      if (fileFilter === 'images') return mt.startsWith('image/');
+      if (fileFilter === 'videos') return mt.startsWith('video/');
+      return !mt.startsWith('image/') && !mt.startsWith('video/');
+    });
+  }, [files, fileFilter]);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
