@@ -146,6 +146,7 @@ export function AdminEditBusinessModal({
         status: formData.status,
         latitude: formData.latitude,
         longitude: formData.longitude,
+        wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
       };
 
       // Only update user_id if it changed (ownership transfer)
