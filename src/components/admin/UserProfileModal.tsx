@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Calendar, Gift, Heart, Users, Mail, Phone, MapPin, 
   Cake, Shield, CheckCircle2, XCircle, Coins, Send, 
-  Award, UserPlus, PartyPopper, AlertTriangle
+  Award, UserPlus, PartyPopper, AlertTriangle, Contact
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
