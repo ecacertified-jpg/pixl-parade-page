@@ -302,6 +302,20 @@ export function AdminEditBusinessModal({
             />
           </div>
 
+          {/* Wave Merchant Phone */}
+          <div className="space-y-2">
+            <Label>Numéro Wave marchand</Label>
+            <Input
+              type="tel"
+              value={formData.wave_merchant_phone}
+              onChange={(e) => setFormData({ ...formData, wave_merchant_phone: e.target.value })}
+              placeholder="+225 07 XX XX XX XX"
+            />
+            <p className="text-xs text-muted-foreground">
+              Numéro Wave pour recevoir les paiements
+            </p>
+          </div>
+
           {/* Owner Selection */}
           <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
             <Label className="flex items-center gap-2">
