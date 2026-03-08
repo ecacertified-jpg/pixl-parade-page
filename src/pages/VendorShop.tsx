@@ -30,6 +30,7 @@ import { LocalBusinessSchema, VideoSchema, formatDurationISO8601, type DBOpening
 import { VendorBreadcrumb } from "@/components/breadcrumbs";
 import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
+import { getCountryConfig } from "@/config/countries";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
