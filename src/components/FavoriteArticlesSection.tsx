@@ -9,7 +9,7 @@ export function FavoriteArticlesSection() {
 
   return (
     <Card className="p-4 mb-6 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border-pink-200/50">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-pink-500 fill-pink-500" />
           <h3 className="font-semibold text-foreground">Ma liste de souhaits</h3>
