@@ -118,6 +118,7 @@ const MessagingDeliveryDashboard = lazy(() => import("./pages/Admin/MessagingDel
 const WhatsAppTemplateDashboard = lazy(() => import("./pages/Admin/WhatsAppTemplateDashboard"));
 const BusinessFundWhatsAppLogs = lazy(() => import("./pages/Admin/BusinessFundWhatsAppLogs"));
 const MyAssignments = lazy(() => import("./pages/Admin/MyAssignments"));
+const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboard"));
 
 // Suspense wrapper helper
 const L = ({ children }: { children: React.ReactNode }) => (
@@ -256,6 +257,7 @@ const App = () => (
             <Route path="/admin/countries/objectives" element={<AdminRoute><L><CountryObjectivesPage /></L></AdminRoute>} />
             <Route path="/admin/countries/comparison" element={<AdminRoute><L><CountryMonthlyComparisonPage /></L></AdminRoute>} />
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
+            <Route path="/admin/commissions" element={<AdminRoute><L><CommissionsDashboard /></L></AdminRoute>} />
             <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
