@@ -636,9 +636,26 @@ export default function Checkout() {
           </RadioGroup>
         </Card>
 
+        {/* Wave simulation modal */}
+        <WavePaymentSimulation
+          open={showWaveModal}
+          onOpenChange={setShowWaveModal}
+          amount={total}
+          onSuccess={() => {
+            setShowWaveModal(false);
+            handleConfirmOrder();
+          }}
+        />
+
         {/* Confirm button */}
         <Button 
-          onClick={handleConfirmOrder} 
+          onClick={() => {
+            if (paymentMethod === "wave") {
+              setShowWaveModal(true);
+            } else {
+              handleConfirmOrder();
+            }
+          }} 
           disabled={isProcessing || !isFormValid} 
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
