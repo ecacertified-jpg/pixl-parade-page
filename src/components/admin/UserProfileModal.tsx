@@ -96,12 +96,15 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
     communityPoints: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<UserContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
 
   useEffect(() => {
     if (userId && open) {
       fetchUserProfile();
       fetchUserStats();
       fetchUserEmail();
+      fetchUserContacts();
     }
   }, [userId, open]);
 
