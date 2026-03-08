@@ -222,6 +222,7 @@ const MyAssignments = () => {
                           <TableHead>Utilisateur</TableHead>
                           <TableHead>Pays</TableHead>
                           <TableHead>Téléphone</TableHead>
+                          <TableHead>Anniversaire</TableHead>
                           <TableHead>Complétion</TableHead>
                           <TableHead>Date d'inscription</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
