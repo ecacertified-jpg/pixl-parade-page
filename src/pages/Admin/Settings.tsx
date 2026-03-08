@@ -36,6 +36,7 @@ export default function Settings() {
     commission_rate: 8,
     free_delivery_threshold: 25000,
     price_markup_rate: 0,
+    platform_wave_phone: '',
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
