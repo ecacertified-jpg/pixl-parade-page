@@ -1,12 +1,25 @@
 
-# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Implémenté ✅
+## Plan : Afficher l'anniversaire des utilisateurs dans "Mes affectations"
 
-**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+### Constat
+Le champ `birthday` est deja fetché par l'Edge Function et present dans l'interface `UserProfile`, mais il n'est pas affiché dans le tableau des utilisateurs assignés.
 
-Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
-1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
-2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
-3. SMS fallback conservé tel quel
-4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
+### Modification
+
+#### `src/pages/Admin/MyAssignments.tsx`
+
+Ajouter une colonne "Anniversaire" dans le tableau des utilisateurs (onglet "Utilisateurs") :
+
+1. Ajouter un `<TableHead>Anniversaire</TableHead>` apres la colonne "Téléphone"
+2. Ajouter la cellule correspondante affichant la date au format `JJ/MM` avec l'icone Cake et un badge d'urgence (jours restants) via `getDaysUntilBirthday`
+3. Importer `Cake` de lucide-react et `getDaysUntilBirthday` de `@/lib/utils`
+
+La cellule affichera :
+- La date au format JJ/MM
+- Un badge coloré indiquant le nombre de jours restants (rouge = aujourd'hui, orange = sous 3j, etc.)
+- "Non renseigné" en italique si pas de date
+
+### Fichier concerne
+- `src/pages/Admin/MyAssignments.tsx` uniquement
+
