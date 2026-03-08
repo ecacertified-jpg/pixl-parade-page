@@ -1,37 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan: Masquer les infos personnelles des prestataires et afficher le support JOIE DE VIVRE
+## Implémenté ✅
 
-### Constat
-Les pages boutiques publiques (`/boutique/:businessId`) affichent actuellement le telephone et l'email personnels du prestataire via `VendorContactCard`. Ces infos doivent etre masquees.
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-### Modifications
-
-#### 1. `src/pages/VendorShop.tsx`
-Remplacer les props `phone` et `email` du `VendorContactCard` par les coordonnees de support JOIE DE VIVRE pour les boutiques en Cote d'Ivoire :
-- `phone`: `+225 05 46 56 66 46`
-- `email`: `contact@joiedevivre-africa.com`
-
-Pour les autres pays, utiliser les coordonnees du `legalEntity` correspondant dans `countries.ts`.
-
-```tsx
-import { getCountryConfig } from "@/config/countries";
-
-// ...
-const countryConfig = getCountryConfig(vendor.countryCode || 'CI');
-
-<VendorContactCard
-  address={vendor.address}
-  phone={countryConfig.legalEntity.phone}
-  email={countryConfig.legalEntity.email}
-  countryCode={vendor.countryCode}
-/>
-```
-
-#### 2. `src/components/VendorContactCard.tsx`
-Renommer le titre de la section "Contact & Infos" en "Support & Infos" pour clarifier que ce sont les coordonnees du support et non du prestataire.
-
-### Fichiers modifies
-- `src/pages/VendorShop.tsx`
-- `src/components/VendorContactCard.tsx`
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`

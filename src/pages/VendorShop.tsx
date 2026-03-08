@@ -30,6 +30,7 @@ import { LocalBusinessSchema, VideoSchema, formatDurationISO8601, type DBOpening
 import { VendorBreadcrumb } from "@/components/breadcrumbs";
 import { getSchemaBusinessType } from "@/components/schema/helpers";
 import { CITY_PAGES } from "@/data/city-pages";
+import { getCountryConfig } from "@/config/countries";
 
 export default function VendorShop() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -273,13 +274,18 @@ export default function VendorShop() {
           onShare={() => setShareMenuOpen(true)}
         />
 
-        {/* Contact Card - Compact grid layout */}
-        <VendorContactCard
-          address={vendor.address}
-          phone={vendor.phone}
-          email={vendor.email}
-          countryCode={vendor.countryCode}
-        />
+        {/* Contact Card - Support info (not vendor personal info) */}
+        {(() => {
+          const countryConfig = getCountryConfig(vendor.countryCode || 'CI');
+          return (
+            <VendorContactCard
+              address={vendor.address}
+              phone={countryConfig.legalEntity.phone}
+              email={countryConfig.legalEntity.email}
+              countryCode={vendor.countryCode}
+            />
+          );
+        })()}
 
         {/* City page link for SEO internal linking */}
         {(() => {
