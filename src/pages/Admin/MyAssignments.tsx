@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +99,15 @@ const MyAssignments = () => {
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
+  const [sortByBirthday, setSortByBirthday] = useState(false);
+
+  const sortedUserAssignments = sortByBirthday
+    ? [...userAssignments].sort((a, b) => {
+        const dA = a.profile?.birthday ? getDaysUntilBirthday(a.profile.birthday) : 999;
+        const dB = b.profile?.birthday ? getDaysUntilBirthday(b.profile.birthday) : 999;
+        return dA - dB;
+      })
+    : userAssignments;
 
   useEffect(() => {
     if (user) loadAdminId();
@@ -222,14 +231,18 @@ const MyAssignments = () => {
                           <TableHead>Utilisateur</TableHead>
                           <TableHead>Pays</TableHead>
                           <TableHead>Téléphone</TableHead>
-                          <TableHead>Anniversaire</TableHead>
+                          <TableHead>
+                            <Button variant="ghost" size="sm" className="gap-1 -ml-2 h-auto py-1 font-medium text-muted-foreground hover:text-foreground" onClick={() => setSortByBirthday(v => !v)}>
+                              <Cake className="h-3.5 w-3.5" /> Anniversaire <ArrowUpDown className={`h-3.5 w-3.5 transition-colors ${sortByBirthday ? 'text-primary' : ''}`} />
+                            </Button>
+                          </TableHead>
                           <TableHead>Complétion</TableHead>
                           <TableHead>Date d'inscription</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {userAssignments.map(a => {
+                        {sortedUserAssignments.map(a => {
                           const { percentage, details } = calculateProfileCompletion(a.profile);
                           return (
                             <TableRow key={a.id}>
