@@ -851,9 +851,17 @@ const BusinessAuth = () => {
   };
 
   const handleDuplicateContinueAnyway = () => {
+    // Bloquer si confiance haute (correspondance exacte phone/email)
+    if (duplicateResult?.confidence === 'high') {
+      toast({
+        title: 'Compte existant détecté',
+        description: 'Ce numéro ou email est déjà associé à un compte. Connectez-vous puis ajoutez un business depuis l\'onglet Config.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setShowDuplicateModal(false);
     if (pendingSignUpData) {
-      // Continuer l'inscription en sautant la vérification des doublons
       sendOtpSignUp(pendingSignUpData, true);
     }
     setDuplicateResult(null);
@@ -1175,6 +1183,24 @@ const BusinessAuth = () => {
     if (!isUnique) {
       setIsLoading(false);
       toast({ title: 'Nom d\'entreprise déjà utilisé', description: 'Ce nom est déjà enregistré.', variant: 'destructive' });
+      return;
+    }
+
+    // Vérifier si un compte existe déjà avec cet email
+    const duplicateCheck = await checkForDuplicate('', data.firstName);
+    const serverEmailCheck = await fetch(`${SUPABASE_URL}/functions/v1/check-existing-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_PUBLISHABLE_KEY },
+      body: JSON.stringify({ email: data.email }),
+    }).then(r => r.json()).catch(() => null);
+    
+    if (serverEmailCheck && serverEmailCheck.exists && serverEmailCheck.confidence === 'high') {
+      setIsLoading(false);
+      toast({
+        title: 'Compte existant',
+        description: 'Un compte existe déjà avec cet email. Connectez-vous puis ajoutez un business depuis l\'onglet Config.',
+      });
+      setAuthMode('signin');
       return;
     }
 
