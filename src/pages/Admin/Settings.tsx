@@ -88,6 +88,7 @@ export default function Settings() {
     updateSetting({ setting_key: 'commission_rate', setting_value: { value: financeSettings.commission_rate, unit: 'percent' } });
     updateSetting({ setting_key: 'free_delivery_threshold', setting_value: { value: financeSettings.free_delivery_threshold, currency: 'XOF' } });
     updateSetting({ setting_key: 'price_markup_rate', setting_value: { value: financeSettings.price_markup_rate, unit: 'percent' } });
+    updateSetting({ setting_key: 'platform_wave_phone', setting_value: { value: financeSettings.platform_wave_phone } });
   };
 
   const handleSaveNotifications = () => {
