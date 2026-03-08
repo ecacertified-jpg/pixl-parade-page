@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cake, CalendarDays, Users, Gift } from 'lucide-react';
+import { Cake, CalendarDays, Users, Gift, Phone, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,24 @@ const MONTHS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
+function getRelationshipLabel(rel?: string): string {
+  if (!rel) return '—';
+  return RELATIONSHIP_LABELS[rel.toLowerCase()] || rel;
+}
 
 function getUrgencyVariant(daysUntil: number): 'destructive' | 'default' | 'secondary' | 'outline' {
   if (daysUntil === 0) return 'destructive';
