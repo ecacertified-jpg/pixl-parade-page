@@ -62,6 +62,7 @@ export default function Settings() {
         commission_rate: getSetting('commission_rate') || 8,
         free_delivery_threshold: getSetting('free_delivery_threshold') || 25000,
         price_markup_rate: getSetting('price_markup_rate') || 0,
+        platform_wave_phone: getSetting('platform_wave_phone') || '',
       });
 
       setNotificationSettings({
