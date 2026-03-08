@@ -267,12 +267,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
               <Button
                 size="sm"
                 variant="outline"
-                onClick={async () => {
-                  setActionLoading(`friend-${suggestion.user_id}`);
-                  const ok = await sendRequest(suggestion.user_id);
-                  if (ok) setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
-                  setActionLoading(null);
-                }}
+                onClick={() => handleAddFriend(suggestion)}
                 disabled={actionLoading === `friend-${suggestion.user_id}`}
                 className="gap-1 h-8"
               >
@@ -365,12 +360,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
             <Button
               size="sm"
               variant="outline"
-              onClick={async () => {
-                setActionLoading(`friend-${suggestion.user_id}`);
-                const ok = await sendRequest(suggestion.user_id);
-                if (ok) setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
-                setActionLoading(null);
-              }}
+              onClick={() => handleAddFriend(suggestion)}
               disabled={actionLoading === `friend-${suggestion.user_id}`}
               className="gap-1 h-8"
             >
