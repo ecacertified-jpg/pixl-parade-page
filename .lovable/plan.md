@@ -1,15 +1,12 @@
 
-# Alerte anniversaire aux proches SANS cagnotte
+# Template HSM joiedevivre_birthday_no_fund_alert
 
 ## Implémenté ✅
 
 **Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-Ajout d'un bloc `else if (!hasActiveFund && daysUntilBirthday <= 7)` qui :
-1. Envoie un message texte libre WhatsApp (ou SMS fallback) aux proches
-2. Message : "🎂 L'anniversaire de {nom} est {dans X jours / demain} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com 🎁"
-3. Déduplication via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
-4. Même logique de collecte des destinataires (contacts directs + reverse lookup)
-
-## Note
-Le texte libre WhatsApp ne fonctionne que dans la fenêtre de 24h. Un template HSM `joiedevivre_birthday_no_fund_alert` pourra être créé ultérieurement sur Meta pour les envois hors fenêtre.
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
