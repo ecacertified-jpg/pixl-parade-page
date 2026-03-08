@@ -178,6 +178,25 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
     }
   };
 
+  const fetchUserContacts = async () => {
+    if (!userId) return;
+    setContactsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, phone, email, birthday, relationship, avatar_url')
+        .eq('user_id', userId)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    } finally {
+      setContactsLoading(false);
+    }
+  };
+
   const getProfileCompletion = (profile: UserProfile): { 
     fields: ProfileCompletionField[], 
     percentage: number 
