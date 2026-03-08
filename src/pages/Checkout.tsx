@@ -237,7 +237,7 @@ export default function Checkout() {
             donorPhone: donorPhoneNumber, 
             beneficiaryPhone: beneficiaryPhoneNumber 
           },
-          notes: paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"
+          notes: paymentMethod === "delivery" ? "Paiement à la livraison" : paymentMethod === "wave" ? "Paiement Wave" : "Mobile Money"
         })
         .select()
         .single();
