@@ -184,6 +184,7 @@ export function AdminAddBusinessToOwnerModal({
       description: '',
       website_url: '',
       wave_merchant_phone: '',
+      mobile_money_merchant_phone: '',
     });
   };
 
