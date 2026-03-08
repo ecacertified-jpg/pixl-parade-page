@@ -494,8 +494,8 @@ serve(async (req) => {
             let sendResult: { success: boolean; error?: string; sid?: string } = { success: false };
 
             const dayLabel = daysUntilBirthday === 1 ? 'demain' : `dans ${daysUntilBirthday} jours`;
-            const waMsg = `🎂 L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com 🎁`;
-            const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez un cadeau: joiedevivre-africa.com`;
+            const waMsg = `🎂 L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com/shop 🎁`;
+            const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez un cadeau: joiedevivre-africa.com/shop`;
 
             if (channel === 'whatsapp') {
               sendResult = await sendWhatsApp(phone, waMsg);
