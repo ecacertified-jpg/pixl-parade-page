@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { applyMarkup } from '@/utils/applyMarkup';
 
 function inferCountryFromAddress(address: string | null): string | null {
   if (!address) return null;
