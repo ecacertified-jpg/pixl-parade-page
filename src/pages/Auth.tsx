@@ -598,9 +598,17 @@ const Auth = () => {
   };
 
   const handleDuplicateContinueAnyway = () => {
+    // Bloquer si confiance haute (correspondance exacte phone/email)
+    if (duplicateResult?.confidence === 'high') {
+      toast({
+        title: 'Compte existant détecté',
+        description: 'Ce numéro ou email est déjà associé à un compte. Veuillez vous connecter.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setShowDuplicateModal(false);
     if (pendingSignUpData) {
-      // Continuer l'inscription en sautant la vérification des doublons
       sendOtpSignUp(pendingSignUpData, true);
     }
     setDuplicateResult(null);
