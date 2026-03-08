@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Phone, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2, Globe, Info } from "lucide-react";
+import { ArrowLeft, User, Phone, Save, Camera, Gift, AlertCircle, Settings, Lock, Link2, Globe, Info, Mail } from "lucide-react";
 import { ForceUpdateButton } from "@/components/ForceUpdateButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
