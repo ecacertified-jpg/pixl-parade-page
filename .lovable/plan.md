@@ -1,12 +1,23 @@
 
-# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Implémenté ✅
+## Constat
 
-**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+Le flux `handleAddFriend` dans `UserSuggestionsSection.tsx` insere bien un contact dans la table `contacts`, mais **n'invalide pas le cache React Query** du dashboard (`['dashboard-data', user?.id]`). Le nouveau contact n'apparait donc pas dans le cercle d'amis tant que l'utilisateur ne recharge pas la page.
 
-Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
-1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
-2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
-3. SMS fallback conservé tel quel
-4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
+## Correction
+
+### `src/components/UserSuggestionsSection.tsx`
+
+1. Importer `useQueryClient` de `@tanstack/react-query`
+2. Appeler `queryClient.invalidateQueries({ queryKey: ['dashboard-data'] })` apres l'insertion reussie du contact dans `handleAddFriend`
+
+```typescript
+// After the supabase.from('contacts').insert(...)
+queryClient.invalidateQueries({ queryKey: ['dashboard-data', user.id] });
+```
+
+Cela garantit que le cercle d'amis se met a jour immediatement apres l'ajout.
+
+### Fichier concerne
+- `src/components/UserSuggestionsSection.tsx` uniquement
+
