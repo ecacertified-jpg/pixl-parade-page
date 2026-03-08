@@ -242,7 +242,7 @@ const MyAssignments = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {userAssignments.map(a => {
+                        {sortedUserAssignments.map(a => {
                           const { percentage, details } = calculateProfileCompletion(a.profile);
                           return (
                             <TableRow key={a.id}>
