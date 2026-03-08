@@ -71,6 +71,7 @@ const navItems: NavItem[] = [
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
   { title: 'Contenu', href: '/admin/content', icon: FileText },
   { title: 'Finances', href: '/admin/finances', icon: DollarSign },
+  { title: 'Commissions', href: '/admin/commissions', icon: DollarSign },
   { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { title: 'Stats Partages', href: '/admin/share-analytics', icon: Share2 },
   { title: 'IndexNow SEO', href: '/admin/indexnow', icon: Rocket },
