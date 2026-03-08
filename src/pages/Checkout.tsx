@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isCorruptedSessionError, cleanupCorruptedSession } from "@/utils/authErrorHandler";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { WavePaymentSimulation } from "@/components/WavePaymentSimulation";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
@@ -44,6 +45,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [businessAccounts, setBusinessAccounts] = useState<any[]>([]);
   const [isValidatingSession, setIsValidatingSession] = useState(true);
+  const [showWaveModal, setShowWaveModal] = useState(false);
 
   // Validation de session préventive au chargement de la page
   useEffect(() => {
@@ -235,7 +237,7 @@ export default function Checkout() {
             donorPhone: donorPhoneNumber, 
             beneficiaryPhone: beneficiaryPhoneNumber 
           },
-          notes: paymentMethod === "delivery" ? "Paiement à la livraison" : "Mobile Money"
+          notes: paymentMethod === "delivery" ? "Paiement à la livraison" : paymentMethod === "wave" ? "Paiement Wave" : "Mobile Money"
         })
         .select()
         .single();
@@ -344,7 +346,7 @@ export default function Checkout() {
             donor_phone: donorPhoneNumber,
             beneficiary_phone: beneficiaryPhoneNumber,
             delivery_address: fullDeliveryAddress,
-            payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : "mobile_money",
+            payment_method: paymentMethod === "delivery" ? "cash_on_delivery" : paymentMethod === "wave" ? "wave" : "mobile_money",
             status: "pending"
           };
           
@@ -621,12 +623,39 @@ export default function Checkout() {
                 <span className="font-medium">📱 Mobile Money (Orange/MTN)</span>
               </Label>
             </div>
+
+            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+              <RadioGroupItem value="wave" id="wave" />
+              <Label htmlFor="wave" className="flex items-center gap-3 flex-1 cursor-pointer">
+                <div className="w-8 h-8 rounded-full bg-[#1DC3C3] flex items-center justify-center">
+                  <Smartphone className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-medium">🌊 Wave</span>
+              </Label>
+            </div>
           </RadioGroup>
         </Card>
 
+        {/* Wave simulation modal */}
+        <WavePaymentSimulation
+          open={showWaveModal}
+          onOpenChange={setShowWaveModal}
+          amount={total}
+          onSuccess={() => {
+            setShowWaveModal(false);
+            handleConfirmOrder();
+          }}
+        />
+
         {/* Confirm button */}
         <Button 
-          onClick={handleConfirmOrder} 
+          onClick={() => {
+            if (paymentMethod === "wave") {
+              setShowWaveModal(true);
+            } else {
+              handleConfirmOrder();
+            }
+          }} 
           disabled={isProcessing || !isFormValid} 
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
