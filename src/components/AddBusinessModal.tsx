@@ -502,6 +502,21 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                   Numéro Wave sur lequel vous recevrez les paiements des commandes
                 </p>
               </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="mobile_money_merchant_phone">Numéro Mobile Money marchand (Orange/MTN)</Label>
+                <Input
+                  id="mobile_money_merchant_phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={formData.mobile_money_merchant_phone || ""}
+                  onChange={(e) => handleInputChange('mobile_money_merchant_phone', e.target.value)}
+                  placeholder="+225 07 XX XX XX XX"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Numéro Orange Money ou MTN Mobile Money pour recevoir les paiements
+                </p>
+              </div>
             </div>
           </Card>
         </div>
