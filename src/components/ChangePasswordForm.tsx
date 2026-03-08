@@ -99,6 +99,21 @@ export function ChangePasswordForm() {
             <EyeToggle />
           </div>
           {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+          <button
+            type="button"
+            onClick={() => {
+              const pwd = generateSecurePassword();
+              setPassword(pwd);
+              setConfirm(pwd);
+              setShowPassword(true);
+              setErrors({});
+              toast({ title: 'Mot de passe suggéré', description: 'Pensez à le noter ou le copier avant de continuer.' });
+            }}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Suggérer un mot de passe sécurisé
+          </button>
         </div>
 
         <div className="space-y-2">
