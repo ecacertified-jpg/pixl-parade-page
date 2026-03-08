@@ -1,30 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan : Corriger l'affichage des contacts dans les modals Admin
+## Implémenté ✅
 
-### Problème identifié
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-La table `contacts` a une politique RLS de lecture limitée à `auth.uid() = user_id` (le propriétaire du contact). Il n'existe **aucune politique SELECT pour les admins**, alors qu'il en existe une pour DELETE. Résultat : les admins ne voient aucun contact dans le `UserProfileModal` (onglet Contacts) ni dans le `BirthdayDetailSheet` (les champs téléphone, email, relation sont vides pour les contacts).
-
-### Correction
-
-#### 1. Migration SQL : Ajouter une politique SELECT admin sur `contacts`
-
-```sql
-CREATE POLICY "Admins can view all contacts"
-ON public.contacts
-FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM admin_users
-    WHERE admin_users.user_id = auth.uid()
-    AND admin_users.is_active = true
-  )
-);
-```
-
-C'est le même pattern que la politique DELETE admin déjà en place. Une seule migration, pas de changement côté front-end.
-
-### Fichiers concernés
-- Nouvelle migration SQL uniquement
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
