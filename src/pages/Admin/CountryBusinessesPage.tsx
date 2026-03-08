@@ -55,6 +55,7 @@ interface Business {
   country_code: string | null;
   latitude: number | null;
   longitude: number | null;
+  wave_merchant_phone: string | null;
 }
 
 export default function CountryBusinessesPage() {
