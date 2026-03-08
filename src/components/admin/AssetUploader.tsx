@@ -33,6 +33,7 @@ export function AssetUploader() {
   const [dragOver, setDragOver] = useState(false);
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
