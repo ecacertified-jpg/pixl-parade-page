@@ -118,6 +118,7 @@ const MessagingDeliveryDashboard = lazy(() => import("./pages/Admin/MessagingDel
 const WhatsAppTemplateDashboard = lazy(() => import("./pages/Admin/WhatsAppTemplateDashboard"));
 const BusinessFundWhatsAppLogs = lazy(() => import("./pages/Admin/BusinessFundWhatsAppLogs"));
 const MyAssignments = lazy(() => import("./pages/Admin/MyAssignments"));
+const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboard"));
 
 // Suspense wrapper helper
 const L = ({ children }: { children: React.ReactNode }) => (
