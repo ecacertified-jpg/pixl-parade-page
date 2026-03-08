@@ -195,7 +195,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null
+            wave_merchant_phone: formData.wave_merchant_phone || null,
+            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null
           })
           .eq('id', editingBusiness.id)
           .select()
