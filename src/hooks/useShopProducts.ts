@@ -32,6 +32,17 @@ export interface ShopProduct {
 }
 
 async function fetchShopProducts(): Promise<ShopProduct[]> {
+  // Fetch markup rate
+  let markupRate = 0;
+  const { data: markupSetting } = await supabase
+    .from('platform_settings')
+    .select('setting_value')
+    .eq('setting_key', 'price_markup_rate')
+    .single();
+  if (markupSetting?.setting_value && typeof markupSetting.setting_value === 'object' && 'value' in (markupSetting.setting_value as any)) {
+    markupRate = (markupSetting.setting_value as any).value || 0;
+  }
+
   // Step 1: Fetch products (limit 200)
   const { data: productsData, error: productsError } = await supabase
     .from('products')
