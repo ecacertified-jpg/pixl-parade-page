@@ -1,12 +1,43 @@
 
-# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Implémenté ✅
+## Plan: Bouton "Suggérer un mot de passe sécurisé" dans inscription et paramètres
 
-**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+### Approche
 
-Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
-1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
-2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
-3. SMS fallback conservé tel quel
-4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
+Créer une fonction utilitaire `generateSecurePassword()` qui génère un mot de passe de 12 caractères (majuscules, minuscules, chiffres, caractères spéciaux), puis ajouter un bouton "Suggérer un mot de passe" dans les 3 endroits concernés.
+
+### Fichiers
+
+#### 1. Nouveau : `src/utils/generatePassword.ts`
+- Fonction exportée qui génère un mot de passe aléatoire de 12 caractères contenant au moins 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial
+- Utilise `crypto.getRandomValues()` pour la sécurité
+
+#### 2. `src/pages/Auth.tsx` — Formulaire inscription client (email)
+- Ajouter un bouton compact "Suggérer un mot de passe" (icône Wand2/Sparkles) sous le champ mot de passe
+- Au clic : génère un mot de passe, le remplit dans les champs password + confirmPassword via `emailSignUpForm.setValue()`, active `showSignUpPassword` pour que l'utilisateur le voie et puisse le copier
+
+#### 3. `src/pages/BusinessAuth.tsx` — Formulaire inscription prestataire (email)
+- Même bouton et même logique que pour Auth.tsx
+
+#### 4. `src/components/ChangePasswordForm.tsx` — Modification mot de passe (paramètres profil)
+- Ajouter le même bouton "Suggérer un mot de passe" sous le champ nouveau mot de passe
+- Au clic : remplit les deux champs (password + confirm), active `showPassword`
+
+### Détail technique
+
+```typescript
+// src/utils/generatePassword.ts
+export function generateSecurePassword(length = 12): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*?';
+  const all = upper + lower + digits + special;
+  // Garantir au moins 1 de chaque catégorie, puis compléter aléatoirement
+}
+```
+
+Le bouton sera stylé en `variant="ghost" size="sm"` avec une icône Sparkles et le texte "Suggérer un mot de passe sécurisé". Un toast confirme la suggestion avec un rappel de noter le mot de passe.
+
+### Aucune migration SQL nécessaire
+
