@@ -518,6 +518,9 @@ const ProfileSettings = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Password change - only for email-identity users */}
+            {hasEmailIdentity && <ChangePasswordForm />}
           </TabsContent>
 
           {/* Privacy Tab */}
