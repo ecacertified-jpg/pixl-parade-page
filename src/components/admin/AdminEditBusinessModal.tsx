@@ -320,6 +320,20 @@ export function AdminEditBusinessModal({
             </p>
           </div>
 
+          {/* Mobile Money Merchant Phone */}
+          <div className="space-y-2">
+            <Label>Numéro Mobile Money marchand (Orange/MTN)</Label>
+            <Input
+              type="tel"
+              value={formData.mobile_money_merchant_phone}
+              onChange={(e) => setFormData({ ...formData, mobile_money_merchant_phone: e.target.value })}
+              placeholder="+225 07 XX XX XX XX"
+            />
+            <p className="text-xs text-muted-foreground">
+              Numéro Orange Money ou MTN pour recevoir les paiements
+            </p>
+          </div>
+
           {/* Owner Selection */}
           <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
             <Label className="flex items-center gap-2">

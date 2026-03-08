@@ -331,6 +331,19 @@ export default function Settings() {
                       Numéro Wave sur lequel la plateforme reçoit la commission (différence prix majoré − prix prestataire).
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-mobile-money-phone">Numéro Mobile Money JDV (Orange/MTN)</Label>
+                    <Input 
+                      id="platform-mobile-money-phone" 
+                      type="tel"
+                      value={financeSettings.platform_mobile_money_phone}
+                      onChange={(e) => setFinanceSettings({...financeSettings, platform_mobile_money_phone: e.target.value})}
+                      placeholder="+225 07 XX XX XX XX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Numéro Orange Money ou MTN sur lequel la plateforme reçoit la commission.
+                    </p>
+                  </div>
                 </div>
                 <Button onClick={handleSaveFinance} disabled={isUpdating}>
                   Enregistrer les modifications
