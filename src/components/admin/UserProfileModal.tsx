@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Calendar, Gift, Heart, Users, Mail, Phone, MapPin, 
   Cake, Shield, CheckCircle2, XCircle, Coins, Send, 
-  Award, UserPlus, PartyPopper, AlertTriangle
+  Award, UserPlus, PartyPopper, AlertTriangle, Contact
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,29 @@ interface UserStats {
   communityPoints: number;
 }
 
+interface UserContact {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  birthday: string | null;
+  relationship: string | null;
+  avatar_url: string | null;
+}
+
+const RELATIONSHIP_LABELS: Record<string, { label: string; className: string }> = {
+  family: { label: 'Famille', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  father: { label: 'Père', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  mother: { label: 'Mère', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  sister: { label: 'Sœur', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  brother: { label: 'Frère', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  friend: { label: 'Ami(e)', className: 'bg-blue-500/10 text-blue-600 border-blue-500/30' },
+  colleague: { label: 'Collègue', className: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
+  spouse: { label: 'Conjoint(e)', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  child: { label: 'Enfant', className: 'bg-pink-500/10 text-pink-600 border-pink-500/30' },
+  other: { label: 'Autre', className: 'bg-muted text-muted-foreground border-border' },
+};
+
 interface ProfileCompletionField {
   key: string;
   label: string;
@@ -72,12 +96,15 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
     communityPoints: 0,
   });
   const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<UserContact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
 
   useEffect(() => {
     if (userId && open) {
       fetchUserProfile();
       fetchUserStats();
       fetchUserEmail();
+      fetchUserContacts();
     }
   }, [userId, open]);
 
@@ -151,6 +178,25 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
     }
   };
 
+  const fetchUserContacts = async () => {
+    if (!userId) return;
+    setContactsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, phone, email, birthday, relationship, avatar_url')
+        .eq('user_id', userId)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    } finally {
+      setContactsLoading(false);
+    }
+  };
+
   const getProfileCompletion = (profile: UserProfile): { 
     fields: ProfileCompletionField[], 
     percentage: number 
@@ -205,9 +251,16 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
           </div>
         ) : profile ? (
           <Tabs defaultValue="informations" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="informations">Informations</TabsTrigger>
               <TabsTrigger value="statistiques">Statistiques</TabsTrigger>
+              <TabsTrigger value="contacts">
+                <Contact className="h-3.5 w-3.5 mr-1.5" />
+                Contacts
+                {contacts.length > 0 && (
+                  <Badge variant="secondary" className="ml-1.5 h-5 px-1.5 text-[10px]">{contacts.length}</Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="informations" className="space-y-6 mt-4">
@@ -443,6 +496,66 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                     </div>
                   </div>
                 </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="contacts" className="space-y-4 mt-4">
+              {contactsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : contacts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Contact className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Aucun contact ajouté</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Cet utilisateur n'a pas encore ajouté de contacts</p>
+                </div>
+              ) : (
+                <ScrollArea className="max-h-[400px]">
+                  <div className="space-y-2 pr-3">
+                    {contacts.map((contact) => {
+                      const rel = contact.relationship?.toLowerCase();
+                      const relInfo = rel ? RELATIONSHIP_LABELS[rel] : null;
+                      return (
+                        <div key={contact.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                          <Avatar className="h-10 w-10">
+                            {contact.avatar_url && <AvatarImage src={contact.avatar_url} alt={contact.name} />}
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {contact.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium truncate">{contact.name}</p>
+                              {relInfo && (
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${relInfo.className}`}>
+                                  {relInfo.label}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                              {contact.phone && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="h-3 w-3" /> {contact.phone}
+                                </span>
+                              )}
+                              {contact.email && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Mail className="h-3 w-3" /> {contact.email}
+                                </span>
+                              )}
+                              {contact.birthday && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Cake className="h-3 w-3" /> {format(new Date(contact.birthday), 'dd MMM yyyy', { locale: fr })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
               )}
             </TabsContent>
           </Tabs>

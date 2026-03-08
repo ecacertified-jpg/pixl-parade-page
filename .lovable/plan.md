@@ -1,31 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan: Afficher les contacts d'un utilisateur dans le profil admin
+## Implémenté ✅
 
-### Contexte
-Le `UserProfileModal` (modal admin pour voir le profil d'un utilisateur) a actuellement 2 onglets : "Informations" et "Statistiques". On ajoute un 3e onglet **"Contacts"** listant les amis/contacts ajoutés par cet utilisateur.
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-### Modification unique : `src/components/admin/UserProfileModal.tsx`
-
-1. **Ajouter un 3e onglet** "Contacts" dans le `TabsList` (passer de `grid-cols-2` à `grid-cols-3`)
-
-2. **Fetcher les contacts** au chargement du modal :
-```sql
-SELECT id, name, phone, email, birthday, relationship, avatar_url
-FROM contacts WHERE user_id = :userId
-ORDER BY name ASC
-```
-
-3. **Afficher dans `TabsContent "contacts"`** :
-   - Nombre total de contacts en badge
-   - Liste scrollable de cartes compactes, chacune montrant :
-     - Avatar + nom
-     - Badge relation coloré (Famille, Ami, Collègue, etc.) — réutiliser le mapping `RELATIONSHIP_LABELS` existant dans `BirthdayDetailSheet`
-     - Téléphone (icône Phone)
-     - Email (icône Mail)
-     - Date d'anniversaire (icône Cake)
-   - Message d'état vide si aucun contact
-
-### Aucune migration SQL nécessaire
-La table `contacts` est accessible aux admins via les policies RLS existantes. Aucun autre fichier modifié.
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
