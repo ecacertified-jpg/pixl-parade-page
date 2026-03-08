@@ -494,11 +494,19 @@ serve(async (req) => {
             let sendResult: { success: boolean; error?: string; sid?: string } = { success: false };
 
             const dayLabel = daysUntilBirthday === 1 ? 'demain' : `dans ${daysUntilBirthday} jours`;
-            const waMsg = `🎂 L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez-lui un cadeau mémorable sur joiedevivre-africa.com/shop 🎁`;
             const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez un cadeau: joiedevivre-africa.com/shop`;
 
+            const noFundImageUrl = Deno.env.get('BIRTHDAY_NO_FUND_ALERT_IMAGE_URL')
+              || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-no-fund-alert.jpg`;
+
             if (channel === 'whatsapp') {
-              sendResult = await sendWhatsApp(phone, waMsg);
+              sendResult = await sendWhatsAppTemplate(
+                phone,
+                'joiedevivre_birthday_no_fund_alert',
+                [contact.name, dayLabel, 'JOIE DE VIVRE'],
+                [],
+                noFundImageUrl
+              );
             } else {
               sendResult = await sendSms(phone, smsMsg);
             }
