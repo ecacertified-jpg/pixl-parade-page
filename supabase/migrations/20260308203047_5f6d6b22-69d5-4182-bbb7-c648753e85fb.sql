@@ -1,0 +1,1 @@
+ALTER TABLE public.business_accounts ADD COLUMN IF NOT EXISTS mobile_money_merchant_phone text;
