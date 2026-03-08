@@ -89,6 +89,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         email: "",
         latitude: null,
         longitude: null,
+        wave_merchant_phone: "",
         opening_hours: {
           lundi: { open: "09:00", close: "18:00" },
           mardi: { open: "09:00", close: "18:00" },
