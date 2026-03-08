@@ -1,32 +1,38 @@
 
-# Architecture de Split de Paiement Wave
+# Architecture de Split de Paiement Wave & Mobile Money
 
 ## Implémenté ✅
 
 ### 1. Migration SQL
 - Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
 - Table `payment_splits` créée avec RLS (admins + business owners)
 - Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-### 2. Edge Function `process-wave-payment`
-- Calcule le split côté serveur à partir des prix originaux des produits (sans markup)
-- `vendor_amount` = somme des prix DB × quantité
-- `platform_amount` = montant payé client − vendor_amount
-- Enregistre dans `payment_splits` avec statut `simulated`
-- Récupère les numéros Wave du prestataire et de la plateforme
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-### 3. Formulaire prestataire (`AddBusinessModal`)
-- Champ "Numéro Wave marchand" ajouté dans la section Informations de paiement
-- Sauvegardé dans `business_accounts.wave_merchant_phone`
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
 ### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" ajouté pour recevoir les commissions
-- Stocké dans `platform_settings.platform_wave_phone`
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
 ### 5. Checkout
-- Après création d'une `business_order` Wave, appel non-bloquant à `process-wave-payment`
-- Le split est enregistré automatiquement en arrière-plan
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
 ### Statut transferts
 - Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave Transfer API pour dispatcher les fonds
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
