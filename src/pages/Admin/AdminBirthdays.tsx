@@ -185,6 +185,9 @@ export default function AdminBirthdays() {
                     <TableHead>Date</TableHead>
                     <TableHead>Échéance</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Relation</TableHead>
+                    <TableHead className="hidden md:table-cell">Téléphone</TableHead>
+                    <TableHead className="hidden md:table-cell">Propriétaire</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -209,6 +212,26 @@ export default function AdminBirthdays() {
                             <><Gift className="h-3 w-3 mr-1" /> Contact</>
                           )}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {entry.relationship ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {getRelationshipLabel(entry.relationship)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {entry.phone || '—'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                        {entry.type === 'contact' && entry.ownerName ? (
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {entry.ownerName}
+                          </span>
+                        ) : '—'}
                       </TableCell>
                     </TableRow>
                   ))}
