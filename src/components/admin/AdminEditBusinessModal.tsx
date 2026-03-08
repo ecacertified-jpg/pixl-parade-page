@@ -29,6 +29,7 @@ interface Business {
   longitude: number | null;
   country_code: string | null;
   wave_merchant_phone: string | null;
+  mobile_money_merchant_phone: string | null;
 }
 
 interface UserProfile {
