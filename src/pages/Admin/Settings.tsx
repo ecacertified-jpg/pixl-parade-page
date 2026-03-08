@@ -37,6 +37,7 @@ export default function Settings() {
     free_delivery_threshold: 25000,
     price_markup_rate: 0,
     platform_wave_phone: '',
+    platform_mobile_money_phone: '',
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -63,6 +64,7 @@ export default function Settings() {
         free_delivery_threshold: getSetting('free_delivery_threshold') || 25000,
         price_markup_rate: getSetting('price_markup_rate') || 0,
         platform_wave_phone: getSetting('platform_wave_phone') || '',
+        platform_mobile_money_phone: getSetting('platform_mobile_money_phone') || '',
       });
 
       setNotificationSettings({
@@ -89,6 +91,7 @@ export default function Settings() {
     updateSetting({ setting_key: 'free_delivery_threshold', setting_value: { value: financeSettings.free_delivery_threshold, currency: 'XOF' } });
     updateSetting({ setting_key: 'price_markup_rate', setting_value: { value: financeSettings.price_markup_rate, unit: 'percent' } });
     updateSetting({ setting_key: 'platform_wave_phone', setting_value: { value: financeSettings.platform_wave_phone } });
+    updateSetting({ setting_key: 'platform_mobile_money_phone', setting_value: { value: financeSettings.platform_mobile_money_phone } });
   };
 
   const handleSaveNotifications = () => {
@@ -326,6 +329,19 @@ export default function Settings() {
                     />
                     <p className="text-xs text-muted-foreground">
                       Numéro Wave sur lequel la plateforme reçoit la commission (différence prix majoré − prix prestataire).
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-mobile-money-phone">Numéro Mobile Money JDV (Orange/MTN)</Label>
+                    <Input 
+                      id="platform-mobile-money-phone" 
+                      type="tel"
+                      value={financeSettings.platform_mobile_money_phone}
+                      onChange={(e) => setFinanceSettings({...financeSettings, platform_mobile_money_phone: e.target.value})}
+                      placeholder="+225 07 XX XX XX XX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Numéro Orange Money ou MTN sur lequel la plateforme reçoit la commission.
                     </p>
                   </div>
                 </div>

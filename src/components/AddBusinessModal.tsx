@@ -58,6 +58,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
     latitude: null,
     longitude: null,
     wave_merchant_phone: "",
+    mobile_money_merchant_phone: "",
     opening_hours: {
       lundi: { open: "09:00", close: "18:00" },
       mardi: { open: "09:00", close: "18:00" },
@@ -90,6 +91,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
         latitude: null,
         longitude: null,
         wave_merchant_phone: "",
+        mobile_money_merchant_phone: "",
         opening_hours: {
           lundi: { open: "09:00", close: "18:00" },
           mardi: { open: "09:00", close: "18:00" },
@@ -193,7 +195,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             delivery_settings: formData.delivery_settings,
             latitude: formData.latitude,
             longitude: formData.longitude,
-            wave_merchant_phone: formData.wave_merchant_phone || null
+            wave_merchant_phone: formData.wave_merchant_phone || null,
+            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -222,6 +225,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             latitude: formData.latitude,
             longitude: formData.longitude,
             wave_merchant_phone: formData.wave_merchant_phone || null,
+            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -496,6 +500,21 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Numéro Wave sur lequel vous recevrez les paiements des commandes
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="mobile_money_merchant_phone">Numéro Mobile Money marchand (Orange/MTN)</Label>
+                <Input
+                  id="mobile_money_merchant_phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={formData.mobile_money_merchant_phone || ""}
+                  onChange={(e) => handleInputChange('mobile_money_merchant_phone', e.target.value)}
+                  placeholder="+225 07 XX XX XX XX"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Numéro Orange Money ou MTN Mobile Money pour recevoir les paiements
                 </p>
               </div>
             </div>

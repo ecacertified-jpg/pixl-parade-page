@@ -29,6 +29,7 @@ interface Business {
   longitude: number | null;
   country_code: string | null;
   wave_merchant_phone: string | null;
+  mobile_money_merchant_phone: string | null;
 }
 
 interface UserProfile {
@@ -85,6 +86,7 @@ export function AdminEditBusinessModal({
     longitude: null as number | null,
     country_code: '' as string | null,
     wave_merchant_phone: '',
+    mobile_money_merchant_phone: '',
   });
 
   useEffect(() => {
@@ -105,6 +107,7 @@ export function AdminEditBusinessModal({
         longitude: business.longitude,
         country_code: business.country_code || 'CI',
         wave_merchant_phone: business.wave_merchant_phone || '',
+        mobile_money_merchant_phone: business.mobile_money_merchant_phone || '',
       });
       loadUsers();
     }
@@ -147,6 +150,7 @@ export function AdminEditBusinessModal({
         latitude: formData.latitude,
         longitude: formData.longitude,
         wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
+        mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
       };
 
       // Only update user_id if it changed (ownership transfer)
@@ -313,6 +317,20 @@ export function AdminEditBusinessModal({
             />
             <p className="text-xs text-muted-foreground">
               Numéro Wave pour recevoir les paiements
+            </p>
+          </div>
+
+          {/* Mobile Money Merchant Phone */}
+          <div className="space-y-2">
+            <Label>Numéro Mobile Money marchand (Orange/MTN)</Label>
+            <Input
+              type="tel"
+              value={formData.mobile_money_merchant_phone}
+              onChange={(e) => setFormData({ ...formData, mobile_money_merchant_phone: e.target.value })}
+              placeholder="+225 07 XX XX XX XX"
+            />
+            <p className="text-xs text-muted-foreground">
+              Numéro Orange Money ou MTN pour recevoir les paiements
             </p>
           </div>
 

@@ -264,3 +264,6 @@ verify_jwt = false
 
 [functions.process-wave-payment]
 verify_jwt = false
+
+[functions.process-mobile-money-payment]
+verify_jwt = false

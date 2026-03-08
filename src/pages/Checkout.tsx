@@ -397,6 +397,17 @@ export default function Checkout() {
               else console.log('✅ Wave split result:', data);
             });
           }
+
+          // If Mobile Money payment, trigger payment split processing
+          if (paymentMethod === 'mobile' && businessOrderResult?.[0]?.id) {
+            console.log('💳 Processing Mobile Money payment split for order:', businessOrderResult[0].id);
+            supabase.functions.invoke('process-mobile-money-payment', {
+              body: { business_order_id: businessOrderResult[0].id }
+            }).then(({ data, error }) => {
+              if (error) console.error('⚠️ Mobile Money split error (non-blocking):', error);
+              else console.log('✅ Mobile Money split result:', data);
+            });
+          }
         }
         
         console.log('🎉 All business orders processed successfully!');

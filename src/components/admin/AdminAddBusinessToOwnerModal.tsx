@@ -58,6 +58,7 @@ export function AdminAddBusinessToOwnerModal({
     description: '',
     website_url: '',
     wave_merchant_phone: '',
+    mobile_money_merchant_phone: '',
   });
 
   useEffect(() => {
@@ -137,6 +138,7 @@ export function AdminAddBusinessToOwnerModal({
           description: formData.description.trim() || null,
           website_url: formData.website_url.trim() || null,
           wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
+          mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
           is_active: true,
           is_verified: false,
           status: 'active',
@@ -182,6 +184,7 @@ export function AdminAddBusinessToOwnerModal({
       description: '',
       website_url: '',
       wave_merchant_phone: '',
+      mobile_money_merchant_phone: '',
     });
   };
 
@@ -326,6 +329,20 @@ export function AdminAddBusinessToOwnerModal({
             />
             <p className="text-xs text-muted-foreground">
               Numéro Wave pour recevoir les paiements
+            </p>
+          </div>
+
+          {/* Mobile Money Merchant Phone */}
+          <div className="space-y-2">
+            <Label>Numéro Mobile Money marchand (Orange/MTN)</Label>
+            <Input
+              type="tel"
+              value={formData.mobile_money_merchant_phone}
+              onChange={(e) => setFormData({ ...formData, mobile_money_merchant_phone: e.target.value })}
+              placeholder="+225 07 XX XX XX XX"
+            />
+            <p className="text-xs text-muted-foreground">
+              Numéro Orange Money ou MTN pour recevoir les paiements
             </p>
           </div>
 

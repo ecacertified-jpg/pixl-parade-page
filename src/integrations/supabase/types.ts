@@ -928,6 +928,7 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          mobile_money_merchant_phone: string | null
           opening_hours: Json | null
           payment_info: Json | null
           phone: string | null
@@ -959,6 +960,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          mobile_money_merchant_phone?: string | null
           opening_hours?: Json | null
           payment_info?: Json | null
           phone?: string | null
@@ -990,6 +992,7 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          mobile_money_merchant_phone?: string | null
           opening_hours?: Json | null
           payment_info?: Json | null
           phone?: string | null
