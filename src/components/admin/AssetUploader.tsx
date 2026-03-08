@@ -3,7 +3,8 @@ import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File } from 'lucide-react';
+import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File, Pencil, Check, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface StorageFile {
   name: string;
@@ -30,6 +31,8 @@ export function AssetUploader() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<globalThis.File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [renamingFile, setRenamingFile] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -73,6 +76,40 @@ export function AssetUploader() {
       toast.success(`"${fileName}" supprimé`);
       fetchFiles();
     }
+  };
+
+  const startRename = (fileName: string) => {
+    const lastDot = fileName.lastIndexOf('.');
+    setRenamingFile(fileName);
+    setNewName(lastDot > 0 ? fileName.substring(0, lastDot) : fileName);
+  };
+
+  const cancelRename = () => {
+    setRenamingFile(null);
+    setNewName('');
+  };
+
+  const handleRename = async () => {
+    if (!renamingFile || !newName.trim()) return;
+    const lastDot = renamingFile.lastIndexOf('.');
+    const ext = lastDot > 0 ? renamingFile.substring(lastDot) : '';
+    const sanitized = newName.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const finalName = sanitized + ext;
+
+    if (finalName === renamingFile) { cancelRename(); return; }
+
+    const { data: blob, error: dlError } = await supabase.storage.from('assets').download(renamingFile);
+    if (dlError || !blob) { toast.error('Erreur téléchargement'); return; }
+
+    const { error: upError } = await supabase.storage.from('assets').upload(finalName, blob, { upsert: true });
+    if (upError) { toast.error(`Erreur upload : ${upError.message}`); return; }
+
+    const { error: rmError } = await supabase.storage.from('assets').remove([renamingFile]);
+    if (rmError) { toast.error(`Erreur suppression ancien : ${rmError.message}`); return; }
+
+    toast.success(`Renommé en "${finalName}"`);
+    cancelRename();
+    fetchFiles();
   };
 
   const copyUrl = (fileName: string) => {
@@ -140,16 +177,47 @@ export function AssetUploader() {
               {files.map((file) => (
                 <div key={file.id} className="flex items-center gap-3 px-3 py-2">
                   {getFileIcon(file.metadata?.mimetype || '')}
-                  <span className="text-sm truncate flex-1">{file.name}</span>
+                  {renamingFile === file.name ? (
+                    <form
+                      className="flex items-center gap-2 flex-1 min-w-0"
+                      onSubmit={(e) => { e.preventDefault(); handleRename(); }}
+                    >
+                      <Input
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && cancelRename()}
+                        className="h-7 text-sm flex-1"
+                        autoFocus
+                      />
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
+                      </span>
+                      <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
+                        <Check className="h-4 w-4 text-success" />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </form>
+                  ) : (
+                    <span className="text-sm truncate flex-1">{file.name}</span>
+                  )}
                   <span className="text-xs text-muted-foreground hidden sm:block">
                     {file.metadata?.size ? formatFileSize(file.metadata.size) : '—'}
                   </span>
-                  <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {renamingFile !== file.name && (
+                    <>
+                      <Button variant="ghost" size="icon" onClick={() => startRename(file.name)} title="Renommer">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>

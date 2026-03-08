@@ -1,31 +1,12 @@
 
+# Template HSM joiedevivre_birthday_no_fund_alert
 
-## Plan: Ajouter le renommage de fichiers dans Assets
+## Implémenté ✅
 
-### Contexte
-Supabase Storage n'a pas de fonction `rename` native. Le renommage se fait en 3 etapes : copier le fichier vers le nouveau nom, supprimer l'ancien, rafraichir la liste.
+**Fichier** : `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-### Modification
-
-**Fichier** : `src/components/admin/AssetUploader.tsx`
-
-1. **Ajouter un state** pour tracker le fichier en cours de renommage (`renamingFile: string | null`) et le nouveau nom (`newName: string`)
-
-2. **Ajouter une fonction `handleRename`** :
-   - Telecharge le fichier existant via `supabase.storage.from('assets').download(oldName)`
-   - Upload sous le nouveau nom via `.upload(newName, blob, { upsert: true })`
-   - Supprime l'ancien via `.remove([oldName])`
-   - Rafraichit la liste
-
-3. **Ajouter un bouton Pencil (rename)** a cote du bouton Copy dans chaque ligne de fichier
-
-4. **Mode edition inline** : quand `renamingFile === file.name`, remplacer le `<span>` du nom par un `<Input>` avec boutons Valider/Annuler
-
-5. **Import** : ajouter `Pencil`, `Check`, `X` depuis lucide-react et `Input` depuis shadcn
-
-### UX
-- Clic sur le crayon → le nom devient editable (sans l'extension)
-- L'extension est preservee automatiquement
-- Enter ou bouton check valide, Escape ou X annule
-- Toast de succes/erreur
-
+Remplacement de l'envoi en texte libre (`sendWhatsApp`) par le template HSM `joiedevivre_birthday_no_fund_alert` via `sendWhatsAppTemplate` :
+1. 3 paramètres body : prénom bénéficiaire (`{{1}}`), dayLabel (`{{2}}`), 'JOIE DE VIVRE' (`{{3}}`)
+2. Header image via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback Supabase Storage `assets/birthday-no-fund-alert.jpg`)
+3. SMS fallback conservé tel quel
+4. Déduplication inchangée via `birthday_contact_alerts` avec `alert_type: 'friend_birthday_alert_no_fund'`
