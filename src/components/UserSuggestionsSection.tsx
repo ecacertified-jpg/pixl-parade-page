@@ -71,6 +71,41 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
     setDismissedUsers(prev => new Set(prev).add(userId));
   };
 
+  const handleAddFriend = async (suggestion: typeof suggestions[0]) => {
+    if (!user?.id) return;
+    setActionLoading(`friend-${suggestion.user_id}`);
+    try {
+      const ok = await sendRequest(suggestion.user_id);
+      if (ok) {
+        // Fetch full profile for phone/birthday
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone, birthday, city')
+          .eq('user_id', suggestion.user_id)
+          .single();
+
+        const name = [suggestion.first_name, suggestion.last_name].filter(Boolean).join(' ') || 'Utilisateur';
+
+        // Insert contact into circle
+        await supabase.from('contacts').insert({
+          user_id: user.id,
+          name,
+          phone: profile?.phone || null,
+          birthday: profile?.birthday || null,
+          relationship: 'ami',
+          linked_user_id: suggestion.user_id,
+          notes: profile?.city || suggestion.city || null,
+        });
+
+        setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
+      }
+    } catch (error) {
+      console.error('Error adding friend contact:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const visibleSuggestions = suggestions.filter(
     s => !followingUsers.has(s.user_id) && !dismissedUsers.has(s.user_id)
   );
@@ -232,12 +267,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
               <Button
                 size="sm"
                 variant="outline"
-                onClick={async () => {
-                  setActionLoading(`friend-${suggestion.user_id}`);
-                  const ok = await sendRequest(suggestion.user_id);
-                  if (ok) setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
-                  setActionLoading(null);
-                }}
+                onClick={() => handleAddFriend(suggestion)}
                 disabled={actionLoading === `friend-${suggestion.user_id}`}
                 className="gap-1 h-8"
               >
@@ -330,12 +360,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
             <Button
               size="sm"
               variant="outline"
-              onClick={async () => {
-                setActionLoading(`friend-${suggestion.user_id}`);
-                const ok = await sendRequest(suggestion.user_id);
-                if (ok) setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
-                setActionLoading(null);
-              }}
+              onClick={() => handleAddFriend(suggestion)}
               disabled={actionLoading === `friend-${suggestion.user_id}`}
               className="gap-1 h-8"
             >
