@@ -100,6 +100,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
         });
 
         setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data', user.id] });
       }
     } catch (error) {
       console.error('Error adding friend contact:', error);
