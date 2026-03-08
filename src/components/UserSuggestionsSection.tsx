@@ -77,33 +77,40 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
     if (!user?.id) return;
     setActionLoading(`friend-${suggestion.user_id}`);
     try {
-      const ok = await sendRequest(suggestion.user_id);
-      if (ok) {
-        // Fetch full profile for phone/birthday
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone, birthday, city')
-          .eq('user_id', suggestion.user_id)
-          .single();
+      // Send friend request (independent from contact creation)
+      await sendRequest(suggestion.user_id);
 
-        const name = [suggestion.first_name, suggestion.last_name].filter(Boolean).join(' ') || 'Utilisateur';
+      // Always try to add to contacts circle
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone, birthday, city')
+        .eq('user_id', suggestion.user_id)
+        .single();
 
-        // Insert contact into circle
-        await supabase.from('contacts').insert({
-          user_id: user.id,
-          name,
-          phone: profile?.phone || null,
-          birthday: profile?.birthday || null,
-          relationship: 'ami',
-          linked_user_id: suggestion.user_id,
-          notes: profile?.city || suggestion.city || null,
-        });
+      const name = [suggestion.first_name, suggestion.last_name].filter(Boolean).join(' ') || 'Utilisateur';
 
-        setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
-        queryClient.invalidateQueries({ queryKey: ['dashboard-data', user.id] });
+      const { error } = await supabase.from('contacts').insert({
+        user_id: user.id,
+        name,
+        phone: profile?.phone || null,
+        birthday: profile?.birthday || null,
+        relationship: 'ami',
+        linked_user_id: suggestion.user_id,
+        notes: profile?.city || suggestion.city || null,
+      });
+
+      if (error) {
+        console.error('Contact insert error:', error);
+        if (error.code !== '23505') {
+          toast.error("Impossible d'ajouter le contact");
+        }
       }
+
+      setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data', user.id] });
     } catch (error) {
-      console.error('Error adding friend contact:', error);
+      console.error('Error adding friend:', error);
+      toast.error("Une erreur est survenue");
     } finally {
       setActionLoading(null);
     }
