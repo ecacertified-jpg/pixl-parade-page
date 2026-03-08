@@ -37,6 +37,7 @@ export default function Settings() {
     free_delivery_threshold: 25000,
     price_markup_rate: 0,
     platform_wave_phone: '',
+    platform_mobile_money_phone: '',
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
