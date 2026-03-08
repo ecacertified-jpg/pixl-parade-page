@@ -3,8 +3,9 @@ import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File, Pencil, Check, X } from 'lucide-react';
+import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File, Pencil, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 interface StorageFile {
   name: string;
@@ -19,11 +20,10 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const getFileIcon = (mimetype: string) => {
-  if (mimetype?.startsWith('image/')) return <FileImage className="h-4 w-4 text-primary" />;
-  if (mimetype?.startsWith('video/')) return <FileVideo className="h-4 w-4 text-accent" />;
-  return <File className="h-4 w-4 text-muted-foreground" />;
-};
+const isImage = (mimetype: string) => mimetype?.startsWith('image/');
+
+const getPublicUrl = (fileName: string) =>
+  `${SUPABASE_URL}/storage/v1/object/public/assets/${fileName}`;
 
 export function AssetUploader() {
   const [files, setFiles] = useState<StorageFile[]>([]);
@@ -33,6 +33,7 @@ export function AssetUploader() {
   const [dragOver, setDragOver] = useState(false);
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -174,52 +175,107 @@ export function AssetUploader() {
             <p className="text-sm text-muted-foreground py-4 text-center">Aucun fichier</p>
           ) : (
             <div className="divide-y divide-border rounded-md border">
-              {files.map((file) => (
-                <div key={file.id} className="flex items-center gap-3 px-3 py-2">
-                  {getFileIcon(file.metadata?.mimetype || '')}
-                  {renamingFile === file.name ? (
-                    <form
-                      className="flex items-center gap-2 flex-1 min-w-0"
-                      onSubmit={(e) => { e.preventDefault(); handleRename(); }}
-                    >
-                      <Input
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Escape' && cancelRename()}
-                        className="h-7 text-sm flex-1"
-                        autoFocus
-                      />
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
+              {files.map((file) => {
+                const mimetype = file.metadata?.mimetype || '';
+                const fileIsImage = isImage(mimetype);
+                const fileIcon = fileIsImage
+                  ? <FileImage className="h-4 w-4 text-primary" />
+                  : mimetype?.startsWith('video/')
+                    ? <FileVideo className="h-4 w-4 text-accent" />
+                    : <File className="h-4 w-4 text-muted-foreground" />;
+
+                return (
+                  <div key={file.id}>
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      {fileIsImage ? (
+                        <HoverCard openDelay={200} closeDelay={100}>
+                          <HoverCardTrigger asChild>
+                            <button
+                              type="button"
+                              className="shrink-0 cursor-pointer"
+                              onClick={() => setPreviewFile(prev => prev === file.name ? null : file.name)}
+                              title="Prévisualiser"
+                            >
+                              {fileIcon}
+                            </button>
+                          </HoverCardTrigger>
+                          <HoverCardContent side="right" className="w-auto p-1">
+                            <img
+                              src={getPublicUrl(file.name)}
+                              alt={file.name}
+                              className="max-w-[200px] max-h-[200px] rounded object-contain"
+                            />
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <span className="shrink-0">{fileIcon}</span>
+                      )}
+                      {renamingFile === file.name ? (
+                        <form
+                          className="flex items-center gap-2 flex-1 min-w-0"
+                          onSubmit={(e) => { e.preventDefault(); handleRename(); }}
+                        >
+                          <Input
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Escape' && cancelRename()}
+                            className="h-7 text-sm flex-1"
+                            autoFocus
+                          />
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
+                          </span>
+                          <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
+                            <Check className="h-4 w-4 text-success" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </form>
+                      ) : (
+                        <span className="text-sm truncate flex-1">{file.name}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground hidden sm:block">
+                        {file.metadata?.size ? formatFileSize(file.metadata.size) : '—'}
                       </span>
-                      <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
-                        <Check className="h-4 w-4 text-success" />
-                      </Button>
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </form>
-                  ) : (
-                    <span className="text-sm truncate flex-1">{file.name}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground hidden sm:block">
-                    {file.metadata?.size ? formatFileSize(file.metadata.size) : '—'}
-                  </span>
-                  {renamingFile !== file.name && (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={() => startRename(file.name)} title="Renommer">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ))}
+                      {renamingFile !== file.name && (
+                        <>
+                          {fileIsImage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setPreviewFile(prev => prev === file.name ? null : file.name)}
+                              title={previewFile === file.name ? 'Masquer' : 'Prévisualiser'}
+                            >
+                              {previewFile === file.name ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => startRename(file.name)} title="Renommer">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => copyUrl(file.name)} title="Copier l'URL">
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(file.name)} title="Supprimer">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {previewFile === file.name && fileIsImage && (
+                      <div className="px-3 pb-3 flex justify-center">
+                        <img
+                          src={getPublicUrl(file.name)}
+                          alt={file.name}
+                          className="max-h-48 rounded-md object-contain border border-border cursor-pointer"
+                          onClick={() => setPreviewFile(null)}
+                          title="Cliquer pour fermer"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
