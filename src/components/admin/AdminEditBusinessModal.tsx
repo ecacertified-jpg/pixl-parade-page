@@ -107,6 +107,7 @@ export function AdminEditBusinessModal({
         longitude: business.longitude,
         country_code: business.country_code || 'CI',
         wave_merchant_phone: business.wave_merchant_phone || '',
+        mobile_money_merchant_phone: business.mobile_money_merchant_phone || '',
       });
       loadUsers();
     }
