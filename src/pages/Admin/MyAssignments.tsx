@@ -259,6 +259,26 @@ const MyAssignments = () => {
                                 {a.profile?.phone || <span className="text-muted-foreground italic">Non renseigné</span>}
                               </TableCell>
                               <TableCell>
+                                {a.profile?.birthday ? (() => {
+                                  const days = getDaysUntilBirthday(a.profile.birthday);
+                                  const parts = a.profile.birthday.split('-');
+                                  const formatted = `${parts[2]}/${parts[1]}`;
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <Cake className="h-4 w-4 text-pink-500" />
+                                      <span className="text-sm">{formatted}</span>
+                                      {days <= 30 && (
+                                        <Badge variant={days === 0 ? 'destructive' : days <= 3 ? 'default' : days <= 7 ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 h-4">
+                                          {days === 0 ? "Aujourd'hui" : days === 1 ? 'Demain' : `${days}j`}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground italic text-sm">Non renseigné</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
