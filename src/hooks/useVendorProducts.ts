@@ -106,6 +106,17 @@ export function useVendorProducts(businessId: string | undefined) {
         websiteUrl: businessData.website_url || null,
       });
 
+      // Charger le taux de majoration
+      let markupRate = 0;
+      const { data: markupSetting } = await supabase
+        .from('platform_settings')
+        .select('setting_value')
+        .eq('setting_key', 'price_markup_rate')
+        .single();
+      if (markupSetting?.setting_value && typeof markupSetting.setting_value === 'object' && 'value' in (markupSetting.setting_value as any)) {
+        markupRate = (markupSetting.setting_value as any).value || 0;
+      }
+
       // Charger les produits du prestataire
       const { data: productsData, error: productsError } = await supabase
         .from('products')
