@@ -45,6 +45,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [businessAccounts, setBusinessAccounts] = useState<any[]>([]);
   const [isValidatingSession, setIsValidatingSession] = useState(true);
+  const [showWaveModal, setShowWaveModal] = useState(false);
 
   // Validation de session préventive au chargement de la page
   useEffect(() => {
