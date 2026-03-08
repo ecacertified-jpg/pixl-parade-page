@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { UserPlus, Users, X, Share2, Mail, UserCheck, Loader2, Cake } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ interface UserSuggestionsSectionProps {
 export function UserSuggestionsSection({ compact = false }: UserSuggestionsSectionProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { suggestions, loading, refreshSuggestions } = useUserSuggestions(5);
   const [followingUsers, setFollowingUsers] = useState<Set<string>>(new Set());
@@ -98,6 +100,7 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
         });
 
         setFriendRequestSent(prev => new Set(prev).add(suggestion.user_id));
+        queryClient.invalidateQueries({ queryKey: ['dashboard-data', user.id] });
       }
     } catch (error) {
       console.error('Error adding friend contact:', error);
