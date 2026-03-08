@@ -225,6 +225,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             latitude: formData.latitude,
             longitude: formData.longitude,
             wave_merchant_phone: formData.wave_merchant_phone || null,
+            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
             is_active: true,
             is_verified: false,
             status: 'active',
