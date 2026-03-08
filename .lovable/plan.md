@@ -1,32 +1,34 @@
 
-# Architecture de Split de Paiement Wave
 
-## Implémenté ✅
+## Plan : Tableau de bord des commissions JDV (Splits Wave)
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+### Objectif
+Ajouter une page admin `/admin/commissions` affichant l'historique des splits de paiement, les montants percus par periode, et le statut des transferts Wave.
 
-### 2. Edge Function `process-wave-payment`
-- Calcule le split côté serveur à partir des prix originaux des produits (sans markup)
-- `vendor_amount` = somme des prix DB × quantité
-- `platform_amount` = montant payé client − vendor_amount
-- Enregistre dans `payment_splits` avec statut `simulated`
-- Récupère les numéros Wave du prestataire et de la plateforme
+### Architecture
 
-### 3. Formulaire prestataire (`AddBusinessModal`)
-- Champ "Numéro Wave marchand" ajouté dans la section Informations de paiement
-- Sauvegardé dans `business_accounts.wave_merchant_phone`
+La page interroge directement la table `payment_splits` (avec jointure sur `business_orders` pour le contexte) et affiche :
+1. **KPI Cards** : total commissions JDV, total verse aux prestataires, nombre de splits, taux de markup moyen
+2. **Graphique temporel** (Recharts AreaChart) : evolution des commissions par jour/semaine
+3. **Tableau detaille** : liste des splits avec montants, statuts de transfert, date, prestataire
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" ajouté pour recevoir les commissions
-- Stocké dans `platform_settings.platform_wave_phone`
+### Fichiers
 
-### 5. Checkout
-- Après création d'une `business_order` Wave, appel non-bloquant à `process-wave-payment`
-- Le split est enregistré automatiquement en arrière-plan
+#### 1. `src/pages/Admin/CommissionsDashboard.tsx` (creation)
+- Hook interne pour fetcher `payment_splits` avec jointure `business_orders(id, business_account_id, order_summary, business_accounts(business_name))`
+- Selecteur de periode (reutilise `SimplePeriodSelector`)
+- 4 KPI cards en haut : Commission JDV totale, Montant prestataires, Nb transactions, Markup moyen
+- AreaChart recharts : commissions JDV par jour
+- Table avec colonnes : Date, Prestataire, Montant client, Part prestataire, Commission JDV, Markup %, Statut vendeur, Statut plateforme
+- Badges colores pour les statuts (simulated=jaune, pending=orange, completed=vert, failed=rouge)
+- Export CSV
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave Transfer API pour dispatcher les fonds
+#### 2. `src/App.tsx` (modification)
+- Ajouter lazy import + route `/admin/commissions`
+
+#### 3. `src/components/AdminLayout.tsx` (modification)
+- Ajouter entree nav "Commissions" avec icone `DollarSign` ou `Split` apres "Finances"
+
+### Pas de migration SQL necessaire
+La table `payment_splits` et ses RLS existent deja.
+
