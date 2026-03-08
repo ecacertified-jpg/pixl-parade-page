@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,6 +6,9 @@ import { toast } from 'sonner';
 import { Upload, Trash2, Copy, Loader2, FileImage, FileVideo, File, Pencil, Check, X, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+type FileFilter = 'all' | 'images' | 'videos' | 'others';
 
 interface StorageFile {
   name: string;
