@@ -623,6 +623,16 @@ export default function Checkout() {
                 <span className="font-medium">📱 Mobile Money (Orange/MTN)</span>
               </Label>
             </div>
+
+            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+              <RadioGroupItem value="wave" id="wave" />
+              <Label htmlFor="wave" className="flex items-center gap-3 flex-1 cursor-pointer">
+                <div className="w-8 h-8 rounded-full bg-[#1DC3C3] flex items-center justify-center">
+                  <Smartphone className="h-4 w-4 text-white" />
+                </div>
+                <span className="font-medium">🌊 Wave</span>
+              </Label>
+            </div>
           </RadioGroup>
         </Card>
 
