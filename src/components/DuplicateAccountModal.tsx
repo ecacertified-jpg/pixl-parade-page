@@ -183,15 +183,21 @@ export function DuplicateAccountModal({
             </div>
           </div>
 
-          {/* Continuer quand même */}
-          <Button
-            variant="ghost"
-            className="w-full gap-2 text-muted-foreground"
-            onClick={onContinueAnyway}
-          >
-            <UserPlus className="h-4 w-4" />
-            Ce n'est pas moi - Continuer l'inscription
-          </Button>
+          {/* Continuer quand même - uniquement si confiance faible/moyenne */}
+          {confidence !== 'high' ? (
+            <Button
+              variant="ghost"
+              className="w-full gap-2 text-muted-foreground"
+              onClick={onContinueAnyway}
+            >
+              <UserPlus className="h-4 w-4" />
+              Ce n'est pas moi - Continuer l'inscription
+            </Button>
+          ) : (
+            <p className="text-sm text-center text-muted-foreground px-4 py-2">
+              Ce numéro ou email est déjà associé à un compte. Connectez-vous puis ajoutez vos business depuis l'onglet <span className="font-semibold text-foreground">Config</span>.
+            </p>
+          )}
 
           <AlertDialogCancel className="w-full mt-2">Annuler</AlertDialogCancel>
         </AlertDialogFooter>

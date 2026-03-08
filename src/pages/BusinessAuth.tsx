@@ -1186,6 +1186,24 @@ const BusinessAuth = () => {
       return;
     }
 
+    // Vérifier si un compte existe déjà avec cet email
+    const duplicateCheck = await checkForDuplicate('', data.firstName);
+    const serverEmailCheck = await fetch(`${SUPABASE_URL}/functions/v1/check-existing-account`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_PUBLISHABLE_KEY },
+      body: JSON.stringify({ email: data.email }),
+    }).then(r => r.json()).catch(() => null);
+    
+    if (serverEmailCheck && serverEmailCheck.exists && serverEmailCheck.confidence === 'high') {
+      setIsLoading(false);
+      toast({
+        title: 'Compte existant',
+        description: 'Un compte existe déjà avec cet email. Connectez-vous puis ajoutez un business depuis l\'onglet Config.',
+      });
+      setAuthMode('signin');
+      return;
+    }
+
     try {
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,

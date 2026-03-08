@@ -988,6 +988,18 @@ const Auth = () => {
   const handleEmailSignUp = async (data: EmailSignUpFormData) => {
     setIsLoading(true);
     try {
+      // Vérifier si un compte existe déjà avec cet email
+      const serverResult = await checkExistingAccount(undefined, data.email, data.firstName, data.city);
+      if (serverResult && serverResult.exists && serverResult.confidence === 'high') {
+        toast({
+          title: 'Compte existant',
+          description: 'Un compte existe déjà avec cet email. Veuillez vous connecter.',
+        });
+        setAuthMode('signin');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
