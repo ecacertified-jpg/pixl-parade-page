@@ -17,6 +17,8 @@ import { CountrySelector } from "@/components/CountrySelector";
 import { CountryInfoCard } from "@/components/CountryInfoCard";
 import { EditAvatarModal } from "@/components/EditAvatarModal";
 import { ProfilePrivacySettings } from "@/components/ProfilePrivacySettings";
+import { ChangeEmailDialog } from "@/components/ChangeEmailDialog";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { format, parse, isValid } from "date-fns";
 import { AccountBreadcrumb } from "@/components/breadcrumbs";
