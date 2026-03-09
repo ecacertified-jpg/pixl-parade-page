@@ -1,38 +1,44 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+## Analyse et Plan
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+### Reponse aux questions
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+**Les demandes d'amitie proviennent-elles d'utilisateurs avec des relations en commun ?**
+Non, pas necessairement. Le systeme actuel (`contact_requests`) permet a n'importe quel utilisateur de la plateforme d'envoyer une demande via la recherche. Il n'y a pas de filtre "amis en commun" sur les demandes recues. Cependant, le systeme de suggestions (`useUserSuggestions`) utilise deja un scoring qui favorise les utilisateurs avec des amis communs (x3), meme ville (x2), et occasions similaires.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+**Propositions pour renforcer l'interet des demandes d'amitie :**
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+1. **Afficher le nombre d'amis en commun** sur chaque demande recue — cela cree un signal de confiance et motive l'acceptation
+2. **Afficher la raison/contexte** ("3 amis en commun", "Meme ville: Abidjan") directement dans le carousel
+3. **Conditionner l'acces aux wishlists et cagnottes** a une relation d'amitie acceptee — c'est deja partiellement le cas via `can_see_funds` dans `contact_relationships`
+4. **Notifications de rappel** pour les demandes non traitees apres X jours
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### Plan d'implementation : Carousel des demandes d'amitie + amis en commun
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+**Composant `FriendRequestsCarousel.tsx`** (remplace la liste verticale actuelle)
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+- Carousel horizontal swipeable (Embla via shadcn Carousel, comme `UserSuggestionsSection`)
+- Chaque carte affiche : avatar, nom, nombre d'amis en commun (calcule), boutons Accepter/Refuser
+- Indicateur de pagination (dots) sous le carousel
+- Animation de sortie quand une demande est traitee
+- Se masque automatiquement si 0 demandes
+
+**Hook `useFriendRequests.ts`** — enrichir les donnees
+
+- Apres avoir recupere les demandes recues, calculer pour chaque requester le nombre d'amis en commun :
+  - Recuperer les relations du user courant (`contact_relationships`)
+  - Recuperer les relations de chaque requester
+  - Compter l'intersection
+- Ajouter `mutualFriendsCount: number` au type `FriendRequest`
+
+**Dashboard.tsx**
+
+- Remplacer `<FriendRequestsNotification>` par `<FriendRequestsCarousel>`
+
+### Fichiers concernes
+- Creer `src/components/FriendRequestsCarousel.tsx`
+- Modifier `src/hooks/useFriendRequests.ts` (ajouter calcul amis en commun)
+- Modifier `src/pages/Dashboard.tsx` (swap composant)
+- Supprimer ou deprecier `src/components/FriendRequestsNotification.tsx`
+
