@@ -1,4 +1,4 @@
-import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag, Gift, PackageOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
