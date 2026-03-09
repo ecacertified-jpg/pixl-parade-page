@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { Gift, Sparkles, Loader2, Check, MapPin, Phone } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -32,7 +30,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const { country } = useCountry();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [birthday, setBirthday] = useState<Date | undefined>();
-  const [firstName, setFirstName] = useState(initialData?.firstName || '');
+  
   
   // State for address selection
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
@@ -71,10 +69,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         phone: phoneData.nationalNumber ? `${phoneData.countryCode}${phoneData.nationalNumber}` : null,
       };
 
-      // Update first_name only if provided
-      if (firstName.trim()) {
-        updateData.first_name = firstName.trim();
-      }
 
       const { error } = await supabase
         .from('profiles')
@@ -120,66 +114,41 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader className="text-center flex-shrink-0">
-          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-white" />
+          <div className="mx-auto mb-1 w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-bold text-center">
-            Bienvenue ! 🎉
+          <DialogTitle className="text-xl font-bold text-center">
+            Complétez votre profil 🎉
           </DialogTitle>
-          <DialogDescription className="text-center text-base">
-            Pour mieux vous accompagner dans vos célébrations, nous avons besoin de quelques informations.
+          <DialogDescription className="text-center text-sm">
+            3 infos pour profiter de toutes les fonctionnalités.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress indicator */}
+        {/* Compact progress indicator */}
         {(() => {
           const checks = [!!birthday, !!(addressData?.city), !!phoneData.isValid];
-          const steps = [
-            { label: 'Anniversaire', isComplete: checks[0] },
-            { label: 'Localisation', isComplete: checks[1] },
-            { label: 'Téléphone', isComplete: checks[2] },
-          ];
           const filledCount = checks.filter(Boolean).length;
           const progress = Math.round((filledCount / 3) * 100);
-          const stepLabel = progress === 0 ? 'Complétez votre profil' : progress < 100 ? 'Presque terminé !' : 'Prêt !';
+          const StepIcons = [Gift, MapPin, Phone];
           return (
-            <div className="space-y-3 p-3 bg-secondary/30 rounded-xl flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground">{stepLabel}</span>
-                <span className="text-sm font-semibold text-primary">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" indicatorClassName={cn("transition-all duration-500", progress === 100 ? "bg-green-500" : "bg-primary")} />
-              <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
-                {steps.map((s, i) => {
-                  const StepIcon = [Gift, MapPin, Phone][i];
-                  return (
-                    <div key={i} className="flex flex-col items-center gap-0.5 text-center">
-                      {s.isComplete ? <Check className="h-4 w-4 text-green-500" /> : <StepIcon className="h-4 w-4 text-muted-foreground/50" />}
-                      <span>{s.label}</span>
-                    </div>
-                  );
+            <div className="flex items-center gap-3 px-3 py-2 bg-secondary/30 rounded-lg flex-shrink-0">
+              <div className="flex items-center gap-2">
+                {checks.map((done, i) => {
+                  const Icon = StepIcons[i];
+                  return done
+                    ? <Check key={i} className="h-4 w-4 text-green-500" />
+                    : <Icon key={i} className="h-4 w-4 text-muted-foreground/40" />;
                 })}
               </div>
+              <Progress value={progress} className="h-1.5 flex-1" indicatorClassName={cn("transition-all duration-500", progress === 100 ? "bg-green-500" : "bg-primary")} />
+              <span className="text-xs font-semibold text-primary">{progress}%</span>
             </div>
           );
         })()}
 
         {/* Scrollable form area */}
-        <div className="flex-1 overflow-y-auto space-y-6 py-4 min-h-0">
-          {/* First Name (optional, pre-filled from Google) */}
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="flex items-center gap-2">
-              <span>Prénom</span>
-              <span className="text-xs text-muted-foreground">(optionnel)</span>
-            </Label>
-            <Input
-              id="firstName"
-              placeholder="Votre prénom"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </div>
-
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
           {/* Birthday (required) */}
           <BirthdayPicker
             label="Date d'anniversaire"
@@ -196,10 +165,8 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             cityLabel="Ville / Commune"
             neighborhoodLabel="Quartier"
             required
+            allowCountryOverride={false}
           />
-          <p className="text-xs text-muted-foreground -mt-2">
-            Pour faciliter la livraison de vos cadeaux surprises !
-          </p>
 
           {/* Phone (required) */}
           <PhoneInput
@@ -209,18 +176,14 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             required
             showValidation
           />
-          <p className="text-xs text-muted-foreground -mt-4">
-            Pour recevoir vos rappels d'anniversaire par SMS
-          </p>
         </div>
 
-        {/* Footer toujours visible */}
-        <div className="flex-shrink-0 pt-4 border-t border-border">
+        {/* Footer compact */}
+        <div className="flex-shrink-0 pt-3 border-t border-border">
           <Button 
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
             className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
-            size="lg"
           >
             {isSubmitting ? (
               <>
@@ -234,10 +197,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
               </>
             )}
           </Button>
-
-          <p className="text-xs text-center text-muted-foreground mt-2">
-            Ces informations sont obligatoires pour profiter de toutes les fonctionnalités.
-          </p>
         </div>
       </DialogContent>
     </Dialog>
