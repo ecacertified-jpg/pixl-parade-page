@@ -969,9 +969,9 @@ export default function Dashboard() {
                   <p className="mx-[54px]">Aucune cotisation active pour le moment</p>
                   <p className="text-sm mx-[45px]">Les cotisations créées depuis la boutique apparaîtront ici</p>
                 </div>
-              </Card> : <div className="space-y-4">
+              </Card> : <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}><div className="space-y-4">
                 {funds.map(fund => <CollectiveFundCard key={fund.id} fund={fund} onContributionSuccess={refreshFunds} onDelete={() => refreshFunds()} />)}
-              </div>}
+              </div></Suspense>}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4" forceMount={activeTab === 'cadeaux' ? true : undefined} hidden={activeTab !== 'cadeaux'}>
