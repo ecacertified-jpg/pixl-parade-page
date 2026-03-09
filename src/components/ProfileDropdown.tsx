@@ -1,4 +1,4 @@
-import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag } from "lucide-react";
+import { User, BarChart3, Heart, Users, LogOut, Edit3, Store, Settings, UserPlus, Cog, ShoppingBag, Gift, PackageOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -127,31 +127,40 @@ export const ProfileDropdown = () => {
         </div>
 
         {/* Statistics */}
-        <div className="px-6 py-4 bg-background border-b border-border">
-          <div className="flex justify-between text-center">
-            <div className="flex-1">
+        <div className="px-4 py-3 bg-background border-b border-border">
+          <div className="flex justify-between text-center gap-2">
+            <div className="flex-1 bg-muted/30 rounded-xl py-2.5 px-1">
               {statsLoading ? (
-                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+                <Skeleton className="h-5 w-10 mx-auto mb-1" />
               ) : (
-                <div className="font-bold text-foreground text-lg">{stats.friendsCount}</div>
+                <div className="font-bold text-foreground text-base">{stats.friendsCount}</div>
               )}
-              <div className="text-muted-foreground text-xs">Amis</div>
+              <div className="text-muted-foreground text-xs flex items-center justify-center gap-1 mt-0.5">
+                <Users className="h-3 w-3 text-primary" />
+                Amis
+              </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 bg-muted/30 rounded-xl py-2.5 px-1">
               {statsLoading ? (
-                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+                <Skeleton className="h-5 w-10 mx-auto mb-1" />
               ) : (
-                <div className="font-bold text-foreground text-lg">{stats.giftsGiven}</div>
+                <div className="font-bold text-foreground text-base">{stats.giftsGiven}</div>
               )}
-              <div className="text-muted-foreground text-xs">Donnés</div>
+              <div className="text-muted-foreground text-xs flex items-center justify-center gap-1 mt-0.5">
+                <Gift className="h-3 w-3 text-pink-500" />
+                Offerts
+              </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 bg-muted/30 rounded-xl py-2.5 px-1">
               {statsLoading ? (
-                <Skeleton className="h-6 w-12 mx-auto mb-1" />
+                <Skeleton className="h-5 w-10 mx-auto mb-1" />
               ) : (
-                <div className="font-bold text-foreground text-lg">{stats.communityPoints}</div>
+                <div className="font-bold text-foreground text-base">{stats.giftsReceived}</div>
               )}
-              <div className="text-muted-foreground text-xs">Points</div>
+              <div className="text-muted-foreground text-xs flex items-center justify-center gap-1 mt-0.5">
+                <PackageOpen className="h-3 w-3 text-green-500" />
+                Reçus
+              </div>
             </div>
           </div>
         </div>
