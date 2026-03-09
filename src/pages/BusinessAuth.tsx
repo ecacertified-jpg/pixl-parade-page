@@ -27,6 +27,7 @@ import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndic
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
+import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { SEOHead } from '@/components/SEOHead';
 import { HowToSchema } from '@/components/schema';
