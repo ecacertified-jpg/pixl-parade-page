@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Cake, RefreshCw, ChevronRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BirthdayReminderCard } from "@/components/BirthdayReminderCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDaysUntilBirthday } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface BirthdayReminder {
   id: string;
@@ -21,135 +21,107 @@ interface BirthdayReminder {
   gift_suggestions: any[];
 }
 
-interface SmartBirthdayRemindersProps {
-  hideViewAllButton?: boolean;
+interface ContactWithBirthday {
+  id: string;
+  name: string;
+  birthday?: string | Date | null;
+  relationship?: string | null;
 }
 
-export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirthdayRemindersProps) {
+interface SmartBirthdayRemindersProps {
+  hideViewAllButton?: boolean;
+  contacts?: ContactWithBirthday[];
+}
+
+const fetchBirthdayReminders = async (
+  userId: string,
+  contacts?: ContactWithBirthday[]
+): Promise<BirthdayReminder[]> => {
+  // Fetch scheduled notifications
+  // @ts-ignore - avoiding TS2589 deep type instantiation
+  const { data: notifData } = await supabase
+    .from('scheduled_notifications')
+    .select('id, metadata, priority, created_at')
+    .eq('user_id', userId)
+    .eq('notification_type', 'birthday_reminder_with_suggestions')
+    .eq('status', 'pending')
+    .eq('is_archived', false)
+    .order('priority', { ascending: false })
+    .limit(5);
+
+  const fromNotifs: BirthdayReminder[] = ((notifData || []) as any[]).map((notif) => ({
+    id: notif.id,
+    contact_id: notif.metadata?.contact_id,
+    contact_name: notif.metadata?.contact_name || 'Contact',
+    contact_relationship: notif.metadata?.contact_relationship,
+    days_until: notif.metadata?.days_until || 0,
+    birthday_date: notif.metadata?.birthday_date,
+    reminder_type: notif.metadata?.reminder_type || 'standard',
+    has_active_fund: notif.metadata?.has_active_fund || false,
+    gift_suggestions: notif.metadata?.gift_suggestions || [],
+  }));
+
+  // Build upcoming birthdays from contacts (passed as prop or fetched)
+  let contactList = contacts;
+  if (!contactList) {
+    const { data } = await supabase
+      .from('contacts')
+      .select('id, name, birthday, relationship')
+      .eq('user_id', userId)
+      .not('birthday', 'is', null);
+    contactList = data || [];
+  }
+
+  const notifContactIds = new Set(fromNotifs.map(r => r.contact_id));
+  const fromContacts: BirthdayReminder[] = [];
+
+  for (const contact of contactList) {
+    if (!contact.birthday || notifContactIds.has(contact.id)) continue;
+    const daysUntil = getDaysUntilBirthday(contact.birthday as string);
+    if (daysUntil <= 14 && daysUntil >= 0) {
+      fromContacts.push({
+        id: `contact-${contact.id}`,
+        contact_id: contact.id,
+        contact_name: contact.name,
+        contact_relationship: (contact.relationship as string) || undefined,
+        days_until: daysUntil,
+        birthday_date: contact.birthday as string,
+        reminder_type: daysUntil <= 1 ? 'final' : daysUntil <= 3 ? 'urgent' : 'standard',
+        has_active_fund: false,
+        gift_suggestions: [],
+      });
+    }
+  }
+
+  return [...fromNotifs, ...fromContacts]
+    .sort((a, b) => a.days_until - b.days_until)
+    .slice(0, 5);
+};
+
+export function SmartBirthdayReminders({ hideViewAllButton = false, contacts }: SmartBirthdayRemindersProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [reminders, setReminders] = useState<BirthdayReminder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
-  const loadReminders = async () => {
-    if (!user) return;
-    
-    try {
-      // Fetch birthday reminder notifications with suggestions
-      // @ts-ignore - avoiding TS2589 deep type instantiation
-      const { data, error } = await supabase
-        .from('scheduled_notifications')
-        .select('id, metadata, priority, created_at')
-        .eq('user_id', user.id)
-        .eq('notification_type', 'birthday_reminder_with_suggestions')
-        .eq('status', 'pending')
-        .eq('is_archived', false)
-        .order('priority', { ascending: false })
-        .limit(5);
+  const { data: reminders = [], isLoading: loading } = useQuery({
+    queryKey: ['birthday-reminders', user?.id],
+    queryFn: () => fetchBirthdayReminders(user!.id, contacts),
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
 
-      if (error) throw error;
-
-      const formattedReminders: BirthdayReminder[] = ((data || []) as any[]).map((notif) => ({
-        id: notif.id,
-        contact_id: notif.metadata?.contact_id,
-        contact_name: notif.metadata?.contact_name || 'Contact',
-        contact_relationship: notif.metadata?.contact_relationship,
-        days_until: notif.metadata?.days_until || 0,
-        birthday_date: notif.metadata?.birthday_date,
-        reminder_type: notif.metadata?.reminder_type || 'standard',
-        has_active_fund: notif.metadata?.has_active_fund || false,
-        gift_suggestions: notif.metadata?.gift_suggestions || []
-      }));
-
-      setReminders(formattedReminders);
-    } catch (error) {
-      console.error('Error loading birthday reminders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Also load from contacts directly for immediate birthdays
-  const loadUpcomingBirthdays = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: contacts, error } = await supabase
-        .from('contacts')
-        .select('id, name, birthday, relationship')
-        .eq('user_id', user.id)
-        .not('birthday', 'is', null);
-
-      if (error) throw error;
-
-      const today = new Date();
-      const upcomingBirthdays: BirthdayReminder[] = [];
-
-      for (const contact of contacts || []) {
-        if (!contact.birthday) continue;
-
-        const daysUntil = getDaysUntilBirthday(contact.birthday);
-
-        // Only include upcoming birthdays within 14 days that aren't already in notifications
-        if (daysUntil <= 14 && daysUntil >= 0) {
-          const existingReminder = reminders.find(r => r.contact_id === contact.id);
-          if (!existingReminder) {
-            upcomingBirthdays.push({
-              id: `contact-${contact.id}`,
-              contact_id: contact.id,
-              contact_name: contact.name,
-              contact_relationship: contact.relationship || undefined,
-              days_until: daysUntil,
-              birthday_date: contact.birthday,
-              reminder_type: daysUntil <= 1 ? 'final' : daysUntil <= 3 ? 'urgent' : 'standard',
-              has_active_fund: false,
-              gift_suggestions: []
-            });
-          }
-        }
-      }
-
-      // Merge and sort by days until
-      const allReminders = [...reminders, ...upcomingBirthdays]
-        .sort((a, b) => a.days_until - b.days_until)
-        .slice(0, 5);
-
-      if (upcomingBirthdays.length > 0) {
-        setReminders(allReminders);
-      }
-    } catch (error) {
-      console.error('Error loading upcoming birthdays:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadReminders();
-  }, [user]);
-
-  useEffect(() => {
-    if (!loading && reminders.length >= 0) {
-      loadUpcomingBirthdays();
-    }
-  }, [loading, user]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadReminders();
-    await loadUpcomingBirthdays();
-    setRefreshing(false);
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['birthday-reminders', user?.id] });
   };
 
   const handleDismiss = async (notificationId: string) => {
-    // If it's a notification ID (not contact-xxx), archive in database
     if (!notificationId.startsWith('contact-')) {
       await supabase
         .from('scheduled_notifications')
         .update({ is_archived: true, archived_at: new Date().toISOString() })
         .eq('id', notificationId);
     }
-    
-    setReminders(prev => prev.filter(r => r.id !== notificationId));
+    queryClient.invalidateQueries({ queryKey: ['birthday-reminders', user?.id] });
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
@@ -175,9 +147,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
     );
   }
 
-  if (reminders.length === 0) {
-    return null; // Don't show if no upcoming birthdays
-  }
+  if (reminders.length === 0) return null;
 
   return (
     <section className="space-y-3">
@@ -187,21 +157,10 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
           <h2 className="font-semibold text-sm sm:text-base whitespace-nowrap">Anniversaires à venir</h2>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-8 w-8"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => navigate('/notification-settings')}
-          >
+          <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => navigate('/notification-settings')}>
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Paramétrer</span>
           </Button>
@@ -220,11 +179,7 @@ export function SmartBirthdayReminders({ hideViewAllButton = false }: SmartBirth
       </div>
 
       {reminders.length > 0 && !hideViewAllButton && (
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={() => navigate('/dashboard?tab=amis')}
-        >
+        <Button variant="outline" className="w-full" onClick={() => navigate('/dashboard?tab=amis')}>
           Voir tous mes contacts
           <ChevronRight className="h-4 w-4 ml-1" />
         </Button>
