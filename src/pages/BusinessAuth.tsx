@@ -788,7 +788,25 @@ const BusinessAuth = () => {
     
     // Vérification des doublons avant inscription (sauf si on a déjà vérifié)
     if (!skipDuplicateCheck) {
-      console.log('🔍 [Business Duplicate Check] Checking for existing accounts...');
+      console.log('🔍 [Business Duplicate Check] Checking for existing accounts (server + client)...');
+      
+      // Vérification serveur d'abord (aligné avec Auth.tsx)
+      const serverCheck = await checkExistingAccount(fullPhone, undefined, data.firstName);
+      if (serverCheck && serverCheck.exists && serverCheck.confidence === 'high') {
+        console.log('⚠️ [Business Server Check] High confidence duplicate found:', serverCheck);
+        setDuplicateResult({
+          hasPotentialDuplicate: true,
+          duplicateType: 'phone',
+          matchingProfiles: serverCheck.matchingProfiles || [],
+          confidence: 'high',
+        });
+        setPendingSignUpData(data);
+        setShowDuplicateModal(true);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Vérification client-side ensuite
       const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName);
       
       if (duplicateCheck.hasPotentialDuplicate) {
