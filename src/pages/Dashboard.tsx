@@ -600,7 +600,7 @@ export default function Dashboard() {
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TooltipProvider>
-            <TabsList className="grid grid-cols-5 gap-0 bg-card/90 dark:bg-card/90 backdrop-blur-sm p-0 rounded-none border-b-2 border-border h-auto">
+            <TabsList className="grid grid-cols-5 gap-0 bg-card/90 dark:bg-card/90 backdrop-blur-sm p-1 rounded-xl border border-border h-auto shadow-card">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <TabsTrigger value="amis" className={`flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] ${activeTab === 'amis' ? 'bg-transparent text-primary font-bold border-primary shadow-none' : 'bg-transparent text-muted-foreground border-transparent'}`} aria-label="Gérer mes amis et contacts">
