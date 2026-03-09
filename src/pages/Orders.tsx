@@ -64,13 +64,13 @@ interface OrderCardProps {
 }
 
 const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: OrderCardProps) => {
-  const { canEditReview, getRemainingDays } = useEditRating();
+  const { canEditReview, getRemainingHours } = useEditRating();
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0) || 1;
   const canConfirmDelivery = order.status === 'delivered' && !order.customerConfirmedAt;
   const isConfirmed = order.status === 'receipt_confirmed' || (order.customerConfirmedAt && order.status !== 'refund_requested');
   const isRefundRequested = order.status === 'refund_requested';
-  const canEdit = isConfirmed && !isRefundRequested && order.customerConfirmedAt && canEditReview(order.customerConfirmedAt);
-  const remainingDays = order.customerConfirmedAt ? getRemainingDays(order.customerConfirmedAt) : 0;
+  const canEdit = (isConfirmed || isRefundRequested) && order.customerConfirmedAt && canEditReview(order.customerConfirmedAt);
+  const remainingHours = order.customerConfirmedAt ? getRemainingHours(order.customerConfirmedAt) : 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">

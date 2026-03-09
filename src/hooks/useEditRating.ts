@@ -4,40 +4,31 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
-const EDIT_WINDOW_DAYS = 7;
+const EDIT_WINDOW_HOURS = 48;
 
 export const useEditRating = () => {
   const { user } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const queryClient = useQueryClient();
 
-  /**
-   * Check if the review can still be edited (within 7 days of confirmation)
-   */
   const canEditReview = (confirmedAt: string): boolean => {
     const confirmDate = new Date(confirmedAt);
     const now = new Date();
-    const daysDiff = (now.getTime() - confirmDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff <= EDIT_WINDOW_DAYS;
+    const hoursDiff = (now.getTime() - confirmDate.getTime()) / (1000 * 60 * 60);
+    return hoursDiff <= EDIT_WINDOW_HOURS;
   };
 
-  /**
-   * Get remaining days to edit the review
-   */
-  const getRemainingDays = (confirmedAt: string): number => {
+  const getRemainingHours = (confirmedAt: string): number => {
     const confirmDate = new Date(confirmedAt);
     const now = new Date();
-    const daysDiff = (now.getTime() - confirmDate.getTime()) / (1000 * 60 * 60 * 24);
-    return Math.max(0, Math.ceil(EDIT_WINDOW_DAYS - daysDiff));
+    const hoursDiff = (now.getTime() - confirmDate.getTime()) / (1000 * 60 * 60);
+    return Math.max(0, Math.ceil(EDIT_WINDOW_HOURS - hoursDiff));
   };
 
   /**
    * Update an existing rating/review
-   * Constraints:
-   * - Cannot edit refund requests
-   * - Cannot change rating from >=3 to <3 (prevent fraud)
-   * - Can modify rating between 3-5
-   * - Can modify comment freely
+   * - Within 48h of confirmation
+   * - Automatic status transition when category changes (≥3 ↔ <3)
    */
   const updateRating = async (
     orderId: string,
@@ -51,26 +42,17 @@ export const useEditRating = () => {
       throw new Error("User not authenticated");
     }
 
-    // Check edit window
     if (!canEditReview(confirmedAt)) {
       toast.error("La période de modification est expirée", {
-        description: "Vous ne pouvez modifier votre avis que dans les 7 jours suivant la confirmation.",
+        description: "Vous ne pouvez modifier votre avis que dans les 48 heures suivant la confirmation.",
       });
       throw new Error("Edit window expired");
-    }
-
-    // Prevent changing from satisfied to refund request
-    if (currentRating >= 3 && newRating < 3) {
-      toast.error("Modification non autorisée", {
-        description: "Vous ne pouvez pas demander un remboursement après avoir confirmé votre satisfaction.",
-      });
-      throw new Error("Cannot change from satisfied to refund");
     }
 
     setIsUpdating(true);
 
     try {
-      // 1. Fetch the order to verify ownership
+      // 1. Fetch the order to verify ownership and get current status
       const { data: order, error: orderError } = await supabase
         .from("business_orders")
         .select("id, customer_id, order_summary, status")
@@ -82,26 +64,45 @@ export const useEditRating = () => {
         throw new Error("Commande non trouvée");
       }
 
-      // Cannot edit refund requests
-      if (order.status === "refund_requested" || order.status === "refunded") {
+      if (order.status === "refunded") {
         toast.error("Modification non autorisée", {
-          description: "Vous ne pouvez pas modifier une demande de remboursement.",
+          description: "Cette commande a déjà été remboursée.",
         });
-        throw new Error("Cannot edit refund request");
+        throw new Error("Cannot edit refunded order");
       }
 
-      // 2. Update the order
+      // 2. Build update payload with automatic status transition
+      const updatePayload: Record<string, unknown> = {
+        customer_rating: newRating,
+        customer_review_text: newReviewText || null,
+      };
+
+      let statusChanged = false;
+
+      // Transition: satisfied → refund request
+      if (newRating < 3 && currentRating >= 3 && order.status === "receipt_confirmed") {
+        updatePayload.status = "refund_requested";
+        updatePayload.refund_reason = newReviewText || "Insatisfaction après modification de l'avis";
+        updatePayload.refund_requested_at = new Date().toISOString();
+        statusChanged = true;
+      }
+      // Transition: refund request → satisfied
+      else if (newRating >= 3 && currentRating < 3 && order.status === "refund_requested") {
+        updatePayload.status = "receipt_confirmed";
+        updatePayload.refund_reason = null;
+        updatePayload.refund_requested_at = null;
+        statusChanged = true;
+      }
+
+      // 3. Update the order
       const { error: updateError } = await supabase
         .from("business_orders")
-        .update({
-          customer_rating: newRating,
-          customer_review_text: newReviewText || null,
-        })
+        .update(updatePayload)
         .eq("id", orderId);
 
       if (updateError) throw updateError;
 
-      // 3. Update product ratings
+      // 4. Update product ratings
       const orderSummary = order.order_summary as { items?: Array<{ product_id?: string }> } | null;
       const items = orderSummary?.items || [];
       const productIds = items
@@ -110,7 +111,6 @@ export const useEditRating = () => {
 
       if (productIds.length > 0) {
         const uniqueProductIds = [...new Set(productIds)];
-
         for (const productId of uniqueProductIds) {
           await supabase
             .from("product_ratings")
@@ -125,13 +125,23 @@ export const useEditRating = () => {
         }
       }
 
-      // 4. Refresh orders list
+      // 5. Refresh & notify
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
 
-      toast.success("Avis modifié avec succès");
+      if (statusChanged && newRating < 3) {
+        toast.success("Avis modifié — demande de remboursement envoyée", {
+          description: "Le vendeur sera notifié de votre demande.",
+        });
+      } else if (statusChanged && newRating >= 3) {
+        toast.success("Avis modifié — demande de remboursement annulée", {
+          description: "Votre satisfaction a été confirmée.",
+        });
+      } else {
+        toast.success("Avis modifié avec succès");
+      }
     } catch (error) {
       console.error("Error updating rating:", error);
-      if (error instanceof Error && error.message.includes("non autorisée")) {
+      if (error instanceof Error && (error.message.includes("non autorisée") || error.message.includes("expirée"))) {
         // Already showed toast
       } else {
         toast.error("Erreur lors de la modification");
@@ -146,6 +156,6 @@ export const useEditRating = () => {
     updateRating,
     isUpdating,
     canEditReview,
-    getRemainingDays,
+    getRemainingHours,
   };
 };
