@@ -663,7 +663,15 @@ export default function Dashboard() {
             </TabsList>
           </TooltipProvider>
 
-          <TabsContent value="amis" className="mt-4">
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+          <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
               <div className="flex items-center gap-2">
