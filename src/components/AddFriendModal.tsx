@@ -74,13 +74,65 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
   };
 
   const handleCancel = () => {
-    // Reset form
     setName("");
     setPhone("");
     setRelation("");
     setAddressData(null);
     setBirthday(undefined);
+    setShowShareMenu(false);
+    setShareLink("");
     onClose();
+  };
+
+  const handleShareForm = async () => {
+    if (!user?.id) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await supabase
+        .from("friend_form_tokens")
+        .insert({
+          user_id: user.id,
+          prefilled_name: name || null,
+          prefilled_relation: relation || null,
+        })
+        .select("token")
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/fill-friend-info/${data.token}`;
+      setShareLink(link);
+      setShowShareMenu(true);
+    } catch (err) {
+      console.error("Error generating share link:", err);
+      toast.error("Erreur lors de la génération du lien");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const shareMessage = `Salut ! 👋 Peux-tu remplir ce formulaire avec ta date d'anniversaire pour que je ne l'oublie jamais ? 🎂\n\n${shareLink}`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast.success("Lien copié !");
+  };
+
+  const shareViaWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, "_blank");
+  const shareViaFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, "_blank", "width=600,height=400");
+  const shareViaLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink)}`, "_blank", "width=600,height=400");
+  const shareViaGmail = () => window.open(`https://mail.google.com/mail/?view=cm&su=${encodeURIComponent("Remplis ton anniversaire ! 🎂")}&body=${encodeURIComponent(shareMessage)}`, "_blank");
+  const shareViaSMS = () => { window.location.href = `sms:?body=${encodeURIComponent(shareMessage)}`; };
+  const shareViaEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent("Remplis ton anniversaire ! 🎂")}&body=${encodeURIComponent(shareMessage)}`; };
+  const shareNative = () => {
+    if (navigator.share) {
+      navigator.share({ title: "Joie de Vivre", text: shareMessage, url: shareLink }).catch(() => {});
+    } else {
+      copyLink();
+    }
   };
 
   return (
