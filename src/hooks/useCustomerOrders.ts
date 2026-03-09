@@ -23,6 +23,8 @@ export interface CustomerOrder {
   beneficiaryPhone: string;
   paymentMethod: string;
   businessName?: string;
+  businessPhone?: string;
+  businessAddress?: string;
   customerConfirmedAt?: string;
   customerRating?: number;
   customerReviewText?: string;
