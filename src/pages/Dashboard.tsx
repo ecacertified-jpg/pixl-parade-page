@@ -70,6 +70,7 @@ import { FriendRequestsCarousel } from "@/components/FriendRequestsCarousel";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
