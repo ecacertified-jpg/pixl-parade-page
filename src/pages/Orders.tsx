@@ -145,7 +145,7 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: Or
                     className="text-muted-foreground hover:text-foreground"
                   >
                     <Pencil className="h-3.5 w-3.5 mr-1" />
-                    <span className="text-xs">Modifier ({remainingDays}j)</span>
+                    <span className="text-xs">Modifier ({remainingHours}h)</span>
                   </Button>
                 )}
               </div>
