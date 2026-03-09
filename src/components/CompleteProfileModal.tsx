@@ -154,21 +154,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         })()}
 
         {/* Scrollable form area */}
-        <div className="flex-1 overflow-y-auto space-y-6 py-4 min-h-0">
-          {/* First Name (optional, pre-filled from Google) */}
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className="flex items-center gap-2">
-              <span>Prénom</span>
-              <span className="text-xs text-muted-foreground">(optionnel)</span>
-            </Label>
-            <Input
-              id="firstName"
-              placeholder="Votre prénom"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </div>
-
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
           {/* Birthday (required) */}
           <BirthdayPicker
             label="Date d'anniversaire"
@@ -185,10 +171,8 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             cityLabel="Ville / Commune"
             neighborhoodLabel="Quartier"
             required
+            allowCountryOverride={false}
           />
-          <p className="text-xs text-muted-foreground -mt-2">
-            Pour faciliter la livraison de vos cadeaux surprises !
-          </p>
 
           {/* Phone (required) */}
           <PhoneInput
@@ -198,9 +182,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             required
             showValidation
           />
-          <p className="text-xs text-muted-foreground -mt-4">
-            Pour recevoir vos rappels d'anniversaire par SMS
-          </p>
         </div>
 
         {/* Footer toujours visible */}
