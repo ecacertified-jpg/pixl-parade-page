@@ -120,14 +120,14 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader className="text-center flex-shrink-0">
-          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-white" />
+          <div className="mx-auto mb-1 w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-bold text-center">
-            Bienvenue ! 🎉
+          <DialogTitle className="text-xl font-bold text-center">
+            Complétez votre profil 🎉
           </DialogTitle>
-          <DialogDescription className="text-center text-base">
-            Pour mieux vous accompagner dans vos célébrations, nous avons besoin de quelques informations.
+          <DialogDescription className="text-center text-sm">
+            3 infos pour profiter de toutes les fonctionnalités.
           </DialogDescription>
         </DialogHeader>
 
