@@ -709,7 +709,7 @@ export default function Dashboard() {
               </div>
             )}
             
-            <FriendRequestsNotification
+            <FriendRequestsCarousel
               requests={pendingReceived}
               onAccept={async (requestId, requesterId) => {
                 const ok = await acceptRequest(requestId, requesterId);
