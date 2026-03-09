@@ -993,6 +993,8 @@ export default function Dashboard() {
             </div>
           </TabsContent>
 
+          </motion.div>
+          </AnimatePresence>
         </Tabs>
 
         <div className="pb-20" />
