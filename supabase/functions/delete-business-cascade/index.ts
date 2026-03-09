@@ -58,24 +58,78 @@ serve(async (req) => {
       throw new Error("Missing required fields: business_id, business_user_id, business_name");
     }
 
-    console.log(`[delete-business-cascade] Starting deletion for: ${business_name} (${business_id})`);
+    // =====================================================
+    // AUTHENTICATION & AUTHORIZATION
+    // =====================================================
+    const authHeader = req.headers.get('Authorization');
 
-    // COUNTRY ACCESS VALIDATION for admin-initiated deletions
-    if (admin_user_id && action_type !== 'auto_purge') {
-      // Fetch admin info with country restrictions
+    if (action_type === 'auto_purge') {
+      // For auto_purge: only allow service-role calls (from other edge functions like purge-deleted-businesses)
+      // The Authorization header must carry the service_role JWT
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: missing authorization' }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+      // Verify the caller is using the service role key (internal edge function call)
+      if (token !== serviceRoleKey) {
+        console.error("[delete-business-cascade] auto_purge called without service role key");
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: auto_purge requires service role access' }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[delete-business-cascade] auto_purge authorized via service role`);
+    } else {
+      // For hard_delete: require a valid authenticated admin user
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: missing authorization' }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Create a user-scoped client to verify the JWT
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: invalid token' }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const userId = claimsData.claims.sub;
+
+      // Verify caller is an active admin
       const { data: adminUser, error: adminError } = await supabaseAdmin
         .from('admin_users')
         .select('user_id, role, assigned_countries, is_active')
-        .eq('user_id', admin_user_id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .single();
 
       if (adminError || !adminUser) {
-        console.error(`[delete-business-cascade] Admin validation failed:`, adminError);
-        throw new Error("Admin access required for business deletion");
+        console.error(`[delete-business-cascade] Admin validation failed for user ${userId}:`, adminError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: admin access required' }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // Fetch business country_code
+      // COUNTRY ACCESS VALIDATION
       const { data: businessData } = await supabaseAdmin
         .from('business_accounts')
         .select('country_code')
@@ -85,18 +139,16 @@ serve(async (req) => {
       const businessCountryCode = businessData?.country_code;
       const assignedCountries = adminUser.assigned_countries as string[] | null;
 
-      // Check country access (super_admin bypasses this check)
       if (adminUser.role !== 'super_admin' && businessCountryCode) {
         const hasCountryAccess = !assignedCountries || 
           assignedCountries.length === 0 || 
           assignedCountries.includes(businessCountryCode);
 
         if (!hasCountryAccess) {
-          console.error(`[delete-business-cascade] Country access denied for admin ${admin_user_id} - business country: ${businessCountryCode}, admin countries: ${assignedCountries?.join(', ')}`);
+          console.error(`[delete-business-cascade] Country access denied for admin ${userId}`);
           
-          // Log unauthorized attempt
           await supabaseAdmin.from('admin_audit_logs').insert({
-            admin_user_id,
+            admin_user_id: userId,
             action_type: 'unauthorized_country_access',
             target_type: 'business',
             target_id: business_id,
@@ -110,12 +162,17 @@ serve(async (req) => {
             }
           });
 
-          throw new Error(`Access denied: Cannot delete business from country ${businessCountryCode}`);
+          return new Response(
+            JSON.stringify({ success: false, error: `Access denied: Cannot delete business from country ${businessCountryCode}` }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
 
-      console.log(`[delete-business-cascade] Country access validated for admin ${admin_user_id}`);
+      console.log(`[delete-business-cascade] Admin ${userId} authorized for hard_delete`);
     }
+
+    console.log(`[delete-business-cascade] Starting deletion for: ${business_name} (${business_id})`);
 
     const stats: DeleteStats = {
       products: 0,
@@ -151,8 +208,6 @@ serve(async (req) => {
       // STEP 2: Delete all product dependencies
       // =====================================================
 
-      // 2a. Delete order_items referencing products (CRITICAL for FK integrity)
-      // If this table doesn't exist in a given environment, Supabase will return a clear error.
       const { count: orderItemsCount, error: orderItemsError } = await supabaseAdmin
         .from("order_items")
         .delete()
@@ -164,7 +219,6 @@ serve(async (req) => {
         throw new Error(`Failed to delete order_items: ${orderItemsError.message}`);
       }
 
-      // 2b. Delete product_ratings
       const { count: ratingsCount, error: ratingsError } = await supabaseAdmin
         .from("product_ratings")
         .delete()
@@ -177,7 +231,6 @@ serve(async (req) => {
       }
       stats.product_ratings = ratingsCount || 0;
 
-      // 2c. Delete business_birthday_alerts referencing products
       const { count: alertsCount, error: alertsError } = await supabaseAdmin
         .from("business_birthday_alerts")
         .delete()
@@ -190,7 +243,6 @@ serve(async (req) => {
       }
       stats.birthday_alerts = alertsCount || 0;
 
-      // 2d. Delete business_collective_funds referencing products
       const { count: bcfCount, error: bcfError } = await supabaseAdmin
         .from("business_collective_funds")
         .delete()
@@ -203,7 +255,6 @@ serve(async (req) => {
       }
       stats.business_collective_funds = bcfCount || 0;
 
-      // 2e. Set business_product_id to NULL in collective_funds
       const { error: nullifyFundsError } = await supabaseAdmin
         .from("collective_funds")
         .update({ business_product_id: null })
@@ -214,7 +265,6 @@ serve(async (req) => {
         throw new Error(`Failed to nullify collective_funds product link: ${nullifyFundsError.message}`);
       }
 
-      // 2f. Delete favorites referencing products
       const { count: favCount, error: favError } = await supabaseAdmin
         .from("favorites")
         .delete()
@@ -274,26 +324,22 @@ serve(async (req) => {
         const hasContributions = fund.fund_contributions && fund.fund_contributions.length > 0;
 
         if (hasContributions) {
-          // Disassociate fund from business (keep for contributors)
           await supabaseAdmin
             .from("collective_funds")
             .update({ created_by_business_id: null })
             .eq("id", fund.id);
           stats.funds_disassociated++;
         } else {
-          // Delete fund comments first
           await supabaseAdmin
             .from("fund_comments")
             .delete()
             .eq("fund_id", fund.id);
 
-          // Delete fund activities
           await supabaseAdmin
             .from("fund_activities")
             .delete()
             .eq("fund_id", fund.id);
 
-          // Delete the empty fund
           await supabaseAdmin
             .from("collective_funds")
             .delete()
