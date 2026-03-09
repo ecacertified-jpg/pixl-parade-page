@@ -602,7 +602,7 @@ export default function Dashboard() {
             <TabsList className="grid grid-cols-5 gap-0.5 bg-muted/40 p-1 rounded-xl">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="amis" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Gérer mes amis et contacts">
+                  <TabsTrigger value="amis" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Gérer mes amis et contacts">
                     <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Amis</span>
                   </TabsTrigger>
