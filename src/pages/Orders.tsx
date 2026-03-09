@@ -153,15 +153,28 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: Or
             
             {/* État remboursement demandé - bouton désactivé orange */}
             {isRefundRequested && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="w-full sm:w-auto bg-amber-50 text-amber-700 border-amber-200 cursor-default dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
-              >
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                Remboursement demandé
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="bg-amber-50 text-amber-700 border-amber-200 cursor-default dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Remboursement demandé
+                </Button>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditRating(order)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    <span className="text-xs">Modifier ({remainingHours}h)</span>
+                  </Button>
+                )}
+              </div>
             )}
 
             <Button
