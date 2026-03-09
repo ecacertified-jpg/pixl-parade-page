@@ -1,74 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
+const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
+  // Check localStorage first
+  const localFlag = localStorage.getItem(`onboarding_completed_${userId}`);
+  if (localFlag === 'true') return false;
+
+  // Check URL parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('onboarding') === 'true') return true;
+
+  // Check if user is newly created (within last 5 minutes)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .eq('id', userId)
+    .single();
+
+  if (profile) {
+    const diffMinutes = (Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60);
+    if (diffMinutes < 5) return true;
+  }
+
+  return false;
+};
 
 export const useOnboarding = () => {
   const { user } = useAuth();
-  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [manuallyCompleted, setManuallyCompleted] = useState(false);
 
-  useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
+  const { data: shouldShow, isLoading } = useQuery({
+    queryKey: ['onboarding-status', user?.id],
+    queryFn: () => fetchOnboardingStatus(user!.id),
+    enabled: !!user?.id,
+    staleTime: Infinity,
+  });
 
-      // Check localStorage first for quick response
-      const localFlag = localStorage.getItem(`onboarding_completed_${user.id}`);
-      if (localFlag === 'true') {
-        setShouldShowOnboarding(false);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check URL parameter
-      const urlParams = new URLSearchParams(window.location.search);
-      const onboardingParam = urlParams.get('onboarding');
-      
-      if (onboardingParam === 'true') {
-        setShouldShowOnboarding(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if user is newly created (within last 5 minutes)
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('created_at')
-          .eq('id', user.id)
-          .single();
-
-        if (profile) {
-          const createdAt = new Date(profile.created_at);
-          const now = new Date();
-          const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
-          
-          // If account created less than 5 minutes ago and no local flag
-          if (diffMinutes < 5 && !localFlag) {
-            setShouldShowOnboarding(true);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-      }
-
-      setIsLoading(false);
-    };
-
-    checkOnboardingStatus();
-  }, [user]);
-
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     if (user) {
       localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
     }
-    setShouldShowOnboarding(false);
-  };
+    setManuallyCompleted(true);
+  }, [user]);
 
   return {
-    shouldShowOnboarding,
+    shouldShowOnboarding: manuallyCompleted ? false : (shouldShow ?? false),
     isLoading,
     completeOnboarding,
   };
