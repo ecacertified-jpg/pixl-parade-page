@@ -56,7 +56,9 @@ export const useCustomerOrders = () => {
           customer_rating,
           customer_review_text,
           business_accounts (
-            business_name
+            business_name,
+            phone,
+            address
           )
         `)
         .eq('customer_id', user.id)
