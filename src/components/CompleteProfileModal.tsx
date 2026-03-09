@@ -30,7 +30,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const { country } = useCountry();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [birthday, setBirthday] = useState<Date | undefined>();
-  const [firstName, setFirstName] = useState(initialData?.firstName || '');
+  
   
   // State for address selection
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
