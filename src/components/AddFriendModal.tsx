@@ -31,11 +31,15 @@ interface AddFriendModalProps {
 }
 
 export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalProps) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relation, setRelation] = useState("");
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [birthday, setBirthday] = useState<Date>();
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
