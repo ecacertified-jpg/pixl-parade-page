@@ -79,7 +79,7 @@ const CategoryPage = lazy(() => import("./pages/CategoryPage"));
 const OccasionPage = lazy(() => import("./pages/OccasionPage"));
 const VendorSectorPage = lazy(() => import("./pages/VendorSectorPage"));
 const SeasonalPage = lazy(() => import("./pages/SeasonalPage"));
-
+const FillFriendForm = lazy(() => import("./pages/FillFriendForm"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
@@ -160,6 +160,7 @@ const App = () => (
             <Route path="/cagnotte-:occasionSlug" element={<L><OccasionPage /></L>} />
             <Route path="/devenir-vendeur/:sectorSlug" element={<L><VendorSectorPage /></L>} />
             <Route path="/:eventSlug-:year" element={<L><SeasonalPage /></L>} />
+            <Route path="/fill-friend-info/:token" element={<L><FillFriendForm /></L>} />
             <Route path="/:citySlug" element={<L><CityPage /></L>} />
 
             {/* Deep Links for Social Sharing & AI Referrals */}

@@ -1,58 +1,38 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-## Plan : Partage du formulaire "Ajouter un ami" pour auto-remplissage
+## Implémenté ✅
 
-### Concept
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-L'utilisateur peut partager un lien vers une page publique de formulaire. Le proche clique sur le lien et remplit ses infos (nom, téléphone, date d'anniversaire, etc.). Les données pré-remplies par l'utilisateur original (nom, relation) sont encodées dans l'URL. Une fois soumis, le contact est ajouté automatiquement au compte de l'utilisateur original.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-### Modifications
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-**1. Nouvelle page publique : `src/pages/FillFriendForm.tsx`**
-- Route publique : `/fill-friend-info/:token`
-- Affiche le formulaire "Ajouter un ami" (nom, téléphone, lieu, date d'anniversaire)
-- Les champs pré-remplis par l'inviteur (nom, relation) sont pré-chargés et éditables
-- À la soumission, appelle une edge function ou insère directement dans `contacts` avec le `user_id` de l'inviteur (récupéré via le token)
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**2. Nouvelle table Supabase : `friend_form_tokens`**
-- `id` (uuid PK), `user_id` (FK auth.users — l'inviteur), `prefilled_name`, `prefilled_relation`, `token` (text unique), `status` ('pending', 'completed'), `created_at`, `expires_at`
-- RLS : lecture publique par token, écriture via le propriétaire
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-**3. Bouton "Partager le formulaire" dans `AddFriendModal.tsx`**
-- Nouveau bouton sous le formulaire : icône Share2 + "Envoyer à un proche pour qu'il complète"
-- Au clic : génère un token via insert dans `friend_form_tokens` avec les données pré-remplies (nom, relation si déjà saisis)
-- Ouvre un menu de partage multi-canal (WhatsApp, Facebook, SMS, Email, Copier, Natif) avec le lien `{origin}/fill-friend-info/{token}`
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-**4. Route dans `App.tsx`**
-- Ajouter : `<Route path="/fill-friend-info/:token" element={<L><FillFriendForm /></L>} />`
-- Page publique (pas de ProtectedRoute)
-
-**5. Edge function `save-friend-form`**
-- Reçoit le token + les données du formulaire
-- Valide le token (non expiré, status pending)
-- Insère le contact dans `contacts` pour le `user_id` de l'inviteur
-- Met à jour le token en status 'completed'
-
-### Flux utilisateur
-
-```text
-Utilisateur A                          Proche B
-     |                                    |
-     |-- Ouvre "Ajouter un ami" ----------|
-     |-- Remplit nom + relation           |
-     |-- Clique "Partager le formulaire"  |
-     |-- Partage via WhatsApp/SMS/etc --->|
-     |                                    |-- Ouvre le lien
-     |                                    |-- Voit formulaire pré-rempli
-     |                                    |-- Complète: téléphone, anniversaire, lieu
-     |                                    |-- Soumet
-     |<-- Contact ajouté automatiquement -|
-```
-
-### Fichiers impactés
-- `src/components/AddFriendModal.tsx` — ajout bouton partage + génération token
-- `src/pages/FillFriendForm.tsx` — nouvelle page publique
-- `src/App.tsx` — nouvelle route
-- `supabase/migrations/` — table `friend_form_tokens`
-- `supabase/functions/save-friend-form/` — edge function de sauvegarde
-
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds

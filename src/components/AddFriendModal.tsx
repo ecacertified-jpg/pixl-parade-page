@@ -6,6 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
+import { Share2, MessageCircle, Facebook, Mail, Send, Copy, Linkedin, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Friend {
   id: string;
@@ -27,11 +31,15 @@ interface AddFriendModalProps {
 }
 
 export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalProps) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [relation, setRelation] = useState("");
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [birthday, setBirthday] = useState<Date>();
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +74,65 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
   };
 
   const handleCancel = () => {
-    // Reset form
     setName("");
     setPhone("");
     setRelation("");
     setAddressData(null);
     setBirthday(undefined);
+    setShowShareMenu(false);
+    setShareLink("");
     onClose();
+  };
+
+  const handleShareForm = async () => {
+    if (!user?.id) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await supabase
+        .from("friend_form_tokens")
+        .insert({
+          user_id: user.id,
+          prefilled_name: name || null,
+          prefilled_relation: relation || null,
+        })
+        .select("token")
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/fill-friend-info/${data.token}`;
+      setShareLink(link);
+      setShowShareMenu(true);
+    } catch (err) {
+      console.error("Error generating share link:", err);
+      toast.error("Erreur lors de la génération du lien");
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const shareMessage = `Salut ! 👋 Peux-tu remplir ce formulaire avec ta date d'anniversaire pour que je ne l'oublie jamais ? 🎂\n\n${shareLink}`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    toast.success("Lien copié !");
+  };
+
+  const shareViaWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, "_blank");
+  const shareViaFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, "_blank", "width=600,height=400");
+  const shareViaLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink)}`, "_blank", "width=600,height=400");
+  const shareViaGmail = () => window.open(`https://mail.google.com/mail/?view=cm&su=${encodeURIComponent("Remplis ton anniversaire ! 🎂")}&body=${encodeURIComponent(shareMessage)}`, "_blank");
+  const shareViaSMS = () => { window.location.href = `sms:?body=${encodeURIComponent(shareMessage)}`; };
+  const shareViaEmail = () => { window.location.href = `mailto:?subject=${encodeURIComponent("Remplis ton anniversaire ! 🎂")}&body=${encodeURIComponent(shareMessage)}`; };
+  const shareNative = () => {
+    if (navigator.share) {
+      navigator.share({ title: "Joie de Vivre", text: shareMessage, url: shareLink }).catch(() => {});
+    } else {
+      copyLink();
+    }
   };
 
   return (
@@ -137,14 +197,74 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
           />
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="bg-orange-500 hover:bg-orange-400 flex-1">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 flex-1">
               Ajouter
             </Button>
             <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
               Annuler
             </Button>
           </div>
+
+          <div className="border-t pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-muted-foreground hover:text-primary"
+              onClick={handleShareForm}
+              disabled={generatingLink}
+            >
+              {generatingLink ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
+              )}
+              Envoyer à un proche pour qu'il complète
+            </Button>
+          </div>
         </form>
+
+        {showShareMenu && shareLink && (
+          <div className="space-y-3 pt-2">
+            <p className="text-sm font-medium text-foreground">Partager via :</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaWhatsApp}>
+                <MessageCircle className="h-5 w-5 text-green-600" />
+                WhatsApp
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaFacebook}>
+                <Facebook className="h-5 w-5 text-blue-700" />
+                Facebook
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaLinkedIn}>
+                <Linkedin className="h-5 w-5 text-blue-600" />
+                LinkedIn
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaGmail}>
+                <Mail className="h-5 w-5 text-red-500" />
+                Gmail
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaSMS}>
+                <Send className="h-5 w-5 text-purple-600" />
+                SMS
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaEmail}>
+                <Mail className="h-5 w-5 text-foreground" />
+                Email
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={copyLink}>
+                <Copy className="h-5 w-5" />
+                Copier
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareNative}>
+                <Share2 className="h-5 w-5" />
+                Plus...
+              </Button>
+            </div>
+            <div className="p-2 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground break-all font-mono">{shareLink}</p>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
