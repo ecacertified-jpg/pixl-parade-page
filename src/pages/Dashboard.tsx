@@ -650,7 +650,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="badges" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] border-transparent data-[state=active]:!bg-transparent data-[state=active]:!text-primary data-[state=active]:!font-bold data-[state=active]:!border-b-[3px] data-[state=active]:!border-primary data-[state=active]:!shadow-none data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes badges et récompenses">
+                  <TabsTrigger value="badges" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] border-transparent data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes badges et récompenses">
                     <span className="text-base sm:text-sm">🏆</span>
                     <span>Badges</span>
                   </TabsTrigger>
