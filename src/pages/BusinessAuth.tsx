@@ -27,6 +27,7 @@ import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndic
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { useDuplicateAccountDetection, type DuplicateCheckResult } from '@/hooks/useDuplicateAccountDetection';
 import { DuplicateAccountModal } from '@/components/DuplicateAccountModal';
+import { useAccountLinking } from '@/hooks/useAccountLinking';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { SEOHead } from '@/components/SEOHead';
 import { HowToSchema } from '@/components/schema';
@@ -387,6 +388,7 @@ const BusinessAuth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const { user, setUserMode, refreshSession } = useAuth();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  const { checkExistingAccount } = useAccountLinking();
   const { trackSignUp } = useGoogleAnalytics();
 
   // Forms
@@ -787,7 +789,25 @@ const BusinessAuth = () => {
     
     // Vérification des doublons avant inscription (sauf si on a déjà vérifié)
     if (!skipDuplicateCheck) {
-      console.log('🔍 [Business Duplicate Check] Checking for existing accounts...');
+      console.log('🔍 [Business Duplicate Check] Checking for existing accounts (server + client)...');
+      
+      // Vérification serveur d'abord (aligné avec Auth.tsx)
+      const serverCheck = await checkExistingAccount(fullPhone, undefined, data.firstName);
+      if (serverCheck && serverCheck.exists && serverCheck.confidence === 'high') {
+        console.log('⚠️ [Business Server Check] High confidence duplicate found:', serverCheck);
+        setDuplicateResult({
+          hasPotentialDuplicate: true,
+          duplicateType: 'phone',
+          matchingProfiles: serverCheck.matchingProfiles || [],
+          confidence: 'high',
+        });
+        setPendingSignUpData(data);
+        setShowDuplicateModal(true);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Vérification client-side ensuite
       const duplicateCheck = await checkForDuplicate(fullPhone, data.firstName);
       
       if (duplicateCheck.hasPotentialDuplicate) {
@@ -1187,13 +1207,9 @@ const BusinessAuth = () => {
       return;
     }
 
-    // Vérifier si un compte existe déjà avec cet email
+    // Vérifier si un compte existe déjà avec cet email (via hook serveur)
     const duplicateCheck = await checkForDuplicate('', data.firstName);
-    const serverEmailCheck = await fetch(`${SUPABASE_URL}/functions/v1/check-existing-account`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_PUBLISHABLE_KEY },
-      body: JSON.stringify({ email: data.email }),
-    }).then(r => r.json()).catch(() => null);
+    const serverEmailCheck = await checkExistingAccount(undefined, data.email, data.firstName);
     
     if (serverEmailCheck && serverEmailCheck.exists && serverEmailCheck.confidence === 'high') {
       setIsLoading(false);
