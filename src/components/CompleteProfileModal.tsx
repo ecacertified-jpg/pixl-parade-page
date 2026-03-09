@@ -131,35 +131,24 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress indicator */}
+        {/* Compact progress indicator */}
         {(() => {
           const checks = [!!birthday, !!(addressData?.city), !!phoneData.isValid];
-          const steps = [
-            { label: 'Anniversaire', isComplete: checks[0] },
-            { label: 'Localisation', isComplete: checks[1] },
-            { label: 'Téléphone', isComplete: checks[2] },
-          ];
           const filledCount = checks.filter(Boolean).length;
           const progress = Math.round((filledCount / 3) * 100);
-          const stepLabel = progress === 0 ? 'Complétez votre profil' : progress < 100 ? 'Presque terminé !' : 'Prêt !';
+          const StepIcons = [Gift, MapPin, Phone];
           return (
-            <div className="space-y-3 p-3 bg-secondary/30 rounded-xl flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground">{stepLabel}</span>
-                <span className="text-sm font-semibold text-primary">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" indicatorClassName={cn("transition-all duration-500", progress === 100 ? "bg-green-500" : "bg-primary")} />
-              <div className="grid grid-cols-3 gap-2 md:flex md:justify-between text-xs text-muted-foreground">
-                {steps.map((s, i) => {
-                  const StepIcon = [Gift, MapPin, Phone][i];
-                  return (
-                    <div key={i} className="flex flex-col items-center gap-0.5 text-center">
-                      {s.isComplete ? <Check className="h-4 w-4 text-green-500" /> : <StepIcon className="h-4 w-4 text-muted-foreground/50" />}
-                      <span>{s.label}</span>
-                    </div>
-                  );
+            <div className="flex items-center gap-3 px-3 py-2 bg-secondary/30 rounded-lg flex-shrink-0">
+              <div className="flex items-center gap-2">
+                {checks.map((done, i) => {
+                  const Icon = StepIcons[i];
+                  return done
+                    ? <Check key={i} className="h-4 w-4 text-green-500" />
+                    : <Icon key={i} className="h-4 w-4 text-muted-foreground/40" />;
                 })}
               </div>
+              <Progress value={progress} className="h-1.5 flex-1" indicatorClassName={cn("transition-all duration-500", progress === 100 ? "bg-green-500" : "bg-primary")} />
+              <span className="text-xs font-semibold text-primary">{progress}%</span>
             </div>
           );
         })()}
