@@ -60,6 +60,12 @@ ${order.items.map(item => `${item.name} x${item.quantity} - ${item.price.toLocal
 
 TOTAL: ${order.totalAmount.toLocaleString()} ${order.currency}
 
+PRESTATAIRE
+-----------
+${order.businessName ? `Boutique: ${order.businessName}` : ''}
+${order.businessPhone ? `Téléphone: ${order.businessPhone}` : ''}
+${order.businessAddress ? `Adresse: ${order.businessAddress}` : ''}
+
 LIVRAISON
 ---------
 Adresse: ${order.deliveryAddress}
@@ -116,6 +122,32 @@ Merci pour votre confiance !
               </div>
             )}
           </div>
+
+          {/* Prestataire Info */}
+          {order.businessName && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="font-semibold text-foreground">Prestataire</h4>
+                <div className="flex items-center gap-2 text-sm">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{order.businessName}</span>
+                </div>
+                {order.businessPhone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span>{order.businessPhone}</span>
+                  </div>
+                )}
+                {order.businessAddress && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{order.businessAddress}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <Separator />
 

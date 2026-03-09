@@ -23,6 +23,8 @@ export interface CustomerOrder {
   beneficiaryPhone: string;
   paymentMethod: string;
   businessName?: string;
+  businessPhone?: string;
+  businessAddress?: string;
   customerConfirmedAt?: string;
   customerRating?: number;
   customerReviewText?: string;
@@ -54,7 +56,9 @@ export const useCustomerOrders = () => {
           customer_rating,
           customer_review_text,
           business_accounts (
-            business_name
+            business_name,
+            phone,
+            address
           )
         `)
         .eq('customer_id', user.id)
@@ -83,6 +87,8 @@ export const useCustomerOrders = () => {
           beneficiaryPhone: order.beneficiary_phone,
           paymentMethod: order.payment_method,
           businessName: order.business_accounts?.business_name,
+          businessPhone: order.business_accounts?.phone || undefined,
+          businessAddress: order.business_accounts?.address || undefined,
           customerConfirmedAt: order.customer_confirmed_at || undefined,
           customerRating: order.customer_rating || undefined,
           customerReviewText: order.customer_review_text || undefined,
