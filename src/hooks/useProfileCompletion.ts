@@ -1,76 +1,65 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-export const useProfileCompletion = () => {
-  const { user } = useAuth();
-  const [needsCompletion, setNeedsCompletion] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [initialData, setInitialData] = useState<{
+interface ProfileCompletionData {
+  needsCompletion: boolean;
+  initialData: {
     firstName?: string;
     lastName?: string;
     phone?: string;
-  }>({});
+  };
+}
 
-  const checkProfileCompletion = useCallback(async () => {
-    if (!user) {
-      setNeedsCompletion(false);
-      setIsLoading(false);
-      return;
-    }
+const fetchProfileCompletion = async (user: { id: string; user_metadata?: any; phone?: string }): Promise<ProfileCompletionData> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('first_name, last_name, birthday, city, phone')
+    .eq('user_id', user.id)
+    .single();
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, birthday, city, phone')
-        .eq('user_id', user.id)
-        .single();
+  if (error || !data) {
+    return { needsCompletion: false, initialData: {} };
+  }
 
-      if (error) {
-        console.error('Error checking profile completion:', error);
-        setNeedsCompletion(false);
-        setIsLoading(false);
-        return;
-      }
+  const incomplete = !data.birthday || !data.city || !data.phone;
 
-      // Profile is incomplete if birthday, city OR phone is missing
-      const incomplete = !data?.birthday || !data?.city || !data?.phone;
-      setNeedsCompletion(incomplete);
+  return {
+    needsCompletion: incomplete,
+    initialData: incomplete ? {
+      firstName: data.first_name || user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name,
+      lastName: data.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || user.user_metadata?.last_name,
+      phone: data.phone || user.phone || '',
+    } : {},
+  };
+};
 
-      // Store initial data from Google if available
-      if (incomplete) {
-        setInitialData({
-          firstName: data?.first_name || user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.first_name,
-          lastName: data?.last_name || user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || user.user_metadata?.last_name,
-          phone: data?.phone || user.phone || '',
-        });
-      }
-    } catch (error) {
-      console.error('Error checking profile completion:', error);
-      setNeedsCompletion(false);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
+export const useProfileCompletion = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [manuallyComplete, setManuallyComplete] = useState(false);
 
-  useEffect(() => {
-    checkProfileCompletion();
-  }, [checkProfileCompletion]);
+  const { data, isLoading } = useQuery({
+    queryKey: ['profile-completion', user?.id],
+    queryFn: () => fetchProfileCompletion(user!),
+    enabled: !!user?.id,
+    staleTime: 60000,
+  });
 
   const markComplete = useCallback(() => {
-    setNeedsCompletion(false);
+    setManuallyComplete(true);
   }, []);
 
   const refreshCheck = useCallback(() => {
-    setIsLoading(true);
-    checkProfileCompletion();
-  }, [checkProfileCompletion]);
+    queryClient.invalidateQueries({ queryKey: ['profile-completion', user?.id] });
+  }, [queryClient, user?.id]);
 
-  return { 
-    needsCompletion, 
-    isLoading, 
-    markComplete, 
+  return {
+    needsCompletion: manuallyComplete ? false : (data?.needsCompletion ?? false),
+    isLoading,
+    markComplete,
     refreshCheck,
-    initialData 
+    initialData: data?.initialData ?? {},
   };
 };

@@ -54,21 +54,32 @@ const fetchFriendRequests = async (userId: string): Promise<FriendRequestsData> 
   let enrichedReceived: FriendRequest[] = [];
   let enrichedSent: FriendRequest[] = [];
 
-  // Get current user's friends for mutual count
-  const myFriends = received && received.length > 0 ? await getFriendsOfUser(userId) : new Set<string>();
-
   if (received && received.length > 0) {
     const requesterIds = received.map(r => r.requester_id);
+    const allRelevantIds = [userId, ...requesterIds];
     
-    const [{ data: profiles }, ...requesterFriendsResults] = await Promise.all([
+    // Single bulk query for ALL relationships involving current user or any requester
+    const [{ data: profiles }, { data: allRelationships }] = await Promise.all([
       supabase.from('profiles').select('user_id, first_name, last_name, avatar_url').in('user_id', requesterIds),
-      ...requesterIds.map(id => getFriendsOfUser(id)),
+      supabase.from('contact_relationships').select('user_a, user_b')
+        .or(allRelevantIds.map(id => `user_a.eq.${id},user_b.eq.${id}`).join(',')),
     ]);
 
+    // Build friends sets from the single query result
+    const buildFriendsSet = (uid: string): Set<string> => {
+      const friends = new Set<string>();
+      (allRelationships || []).forEach(r => {
+        if (r.user_a === uid) friends.add(r.user_b);
+        else if (r.user_b === uid) friends.add(r.user_a);
+      });
+      return friends;
+    };
+
+    const myFriends = buildFriendsSet(userId);
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
     
-    enrichedReceived = received.map((r, i) => {
-      const requesterFriends = requesterFriendsResults[i];
+    enrichedReceived = received.map((r) => {
+      const requesterFriends = buildFriendsSet(r.requester_id);
       let mutualCount = 0;
       requesterFriends.forEach(friendId => {
         if (myFriends.has(friendId)) mutualCount++;

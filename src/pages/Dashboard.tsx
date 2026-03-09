@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -28,8 +28,8 @@ import { fr } from "date-fns/locale";
 import { GiftHistoryModal } from "@/components/GiftHistoryModal";
 import { AddFriendModal } from "@/components/AddFriendModal";
 import { AddEventModal, Event } from "@/components/AddEventModal";
-import { GiftsSection } from "@/components/GiftsSection";
-import { CollectiveFundCard } from "@/components/CollectiveFundCard";
+const GiftsSection = lazy(() => import('@/components/GiftsSection').then(m => ({ default: m.GiftsSection })));
+const CollectiveFundCard = lazy(() => import('@/components/CollectiveFundCard').then(m => ({ default: m.CollectiveFundCard })));
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { BottomNavigation } from "@/components/RecentActivitySection";
@@ -48,7 +48,7 @@ import { OnboardingModal } from "@/components/OnboardingModal";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
 import { BadgeProgressCard } from "@/components/BadgeProgressCard";
-import { AllBadgesCollection } from "@/components/AllBadgesCollection";
+const AllBadgesCollection = lazy(() => import('@/components/AllBadgesCollection').then(m => ({ default: m.AllBadgesCollection })));
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
@@ -70,6 +70,7 @@ import { FriendRequestsCarousel } from "@/components/FriendRequestsCarousel";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
@@ -544,7 +545,7 @@ export default function Dashboard() {
 
         {/* Section Rappels d'anniversaires intelligents */}
         <div className="mb-4">
-          <SmartBirthdayReminders hideViewAllButton />
+          <SmartBirthdayReminders hideViewAllButton contacts={friends} />
         </div>
 
         {/* Section Liste de souhaits */}
@@ -969,9 +970,9 @@ export default function Dashboard() {
                   <p className="mx-[54px]">Aucune cotisation active pour le moment</p>
                   <p className="text-sm mx-[45px]">Les cotisations créées depuis la boutique apparaîtront ici</p>
                 </div>
-              </Card> : <div className="space-y-4">
+              </Card> : <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}><div className="space-y-4">
                 {funds.map(fund => <CollectiveFundCard key={fund.id} fund={fund} onContributionSuccess={refreshFunds} onDelete={() => refreshFunds()} />)}
-              </div>}
+              </div></Suspense>}
           </TabsContent>
 
           <TabsContent value="cadeaux" className="mt-4" forceMount={activeTab === 'cadeaux' ? true : undefined} hidden={activeTab !== 'cadeaux'}>
@@ -982,15 +983,19 @@ export default function Dashboard() {
                 Offrir
               </Button>
             </div>
-            <GiftsSection onGiftCountChange={handleGiftCountChange} />
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <GiftsSection onGiftCountChange={handleGiftCountChange} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="badges" className="mt-4" forceMount={activeTab === 'badges' ? true : undefined} hidden={activeTab !== 'badges'}>
-            <div className="space-y-4">
-              {reciprocityScore && (
-                <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
-              )}
-            </div>
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <div className="space-y-4">
+                {reciprocityScore && (
+                  <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
+                )}
+              </div>
+            </Suspense>
           </TabsContent>
 
           </motion.div>
