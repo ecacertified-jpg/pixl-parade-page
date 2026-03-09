@@ -65,7 +65,7 @@ import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { getDaysUntilBirthday } from "@/lib/utils";
 import { useFriendRequests } from "@/hooks/useFriendRequests";
 import { SearchAndAddFriendModal } from "@/components/SearchAndAddFriendModal";
-import { FriendRequestsNotification } from "@/components/FriendRequestsNotification";
+import { FriendRequestsCarousel } from "@/components/FriendRequestsCarousel";
 import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -709,7 +709,7 @@ export default function Dashboard() {
               </div>
             )}
             
-            <FriendRequestsNotification
+            <FriendRequestsCarousel
               requests={pendingReceived}
               onAccept={async (requestId, requesterId) => {
                 const ok = await acceptRequest(requestId, requesterId);
