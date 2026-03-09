@@ -48,7 +48,7 @@ import { OnboardingModal } from "@/components/OnboardingModal";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
 import { BadgeProgressCard } from "@/components/BadgeProgressCard";
-import { AllBadgesCollection } from "@/components/AllBadgesCollection";
+const AllBadgesCollection = lazy(() => import('@/components/AllBadgesCollection').then(m => ({ default: m.AllBadgesCollection })));
 import { triggerBadgeCheckAfterAction } from "@/utils/badgeAwarder";
 import { SmartBirthdayReminders } from "@/components/SmartBirthdayReminders";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
