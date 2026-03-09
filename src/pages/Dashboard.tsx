@@ -638,7 +638,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="cadeaux" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] border-transparent data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Consulter l'historique de mes cadeaux">
+                  <TabsTrigger value="cadeaux" className={`flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] ${activeTab === 'cadeaux' ? 'bg-transparent text-primary font-bold border-primary shadow-none' : 'bg-transparent text-muted-foreground border-transparent'}`} aria-label="Consulter l'historique de mes cadeaux">
                     <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Cadeaux</span>
                   </TabsTrigger>
