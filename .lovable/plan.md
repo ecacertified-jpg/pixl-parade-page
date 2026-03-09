@@ -1,53 +1,23 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+## Plan : Corriger la visibilite des onglets actifs a la source
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+### Cause racine
+Le composant `TabsTrigger` dans `tabs.tsx` (ligne 31) applique `data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md` comme styles de base. La fonction `cn()` utilise `tailwind-merge` qui resout les conflits de classes de maniere imprevisible — les `!important` et valeurs arbitraires du Dashboard sont ecrasees ou ignorees.
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+### Solution
+Modifier directement `src/components/ui/tabs.tsx` pour retirer les styles actifs par defaut du `TabsTrigger`. Ensuite simplifier les classes dans `Dashboard.tsx`.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+**Fichier 1 : `src/components/ui/tabs.tsx`** (ligne 31)
+- Retirer `data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md`
+- Les remplacer par des styles neutres : `data-[state=active]:bg-accent data-[state=active]:text-accent-foreground data-[state=active]:shadow-sm`
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+**Fichier 2 : `src/pages/Dashboard.tsx`** (lignes 602-661)
+- Simplifier les classes des `TabsTrigger` sans `!important` :
+  - `data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:font-bold data-[state=active]:border-b-[3px] data-[state=active]:border-primary data-[state=active]:shadow-none`
+- Les styles fonctionneront car ils ne seront plus en conflit avec la base
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### Fichiers impactes
+- `src/components/ui/tabs.tsx`
+- `src/pages/Dashboard.tsx`
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
-
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
-
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
-
-## En attente ⏳
-
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
