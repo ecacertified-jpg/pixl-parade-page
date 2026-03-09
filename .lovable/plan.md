@@ -1,38 +1,18 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+## Plan : Aligner BusinessAuth.tsx avec Auth.tsx pour la détection de doublons serveur
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+### Problème actuel
+`BusinessAuth.tsx` utilise un appel `fetch()` direct vers l'edge function `check-existing-account` (ligne 1192), tandis que `Auth.tsx` utilise le hook `useAccountLinking` qui encapsule proprement `supabase.functions.invoke()`. De plus, le flux téléphone de BusinessAuth utilise uniquement `useDuplicateAccountDetection` (client-side) sans la vérification serveur.
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+### Modifications
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+**Fichier : `src/pages/BusinessAuth.tsx`**
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+1. Importer `useAccountLinking` depuis `@/hooks/useAccountLinking`
+2. Initialiser `const { checkExistingAccount } = useAccountLinking();`
+3. **`handleEmailSignUp`** (ligne ~1190-1206) : Remplacer le bloc `fetch()` direct par `checkExistingAccount(undefined, data.email, data.firstName)`
+4. **`sendOtpSignUp`** (ligne ~789-801) : Ajouter la vérification serveur via `checkExistingAccount(fullPhone, undefined, data.firstName)` avant le `checkForDuplicate` client-side, identique au pattern de Auth.tsx
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+Pas de nouveau fichier, pas de migration DB. Uniquement un refactoring d'appel dans BusinessAuth.tsx.
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
-
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
