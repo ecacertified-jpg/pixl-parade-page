@@ -19,6 +19,7 @@ export interface FriendRequest {
   status: string;
   message: string | null;
   requested_at: string;
+  mutualFriendsCount: number;
   profile?: {
     first_name: string | null;
     last_name: string | null;
@@ -31,6 +32,19 @@ interface FriendRequestsData {
   pendingSent: FriendRequest[];
 }
 
+const getFriendsOfUser = async (userId: string): Promise<Set<string>> => {
+  const { data } = await supabase
+    .from('contact_relationships')
+    .select('user_a, user_b')
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+  const friends = new Set<string>();
+  data?.forEach(r => {
+    if (r.user_a === userId) friends.add(r.user_b);
+    if (r.user_b === userId) friends.add(r.user_a);
+  });
+  return friends;
+};
+
 const fetchFriendRequests = async (userId: string): Promise<FriendRequestsData> => {
   const [{ data: received }, { data: sent }] = await Promise.all([
     supabase.from('contact_requests').select('*').eq('target_id', userId).eq('status', 'pending'),
@@ -40,13 +54,31 @@ const fetchFriendRequests = async (userId: string): Promise<FriendRequestsData> 
   let enrichedReceived: FriendRequest[] = [];
   let enrichedSent: FriendRequest[] = [];
 
+  // Get current user's friends for mutual count
+  const myFriends = received && received.length > 0 ? await getFriendsOfUser(userId) : new Set<string>();
+
   if (received && received.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, first_name, last_name, avatar_url')
-      .in('user_id', received.map(r => r.requester_id));
+    const requesterIds = received.map(r => r.requester_id);
+    
+    const [{ data: profiles }, ...requesterFriendsResults] = await Promise.all([
+      supabase.from('profiles').select('user_id, first_name, last_name, avatar_url').in('user_id', requesterIds),
+      ...requesterIds.map(id => getFriendsOfUser(id)),
+    ]);
+
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-    enrichedReceived = received.map(r => ({ ...r, profile: profileMap.get(r.requester_id) || undefined }));
+    
+    enrichedReceived = received.map((r, i) => {
+      const requesterFriends = requesterFriendsResults[i];
+      let mutualCount = 0;
+      requesterFriends.forEach(friendId => {
+        if (myFriends.has(friendId)) mutualCount++;
+      });
+      return {
+        ...r,
+        mutualFriendsCount: mutualCount,
+        profile: profileMap.get(r.requester_id) || undefined,
+      };
+    });
   }
 
   if (sent && sent.length > 0) {
@@ -55,7 +87,7 @@ const fetchFriendRequests = async (userId: string): Promise<FriendRequestsData> 
       .select('user_id, first_name, last_name, avatar_url')
       .in('user_id', sent.map(s => s.target_id));
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-    enrichedSent = sent.map(s => ({ ...s, profile: profileMap.get(s.target_id) || undefined }));
+    enrichedSent = sent.map(s => ({ ...s, mutualFriendsCount: 0, profile: profileMap.get(s.target_id) || undefined }));
   }
 
   return { pendingReceived: enrichedReceived, pendingSent: enrichedSent };
