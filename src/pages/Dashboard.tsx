@@ -544,7 +544,7 @@ export default function Dashboard() {
 
         {/* Section Rappels d'anniversaires intelligents */}
         <div className="mb-4">
-          <SmartBirthdayReminders hideViewAllButton />
+          <SmartBirthdayReminders hideViewAllButton contacts={friends} />
         </div>
 
         {/* Section Liste de souhaits */}
