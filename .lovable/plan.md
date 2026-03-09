@@ -1,42 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-## Plan : Transition animee au changement d'onglet
+## Implémenté ✅
 
-### Approche
-Utiliser `framer-motion` (deja installe) avec `AnimatePresence` pour animer le contenu des onglets lors du changement. L'animation sera un fade + leger slide vertical, rapide et fluide.
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-### Implementation
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-**Fichier : `src/pages/Dashboard.tsx`**
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-1. Importer `motion, AnimatePresence` depuis `framer-motion`
-2. Envelopper chaque `TabsContent` dans un wrapper `AnimatePresence` + `motion.div` avec :
-   - `initial={{ opacity: 0, y: 12 }}`
-   - `animate={{ opacity: 1, y: 0 }}`
-   - `exit={{ opacity: 0, y: -8 }}`
-   - `transition={{ duration: 0.25, ease: "easeOut" }}`
-   - `key={activeTab}` pour declencher l'animation au changement
-3. Remplacer les 5 blocs `<TabsContent>` par un seul bloc conditionnel base sur `activeTab`, enveloppe dans `AnimatePresence mode="wait"` :
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-```tsx
-<AnimatePresence mode="wait">
-  <motion.div
-    key={activeTab}
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -8 }}
-    transition={{ duration: 0.25, ease: "easeOut" }}
-    className="mt-4"
-  >
-    {activeTab === 'amis' && <AmiContent />}
-    {activeTab === 'evenements' && <EventContent />}
-    {/* etc. */}
-  </motion.div>
-</AnimatePresence>
-```
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-Puisque les contenus sont deja directement dans les `TabsContent` (pas des composants extraits), on gardera les `TabsContent` mais on ajoutera le `motion.div` a l'interieur de chacun, avec une `key` sur `activeTab` et un `AnimatePresence` global autour de tous les `TabsContent`.
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-### Fichier impacte
-- `src/pages/Dashboard.tsx`
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+
+## En attente ⏳
+
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

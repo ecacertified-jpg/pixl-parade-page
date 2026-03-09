@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -662,7 +663,15 @@ export default function Dashboard() {
             </TabsList>
           </TooltipProvider>
 
-          <TabsContent value="amis" className="mt-4">
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+          <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
               <div className="flex items-center gap-2">
@@ -879,7 +888,7 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="evenements" className="mt-4">
+          <TabsContent value="evenements" className="mt-4" forceMount={activeTab === 'evenements' ? true : undefined} hidden={activeTab !== 'evenements'}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Événements à Venir</h2>
               <Button size="sm" className="gap-2 text-primary-foreground bg-amber-400 hover:bg-amber-300" onClick={() => setShowAddEventModal(true)}>
@@ -940,7 +949,7 @@ export default function Dashboard() {
               </div>}
           </TabsContent>
 
-          <TabsContent value="cotisations" className="mt-4">
+          <TabsContent value="cotisations" className="mt-4" forceMount={activeTab === 'cotisations' ? true : undefined} hidden={activeTab !== 'cotisations'}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
               <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => setShowSearchFundsModal(true)}>
@@ -965,7 +974,7 @@ export default function Dashboard() {
               </div>}
           </TabsContent>
 
-          <TabsContent value="cadeaux" className="mt-4">
+          <TabsContent value="cadeaux" className="mt-4" forceMount={activeTab === 'cadeaux' ? true : undefined} hidden={activeTab !== 'cadeaux'}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Historique des Cadeaux</h2>
               <Button size="sm" className="gap-2 bg-pink-500 text-white hover:bg-pink-600" onClick={() => navigate('/shop')}>
@@ -976,7 +985,7 @@ export default function Dashboard() {
             <GiftsSection onGiftCountChange={handleGiftCountChange} />
           </TabsContent>
 
-          <TabsContent value="badges" className="mt-4">
+          <TabsContent value="badges" className="mt-4" forceMount={activeTab === 'badges' ? true : undefined} hidden={activeTab !== 'badges'}>
             <div className="space-y-4">
               {reciprocityScore && (
                 <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
@@ -984,6 +993,8 @@ export default function Dashboard() {
             </div>
           </TabsContent>
 
+          </motion.div>
+          </AnimatePresence>
         </Tabs>
 
         <div className="pb-20" />
