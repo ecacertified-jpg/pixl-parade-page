@@ -888,7 +888,7 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="evenements" className="mt-4">
+          <TabsContent value="evenements" className="mt-4" forceMount={activeTab === 'evenements' ? true : undefined} hidden={activeTab !== 'evenements'}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Événements à Venir</h2>
               <Button size="sm" className="gap-2 text-primary-foreground bg-amber-400 hover:bg-amber-300" onClick={() => setShowAddEventModal(true)}>
