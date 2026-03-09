@@ -197,14 +197,74 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
           />
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="bg-orange-500 hover:bg-orange-400 flex-1">
+            <Button type="submit" className="bg-primary hover:bg-primary/90 flex-1">
               Ajouter
             </Button>
             <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
               Annuler
             </Button>
           </div>
+
+          <div className="border-t pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-muted-foreground hover:text-primary"
+              onClick={handleShareForm}
+              disabled={generatingLink}
+            >
+              {generatingLink ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
+              )}
+              Envoyer à un proche pour qu'il complète
+            </Button>
+          </div>
         </form>
+
+        {showShareMenu && shareLink && (
+          <div className="space-y-3 pt-2">
+            <p className="text-sm font-medium text-foreground">Partager via :</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaWhatsApp}>
+                <MessageCircle className="h-5 w-5 text-green-600" />
+                WhatsApp
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaFacebook}>
+                <Facebook className="h-5 w-5 text-blue-700" />
+                Facebook
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaLinkedIn}>
+                <Linkedin className="h-5 w-5 text-blue-600" />
+                LinkedIn
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaGmail}>
+                <Mail className="h-5 w-5 text-red-500" />
+                Gmail
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaSMS}>
+                <Send className="h-5 w-5 text-purple-600" />
+                SMS
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaEmail}>
+                <Mail className="h-5 w-5 text-foreground" />
+                Email
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={copyLink}>
+                <Copy className="h-5 w-5" />
+                Copier
+              </Button>
+              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareNative}>
+                <Share2 className="h-5 w-5" />
+                Plus...
+              </Button>
+            </div>
+            <div className="p-2 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground break-all font-mono">{shareLink}</p>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
