@@ -1,51 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-## Obtenir l'API Wave Côte d'Ivoire
+## Implémenté ✅
 
-Wave propose une API de paiement pour les marchands en Afrique de l'Ouest. Voici les étapes pour obtenir l'accès.
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-### 1. Créer un compte Wave Business
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-- Rendez-vous sur le portail développeur Wave : **https://developer.wave.com**
-- Ou contactez l'équipe commerciale Wave CI via :
-  - Site : **https://www.wave.com/ci/** → section "Entreprises" ou "Développeurs"
-  - Email : **developers@wave.com** ou **partners@wave.com**
-  - Téléphone : contacter le support Wave CI depuis l'app Wave
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### 2. S'inscrire comme marchand/partenaire API
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-Wave exige généralement :
-- **Documents légaux** : RCCM, attestation fiscale, pièce d'identité du dirigeant
-- **Informations société** : nom (AMTEY'S SARLU), adresse, activité (marketplace de cadeaux)
-- **Volume estimé** : nombre de transactions mensuelles prévues
-- **Description du cas d'usage** : paiement e-commerce, split vendeur/plateforme
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### 3. Obtenir les clés API
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-Une fois approuvé, Wave fournit :
-- **API Key** (clé secrète pour les appels serveur)
-- **Webhook Secret** (pour valider les notifications de paiement)
-- Un environnement **sandbox** pour tester avant la production
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-### 4. Fonctionnalités principales de l'API Wave
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-| Endpoint | Usage |
-|----------|-------|
-| **Checkout** | Créer une session de paiement avec redirection |
-| **Transfer** | Envoyer de l'argent vers un numéro Wave |
-| **Webhook** | Recevoir les confirmations de paiement |
+## En attente ⏳
 
-### 5. Intégration dans JOIE DE VIVRE
-
-Une fois les clés obtenues :
-- Stocker `WAVE_API_KEY` et `WAVE_WEBHOOK_SECRET` dans les secrets Supabase
-- Remplacer le mode simulation actuel (`WavePaymentSimulation`) par de vrais appels API Wave Checkout
-- Configurer le webhook pour confirmer automatiquement les commandes
-
-### Liens utiles
-
-- Documentation API Wave : **https://developer.wave.com/docs**
-- Guide d'intégration checkout : **https://docs.wave.com/api/checkout**
-
-Ce n'est pas une tache de code -- c'est une démarche administrative auprès de Wave. Une fois les clés API en main, je pourrai intégrer le vrai flux de paiement dans l'application.
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
