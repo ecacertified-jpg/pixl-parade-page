@@ -48,7 +48,8 @@ serve(async (req) => {
       try {
         console.log(`[Purge] Processing business: ${business.business_name} (${business.id})`);
 
-        // Call centralized cascade deletion function
+        // Call centralized cascade deletion function with service role authorization
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
         const { data, error } = await supabaseAdmin.functions.invoke('delete-business-cascade', {
           body: {
             business_id: business.id,
@@ -56,6 +57,9 @@ serve(async (req) => {
             business_name: business.business_name,
             admin_user_id: null, // System action
             action_type: 'auto_purge'
+          },
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`
           }
         });
 
