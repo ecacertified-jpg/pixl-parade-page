@@ -602,7 +602,7 @@ export default function Dashboard() {
             <TabsList className="grid grid-cols-5 gap-0.5 bg-muted/40 p-1 rounded-xl">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="amis" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Gérer mes amis et contacts">
+                  <TabsTrigger value="amis" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:!bg-[hsl(259,58%,35%)] data-[state=active]:!text-white data-[state=active]:!shadow-lg data-[state=active]:!border-b-2 data-[state=active]:!border-white data-[state=active]:!font-bold data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Gérer mes amis et contacts">
                     <Users className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Amis</span>
                   </TabsTrigger>
@@ -614,7 +614,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="evenements" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Consulter mes événements et occasions spéciales">
+                  <TabsTrigger value="evenements" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:!bg-[hsl(259,58%,35%)] data-[state=active]:!text-white data-[state=active]:!shadow-lg data-[state=active]:!border-b-2 data-[state=active]:!border-white data-[state=active]:!font-bold data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Consulter mes événements et occasions spéciales">
                     <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Events</span>
                   </TabsTrigger>
@@ -626,7 +626,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="cotisations" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes cotisations collectives et cagnottes">
+                  <TabsTrigger value="cotisations" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:!bg-[hsl(259,58%,35%)] data-[state=active]:!text-white data-[state=active]:!shadow-lg data-[state=active]:!border-b-2 data-[state=active]:!border-white data-[state=active]:!font-bold data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes cotisations collectives et cagnottes">
                     <PiggyBank className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Cotis.</span>
                   </TabsTrigger>
@@ -638,7 +638,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="cadeaux" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Consulter l'historique de mes cadeaux">
+                  <TabsTrigger value="cadeaux" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:!bg-[hsl(259,58%,35%)] data-[state=active]:!text-white data-[state=active]:!shadow-lg data-[state=active]:!border-b-2 data-[state=active]:!border-white data-[state=active]:!font-bold data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Consulter l'historique de mes cadeaux">
                     <Gift className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
                     <span>Cadeaux</span>
                   </TabsTrigger>
@@ -650,7 +650,7 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <TabsTrigger value="badges" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:bg-[hsl(259,58%,42%)] data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes badges et récompenses">
+                  <TabsTrigger value="badges" className="flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2 data-[state=active]:!bg-[hsl(259,58%,35%)] data-[state=active]:!text-white data-[state=active]:!shadow-lg data-[state=active]:!border-b-2 data-[state=active]:!border-white data-[state=active]:!font-bold data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground" aria-label="Voir mes badges et récompenses">
                     <span className="text-base sm:text-sm">🏆</span>
                     <span>Badges</span>
                   </TabsTrigger>
