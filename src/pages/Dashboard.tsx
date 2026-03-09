@@ -982,7 +982,9 @@ export default function Dashboard() {
                 Offrir
               </Button>
             </div>
-            <GiftsSection onGiftCountChange={handleGiftCountChange} />
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <GiftsSection onGiftCountChange={handleGiftCountChange} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="badges" className="mt-4" forceMount={activeTab === 'badges' ? true : undefined} hidden={activeTab !== 'badges'}>
