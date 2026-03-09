@@ -87,6 +87,8 @@ export const useCustomerOrders = () => {
           beneficiaryPhone: order.beneficiary_phone,
           paymentMethod: order.payment_method,
           businessName: order.business_accounts?.business_name,
+          businessPhone: order.business_accounts?.phone || undefined,
+          businessAddress: order.business_accounts?.address || undefined,
           customerConfirmedAt: order.customer_confirmed_at || undefined,
           customerRating: order.customer_rating || undefined,
           customerReviewText: order.customer_review_text || undefined,

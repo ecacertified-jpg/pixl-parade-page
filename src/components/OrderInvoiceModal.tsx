@@ -60,6 +60,12 @@ ${order.items.map(item => `${item.name} x${item.quantity} - ${item.price.toLocal
 
 TOTAL: ${order.totalAmount.toLocaleString()} ${order.currency}
 
+PRESTATAIRE
+-----------
+${order.businessName ? `Boutique: ${order.businessName}` : ''}
+${order.businessPhone ? `Téléphone: ${order.businessPhone}` : ''}
+${order.businessAddress ? `Adresse: ${order.businessAddress}` : ''}
+
 LIVRAISON
 ---------
 Adresse: ${order.deliveryAddress}
