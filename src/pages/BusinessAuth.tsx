@@ -388,6 +388,7 @@ const BusinessAuth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const { user, setUserMode, refreshSession } = useAuth();
   const { checkForDuplicate, isChecking } = useDuplicateAccountDetection();
+  const { checkExistingAccount } = useAccountLinking();
   const { trackSignUp } = useGoogleAnalytics();
 
   // Forms
