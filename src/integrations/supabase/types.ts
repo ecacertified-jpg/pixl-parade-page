@@ -3021,6 +3021,39 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_form_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          prefilled_name: string | null
+          prefilled_relation: string | null
+          status: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          prefilled_name?: string | null
+          prefilled_relation?: string | null
+          status?: string
+          token?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          prefilled_name?: string | null
+          prefilled_relation?: string | null
+          status?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fund_activities: {
         Row: {
           activity_type: string
