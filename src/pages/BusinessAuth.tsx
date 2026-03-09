@@ -1188,13 +1188,9 @@ const BusinessAuth = () => {
       return;
     }
 
-    // Vérifier si un compte existe déjà avec cet email
+    // Vérifier si un compte existe déjà avec cet email (via hook serveur)
     const duplicateCheck = await checkForDuplicate('', data.firstName);
-    const serverEmailCheck = await fetch(`${SUPABASE_URL}/functions/v1/check-existing-account`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_PUBLISHABLE_KEY },
-      body: JSON.stringify({ email: data.email }),
-    }).then(r => r.json()).catch(() => null);
+    const serverEmailCheck = await checkExistingAccount(undefined, data.email, data.firstName);
     
     if (serverEmailCheck && serverEmailCheck.exists && serverEmailCheck.confidence === 'high') {
       setIsLoading(false);
