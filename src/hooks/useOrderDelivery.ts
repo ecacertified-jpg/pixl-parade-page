@@ -139,6 +139,16 @@ export function useOrderDelivery() {
         });
       }
 
+      // Notify client when delivered
+      if (status === 'delivered') {
+        supabase.functions.invoke('notify-delivery-completed', {
+          body: { order_id: orderId }
+        }).then(res => {
+          if (res.error) console.error('⚠️ notify-delivery-completed error:', res.error);
+          else console.log('✅ Delivery notification dispatched');
+        }).catch(err => console.error('⚠️ notify-delivery-completed call failed:', err));
+      }
+
       toast.success('Statut de livraison mis à jour');
       return true;
     } catch (err) {
