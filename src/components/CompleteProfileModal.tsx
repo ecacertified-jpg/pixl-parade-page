@@ -69,10 +69,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         phone: phoneData.nationalNumber ? `${phoneData.countryCode}${phoneData.nationalNumber}` : null,
       };
 
-      // Update first_name only if provided
-      if (firstName.trim()) {
-        updateData.first_name = firstName.trim();
-      }
 
       const { error } = await supabase
         .from('profiles')
