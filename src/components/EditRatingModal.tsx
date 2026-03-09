@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Star, Pencil, Loader2, Clock } from "lucide-react";
+import { Star, Pencil, Loader2, Clock, AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,12 +24,11 @@ export const EditRatingModal = ({
   isOpen,
   onClose,
 }: EditRatingModalProps) => {
-  const { updateRating, isUpdating, getRemainingDays } = useEditRating();
+  const { updateRating, isUpdating, getRemainingHours } = useEditRating();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  // Pre-fill with existing values when modal opens
   useEffect(() => {
     if (order && isOpen) {
       setRating(order.customerRating || 0);
@@ -62,11 +61,13 @@ export const EditRatingModal = ({
   };
 
   const displayRating = hoveredRating || rating;
-  const remainingDays = order?.customerConfirmedAt ? getRemainingDays(order.customerConfirmedAt) : 0;
+  const remainingHours = order?.customerConfirmedAt ? getRemainingHours(order.customerConfirmedAt) : 0;
   const originalRating = order?.customerRating || 0;
 
-  // Cannot rate below 3 if original was 3 or above
-  const minAllowedRating = originalRating >= 3 ? 3 : 1;
+  // Detect category change
+  const isCategoryChange = rating > 0 && (
+    (originalRating >= 3 && rating < 3) || (originalRating < 3 && rating >= 3)
+  );
 
   if (!order) return null;
 
@@ -89,7 +90,7 @@ export const EditRatingModal = ({
             <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
             <p className="text-xs text-blue-800 dark:text-blue-300">
               Vous pouvez modifier votre avis pendant encore{" "}
-              <strong>{remainingDays} jour{remainingDays > 1 ? "s" : ""}</strong>
+              <strong>{remainingHours} heure{remainingHours > 1 ? "s" : ""}</strong>
             </p>
           </div>
 
@@ -99,39 +100,26 @@ export const EditRatingModal = ({
               Votre nouvelle note
             </h4>
 
-            {originalRating >= 3 && (
-              <p className="text-xs text-muted-foreground">
-                Note minimum: 3 étoiles (vous avez confirmé votre satisfaction)
-              </p>
-            )}
-
             <div className="flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => {
-                const isDisabled = star < minAllowedRating;
-                return (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => !isDisabled && setRating(star)}
-                    onMouseEnter={() => !isDisabled && setHoveredRating(star)}
-                    onMouseLeave={() => setHoveredRating(0)}
-                    disabled={isDisabled}
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className="focus:outline-none transition-transform hover:scale-110"
+                >
+                  <Star
                     className={cn(
-                      "focus:outline-none transition-transform",
-                      isDisabled ? "opacity-30 cursor-not-allowed" : "hover:scale-110"
+                      "h-10 w-10 transition-colors",
+                      star <= displayRating
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-muted-foreground/30"
                     )}
-                  >
-                    <Star
-                      className={cn(
-                        "h-10 w-10 transition-colors",
-                        star <= displayRating
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-muted-foreground/30"
-                      )}
-                    />
-                  </button>
-                );
-              })}
+                  />
+                </button>
+              ))}
             </div>
             {rating > 0 && (
               <p className="text-center text-sm text-muted-foreground">
@@ -143,6 +131,34 @@ export const EditRatingModal = ({
               </p>
             )}
           </div>
+
+          {/* Category change warning */}
+          {isCategoryChange && (
+            <div className={cn(
+              "rounded-lg p-3 flex items-start gap-2 border",
+              originalRating >= 3 && rating < 3
+                ? "bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800"
+                : "bg-green-50 border-green-200 dark:bg-green-950/50 dark:border-green-800"
+            )}>
+              <AlertTriangle className={cn(
+                "h-4 w-4 shrink-0 mt-0.5",
+                originalRating >= 3 && rating < 3
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-green-600 dark:text-green-400"
+              )} />
+              <p className={cn(
+                "text-xs",
+                originalRating >= 3 && rating < 3
+                  ? "text-amber-800 dark:text-amber-300"
+                  : "text-green-800 dark:text-green-300"
+              )}>
+                {originalRating >= 3 && rating < 3
+                  ? "En passant à moins de 3 étoiles, une demande de remboursement sera automatiquement envoyée au vendeur."
+                  : "En passant à 3 étoiles ou plus, votre demande de remboursement sera annulée et votre satisfaction confirmée."
+                }
+              </p>
+            </div>
+          )}
 
           {/* Review Text */}
           <div className="space-y-2">

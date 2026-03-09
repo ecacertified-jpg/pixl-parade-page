@@ -1,37 +1,38 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-## Plan : Modifier la fenêtre d'édition à 48h + transition automatique de statut
+## Implémenté ✅
 
-Le mécanisme existe déjà (hook `useEditRating`, modal `EditRatingModal`, bouton dans `Orders.tsx`). Il faut ajuster deux choses :
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-### 1. Réduire la fenêtre d'édition de 7 jours à 48 heures
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-**Fichier : `src/hooks/useEditRating.ts`**
-- Changer `EDIT_WINDOW_DAYS = 7` en `EDIT_WINDOW_HOURS = 48`
-- Adapter `canEditReview` et `getRemainingDays` → `getRemainingHours` pour calculer en heures au lieu de jours
-- Mettre à jour les messages d'erreur ("48 heures" au lieu de "7 jours")
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### 2. Transition automatique de statut lors du changement de catégorie
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**Fichier : `src/hooks/useEditRating.ts`** (dans `updateRating`)
-- Supprimer la restriction qui empêche de passer de ≥3 à <3
-- Ajouter la logique de transition automatique :
-  - Si `newRating < 3` et ancien statut `receipt_confirmed` → mettre à jour le statut en `refund_requested` + remplir `refund_reason` et `refund_requested_at`
-  - Si `newRating >= 3` et ancien statut `refund_requested` → remettre le statut en `receipt_confirmed` + effacer `refund_reason`
-- Notifier via toast du changement de statut
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### 3. Adapter le modal et l'affichage
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-**Fichier : `src/components/EditRatingModal.tsx`**
-- Supprimer `minAllowedRating` — toutes les étoiles sont cliquables
-- Afficher le temps restant en heures au lieu de jours
-- Ajouter un avertissement si le client change de catégorie (≥3 → <3 ou inverse) : message explicatif avant soumission
-
-**Fichier : `src/pages/Orders.tsx`**
-- Adapter l'affichage du temps restant (heures au lieu de jours)
-
-### Fichiers impactés
-- `src/hooks/useEditRating.ts`
-- `src/components/EditRatingModal.tsx`
-- `src/pages/Orders.tsx`
-
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
