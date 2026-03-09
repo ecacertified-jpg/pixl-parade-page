@@ -988,11 +988,13 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="badges" className="mt-4" forceMount={activeTab === 'badges' ? true : undefined} hidden={activeTab !== 'badges'}>
-            <div className="space-y-4">
-              {reciprocityScore && (
-                <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
-              )}
-            </div>
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <div className="space-y-4">
+                {reciprocityScore && (
+                  <AllBadgesCollection currentScore={reciprocityScore.generosity_score} />
+                )}
+              </div>
+            </Suspense>
           </TabsContent>
 
           </motion.div>
