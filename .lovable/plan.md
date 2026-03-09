@@ -1,21 +1,38 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-## Plan : Refonte du formulaire "Inviter des amis"
+## Implémenté ✅
 
-### Modifications dans `src/components/InviteFriendsModal.tsx`
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-**1. Réorganiser les champs** : Placer "Numéro de téléphone" en premier, puis "Adresse email" en dessous.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-**2. Rendre le téléphone obligatoire** : Retirer "(optionnel)" du label, ajouter `required`, valider le format avant envoi.
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-**3. Remplacer le bouton "Envoyer l'invitation" par un menu de partage multi-canal** :
-- Le bouton "Envoyer l'invitation" ouvre un menu de partage (similaire à `ReferralShareMenu`)
-- Canaux disponibles : WhatsApp, Facebook, LinkedIn, Gmail, SMS, Email classique, Copier le lien, Partage natif
-- Le message de partage inclut le lien d'invitation généré avec le numéro/email saisis
-- L'invitation est d'abord enregistrée en base via `sendInvitation`, puis le menu de partage s'ouvre pour diffuser le lien
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**4. Rendre l'email optionnel** : Inverser la logique -- le téléphone devient obligatoire, l'email devient optionnel. Adapter la validation dans `handleSubmit`.
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### Composants impactés
-- `src/components/InviteFriendsModal.tsx` -- seul fichier modifié
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
