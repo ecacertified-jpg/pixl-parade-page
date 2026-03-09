@@ -1,38 +1,50 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+## Plan : Notification automatique au client lors de la livraison
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+### Problème actuel
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Quand `updateDeliveryStatus` dans `useOrderDelivery.ts` passe une commande en statut `delivered`, seul le champ `delivery_delivered_at` est mis à jour en base. Aucune notification n'est envoyée au client. Le client ne sait donc pas qu'il doit aller noter le vendeur.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+### Solution
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+Créer une nouvelle Edge Function `notify-delivery-completed` qui envoie 4 types de notifications au client (in-app, Push, SMS, WhatsApp) avec un lien direct vers `/orders` pour confirmer et noter.
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### Modifications
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+**1. Nouvelle Edge Function : `supabase/functions/notify-delivery-completed/index.ts`**
+- Reçoit `{ order_id }` en paramètre
+- Récupère la commande avec `business_accounts` (business_name, phone) et le profil client (first_name)
+- Envoie :
+  - **In-app** : notification dans la table `notifications` avec `type: 'delivery_completed'`, `action_url: '/orders'`
+  - **Push** : via `sendWebPushNotification` aux abonnements actifs du client
+  - **SMS** : via `sendSms` au `donor_phone` ou `beneficiary_phone`
+  - **WhatsApp** : via `sendWhatsAppTemplate` avec template `joiedevivre_delivery_completed` (paramètres : prénom, nom boutique, shortOrderId)
+- Message type : "Votre commande #XXXXXXXX chez {business} a été livrée ! Confirmez la réception et notez le vendeur."
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+**2. Modifier `src/hooks/useOrderDelivery.ts`**
+- Dans `updateDeliveryStatus`, quand `status === 'delivered'`, appeler `supabase.functions.invoke('notify-delivery-completed', { body: { order_id: orderId } })` après la mise à jour réussie
+
+**3. Config : `supabase/config.toml`**
+- Ajouter `[functions.notify-delivery-completed]` avec `verify_jwt = false`
+
+### Flux
+
+```text
+Livreur/Vendeur marque "livré"
+       ↓
+useOrderDelivery.updateDeliveryStatus(status='delivered')
+       ↓
+business_orders.delivery_status = 'delivered'
+       ↓
+invoke('notify-delivery-completed', { order_id })
+       ↓
+Client reçoit: In-app + Push + SMS + WhatsApp
+  "Commande livrée ! Confirmez et notez → /orders"
+```
+
+### Fichiers impactés
+- `supabase/functions/notify-delivery-completed/index.ts` (nouveau)
+- `src/hooks/useOrderDelivery.ts` (ajout appel edge function)
+- `supabase/config.toml` (nouvelle entrée)
+
