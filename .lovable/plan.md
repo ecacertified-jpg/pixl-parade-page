@@ -33,6 +33,21 @@
 ### 6. Tableau de bord Commissions
 - Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
+
 ### Statut transferts
 - Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
 - Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+
+## En attente ⏳
+
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
