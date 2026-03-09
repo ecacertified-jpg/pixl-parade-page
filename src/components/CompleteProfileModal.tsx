@@ -184,13 +184,12 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
           />
         </div>
 
-        {/* Footer toujours visible */}
-        <div className="flex-shrink-0 pt-4 border-t border-border">
+        {/* Footer compact */}
+        <div className="flex-shrink-0 pt-3 border-t border-border">
           <Button 
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting}
             className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white"
-            size="lg"
           >
             {isSubmitting ? (
               <>
@@ -204,10 +203,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
               </>
             )}
           </Button>
-
-          <p className="text-xs text-center text-muted-foreground mt-2">
-            Ces informations sont obligatoires pour profiter de toutes les fonctionnalités.
-          </p>
         </div>
       </DialogContent>
     </Dialog>
