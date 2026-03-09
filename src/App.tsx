@@ -160,6 +160,7 @@ const App = () => (
             <Route path="/cagnotte-:occasionSlug" element={<L><OccasionPage /></L>} />
             <Route path="/devenir-vendeur/:sectorSlug" element={<L><VendorSectorPage /></L>} />
             <Route path="/:eventSlug-:year" element={<L><SeasonalPage /></L>} />
+            <Route path="/fill-friend-info/:token" element={<L><FillFriendForm /></L>} />
             <Route path="/:citySlug" element={<L><CityPage /></L>} />
 
             {/* Deep Links for Social Sharing & AI Referrals */}
