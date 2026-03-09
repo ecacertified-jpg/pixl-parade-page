@@ -949,7 +949,7 @@ export default function Dashboard() {
               </div>}
           </TabsContent>
 
-          <TabsContent value="cotisations" className="mt-4">
+          <TabsContent value="cotisations" className="mt-4" forceMount={activeTab === 'cotisations' ? true : undefined} hidden={activeTab !== 'cotisations'}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-base">Mes Cotisations</h2>
               <Button size="sm" className="gap-2 bg-emerald-500 hover:bg-emerald-400" onClick={() => setShowSearchFundsModal(true)}>
