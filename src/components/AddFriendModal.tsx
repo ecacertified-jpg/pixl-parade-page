@@ -6,6 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
+import { Share2, MessageCircle, Facebook, Mail, Send, Copy, Linkedin, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface Friend {
   id: string;
