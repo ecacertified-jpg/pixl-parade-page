@@ -270,3 +270,6 @@ verify_jwt = false
 
 [functions.save-friend-form]
 verify_jwt = false
+
+[functions.notify-delivery-completed]
+verify_jwt = false
