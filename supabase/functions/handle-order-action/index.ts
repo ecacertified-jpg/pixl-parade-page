@@ -91,7 +91,7 @@ serve(async (req) => {
     }
 
     const businessAccount = order.business_accounts as any;
-    if (businessAccount.user_id !== business_user_id) {
+    if (businessAccount.user_id !== authenticatedUserId) {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
