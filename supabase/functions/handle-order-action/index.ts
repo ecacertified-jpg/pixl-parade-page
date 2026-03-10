@@ -11,7 +11,6 @@ const corsHeaders = {
 interface OrderActionPayload {
   order_id: string;
   action: 'accept' | 'reject' | 'view';
-  business_user_id: string;
   rejection_reason?: string;
 }
 
