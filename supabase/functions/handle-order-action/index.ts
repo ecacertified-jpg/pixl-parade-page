@@ -11,7 +11,6 @@ const corsHeaders = {
 interface OrderActionPayload {
   order_id: string;
   action: 'accept' | 'reject' | 'view';
-  business_user_id: string;
   rejection_reason?: string;
 }
 
@@ -21,20 +20,49 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller via JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: missing token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+    // Create a client scoped to the caller to verify their identity
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authenticatedUserId = claimsData.claims.sub as string;
+
     const payload: OrderActionPayload = await req.json();
-    const { order_id, action, business_user_id, rejection_reason } = payload;
+    const { order_id, action, rejection_reason } = payload;
 
-    console.log('📦 [handle-order-action] Processing action:', action, 'for order:', order_id);
+    console.log('📦 [handle-order-action] Processing action:', action, 'for order:', order_id, 'by user:', authenticatedUserId);
 
-    if (!order_id || !action || !business_user_id) {
+    if (!order_id || !action) {
       return new Response(
         JSON.stringify({ success: false, error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Use service role client for data operations
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
@@ -62,7 +90,7 @@ serve(async (req) => {
     }
 
     const businessAccount = order.business_accounts as any;
-    if (businessAccount.user_id !== business_user_id) {
+    if (businessAccount.user_id !== authenticatedUserId) {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -207,7 +235,7 @@ serve(async (req) => {
     // Track analytics
     try {
       await supabase.from('notification_analytics').insert({
-        user_id: business_user_id,
+        user_id: authenticatedUserId,
         notification_type: 'quick_order_action',
         sent_at: new Date().toISOString(),
         clicked_at: new Date().toISOString(),
