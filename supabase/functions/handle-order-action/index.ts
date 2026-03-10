@@ -236,7 +236,7 @@ serve(async (req) => {
     // Track analytics
     try {
       await supabase.from('notification_analytics').insert({
-        user_id: business_user_id,
+        user_id: authenticatedUserId,
         notification_type: 'quick_order_action',
         sent_at: new Date().toISOString(),
         clicked_at: new Date().toISOString(),
