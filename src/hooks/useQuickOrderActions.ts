@@ -69,21 +69,18 @@ export function useQuickOrderActions(onActionCompleted?: () => void) {
   }, [onActionCompleted]);
 
   // Manual action trigger (for when app is open)
-  const triggerAction = useCallback(async (orderId: string, action: 'accept' | 'reject' | 'view', businessUserId: string) => {
+  const triggerAction = useCallback(async (orderId: string, action: 'accept' | 'reject' | 'view', _businessUserId?: string) => {
     setIsProcessing(true);
     
     try {
-      const response = await fetch('https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/handle-order-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const { data: result, error } = await supabase.functions.invoke('handle-order-action', {
+        body: {
           order_id: orderId,
-          action: action,
-          business_user_id: businessUserId
-        })
+          action: action
+        }
       });
       
-      const result = await response.json();
+      if (error) throw error;
       
       const actionData: QuickAction = {
         orderId,
