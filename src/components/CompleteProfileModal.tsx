@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { Gift, Sparkles, Loader2, Check, MapPin, Phone } from 'lucide-react';
+import { Gift, Sparkles, Loader2, Check, MapPin, Phone, User } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,8 +31,8 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
   const { toast } = useToast();
   const { country } = useCountry();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [firstName, setFirstName] = useState(initialData?.firstName || '');
   const [birthday, setBirthday] = useState<Date | undefined>();
-  
   
   // State for address selection
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
@@ -43,7 +45,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
     return createPhoneData(country.phonePrefix);
   });
 
-  const isValid = birthday && addressData?.city && phoneData.isValid;
+  const isValid = firstName.trim() && birthday && addressData?.city && phoneData.isValid;
 
   const triggerCelebration = () => {
     confetti({
@@ -61,6 +63,7 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
 
     try {
       const updateData: Record<string, string | number | null> = {
+        first_name: firstName.trim(),
         birthday: birthday ? format(birthday, 'yyyy-MM-dd') : null,
         city: addressData?.city || null,
         neighborhood: addressData?.neighborhood || null,
@@ -68,7 +71,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         longitude: addressData?.longitude || null,
         phone: phoneData.nationalNumber ? `${phoneData.countryCode}${phoneData.nationalNumber}` : null,
       };
-
 
       const { error } = await supabase
         .from('profiles')
@@ -85,7 +87,6 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
         return;
       }
 
-      // Trigger celebration
       triggerCelebration();
 
       toast({
@@ -121,16 +122,16 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
             Complétez votre profil 🎉
           </DialogTitle>
           <DialogDescription className="text-center text-sm">
-            3 infos pour profiter de toutes les fonctionnalités.
+            4 infos pour profiter de toutes les fonctionnalités.
           </DialogDescription>
         </DialogHeader>
 
         {/* Compact progress indicator */}
         {(() => {
-          const checks = [!!birthday, !!(addressData?.city), !!phoneData.isValid];
+          const checks = [!!firstName.trim(), !!birthday, !!(addressData?.city), !!phoneData.isValid];
           const filledCount = checks.filter(Boolean).length;
-          const progress = Math.round((filledCount / 3) * 100);
-          const StepIcons = [Gift, MapPin, Phone];
+          const progress = Math.round((filledCount / 4) * 100);
+          const StepIcons = [User, Gift, MapPin, Phone];
           return (
             <div className="flex items-center gap-3 px-3 py-2 bg-secondary/30 rounded-lg flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -149,6 +150,20 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
 
         {/* Scrollable form area */}
         <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
+          {/* First Name (required) */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-sm font-medium">
+              <User className="h-4 w-4 text-primary" />
+              Prénom <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Votre prénom"
+              className="h-10"
+            />
+          </div>
+
           {/* Birthday (required) */}
           <BirthdayPicker
             label="Date d'anniversaire"
