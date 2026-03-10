@@ -1,46 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Modale "Bienvenue" uniquement pour Google Auth + champ Prenom
+## Implémenté ✅
 
-## Analyse
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-Le formulaire d'inscription par **telephone** et **email** collecte deja : prenom, anniversaire, ville, telephone. Ces donnees sont sauvegardees dans le profil via le trigger `handle_new_user` (user_metadata). La modale "Bienvenue" re-demande les memes infos — inutile et frustrant.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-Pour **Google Auth**, seul le prenom (via Google) est disponible. L'anniversaire, la ville et le telephone manquent. La modale est donc pertinente uniquement pour ces utilisateurs.
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-## Modifications
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-### 1. `src/hooks/useProfileCompletion.ts` — Detecter le provider
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-Ajouter une verification du provider d'authentification. Si l'utilisateur s'est inscrit via phone ou email, ne pas afficher la modale (les donnees sont deja collectees dans le formulaire d'inscription). Seuls les utilisateurs Google Auth verront la modale si des champs manquent.
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-```ts
-// Detecter si l'utilisateur est Google Auth
-const isGoogleAuth = user.app_metadata?.provider === 'google' || 
-  user.identities?.some(i => i.provider === 'google');
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-// Pour phone/email: ne pas montrer la modale (donnees collectees a l'inscription)
-if (!isGoogleAuth) {
-  return { needsCompletion: false, isGoogleUser: false, initialData: {} };
-}
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-// Pour Google Auth: verifier si birthday/city/phone manquent + first_name
-return { needsCompletion: incomplete, isGoogleUser: true, initialData: { ... } };
-```
+## En attente ⏳
 
-### 2. `src/components/CompleteProfileModal.tsx` — Ajouter le champ Prenom
-
-Ajouter un champ "Prenom" en premiere position dans le formulaire, pre-rempli depuis `initialData.firstName` (Google full_name). Mettre a jour la validation (4 champs au lieu de 3), la barre de progression, et inclure `first_name` dans le `updateData` envoye a Supabase.
-
-### 3. `src/pages/Dashboard.tsx` — Passer `isGoogleUser` si necessaire
-
-Adapter le passage de props pour `CompleteProfileModal` si le hook expose une nouvelle propriete.
-
-## Fichiers impactes
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/hooks/useProfileCompletion.ts` | Filtrer par provider, exposer `isGoogleUser` |
-| `src/components/CompleteProfileModal.tsx` | Ajouter champ Prenom, maj progress 4 etapes |
-| `src/pages/Dashboard.tsx` | Ajustement mineur si needed |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
