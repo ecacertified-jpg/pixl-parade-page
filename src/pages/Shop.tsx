@@ -24,8 +24,10 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
-import { CountryFilterToggle } from "@/components/CountryFilterToggle";
 import { useCountry } from "@/contexts/CountryContext";
+import { COUNTRIES, getAllCountries } from "@/config/countries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Globe } from "lucide-react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { ShopBreadcrumb, CategoryBreadcrumb } from "@/components/breadcrumbs";
@@ -53,6 +55,7 @@ export default function Shop() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(profileCountryCode || 'CI');
   
   // Geolocation state
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
@@ -261,7 +264,7 @@ export default function Shop() {
   };
 
   // Determine active country filter: use effectiveCountryFilter, or fallback to user's home country (then CI) when geolocation unavailable
-  const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : (profileCountryCode || 'CI'));
+  const activeCountryFilter = selectedCountryFilter === "all" ? null : selectedCountryFilter;
 
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
@@ -447,7 +450,27 @@ export default function Shop() {
                 allowCustom={false}
               />
             </div>
-            <CountryFilterToggle variant="compact" />
+            <Select value={selectedCountryFilter} onValueChange={setSelectedCountryFilter}>
+              <SelectTrigger className="w-auto h-8 text-xs gap-1 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Tous les pays</span>
+                  </div>
+                </SelectItem>
+                {getAllCountries().map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    <div className="flex items-center gap-2">
+                      <span>{c.flag}</span>
+                      <span>{c.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </header>

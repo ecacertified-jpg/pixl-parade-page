@@ -1,39 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Sélecteur de pays dans la Boutique
+## Implémenté ✅
 
-## Problème actuel
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-La boutique utilise un toggle binaire (`CountryFilterToggle`) : "Mon pays" ou "Tous". L'utilisateur ne peut pas choisir un pays spécifique parmi les pays disponibles.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Solution
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-Remplacer le `CountryFilterToggle` par un **sélecteur de pays dédié** (dropdown) dans le header de la boutique. Ce sélecteur :
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-- Liste tous les pays configurés (CI, BJ, SN, TG, ML, BF) + option "Tous les pays"
-- Sélectionne par défaut le pays de l'utilisateur (`profileCountryCode` ou `'CI'`)
-- Filtre les produits affichés selon le pays sélectionné
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-## Modifications
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-### `src/pages/Shop.tsx`
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-1. Ajouter un state local `selectedCountryFilter` initialisé à `profileCountryCode || 'CI'`
-2. Remplacer le `CountryFilterToggle` (ligne 450) par un `Select` dropdown avec les pays depuis `COUNTRIES` config
-3. Remplacer la logique `activeCountryFilter` (ligne 264) pour utiliser `selectedCountryFilter` (`null` si "all")
-4. Afficher le drapeau + nom du pays dans le trigger du Select
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-### Aperçu UI
+## En attente ⏳
 
-Le sélecteur remplace le toggle compact existant, à côté du `CitySelector`. Il affiche le drapeau du pays sélectionné et permet de choisir parmi tous les pays ou un pays spécifique.
-
-```text
-[🔍 Rechercher un lieu    ] [🇨🇮 Côte d'Ivoire ▾]
-```
-
-### Fichier impacté
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/pages/Shop.tsx` | Remplacer toggle par Select pays, state local, filtre adapté |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
