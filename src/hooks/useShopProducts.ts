@@ -49,7 +49,7 @@ async function fetchShopProducts(): Promise<ShopProduct[]> {
     .select('*')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (productsError) {
     console.error('Error loading products:', productsError);
