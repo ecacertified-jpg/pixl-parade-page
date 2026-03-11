@@ -264,7 +264,7 @@ export default function Shop() {
   };
 
   // Determine active country filter: use effectiveCountryFilter, or fallback to user's home country (then CI) when geolocation unavailable
-  const activeCountryFilter = effectiveCountryFilter ?? (userLocation ? null : (profileCountryCode || 'CI'));
+  const activeCountryFilter = selectedCountryFilter === "all" ? null : selectedCountryFilter;
 
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
