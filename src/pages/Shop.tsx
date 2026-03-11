@@ -55,6 +55,7 @@ export default function Shop() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
+  const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(profileCountryCode || 'CI');
   
   // Geolocation state
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
