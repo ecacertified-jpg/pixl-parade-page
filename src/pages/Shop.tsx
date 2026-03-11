@@ -450,8 +450,27 @@ export default function Shop() {
                 allowCustom={false}
               />
             </div>
-            <CountryFilterToggle variant="compact" />
-          </div>
+            <Select value={selectedCountryFilter} onValueChange={setSelectedCountryFilter}>
+              <SelectTrigger className="w-auto h-8 text-xs gap-1 px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Tous les pays</span>
+                  </div>
+                </SelectItem>
+                {getAllCountries().map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    <div className="flex items-center gap-2">
+                      <span>{c.flag}</span>
+                      <span>{c.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
         </div>
       </header>
 
