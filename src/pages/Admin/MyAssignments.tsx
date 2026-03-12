@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { SelfAssignModal } from '@/components/admin/SelfAssignModal';
+import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
 
 interface UserProfile {
   user_id: string;
