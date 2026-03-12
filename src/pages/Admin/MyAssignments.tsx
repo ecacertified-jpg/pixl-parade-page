@@ -332,6 +332,14 @@ const MyAssignments = () => {
                                       <FileText className="mr-2 h-4 w-4" />
                                       Voir le profil
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setWishlistUserId(a.user_id);
+                                      setWishlistUserName(`${a.profile?.first_name || ''} ${a.profile?.last_name || ''}`.trim() || 'Utilisateur');
+                                      setWishlistModalOpen(true);
+                                    }}>
+                                      <Heart className="mr-2 h-4 w-4" />
+                                      Voir les souhaits
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       className="text-destructive"
