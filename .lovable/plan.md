@@ -1,51 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Afficher les infos prestataire dans la wishlist admin
+## Implémenté ✅
 
-## Objectif
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-Dans le modal `AdminWishlistModal`, afficher pour chaque article de la wishlist les informations du prestataire (nom de la boutique, téléphone, adresse, nom du propriétaire) afin que l'admin puisse le contacter avant de créer une cagnotte.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Modifications
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### `src/components/admin/AdminWishlistModal.tsx`
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**1. Enrichir la requête Supabase** pour joindre les infos du prestataire via la relation `products → business_accounts` (FK `business_id`) :
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-```sql
-products (
-  id, name, description, price, currency, image_url,
-  business_accounts!products_business_id_fkey (
-    id, business_name, phone, address, user_id
-  )
-)
-```
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-Puis, après avoir récupéré les `business_accounts.user_id` distincts, faire une requête sur `profiles` pour obtenir les noms des propriétaires.
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-**2. Ajouter une interface `VendorInfo`** au composant :
-```ts
-interface VendorInfo {
-  businessName: string;
-  phone: string | null;
-  address: string | null;
-  ownerName: string | null;
-}
-```
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-Stocker un `Map<string, VendorInfo>` (clé = product_id) dans le state.
+## En attente ⏳
 
-**3. Enrichir le `WishlistItemRow`** : sous les badges existants, ajouter une section repliable ou une ligne compacte affichant :
-- Nom de la boutique (icône Store)
-- Téléphone cliquable (lien `tel:`) avec icône Phone
-- Adresse avec icône MapPin
-- Nom du propriétaire avec icône User
-
-Le tout dans un petit bloc `bg-muted/30` sous l'article, avec des liens d'action directe (appel téléphonique).
-
-### Fichier impacté
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/admin/AdminWishlistModal.tsx` | Enrichir requête, state vendorInfo, affichage dans WishlistItemRow |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

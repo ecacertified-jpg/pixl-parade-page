@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Heart, Gift, ShoppingCart, Sparkles, Info, Users } from "lucide-react";
+import { Heart, Gift, ShoppingCart, Sparkles, Info, Users, Store, Phone, MapPin, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateSurpriseFundModal } from "@/components/CreateSurpriseFundModal";
 
@@ -17,6 +17,13 @@ interface WishlistProduct {
   image_url: string | null;
 }
 
+interface VendorInfo {
+  businessName: string;
+  phone: string | null;
+  address: string | null;
+  ownerName: string | null;
+}
+
 interface WishlistItem {
   id: string;
   product_id: string;
@@ -26,6 +33,7 @@ interface WishlistItem {
   notes: string | null;
   context_usage: string[];
   product: WishlistProduct | null;
+  vendor: VendorInfo | null;
 }
 
 interface ContactWithWishlist {
@@ -59,17 +67,61 @@ const occasionLabels: Record<string, string> = {
   other: "Autre",
 };
 
-function mapFavorites(data: any[]): WishlistItem[] {
-  return (data || []).map((item: any) => ({
-    id: item.id,
-    product_id: item.product_id,
-    priority_level: item.priority_level,
-    occasion_type: item.occasion_type,
-    accept_alternatives: item.accept_alternatives,
-    notes: item.notes,
-    context_usage: item.context_usage || [],
-    product: item.products,
-  }));
+function mapFavorites(data: any[], ownerNames: Map<string, string>): WishlistItem[] {
+  return (data || []).map((item: any) => {
+    const biz = item.products?.business_accounts;
+    let vendor: VendorInfo | null = null;
+    if (biz) {
+      vendor = {
+        businessName: biz.business_name,
+        phone: biz.phone || null,
+        address: biz.address || null,
+        ownerName: biz.user_id ? ownerNames.get(biz.user_id) || null : null,
+      };
+    }
+    return {
+      id: item.id,
+      product_id: item.product_id,
+      priority_level: item.priority_level,
+      occasion_type: item.occasion_type,
+      accept_alternatives: item.accept_alternatives,
+      notes: item.notes,
+      context_usage: item.context_usage || [],
+      product: item.products ? {
+        id: item.products.id,
+        name: item.products.name,
+        description: item.products.description,
+        price: item.products.price,
+        currency: item.products.currency,
+        image_url: item.products.image_url,
+      } : null,
+      vendor,
+    };
+  });
+}
+
+const FAVORITES_SELECT = `id, product_id, priority_level, occasion_type, accept_alternatives, notes, context_usage, products (id, name, description, price, currency, image_url, business_accounts!products_business_id_fkey (id, business_name, phone, address, user_id))`;
+
+async function fetchOwnerNames(allData: any[][]): Promise<Map<string, string>> {
+  const ownerIds = new Set<string>();
+  for (const data of allData) {
+    for (const item of data || []) {
+      const uid = item.products?.business_accounts?.user_id;
+      if (uid) ownerIds.add(uid);
+    }
+  }
+  const map = new Map<string, string>();
+  if (ownerIds.size === 0) return map;
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name')
+    .in('user_id', Array.from(ownerIds));
+
+  for (const p of profiles || []) {
+    map.set(p.user_id, [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Inconnu');
+  }
+  return map;
 }
 
 export function AdminWishlistModal({ isOpen, onClose, userId, userName }: AdminWishlistModalProps) {
@@ -92,49 +144,46 @@ export function AdminWishlistModal({ isOpen, onClose, userId, userName }: AdminW
   const loadAllWishlists = async () => {
     setLoading(true);
     try {
-      // 1. Load user's personal wishlist
       const { data: personalData } = await supabase
         .from('user_favorites')
-        .select('id, product_id, priority_level, occasion_type, accept_alternatives, notes, context_usage, products (id, name, description, price, currency, image_url)')
+        .select(FAVORITES_SELECT)
         .eq('user_id', userId)
         .order('priority_level', { ascending: true });
 
-      setPersonalWishlist(mapFavorites(personalData || []));
-
-      // 2. Load user's contacts with linked_user_id
       const { data: contacts } = await supabase
         .from('contacts')
         .select('id, name, linked_user_id')
         .eq('user_id', userId)
         .not('linked_user_id', 'is', null);
 
+      const contactFavsData: { contact: any; data: any[] }[] = [];
       if (contacts && contacts.length > 0) {
-        const contactResults: ContactWithWishlist[] = [];
-
         for (const contact of contacts) {
           if (!contact.linked_user_id) continue;
-
           const { data: favs } = await supabase
             .from('user_favorites')
-            .select('id, product_id, priority_level, occasion_type, accept_alternatives, notes, context_usage, products (id, name, description, price, currency, image_url)')
+            .select(FAVORITES_SELECT)
             .eq('user_id', contact.linked_user_id)
             .order('priority_level', { ascending: true });
-
-          const items = mapFavorites(favs || []);
-          if (items.length > 0) {
-            contactResults.push({
-              contactId: contact.id,
-              contactName: contact.name,
-              linkedUserId: contact.linked_user_id,
-              items,
-            });
+          if (favs && favs.length > 0) {
+            contactFavsData.push({ contact, data: favs });
           }
         }
-
-        setContactWishlists(contactResults);
-      } else {
-        setContactWishlists([]);
       }
+
+      // Fetch all owner names in one batch
+      const allRawData = [personalData || [], ...contactFavsData.map(c => c.data)];
+      const ownerNames = await fetchOwnerNames(allRawData);
+
+      setPersonalWishlist(mapFavorites(personalData || [], ownerNames));
+
+      const contactResults: ContactWithWishlist[] = contactFavsData.map(({ contact, data }) => ({
+        contactId: contact.id,
+        contactName: contact.name,
+        linkedUserId: contact.linked_user_id!,
+        items: mapFavorites(data, ownerNames),
+      }));
+      setContactWishlists(contactResults);
     } catch (err) {
       console.error('Error loading wishlists:', err);
     } finally {
@@ -184,7 +233,6 @@ export function AdminWishlistModal({ isOpen, onClose, userId, userName }: AdminW
               </div>
             ) : (
               <div className="space-y-6 p-1">
-                {/* Personal wishlist */}
                 {personalWishlist.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
@@ -206,7 +254,6 @@ export function AdminWishlistModal({ isOpen, onClose, userId, userName }: AdminW
                   </div>
                 )}
 
-                {/* Contact wishlists */}
                 {contactWishlists.length > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
@@ -257,55 +304,85 @@ function WishlistItemRow({ item, onCreateFund }: { item: WishlistItem; onCreateF
   const priority = priorityConfig[item.priority_level] || priorityConfig.medium;
 
   return (
-    <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-      {item.product?.image_url ? (
-        <img
-          src={item.product.image_url}
-          alt={item.product?.name || "Produit"}
-          className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
-        />
-      ) : (
-        <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Gift className="h-5 w-5 text-primary" />
-        </div>
-      )}
+    <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+      <div className="flex items-start gap-3">
+        {item.product?.image_url ? (
+          <img
+            src={item.product.image_url}
+            alt={item.product?.name || "Produit"}
+            className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Gift className="h-5 w-5 text-primary" />
+          </div>
+        )}
 
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">
-          {item.product?.name || "Produit indisponible"}
-        </p>
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-          <Badge variant="outline" className={`text-xs ${priority.color}`}>
-            {priority.label}
-          </Badge>
-          {item.occasion_type && (
-            <Badge variant="outline" className="text-xs">
-              {occasionLabels[item.occasion_type] || item.occasion_type}
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">
+            {item.product?.name || "Produit indisponible"}
+          </p>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <Badge variant="outline" className={`text-xs ${priority.color}`}>
+              {priority.label}
             </Badge>
+            {item.occasion_type && (
+              <Badge variant="outline" className="text-xs">
+                {occasionLabels[item.occasion_type] || item.occasion_type}
+              </Badge>
+            )}
+            {item.accept_alternatives && (
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                <Info className="h-3 w-3" />
+                Alternatives OK
+              </span>
+            )}
+          </div>
+          {item.notes && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">« {item.notes} »</p>
           )}
-          {item.accept_alternatives && (
-            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              <Info className="h-3 w-3" />
-              Alternatives OK
+        </div>
+
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          {item.product && (
+            <span className="text-sm font-semibold text-primary whitespace-nowrap">
+              {item.product.price.toLocaleString()} {item.product.currency}
+            </span>
+          )}
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onCreateFund}>
+            <ShoppingCart className="h-3 w-3" />
+            Créer une cagnotte
+          </Button>
+        </div>
+      </div>
+
+      {/* Vendor info */}
+      {item.vendor && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-2 py-1.5 rounded-md bg-muted/30 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 font-medium text-foreground">
+            <Store className="h-3 w-3 text-primary" />
+            {item.vendor.businessName}
+          </span>
+          {item.vendor.ownerName && (
+            <span className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {item.vendor.ownerName}
+            </span>
+          )}
+          {item.vendor.phone && (
+            <a href={`tel:${item.vendor.phone}`} className="flex items-center gap-1 text-primary hover:underline">
+              <Phone className="h-3 w-3" />
+              {item.vendor.phone}
+            </a>
+          )}
+          {item.vendor.address && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span className="truncate max-w-[200px]">{item.vendor.address}</span>
             </span>
           )}
         </div>
-        {item.notes && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-1 italic">« {item.notes} »</p>
-        )}
-      </div>
-
-      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-        {item.product && (
-          <span className="text-sm font-semibold text-primary whitespace-nowrap">
-            {item.product.price.toLocaleString()} {item.product.currency}
-          </span>
-        )}
-        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onCreateFund}>
-          <ShoppingCart className="h-3 w-3" />
-          Créer une cagnotte
-        </Button>
-      </div>
+      )}
     </div>
   );
 }
