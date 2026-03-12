@@ -101,6 +101,9 @@ const MyAssignments = () => {
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
   const [sortByBirthday, setSortByBirthday] = useState(false);
+  const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
+  const [wishlistUserName, setWishlistUserName] = useState('');
+  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
