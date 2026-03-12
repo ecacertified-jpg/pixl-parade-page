@@ -12,13 +12,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { SelfAssignModal } from '@/components/admin/SelfAssignModal';
+import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
 
 interface UserProfile {
   user_id: string;
@@ -100,6 +101,9 @@ const MyAssignments = () => {
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
   const [sortByBirthday, setSortByBirthday] = useState(false);
+  const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
+  const [wishlistUserName, setWishlistUserName] = useState('');
+  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
@@ -328,6 +332,14 @@ const MyAssignments = () => {
                                       <FileText className="mr-2 h-4 w-4" />
                                       Voir le profil
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => {
+                                      setWishlistUserId(a.user_id);
+                                      setWishlistUserName(`${a.profile?.first_name || ''} ${a.profile?.last_name || ''}`.trim() || 'Utilisateur');
+                                      setWishlistModalOpen(true);
+                                    }}>
+                                      <Heart className="mr-2 h-4 w-4" />
+                                      Voir les souhaits
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       className="text-destructive"
@@ -468,6 +480,14 @@ const MyAssignments = () => {
 
       <UserProfileModal userId={selectedUserId} open={userProfileModalOpen} onOpenChange={setUserProfileModalOpen} />
       <BusinessProfileModal businessId={selectedBusinessId} open={businessProfileModalOpen} onOpenChange={setBusinessProfileModalOpen} />
+      {wishlistUserId && (
+        <AdminWishlistModal
+          isOpen={wishlistModalOpen}
+          onClose={() => { setWishlistModalOpen(false); setWishlistUserId(null); }}
+          userId={wishlistUserId}
+          userName={wishlistUserName}
+        />
+      )}
     </AdminLayout>
   );
 };

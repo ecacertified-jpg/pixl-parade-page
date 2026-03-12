@@ -1,50 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Créer des cagnottes depuis les affectations admin via la wishlist
+## Implémenté ✅
 
-## Objectif
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-Permettre aux admins, depuis la page "Mes affectations", de :
-1. Voir la liste de souhaits (wishlist) d'un utilisateur assigné
-2. Voir la wishlist des **contacts** de cet utilisateur
-3. Créer une cagnotte collective directement à partir d'un article de la wishlist
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Architecture
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-Le flux est le suivant :
-- L'admin clique sur un nouvel item "Voir les souhaits" dans le menu d'actions d'un utilisateur assigné
-- Un modal s'ouvre listant la wishlist de l'utilisateur ET les wishlists de ses contacts
-- Sur chaque article, un bouton "Créer une cagnotte" ouvre le `CreateSurpriseFundModal` existant, pré-rempli avec le produit sélectionné
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-## Modifications
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### 1. Nouveau composant `src/components/admin/AdminWishlistModal.tsx`
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-Modal qui :
-- Reçoit un `userId` (l'utilisateur assigné)
-- Charge ses `user_favorites` avec les produits associés (wishlist personnelle)
-- Charge ses `contacts` puis pour chaque contact avec `linked_user_id`, charge les `user_favorites` du contact
-- Affiche deux sections : "Souhaits de [Prénom]" et "Souhaits des contacts de [Prénom]"
-- Chaque article affiche : image, nom produit, prix, priorité, occasion, bouton "Créer une cagnotte"
-- Le bouton ouvre le `CreateSurpriseFundModal` avec le `beneficiaryContactId`, `beneficiaryName`, et le produit pré-sélectionné
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-### 2. Modification de `src/pages/Admin/MyAssignments.tsx`
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-- Ajouter un state pour le modal wishlist (`wishlistUserId`, `wishlistModalOpen`)
-- Ajouter un item "Voir les souhaits" (icône Heart) dans le `DropdownMenuContent` de chaque utilisateur (ligne 326-344)
-- Importer et rendre le nouveau `AdminWishlistModal`
+## En attente ⏳
 
-### Fichiers impactés
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/admin/AdminWishlistModal.tsx` | Nouveau — modal wishlist utilisateur + contacts |
-| `src/pages/Admin/MyAssignments.tsx` | Ajout menu "Voir les souhaits" + state modal |
-
-### Détails techniques
-
-- La wishlist personnelle est chargée via `user_favorites` filtré par `user_id` = l'utilisateur assigné
-- Les contacts sont chargés via `contacts` filtré par `user_id` = l'utilisateur assigné, puis pour chaque `linked_user_id` non null, on charge les `user_favorites`
-- Les requêtes utilisent le client Supabase standard (les admins ont accès SELECT via les RLS policies existantes sur `contacts` et `user_favorites`)
-- Le `CreateSurpriseFundModal` est réutilisé tel quel, l'admin créant la cagnotte en son nom (creator_id = admin user id)
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
