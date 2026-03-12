@@ -480,6 +480,14 @@ const MyAssignments = () => {
 
       <UserProfileModal userId={selectedUserId} open={userProfileModalOpen} onOpenChange={setUserProfileModalOpen} />
       <BusinessProfileModal businessId={selectedBusinessId} open={businessProfileModalOpen} onOpenChange={setBusinessProfileModalOpen} />
+      {wishlistUserId && (
+        <AdminWishlistModal
+          isOpen={wishlistModalOpen}
+          onClose={() => { setWishlistModalOpen(false); setWishlistUserId(null); }}
+          userId={wishlistUserId}
+          userName={wishlistUserName}
+        />
+      )}
     </AdminLayout>
   );
 };
