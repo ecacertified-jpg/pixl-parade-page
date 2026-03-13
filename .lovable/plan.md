@@ -1,29 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Harmoniser les onglets + ajouter la wishlist dans l'onglet Anniversaires
+## Implémenté ✅
 
-## 1. Harmoniser les onglets dans MyAssignments
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-Le `TabsList` actuel utilise le style par défaut (fond gris muted). Pour un rendu plus harmonieux et conforme au screenshot (onglets arrondis, bien espacés, visibles sur mobile) :
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-- Ajouter des classes au `TabsList` : `w-full grid grid-cols-3` pour répartir uniformément les 3 onglets
-- Arrondir avec `rounded-xl` et ajouter un peu de padding
-- S'assurer que les onglets s'affichent correctement en responsive (texte tronqué sur petit écran si nécessaire)
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-## 2. Ajouter un bouton "Voir les souhaits" dans la colonne Relation de l'onglet Anniversaires
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-Dans `AdminBirthdaysContent.tsx`, modifier la colonne "Relation" du tableau pour ajouter un bouton/icône cliquable (Heart) qui ouvre le `AdminWishlistModal` :
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-- Importer `AdminWishlistModal` et ajouter les states `wishlistUserId`, `wishlistUserName`, `wishlistModalOpen`
-- Pour les entrées de type `contact` : utiliser le `ownerId` pour ouvrir la wishlist de l'utilisateur propriétaire
-- Pour les entrées de type `user` : utiliser le `id` directement
-- Afficher un petit bouton Heart à côté du badge de relation
-- Rendre le `AdminWishlistModal` en bas du composant
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-### Fichiers impactés
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-| Fichier | Changement |
-|---------|-----------|
-| `src/pages/Admin/MyAssignments.tsx` | Harmoniser le style du TabsList (grid cols-3, rounded-xl) |
-| `src/components/admin/AdminBirthdaysContent.tsx` | Ajouter bouton wishlist dans colonne Relation + AdminWishlistModal |
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
+## En attente ⏳
+
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Cake, CalendarDays, Users, Gift, Phone, User } from 'lucide-react';
+import { Cake, CalendarDays, Users, Gift, Phone, User, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminBirthdays, type BirthdayEntry } from '@/hooks/useAdminBirthdays';
 import { BirthdayDetailSheet } from '@/components/admin/BirthdayDetailSheet';
+import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
 
 const PERIODS = [
   { label: "Jour J", days: 0 },
@@ -63,6 +64,18 @@ function formatBirthday(dateStr: string): string {
 
 export function AdminBirthdaysContent() {
   const [selectedEntry, setSelectedEntry] = useState<BirthdayEntry | null>(null);
+  const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
+  const [wishlistUserName, setWishlistUserName] = useState('');
+  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
+
+  const handleOpenWishlist = (entry: BirthdayEntry, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const userId = entry.type === 'contact' ? entry.ownerId : entry.id;
+    if (!userId) return;
+    setWishlistUserId(userId);
+    setWishlistUserName(entry.name);
+    setWishlistModalOpen(true);
+  };
   const {
     entries, loading, viewMode, setViewMode,
     selectedDays, setSelectedDays,
@@ -200,13 +213,24 @@ export function AdminBirthdaysContent() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {entry.relationship ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {getRelationshipLabel(entry.relationship)}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {entry.relationship ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {getRelationshipLabel(entry.relationship)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
+                          onClick={(e) => handleOpenWishlist(entry, e)}
+                          title="Voir les souhaits"
+                        >
+                          <Heart className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                       {entry.phone || '—'}
@@ -232,6 +256,15 @@ export function AdminBirthdaysContent() {
         open={!!selectedEntry}
         onClose={() => setSelectedEntry(null)}
       />
+
+      {wishlistUserId && (
+        <AdminWishlistModal
+          isOpen={wishlistModalOpen}
+          onClose={() => { setWishlistModalOpen(false); setWishlistUserId(null); }}
+          userId={wishlistUserId}
+          userName={wishlistUserName}
+        />
+      )}
     </div>
   );
 }
