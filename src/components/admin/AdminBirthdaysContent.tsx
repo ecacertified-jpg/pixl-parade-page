@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdminBirthdays, type BirthdayEntry } from '@/hooks/useAdminBirthdays';
 import { BirthdayDetailSheet } from '@/components/admin/BirthdayDetailSheet';
+import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
 
 const PERIODS = [
   { label: "Jour J", days: 0 },
