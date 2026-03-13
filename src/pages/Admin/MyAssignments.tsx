@@ -216,6 +216,9 @@ const MyAssignments = () => {
               <TabsTrigger value="businesses" className="gap-2">
                 <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
               </TabsTrigger>
+              <TabsTrigger value="birthdays" className="gap-2">
+                <Cake className="h-4 w-4" /> Anniversaires
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="users">
