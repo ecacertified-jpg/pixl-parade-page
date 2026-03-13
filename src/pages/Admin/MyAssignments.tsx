@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { SelfAssignModal } from '@/components/admin/SelfAssignModal';
 import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
+import { AdminBirthdaysContent } from '@/components/admin/AdminBirthdaysContent';
 
 interface UserProfile {
   user_id: string;
