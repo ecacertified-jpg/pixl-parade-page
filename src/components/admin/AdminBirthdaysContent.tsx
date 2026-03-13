@@ -64,6 +64,18 @@ function formatBirthday(dateStr: string): string {
 
 export function AdminBirthdaysContent() {
   const [selectedEntry, setSelectedEntry] = useState<BirthdayEntry | null>(null);
+  const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
+  const [wishlistUserName, setWishlistUserName] = useState('');
+  const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
+
+  const handleOpenWishlist = (entry: BirthdayEntry, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const userId = entry.type === 'contact' ? entry.ownerId : entry.id;
+    if (!userId) return;
+    setWishlistUserId(userId);
+    setWishlistUserName(entry.name);
+    setWishlistModalOpen(true);
+  };
   const {
     entries, loading, viewMode, setViewMode,
     selectedDays, setSelectedDays,
