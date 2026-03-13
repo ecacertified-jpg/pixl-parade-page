@@ -468,6 +468,10 @@ const MyAssignments = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="birthdays">
+              <AdminBirthdaysContent />
+            </TabsContent>
           </Tabs>
         )}
       </div>
