@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { SelfAssignModal } from '@/components/admin/SelfAssignModal';
 import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
+import { AdminBirthdaysContent } from '@/components/admin/AdminBirthdaysContent';
 
 interface UserProfile {
   user_id: string;
@@ -215,6 +216,9 @@ const MyAssignments = () => {
               </TabsTrigger>
               <TabsTrigger value="businesses" className="gap-2">
                 <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
+              </TabsTrigger>
+              <TabsTrigger value="birthdays" className="gap-2">
+                <Cake className="h-4 w-4" /> Anniversaires
               </TabsTrigger>
             </TabsList>
 
@@ -464,6 +468,10 @@ const MyAssignments = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="birthdays">
+              <AdminBirthdaysContent />
             </TabsContent>
           </Tabs>
         )}
