@@ -213,13 +213,24 @@ export function AdminBirthdaysContent() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {entry.relationship ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {getRelationshipLabel(entry.relationship)}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {entry.relationship ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {getRelationshipLabel(entry.relationship)}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
+                          onClick={(e) => handleOpenWishlist(entry, e)}
+                          title="Voir les souhaits"
+                        >
+                          <Heart className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                       {entry.phone || '—'}
