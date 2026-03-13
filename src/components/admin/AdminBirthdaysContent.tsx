@@ -256,6 +256,15 @@ export function AdminBirthdaysContent() {
         open={!!selectedEntry}
         onClose={() => setSelectedEntry(null)}
       />
+
+      {wishlistUserId && (
+        <AdminWishlistModal
+          isOpen={wishlistModalOpen}
+          onClose={() => { setWishlistModalOpen(false); setWishlistUserId(null); }}
+          userId={wishlistUserId}
+          userName={wishlistUserName}
+        />
+      )}
     </div>
   );
 }

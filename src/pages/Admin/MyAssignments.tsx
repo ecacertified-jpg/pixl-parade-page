@@ -210,15 +210,15 @@ const MyAssignments = () => {
           </div>
         ) : (
           <Tabs defaultValue="users">
-            <TabsList>
-              <TabsTrigger value="users" className="gap-2">
-                <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
+            <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-4">
+              <TabsTrigger value="users" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Utilisateurs</span> ({userAssignments.length})
               </TabsTrigger>
-              <TabsTrigger value="businesses" className="gap-2">
-                <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
+              <TabsTrigger value="businesses" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Store className="h-4 w-4" /> <span className="hidden sm:inline">Entreprises</span> ({businessAssignments.length})
               </TabsTrigger>
-              <TabsTrigger value="birthdays" className="gap-2">
-                <Cake className="h-4 w-4" /> Anniversaires
+              <TabsTrigger value="birthdays" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                <Cake className="h-4 w-4" /> <span className="hidden sm:inline">Anniversaires</span>
               </TabsTrigger>
             </TabsList>
 
