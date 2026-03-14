@@ -901,6 +901,14 @@ export default function Dashboard() {
                             </Tooltip>
                           </>
                         )}
+                        {circles.length > 0 && (
+                          <AssignCircleMenu
+                            circles={circles}
+                            currentCircleId={contactCircleMap[friend.id]}
+                            onAssign={(circleId) => addToCircle(circleId, friend.id)}
+                            onRemove={() => removeFromCircle(friend.id)}
+                          />
+                        )}
                         <AnimatedGiftButton
                           friendId={friend.id}
                           friendName={friend.name}
