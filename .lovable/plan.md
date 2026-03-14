@@ -1,67 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Corriger les contrôles mobiles et les interruptions vidéo
+## Implémenté ✅
 
-## Problèmes
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-1. **Contrôles invisibles sur mobile** : Les contrôles utilisent `onMouseEnter`/`onMouseLeave` — ces événements n'existent pas sur mobile tactile. Les boutons son/plein écran ne s'affichent jamais.
-2. **Interruptions vidéo** : Le `preload` n'est pas défini (buffering insuffisant) et `crossOrigin` manque pour les URLs Supabase cross-origin.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Solution — `src/components/LandingVideoPlayer.tsx`
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### Contrôles mobiles : tap-to-reveal avec auto-masquage
-- Remplacer `onMouseEnter`/`onMouseLeave` par un système mixte :
-  - Desktop : conserver hover (`onMouseEnter`/`onMouseLeave`)
-  - Mobile : `onClick` sur le conteneur affiche les contrôles pendant 3 secondes, puis les masque automatiquement via `setTimeout`
-- Le tap sur le conteneur affiche les contrôles ; un second tap sur le bouton play/pause agit normalement
-- Séparer le click play/pause du click "reveal controls" : premier tap = montrer contrôles, bouton play/pause = action
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-### Interruptions vidéo
-- Ajouter `preload="auto"` sur le `<video>` pour forcer le pré-chargement complet
-- Ajouter `crossOrigin="anonymous"` pour les fichiers Supabase (cross-origin)
-- Gérer l'état de buffering avec les événements `onWaiting` / `onCanPlay` et afficher un spinner pendant le chargement
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### Changements concrets
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-```tsx
-// Nouveaux states
-const [showControls, setShowControls] = useState(false);
-const [isBuffering, setIsBuffering] = useState(false);
-const hideTimerRef = useRef<NodeJS.Timeout>();
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-// Tap handler pour mobile
-const handleContainerClick = () => {
-  setShowControls(true);
-  clearTimeout(hideTimerRef.current);
-  hideTimerRef.current = setTimeout(() => setShowControls(false), 3000);
-};
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-// Video element
-<video
-  preload="auto"
-  crossOrigin="anonymous"
-  onWaiting={() => setIsBuffering(true)}
-  onCanPlay={() => setIsBuffering(false)}
-  // ... existing props
-/>
+## En attente ⏳
 
-// Conteneur : hover pour desktop + click pour mobile
-<div
-  onMouseEnter={() => setShowControls(true)}
-  onMouseLeave={() => setShowControls(false)}
-  onClick={handleContainerClick}
->
-
-// Boutons play/pause et bottom bar : toujours dans le DOM,
-// visibilité contrôlée par showControls (hover OU tap)
-
-// Spinner buffering overlay
-{isBuffering && <Loader2 className="animate-spin" />}
-```
-
-## Fichier impacté
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/components/LandingVideoPlayer.tsx` | Tap-to-reveal mobile, preload/crossOrigin, spinner buffering |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
