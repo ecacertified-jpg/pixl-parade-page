@@ -516,7 +516,7 @@ const MyAssignments = () => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           adminId={adminId}
-          onSuccess={() => loadAssignments(adminId)}
+          onSuccess={() => loadAssignments(adminId, userPage)}
         />
       )}
 
