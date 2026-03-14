@@ -132,6 +132,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [userPage, setUserPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [completionFilter, setCompletionFilter] = useState<number | null>(null);
+  const [birthdayStats, setBirthdayStats] = useState<{ via_link: { today: number; week: number; month: number }; manual: { today: number; week: number; month: number }; total: { today: number; week: number; month: number } } | null>(null);
   const PAGE_SIZE = 50;
 
   useEffect(() => {
