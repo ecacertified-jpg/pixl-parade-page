@@ -54,7 +54,7 @@ export function useExistingFundsForBeneficiary() {
   const [existingFunds, setExistingFunds] = useState<ExistingFund[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const checkFundsByContactId = useCallback(async (contactId: string, currentUserId?: string) => {
+  const checkFundsByContactId = useCallback(async (contactId: string, currentUserId?: string, occasion?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
