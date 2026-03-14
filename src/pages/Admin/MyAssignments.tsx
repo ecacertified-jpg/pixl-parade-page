@@ -107,7 +107,10 @@ const MyAssignments = () => {
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const PAGE_SIZE = 50;
+  const MAX_RETRIES = 3;
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
