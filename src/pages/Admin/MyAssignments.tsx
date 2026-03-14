@@ -220,7 +220,7 @@ const MyAssignments = () => {
           <Tabs defaultValue="users">
             <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-4">
               <TabsTrigger value="users" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Utilisateurs</span> ({userAssignments.length})
+                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Utilisateurs</span> ({totalUsers})
               </TabsTrigger>
               <TabsTrigger value="businesses" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Store className="h-4 w-4" /> <span className="hidden sm:inline">Entreprises</span> ({businessAssignments.length})
