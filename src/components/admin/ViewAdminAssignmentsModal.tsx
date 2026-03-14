@@ -109,10 +109,14 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     if (open && adminId) {
-      loadAssignments(adminId);
+      setUserPage(1);
+      loadAssignments(adminId, 1);
       loadShareCodes(adminId);
     }
     if (!open) {
@@ -120,8 +124,15 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setBusinessAssignments([]);
       setShareCode(null);
       setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
+      setTotalUsers(0);
     }
   }, [open, adminId]);
+
+  useEffect(() => {
+    if (open && adminId && userPage > 1) {
+      loadAssignments(adminId, userPage);
+    }
+  }, [userPage]);
 
   const loadShareCodes = async (aid: string) => {
     try {
