@@ -50,6 +50,15 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
       return;
     }
 
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const isDuplicate = existingPhones.some(
+      (p) => p.replace(/\D/g, '') === normalizedPhone
+    );
+    if (isDuplicate) {
+      toast.error("Ce numéro de téléphone existe déjà dans votre cercle d'amis.");
+      return;
+    }
+
     const newFriend: Friend = {
       id: Date.now().toString(),
       name,
