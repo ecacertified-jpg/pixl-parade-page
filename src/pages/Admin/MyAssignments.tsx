@@ -13,7 +13,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, AlertTriangle, RefreshCw, Link as LinkIcon, UserPlus } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, AlertTriangle, RefreshCw, Link as LinkIcon, UserPlus, Clock, CalendarDays } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { useAdminShareCode } from '@/hooks/useAdminShareCode';
