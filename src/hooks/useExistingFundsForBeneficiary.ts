@@ -143,7 +143,7 @@ export function useExistingFundsForBeneficiary() {
     }
   }, []);
 
-  const checkFundsByUserId = useCallback(async (userId: string, currentUserId?: string) => {
+  const checkFundsByUserId = useCallback(async (userId: string, currentUserId?: string, occasion?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
