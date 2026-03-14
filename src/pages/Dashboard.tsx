@@ -1135,6 +1135,12 @@ export default function Dashboard() {
             }}
           />
         )}
+
+        <CreateCircleModal
+          open={showCreateCircleModal}
+          onOpenChange={setShowCreateCircleModal}
+          onSubmit={async (name, color) => { await createCircle(name, color); }}
+        />
     </div>
   </>;
 }
