@@ -134,7 +134,7 @@ export function CollaborativeGiftModal({
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
     setForceCreate(false);
-    checkFundsByContactId(contact.id);
+    checkFundsByContactId(contact.id, user?.id);
   };
 
   const handleJoinFund = (fundId: string) => {

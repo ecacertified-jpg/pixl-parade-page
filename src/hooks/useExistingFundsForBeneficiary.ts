@@ -14,11 +14,47 @@ export interface ExistingFund {
   status: string;
 }
 
+async function filterByCircleOverlap(funds: any[], currentUserId: string): Promise<any[]> {
+  if (funds.length === 0) return funds;
+
+  // 1. Get current user's friend circle (user IDs) from contact_relationships
+  const { data: relationships } = await supabase
+    .from('contact_relationships')
+    .select('user_a, user_b')
+    .or(`user_a.eq.${currentUserId},user_b.eq.${currentUserId}`);
+
+  const friendIds = new Set<string>(
+    (relationships || []).map(r => r.user_a === currentUserId ? r.user_b : r.user_a)
+  );
+  friendIds.add(currentUserId); // include self
+
+  // 2. Get contributors for each fund
+  const fundIds = funds.map(f => f.id);
+  const { data: contributions } = await supabase
+    .from('fund_contributions')
+    .select('fund_id, contributor_id')
+    .in('fund_id', fundIds);
+
+  // 3. For each fund, check if creator or any contributor is in user's circle
+  return funds.filter(fund => {
+    const fundPeople = new Set<string>();
+    if (fund.creator_id) fundPeople.add(fund.creator_id);
+    (contributions || [])
+      .filter(c => c.fund_id === fund.id)
+      .forEach(c => { if (c.contributor_id) fundPeople.add(c.contributor_id); });
+
+    for (const person of fundPeople) {
+      if (friendIds.has(person)) return true;
+    }
+    return false;
+  });
+}
+
 export function useExistingFundsForBeneficiary() {
   const [existingFunds, setExistingFunds] = useState<ExistingFund[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const checkFundsByContactId = useCallback(async (contactId: string) => {
+  const checkFundsByContactId = useCallback(async (contactId: string, currentUserId?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
@@ -39,9 +75,9 @@ export function useExistingFundsForBeneficiary() {
         .eq('beneficiary_contact_id', contactId)
         .eq('status', 'active');
 
-      // Query 2: if linked_user_id exists, find other contacts with same linked_user_id
+      let allFunds: any[] = [];
+
       if (contact?.linked_user_id) {
-        // Find all contact IDs that share this linked_user_id
         const { data: linkedContacts } = await supabase
           .from('contacts')
           .select('id')
@@ -65,7 +101,6 @@ export function useExistingFundsForBeneficiary() {
           linkedData = data || [];
         }
 
-        // Business funds where beneficiary_user_id matches
         const { data: businessFunds } = await supabase
           .from('collective_funds')
           .select(`
@@ -76,19 +111,25 @@ export function useExistingFundsForBeneficiary() {
           .eq('business_collective_funds.beneficiary_user_id', contact.linked_user_id)
           .eq('status', 'active');
 
-        const allFunds = [
+        allFunds = [
           ...(directResult.data || []),
           ...linkedData,
           ...(businessFunds || []),
         ];
-
-        // Deduplicate by fund id
-        const uniqueFunds = Array.from(new Map(allFunds.map(f => [f.id, f])).values());
-        setExistingFunds(formatFunds(uniqueFunds));
       } else {
         const { data } = await directQuery;
-        setExistingFunds(formatFunds(data || []));
+        allFunds = data || [];
       }
+
+      // Deduplicate by fund id
+      const uniqueFunds = Array.from(new Map(allFunds.map(f => [f.id, f])).values());
+
+      // Filter by circle overlap if currentUserId is provided
+      const filteredFunds = currentUserId
+        ? await filterByCircleOverlap(uniqueFunds, currentUserId)
+        : uniqueFunds;
+
+      setExistingFunds(formatFunds(filteredFunds));
     } catch (error) {
       console.error('Error checking existing funds:', error);
       setExistingFunds([]);
@@ -97,11 +138,10 @@ export function useExistingFundsForBeneficiary() {
     }
   }, []);
 
-  const checkFundsByUserId = useCallback(async (userId: string) => {
+  const checkFundsByUserId = useCallback(async (userId: string, currentUserId?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
-      // Find funds where any contact with this linked_user_id is beneficiary
       const { data: contactsForUser } = await supabase
         .from('contacts')
         .select('id')
@@ -122,7 +162,6 @@ export function useExistingFundsForBeneficiary() {
         contactFunds = data || [];
       }
 
-      // Business funds for this user
       const { data: businessFunds } = await supabase
         .from('collective_funds')
         .select(`
@@ -135,7 +174,13 @@ export function useExistingFundsForBeneficiary() {
 
       const allFunds = [...contactFunds, ...(businessFunds || [])];
       const uniqueFunds = Array.from(new Map(allFunds.map(f => [f.id, f])).values());
-      setExistingFunds(formatFunds(uniqueFunds));
+
+      // Filter by circle overlap if currentUserId is provided
+      const filteredFunds = currentUserId
+        ? await filterByCircleOverlap(uniqueFunds, currentUserId)
+        : uniqueFunds;
+
+      setExistingFunds(formatFunds(filteredFunds));
     } catch (error) {
       console.error('Error checking existing funds by user:', error);
       setExistingFunds([]);
