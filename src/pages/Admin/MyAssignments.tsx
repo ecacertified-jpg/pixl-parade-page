@@ -325,6 +325,33 @@ const MyAssignments = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {/* Birthday KPIs */}
+                  {birthdayStats && (birthdayStats.total.today > 0 || birthdayStats.total.week > 0 || birthdayStats.total.month > 0) && (
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                        <p className="text-lg font-bold text-destructive">{birthdayStats.total.today}</p>
+                        <p className="text-xs text-muted-foreground">Aujourd'hui</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {birthdayStats.via_link.today} lien · {birthdayStats.manual.today} manuel
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                        <p className="text-lg font-bold text-primary">{birthdayStats.total.week}</p>
+                        <p className="text-xs text-muted-foreground">Cette semaine</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {birthdayStats.via_link.week} lien · {birthdayStats.manual.week} manuel
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-secondary/50 border text-center">
+                        <p className="text-lg font-bold">{birthdayStats.total.month}</p>
+                        <p className="text-xs text-muted-foreground">Ce mois</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {birthdayStats.via_link.month} lien · {birthdayStats.manual.month} manuel
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Completion filter */}
                   <div className="flex items-center gap-2 flex-wrap mb-4">
                     <span className="text-xs text-muted-foreground font-medium">Complétion :</span>
