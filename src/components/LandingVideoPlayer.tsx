@@ -81,7 +81,11 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
         playsInline
         preload="auto"
         crossOrigin="anonymous"
-        className="w-full aspect-video object-cover"
+        className={cn(
+          isFullscreen
+            ? "w-full h-full object-contain"
+            : "w-full aspect-video object-cover"
+        )}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onWaiting={() => setIsBuffering(true)}
