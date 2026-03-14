@@ -105,6 +105,9 @@ const MyAssignments = () => {
   const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
   const [wishlistUserName, setWishlistUserName] = useState('');
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const PAGE_SIZE = 50;
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
