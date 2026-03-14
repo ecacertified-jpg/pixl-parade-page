@@ -20,6 +20,24 @@ const Landing = () => {
   const { country } = useCountry();
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
+
+  // Fetch landing video from assets bucket
+  useEffect(() => {
+    const fetchLandingVideo = async () => {
+      const { data } = await supabase.storage.from('assets').list('', {
+        search: 'landing-video',
+      });
+      if (data && data.length > 0) {
+        const videoFile = data.find(f => f.name.startsWith('landing-video'));
+        if (videoFile) {
+          const { data: urlData } = supabase.storage.from('assets').getPublicUrl(videoFile.name);
+          setLandingVideoUrl(urlData.publicUrl);
+        }
+      }
+    };
+    fetchLandingVideo();
+  }, []);
 
   // Redirect authenticated users to home
   useEffect(() => {
