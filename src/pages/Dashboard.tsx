@@ -96,6 +96,8 @@ export default function Dashboard() {
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [linkContactTarget, setLinkContactTarget] = useState<{ id: string; name: string } | null>(null);
   const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
+  const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
+  const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const {
