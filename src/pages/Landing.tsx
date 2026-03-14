@@ -117,7 +117,7 @@ const Landing = () => {
                 <span className="text-primary">Bonheur</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                Combien de personnes se souviennent de votre date d'anniversaire chaque année ? Êtes-vous sûr(e) de recevoir un cadeau à votre anniversaire ? Enregistrez votre date d'anniversaire pour que vos proches ne vous oublient pas désormais !
+                Combien de personnes se souviennent de votre date d'anniversaire chaque année ? Êtes-vous sûr(e) de recevoir un cadeau à votre anniversaire ? Enregistrez votre date d'anniversaire pour que vos proches ne vous oublient pas désormais
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
