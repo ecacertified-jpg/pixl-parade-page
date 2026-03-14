@@ -32,7 +32,7 @@ interface AddFriendModalProps {
   existingPhones?: string[];
 }
 
-export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalProps) {
+export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = [] }: AddFriendModalProps) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
