@@ -237,9 +237,33 @@ const MyAssignments = () => {
         <AdminShareLinkCard />
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Chargement des affectations...</p>
+                {retryCount > 0 && (
+                  <p className="text-xs text-muted-foreground">Tentative {retryCount}/{MAX_RETRIES}...</p>
+                )}
+              </div>
+              <Progress className="w-48 h-1.5" />
+            </CardContent>
+          </Card>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Impossible de charger les affectations</p>
+                <p className="text-xs text-muted-foreground">Vérifiez votre connexion et réessayez.</p>
+              </div>
+              <Button variant="outline" onClick={handleManualRetry} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Réessayer
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Tabs defaultValue="users">
             <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-4">
