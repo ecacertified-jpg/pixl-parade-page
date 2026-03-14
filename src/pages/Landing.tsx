@@ -11,6 +11,8 @@ import { SurveyModal } from "@/components/SurveyModal";
 import { ContactModal } from "@/components/ContactModal";
 import { CountrySelector } from "@/components/CountrySelector";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { LandingVideoPlayer } from "@/components/LandingVideoPlayer";
+import { supabase } from "@/integrations/supabase/client";
 
 const Landing = () => {
   const navigate = useNavigate();
