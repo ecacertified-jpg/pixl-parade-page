@@ -108,7 +108,7 @@ export function BusinessCollaborativeGiftModal({
   const handleSelectUser = (u: User) => {
     setSelectedUser(u);
     setForceCreate(false);
-    checkFundsByUserId(u.user_id);
+    checkFundsByUserId(u.user_id, user?.id);
   };
 
   const handleJoinFund = (fundId: string) => {
