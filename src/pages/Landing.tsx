@@ -24,19 +24,20 @@ const Landing = () => {
 
   // Fetch landing video from assets bucket
   useEffect(() => {
-    const fetchLandingVideo = async () => {
-      const { data } = await supabase.storage.from('assets').list('', {
-        search: 'landing-video',
-      });
-      if (data && data.length > 0) {
-        const videoFile = data.find(f => f.name.startsWith('landing-video'));
-        if (videoFile) {
-          const { data: urlData } = supabase.storage.from('assets').getPublicUrl(videoFile.name);
-          setLandingVideoUrl(urlData.publicUrl);
-        }
+    const tryVideoExtensions = async () => {
+      const extensions = ['mp4', 'webm', 'mov', 'MP4'];
+      for (const ext of extensions) {
+        const { data } = supabase.storage.from('assets').getPublicUrl(`landing-video.${ext}`);
+        try {
+          const res = await fetch(data.publicUrl, { method: 'HEAD' });
+          if (res.ok) {
+            setLandingVideoUrl(data.publicUrl);
+            return;
+          }
+        } catch {}
       }
     };
-    fetchLandingVideo();
+    tryVideoExtensions();
   }, []);
 
   // Redirect authenticated users to home
