@@ -116,6 +116,7 @@ const AdminAuth = () => {
   const onSubmit = async (data: AdminLoginFormData) => {
     try {
       setIsLoading(true);
+      isSubmittingRef.current = true;
 
       // Sign in with email and password
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
