@@ -25,17 +25,19 @@ const AdminAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (isLoading) {
       loadingTimeoutRef.current = setTimeout(() => {
         setIsLoading(false);
+        isSubmittingRef.current = false;
         toast({
           title: 'Délai dépassé',
           description: 'La connexion prend trop de temps. Veuillez réessayer.',
           variant: 'destructive',
         });
-      }, 8000);
+      }, 15000);
     } else {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
