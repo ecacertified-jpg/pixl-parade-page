@@ -1,53 +1,93 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Permettre les cagnottes multiples pour cercles d'amis distincts
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Concept
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Actuellement, l'alerte `ExistingFundsAlert` affiche **toutes** les cagnottes actives pour un même bénéficiaire, bloquant implicitement la création. Le changement consiste à filtrer cette liste : ne montrer que les cagnottes dont le cercle de contributeurs **chevauche** celui de l'utilisateur courant. Si aucun chevauchement, pas d'alerte — la création est directe.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Logique de chevauchement
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+```text
+Cercle de l'utilisateur = ses contacts (contact_relationships: user_a/user_b)
+Cercle d'un fund existant = creator_id + contributor_ids (fund_contributions)
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+Chevauchement = intersection(cercle_utilisateur, cercle_fund) ≠ ∅
+→ Si chevauchement : afficher l'alerte (risque de doublon)
+→ Si aucun chevauchement : masquer ce fund de l'alerte
+```
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+## Fichiers impactés
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+### 1. `src/hooks/useExistingFundsForBeneficiary.ts`
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+- Modifier `checkFundsByContactId` et `checkFundsByUserId` pour :
+  1. Après avoir récupéré les fonds existants, récupérer les `contributor_id` de chaque fund via `fund_contributions`
+  2. Récupérer le cercle d'amis de l'utilisateur courant via `contact_relationships`
+  3. Convertir les contacts en `user_id` (via `contacts.linked_user_id`) pour comparer avec les contributeurs
+  4. Ne garder que les funds dont au moins un contributeur ou le créateur appartient au cercle de l'utilisateur
+- Ajouter `userId` en paramètre (l'utilisateur courant) pour pouvoir charger son cercle
 
-## En attente ⏳
+### 2. `src/components/CollaborativeGiftModal.tsx`
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+- Passer `user.id` à `checkFundsByContactId` pour activer le filtrage par cercle
+
+### 3. `src/components/BusinessCollaborativeGiftModal.tsx`
+
+- Idem : passer `user.id` à `checkFundsByUserId`
+
+## Détail technique — `useExistingFundsForBeneficiary.ts`
+
+```typescript
+// Nouvelle signature
+const checkFundsByContactId = async (contactId: string, currentUserId: string) => {
+  // ... existing fund fetching logic ...
+  
+  // NEW: Filter by circle overlap
+  const filteredFunds = await filterByCircleOverlap(allUniqueFunds, currentUserId);
+  setExistingFunds(formatFunds(filteredFunds));
+};
+
+async function filterByCircleOverlap(funds: any[], currentUserId: string) {
+  if (funds.length === 0) return funds;
+  
+  // 1. Get current user's friend circle (user IDs)
+  const { data: relationships } = await supabase
+    .from('contact_relationships')
+    .select('user_a, user_b')
+    .or(`user_a.eq.${currentUserId},user_b.eq.${currentUserId}`);
+  
+  const friendIds = new Set(
+    (relationships || []).map(r => r.user_a === currentUserId ? r.user_b : r.user_a)
+  );
+  friendIds.add(currentUserId); // include self
+  
+  // 2. Get contributors for each fund
+  const fundIds = funds.map(f => f.id);
+  const { data: contributions } = await supabase
+    .from('fund_contributions')
+    .select('fund_id, contributor_id')
+    .in('fund_id', fundIds);
+  
+  // 3. For each fund, check if creator or any contributor is in user's circle
+  return funds.filter(fund => {
+    const fundPeople = new Set<string>();
+    fundPeople.add(fund.creator_id);
+    (contributions || [])
+      .filter(c => c.fund_id === fund.id)
+      .forEach(c => fundPeople.add(c.contributor_id));
+    
+    // Check overlap: at least one person in common
+    for (const person of fundPeople) {
+      if (friendIds.has(person)) return true;
+    }
+    return false;
+  });
+}
+```
+
+## Résultat attendu
+
+- **Cercles qui se chevauchent** : l'alerte s'affiche comme avant (évite les doublons)
+- **Cercles totalement distincts** : aucune alerte, la création est immédiate (chaque groupe d'amis peut organiser sa propre cagnotte surprise indépendamment)
+
