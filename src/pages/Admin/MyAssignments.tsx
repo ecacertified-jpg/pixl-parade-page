@@ -387,7 +387,7 @@ const MyAssignments = () => {
                                <Cake className="h-3.5 w-3.5" /> Anniversaire <ArrowUpDown className={`h-3.5 w-3.5 transition-colors ${sortByBirthday ? 'text-primary' : ''}`} />
                              </Button>
                            </TableHead>
-                          <TableHead>Échéance</TableHead>
+                          <TableHead>Source</TableHead>
                           <TableHead>Relation</TableHead>
                            <TableHead>Complétion</TableHead>
                            <TableHead>Date d'inscription</TableHead>
