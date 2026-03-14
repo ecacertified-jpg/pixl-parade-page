@@ -156,7 +156,7 @@ export function useExistingFundsForBeneficiary() {
 
       let contactFunds: any[] = [];
       if (contactIds.length > 0) {
-        const { data } = await supabase
+        let cQuery = supabase
           .from('collective_funds')
           .select(`
             id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -164,6 +164,8 @@ export function useExistingFundsForBeneficiary() {
           `)
           .in('beneficiary_contact_id', contactIds)
           .eq('status', 'active');
+        if (occasion) cQuery = cQuery.eq('occasion', occasion);
+        const { data } = await cQuery;
         contactFunds = data || [];
       }
 
