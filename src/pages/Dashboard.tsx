@@ -837,9 +837,20 @@ export default function Dashboard() {
                               <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
                                 {friend.relation}
                               </Badge>
+                              {contactCircleMap[friend.id] && (() => {
+                                const circle = circles.find(c => c.id === contactCircleMap[friend.id]);
+                                return circle ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-1.5 py-0.5"
+                                    style={{ backgroundColor: `${circle.color}20`, color: circle.color }}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: circle.color }} />
+                                    {circle.name}
+                                  </span>
+                                ) : null;
+                              })()}
                             </div>
                           </div>
-                        </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Anniv. dans {getDaysUntilBirthday(friend.birthday)} jours
