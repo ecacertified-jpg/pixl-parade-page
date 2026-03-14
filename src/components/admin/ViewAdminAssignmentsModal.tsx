@@ -12,8 +12,9 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, AlertTriangle, RefreshCw, Cake, Clock, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getDaysUntilBirthday } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface UserProfile {
@@ -131,6 +132,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [userPage, setUserPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [completionFilter, setCompletionFilter] = useState<number | null>(null);
+  const [birthdayStats, setBirthdayStats] = useState<{ via_link: { today: number; week: number; month: number }; manual: { today: number; week: number; month: number }; total: { today: number; week: number; month: number } } | null>(null);
   const PAGE_SIZE = 50;
 
   useEffect(() => {
@@ -200,6 +202,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      if (data.birthday_stats) setBirthdayStats(data.birthday_stats);
       setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
@@ -328,6 +331,33 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                 </TabsList>
 
               <TabsContent value="users">
+                {/* Birthday KPIs */}
+                {birthdayStats && (birthdayStats.total.today > 0 || birthdayStats.total.week > 0 || birthdayStats.total.month > 0) && (
+                  <div className="grid grid-cols-3 gap-3 mb-4 mt-2">
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                      <p className="text-lg font-bold text-destructive">{birthdayStats.total.today}</p>
+                      <p className="text-xs text-muted-foreground">Aujourd'hui</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {birthdayStats.via_link.today} lien · {birthdayStats.manual.today} manuel
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                      <p className="text-lg font-bold text-primary">{birthdayStats.total.week}</p>
+                      <p className="text-xs text-muted-foreground">Cette semaine</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {birthdayStats.via_link.week} lien · {birthdayStats.manual.week} manuel
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/50 border text-center">
+                      <p className="text-lg font-bold">{birthdayStats.total.month}</p>
+                      <p className="text-xs text-muted-foreground">Ce mois</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {birthdayStats.via_link.month} lien · {birthdayStats.manual.month} manuel
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Completion filter */}
                 <div className="flex items-center gap-2 flex-wrap mb-4 mt-2">
                   <span className="text-xs text-muted-foreground font-medium">Complétion :</span>
@@ -358,6 +388,9 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                           <TableHead>Utilisateur</TableHead>
                           <TableHead>Pays</TableHead>
                           <TableHead>Téléphone</TableHead>
+                          <TableHead>Anniversaire</TableHead>
+                          <TableHead>Échéance</TableHead>
+                          <TableHead>Relation</TableHead>
                           <TableHead>Complétion</TableHead>
                           <TableHead>Date d'inscription</TableHead>
                           <TableHead className="text-right">Profil</TableHead>
@@ -381,11 +414,6 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                     {a.profile?.is_suspended && (
                                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Suspendu</Badge>
                                     )}
-                                    {a.assigned_via === 'share_link' && (
-                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                                        <Link className="h-2.5 w-2.5 mr-0.5" /> Via lien
-                                      </Badge>
-                                    )}
                                   </div>
                                 </div>
                               </TableCell>
@@ -394,6 +422,41 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                               </TableCell>
                               <TableCell className="text-sm">
                                 {a.profile?.phone || <span className="text-muted-foreground italic">Non renseigné</span>}
+                              </TableCell>
+                              <TableCell>
+                                {a.profile?.birthday ? (() => {
+                                  const parts = a.profile.birthday.split('-');
+                                  const formatted = `${parts[2]}/${parts[1]}`;
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <Cake className="h-4 w-4 text-pink-500" />
+                                      <span className="text-sm">{formatted}</span>
+                                    </div>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground italic text-sm">Non renseigné</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {a.profile?.birthday ? (() => {
+                                  const days = getDaysUntilBirthday(a.profile.birthday);
+                                  return (
+                                    <Badge variant={days === 0 ? 'destructive' : days <= 3 ? 'default' : days <= 7 ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 h-4">
+                                      {days === 0 ? "Aujourd'hui" : days === 1 ? 'Demain' : `${days}j`}
+                                    </Badge>
+                                  );
+                                })() : (
+                                  <span className="text-muted-foreground italic text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={a.assigned_via === 'share_link' ? 'secondary' : 'outline'} className="text-[10px] px-1.5 py-0 h-4">
+                                  {a.assigned_via === 'share_link' ? (
+                                    <><Link className="h-2.5 w-2.5 mr-0.5" /> Via lien</>
+                                  ) : (
+                                    <><UserPlus className="h-2.5 w-2.5 mr-0.5" /> Manuel</>
+                                  )}
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <TooltipProvider>

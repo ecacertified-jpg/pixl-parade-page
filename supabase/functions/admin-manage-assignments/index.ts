@@ -224,6 +224,70 @@ Deno.serve(async (req) => {
         businessDetails = data || [];
       }
 
+      // Calculate birthday stats across ALL assignments (not just current page)
+      const { data: allAssignmentsForStats } = await supabaseAdmin
+        .from('admin_user_assignments')
+        .select('user_id, assigned_via')
+        .eq('admin_user_id', adminId);
+
+      let birthdayStats = {
+        via_link: { today: 0, week: 0, month: 0 },
+        manual: { today: 0, week: 0, month: 0 },
+        total: { today: 0, week: 0, month: 0 },
+      };
+
+      if (allAssignmentsForStats && allAssignmentsForStats.length > 0) {
+        const allUserIds = allAssignmentsForStats.map((a: any) => a.user_id);
+        // Fetch birthdays for all assigned users (batched if needed)
+        const batchSize = 500;
+        const allBirthdays: any[] = [];
+        for (let i = 0; i < allUserIds.length; i += batchSize) {
+          const batch = allUserIds.slice(i, i + batchSize);
+          const { data: bdays } = await supabaseAdmin
+            .from('profiles')
+            .select('user_id, birthday')
+            .in('user_id', batch)
+            .not('birthday', 'is', null);
+          if (bdays) allBirthdays.push(...bdays);
+        }
+
+        const birthdayMap = new Map(allBirthdays.map((b: any) => [b.user_id, b.birthday]));
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (const assignment of allAssignmentsForStats) {
+          const bday = birthdayMap.get(assignment.user_id);
+          if (!bday) continue;
+
+          const parts = bday.split('-');
+          const month = parseInt(parts[1], 10) - 1;
+          const day = parseInt(parts[2], 10);
+
+          const nextBirthday = new Date(today.getFullYear(), month, day);
+          nextBirthday.setHours(0, 0, 0, 0);
+          if (nextBirthday < today) {
+            nextBirthday.setFullYear(today.getFullYear() + 1);
+          }
+
+          const daysUntil = Math.round((nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const bucket = assignment.assigned_via === 'share_link' ? 'via_link' : 'manual';
+
+          if (daysUntil === 0) {
+            birthdayStats[bucket].today++;
+            birthdayStats.total.today++;
+          }
+          if (daysUntil <= 7) {
+            birthdayStats[bucket].week++;
+            birthdayStats.total.week++;
+          }
+          if (daysUntil <= 30) {
+            birthdayStats[bucket].month++;
+            birthdayStats.total.month++;
+          }
+        }
+      }
+
       return new Response(JSON.stringify({
         user_assignments: userAssignmentsData.map((a: any) => {
           const profile = userProfiles.find((p: any) => p.user_id === a.user_id);
@@ -236,6 +300,7 @@ Deno.serve(async (req) => {
         total_users: totalUsers,
         page,
         page_size: pageSize,
+        birthday_stats: birthdayStats,
       }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
