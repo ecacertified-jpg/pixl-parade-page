@@ -14,6 +14,7 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     return () => {
