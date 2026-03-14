@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, AlertTriangle, RefreshCw, Link as LinkIcon, UserPlus } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
+import { useAdminShareCode } from '@/hooks/useAdminShareCode';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -89,6 +91,21 @@ function getStatusBadge(status: string | null, isActive: boolean | null, isVerif
   return <Badge variant="secondary">Actif</Badge>;
 }
 
+const COMPLETION_FILTERS = [null, 15, 30, 45, 60, 75, 100] as const;
+
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | 'ellipsis')[] = [];
+  pages.push(1);
+  if (current > 3) pages.push('ellipsis');
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+    pages.push(i);
+  }
+  if (current < total - 2) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
+
 const MyAssignments = () => {
   const { user } = useAuth();
   const [adminId, setAdminId] = useState<string | null>(null);
@@ -109,8 +126,11 @@ const MyAssignments = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [completionFilter, setCompletionFilter] = useState<number | null>(null);
   const PAGE_SIZE = 50;
   const MAX_RETRIES = 3;
+
+  const { aggregatedStats } = useAdminShareCode();
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
@@ -119,6 +139,13 @@ const MyAssignments = () => {
         return dA - dB;
       })
     : userAssignments;
+
+  const filteredUserAssignments = completionFilter !== null
+    ? sortedUserAssignments.filter(a => {
+        const { percentage } = calculateProfileCompletion(a.profile);
+        return percentage === completionFilter;
+      })
+    : sortedUserAssignments;
 
   useEffect(() => {
     if (user) loadAdminId();
@@ -171,7 +198,6 @@ const MyAssignments = () => {
       toast.error('Impossible de charger les affectations après plusieurs tentatives');
     } finally {
       if (currentRetry >= MAX_RETRIES || currentRetry === 0) {
-        // Only stop loading on final attempt or success
       }
       setLoading(false);
     }
@@ -220,6 +246,8 @@ const MyAssignments = () => {
   const getInitials = (first?: string | null, last?: string | null) =>
     `${(first || '')[0] || ''}${(last || '')[0] || ''}`.toUpperCase() || '?';
 
+  const totalPages = Math.ceil(totalUsers / PAGE_SIZE);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -233,7 +261,6 @@ const MyAssignments = () => {
           </Button>
         </div>
 
-        {/* Admin Share Link Card */}
         <AdminShareLinkCard />
 
         {loading ? (
@@ -281,12 +308,42 @@ const MyAssignments = () => {
             <TabsContent value="users">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Mes utilisateurs</CardTitle>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-lg">Mes utilisateurs</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="gap-1.5">
+                        <LinkIcon className="h-3 w-3" />
+                        {aggregatedStats.total_signups} inscrits via lien
+                      </Badge>
+                      <Badge variant="outline" className="gap-1.5">
+                        <UserPlus className="h-3 w-3" />
+                        {totalUsers} affectés
+                      </Badge>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {userAssignments.length === 0 ? (
+                  {/* Completion filter */}
+                  <div className="flex items-center gap-2 flex-wrap mb-4">
+                    <span className="text-xs text-muted-foreground font-medium">Complétion :</span>
+                    {COMPLETION_FILTERS.map((val) => (
+                      <Button
+                        key={val ?? 'all'}
+                        variant={completionFilter === val ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7 text-xs px-2.5"
+                        onClick={() => setCompletionFilter(val)}
+                      >
+                        {val === null ? 'Tous' : `${val}%`}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {filteredUserAssignments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      Aucun utilisateur assigné. Cliquez sur "Ajouter" pour commencer.
+                      {completionFilter !== null
+                        ? `Aucun utilisateur avec ${completionFilter}% de complétion sur cette page.`
+                        : 'Aucun utilisateur assigné. Cliquez sur "Ajouter" pour commencer.'}
                     </p>
                   ) : (
                     <Table>
@@ -306,7 +363,7 @@ const MyAssignments = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedUserAssignments.map(a => {
+                        {filteredUserAssignments.map(a => {
                           const { percentage, details } = calculateProfileCompletion(a.profile);
                           return (
                             <TableRow key={a.id}>
@@ -422,30 +479,46 @@ const MyAssignments = () => {
                       </TableBody>
                     </Table>
                   )}
-                  {/* Pagination controls */}
-                  {totalUsers > PAGE_SIZE && (
-                    <div className="flex items-center justify-between pt-4 border-t mt-4">
+
+                  {/* Numbered Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t mt-4 gap-3">
                       <p className="text-sm text-muted-foreground">
-                        Page {userPage} sur {Math.ceil(totalUsers / PAGE_SIZE)} — {totalUsers} utilisateur(s)
+                        Page {userPage} sur {totalPages} — {totalUsers} utilisateur(s)
                       </p>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={userPage <= 1}
-                          onClick={() => setUserPage(p => p - 1)}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={userPage >= Math.ceil(totalUsers / PAGE_SIZE)}
-                          onClick={() => setUserPage(p => p + 1)}
-                        >
-                          Suivant <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              onClick={() => userPage > 1 && setUserPage(p => p - 1)}
+                              className={userPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                          {getPageNumbers(userPage, totalPages).map((p, i) =>
+                            p === 'ellipsis' ? (
+                              <PaginationItem key={`ellipsis-${i}`}>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            ) : (
+                              <PaginationItem key={p}>
+                                <PaginationLink
+                                  isActive={p === userPage}
+                                  onClick={() => setUserPage(p)}
+                                  className="cursor-pointer"
+                                >
+                                  {p}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          )}
+                          <PaginationItem>
+                            <PaginationNext
+                              onClick={() => userPage < totalPages && setUserPage(p => p + 1)}
+                              className={userPage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
                   )}
                 </CardContent>
