@@ -262,8 +262,8 @@ export function AssetUploader() {
                           <span className="text-xs text-muted-foreground shrink-0">
                             {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
                           </span>
-                          <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
-                            <Check className="h-4 w-4 text-success" />
+                          <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider" disabled={renamingInProgress}>
+                            {renamingInProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-success" />}
                           </Button>
                           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
                             <X className="h-4 w-4" />
