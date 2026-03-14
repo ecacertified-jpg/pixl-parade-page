@@ -1045,7 +1045,7 @@ export default function Dashboard() {
 
       <GiftHistoryModal isOpen={showGiftHistory} onClose={() => setShowGiftHistory(false)} />
 
-      <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} />
+      <AddFriendModal isOpen={showAddFriendModal} onClose={() => setShowAddFriendModal(false)} onAddFriend={handleAddFriend} existingPhones={friends.map(f => f.phone)} />
 
         <AddEventModal isOpen={showAddEventModal} onClose={closeEventModal} onAddEvent={handleAddEvent} onEditEvent={handleEditEvent} eventToEdit={editingEvent} />
         
