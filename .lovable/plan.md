@@ -1,53 +1,48 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Colonnes Échéance/Relation + KPIs anniversaires par type d'affectation
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Contexte
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Le tableau des utilisateurs affectés a déjà une colonne "Anniversaire" avec la date et un badge d'échéance intégré. Il manque une colonne "Échéance" dédiée (jours restants) et une colonne "Relation" (mode d'affectation : via lien ou manuellement). Il faut aussi des KPIs anniversaires ventilés par type d'affectation.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Problème pour les KPIs
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+Les données sont paginées (50/page). Pour des compteurs d'anniversaires exacts sur l'ensemble des utilisateurs, il faut compter côté serveur.
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+## Modifications
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### 1. Edge function `admin-manage-assignments/index.ts`
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+Ajouter au GET (quand `admin_id` est fourni), une requête supplémentaire pour compter les anniversaires sur l'ensemble des affectations :
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+- Récupérer tous les `user_id` + `assigned_via` de `admin_user_assignments` pour cet admin (sans pagination)
+- Joindre les `birthday` depuis `profiles`
+- Calculer côté serveur les KPIs : `today`, `week` (7j), `month` (30j) — ventilés par `assigned_via` (`share_link` vs `manual`)
+- Retourner un objet `birthday_stats: { via_link: { today, week, month }, manual: { today, week, month }, total: { today, week, month } }` dans la réponse
 
-## En attente ⏳
+### 2. `src/pages/Admin/MyAssignments.tsx`
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+**Nouvelles colonnes dans le tableau :**
+- "Échéance" : colonne dédiée affichant le nombre de jours restants avec badge coloré (Aujourd'hui, Demain, Xj) — extraire cette logique de la colonne Anniversaire actuelle
+- "Relation" : afficher `Via lien` ou `Manuel` selon `assigned_via` avec un badge distinctif — retirer le mini-badge "Via lien de partage" de la cellule Utilisateur
+
+**KPIs anniversaires :**
+- Stocker `birthdayStats` depuis la réponse de l'edge function
+- Afficher une rangée de cards/badges entre les compteurs existants et le tableau :
+  - "Aujourd'hui : X (Y via lien, Z manuels)"
+  - "Cette semaine : X (Y via lien, Z manuels)"
+  - "Ce mois : X (Y via lien, Z manuels)"
+
+### 3. `src/components/admin/ViewAdminAssignmentsModal.tsx`
+
+Appliquer les mêmes colonnes (Échéance, Relation) et KPIs anniversaires dans la modale.
+
+### Fichiers impactés
+
+| Fichier | Changement |
+|---------|-----------|
+| `supabase/functions/admin-manage-assignments/index.ts` | Calcul birthday_stats côté serveur |
+| `src/pages/Admin/MyAssignments.tsx` | Colonnes Échéance + Relation, KPIs anniversaires |
+| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Idem |
+
