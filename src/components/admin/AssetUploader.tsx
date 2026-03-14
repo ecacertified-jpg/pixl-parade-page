@@ -36,6 +36,7 @@ export function AssetUploader() {
   const [dragOver, setDragOver] = useState(false);
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [renamingInProgress, setRenamingInProgress] = useState(false);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
   const [fileFilter, setFileFilter] = useState<FileFilter>('all');
 
