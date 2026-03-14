@@ -169,7 +169,7 @@ export function useExistingFundsForBeneficiary() {
         contactFunds = data || [];
       }
 
-      const { data: businessFunds } = await supabase
+      let bQuery = supabase
         .from('collective_funds')
         .select(`
           id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -178,6 +178,8 @@ export function useExistingFundsForBeneficiary() {
         `)
         .eq('business_collective_funds.beneficiary_user_id', userId)
         .eq('status', 'active');
+      if (occasion) bQuery = bQuery.eq('occasion', occasion);
+      const { data: businessFunds } = await bQuery;
 
       const allFunds = [...contactFunds, ...(businessFunds || [])];
       const uniqueFunds = Array.from(new Map(allFunds.map(f => [f.id, f])).values());

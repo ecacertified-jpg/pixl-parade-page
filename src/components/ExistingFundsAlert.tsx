@@ -56,8 +56,13 @@ export function ExistingFundsAlert({
               key={fund.id}
               className="rounded-md border border-amber-200 dark:border-amber-800 bg-white dark:bg-background p-3 space-y-2"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <h5 className="font-medium text-sm truncate flex-1">{fund.title}</h5>
+                {fund.occasion && (
+                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {fund.occasion}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1">
