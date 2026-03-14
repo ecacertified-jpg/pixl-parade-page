@@ -105,6 +105,12 @@ const Landing = () => {
                 <Sparkles className="h-4 w-4" />
                 Plateforme #1 {country.code === 'BJ' ? 'au Bénin' : 'en Côte d\'Ivoire'}
               </div>
+              
+              {/* Landing video from assets */}
+              {landingVideoUrl && (
+                <LandingVideoPlayer videoUrl={landingVideoUrl} />
+              )}
+
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
                 Célébrez les Moments de{" "}
                 <span className="text-primary">Bonheur</span>
