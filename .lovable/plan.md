@@ -1,53 +1,47 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Afficher la vidéo 9:16 complète en plein écran
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Problème
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Actuellement, en plein écran, la vidéo garde `aspect-video` (16:9) et `object-cover`, ce qui recadre la vidéo originale au format portrait 9:16. Le contenu est donc coupé.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Solution — `src/components/LandingVideoPlayer.tsx`
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+1. **Ajouter un état `isFullscreen`** qui écoute l'événement `fullscreenchange` du navigateur
+2. **En mode normal** : garder `aspect-video object-cover` (aperçu paysage compact sur la landing page)
+3. **En mode plein écran** : basculer vers `w-full h-full object-contain` avec fond noir — la vidéo 9:16 s'affiche intégralement sans recadrage, avec des bandes noires latérales
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### Changements concrets
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+```tsx
+// Nouvel état
+const [isFullscreen, setIsFullscreen] = useState(false);
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+// Écouter fullscreenchange
+useEffect(() => {
+  const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+  document.addEventListener('fullscreenchange', onFsChange);
+  return () => document.removeEventListener('fullscreenchange', onFsChange);
+}, []);
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+// Container : fond noir en fullscreen
+className={cn(
+  "relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg cursor-pointer group",
+  isFullscreen && "!max-w-none !rounded-none bg-black flex items-center justify-center"
+)}
 
-## En attente ⏳
+// Video : object-contain en fullscreen
+className={cn(
+  isFullscreen
+    ? "w-full h-full object-contain"
+    : "w-full aspect-video object-cover"
+)}
+```
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+## Fichier impacté
+
+| Fichier | Changement |
+|---------|-----------|
+| `src/components/LandingVideoPlayer.tsx` | État fullscreen + classes conditionnelles pour affichage 9:16 complet |
+
