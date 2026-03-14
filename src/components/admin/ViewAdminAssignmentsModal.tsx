@@ -403,6 +403,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                           <TableHead>Pays</TableHead>
                           <TableHead>Téléphone</TableHead>
                           <TableHead>Anniversaire</TableHead>
+                          <TableHead>Échéance</TableHead>
                           <TableHead>Source</TableHead>
                           <TableHead>Relation</TableHead>
                           <TableHead>Complétion</TableHead>
