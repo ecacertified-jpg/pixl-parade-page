@@ -1,37 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Filtrer les cagnottes existantes par occasion
+## Implémenté ✅
 
-## Problème
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-Actuellement, quand on vérifie les cagnottes existantes pour un bénéficiaire, **toutes** les cagnottes actives sont remontées quel que soit l'événement. Résultat : si une cagnotte "anniversaire" existe, l'alerte s'affiche même quand on veut créer une cagnotte "mariage" — ce qui est un faux doublon.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Solution
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-Filtrer les résultats de `useExistingFundsForBeneficiary` par l'**occasion** de la cagnotte en cours de création. Une cagnotte "anniversaire" existante ne doit pas bloquer la création d'une cagnotte "mariage" pour le même bénéficiaire.
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-## Changements
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-### 1. `src/hooks/useExistingFundsForBeneficiary.ts`
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-- Ajouter un paramètre optionnel `occasion?: string` à `checkFundsByContactId` et `checkFundsByUserId`
-- Quand `occasion` est fourni, ajouter `.eq('occasion', occasion)` aux requêtes Supabase
-- Si `occasion` n'est pas fourni, comportement inchangé (rétro-compatible)
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-### 2. `src/components/CollaborativeGiftModal.tsx`
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-- Le flow actuel ajoute au panier sans sélection d'occasion explicite (l'occasion est déterminée implicitement comme "anniversaire")
-- Pas de changement nécessaire ici pour l'instant — l'occasion par défaut sera passée
+## En attente ⏳
 
-### 3. `src/components/BusinessCollaborativeGiftModal.tsx`
-
-- Vérifier comment l'occasion est définie dans `create_business_collective_fund` et la passer au check
-
-### 4. `src/components/ExistingFundsAlert.tsx`
-
-- Afficher l'occasion de chaque cagnotte existante dans la carte (badge) pour que l'utilisateur voie clairement pourquoi l'alerte s'affiche
-
-## Impact
-
-Minimal — seul le filtrage des requêtes est modifié. Aucun changement de schéma DB nécessaire puisque la colonne `occasion` existe déjà sur `collective_funds`.
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

@@ -54,7 +54,7 @@ export function useExistingFundsForBeneficiary() {
   const [existingFunds, setExistingFunds] = useState<ExistingFund[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const checkFundsByContactId = useCallback(async (contactId: string, currentUserId?: string) => {
+  const checkFundsByContactId = useCallback(async (contactId: string, currentUserId?: string, occasion?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
@@ -66,7 +66,7 @@ export function useExistingFundsForBeneficiary() {
         .single();
 
       // Query 1: funds where beneficiary_contact_id matches directly
-      const directQuery = supabase
+      let directQuery = supabase
         .from('collective_funds')
         .select(`
           id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -74,6 +74,7 @@ export function useExistingFundsForBeneficiary() {
         `)
         .eq('beneficiary_contact_id', contactId)
         .eq('status', 'active');
+      if (occasion) directQuery = directQuery.eq('occasion', occasion);
 
       let allFunds: any[] = [];
 
@@ -90,7 +91,7 @@ export function useExistingFundsForBeneficiary() {
 
         let linkedData: any[] = [];
         if (linkedContactIds.length > 0) {
-          const { data } = await supabase
+          let linkedQuery = supabase
             .from('collective_funds')
             .select(`
               id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -98,10 +99,12 @@ export function useExistingFundsForBeneficiary() {
             `)
             .in('beneficiary_contact_id', linkedContactIds)
             .eq('status', 'active');
+          if (occasion) linkedQuery = linkedQuery.eq('occasion', occasion);
+          const { data } = await linkedQuery;
           linkedData = data || [];
         }
 
-        const { data: businessFunds } = await supabase
+        let businessQuery = supabase
           .from('collective_funds')
           .select(`
             id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -110,6 +113,8 @@ export function useExistingFundsForBeneficiary() {
           `)
           .eq('business_collective_funds.beneficiary_user_id', contact.linked_user_id)
           .eq('status', 'active');
+        if (occasion) businessQuery = businessQuery.eq('occasion', occasion);
+        const { data: businessFunds } = await businessQuery;
 
         allFunds = [
           ...(directResult.data || []),
@@ -138,7 +143,7 @@ export function useExistingFundsForBeneficiary() {
     }
   }, []);
 
-  const checkFundsByUserId = useCallback(async (userId: string, currentUserId?: string) => {
+  const checkFundsByUserId = useCallback(async (userId: string, currentUserId?: string, occasion?: string) => {
     setLoading(true);
     setExistingFunds([]);
     try {
@@ -151,7 +156,7 @@ export function useExistingFundsForBeneficiary() {
 
       let contactFunds: any[] = [];
       if (contactIds.length > 0) {
-        const { data } = await supabase
+        let cQuery = supabase
           .from('collective_funds')
           .select(`
             id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -159,10 +164,12 @@ export function useExistingFundsForBeneficiary() {
           `)
           .in('beneficiary_contact_id', contactIds)
           .eq('status', 'active');
+        if (occasion) cQuery = cQuery.eq('occasion', occasion);
+        const { data } = await cQuery;
         contactFunds = data || [];
       }
 
-      const { data: businessFunds } = await supabase
+      let bQuery = supabase
         .from('collective_funds')
         .select(`
           id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -171,6 +178,8 @@ export function useExistingFundsForBeneficiary() {
         `)
         .eq('business_collective_funds.beneficiary_user_id', userId)
         .eq('status', 'active');
+      if (occasion) bQuery = bQuery.eq('occasion', occasion);
+      const { data: businessFunds } = await bQuery;
 
       const allFunds = [...contactFunds, ...(businessFunds || [])];
       const uniqueFunds = Array.from(new Map(allFunds.map(f => [f.id, f])).values());
