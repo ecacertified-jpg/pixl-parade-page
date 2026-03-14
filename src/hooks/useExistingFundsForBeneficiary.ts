@@ -66,7 +66,7 @@ export function useExistingFundsForBeneficiary() {
         .single();
 
       // Query 1: funds where beneficiary_contact_id matches directly
-      const directQuery = supabase
+      let directQuery = supabase
         .from('collective_funds')
         .select(`
           id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -74,6 +74,7 @@ export function useExistingFundsForBeneficiary() {
         `)
         .eq('beneficiary_contact_id', contactId)
         .eq('status', 'active');
+      if (occasion) directQuery = directQuery.eq('occasion', occasion);
 
       let allFunds: any[] = [];
 
