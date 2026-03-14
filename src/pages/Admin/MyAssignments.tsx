@@ -411,9 +411,6 @@ const MyAssignments = () => {
                                     {a.profile?.is_suspended && (
                                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">Suspendu</Badge>
                                     )}
-                                    {a.assigned_via === 'share_link' && (
-                                      <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0 h-4">Via lien de partage</Badge>
-                                    )}
                                   </div>
                                 </div>
                               </TableCell>
