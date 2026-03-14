@@ -29,6 +29,7 @@ interface AddFriendModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddFriend: (friend: Friend) => void;
+  existingPhones?: string[];
 }
 
 export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalProps) {
