@@ -511,7 +511,7 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                   <p className="text-xs text-muted-foreground/70 mt-1">Cet utilisateur n'a pas encore ajouté de contacts</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[400px]">
+                <div>
                   <div className="space-y-2 pr-3">
                     {contacts.map((contact) => {
                       const rel = contact.relationship?.toLowerCase();
