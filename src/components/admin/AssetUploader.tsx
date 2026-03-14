@@ -36,6 +36,7 @@ export function AssetUploader() {
   const [dragOver, setDragOver] = useState(false);
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [renamingInProgress, setRenamingInProgress] = useState(false);
   const [previewFile, setPreviewFile] = useState<string | null>(null);
   const [fileFilter, setFileFilter] = useState<FileFilter>('all');
 
@@ -117,16 +118,20 @@ export function AssetUploader() {
     const sanitized = newName.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
     const finalName = sanitized + ext;
 
-    if (finalName === renamingFile) { cancelRename(); return; }
+    if (finalName === renamingFile) {
+      toast.info('Le nom est identique, aucun changement');
+      cancelRename();
+      return;
+    }
 
-    const { data: blob, error: dlError } = await supabase.storage.from('assets').download(renamingFile);
-    if (dlError || !blob) { toast.error('Erreur téléchargement'); return; }
+    setRenamingInProgress(true);
+    const { error } = await supabase.storage.from('assets').move(renamingFile, finalName);
+    setRenamingInProgress(false);
 
-    const { error: upError } = await supabase.storage.from('assets').upload(finalName, blob, { upsert: true });
-    if (upError) { toast.error(`Erreur upload : ${upError.message}`); return; }
-
-    const { error: rmError } = await supabase.storage.from('assets').remove([renamingFile]);
-    if (rmError) { toast.error(`Erreur suppression ancien : ${rmError.message}`); return; }
+    if (error) {
+      toast.error(`Erreur renommage : ${error.message}`);
+      return;
+    }
 
     toast.success(`Renommé en "${finalName}"`);
     cancelRename();
@@ -257,8 +262,8 @@ export function AssetUploader() {
                           <span className="text-xs text-muted-foreground shrink-0">
                             {file.name.lastIndexOf('.') > 0 ? file.name.substring(file.name.lastIndexOf('.')) : ''}
                           </span>
-                          <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider">
-                            <Check className="h-4 w-4 text-success" />
+                          <Button type="submit" variant="ghost" size="icon" className="h-7 w-7" title="Valider" disabled={renamingInProgress}>
+                            {renamingInProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-success" />}
                           </Button>
                           <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelRename} title="Annuler">
                             <X className="h-4 w-4" />
