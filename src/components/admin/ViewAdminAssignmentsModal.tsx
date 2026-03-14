@@ -14,6 +14,7 @@ import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
 import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, AlertTriangle, RefreshCw, Cake, Clock, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { getDaysUntilBirthday } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface UserProfile {
