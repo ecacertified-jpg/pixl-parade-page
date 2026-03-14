@@ -17,6 +17,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
 interface UserProfile {
   user_id: string;
   first_name: string | null;
@@ -51,6 +64,7 @@ interface UserAssignment {
   created_at: string;
   assigned_via?: string | null;
   profile?: UserProfile;
+  relationship?: string | null;
 }
 
 interface BusinessAssignment {
@@ -390,6 +404,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                           <TableHead>Téléphone</TableHead>
                           <TableHead>Anniversaire</TableHead>
                           <TableHead>Échéance</TableHead>
+                          <TableHead>Source</TableHead>
                           <TableHead>Relation</TableHead>
                           <TableHead>Complétion</TableHead>
                           <TableHead>Date d'inscription</TableHead>
@@ -457,6 +472,15 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                     <><UserPlus className="h-2.5 w-2.5 mr-0.5" /> Manuel</>
                                   )}
                                 </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {a.relationship ? (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                    {RELATIONSHIP_LABELS[a.relationship.toLowerCase()] || a.relationship}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <TooltipProvider>

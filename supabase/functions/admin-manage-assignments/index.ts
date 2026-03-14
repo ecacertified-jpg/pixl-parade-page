@@ -213,6 +213,31 @@ Deno.serve(async (req) => {
         userProfiles = data || [];
       }
 
+      // Fetch relationship data from contacts (admin's contacts linked to assigned users)
+      // First get the admin's auth user_id
+      const { data: adminUserData } = await supabaseAdmin
+        .from('admin_users')
+        .select('user_id')
+        .eq('id', adminId)
+        .single();
+
+      let relationshipMap: Record<string, string> = {};
+      if (adminUserData && userIds.length > 0) {
+        const { data: contactRelations } = await supabaseAdmin
+          .from('contacts')
+          .select('linked_user_id, relationship')
+          .eq('user_id', adminUserData.user_id)
+          .in('linked_user_id', userIds)
+          .not('relationship', 'is', null);
+        if (contactRelations) {
+          for (const cr of contactRelations) {
+            if (cr.linked_user_id && cr.relationship) {
+              relationshipMap[cr.linked_user_id] = cr.relationship;
+            }
+          }
+        }
+      }
+
       // Fetch business details (not paginated - low volume)
       const bizIds = (businessAssignments.data || []).map((a: any) => a.business_account_id);
       let businessDetails: any[] = [];
@@ -291,7 +316,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         user_assignments: userAssignmentsData.map((a: any) => {
           const profile = userProfiles.find((p: any) => p.user_id === a.user_id);
-          return { ...a, profile };
+          const relationship = relationshipMap[a.user_id] || null;
+          return { ...a, profile, relationship };
         }),
         business_assignments: (businessAssignments.data || []).map((a: any) => {
           const business = businessDetails.find((b: any) => b.id === a.business_account_id);

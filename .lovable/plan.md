@@ -1,33 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Corriger la colonne "Relation" pour afficher le type de relation
+## Implémenté ✅
 
-## Problème
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-La colonne "Relation" affiche actuellement la méthode d'affectation ("Via lien" / "Manuel") au lieu du type de relation réel (ami, sœur, famille, etc.) comme dans l'onglet Anniversaires. C'est incohérent et trompeur.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Modifications
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### 1. `src/pages/Admin/MyAssignments.tsx` et `ViewAdminAssignmentsModal.tsx`
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**Renommer et réaffecter les colonnes :**
-- Renommer la colonne actuelle "Relation" → **"Source"** pour la méthode d'affectation (Via lien / Manuel)
-- Ajouter une vraie colonne **"Relation"** qui affiche le type de relation (ami, sœur, famille, etc.) avec les mêmes badges colorés que l'onglet Anniversaires
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-**Données relationnelles :**
-- Pour les utilisateurs affectés : récupérer la relation depuis `contacts` ou `contact_relationships` liés à l'admin. Si pas de relation trouvée, afficher "—"
-- Utiliser le même mapping `RELATIONSHIP_LABELS` que dans `AdminBirthdaysContent.tsx` (Famille, Père, Mère, Sœur, Frère, Ami(e), Collègue, etc.)
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-### 2. Edge function `admin-manage-assignments/index.ts`
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-- Enrichir la réponse avec les données de relation : pour chaque `user_id` affecté, chercher dans `contacts` (où `user_id` = admin et `linked_user_id` = assigned user) le champ `relationship`
-- Ajouter `relationship: string | null` à chaque entrée utilisateur retournée
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-### Fichiers impactés
+## En attente ⏳
 
-| Fichier | Changement |
-|---------|-----------|
-| `supabase/functions/admin-manage-assignments/index.ts` | Ajouter jointure `contacts.relationship` |
-| `src/pages/Admin/MyAssignments.tsx` | Colonne "Relation" = type de relation, colonne "Source" = méthode |
-| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Idem |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
