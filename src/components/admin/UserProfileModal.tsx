@@ -555,7 +555,7 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                       );
                     })}
                   </div>
-                </ScrollArea>
+                </div>
               )}
             </TabsContent>
           </Tabs>
