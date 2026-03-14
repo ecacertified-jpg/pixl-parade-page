@@ -24,6 +24,19 @@ import { SelfAssignModal } from '@/components/admin/SelfAssignModal';
 import { AdminWishlistModal } from '@/components/admin/AdminWishlistModal';
 import { AdminBirthdaysContent } from '@/components/admin/AdminBirthdaysContent';
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
 interface UserProfile {
   user_id: string;
   first_name: string | null;

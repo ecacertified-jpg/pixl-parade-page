@@ -473,6 +473,15 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                                 </Badge>
                               </TableCell>
                               <TableCell>
+                                {a.relationship ? (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                                    {RELATIONSHIP_LABELS[a.relationship.toLowerCase()] || a.relationship}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
