@@ -22,6 +22,12 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
   const handlePlayPause = () => {
     if (!videoRef.current) return;
     if (isPlaying) {
