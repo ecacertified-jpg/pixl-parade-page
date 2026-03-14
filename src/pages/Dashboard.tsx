@@ -789,6 +789,9 @@ export default function Dashboard() {
                     if (friendFilter === 'linked') return !!f.linked_user_id;
                     if (friendFilter === 'unlinked') return !f.linked_user_id;
                     return true;
+                  }).filter(f => {
+                    if (selectedCircleId === null) return true;
+                    return contactCircleMap[f.id] === selectedCircleId;
                   });
                   return friends.length === 0 ? <Card className="p-6 text-center">
                     <div className="text-muted-foreground">
