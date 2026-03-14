@@ -1,53 +1,31 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Corriger le player vidéo sur mobile
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Problèmes identifiés
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+1. **Contrôles invisibles sur mobile** : Les boutons son/agrandissement utilisent `onMouseEnter`/`onMouseLeave` qui n'existent pas sur tactile — les contrôles ne s'affichent jamais.
+2. **Vidéo masquée** : `object-cover` + `aspect-video` (16:9) coupe la vidéo si son ratio est différent. Il faut utiliser `object-contain` pour tout montrer.
+3. **Interruptions de lecture** : La vidéo peut se bloquer sur mobile à cause du buffering. Ajouter `preload="auto"` et gérer les événements `waiting`/`playing` pour un meilleur feedback.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Solution — `src/components/LandingVideoPlayer.tsx`
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+### Contrôles mobiles
+- Remplacer `onMouseEnter`/`onMouseLeave` par un **tap pour afficher/masquer** avec auto-hide après 3 secondes
+- Les boutons son et plein écran sont **toujours visibles** dans une barre semi-transparente en bas sur mobile (via `useIsMobile`)
+- Sur desktop, garder le comportement hover existant
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### Vidéo complète
+- Changer `object-cover` en `object-contain` pour ne rien couper
+- Ajouter un fond sombre derrière la vidéo pour les bandes latérales éventuelles
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### Lecture fluide
+- Ajouter `preload="auto"` sur la balise `<video>`
+- Ajouter un indicateur de buffering (spinner) via les événements `waiting`/`playing`
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+## Fichier impacté
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+| Fichier | Changement |
+|---------|-----------|
+| `src/components/LandingVideoPlayer.tsx` | Contrôles tactiles, object-contain, preload, indicateur buffering |
 
-## En attente ⏳
-
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
