@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy } from 'lucide-react';
+import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -109,10 +109,14 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     if (open && adminId) {
-      loadAssignments(adminId);
+      setUserPage(1);
+      loadAssignments(adminId, 1);
       loadShareCodes(adminId);
     }
     if (!open) {
@@ -120,8 +124,15 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setBusinessAssignments([]);
       setShareCode(null);
       setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
+      setTotalUsers(0);
     }
   }, [open, adminId]);
+
+  useEffect(() => {
+    if (open && adminId && userPage > 1) {
+      loadAssignments(adminId, userPage);
+    }
+  }, [userPage]);
 
   const loadShareCodes = async (aid: string) => {
     try {
@@ -148,13 +159,13 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
     }
   };
 
-  const loadAssignments = async (aid: string) => {
+  const loadAssignments = async (aid: string, page = 1) => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const baseUrl = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/admin-manage-assignments`;
-      const res = await fetch(`${baseUrl}?admin_id=${aid}`, {
+      const res = await fetch(`${baseUrl}?admin_id=${aid}&page=${page}&page_size=${PAGE_SIZE}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504',
@@ -164,6 +175,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       const data = await res.json();
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
+      setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
     } catch (error) {
       console.error('Error loading assignments:', error);
       toast.error('Erreur lors du chargement des affectations');
@@ -239,7 +251,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
               <Tabs defaultValue="users">
                 <TabsList>
                   <TabsTrigger value="users" className="gap-2">
-                    <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
+                    <Users className="h-4 w-4" /> Utilisateurs ({totalUsers})
                   </TabsTrigger>
                   <TabsTrigger value="businesses" className="gap-2">
                     <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
@@ -336,6 +348,32 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                         })}
                       </TableBody>
                     </Table>
+                  </div>
+                )}
+                {/* Pagination controls */}
+                {totalUsers > PAGE_SIZE && (
+                  <div className="flex items-center justify-between pt-4 border-t mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Page {userPage} sur {Math.ceil(totalUsers / PAGE_SIZE)} — {totalUsers} utilisateur(s)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={userPage <= 1}
+                        onClick={() => setUserPage(p => p - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={userPage >= Math.ceil(totalUsers / PAGE_SIZE)}
+                        onClick={() => setUserPage(p => p + 1)}
+                      >
+                        Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </TabsContent>

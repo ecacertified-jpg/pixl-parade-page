@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -105,6 +105,9 @@ const MyAssignments = () => {
   const [wishlistUserId, setWishlistUserId] = useState<string | null>(null);
   const [wishlistUserName, setWishlistUserName] = useState('');
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const PAGE_SIZE = 50;
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
@@ -133,13 +136,13 @@ const MyAssignments = () => {
     }
   };
 
-  const loadAssignments = async (aid: string) => {
+  const loadAssignments = async (aid: string, page = 1) => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const baseUrl = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/admin-manage-assignments`;
-      const res = await fetch(`${baseUrl}?admin_id=${aid}`, {
+      const res = await fetch(`${baseUrl}?admin_id=${aid}&page=${page}&page_size=${PAGE_SIZE}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504',
@@ -148,6 +151,7 @@ const MyAssignments = () => {
       const data = await res.json();
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
+      setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
     } catch (error) {
       console.error('Error loading assignments:', error);
       toast.error('Erreur lors du chargement');
@@ -155,6 +159,10 @@ const MyAssignments = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (adminId) loadAssignments(adminId, userPage);
+  }, [userPage]);
 
   const handleRemove = async (assignmentId: string, type: 'user' | 'business') => {
     if (!adminId) return;
@@ -177,7 +185,7 @@ const MyAssignments = () => {
         throw new Error(err?.error || 'Erreur serveur');
       }
       toast.success('Affectation retirée');
-      loadAssignments(adminId);
+      loadAssignments(adminId, userPage);
     } catch (error) {
       toast.error('Erreur lors de la suppression');
     } finally {
@@ -212,7 +220,7 @@ const MyAssignments = () => {
           <Tabs defaultValue="users">
             <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-4">
               <TabsTrigger value="users" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Utilisateurs</span> ({userAssignments.length})
+                <Users className="h-4 w-4" /> <span className="hidden sm:inline">Utilisateurs</span> ({totalUsers})
               </TabsTrigger>
               <TabsTrigger value="businesses" className="gap-2 rounded-lg text-xs sm:text-sm py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Store className="h-4 w-4" /> <span className="hidden sm:inline">Entreprises</span> ({businessAssignments.length})
@@ -366,6 +374,32 @@ const MyAssignments = () => {
                       </TableBody>
                     </Table>
                   )}
+                  {/* Pagination controls */}
+                  {totalUsers > PAGE_SIZE && (
+                    <div className="flex items-center justify-between pt-4 border-t mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Page {userPage} sur {Math.ceil(totalUsers / PAGE_SIZE)} — {totalUsers} utilisateur(s)
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={userPage <= 1}
+                          onClick={() => setUserPage(p => p - 1)}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={userPage >= Math.ceil(totalUsers / PAGE_SIZE)}
+                          onClick={() => setUserPage(p => p + 1)}
+                        >
+                          Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -482,7 +516,7 @@ const MyAssignments = () => {
           open={modalOpen}
           onOpenChange={setModalOpen}
           adminId={adminId}
-          onSuccess={() => loadAssignments(adminId)}
+          onSuccess={() => loadAssignments(adminId, userPage)}
         />
       )}
 

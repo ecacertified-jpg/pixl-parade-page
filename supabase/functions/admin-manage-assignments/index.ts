@@ -181,19 +181,29 @@ Deno.serve(async (req) => {
         });
       }
 
-      const [userAssignments, businessAssignments] = await Promise.all([
+      // Pagination params for user assignments
+      const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+      const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get('page_size') || '50', 10)));
+      const offset = (page - 1) * pageSize;
+
+      const [userAssignmentsResult, businessAssignments] = await Promise.all([
         supabaseAdmin
           .from('admin_user_assignments')
-          .select('id, user_id, created_at, assigned_via')
-          .eq('admin_user_id', adminId),
+          .select('id, user_id, created_at, assigned_via', { count: 'exact' })
+          .eq('admin_user_id', adminId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1),
         supabaseAdmin
           .from('admin_business_assignments')
           .select('id, business_account_id, created_at, assigned_via')
           .eq('admin_user_id', adminId),
       ]);
 
-      // Fetch profile details for assigned users
-      const userIds = (userAssignments.data || []).map((a: any) => a.user_id);
+      const totalUsers = userAssignmentsResult.count || 0;
+      const userAssignmentsData = userAssignmentsResult.data || [];
+
+      // Fetch profile details for assigned users (only current page)
+      const userIds = userAssignmentsData.map((a: any) => a.user_id);
       let userProfiles: any[] = [];
       if (userIds.length > 0) {
         const { data } = await supabaseAdmin
@@ -203,7 +213,7 @@ Deno.serve(async (req) => {
         userProfiles = data || [];
       }
 
-      // Fetch business details
+      // Fetch business details (not paginated - low volume)
       const bizIds = (businessAssignments.data || []).map((a: any) => a.business_account_id);
       let businessDetails: any[] = [];
       if (bizIds.length > 0) {
@@ -215,7 +225,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({
-        user_assignments: (userAssignments.data || []).map((a: any) => {
+        user_assignments: userAssignmentsData.map((a: any) => {
           const profile = userProfiles.find((p: any) => p.user_id === a.user_id);
           return { ...a, profile };
         }),
@@ -223,6 +233,9 @@ Deno.serve(async (req) => {
           const business = businessDetails.find((b: any) => b.id === a.business_account_id);
           return { ...a, business };
         }),
+        total_users: totalUsers,
+        page,
+        page_size: pageSize,
       }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
