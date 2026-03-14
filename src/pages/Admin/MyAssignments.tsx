@@ -139,8 +139,9 @@ const MyAssignments = () => {
     }
   };
 
-  const loadAssignments = async (aid: string, page = 1) => {
+  const loadAssignments = async (aid: string, page = 1, currentRetry = 0) => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -151,16 +152,36 @@ const MyAssignments = () => {
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504',
         },
       });
+      if (!res.ok) throw new Error('Erreur serveur');
       const data = await res.json();
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
-      toast.error('Erreur lors du chargement');
+      if (currentRetry < MAX_RETRIES) {
+        const delay = Math.pow(2, currentRetry) * 1000;
+        setRetryCount(currentRetry + 1);
+        setTimeout(() => loadAssignments(aid, page, currentRetry + 1), delay);
+        return;
+      }
+      setLoadError(true);
+      setRetryCount(0);
+      toast.error('Impossible de charger les affectations après plusieurs tentatives');
     } finally {
+      if (currentRetry >= MAX_RETRIES || currentRetry === 0) {
+        // Only stop loading on final attempt or success
+      }
       setLoading(false);
     }
+  };
+
+  const handleManualRetry = () => {
+    if (!adminId) return;
+    setLoadError(false);
+    setRetryCount(0);
+    loadAssignments(adminId, userPage, 0);
   };
 
   useEffect(() => {
