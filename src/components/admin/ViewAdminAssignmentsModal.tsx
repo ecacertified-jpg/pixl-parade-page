@@ -17,6 +17,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  family: 'Famille',
+  father: 'Père',
+  mother: 'Mère',
+  sister: 'Sœur',
+  brother: 'Frère',
+  friend: 'Ami(e)',
+  colleague: 'Collègue',
+  spouse: 'Conjoint(e)',
+  child: 'Enfant',
+  other: 'Autre',
+};
+
 interface UserProfile {
   user_id: string;
   first_name: string | null;
