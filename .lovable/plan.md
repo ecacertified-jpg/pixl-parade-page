@@ -1,53 +1,35 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Corriger le timeout de connexion Admin + vérifier le flux Client/Business
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Problème identifié
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Sur la page `/admin-auth`, un **timer de 8 secondes** déclenche l'erreur "Délai dépassé" pendant la connexion. Le problème est une **course entre deux flux** :
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+1. `onSubmit` fait `signInWithPassword` → puis vérifie `admin_users` → puis `navigate('/admin')` — tout en gardant `isLoading=true`
+2. En parallèle, le `useEffect([user])` détecte le nouveau `user` et lance `checkAdminStatus` qui refait la même requête `admin_users`
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+Avec une latence réseau élevée (Afrique), ces requêtes séquentielles dépassent facilement 8 secondes.
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+## Corrections
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### 1. `src/pages/AdminAuth.tsx` — Éliminer la course et augmenter le timeout
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+- **Augmenter le timeout** de 8s à 15s pour accommoder les connexions lentes
+- **Empêcher le double-check** : dans `onSubmit`, après un login réussi et la vérification admin faite, naviguer directement sans attendre le `useEffect`. Le `useEffect([user])` ne doit vérifier que si l'utilisateur arrive déjà connecté (pas après un login via formulaire)
+- Ajouter un flag `isSubmitting` ref pour que le `useEffect` ne fasse pas de check concurrent pendant que `onSubmit` est en cours
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+### 2. Vérifier le flux Client (`Auth.tsx`)
 
-## En attente ⏳
+Le flux client est déjà correct — il utilise `onAuthStateChange` pour la redirection et ne fait pas de double requête. Pas de changement nécessaire.
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+### 3. Vérifier le flux Business (`BusinessAuth.tsx`)
+
+Vérifier qu'il suit le même pattern résilient que `Auth.tsx`. Pas de changement attendu si c'est le cas.
+
+## Résumé des changements
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/AdminAuth.tsx` | Timeout 8s→15s, flag `isSubmitting` ref pour éviter le double-check dans useEffect, `finally` nettoyage propre |
+
