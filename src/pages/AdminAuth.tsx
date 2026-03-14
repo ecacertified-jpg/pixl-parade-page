@@ -25,17 +25,19 @@ const AdminAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     if (isLoading) {
       loadingTimeoutRef.current = setTimeout(() => {
         setIsLoading(false);
+        isSubmittingRef.current = false;
         toast({
           title: 'Délai dépassé',
           description: 'La connexion prend trop de temps. Veuillez réessayer.',
           variant: 'destructive',
         });
-      }, 8000);
+      }, 15000);
     } else {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
@@ -55,10 +57,10 @@ const AdminAuth = () => {
     resolver: zodResolver(adminLoginSchema),
   });
 
-  // Check if user is already logged in and is admin
+  // Check if user is already logged in and is admin (only when not submitting via form)
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (user) {
+      if (user && !isSubmittingRef.current) {
         const { data: adminData } = await supabase
           .from('admin_users')
           .select('role, is_active')
@@ -68,7 +70,6 @@ const AdminAuth = () => {
         if (adminData?.is_active) {
           navigate('/admin');
         } else {
-          // L'utilisateur est connecté mais n'est pas admin → Déconnecter
           await supabase.auth.signOut();
           toast({
             title: 'Accès refusé',
@@ -115,6 +116,7 @@ const AdminAuth = () => {
   const onSubmit = async (data: AdminLoginFormData) => {
     try {
       setIsLoading(true);
+      isSubmittingRef.current = true;
 
       // Sign in with email and password
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -185,6 +187,7 @@ const AdminAuth = () => {
       });
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
