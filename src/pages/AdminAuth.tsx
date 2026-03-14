@@ -187,6 +187,7 @@ const AdminAuth = () => {
       });
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
