@@ -1,53 +1,40 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Vidéo promotionnelle sur la landing page depuis Assets
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Principe
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Le Super Admin uploade une vidéo nommée avec un préfixe spécifique (ex: `landing-video.*`) dans le bucket `assets` via l'onglet Assets existant. La landing page détecte automatiquement cette vidéo et l'affiche en autoplay sous le badge "Plateforme #1", dans un player intégré avec possibilité d'agrandir en plein écran.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Modifications
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+### 1. `src/pages/Landing.tsx`
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+- Ajouter un hook `useEffect` qui requête le bucket `assets` pour trouver un fichier dont le nom commence par `landing-video` (MP4)
+- Si une vidéo est trouvée, insérer un bloc vidéo entre le badge "Plateforme #1" et le titre `<h1>` :
+  - `<video>` en autoplay, muted, loop, playsInline
+  - Coins arrondis, ombre, ratio 16:9
+  - Bouton pour agrandir (plein écran via `requestFullscreen()` ou modale)
+  - Bouton play/pause visible au survol
+- Si aucune vidéo n'est trouvée, rien ne change (pas d'espace vide)
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### 2. `src/components/LandingVideoPlayer.tsx` (nouveau)
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+Composant dédié :
+- Props : `videoUrl: string`
+- Autoplay muted loop avec playsInline
+- Overlay au survol : boutons play/pause + plein écran (icône Maximize)
+- Mode plein écran via API native ou Dialog/modal avec vidéo en grand format
+- Style : `rounded-2xl shadow-lg max-w-lg mx-auto` dans le hero
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+### 3. Aucune modification de l'AssetUploader
 
-## En attente ⏳
+Le Super Admin utilise simplement l'onglet Assets existant pour uploader un fichier nommé `landing-video.mp4`. Pas besoin de UI spécifique — la convention de nommage suffit.
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+## Fichiers impactés
+
+| Fichier | Changement |
+|---------|-----------|
+| `src/components/LandingVideoPlayer.tsx` | Nouveau — player vidéo autoplay avec plein écran |
+| `src/pages/Landing.tsx` | Fetch vidéo depuis assets + affichage sous le badge |
+
