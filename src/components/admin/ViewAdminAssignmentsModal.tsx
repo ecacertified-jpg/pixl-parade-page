@@ -159,13 +159,13 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
     }
   };
 
-  const loadAssignments = async (aid: string) => {
+  const loadAssignments = async (aid: string, page = 1) => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const baseUrl = `https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/admin-manage-assignments`;
-      const res = await fetch(`${baseUrl}?admin_id=${aid}`, {
+      const res = await fetch(`${baseUrl}?admin_id=${aid}&page=${page}&page_size=${PAGE_SIZE}`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504',
@@ -175,6 +175,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       const data = await res.json();
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
+      setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
     } catch (error) {
       console.error('Error loading assignments:', error);
       toast.error('Erreur lors du chargement des affectations');
