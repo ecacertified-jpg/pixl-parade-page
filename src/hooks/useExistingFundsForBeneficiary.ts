@@ -104,7 +104,7 @@ export function useExistingFundsForBeneficiary() {
           linkedData = data || [];
         }
 
-        const { data: businessFunds } = await supabase
+        let businessQuery = supabase
           .from('collective_funds')
           .select(`
             id, title, target_amount, current_amount, currency, occasion, status, creator_id,
@@ -113,6 +113,8 @@ export function useExistingFundsForBeneficiary() {
           `)
           .eq('business_collective_funds.beneficiary_user_id', contact.linked_user_id)
           .eq('status', 'active');
+        if (occasion) businessQuery = businessQuery.eq('occasion', occasion);
+        const { data: businessFunds } = await businessQuery;
 
         allFunds = [
           ...(directResult.data || []),
