@@ -185,7 +185,7 @@ const MyAssignments = () => {
         throw new Error(err?.error || 'Erreur serveur');
       }
       toast.success('Affectation retirée');
-      loadAssignments(adminId);
+      loadAssignments(adminId, userPage);
     } catch (error) {
       toast.error('Erreur lors de la suppression');
     } finally {
