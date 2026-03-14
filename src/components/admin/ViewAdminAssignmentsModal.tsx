@@ -128,6 +128,8 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setShareCode(null);
       setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
       setTotalUsers(0);
+      setLoadError(false);
+      setRetryCount(0);
     }
   }, [open, adminId]);
 
