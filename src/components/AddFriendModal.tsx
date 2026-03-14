@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
-import { Share2, MessageCircle, Facebook, Mail, Send, Copy, Linkedin, Loader2 } from "lucide-react";
+import { Share2, MessageCircle, Facebook, Mail, Send, Copy, Linkedin, Loader2, Info, Phone, Gift, Users } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -28,9 +29,10 @@ interface AddFriendModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddFriend: (friend: Friend) => void;
+  existingPhones?: string[];
 }
 
-export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalProps) {
+export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = [] }: AddFriendModalProps) {
   const { user } = useAuth();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -45,6 +47,15 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
     e.preventDefault();
     
     if (!name || !phone || !relation || !addressData?.city || !birthday) {
+      return;
+    }
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const isDuplicate = existingPhones.some(
+      (p) => p.replace(/\D/g, '') === normalizedPhone
+    );
+    if (isDuplicate) {
+      toast.error("Ce numéro de téléphone existe déjà dans votre cercle d'amis.");
       return;
     }
 
@@ -143,6 +154,24 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend }: AddFriendModalP
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-xs space-y-1.5 ml-1">
+              <p className="flex items-center gap-1.5">
+                <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                Les numéros de téléphone de vos contacts doivent être distincts.
+              </p>
+              <p className="flex items-center gap-1.5">
+                <Gift className="h-3 w-3 text-muted-foreground shrink-0" />
+                Plus vous ajoutez d'amis, plus vous avez de chances de recevoir des cadeaux de grande valeur !
+              </p>
+              <p className="flex items-center gap-1.5">
+                <Users className="h-3 w-3 text-muted-foreground shrink-0" />
+                Créez des sous-cercles d'amis pour maximiser vos chances de recevoir de nombreux cadeaux à votre anniversaire.
+              </p>
+            </AlertDescription>
+          </Alert>
+
           <div className="space-y-2">
             <Label htmlFor="name">Prénom</Label>
             <Input
