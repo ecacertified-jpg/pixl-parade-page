@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Store, Plus, Trash2, Loader2, MoreHorizontal, FileText, Cake, ArrowUpDown, Heart, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { AdminShareLinkCard } from '@/components/admin/AdminShareLinkCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -107,7 +107,10 @@ const MyAssignments = () => {
   const [wishlistModalOpen, setWishlistModalOpen] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const PAGE_SIZE = 50;
+  const MAX_RETRIES = 3;
 
   const sortedUserAssignments = sortByBirthday
     ? [...userAssignments].sort((a, b) => {
@@ -136,8 +139,9 @@ const MyAssignments = () => {
     }
   };
 
-  const loadAssignments = async (aid: string, page = 1) => {
+  const loadAssignments = async (aid: string, page = 1, currentRetry = 0) => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -148,16 +152,36 @@ const MyAssignments = () => {
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhaW1mZXVydnpva2VwcXFxcnNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzgwMjYsImV4cCI6MjA2ODg1NDAyNn0.qX-5TcAzGZ4bk8trpEKbtQql9w0VxvnAvZfMBEkZ504',
         },
       });
+      if (!res.ok) throw new Error('Erreur serveur');
       const data = await res.json();
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
-      toast.error('Erreur lors du chargement');
+      if (currentRetry < MAX_RETRIES) {
+        const delay = Math.pow(2, currentRetry) * 1000;
+        setRetryCount(currentRetry + 1);
+        setTimeout(() => loadAssignments(aid, page, currentRetry + 1), delay);
+        return;
+      }
+      setLoadError(true);
+      setRetryCount(0);
+      toast.error('Impossible de charger les affectations après plusieurs tentatives');
     } finally {
+      if (currentRetry >= MAX_RETRIES || currentRetry === 0) {
+        // Only stop loading on final attempt or success
+      }
       setLoading(false);
     }
+  };
+
+  const handleManualRetry = () => {
+    if (!adminId) return;
+    setLoadError(false);
+    setRetryCount(0);
+    loadAssignments(adminId, userPage, 0);
   };
 
   useEffect(() => {
@@ -213,9 +237,33 @@ const MyAssignments = () => {
         <AdminShareLinkCard />
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Chargement des affectations...</p>
+                {retryCount > 0 && (
+                  <p className="text-xs text-muted-foreground">Tentative {retryCount}/{MAX_RETRIES}...</p>
+                )}
+              </div>
+              <Progress className="w-48 h-1.5" />
+            </CardContent>
+          </Card>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Impossible de charger les affectations</p>
+                <p className="text-xs text-muted-foreground">Vérifiez votre connexion et réessayez.</p>
+              </div>
+              <Button variant="outline" onClick={handleManualRetry} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Réessayer
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Tabs defaultValue="users">
             <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-muted/50 rounded-xl mb-4">

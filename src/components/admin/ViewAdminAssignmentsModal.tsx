@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -105,6 +105,9 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [shareCode, setShareCode] = useState<ShareCodeInfo | null>(null);
   const [aggregatedStats, setAggregatedStats] = useState({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
@@ -125,6 +128,8 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setShareCode(null);
       setAggregatedStats({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
       setTotalUsers(0);
+      setLoadError(false);
+      setRetryCount(0);
     }
   }, [open, adminId]);
 
@@ -159,8 +164,9 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
     }
   };
 
-  const loadAssignments = async (aid: string, page = 1) => {
+  const loadAssignments = async (aid: string, page = 1, currentRetry = 0) => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -176,12 +182,28 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
-      toast.error('Erreur lors du chargement des affectations');
+      if (currentRetry < MAX_RETRIES) {
+        const delay = Math.pow(2, currentRetry) * 1000;
+        setRetryCount(currentRetry + 1);
+        setTimeout(() => loadAssignments(aid, page, currentRetry + 1), delay);
+        return;
+      }
+      setLoadError(true);
+      setRetryCount(0);
+      toast.error('Impossible de charger les affectations après plusieurs tentatives');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualRetry = () => {
+    if (!adminId) return;
+    setLoadError(false);
+    setRetryCount(0);
+    loadAssignments(adminId, userPage, 0);
   };
 
   return (
@@ -196,8 +218,28 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
           </DialogHeader>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Chargement des affectations...</p>
+                {retryCount > 0 && (
+                  <p className="text-xs text-muted-foreground">Tentative {retryCount}/{MAX_RETRIES}...</p>
+                )}
+              </div>
+              <Progress className="w-48 h-1.5" />
+            </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium">Impossible de charger les affectations</p>
+                <p className="text-xs text-muted-foreground">Vérifiez votre connexion et réessayez.</p>
+              </div>
+              <Button variant="outline" onClick={handleManualRetry} className="gap-2">
+                <RefreshCw className="h-4 w-4" /> Réessayer
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
