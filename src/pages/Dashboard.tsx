@@ -851,6 +851,7 @@ export default function Dashboard() {
                               })()}
                             </div>
                           </div>
+                        </div>
                         <div className="text-xs text-muted-foreground">{friend.location}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Anniv. dans {getDaysUntilBirthday(friend.birthday)} jours
