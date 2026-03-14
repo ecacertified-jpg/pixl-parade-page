@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { CountryBadge } from '@/components/CountryBadge';
 import { UserProfileModal } from '@/components/admin/UserProfileModal';
 import { BusinessProfileModal } from '@/components/admin/BusinessProfileModal';
-import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Users, Store, Loader2, FileText, Link, MousePointerClick, UserPlus, Copy, AlertTriangle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -99,6 +100,21 @@ function getStatusBadge(status: string | null, isActive: boolean | null, isVerif
 const getInitials = (first?: string | null, last?: string | null) =>
   `${(first || '')[0] || ''}${(last || '')[0] || ''}`.toUpperCase() || '?';
 
+const COMPLETION_FILTERS = [null, 15, 30, 45, 60, 75, 100] as const;
+
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | 'ellipsis')[] = [];
+  pages.push(1);
+  if (current > 3) pages.push('ellipsis');
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+    pages.push(i);
+  }
+  if (current < total - 2) pages.push('ellipsis');
+  pages.push(total);
+  return pages;
+}
+
 export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChange }: ViewAdminAssignmentsModalProps) {
   const [userAssignments, setUserAssignments] = useState<UserAssignment[]>([]);
   const [businessAssignments, setBusinessAssignments] = useState<BusinessAssignment[]>([]);
@@ -114,11 +130,13 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [businessProfileModalOpen, setBusinessProfileModalOpen] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [completionFilter, setCompletionFilter] = useState<number | null>(null);
   const PAGE_SIZE = 50;
 
   useEffect(() => {
     if (open && adminId) {
       setUserPage(1);
+      setCompletionFilter(null);
       loadAssignments(adminId, 1);
       loadShareCodes(adminId);
     }
@@ -206,6 +224,15 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
     loadAssignments(adminId, userPage, 0);
   };
 
+  const filteredUserAssignments = completionFilter !== null
+    ? userAssignments.filter(a => {
+        const { percentage } = calculateProfileCompletion(a.profile);
+        return percentage === completionFilter;
+      })
+    : userAssignments;
+
+  const totalPages = Math.ceil(totalUsers / PAGE_SIZE);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -282,8 +309,8 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                       </div>
                       <div className="text-center p-2 bg-secondary/30 rounded-lg">
                         <Users className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-lg font-semibold">{aggregatedStats.total_assignments}</p>
-                        <p className="text-xs text-muted-foreground">Affectations</p>
+                        <p className="text-lg font-semibold">{totalUsers}</p>
+                        <p className="text-xs text-muted-foreground">Affectés</p>
                       </div>
                     </div>
                   </CardContent>
@@ -301,9 +328,27 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                 </TabsList>
 
               <TabsContent value="users">
-                {userAssignments.length === 0 ? (
+                {/* Completion filter */}
+                <div className="flex items-center gap-2 flex-wrap mb-4 mt-2">
+                  <span className="text-xs text-muted-foreground font-medium">Complétion :</span>
+                  {COMPLETION_FILTERS.map((val) => (
+                    <Button
+                      key={val ?? 'all'}
+                      variant={completionFilter === val ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs px-2.5"
+                      onClick={() => setCompletionFilter(val)}
+                    >
+                      {val === null ? 'Tous' : `${val}%`}
+                    </Button>
+                  ))}
+                </div>
+
+                {filteredUserAssignments.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    Aucun utilisateur assigné à cet administrateur.
+                    {completionFilter !== null
+                      ? `Aucun utilisateur avec ${completionFilter}% de complétion sur cette page.`
+                      : 'Aucun utilisateur assigné à cet administrateur.'}
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -319,7 +364,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {userAssignments.map(a => {
+                        {filteredUserAssignments.map(a => {
                           const { percentage, details } = calculateProfileCompletion(a.profile);
                           return (
                             <TableRow key={a.id}>
@@ -392,30 +437,46 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
                     </Table>
                   </div>
                 )}
-                {/* Pagination controls */}
-                {totalUsers > PAGE_SIZE && (
-                  <div className="flex items-center justify-between pt-4 border-t mt-4">
+
+                {/* Numbered Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t mt-4 gap-3">
                     <p className="text-sm text-muted-foreground">
-                      Page {userPage} sur {Math.ceil(totalUsers / PAGE_SIZE)} — {totalUsers} utilisateur(s)
+                      Page {userPage} sur {totalPages} — {totalUsers} utilisateur(s)
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={userPage <= 1}
-                        onClick={() => setUserPage(p => p - 1)}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={userPage >= Math.ceil(totalUsers / PAGE_SIZE)}
-                        onClick={() => setUserPage(p => p + 1)}
-                      >
-                        Suivant <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => userPage > 1 && setUserPage(p => p - 1)}
+                            className={userPage <= 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                        {getPageNumbers(userPage, totalPages).map((p, i) =>
+                          p === 'ellipsis' ? (
+                            <PaginationItem key={`ellipsis-${i}`}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          ) : (
+                            <PaginationItem key={p}>
+                              <PaginationLink
+                                isActive={p === userPage}
+                                onClick={() => setUserPage(p)}
+                                className="cursor-pointer"
+                              >
+                                {p}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        )}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => userPage < totalPages && setUserPage(p => p + 1)}
+                            className={userPage >= totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
                 )}
               </TabsContent>

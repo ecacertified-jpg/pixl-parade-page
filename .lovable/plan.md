@@ -1,39 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Numérotation des pages, compteurs et filtres de complétion de profil
+## Implémenté ✅
 
-## Contexte
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-La pagination actuelle n'affiche que "Précédent/Suivant". Il manque des numéros de pages cliquables, un affichage clair du total d'utilisateurs via lien vs affectés, et des filtres par taux de complétion de profil.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Modifications
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### 1. `src/pages/Admin/MyAssignments.tsx`
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-**Numérotation des pages :**
-- Remplacer les boutons Précédent/Suivant par une barre de pagination complète avec numéros de pages cliquables (1, 2, 3... avec ellipsis si > 7 pages)
-- Utiliser les composants `Pagination*` de `src/components/ui/pagination.tsx` déjà existants
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-**Compteurs dans le header :**
-- Afficher sous le titre "Mes utilisateurs" deux badges : "X inscrits via lien" (comptés depuis `assigned_via === 'share_link'` dans `aggregatedStats.total_signups` du hook `useAdminShareCode`) et "Y affectés" (= `totalUsers` de la pagination)
-- Importer `useAdminShareCode` pour accéder aux stats agrégées
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-**Filtre par complétion de profil :**
-- Ajouter un state `completionFilter: number | null` (null = tous, sinon 15, 30, 45, 60, 75, 100)
-- Ajouter une rangée de boutons/badges cliquables au-dessus du tableau : "Tous", "15%", "30%", "45%", "60%", "75%", "100%"
-- Filtrer côté client `sortedUserAssignments` selon le pourcentage de complétion (filtre exact : afficher ceux dont le % === valeur sélectionnée)
-- Note : le filtrage est côté client car on a déjà les profils chargés par page
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-### 2. `src/components/admin/ViewAdminAssignmentsModal.tsx`
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-- Appliquer la même numérotation de pages cliquable
-- Appliquer le même filtre par complétion de profil
-- Afficher les compteurs "inscrits via lien" vs "affectés" dans la section stats existante
+## En attente ⏳
 
-### Fichiers impactés
-
-| Fichier | Changement |
-|---------|-----------|
-| `src/pages/Admin/MyAssignments.tsx` | Pagination numérotée, compteurs, filtre complétion |
-| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Idem pagination + filtre |
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
