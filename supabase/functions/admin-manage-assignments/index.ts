@@ -316,7 +316,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         user_assignments: userAssignmentsData.map((a: any) => {
           const profile = userProfiles.find((p: any) => p.user_id === a.user_id);
-          return { ...a, profile };
+          const relationship = relationshipMap[a.user_id] || null;
+          return { ...a, profile, relationship };
         }),
         business_assignments: (businessAssignments.data || []).map((a: any) => {
           const business = businessDetails.find((b: any) => b.id === a.business_account_id);
