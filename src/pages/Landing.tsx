@@ -11,6 +11,8 @@ import { SurveyModal } from "@/components/SurveyModal";
 import { ContactModal } from "@/components/ContactModal";
 import { CountrySelector } from "@/components/CountrySelector";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { LandingVideoPlayer } from "@/components/LandingVideoPlayer";
+import { supabase } from "@/integrations/supabase/client";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -18,6 +20,24 @@ const Landing = () => {
   const { country } = useCountry();
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
+
+  // Fetch landing video from assets bucket
+  useEffect(() => {
+    const fetchLandingVideo = async () => {
+      const { data } = await supabase.storage.from('assets').list('', {
+        search: 'landing-video',
+      });
+      if (data && data.length > 0) {
+        const videoFile = data.find(f => f.name.startsWith('landing-video'));
+        if (videoFile) {
+          const { data: urlData } = supabase.storage.from('assets').getPublicUrl(videoFile.name);
+          setLandingVideoUrl(urlData.publicUrl);
+        }
+      }
+    };
+    fetchLandingVideo();
+  }, []);
 
   // Redirect authenticated users to home
   useEffect(() => {
@@ -85,6 +105,12 @@ const Landing = () => {
                 <Sparkles className="h-4 w-4" />
                 Plateforme #1 {country.code === 'BJ' ? 'au Bénin' : 'en Côte d\'Ivoire'}
               </div>
+              
+              {/* Landing video from assets */}
+              {landingVideoUrl && (
+                <LandingVideoPlayer videoUrl={landingVideoUrl} />
+              )}
+
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
                 Célébrez les Moments de{" "}
                 <span className="text-primary">Bonheur</span>
