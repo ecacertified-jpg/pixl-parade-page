@@ -57,10 +57,10 @@ const AdminAuth = () => {
     resolver: zodResolver(adminLoginSchema),
   });
 
-  // Check if user is already logged in and is admin
+  // Check if user is already logged in and is admin (only when not submitting via form)
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (user) {
+      if (user && !isSubmittingRef.current) {
         const { data: adminData } = await supabase
           .from('admin_users')
           .select('role, is_active')
@@ -70,7 +70,6 @@ const AdminAuth = () => {
         if (adminData?.is_active) {
           navigate('/admin');
         } else {
-          // L'utilisateur est connecté mais n'est pas admin → Déconnecter
           await supabase.auth.signOut();
           toast({
             title: 'Accès refusé',
