@@ -185,6 +185,7 @@ const MyAssignments = () => {
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      if (data.birthday_stats) setBirthdayStats(data.birthday_stats);
       setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
