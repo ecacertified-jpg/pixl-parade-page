@@ -374,6 +374,32 @@ const MyAssignments = () => {
                       </TableBody>
                     </Table>
                   )}
+                  {/* Pagination controls */}
+                  {totalUsers > PAGE_SIZE && (
+                    <div className="flex items-center justify-between pt-4 border-t mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Page {userPage} sur {Math.ceil(totalUsers / PAGE_SIZE)} — {totalUsers} utilisateur(s)
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={userPage <= 1}
+                          onClick={() => setUserPage(p => p - 1)}
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" /> Précédent
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={userPage >= Math.ceil(totalUsers / PAGE_SIZE)}
+                          onClick={() => setUserPage(p => p + 1)}
+                        >
+                          Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
