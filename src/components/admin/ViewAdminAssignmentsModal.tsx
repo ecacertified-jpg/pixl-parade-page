@@ -105,6 +105,9 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
   const [shareCode, setShareCode] = useState<ShareCodeInfo | null>(null);
   const [aggregatedStats, setAggregatedStats] = useState({ total_clicks: 0, total_signups: 0, total_assignments: 0 });
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userProfileModalOpen, setUserProfileModalOpen] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
