@@ -213,6 +213,31 @@ Deno.serve(async (req) => {
         userProfiles = data || [];
       }
 
+      // Fetch relationship data from contacts (admin's contacts linked to assigned users)
+      // First get the admin's auth user_id
+      const { data: adminUserData } = await supabaseAdmin
+        .from('admin_users')
+        .select('user_id')
+        .eq('id', adminId)
+        .single();
+
+      let relationshipMap: Record<string, string> = {};
+      if (adminUserData && userIds.length > 0) {
+        const { data: contactRelations } = await supabaseAdmin
+          .from('contacts')
+          .select('linked_user_id, relationship')
+          .eq('user_id', adminUserData.user_id)
+          .in('linked_user_id', userIds)
+          .not('relationship', 'is', null);
+        if (contactRelations) {
+          for (const cr of contactRelations) {
+            if (cr.linked_user_id && cr.relationship) {
+              relationshipMap[cr.linked_user_id] = cr.relationship;
+            }
+          }
+        }
+      }
+
       // Fetch business details (not paginated - low volume)
       const bizIds = (businessAssignments.data || []).map((a: any) => a.business_account_id);
       let businessDetails: any[] = [];
