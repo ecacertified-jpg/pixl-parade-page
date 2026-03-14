@@ -14,11 +14,18 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
   const handlePlayPause = () => {
@@ -57,7 +64,10 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg cursor-pointer group"
+      className={cn(
+        "relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg cursor-pointer group",
+        isFullscreen && "!max-w-none !rounded-none bg-black flex items-center justify-center"
+      )}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
       onClick={handleContainerClick}
@@ -71,7 +81,11 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
         playsInline
         preload="auto"
         crossOrigin="anonymous"
-        className="w-full aspect-video object-cover"
+        className={cn(
+          isFullscreen
+            ? "w-full h-full object-contain"
+            : "w-full aspect-video object-cover"
+        )}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onWaiting={() => setIsBuffering(true)}
