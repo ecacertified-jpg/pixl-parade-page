@@ -3021,6 +3021,95 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_circle_members: {
+        Row: {
+          added_at: string | null
+          circle_id: string
+          contact_id: string
+          id: string
+        }
+        Insert: {
+          added_at?: string | null
+          circle_id: string
+          contact_id: string
+          id?: string
+        }
+        Update: {
+          added_at?: string | null
+          circle_id?: string
+          contact_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_circle_members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "friend_circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_circle_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_circle_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: true
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friend_circles: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_circles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "friend_circles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "friend_circles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_birthday_stats"
+            referencedColumns: ["auth_user_id"]
+          },
+        ]
+      }
       friend_form_tokens: {
         Row: {
           created_at: string
