@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { 
   Calendar, Gift, Heart, Users, Mail, Phone, MapPin, 
   Cake, Shield, CheckCircle2, XCircle, Coins, Send, 
@@ -511,7 +511,7 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                   <p className="text-xs text-muted-foreground/70 mt-1">Cet utilisateur n'a pas encore ajouté de contacts</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[400px]">
+                <div>
                   <div className="space-y-2 pr-3">
                     {contacts.map((contact) => {
                       const rel = contact.relationship?.toLowerCase();
@@ -555,7 +555,7 @@ export function UserProfileModal({ userId, open, onOpenChange }: UserProfileModa
                       );
                     })}
                   </div>
-                </ScrollArea>
+                </div>
               )}
             </TabsContent>
           </Tabs>
