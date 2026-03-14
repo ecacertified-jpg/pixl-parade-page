@@ -251,7 +251,7 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
               <Tabs defaultValue="users">
                 <TabsList>
                   <TabsTrigger value="users" className="gap-2">
-                    <Users className="h-4 w-4" /> Utilisateurs ({userAssignments.length})
+                    <Users className="h-4 w-4" /> Utilisateurs ({totalUsers})
                   </TabsTrigger>
                   <TabsTrigger value="businesses" className="gap-2">
                     <Store className="h-4 w-4" /> Entreprises ({businessAssignments.length})
