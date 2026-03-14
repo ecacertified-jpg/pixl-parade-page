@@ -58,6 +58,7 @@ interface UserAssignment {
   created_at: string;
   assigned_via?: string;
   profile?: UserProfile;
+  relationship?: string | null;
 }
 
 interface BusinessAssignment {
