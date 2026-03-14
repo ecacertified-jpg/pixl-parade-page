@@ -164,8 +164,9 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
     }
   };
 
-  const loadAssignments = async (aid: string, page = 1) => {
+  const loadAssignments = async (aid: string, page = 1, currentRetry = 0) => {
     setLoading(true);
+    setLoadError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -181,12 +182,28 @@ export function ViewAdminAssignmentsModal({ adminId, adminName, open, onOpenChan
       setUserAssignments(data.user_assignments || []);
       setBusinessAssignments(data.business_assignments || []);
       setTotalUsers(data.total_users ?? (data.user_assignments || []).length);
+      setRetryCount(0);
     } catch (error) {
       console.error('Error loading assignments:', error);
-      toast.error('Erreur lors du chargement des affectations');
+      if (currentRetry < MAX_RETRIES) {
+        const delay = Math.pow(2, currentRetry) * 1000;
+        setRetryCount(currentRetry + 1);
+        setTimeout(() => loadAssignments(aid, page, currentRetry + 1), delay);
+        return;
+      }
+      setLoadError(true);
+      setRetryCount(0);
+      toast.error('Impossible de charger les affectations après plusieurs tentatives');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualRetry = () => {
+    if (!adminId) return;
+    setLoadError(false);
+    setRetryCount(0);
+    loadAssignments(adminId, userPage, 0);
   };
 
   return (
