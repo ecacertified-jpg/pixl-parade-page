@@ -71,6 +71,10 @@ import { LinkContactDialog } from "@/components/LinkContactDialog";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFriendCircles } from "@/hooks/useFriendCircles";
+import { FriendCircleChips } from "@/components/FriendCircleChips";
+import { CreateCircleModal } from "@/components/CreateCircleModal";
+import { AssignCircleMenu } from "@/components/AssignCircleMenu";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
@@ -92,6 +96,8 @@ export default function Dashboard() {
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const [linkContactTarget, setLinkContactTarget] = useState<{ id: string; name: string } | null>(null);
   const [friendFilter, setFriendFilter] = useState<'all' | 'linked' | 'unlinked'>('all');
+  const [selectedCircleId, setSelectedCircleId] = useState<string | null>(null);
+  const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const {
@@ -111,6 +117,7 @@ export default function Dashboard() {
     refreshFunds
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
+  const { circles, contactCircleMap, createCircle, deleteCircle, addToCircle, removeFromCircle } = useFriendCircles();
   const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
   const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
@@ -687,6 +694,14 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <FriendCircleChips
+              circles={circles}
+              selectedCircleId={selectedCircleId}
+              onSelectCircle={setSelectedCircleId}
+              onCreateCircle={() => setShowCreateCircleModal(true)}
+              onDeleteCircle={deleteCircle}
+            />
+
             {friends.length > 0 && (
               <div className="flex items-center gap-3 mb-2 text-[11px]">
                 <button
@@ -774,6 +789,9 @@ export default function Dashboard() {
                     if (friendFilter === 'linked') return !!f.linked_user_id;
                     if (friendFilter === 'unlinked') return !f.linked_user_id;
                     return true;
+                  }).filter(f => {
+                    if (selectedCircleId === null) return true;
+                    return contactCircleMap[f.id] === selectedCircleId;
                   });
                   return friends.length === 0 ? <Card className="p-6 text-center">
                     <div className="text-muted-foreground">
@@ -819,6 +837,18 @@ export default function Dashboard() {
                               <Badge variant="secondary" className="capitalize text-[10px] px-2 py-0.5">
                                 {friend.relation}
                               </Badge>
+                              {contactCircleMap[friend.id] && (() => {
+                                const circle = circles.find(c => c.id === contactCircleMap[friend.id]);
+                                return circle ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-1.5 py-0.5"
+                                    style={{ backgroundColor: `${circle.color}20`, color: circle.color }}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: circle.color }} />
+                                    {circle.name}
+                                  </span>
+                                ) : null;
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -870,6 +900,14 @@ export default function Dashboard() {
                               <TooltipContent>Inviter sur l'app</TooltipContent>
                             </Tooltip>
                           </>
+                        )}
+                        {circles.length > 0 && (
+                          <AssignCircleMenu
+                            circles={circles}
+                            currentCircleId={contactCircleMap[friend.id]}
+                            onAssign={(circleId) => addToCircle(circleId, friend.id)}
+                            onRemove={() => removeFromCircle(friend.id)}
+                          />
                         )}
                         <AnimatedGiftButton
                           friendId={friend.id}
@@ -1097,6 +1135,12 @@ export default function Dashboard() {
             }}
           />
         )}
+
+        <CreateCircleModal
+          open={showCreateCircleModal}
+          onOpenChange={setShowCreateCircleModal}
+          onSubmit={async (name, color) => { await createCircle(name, color); }}
+        />
     </div>
   </>;
 }
