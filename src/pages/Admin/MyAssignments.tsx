@@ -127,6 +127,7 @@ const MyAssignments = () => {
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [completionFilter, setCompletionFilter] = useState<number | null>(null);
+  const [birthdayStats, setBirthdayStats] = useState<{ via_link: { today: number; week: number; month: number }; manual: { today: number; week: number; month: number }; total: { today: number; week: number; month: number } } | null>(null);
   const PAGE_SIZE = 50;
   const MAX_RETRIES = 3;
 
