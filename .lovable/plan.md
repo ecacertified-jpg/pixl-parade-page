@@ -1,53 +1,27 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Retry automatique et indicateur de chargement amélioré pour les affectations
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Modifications
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+### 1. `src/pages/Admin/MyAssignments.tsx`
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+- Ajouter un state `error` (boolean) et `retryCount` (number, max 3)
+- Dans `loadAssignments` : en cas d'erreur, incrémenter `retryCount` et relancer automatiquement après un délai exponentiel (`1s, 2s, 4s`) tant que `retryCount < 3`
+- Après 3 échecs : afficher un état d'erreur explicite (icône AlertTriangle, message, bouton "Réessayer") à la place du spinner
+- Remplacer le spinner basique par un indicateur plus informatif avec texte "Chargement des affectations..." et une barre de progression indéterminée
+- Réinitialiser `error` et `retryCount` lors d'un retry manuel
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+### 2. `src/components/admin/ViewAdminAssignmentsModal.tsx`
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+- Même logique de retry automatique (3 tentatives avec backoff exponentiel)
+- Même état d'erreur explicite avec bouton "Réessayer" dans la modale
+- Même indicateur de chargement amélioré
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### Fichiers impactés
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+| Fichier | Changement |
+|---------|-----------|
+| `src/pages/Admin/MyAssignments.tsx` | Retry auto (3x backoff), état d'erreur visuel, loader amélioré |
+| `src/components/admin/ViewAdminAssignmentsModal.tsx` | Idem |
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
-
-## En attente ⏳
-
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
