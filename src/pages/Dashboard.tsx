@@ -702,6 +702,7 @@ export default function Dashboard() {
               onDeleteCircle={deleteCircle}
             />
 
+            {friends.length > 0 && (
               <div className="flex items-center gap-3 mb-2 text-[11px]">
                 <button
                   className={`inline-flex items-center gap-1 font-medium rounded-full px-2 py-0.5 transition-all cursor-pointer ${
