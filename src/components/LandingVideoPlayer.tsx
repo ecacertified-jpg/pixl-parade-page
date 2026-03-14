@@ -64,7 +64,10 @@ export function LandingVideoPlayer({ videoUrl }: LandingVideoPlayerProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg cursor-pointer group"
+      className={cn(
+        "relative w-full max-w-lg mx-auto rounded-2xl overflow-hidden shadow-lg cursor-pointer group",
+        isFullscreen && "!max-w-none !rounded-none bg-black flex items-center justify-center"
+      )}
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
       onClick={handleContainerClick}
