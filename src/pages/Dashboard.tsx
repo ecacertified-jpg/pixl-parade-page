@@ -1074,6 +1074,8 @@ export default function Dashboard() {
         <OnboardingModal
           open={shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading}
           onComplete={completeOnboarding}
+          currentStep={currentStep}
+          onSetStep={setCurrentStep}
         />
         
         {/* Push Notification Prompt - Shows after onboarding */}
