@@ -1703,7 +1703,7 @@ const BusinessAuth = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full"
+                      className="w-full border-destructive/50 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                       disabled={isGoogleLoading}
                       onClick={signInWithGoogle}
                     >
@@ -1864,7 +1864,7 @@ const BusinessAuth = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full"
+                      className="w-full border-destructive/50 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                       disabled={isGoogleLoading}
                       onClick={signInWithGoogle}
                     >
