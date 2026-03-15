@@ -4,15 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
-  // Check localStorage first
   const localFlag = localStorage.getItem(`onboarding_completed_${userId}`);
   if (localFlag === 'true') return false;
 
-  // Check URL parameter
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('onboarding') === 'true') return true;
 
-  // Check if user is newly created (within last 5 minutes)
   const { data: profile } = await supabase
     .from('profiles')
     .select('created_at')
@@ -27,9 +24,17 @@ const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
   return false;
 };
 
+const getSavedStep = (userId: string): number => {
+  const saved = localStorage.getItem(`onboarding_step_${userId}`);
+  return saved ? parseInt(saved, 10) : 0;
+};
+
 export const useOnboarding = () => {
   const { user } = useAuth();
   const [manuallyCompleted, setManuallyCompleted] = useState(false);
+  const [currentStep, setCurrentStepState] = useState(() =>
+    user ? getSavedStep(user.id) : 0
+  );
 
   const { data: shouldShow, isLoading } = useQuery({
     queryKey: ['onboarding-status', user?.id],
@@ -38,9 +43,17 @@ export const useOnboarding = () => {
     staleTime: Infinity,
   });
 
+  const setCurrentStep = useCallback((step: number) => {
+    setCurrentStepState(step);
+    if (user) {
+      localStorage.setItem(`onboarding_step_${user.id}`, String(step));
+    }
+  }, [user]);
+
   const completeOnboarding = useCallback(() => {
     if (user) {
       localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+      localStorage.removeItem(`onboarding_step_${user.id}`);
     }
     setManuallyCompleted(true);
   }, [user]);
@@ -49,5 +62,7 @@ export const useOnboarding = () => {
     shouldShowOnboarding: manuallyCompleted ? false : (shouldShow ?? false),
     isLoading,
     completeOnboarding,
+    currentStep,
+    setCurrentStep,
   };
 };
