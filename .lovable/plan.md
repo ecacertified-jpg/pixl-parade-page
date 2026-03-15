@@ -1,53 +1,45 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Onboarding actionnel en 3 étapes
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Objectif
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Transformer le modal d'onboarding actuel (informatif seulement) en un parcours guidé qui mène directement l'utilisateur vers les actions clés après inscription.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Étapes du nouvel onboarding
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+| Étape | Contenu | Action principale |
+|-------|---------|-------------------|
+| 1 - Bienvenue | Félicitations + explication rapide de la plateforme | → Suivant |
+| 2 - Ajoutez vos amis | Expliquer l'importance du cercle d'amis, plus d'amis = meilleurs cadeaux | → "Ajouter mes amis" (navigue vers `/dashboard?tab=amis&add=true`) |
+| 3 - Liste de souhaits | Expliquer que les proches verront vos souhaits | → "Créer ma liste" (navigue vers `/wishlist-catalog`) |
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+Chaque étape a aussi un bouton "Plus tard" pour passer.
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+## Changements
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+### 1. `src/components/OnboardingModal.tsx`
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+- **Refondre les 3 steps** avec le nouveau contenu orienté action :
+  - Step 1 : Bienvenue (confetti conservé) — bouton "C'est parti !"
+  - Step 2 : Cercle d'amis — icône Users, gradient orange, bouton principal "Ajouter mes amis" → navigue `/dashboard?tab=amis&add=true`, bouton secondaire "Plus tard" → passe à step 3
+  - Step 3 : Liste de souhaits — icône Gift, gradient pink, bouton principal "Créer ma liste de souhaits" → navigue `/wishlist-catalog`, bouton secondaire "Plus tard" → complète l'onboarding
+- **Ajouter une barre de progression** (composant `Progress`) en haut du modal pour montrer l'avancement (étape 1/3, 2/3, 3/3)
+- Les navigations vers amis/wishlist appellent `onComplete()` avant de naviguer (marquer l'onboarding comme terminé)
 
-## En attente ⏳
+### 2. `src/hooks/useOnboarding.ts`
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+- **Ajouter un tracking par étape** : stocker dans localStorage non pas juste `onboarding_completed` mais aussi `onboarding_step` pour que si l'utilisateur revient, il reprenne là où il s'est arrêté (step 2 ou 3)
+- Exposer `currentStep` et `setCurrentStep` dans le hook
+
+### 3. Aucun changement côté Dashboard ou routes
+
+Les pages `/dashboard?tab=amis&add=true` et `/wishlist-catalog` existent déjà et fonctionnent.
+
+## Résumé technique
+
+- 2 fichiers modifiés : `OnboardingModal.tsx` (refonte UI/contenu), `useOnboarding.ts` (tracking step)
+- Pas de changement DB
+- Conservation des animations (confetti, framer-motion)
+- Progression visuelle avec `Progress` component existant
+
