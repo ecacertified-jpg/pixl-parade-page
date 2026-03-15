@@ -182,7 +182,7 @@ const Auth = () => {
           description: 'La connexion prend trop de temps. Veuillez réessayer.',
           variant: 'destructive',
         });
-      }, 8000);
+      }, 20000);
     } else {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
