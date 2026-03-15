@@ -122,7 +122,7 @@ export default function Dashboard() {
   const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
   // Onboarding
-  const { shouldShowOnboarding, completeOnboarding } = useOnboarding();
+  const { shouldShowOnboarding, completeOnboarding, currentStep, setCurrentStep } = useOnboarding();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'amis');
   
   // Profile completion check (for Google sign-up users)
