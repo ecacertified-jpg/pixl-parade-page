@@ -40,7 +40,7 @@ export const useOnboarding = () => {
     queryKey: ['onboarding-status', user?.id],
     queryFn: () => fetchOnboardingStatus(user!.id),
     enabled: !!user?.id,
-    staleTime: Infinity,
+    staleTime: 300000,
   });
 
   const setCurrentStep = useCallback((step: number) => {
