@@ -1,24 +1,62 @@
-import { Heart, Flame, ShoppingBag, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Heart, Flame, ShoppingBag, AlertTriangle, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import confetti from "canvas-confetti";
+import { triggerCelebrationFeedback } from "@/utils/celebrationFeedback";
 
 export function FavoriteArticlesSection() {
   const { stats, loading } = useFavorites();
   const { friends } = useDashboardData();
+  const { user } = useAuth();
 
   const showUrgency = friends.length >= 2 && stats.total < 3;
 
+  const prevTotal = useRef(stats.total);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id || loading) return;
+    const key = `wishlist_completion_celebrated_${user.id}`;
+    const alreadyCelebrated = localStorage.getItem(key) === "true";
+
+    if (prevTotal.current < 3 && stats.total >= 3 && !alreadyCelebrated) {
+      setShowCelebration(true);
+      localStorage.setItem(key, "true");
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      triggerCelebrationFeedback({ sound: "tada", vibration: "celebration" });
+    }
+    prevTotal.current = stats.total;
+  }, [stats.total, loading, user?.id]);
+
+  const dismissCelebration = () => setShowCelebration(false);
+
   return (
     <Card className={`p-4 mb-6 transition-all duration-300 ${
-      showUrgency
-        ? "animate-pulse border-2 border-destructive bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20"
-        : "bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border-pink-200/50"
+      showCelebration
+        ? "border-2 border-success bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
+        : showUrgency
+          ? "animate-pulse border-2 border-destructive bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20"
+          : "bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border-pink-200/50"
     }`}>
-      {showUrgency && (
+      {showCelebration && (
+        <Alert className="mb-3 border-success/50 bg-success/10">
+          <PartyPopper className="h-4 w-4 text-success" />
+          <AlertDescription className="text-sm font-medium text-foreground">
+            🎉 Bravo ! Votre liste de souhaits est prête ! Votre profil est maintenant complet pour rappeler à vos proches les événements qui marquent votre vie et les célébrer ensemble.
+            <Button variant="outline" size="sm" className="ml-3 mt-2 text-success border-success/30 hover:bg-success/10" onClick={dismissCelebration}>
+              Compris !
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!showCelebration && showUrgency && (
         <Alert variant="destructive" className="mb-3 border-destructive/50 bg-destructive/10">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="text-sm font-medium">
@@ -32,15 +70,15 @@ export function FavoriteArticlesSection() {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
-          <Heart className={`h-5 w-5 ${showUrgency ? "text-destructive fill-destructive" : "text-pink-500 fill-pink-500"}`} />
+          <Heart className={`h-5 w-5 ${showCelebration ? "text-success fill-success" : showUrgency ? "text-destructive fill-destructive" : "text-pink-500 fill-pink-500"}`} />
           <h3 className="font-semibold text-foreground">Ma liste de souhaits</h3>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/wishlist-catalog">
             <Button
-              variant={showUrgency ? "destructive" : "outline"}
+              variant={showUrgency && !showCelebration ? "destructive" : "outline"}
               size="sm"
-              className={showUrgency
+              className={showUrgency && !showCelebration
                 ? "animate-bounce shadow-lg"
                 : "text-primary border-primary/30 hover:bg-primary/10"
               }
