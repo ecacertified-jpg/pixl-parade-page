@@ -13,7 +13,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
   const { data: profile } = await supabase
     .from('profiles')
     .select('created_at')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (profile) {
