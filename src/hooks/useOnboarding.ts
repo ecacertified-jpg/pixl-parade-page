@@ -13,7 +13,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
   const { data: profile } = await supabase
     .from('profiles')
     .select('created_at')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (profile) {
@@ -40,7 +40,7 @@ export const useOnboarding = () => {
     queryKey: ['onboarding-status', user?.id],
     queryFn: () => fetchOnboardingStatus(user!.id),
     enabled: !!user?.id,
-    staleTime: Infinity,
+    staleTime: 300000,
   });
 
   const setCurrentStep = useCallback((step: number) => {
