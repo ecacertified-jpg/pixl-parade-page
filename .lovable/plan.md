@@ -1,53 +1,24 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Animation d'urgence sur la carte wishlist
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Contexte
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Quand l'utilisateur a ajouté ≥2 amis mais a <3 articles dans sa liste de souhaits, la carte "Ma liste de souhaits" (`FavoriteArticlesSection`) doit afficher une animation d'urgence pulsante avec un message expliquant qu'il faut ajouter au moins 3 produits pour arrêter l'alerte.
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+## Changement
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+### Fichier : `src/components/FavoriteArticlesSection.tsx`
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+- Importer `useDashboardData` pour accéder au nombre d'amis (`friends.length`)
+- Calculer `showUrgency = friends.length >= 2 && stats.total < 3`
+- Quand `showUrgency` est vrai :
+  - Ajouter une bordure rouge pulsante (animation CSS `animate-pulse` + `border-red-500`) sur la Card
+  - Ajouter un bandeau d'alerte rouge en haut de la carte avec icône `AlertTriangle` et message : *"⚠️ Alerte : Ajoutez au moins 3 produits à votre liste pour désactiver cette alerte !"*
+  - Le bouton "Parcourir" reçoit un style rouge avec animation `animate-bounce` pour attirer l'attention
+- Quand `stats.total >= 3` ou `friends.length < 2` : carte normale, pas d'animation
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### Aucun autre fichier modifié
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+Le hook `useFavorites` fournit déjà `stats.total` et `useDashboardData` fournit `friends`. Tout se passe dans le composant existant.
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
-
-## En attente ⏳
-
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
