@@ -1,39 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Sélecteur de pays dans le catalogue de souhaits
+## Implémenté ✅
 
-## Problème
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-La page `WishlistCatalog` charge **tous** les produits actifs sans filtrage par pays. Un utilisateur en Côte d'Ivoire voit aussi les produits du Bénin ou du Sénégal, ce qui n'est pas pertinent pour sa liste de souhaits.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Changements
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-### Fichier : `src/pages/WishlistCatalog.tsx`
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-1. **Importer** `useCountry` depuis `@/contexts/CountryContext` et `CountrySelector` depuis `@/components/CountrySelector`
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-2. **Ajouter un sélecteur de pays** dans le header, entre la barre de recherche et les filtres de catégorie — utiliser `<CountrySelector variant="compact" />` (le même composant utilisé partout dans l'app)
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-3. **Filtrer les produits par pays** en modifiant la requête `fetchData` :
-   - D'abord récupérer les `business_accounts.id` filtrés par `country_code` (même pattern que `ShopForCollectiveGiftModal` et `FeaturedExperiencesCarousel`)
-   - Puis filtrer les produits avec `.in('business_id', businessIds)`
-   - Re-fetch quand le `countryCode` change (ajouter dans le tableau de dépendances du `useEffect`)
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-4. **Pays par défaut** : `useCountry()` retourne déjà le pays détecté/sélectionné de l'utilisateur — aucune logique supplémentaire nécessaire
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
-### Flux de données
+## En attente ⏳
 
-```text
-useCountry().countryCode (auto-détecté ou profil)
-       ↓
-business_accounts WHERE country_code = X
-       ↓
-products WHERE business_id IN (...)
-       ↓
-Affichage filtré
-```
-
-### Aucun autre fichier modifié
-
-Le `CountrySelector` et `useCountry` existent déjà. Seul `WishlistCatalog.tsx` est modifié.
-
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { useCountry } from "@/contexts/CountryContext";
+import { CountrySelector } from "@/components/CountrySelector";
 
 interface CatalogProduct {
   id: string;
@@ -27,6 +29,7 @@ interface Category {
 }
 
 export default function WishlistCatalog() {
+  const { countryCode } = useCountry();
   const navigate = useNavigate();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -38,13 +41,27 @@ export default function WishlistCatalog() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
+      // 1. Get business IDs for the current country
+      const { data: businesses } = await supabase
+        .from("business_accounts")
+        .select("id")
+        .eq("country_code", countryCode)
+        .eq("is_active", true);
+
+      const businessIds = businesses?.map(b => b.id) ?? [];
+
+      // 2. Fetch products filtered by country businesses + categories
       const [productsRes, categoriesRes] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(200),
+        businessIds.length > 0
+          ? supabase
+              .from("products")
+              .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
+              .eq("is_active", true)
+              .in("business_id", businessIds)
+              .order("created_at", { ascending: false })
+              .limit(200)
+          : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("categories")
           .select("id, name_fr, icon")
@@ -57,7 +74,7 @@ export default function WishlistCatalog() {
     };
 
     fetchData();
-  }, []);
+  }, [countryCode]);
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -107,15 +124,18 @@ export default function WishlistCatalog() {
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher un article..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          {/* Country Selector + Search */}
+          <div className="flex items-center gap-2">
+            <CountrySelector variant="compact" showWelcomeToast={false} />
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un article..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
 
           {/* Category Filters */}
