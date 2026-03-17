@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { useCountry } from "@/contexts/CountryContext";
+import { CountrySelector } from "@/components/CountrySelector";
 
 interface CatalogProduct {
   id: string;
