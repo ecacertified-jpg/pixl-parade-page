@@ -28,7 +28,7 @@ interface Category {
   icon: string | null;
 }
 
-export default function WishlistCatalog() {
+  const { countryCode } = useCountry();
   const navigate = useNavigate();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
