@@ -28,6 +28,7 @@ interface Category {
   icon: string | null;
 }
 
+export default function WishlistCatalog() {
   const { countryCode } = useCountry();
   const navigate = useNavigate();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
@@ -40,13 +41,27 @@ interface Category {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+
+      // 1. Get business IDs for the current country
+      const { data: businesses } = await supabase
+        .from("business_accounts")
+        .select("id")
+        .eq("country_code", countryCode)
+        .eq("is_active", true);
+
+      const businessIds = businesses?.map(b => b.id) ?? [];
+
+      // 2. Fetch products filtered by country businesses + categories
       const [productsRes, categoriesRes] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(200),
+        businessIds.length > 0
+          ? supabase
+              .from("products")
+              .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
+              .eq("is_active", true)
+              .in("business_id", businessIds)
+              .order("created_at", { ascending: false })
+              .limit(200)
+          : Promise.resolve({ data: [] as any[] }),
         supabase
           .from("categories")
           .select("id, name_fr, icon")
@@ -59,7 +74,7 @@ interface Category {
     };
 
     fetchData();
-  }, []);
+  }, [countryCode]);
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
