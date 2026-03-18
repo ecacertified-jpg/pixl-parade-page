@@ -125,21 +125,27 @@ const Landing = () => {
               )}
 
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                Célébrez les Moments de{" "}
-                <span className="text-primary">Bonheur</span>
+                Vos proches oublient votre{" "}
+                <span className="text-primary">anniversaire ?</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                Combien de personnes se souviennent de votre date d'anniversaire chaque année ? Êtes-vous sûr(e) de recevoir un cadeau à votre anniversaire ? Enregistrez votre date d'anniversaire pour que vos proches ne vous oublient pas désormais
+                Inscrivez votre date et recevez enfin les cadeaux que vous aimez
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
-                  Enregistrer son anniversaire
+                  Créer mon anniversaire
                   <Calendar className="ml-2 h-5 w-5" />
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => navigate("/business-auth")}>
                   Espace Vendeur
                 </Button>
               </div>
+              {birthdayCount !== null && birthdayCount > 0 && (
+                <div className="flex items-center gap-2 justify-center lg:justify-start text-sm text-muted-foreground">
+                  <Users className="h-4 w-4 text-primary" />
+                  <span>Déjà <strong className="text-foreground">{birthdayCount.toLocaleString('fr-FR')}</strong> anniversaires créés sur Joie de Vivre</span>
+                </div>
+              )}
             </div>
             <div className="relative">
               <div className="relative aspect-square rounded-3xl overflow-hidden shadow-2xl">
