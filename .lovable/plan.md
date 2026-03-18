@@ -1,35 +1,53 @@
 
+# Architecture de Split de Paiement Wave & Mobile Money
 
-# Plan : Corriger la preuve sociale sur la landing page
+## Implémenté ✅
 
-## Problème
+### 1. Migration SQL
+- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
+- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
+- Table `payment_splits` créée avec RLS (admins + business owners)
+- Paramètre `platform_wave_phone` inséré dans `platform_settings`
+- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
 
-La table `contacts` a des politiques RLS qui limitent l'accès aux contacts de l'utilisateur authentifié. Les visiteurs non connectés (landing page) ne peuvent pas compter les lignes → le compteur reste invisible.
+### 2. Edge Functions
+- `process-wave-payment` : split pour paiements Wave
+- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
+- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
+- Enregistrement dans `payment_splits` avec statut `simulated`
 
-## Solution
+### 3. Formulaires prestataire
+- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
+- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
+- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
 
-1. **Créer une fonction SQL `security definer`** qui retourne le count total des contacts, accessible sans authentification :
+### 4. Admin Settings (onglet Finance)
+- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
+- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
+- Stockés dans `platform_settings`
 
-```sql
-CREATE OR REPLACE FUNCTION public.get_birthday_count()
-RETURNS integer
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT count(*)::integer FROM contacts;
-$$;
-```
+### 5. Checkout
+- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
+- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
 
-2. **Modifier `Landing.tsx`** — remplacer la requête `.from('contacts').select(...)` par un appel RPC :
+### 6. Tableau de bord Commissions
+- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
 
-```typescript
-const { data } = await supabase.rpc('get_birthday_count');
-if (data !== null) setBirthdayCount(data);
-```
+### 7. Rappel confirmation livraison
+- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
+- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
+- Anti-spam : vérification notification existante avant envoi
 
-## Fichiers modifiés
-- Nouvelle migration SQL (1 fonction)
-- `src/pages/Landing.tsx` (1 ligne de requête modifiée)
+### Statut transferts
+- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
+- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
 
+## En attente ⏳
+
+### Intégration API Wave Production
+- **Étape** : Démarche administrative auprès de Wave CI
+- **Portail** : https://developer.wave.com
+- **Contact** : developers@wave.com / partners@wave.com
+- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
+- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
+- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook

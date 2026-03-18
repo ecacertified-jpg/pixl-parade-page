@@ -26,10 +26,8 @@ const Landing = () => {
   // Fetch birthday count for social proof
   useEffect(() => {
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from('contacts')
-        .select('*', { count: 'exact', head: true });
-      if (count !== null) setBirthdayCount(count);
+      const { data } = await supabase.rpc('get_birthday_count');
+      if (data !== null) setBirthdayCount(data);
     };
     fetchCount();
   }, []);

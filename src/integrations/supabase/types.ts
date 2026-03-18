@@ -8486,6 +8486,7 @@ export type Database = {
         Returns: string[]
       }
       get_badge_name: { Args: { badge_level: string }; Returns: string }
+      get_birthday_count: { Args: never; Returns: number }
       get_business_account: {
         Args: { p_user_id: string }
         Returns: {
