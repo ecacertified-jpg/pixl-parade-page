@@ -21,6 +21,21 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
+// Preload high-traffic routes after idle
+const preloadRoutes = () => {
+  import("./pages/Home");
+  import("./pages/Dashboard");
+  import("./pages/Shop");
+  import("./pages/Index");
+};
+if (typeof window !== 'undefined') {
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(preloadRoutes);
+  } else {
+    setTimeout(preloadRoutes, 2000);
+  }
+}
+
 // All other pages - lazy loaded
 const AdminAuth = lazy(() => import("./pages/AdminAuth"));
 const Index = lazy(() => import("./pages/Index"));
