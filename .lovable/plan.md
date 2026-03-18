@@ -1,53 +1,41 @@
 
-# Architecture de Split de Paiement Wave & Mobile Money
 
-## Implémenté ✅
+# Plan : Accélérer le chargement des pages
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+## Diagnostic
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+Le problème vient de la combinaison de trois couches qui s'enchaînent séquentiellement :
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+1. **`AnimatedRoutes`** utilise `AnimatePresence mode="wait"` — l'ancienne page doit **terminer son animation de sortie** (250ms) avant que la nouvelle page ne commence à se monter
+2. **`Suspense` + `LoadingTransition`** — une fois l'ancienne page sortie, le chunk JS lazy doit être téléchargé, pendant ce temps un spinner s'affiche avec sa propre animation d'entrée (200ms + délais)
+3. **`ProtectedRoute`** — attend `loading` de AuthContext (vérification session Supabase) avant d'afficher quoi que ce soit, montrant un spinner h-32 w-32 pendant ce temps
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+Résultat : **page blanche/skeleton pendant 500ms-2s+** à chaque navigation.
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+## Changements proposés
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+### 1. `src/components/transitions/AnimatedRoutes.tsx` — Supprimer le blocage `mode="wait"`
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+Remplacer `AnimatePresence mode="wait"` par `mode="popLayout"` ou simplement retirer `AnimatePresence` et les animations d'entrée/sortie. La nouvelle page se monte **immédiatement** sans attendre la sortie de l'ancienne.
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+Concrètement : simplifier le composant pour qu'il rende directement `<Routes location={location}>{children}</Routes>` sans wrapper `motion.div` ni `AnimatePresence`. Les pages apparaissent instantanément.
 
-## En attente ⏳
+### 2. `src/components/transitions/LoadingTransition.tsx` — Rendre le fallback minimal
 
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+Remplacer le fallback animé (motion.div + spinner + texte "Chargement...") par un simple `div` vide ou un indicateur ultra-léger sans animation Framer Motion, pour que le Suspense fallback ne "bloque" pas visuellement.
+
+### 3. `src/components/ProtectedRoute.tsx` — Réduire le spinner de chargement auth
+
+Remplacer le gros spinner `h-32 w-32` par un indicateur minimal (ou rien du tout si le loading est bref), pour éviter un flash de spinner massif.
+
+### 4. Préchargement des routes fréquentes (`src/App.tsx`)
+
+Ajouter un préchargement des chunks les plus utilisés (Dashboard, Home, Shop) au `onIdle` ou après le premier rendu de Landing, pour que ces pages soient déjà en cache quand l'utilisateur navigue.
+
+## Fichiers modifiés
+
+- `src/components/transitions/AnimatedRoutes.tsx` — simplifier (supprimer AnimatePresence mode="wait")
+- `src/components/transitions/LoadingTransition.tsx` — fallback minimal
+- `src/components/ProtectedRoute.tsx` — spinner réduit
+- `src/App.tsx` — préchargement des routes fréquentes
+
