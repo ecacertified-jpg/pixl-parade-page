@@ -21,6 +21,18 @@ const Landing = () => {
   const [surveyOpen, setSurveyOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [landingVideoUrl, setLandingVideoUrl] = useState<string | null>(null);
+  const [birthdayCount, setBirthdayCount] = useState<number | null>(null);
+
+  // Fetch birthday count for social proof
+  useEffect(() => {
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('contacts')
+        .select('*', { count: 'exact', head: true });
+      if (count !== null) setBirthdayCount(count);
+    };
+    fetchCount();
+  }, []);
 
   // Fetch landing video from assets bucket
   useEffect(() => {
