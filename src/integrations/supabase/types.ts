@@ -2482,11 +2482,16 @@ export type Database = {
         Row: {
           avatar_url: string | null
           birthday: string | null
+          city: string | null
           created_at: string
           email: string | null
           id: string
+          latitude: number | null
           linked_user_id: string | null
+          location: string | null
+          longitude: number | null
           name: string
+          neighborhood: string | null
           notes: string | null
           phone: string | null
           relationship: string | null
@@ -2496,11 +2501,16 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           birthday?: string | null
+          city?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          latitude?: number | null
           linked_user_id?: string | null
+          location?: string | null
+          longitude?: number | null
           name: string
+          neighborhood?: string | null
           notes?: string | null
           phone?: string | null
           relationship?: string | null
@@ -2510,11 +2520,16 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           birthday?: string | null
+          city?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          latitude?: number | null
           linked_user_id?: string | null
+          location?: string | null
+          longitude?: number | null
           name?: string
+          neighborhood?: string | null
           notes?: string | null
           phone?: string | null
           relationship?: string | null
