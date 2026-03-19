@@ -284,48 +284,57 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
 
         </form>
 
-        {showShareMenu && shareLink && (
-          <div className="space-y-3 pt-2">
-            <p className="text-sm font-medium text-foreground">Partager via :</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaWhatsApp}>
-                <MessageCircle className="h-5 w-5 text-green-600" />
-                WhatsApp
+        {/* Modal de partage séparé */}
+        <Dialog open={showShareMenu && !!shareLink} onOpenChange={(open) => { if (!open) setShowShareMenu(false); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-primary" />
+                Partager le lien
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-3 py-2">
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaWhatsApp}>
+                <MessageCircle className="h-6 w-6 text-green-600" />
+                <span className="text-sm">WhatsApp</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaFacebook}>
-                <Facebook className="h-5 w-5 text-blue-700" />
-                Facebook
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaFacebook}>
+                <Facebook className="h-6 w-6 text-blue-700" />
+                <span className="text-sm">Facebook</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaLinkedIn}>
-                <Linkedin className="h-5 w-5 text-blue-600" />
-                LinkedIn
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaLinkedIn}>
+                <Linkedin className="h-6 w-6 text-blue-600" />
+                <span className="text-sm">LinkedIn</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaGmail}>
-                <Mail className="h-5 w-5 text-red-500" />
-                Gmail
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaGmail}>
+                <Mail className="h-6 w-6 text-red-500" />
+                <span className="text-sm">Gmail</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaSMS}>
-                <Send className="h-5 w-5 text-purple-600" />
-                SMS
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaSMS}>
+                <Send className="h-6 w-6 text-purple-600" />
+                <span className="text-sm">SMS</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareViaEmail}>
-                <Mail className="h-5 w-5 text-foreground" />
-                Email
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareViaEmail}>
+                <Mail className="h-6 w-6 text-foreground" />
+                <span className="text-sm">Email</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={copyLink}>
-                <Copy className="h-5 w-5" />
-                Copier
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={copyLink}>
+                <Copy className="h-6 w-6" />
+                <span className="text-sm">Copier le lien</span>
               </Button>
-              <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={shareNative}>
-                <Share2 className="h-5 w-5" />
-                Plus...
+              <Button variant="outline" className="h-20 flex-col gap-2" onClick={shareNative}>
+                <Share2 className="h-6 w-6" />
+                <span className="text-sm">Plus...</span>
               </Button>
             </div>
-            <div className="p-2 bg-muted rounded-lg">
-              <p className="text-xs text-muted-foreground break-all font-mono">{shareLink}</p>
+
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Votre lien :</p>
+              <p className="text-xs font-mono break-all">{shareLink}</p>
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
