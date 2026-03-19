@@ -153,6 +153,54 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
           <DialogTitle>Ajouter un ami</DialogTitle>
         </DialogHeader>
 
+        {/* CTA ostentatoire : Envoyer à un proche */}
+        <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/20 p-4">
+          <div className="absolute -top-6 -right-6 w-20 h-20 bg-primary/10 rounded-full blur-xl" />
+          <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-accent/10 rounded-full blur-lg" />
+          
+          <div className="relative space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <p className="text-sm font-semibold text-foreground">
+                Plus simple : laissez votre ami remplir lui-même !
+              </p>
+            </div>
+            
+            <Button
+              type="button"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-200 h-11 text-sm"
+              onClick={handleShareForm}
+              disabled={generatingLink}
+            >
+              {generatingLink ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
+              )}
+              Envoyer à un proche pour qu'il complète
+            </Button>
+
+            {/* Icônes des réseaux sociaux */}
+            <div className="flex items-center justify-center gap-3 pt-1">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">via</span>
+              <div className="flex items-center gap-2.5">
+                <MessageCircle className="h-5 w-5 text-green-600" />
+                <Facebook className="h-5 w-5 text-blue-700" />
+                <Linkedin className="h-5 w-5 text-blue-600" />
+                <Mail className="h-5 w-5 text-red-500" />
+                <Send className="h-5 w-5 text-primary" />
+                <Copy className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative flex items-center py-1">
+          <div className="flex-1 border-t border-border" />
+          <span className="px-3 text-xs text-muted-foreground bg-background">ou remplissez manuellement</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <Alert className="border-primary/20 bg-primary/5">
             <Info className="h-4 w-4 text-primary" />
