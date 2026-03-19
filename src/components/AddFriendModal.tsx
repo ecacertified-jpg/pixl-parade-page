@@ -282,22 +282,6 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
             </Button>
           </div>
 
-          <div className="border-t pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-primary"
-              onClick={handleShareForm}
-              disabled={generatingLink}
-            >
-              {generatingLink ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Share2 className="h-4 w-4 mr-2" />
-              )}
-              Envoyer à un proche pour qu'il complète
-            </Button>
-          </div>
         </form>
 
         {showShareMenu && shareLink && (
