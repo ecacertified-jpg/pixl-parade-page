@@ -709,18 +709,6 @@ export default function Dashboard() {
               </button>
             )}
 
-            <div className="hidden">
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="gap-1" onClick={() => setShowSearchFriendModal(true)}>
-                  <Search className="h-4 w-4" />
-                  <span className="hidden sm:inline">Rechercher</span>
-                </Button>
-                <Button size="sm" className="gap-2 bg-violet-500 hover:bg-violet-400" onClick={() => setShowAddFriendModal(true)}>
-                  <Plus className="h-4 w-4" aria-hidden />
-                  Ajouter
-                </Button>
-              </div>
-            </div>
 
             <FriendCircleChips
               circles={circles}
