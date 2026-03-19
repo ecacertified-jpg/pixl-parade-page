@@ -1,53 +1,29 @@
+# Plan : Améliorer le modal "Ajouter un ami" et avertissement cercle d'amis
 
-# Architecture de Split de Paiement Wave & Mobile Money
+## Changements
 
-## Implémenté ✅
+### 1. Modal de partage séparé (`AddFriendModal.tsx`)
 
-### 1. Migration SQL
-- Colonne `wave_merchant_phone` ajoutée à `business_accounts`
-- Colonne `mobile_money_merchant_phone` ajoutée à `business_accounts`
-- Table `payment_splits` créée avec RLS (admins + business owners)
-- Paramètre `platform_wave_phone` inséré dans `platform_settings`
-- Paramètre `platform_mobile_money_phone` inséré dans `platform_settings`
+Quand l'utilisateur clique "Envoyer à un proche pour qu'il complète", au lieu d'afficher les réseaux sociaux en bas du même modal (actuellement lignes 287-328), ouvrir un **nouveau Dialog** dédié avec :
 
-### 2. Edge Functions
-- `process-wave-payment` : split pour paiements Wave
-- `process-mobile-money-payment` : split pour paiements Mobile Money (Orange/MTN)
-- Même logique : vendor_amount = prix DB × qty, platform_amount = total client − vendor
-- Enregistrement dans `payment_splits` avec statut `simulated`
+- Titre "Partager le lien"
+- Grille 2 colonnes des boutons de partage (WhatsApp, Facebook, LinkedIn, Gmail, SMS, Email, Copier, Plus...) — style identique à la capture d'écran
+- Le lien affiché proprement en bas dans un bloc `bg-muted rounded-lg` avec `break-all` et taille lisible
+- Supprimer l'affichage inline actuel des réseaux (lignes 287-328)
 
-### 3. Formulaires prestataire
-- Champ "Numéro Wave marchand" dans AddBusinessModal, AdminEditBusinessModal, AdminAddBusinessToOwnerModal
-- Champ "Numéro Mobile Money marchand (Orange/MTN)" dans les mêmes formulaires
-- Sauvegardés dans `business_accounts.wave_merchant_phone` et `mobile_money_merchant_phone`
+### 2. Lien affiché harmonieusement
 
-### 4. Admin Settings (onglet Finance)
-- Champ "Numéro Wave JDV" pour recevoir les commissions Wave
-- Champ "Numéro Mobile Money JDV (Orange/MTN)" pour recevoir les commissions Mobile Money
-- Stockés dans `platform_settings`
+Dans le nouveau modal de partage, le lien sera dans un conteneur avec padding suffisant, `text-xs font-mono break-all` pour éviter tout débordement.
 
-### 5. Checkout
-- Après création d'une `business_order` Wave → appel non-bloquant à `process-wave-payment`
-- Après création d'une `business_order` Mobile → appel non-bloquant à `process-mobile-money-payment`
+### 3. Avertissement rouge sous "Mon cercle d'amis" (`Dashboard.tsx`)
 
-### 6. Tableau de bord Commissions
-- Page `/admin/commissions` avec KPIs, graphique temporel, et tableau détaillé des splits
+Sous le titre "Mon cercle d'amis" (ligne 684), ajouter un bloc d'avertissement :
 
-### 7. Rappel confirmation livraison
-- Edge Function `check-delivery-confirmation-reminder` (CRON horaire)
-- Rappel In-app + Push + SMS/WhatsApp 24h après livraison non confirmée
-- Anti-spam : vérification notification existante avant envoi
+- Texte en **rouge gras** : "Attention ! Ajoute les personnes que tu connais à ton cercle d'amis. Si elles ne te connaissent pas, elles pourraient hésiter à t'offrir des cadeaux."
+- Bouton masquer/démasquer (icône œil) avec état local `useState`, **visible par défaut**
+- Style compact pour ne pas prendre trop de place
 
-### Statut transferts
-- Mode simulation : `vendor_transfer_status` et `platform_transfer_status` = `simulated`
-- Production future : appels Wave/Mobile Money Transfer API pour dispatcher les fonds
+## Fichiers modifiés
 
-## En attente ⏳
-
-### Intégration API Wave Production
-- **Étape** : Démarche administrative auprès de Wave CI
-- **Portail** : https://developer.wave.com
-- **Contact** : developers@wave.com / partners@wave.com
-- **Documents requis** : RCCM, attestation fiscale, pièce d'identité dirigeant
-- **Clés à obtenir** : `WAVE_API_KEY`, `WAVE_WEBHOOK_SECRET`
-- **Action post-obtention** : Stocker dans Supabase secrets, remplacer `WavePaymentSimulation` par Wave Checkout API, configurer webhook
+- `src/components/AddFriendModal.tsx` — extraire le partage dans un sous-Dialog, nettoyer l'affichage
+- `src/pages/Dashboard.tsx` — ajouter l'avertissement rouge sous le titre cercle d'amis
