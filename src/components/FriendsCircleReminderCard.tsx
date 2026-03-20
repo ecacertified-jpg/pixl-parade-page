@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, UserPlus, Clock, PartyPopper, AlertTriangle, Award } from 'lucide-react';
+import { Users, UserPlus, Clock, PartyPopper, AlertTriangle, Award, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useFriendsCircleReminder } from '@/hooks/useFriendsCircleReminder';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AddFriendModal } from '@/components/AddFriendModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -254,7 +255,7 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="bg-destructive/5 border-2 border-destructive/40 shadow-lg overflow-hidden">
+        <Card className="bg-destructive/5 border-2 border-destructive/40 shadow-lg overflow-hidden animate-pulse">
           <CardContent className="p-4">
             {/* Urgent badge */}
             <div className="flex justify-between items-start mb-3">
@@ -279,9 +280,16 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
                 <h3 className="font-poppins font-semibold text-foreground text-base sm:text-lg mb-1">
                   {title}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-                  {subtitle}
-                </p>
+                {/* Alert block */}
+                <Alert variant="destructive" className="mb-3 border-destructive">
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle className="text-sm font-bold">
+                    ⚠️ Alerte ! Ajoute au moins {minimumContacts} amis dans ton cercle d'amis pour désactiver cette alerte.
+                  </AlertTitle>
+                  <AlertDescription className="text-xs text-muted-foreground mt-1">
+                    Complète ton cercle d'amis pour profiter de la générosité de tes proches.
+                  </AlertDescription>
+                </Alert>
 
                 {/* Progress bar with red color */}
                 <div className="mb-3">
@@ -305,7 +313,7 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
                     size="default"
                     variant="destructive"
                     onClick={() => setShowAddFriendModal(true)}
-                    className="flex-1 gap-2 font-semibold"
+                    className="flex-1 gap-2 font-semibold animate-bounce shadow-lg"
                   >
                     <UserPlus className="h-4 w-4" />
                     Ajouter mes amis

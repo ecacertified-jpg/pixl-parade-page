@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 const COMPLETION_NOTIFICATION_KEY = 'friends_circle_completion_notified_';
 const WELCOME_WA_KEY = 'friends_circle_welcome_wa_sent_';
 
-const MINIMUM_CONTACTS = 2;
+const MINIMUM_CONTACTS = 3;
 const SNOOZE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 interface FriendsCircleReminderState {
