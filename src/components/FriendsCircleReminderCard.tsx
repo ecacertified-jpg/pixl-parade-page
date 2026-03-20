@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useFriendsCircleReminder } from '@/hooks/useFriendsCircleReminder';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AddFriendModal } from '@/components/AddFriendModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
