@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2, Eye, EyeOff } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InlineUserSearchResults } from "@/components/InlineUserSearchResults";
 import { type SearchResult } from "@/hooks/useFriendRequests";
@@ -150,7 +150,7 @@ export default function Dashboard() {
     refreshRequests,
   } = useFriendRequests();
   const [showSearchFriendModal, setShowSearchFriendModal] = useState(false);
-  const [showFriendWarning, setShowFriendWarning] = useState(true);
+  
   const pendingSentIds = new Set(pendingSent.map(s => s.target_id));
   
   // Inline search state
@@ -683,31 +683,16 @@ export default function Dashboard() {
           <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
-            </div>
-
-            {showFriendWarning && (
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 mb-2">
-                <p className="text-xs font-bold text-destructive flex-1">
-                  ⚠️ Attention ! Ajoute les personnes que tu connais à ton cercle d'amis. Si elles ne te connaissent pas, elles pourraient hésiter à t'offrir des cadeaux.
-                </p>
-                <button
-                  onClick={() => setShowFriendWarning(false)}
-                  className="text-destructive/60 hover:text-destructive shrink-0 mt-0.5"
-                  title="Masquer"
-                >
-                  <EyeOff className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            {!showFriendWarning && (
-              <button
-                onClick={() => setShowFriendWarning(true)}
-                className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 mb-2"
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-8 text-xs"
+                onClick={() => setShowAddFriendModal(true)}
               >
-                <Eye className="h-3.5 w-3.5" />
-                Voir l'avertissement
-              </button>
-            )}
+                <UserPlus className="h-3.5 w-3.5" />
+                Ajouter
+              </Button>
+            </div>
 
 
             <FriendCircleChips
