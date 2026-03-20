@@ -313,7 +313,7 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
                     size="default"
                     variant="destructive"
                     onClick={() => setShowAddFriendModal(true)}
-                    className="flex-1 gap-2 font-semibold"
+                    className="flex-1 gap-2 font-semibold animate-bounce shadow-lg"
                   >
                     <UserPlus className="h-4 w-4" />
                     Ajouter mes amis
