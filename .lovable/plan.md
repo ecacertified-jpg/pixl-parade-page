@@ -1,22 +1,25 @@
 
 
-# Plan : Déplacer l'avertissement dans le modal + restaurer le bouton Ajouter
+# Plan : Transition vers la wishlist après 3 amis + amélioration du bouton de partage
 
-## Changements
+## 1. Scroll automatique vers la wishlist après complétion du cercle (`FriendsCircleReminderCard.tsx`)
 
-### 1. Supprimer l'avertissement du Dashboard (`src/pages/Dashboard.tsx`)
+Dans le `useEffect` qui détecte la complétion (ligne 63-81), après le confetti et le `setTimeout` de 3s, ajouter un scroll fluide vers la section wishlist :
 
-- Supprimer le bloc warning (lignes 688-710) : le `showFriendWarning` state, le bloc destructive, et le bouton "Voir l'avertissement"
-- Supprimer les imports `Eye`, `EyeOff` s'ils ne sont plus utilisés
-- **Restaurer le bouton "Ajouter"** dans le header "Mon cercle d'amis" (ligne 684-686) : ajouter un `Button` avec icône `UserPlus` qui ouvre `setShowAddFriendModal(true)`
+- Utiliser `document.querySelector` pour trouver la section `FavoriteArticlesSection` (ajouter un `id="wishlist-section"` dans `FavoriteArticlesSection.tsx`)
+- Après le délai de célébration (3s), appeler `scrollIntoView({ behavior: 'smooth', block: 'center' })` pour amener l'utilisateur à sa liste de souhaits
 
-### 2. Remplacer le message info par l'avertissement dans le modal (`src/components/AddFriendModal.tsx`)
+**Fichiers :**
+- `src/components/FriendsCircleReminderCard.tsx` — ajouter scroll après celebration timeout
+- `src/components/FavoriteArticlesSection.tsx` — ajouter `id="wishlist-section"` au conteneur racine
 
-- Remplacer le bloc `Alert` info (lignes 205-221) contenant les 3 messages (téléphones distincts, chances cadeaux, sous-cercles) par l'avertissement rouge :
-  - `Alert variant="destructive"` avec le texte : "⚠️ Attention ! Ajoute les personnes que tu connais à ton cercle d'amis. Si elles ne te connaissent pas, elles pourraient hésiter à t'offrir des cadeaux."
+## 2. Améliorer l'affichage du bouton "Envoyer à un proche" (`AddFriendModal.tsx`)
 
-## Fichiers modifiés
+Le bouton est trop long et le texte déborde sur mobile. Corrections :
 
-- `src/pages/Dashboard.tsx` — supprimer warning + restaurer bouton Ajouter
-- `src/components/AddFriendModal.tsx` — remplacer info par avertissement rouge
+- Réduire le texte du bouton : utiliser `text-xs` au lieu de `text-sm`, et raccourcir légèrement en wrap
+- Ajouter `whitespace-nowrap` ou réduire le padding pour que le bouton tienne sur une ligne
+- Ajuster la hauteur `h-10` au lieu de `h-11` et le `p-3` au lieu de `p-4` sur le conteneur pour un affichage plus compact
+
+**Fichier :** `src/components/AddFriendModal.tsx`
 
