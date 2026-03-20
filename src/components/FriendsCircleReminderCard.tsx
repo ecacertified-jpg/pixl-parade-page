@@ -280,9 +280,16 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
                 <h3 className="font-poppins font-semibold text-foreground text-base sm:text-lg mb-1">
                   {title}
                 </h3>
-                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
-                  {subtitle}
-                </p>
+                {/* Alert block */}
+                <Alert variant="destructive" className="mb-3 border-destructive">
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertTitle className="text-sm font-bold">
+                    ⚠️ Alerte ! Ajoute au moins {minimumContacts} amis dans ton cercle d'amis pour désactiver cette alerte.
+                  </AlertTitle>
+                  <AlertDescription className="text-xs text-muted-foreground mt-1">
+                    Complète ton cercle d'amis pour profiter de la générosité de tes proches.
+                  </AlertDescription>
+                </Alert>
 
                 {/* Progress bar with red color */}
                 <div className="mb-3">
