@@ -1,26 +1,22 @@
 
 
-# Plan : Alerte pulsante sur le bouton "Ajouter mes amis" + passage à 3 amis minimum
+# Plan : Déplacer l'avertissement dans le modal + restaurer le bouton Ajouter
 
 ## Changements
 
-### 1. Passer le minimum de contacts de 2 à 3 (`src/hooks/useFriendsCircleReminder.ts`)
+### 1. Supprimer l'avertissement du Dashboard (`src/pages/Dashboard.tsx`)
 
-Modifier `MINIMUM_CONTACTS = 2` → `MINIMUM_CONTACTS = 3` (ligne 8).
+- Supprimer le bloc warning (lignes 688-710) : le `showFriendWarning` state, le bloc destructive, et le bouton "Voir l'avertissement"
+- Supprimer les imports `Eye`, `EyeOff` s'ils ne sont plus utilisés
+- **Restaurer le bouton "Ajouter"** dans le header "Mon cercle d'amis" (ligne 684-686) : ajouter un `Button` avec icône `UserPlus` qui ouvre `setShowAddFriendModal(true)`
 
-### 2. Ajouter l'alerte rouge + message sous le titre (`src/components/FriendsCircleReminderCard.tsx`)
+### 2. Remplacer le message info par l'avertissement dans le modal (`src/components/AddFriendModal.tsx`)
 
-Reproduire le pattern de `FavoriteArticlesSection` :
+- Remplacer le bloc `Alert` info (lignes 205-221) contenant les 3 messages (téléphones distincts, chances cadeaux, sous-cercles) par l'avertissement rouge :
+  - `Alert variant="destructive"` avec le texte : "⚠️ Attention ! Ajoute les personnes que tu connais à ton cercle d'amis. Si elles ne te connaissent pas, elles pourraient hésiter à t'offrir des cadeaux."
 
-- Ajouter un bloc `Alert variant="destructive"` sous le titre "Encore {n} ami(s)" avec le texte :
-  - **En style alerte** : "⚠️ Alerte ! Ajoute au moins 3 amis dans ton cercle d'amis pour désactiver cette alerte."
-  - **En dessous, texte plus petit** : "Complète ton cercle d'amis pour profiter de la générosité de tes proches."
-- Appliquer `animate-pulse` sur la bordure de la Card (comme la wishlist)
-- Appliquer `animate-bounce` + `shadow-lg` sur le bouton "Ajouter mes amis" (comme le bouton "Parcourir" de la wishlist)
-- Remplacer le `subtitle` actuel par le nouveau bloc alerte
+## Fichiers modifiés
 
-### Fichiers modifiés
-
-- `src/hooks/useFriendsCircleReminder.ts` — `MINIMUM_CONTACTS = 3`
-- `src/components/FriendsCircleReminderCard.tsx` — alerte + style bouton pulsant
+- `src/pages/Dashboard.tsx` — supprimer warning + restaurer bouton Ajouter
+- `src/components/AddFriendModal.tsx` — remplacer info par avertissement rouge
 
