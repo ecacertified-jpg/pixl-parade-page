@@ -150,7 +150,7 @@ export default function Dashboard() {
     refreshRequests,
   } = useFriendRequests();
   const [showSearchFriendModal, setShowSearchFriendModal] = useState(false);
-  const [showFriendWarning, setShowFriendWarning] = useState(true);
+  
   const pendingSentIds = new Set(pendingSent.map(s => s.target_id));
   
   // Inline search state
