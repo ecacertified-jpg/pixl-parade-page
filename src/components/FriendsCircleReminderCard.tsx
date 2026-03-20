@@ -255,7 +255,7 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="bg-destructive/5 border-2 border-destructive/40 shadow-lg overflow-hidden">
+        <Card className="bg-destructive/5 border-2 border-destructive/40 shadow-lg overflow-hidden animate-pulse">
           <CardContent className="p-4">
             {/* Urgent badge */}
             <div className="flex justify-between items-start mb-3">
