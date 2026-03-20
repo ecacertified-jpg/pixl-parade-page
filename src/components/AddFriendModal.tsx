@@ -202,21 +202,11 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <Alert className="border-primary/20 bg-primary/5">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-xs space-y-1.5 ml-1">
-              <p className="flex items-center gap-1.5">
-                <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
-                Les numéros de téléphone de vos contacts doivent être distincts.
-              </p>
-              <p className="flex items-center gap-1.5">
-                <Gift className="h-3 w-3 text-muted-foreground shrink-0" />
-                Plus vous ajoutez d'amis, plus vous avez de chances de recevoir des cadeaux de grande valeur !
-              </p>
-              <p className="flex items-center gap-1.5">
-                <Users className="h-3 w-3 text-muted-foreground shrink-0" />
-                Créez des sous-cercles d'amis pour maximiser vos chances de recevoir de nombreux cadeaux à votre anniversaire.
-              </p>
+          <Alert variant="destructive" className="border-destructive/30">
+            <TriangleAlert className="h-4 w-4" />
+            <AlertTitle className="text-sm font-bold">⚠️ Attention !</AlertTitle>
+            <AlertDescription className="text-xs mt-1">
+              Ajoute les personnes que tu connais à ton cercle d'amis. Si elles ne te connaissent pas, elles pourraient hésiter à t'offrir des cadeaux.
             </AlertDescription>
           </Alert>
 
