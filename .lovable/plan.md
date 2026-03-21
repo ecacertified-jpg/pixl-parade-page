@@ -1,43 +1,42 @@
 
 
-# Plan : Empêcher les doublons de numéro de téléphone dans les contacts
+# Plan : Recherche admin par téléphone et email
 
-## Problème
+## Contexte
 
-L'utilisateur peut actuellement :
-1. Ajouter son propre numéro de téléphone comme contact
-2. Ajouter le même numéro de téléphone plusieurs fois dans ses contacts (cercle principal ou sous-cercles)
+Les barres de recherche admin filtrent uniquement par nom. Les admins doivent aussi pouvoir chercher par **numéro de téléphone** et **email**.
 
-## Solution
+## Emplacements à modifier
 
-Ajouter une vérification **avant l'insertion** dans les deux fonctions `handleAddFriend` qui existent :
+Il y a **4 points de recherche** à enrichir :
 
-### 1. `src/pages/Dashboard.tsx` (lignes ~240-320)
+### 1. `src/components/admin/AssignUsersBusinessesModal.tsx` (ligne 113)
+- **Utilisateurs** : ajouter `phone.ilike` au `.or()` existant
+  - `first_name.ilike.%${s}%,last_name.ilike.%${s}%` → `first_name.ilike.%${s}%,last_name.ilike.%${s}%,phone.ilike.%${s}%`
+- **Entreprises** (ligne 136) : étendre avec `.or()` incluant `phone.ilike`, `email.ilike`
+  - `query.ilike('business_name', ...)` → `query.or(\`business_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%\`)`
 
-Avant l'insertion du contact (ligne 270), ajouter :
+### 2. `src/components/admin/AddAdminModal.tsx` (lignes 80, 172)
+- `fetchUsers` (ligne 80) : ajouter `phone` au select
+- `filteredUsers` (ligne 172) : inclure `u.phone` dans le filtre local
+  - `\`${u.first_name} ${u.last_name} ${u.phone || ''}\`.toLowerCase().includes(...)`
 
-- **Vérification propre numéro** : comparer `newFriend.phone` avec `userProfile?.phone` (déjà disponible via `useDashboardData`). Si identique → toast d'erreur + return
-- **Vérification doublon** : chercher dans la liste `friends` (déjà chargée) si un contact avec le même numéro existe déjà. Si oui → toast d'erreur avec le nom du contact existant + return
+### 3. `src/components/admin/UserBusinessTable.tsx` (ligne 42)
+- Filtre client-side : ajouter recherche dans les champs `phone` et `email` des businesses (déjà dans les données `UserWithBusiness`)
+- Vérifier que le hook `useUserBusinessStats` charge bien `phone`/`email` des profils — si non, ajouter
 
-### 2. `src/components/FriendsCircleReminderCard.tsx` (lignes ~87-153)
+### 4. `src/hooks/useFriendRequests.ts` (ligne 131) — recherche amis
+- Ajouter `phone.ilike` au `.or()` pour permettre la recherche par téléphone
+  - Note : pas d'email car `profiles` n'a pas de colonne email
 
-Même logique mais nécessite d'accéder au profil utilisateur et aux contacts existants :
-
-- Récupérer le phone du profil via une requête `supabase.from('profiles').select('phone')` avant la vérification
-- Récupérer les contacts existants via `supabase.from('contacts').select('phone, name').eq('user_id', user.id)` pour vérifier les doublons
-- Mêmes messages d'erreur toast
-
-### Messages affichés
-
-- **Propre numéro** : "Vous ne pouvez pas ajouter votre propre numéro de téléphone comme contact."
-- **Doublon** : "Ce numéro de téléphone est déjà utilisé par {nom_contact} dans votre cercle d'amis."
-
-### Normalisation
-
-Comparer les numéros en supprimant espaces, tirets et parenthèses (`phone.replace(/[\s\-()]/g, '')`) pour éviter les faux négatifs.
+### Placeholder des inputs
+- Mettre à jour les placeholders des champs de recherche pour indiquer "Nom, téléphone ou email..." là où pertinent
 
 ## Fichiers modifiés
 
-- `src/pages/Dashboard.tsx` — ajout vérifications avant insert
-- `src/components/FriendsCircleReminderCard.tsx` — ajout vérifications avant insert
+- `src/components/admin/AssignUsersBusinessesModal.tsx`
+- `src/components/admin/AddAdminModal.tsx`
+- `src/components/admin/UserBusinessTable.tsx`
+- `src/hooks/useFriendRequests.ts`
+- `src/hooks/useUserBusinessStats.ts` (si le phone profil n'est pas chargé)
 
