@@ -170,7 +170,7 @@ export function AddAdminModal({ open, onOpenChange, onSuccess }: AddAdminModalPr
   };
 
   const filteredUsers = users.filter(u => 
-    `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchQuery.toLowerCase())
+    `${u.first_name} ${u.last_name} ${u.phone || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const currentRoleInfo = ROLE_INFO[role];

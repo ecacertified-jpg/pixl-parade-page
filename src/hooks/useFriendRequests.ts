@@ -128,7 +128,7 @@ export function useFriendRequests() {
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name, avatar_url, bio')
-        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
+        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,phone.ilike.%${query}%`)
         .neq('user_id', user.id)
         .limit(20);
       if (error) throw error;
