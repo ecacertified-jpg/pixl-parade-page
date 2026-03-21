@@ -77,7 +77,7 @@ export function AddAdminModal({ open, onOpenChange, onSuccess }: AddAdminModalPr
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, user_id')
+        .select('id, first_name, last_name, user_id, phone')
         .order('first_name');
 
       if (error) throw error;
