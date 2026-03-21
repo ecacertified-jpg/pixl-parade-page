@@ -31,6 +31,7 @@ export interface UserWithBusiness {
   last_name: string | null;
   created_at: string;
   country_code: string | null;
+  phone: string | null;
   businesses: {
     id: string;
     business_name: string;
@@ -38,6 +39,8 @@ export interface UserWithBusiness {
     is_verified: boolean;
     status: string | null;
     country_code: string | null;
+    phone: string | null;
+    email: string | null;
   }[];
 }
 
@@ -71,7 +74,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
       // Fetch all profiles with country filter
       let profilesQuery = supabase
         .from('profiles')
-        .select('id, user_id, first_name, last_name, created_at, country_code', { count: 'exact' });
+        .select('id, user_id, first_name, last_name, created_at, country_code, phone', { count: 'exact' });
       
       if (countryCode) {
         profilesQuery = profilesQuery.eq('country_code', countryCode);
@@ -82,7 +85,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
       // Fetch all business accounts with country filter
       let businessQuery = supabase
         .from('business_accounts')
-        .select('id, user_id, business_name, is_active, is_verified, status, created_at, country_code', { count: 'exact' });
+        .select('id, user_id, business_name, is_active, is_verified, status, created_at, country_code, phone, email', { count: 'exact' });
       
       if (countryCode) {
         businessQuery = businessQuery.eq('country_code', countryCode);
@@ -161,6 +164,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
         last_name: profile.last_name,
         created_at: profile.created_at,
         country_code: profile.country_code,
+        phone: profile.phone ?? null,
         businesses: (businesses || [])
           .filter(b => b.user_id === profile.user_id)
           .map(b => ({
@@ -170,6 +174,8 @@ export function useUserBusinessStats(countryCode?: string | null) {
             is_verified: b.is_verified ?? false,
             status: b.status,
             country_code: b.country_code,
+            phone: b.phone ?? null,
+            email: b.email ?? null,
           })),
       }));
 

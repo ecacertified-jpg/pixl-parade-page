@@ -22,6 +22,7 @@ interface User {
   first_name: string | null;
   last_name: string | null;
   user_id: string;
+  phone: string | null;
 }
 
 type AdminRoleType = 'super_admin' | 'regional_admin' | 'moderator';
@@ -77,7 +78,7 @@ export function AddAdminModal({ open, onOpenChange, onSuccess }: AddAdminModalPr
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, user_id')
+        .select('id, first_name, last_name, user_id, phone')
         .order('first_name');
 
       if (error) throw error;
@@ -170,7 +171,7 @@ export function AddAdminModal({ open, onOpenChange, onSuccess }: AddAdminModalPr
   };
 
   const filteredUsers = users.filter(u => 
-    `${u.first_name} ${u.last_name}`.toLowerCase().includes(searchQuery.toLowerCase())
+    `${u.first_name} ${u.last_name} ${u.phone || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const currentRoleInfo = ROLE_INFO[role];

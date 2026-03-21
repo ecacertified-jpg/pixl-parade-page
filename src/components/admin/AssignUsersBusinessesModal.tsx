@@ -105,12 +105,12 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
     try {
       let query = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url')
+        .select('user_id, first_name, last_name, avatar_url, phone')
         .order('first_name', { ascending: true })
         .limit(50);
 
       if (userSearch.trim()) {
-        query = query.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%`);
+        query = query.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%,phone.ilike.%${userSearch}%`);
       }
 
       const { data, error } = await query;
@@ -128,12 +128,12 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
     try {
       let query = supabase
         .from('business_accounts')
-        .select('id, business_name, business_type, logo_url')
+        .select('id, business_name, business_type, logo_url, phone, email')
         .order('business_name', { ascending: true })
         .limit(50);
 
       if (bizSearch.trim()) {
-        query = query.ilike('business_name', `%${bizSearch}%`);
+        query = query.or(`business_name.ilike.%${bizSearch}%,phone.ilike.%${bizSearch}%,email.ilike.%${bizSearch}%`);
       }
 
       const { data, error } = await query;
@@ -280,7 +280,7 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher un utilisateur..."
+                  placeholder="Rechercher par nom ou téléphone..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   className="pl-9"
@@ -325,7 +325,7 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher une entreprise..."
+                  placeholder="Rechercher par nom, téléphone ou email..."
                   value={bizSearch}
                   onChange={(e) => setBizSearch(e.target.value)}
                   className="pl-9"
