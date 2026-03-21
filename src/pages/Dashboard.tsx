@@ -238,6 +238,30 @@ export default function Dashboard() {
   const handleAddFriend = async (newFriend: Friend) => {
     if (!user) return;
     
+    const normalize = (p: string) => p?.replace(/[\s\-()]/g, '') || '';
+    const normalizedNew = normalize(newFriend.phone || '');
+    
+    // Vérification propre numéro
+    if (normalizedNew && normalize(userProfile?.phone || '') === normalizedNew) {
+      toast({
+        title: "Numéro invalide",
+        description: "Vous ne pouvez pas ajouter votre propre numéro de téléphone comme contact.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Vérification doublon
+    const duplicate = friends.find(f => normalize(f.phone) === normalizedNew);
+    if (normalizedNew && duplicate) {
+      toast({
+        title: "Contact existant",
+        description: `Ce numéro de téléphone est déjà utilisé par ${duplicate.name} dans votre cercle d'amis.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       // 1. Rechercher si un utilisateur existe avec ce numéro
       const { data: existingUser, error: searchError } = await supabase
