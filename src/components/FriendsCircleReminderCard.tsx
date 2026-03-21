@@ -90,6 +90,26 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
       return;
     }
     
+    const normalize = (p: string) => p?.replace(/[\s\-()]/g, '') || '';
+    const normalizedNew = normalize(newFriend.phone || '');
+    
+    // Vérification propre numéro
+    if (normalizedNew) {
+      const { data: profile } = await supabase.from('profiles').select('phone').eq('user_id', user.id).maybeSingle();
+      if (profile?.phone && normalize(profile.phone) === normalizedNew) {
+        toast.error('Vous ne pouvez pas ajouter votre propre numéro de téléphone comme contact.');
+        return;
+      }
+      
+      // Vérification doublon
+      const { data: existing } = await supabase.from('contacts').select('phone, name').eq('user_id', user.id);
+      const duplicate = existing?.find(c => normalize(c.phone || '') === normalizedNew);
+      if (duplicate) {
+        toast.error(`Ce numéro de téléphone est déjà utilisé par ${duplicate.name} dans votre cercle d'amis.`);
+        return;
+      }
+    }
+    
     try {
       // 1. Rechercher si un utilisateur existe avec ce numéro
       const { data: existingUser } = await supabase
