@@ -1,25 +1,43 @@
 
 
-# Plan : Transition vers la wishlist après 3 amis + amélioration du bouton de partage
+# Plan : Empêcher les doublons de numéro de téléphone dans les contacts
 
-## 1. Scroll automatique vers la wishlist après complétion du cercle (`FriendsCircleReminderCard.tsx`)
+## Problème
 
-Dans le `useEffect` qui détecte la complétion (ligne 63-81), après le confetti et le `setTimeout` de 3s, ajouter un scroll fluide vers la section wishlist :
+L'utilisateur peut actuellement :
+1. Ajouter son propre numéro de téléphone comme contact
+2. Ajouter le même numéro de téléphone plusieurs fois dans ses contacts (cercle principal ou sous-cercles)
 
-- Utiliser `document.querySelector` pour trouver la section `FavoriteArticlesSection` (ajouter un `id="wishlist-section"` dans `FavoriteArticlesSection.tsx`)
-- Après le délai de célébration (3s), appeler `scrollIntoView({ behavior: 'smooth', block: 'center' })` pour amener l'utilisateur à sa liste de souhaits
+## Solution
 
-**Fichiers :**
-- `src/components/FriendsCircleReminderCard.tsx` — ajouter scroll après celebration timeout
-- `src/components/FavoriteArticlesSection.tsx` — ajouter `id="wishlist-section"` au conteneur racine
+Ajouter une vérification **avant l'insertion** dans les deux fonctions `handleAddFriend` qui existent :
 
-## 2. Améliorer l'affichage du bouton "Envoyer à un proche" (`AddFriendModal.tsx`)
+### 1. `src/pages/Dashboard.tsx` (lignes ~240-320)
 
-Le bouton est trop long et le texte déborde sur mobile. Corrections :
+Avant l'insertion du contact (ligne 270), ajouter :
 
-- Réduire le texte du bouton : utiliser `text-xs` au lieu de `text-sm`, et raccourcir légèrement en wrap
-- Ajouter `whitespace-nowrap` ou réduire le padding pour que le bouton tienne sur une ligne
-- Ajuster la hauteur `h-10` au lieu de `h-11` et le `p-3` au lieu de `p-4` sur le conteneur pour un affichage plus compact
+- **Vérification propre numéro** : comparer `newFriend.phone` avec `userProfile?.phone` (déjà disponible via `useDashboardData`). Si identique → toast d'erreur + return
+- **Vérification doublon** : chercher dans la liste `friends` (déjà chargée) si un contact avec le même numéro existe déjà. Si oui → toast d'erreur avec le nom du contact existant + return
 
-**Fichier :** `src/components/AddFriendModal.tsx`
+### 2. `src/components/FriendsCircleReminderCard.tsx` (lignes ~87-153)
+
+Même logique mais nécessite d'accéder au profil utilisateur et aux contacts existants :
+
+- Récupérer le phone du profil via une requête `supabase.from('profiles').select('phone')` avant la vérification
+- Récupérer les contacts existants via `supabase.from('contacts').select('phone, name').eq('user_id', user.id)` pour vérifier les doublons
+- Mêmes messages d'erreur toast
+
+### Messages affichés
+
+- **Propre numéro** : "Vous ne pouvez pas ajouter votre propre numéro de téléphone comme contact."
+- **Doublon** : "Ce numéro de téléphone est déjà utilisé par {nom_contact} dans votre cercle d'amis."
+
+### Normalisation
+
+Comparer les numéros en supprimant espaces, tirets et parenthèses (`phone.replace(/[\s\-()]/g, '')`) pour éviter les faux négatifs.
+
+## Fichiers modifiés
+
+- `src/pages/Dashboard.tsx` — ajout vérifications avant insert
+- `src/components/FriendsCircleReminderCard.tsx` — ajout vérifications avant insert
 
