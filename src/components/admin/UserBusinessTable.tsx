@@ -36,11 +36,18 @@ export function UserBusinessTable({ users, loading }: UserBusinessTableProps) {
 
   const filteredUsers = users.filter(user => {
     // Search filter
+    const query = searchQuery.toLowerCase();
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+    const userPhone = (user.phone || '').toLowerCase();
     const businessNames = user.businesses.map(b => b.business_name.toLowerCase()).join(' ');
+    const businessPhones = user.businesses.map(b => (b.phone || '').toLowerCase()).join(' ');
+    const businessEmails = user.businesses.map(b => (b.email || '').toLowerCase()).join(' ');
     const matchesSearch = 
-      fullName.includes(searchQuery.toLowerCase()) ||
-      businessNames.includes(searchQuery.toLowerCase());
+      fullName.includes(query) ||
+      userPhone.includes(query) ||
+      businessNames.includes(query) ||
+      businessPhones.includes(query) ||
+      businessEmails.includes(query);
 
     if (!matchesSearch) return false;
 
