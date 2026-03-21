@@ -31,6 +31,7 @@ export interface UserWithBusiness {
   last_name: string | null;
   created_at: string;
   country_code: string | null;
+  phone: string | null;
   businesses: {
     id: string;
     business_name: string;
@@ -38,6 +39,8 @@ export interface UserWithBusiness {
     is_verified: boolean;
     status: string | null;
     country_code: string | null;
+    phone: string | null;
+    email: string | null;
   }[];
 }
 
