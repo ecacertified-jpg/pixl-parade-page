@@ -77,7 +77,10 @@ export function FriendsCircleReminderCard({ onFriendAdded, compact = false }: Fr
       sendCompletionNotification();
       if (user?.id) checkAndAwardBadges(user.id);
 
-      setTimeout(() => setJustCompleted(false), 3000);
+      setTimeout(() => {
+        setJustCompleted(false);
+        document.getElementById('wishlist-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 3000);
     }
   }, [contactsCount, isLoading, minimumContacts, sendCompletionNotification, user?.id]);
 

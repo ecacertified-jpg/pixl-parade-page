@@ -37,7 +37,7 @@ export function FavoriteArticlesSection() {
   const dismissCelebration = () => setShowCelebration(false);
 
   return (
-    <Card className={`p-4 mb-6 transition-all duration-300 ${
+    <Card id="wishlist-section" className={`p-4 mb-6 transition-all duration-300 ${
       showCelebration
         ? "border-2 border-success bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20"
         : showUrgency
