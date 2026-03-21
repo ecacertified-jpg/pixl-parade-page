@@ -85,7 +85,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
       // Fetch all business accounts with country filter
       let businessQuery = supabase
         .from('business_accounts')
-        .select('id, user_id, business_name, is_active, is_verified, status, created_at, country_code', { count: 'exact' });
+        .select('id, user_id, business_name, is_active, is_verified, status, created_at, country_code, phone, email', { count: 'exact' });
       
       if (countryCode) {
         businessQuery = businessQuery.eq('country_code', countryCode);
