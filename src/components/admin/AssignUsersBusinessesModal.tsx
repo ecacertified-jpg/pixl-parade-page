@@ -280,7 +280,7 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
               <div className="relative mb-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rechercher un utilisateur..."
+                  placeholder="Rechercher par nom ou téléphone..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   className="pl-9"
