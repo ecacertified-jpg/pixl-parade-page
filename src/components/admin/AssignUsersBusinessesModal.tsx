@@ -105,12 +105,12 @@ export function AssignUsersBusinessesModal({ open, onOpenChange, adminId, adminN
     try {
       let query = supabase
         .from('profiles')
-        .select('user_id, first_name, last_name, avatar_url')
+        .select('user_id, first_name, last_name, avatar_url, phone')
         .order('first_name', { ascending: true })
         .limit(50);
 
       if (userSearch.trim()) {
-        query = query.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%`);
+        query = query.or(`first_name.ilike.%${userSearch}%,last_name.ilike.%${userSearch}%,phone.ilike.%${userSearch}%`);
       }
 
       const { data, error } = await query;
