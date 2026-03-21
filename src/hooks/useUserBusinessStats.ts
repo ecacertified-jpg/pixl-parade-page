@@ -164,6 +164,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
         last_name: profile.last_name,
         created_at: profile.created_at,
         country_code: profile.country_code,
+        phone: profile.phone ?? null,
         businesses: (businesses || [])
           .filter(b => b.user_id === profile.user_id)
           .map(b => ({
@@ -173,6 +174,8 @@ export function useUserBusinessStats(countryCode?: string | null) {
             is_verified: b.is_verified ?? false,
             status: b.status,
             country_code: b.country_code,
+            phone: b.phone ?? null,
+            email: b.email ?? null,
           })),
       }));
 

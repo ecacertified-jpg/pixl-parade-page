@@ -22,6 +22,7 @@ interface User {
   first_name: string | null;
   last_name: string | null;
   user_id: string;
+  phone: string | null;
 }
 
 type AdminRoleType = 'super_admin' | 'regional_admin' | 'moderator';
