@@ -74,7 +74,7 @@ export function useUserBusinessStats(countryCode?: string | null) {
       // Fetch all profiles with country filter
       let profilesQuery = supabase
         .from('profiles')
-        .select('id, user_id, first_name, last_name, created_at, country_code', { count: 'exact' });
+        .select('id, user_id, first_name, last_name, created_at, country_code, phone', { count: 'exact' });
       
       if (countryCode) {
         profilesQuery = profilesQuery.eq('country_code', countryCode);
