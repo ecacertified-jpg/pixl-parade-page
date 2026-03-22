@@ -1,42 +1,75 @@
 
 
-# Plan : Recherche admin par téléphone et email
+# Plan : Optimiser la vitesse d'affichage des pages et transitions
 
-## Contexte
+## Diagnostic
 
-Les barres de recherche admin filtrent uniquement par nom. Les admins doivent aussi pouvoir chercher par **numéro de téléphone** et **email**.
+Trois problèmes principaux ralentissent l'affichage :
 
-## Emplacements à modifier
+1. **`AnimatePresence mode="wait"` sur les onglets Dashboard** (ligne 699) — l'ancien onglet doit finir son animation de sortie (250ms) avant que le nouveau ne s'affiche. L'utilisateur perçoit un délai.
 
-Il y a **4 points de recherche** à enrichir :
+2. **QueryClient sans configuration de cache globale** (ligne 143 de App.tsx) — `new QueryClient()` sans defaults. Chaque hook définit son propre `staleTime` (30s) mais aucun `gcTime` global ni `refetchOnWindowFocus: false`. Résultat : re-fetches fréquents et données non-cached entre navigations.
 
-### 1. `src/components/admin/AssignUsersBusinessesModal.tsx` (ligne 113)
-- **Utilisateurs** : ajouter `phone.ilike` au `.or()` existant
-  - `first_name.ilike.%${s}%,last_name.ilike.%${s}%` → `first_name.ilike.%${s}%,last_name.ilike.%${s}%,phone.ilike.%${s}%`
-- **Entreprises** (ligne 136) : étendre avec `.or()` incluant `phone.ilike`, `email.ilike`
-  - `query.ilike('business_name', ...)` → `query.or(\`business_name.ilike.%${s}%,phone.ilike.%${s}%,email.ilike.%${s}%\`)`
+3. **Skeleton bloquant sur le Dashboard** (ligne 490-491) — `DashboardSkeleton` remplace tout le contenu tant que `dashboardLoading` est true, au lieu d'afficher la structure immédiatement avec des données placeholder.
 
-### 2. `src/components/admin/AddAdminModal.tsx` (lignes 80, 172)
-- `fetchUsers` (ligne 80) : ajouter `phone` au select
-- `filteredUsers` (ligne 172) : inclure `u.phone` dans le filtre local
-  - `\`${u.first_name} ${u.last_name} ${u.phone || ''}\`.toLowerCase().includes(...)`
+## Changements
 
-### 3. `src/components/admin/UserBusinessTable.tsx` (ligne 42)
-- Filtre client-side : ajouter recherche dans les champs `phone` et `email` des businesses (déjà dans les données `UserWithBusiness`)
-- Vérifier que le hook `useUserBusinessStats` charge bien `phone`/`email` des profils — si non, ajouter
+### 1. `src/App.tsx` — QueryClient avec cache agressif
 
-### 4. `src/hooks/useFriendRequests.ts` (ligne 131) — recherche amis
-- Ajouter `phone.ilike` au `.or()` pour permettre la recherche par téléphone
-  - Note : pas d'email car `profiles` n'a pas de colonne email
+Configurer `QueryClient` avec des defaults globaux pour que les données restent en cache entre navigations :
 
-### Placeholder des inputs
-- Mettre à jour les placeholders des champs de recherche pour indiquer "Nom, téléphone ou email..." là où pertinent
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,        // 1 min avant re-fetch
+      gcTime: 10 * 60_000,      // 10 min en cache mémoire
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+```
+
+### 2. `src/pages/Dashboard.tsx` — Supprimer `AnimatePresence mode="wait"` sur les onglets
+
+Remplacer `AnimatePresence mode="wait"` (ligne 699) par `AnimatePresence mode="popLayout"` pour que le nouveau contenu apparaisse **immédiatement** sans attendre la sortie de l'ancien. Réduire la durée de transition de 250ms à 150ms.
+
+### 3. `src/pages/Dashboard.tsx` — Afficher le contenu sans skeleton bloquant
+
+Remplacer le `if (dashboardLoading) return <DashboardSkeleton />` par un rendu conditionnel inline : afficher la structure de page immédiatement (header, onglets), avec des skeletons uniquement dans les zones de données (liste d'amis, événements).
+
+### 4. `src/hooks/useDashboardData.ts` — `placeholderData`
+
+Ajouter `placeholderData` pour que TanStack Query affiche les données précédentes pendant un re-fetch, évitant tout flash de skeleton :
+
+```typescript
+placeholderData: (previousData) => previousData,
+```
+
+### 5. Appliquer `placeholderData` aux hooks fréquents
+
+Ajouter `placeholderData: (prev) => prev` dans les hooks les plus utilisés pour garder l'ancien contenu visible pendant les re-fetches :
+- `useCollectiveFunds.ts`
+- `useFavorites.ts`
+- `useReciprocityScore.ts`
+- `useFriendRequests.ts`
+- `useBusinessAccount.ts`
+
+### 6. Préchargement du Dashboard dès la page Index/Home
+
+Dans `src/pages/Index.tsx` et `src/pages/Home.tsx`, ajouter un `queryClient.prefetchQuery` pour `dashboard-data` quand l'utilisateur est connecté, afin que les données soient déjà en cache quand il navigue vers le Dashboard.
 
 ## Fichiers modifiés
 
-- `src/components/admin/AssignUsersBusinessesModal.tsx`
-- `src/components/admin/AddAdminModal.tsx`
-- `src/components/admin/UserBusinessTable.tsx`
-- `src/hooks/useFriendRequests.ts`
-- `src/hooks/useUserBusinessStats.ts` (si le phone profil n'est pas chargé)
+- `src/App.tsx` — QueryClient defaults
+- `src/pages/Dashboard.tsx` — supprimer mode="wait", supprimer skeleton bloquant
+- `src/hooks/useDashboardData.ts` — placeholderData
+- `src/hooks/useCollectiveFunds.ts` — placeholderData
+- `src/hooks/useFavorites.ts` — placeholderData
+- `src/hooks/useReciprocityScore.ts` — placeholderData
+- `src/hooks/useFriendRequests.ts` — placeholderData
+- `src/hooks/useBusinessAccount.ts` — placeholderData
+- `src/pages/Index.tsx` — prefetch dashboard-data
+- `src/pages/Home.tsx` — prefetch dashboard-data
 
