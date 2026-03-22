@@ -25,6 +25,7 @@ interface InviteFriendsModalProps {
 export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalProps) {
   const { sendInvitation, sendBulkInvitations, loading } = useInvitations();
   const { isSupported, loading: contactsLoading, contacts, error: contactsError, pickContacts, clearContacts } = useDeviceContacts();
+  const { user } = useAuth();
   
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -32,6 +33,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
   const [selectedContacts, setSelectedContacts] = useState<DeviceContact[]>([]);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [invitationLink, setInvitationLink] = useState("");
+  const [userFirstName, setUserFirstName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
