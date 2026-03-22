@@ -53,6 +53,18 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
       return;
     }
 
+    // Fetch user's first name for personalized message
+    let firstName = "";
+    if (user?.id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name')
+        .eq('user_id', user.id)
+        .single();
+      firstName = profile?.first_name || "";
+      setUserFirstName(firstName);
+    }
+
     const result = await sendInvitation(email || undefined as any, phone, message || undefined);
 
     if (result.success) {
