@@ -43,7 +43,7 @@ export const useReciprocityScore = () => {
     queryKey: ['reciprocity-score', user?.id],
     queryFn: () => fetchReciprocityScore(user!.id),
     enabled: !!user?.id,
-    staleTime: 30000,
+    placeholderData: (prev) => prev,
   });
 
   // Realtime invalidation

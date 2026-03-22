@@ -72,7 +72,7 @@ export function useDashboardData() {
     queryKey: ['dashboard-data', user?.id],
     queryFn: () => fetchDashboardData(user!.id),
     enabled: !!user?.id,
-    staleTime: 30000,
+    placeholderData: (prev) => prev,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['dashboard-data', user?.id] });
@@ -85,4 +85,11 @@ export function useDashboardData() {
     loading,
     refreshDashboard: invalidate,
   };
+}
+
+export function prefetchDashboardData(queryClient: ReturnType<typeof useQueryClient>, userId: string) {
+  queryClient.prefetchQuery({
+    queryKey: ['dashboard-data', userId],
+    queryFn: () => fetchDashboardData(userId),
+  });
 }

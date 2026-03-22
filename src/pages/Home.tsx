@@ -1,6 +1,8 @@
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { NotificationPanel } from "@/components/NotificationPanel";
@@ -27,10 +29,21 @@ import logoJV from "@/assets/logo-jv.svg";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { isActiveBusinessAccount } = useBusinessAccount();
   const { itemCount } = useCart();
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
   const [feedMode, setFeedMode] = useState<'feed' | 'tiktok'>('feed');
+
+  // Prefetch dashboard data so it's instant when user navigates
+  useEffect(() => {
+    if (user?.id) {
+      import('@/hooks/useDashboardData').then(({ prefetchDashboardData }) => {
+        prefetchDashboardData(queryClient, user.id);
+      });
+    }
+  }, [user?.id, queryClient]);
 
   // TikTok mode - full screen immersive
   if (feedMode === 'tiktok') {

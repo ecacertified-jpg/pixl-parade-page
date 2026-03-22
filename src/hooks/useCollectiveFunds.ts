@@ -263,7 +263,7 @@ export function useCollectiveFunds() {
     queryKey: ['collective-funds', user?.id, effectiveCountryFilter],
     queryFn: () => fetchCollectiveFunds(user!.id, effectiveCountryFilter),
     enabled: !!user,
-    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
   return {

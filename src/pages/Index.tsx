@@ -16,7 +16,8 @@ import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessAccount } from "@/hooks/useBusinessAccount";
 import { ValueModal } from "@/components/ValueModal";
@@ -25,8 +26,18 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { isActiveBusinessAccount } = useBusinessAccount();
   const [showValueModal, setShowValueModal] = useState(false);
+
+  // Prefetch dashboard data
+  useEffect(() => {
+    if (user?.id) {
+      import('@/hooks/useDashboardData').then(({ prefetchDashboardData }) => {
+        prefetchDashboardData(queryClient, user.id);
+      });
+    }
+  }, [user?.id, queryClient]);
 
   const handleGiftAction = () => {
     toast({
