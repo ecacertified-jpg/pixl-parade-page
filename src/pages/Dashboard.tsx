@@ -487,9 +487,7 @@ export default function Dashboard() {
     return diffDays;
   };
 
-  if (dashboardLoading) {
-    return <DashboardSkeleton />;
-  }
+  const showSkeleton = dashboardLoading && friends.length === 0;
 
   return <>
     <SEOHead {...SEO_CONFIGS.dashboard} />
