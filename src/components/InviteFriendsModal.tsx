@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useDeviceContacts, DeviceContact } from "@/hooks/useDeviceContacts";
 import { ContactPickerList } from "@/components/ContactPickerList";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Mail, MessageSquare, Send, Users, Gift, Heart, Calendar, Smartphone, AlertCircle,
   MessageCircle, Facebook, Linkedin, Copy, Share2
@@ -23,6 +25,7 @@ interface InviteFriendsModalProps {
 export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalProps) {
   const { sendInvitation, sendBulkInvitations, loading } = useInvitations();
   const { isSupported, loading: contactsLoading, contacts, error: contactsError, pickContacts, clearContacts } = useDeviceContacts();
+  const { user } = useAuth();
   
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -30,6 +33,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
   const [selectedContacts, setSelectedContacts] = useState<DeviceContact[]>([]);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [invitationLink, setInvitationLink] = useState("");
+  const [userFirstName, setUserFirstName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +53,18 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
       return;
     }
 
+    // Fetch user's first name for personalized message
+    let firstName = "";
+    if (user?.id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name')
+        .eq('user_id', user.id)
+        .single();
+      firstName = profile?.first_name || "";
+      setUserFirstName(firstName);
+    }
+
     const result = await sendInvitation(email || undefined as any, phone, message || undefined);
 
     if (result.success) {
@@ -58,7 +74,8 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
     }
   };
 
-  const inviteMessage = `Rejoins-moi sur Joie de Vivre ! 🎉\n\nDécouvre cette super application pour célébrer nos moments de joie ensemble !\n\n${invitationLink}`;
+  const senderName = userFirstName || "Un ami";
+  const inviteMessage = `Salut ! ${senderName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉\n\nInscris-toi ici : ${invitationLink}`;
 
   const shareViaWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`, '_blank');

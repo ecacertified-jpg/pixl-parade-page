@@ -124,11 +124,11 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
   if (loading) {
     if (compact) return null;
     return (
-      <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card">
+      <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card mb-4">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Suggestions pour vous
+          <CardTitle className="text-sm sm:text-base flex items-center gap-1.5">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+            <span className="truncate">Suggestions pour vous</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -398,20 +398,21 @@ export function UserSuggestionsSection({ compact = false }: UserSuggestionsSecti
 
   return (
     <>
-      <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card">
+      <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-card mb-4">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Suggestions pour vous
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-1.5 min-w-0">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+              <span className="truncate">Suggestions pour vous</span>
             </CardTitle>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setInviteModalOpen(true)}
+              className="shrink-0"
             >
               <Mail className="w-4 h-4 mr-1" />
-              Inviter
+              <span className="text-xs sm:text-sm">Inviter</span>
             </Button>
           </div>
         </CardHeader>
