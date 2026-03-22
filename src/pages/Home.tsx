@@ -1,5 +1,7 @@
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { memo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { memo, useState } from "react";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 import { BusinessProfileDropdown } from "@/components/BusinessProfileDropdown";
