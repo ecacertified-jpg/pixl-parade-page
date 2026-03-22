@@ -74,7 +74,8 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
     }
   };
 
-  const inviteMessage = `Rejoins-moi sur Joie de Vivre ! 🎉\n\nDécouvre cette super application pour célébrer nos moments de joie ensemble !\n\n${invitationLink}`;
+  const senderName = userFirstName || "Un ami";
+  const inviteMessage = `Salut ! ${senderName} t'invite à rejoindre Joie de Vivre, l'app qui célèbre les moments heureux 🎉\n\nInscris-toi ici : ${invitationLink}`;
 
   const shareViaWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`, '_blank');
