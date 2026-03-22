@@ -86,3 +86,10 @@ export function useDashboardData() {
     refreshDashboard: invalidate,
   };
 }
+
+export function prefetchDashboardData(queryClient: ReturnType<typeof useQueryClient>, userId: string) {
+  queryClient.prefetchQuery({
+    queryKey: ['dashboard-data', userId],
+    queryFn: () => fetchDashboardData(userId),
+  });
+}
