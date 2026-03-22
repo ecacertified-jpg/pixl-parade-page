@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvitations } from "@/hooks/useInvitations";
 import { useDeviceContacts, DeviceContact } from "@/hooks/useDeviceContacts";
 import { ContactPickerList } from "@/components/ContactPickerList";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Mail, MessageSquare, Send, Users, Gift, Heart, Calendar, Smartphone, AlertCircle,
   MessageCircle, Facebook, Linkedin, Copy, Share2
