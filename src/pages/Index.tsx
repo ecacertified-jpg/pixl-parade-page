@@ -26,8 +26,18 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { isActiveBusinessAccount } = useBusinessAccount();
   const [showValueModal, setShowValueModal] = useState(false);
+
+  // Prefetch dashboard data
+  useEffect(() => {
+    if (user?.id) {
+      import('@/hooks/useDashboardData').then(({ prefetchDashboardData }) => {
+        prefetchDashboardData(queryClient, user.id);
+      });
+    }
+  }, [user?.id, queryClient]);
 
   const handleGiftAction = () => {
     toast({
