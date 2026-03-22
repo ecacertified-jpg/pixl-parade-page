@@ -694,13 +694,13 @@ export default function Dashboard() {
             </TabsList>
           </TooltipProvider>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="popLayout">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
           <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
             <div className="flex items-center justify-between mb-2">

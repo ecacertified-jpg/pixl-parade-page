@@ -112,7 +112,7 @@ export function useFriendRequests() {
     queryKey: ['friend-requests', user?.id],
     queryFn: () => fetchFriendRequests(user!.id),
     enabled: !!user?.id,
-    staleTime: 15000,
+    placeholderData: (prev) => prev,
   });
 
   const pendingReceived = data?.pendingReceived || [];

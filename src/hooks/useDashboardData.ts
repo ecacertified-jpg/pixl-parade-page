@@ -72,7 +72,7 @@ export function useDashboardData() {
     queryKey: ['dashboard-data', user?.id],
     queryFn: () => fetchDashboardData(user!.id),
     enabled: !!user?.id,
-    staleTime: 30000,
+    placeholderData: (prev) => prev,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['dashboard-data', user?.id] });

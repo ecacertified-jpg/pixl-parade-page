@@ -41,7 +41,7 @@ export const useBusinessAccount = () => {
     queryKey: ['business-account', user?.id],
     queryFn: () => fetchBusinessAccount(user!.id),
     enabled: !!user?.id,
-    staleTime: 60000,
+    placeholderData: (prev) => prev,
   });
 
   const hasBusinessAccount = businessAccount !== null;

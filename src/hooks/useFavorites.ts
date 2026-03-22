@@ -62,7 +62,7 @@ export function useFavorites() {
     queryKey,
     queryFn: () => fetchFavorites(userId!),
     enabled: !!userId,
-    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
   const stats = useMemo<FavoriteStats>(() => ({
