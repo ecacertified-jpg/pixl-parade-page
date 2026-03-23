@@ -27,7 +27,9 @@ const ALERT_INTERVALS = [
 const MESSAGES: Record<string, (name: string) => string> = {
   j30: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 mois. Commencez à préparer une surprise!`,
   j21: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 3 semaines. Pensez au cadeau idéal!`,
-  j14: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Découvrez nos idées cadeaux!`,
+  j14: (name, fundLink?: string) => fundLink
+    ? `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Participez à sa cagnotte 👉 ${fundLink} ou offrez-lui un cadeau sur joiedevivre-africa.com`
+    : `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Offrez-lui un cadeau sur joiedevivre-africa.com/shop 🎁`,
   j7: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander!`,
   j5: (name) => `JoieDvivre: ${name} fête son anniversaire dans 5 jours. Avez-vous trouvé le cadeau parfait?`,
   j3: (name) => `JoieDvivre: Plus que 3 jours avant l'anniversaire de ${name}! Découvrez nos idées cadeaux.`,
