@@ -1,75 +1,61 @@
+# Plan : Enrichir les notifications aux contacts
 
+## Constat
 
-# Plan : Optimiser la vitesse d'affichage des pages et transitions
+Le système de notifications est déjà **largement en place**. Quatre ajustements sont proposés pour combler les lacunes identifiées.
 
-## Diagnostic
+## Changements proposés
 
-Trois problèmes principaux ralentissent l'affichage :
+### 1. Rappel périodique aux contacts non-inscrits (nouvelle Edge Function)
 
-1. **`AnimatePresence mode="wait"` sur les onglets Dashboard** (ligne 699) — l'ancien onglet doit finir son animation de sortie (250ms) avant que le nouveau ne s'affiche. L'utilisateur perçoit un délai.
+Créer `notify-contacts-join-reminder` — un CRON hebdomadaire qui :
 
-2. **QueryClient sans configuration de cache globale** (ligne 143 de App.tsx) — `new QueryClient()` sans defaults. Chaque hook définit son propre `staleTime` (30s) mais aucun `gcTime` global ni `refetchOnWindowFocus: false`. Résultat : re-fetches fréquents et données non-cached entre navigations.
+- Identifie les contacts ajoutés il y a plus de 7 jours qui n'ont toujours pas de compte utilisateur
+- Leur envoie un WhatsApp template les invitant à créer leur cercle d'amis
+- Limite : 1 rappel tous les 2 semaines par contact (déduplication via `birthday_contact_alerts`)
+- Template : `joiedevivre_join_reminder` avec paramètres `[nom_ami_qui_a_ajouté]`
+- Message : "{Prénom} t'a ajouté à son cercle d'amis sur Joie de Vivre. Crée ton cercle pour profiter aussi de la générosité de tes proches 👉 joiedevivre-africa.com"
 
-3. **Skeleton bloquant sur le Dashboard** (ligne 490-491) — `DashboardSkeleton` remplace tout le contenu tant que `dashboardLoading` est true, au lieu d'afficher la structure immédiatement avec des données placeholder.
+**Note** : Ce template WhatsApp devra être créé et approuvé dans Meta Business Manager avant de fonctionner. En attendant, le système utilisera un fallback SMS.
 
-## Changements
+### 2. Notification de cotisation aux contacts proches d'un anniversaire
 
-### 1. `src/App.tsx` — QueryClient avec cache agressif
+Enrichir `check-birthday-alerts-for-contacts` pour ajouter un message de cotisation dans les rappels J-14 et J-7 :
 
-Configurer `QueryClient` avec des defaults globaux pour que les données restent en cache entre navigations :
+- Vérifier si une cagnotte existe pour l'anniversaire du contact
+- Si oui : inclure le lien de la cagnotte dans le message
+- Si non : suggérer de créer une cotisation
+- Modifier les messages `j14` et `j7` pour inclure l'appel à cotisation
 
-```typescript
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,        // 1 min avant re-fetch
-      gcTime: 10 * 60_000,      // 10 min en cache mémoire
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+### 3. CRON job pour le rappel hebdomadaire
+
+Ajouter un job pg_cron hebdomadaire (dimanche 10h UTC) pour déclencher `notify-contacts-join-reminder`.
+
+### 4. Migration — aucune nouvelle table nécessaire
+
+La table `birthday_contact_alerts` existante sera réutilisée avec un nouveau `alert_type: 'join_reminder'` pour la déduplication.
+
+## Fichiers modifiés / créés
+
+- **Nouveau** : `supabase/functions/notify-contacts-join-reminder/index.ts`
+- **Modifié** : `supabase/functions/check-birthday-alerts-for-contacts/index.ts` (messages J-14/J-7 enrichis avec liens cagnotte)
+- **SQL** : nouveau CRON job via insert
+
+## Détails techniques
+
+### Edge Function `notify-contacts-join-reminder`
+
+```text
+CRON (dimanche 10h) → 
+  SELECT contacts sans linked_user_id, ajoutés il y a > 7 jours →
+  FILTER pas de join_reminder envoyé dans les 30 derniers jours →
+  SEND WhatsApp template (fallback SMS) →
+  INSERT birthday_contact_alerts (alert_type = 'join_reminder')
 ```
 
-### 2. `src/pages/Dashboard.tsx` — Supprimer `AnimatePresence mode="wait"` sur les onglets
+### Messages J-14/J-7 enrichis
 
-Remplacer `AnimatePresence mode="wait"` (ligne 699) par `AnimatePresence mode="popLayout"` pour que le nouveau contenu apparaisse **immédiatement** sans attendre la sortie de l'ancien. Réduire la durée de transition de 250ms à 150ms.
-
-### 3. `src/pages/Dashboard.tsx` — Afficher le contenu sans skeleton bloquant
-
-Remplacer le `if (dashboardLoading) return <DashboardSkeleton />` par un rendu conditionnel inline : afficher la structure de page immédiatement (header, onglets), avec des skeletons uniquement dans les zones de données (liste d'amis, événements).
-
-### 4. `src/hooks/useDashboardData.ts` — `placeholderData`
-
-Ajouter `placeholderData` pour que TanStack Query affiche les données précédentes pendant un re-fetch, évitant tout flash de skeleton :
-
-```typescript
-placeholderData: (previousData) => previousData,
+```text
+Avant : "L'anniversaire de {nom} est dans 2 semaines. Découvrez nos idées cadeaux!"
+Après : "L'anniversaire de {nom} est dans 2 semaines. Participez à sa cagnotte 👉 {lien_cagnotte} ou offrez-lui un cadeau sur joiedevivre-africa.com"
 ```
-
-### 5. Appliquer `placeholderData` aux hooks fréquents
-
-Ajouter `placeholderData: (prev) => prev` dans les hooks les plus utilisés pour garder l'ancien contenu visible pendant les re-fetches :
-- `useCollectiveFunds.ts`
-- `useFavorites.ts`
-- `useReciprocityScore.ts`
-- `useFriendRequests.ts`
-- `useBusinessAccount.ts`
-
-### 6. Préchargement du Dashboard dès la page Index/Home
-
-Dans `src/pages/Index.tsx` et `src/pages/Home.tsx`, ajouter un `queryClient.prefetchQuery` pour `dashboard-data` quand l'utilisateur est connecté, afin que les données soient déjà en cache quand il navigue vers le Dashboard.
-
-## Fichiers modifiés
-
-- `src/App.tsx` — QueryClient defaults
-- `src/pages/Dashboard.tsx` — supprimer mode="wait", supprimer skeleton bloquant
-- `src/hooks/useDashboardData.ts` — placeholderData
-- `src/hooks/useCollectiveFunds.ts` — placeholderData
-- `src/hooks/useFavorites.ts` — placeholderData
-- `src/hooks/useReciprocityScore.ts` — placeholderData
-- `src/hooks/useFriendRequests.ts` — placeholderData
-- `src/hooks/useBusinessAccount.ts` — placeholderData
-- `src/pages/Index.tsx` — prefetch dashboard-data
-- `src/pages/Home.tsx` — prefetch dashboard-data
-
