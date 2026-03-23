@@ -24,7 +24,7 @@ const ALERT_INTERVALS = [
 ];
 
 // Messages per interval
-const MESSAGES: Record<string, (name: string) => string> = {
+const MESSAGES: Record<string, (name: string, fundLink?: string) => string> = {
   j30: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 mois. Commencez à préparer une surprise!`,
   j21: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 3 semaines. Pensez au cadeau idéal!`,
   j14: (name, fundLink?: string) => fundLink
