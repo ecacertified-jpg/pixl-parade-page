@@ -24,11 +24,15 @@ const ALERT_INTERVALS = [
 ];
 
 // Messages per interval
-const MESSAGES: Record<string, (name: string) => string> = {
+const MESSAGES: Record<string, (name: string, fundLink?: string) => string> = {
   j30: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 mois. Commencez à préparer une surprise!`,
   j21: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 3 semaines. Pensez au cadeau idéal!`,
-  j14: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Découvrez nos idées cadeaux!`,
-  j7: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander!`,
+  j14: (name, fundLink?: string) => fundLink
+    ? `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Participez à sa cagnotte 👉 ${fundLink} ou offrez-lui un cadeau sur joiedevivre-africa.com`
+    : `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Offrez-lui un cadeau sur joiedevivre-africa.com/shop 🎁`,
+  j7: (name, fundLink?: string) => fundLink
+    ? `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Participez à sa cagnotte 👉 ${fundLink} ou offrez-lui un cadeau!`
+    : `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander sur joiedevivre-africa.com/shop 🎁`,
   j5: (name) => `JoieDvivre: ${name} fête son anniversaire dans 5 jours. Avez-vous trouvé le cadeau parfait?`,
   j3: (name) => `JoieDvivre: Plus que 3 jours avant l'anniversaire de ${name}! Découvrez nos idées cadeaux.`,
   j2: (name) => `JoieDvivre: L'anniversaire de ${name} approche (dans 2 jours). Commandez votre cadeau!`,
@@ -164,8 +168,26 @@ serve(async (req) => {
           continue;
         }
 
+        // Look up active fund for this user's birthday (for J-14 and J-7 messages)
+        let fundLink: string | undefined;
+        if (matchingInterval.msgKey === 'j14' || matchingInterval.msgKey === 'j7') {
+          const { data: activeFund } = await supabase
+            .from('collective_funds')
+            .select('id')
+            .eq('status', 'active')
+            .eq('occasion', 'birthday')
+            .or(`beneficiary_user_id.eq.${user.user_id}`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (activeFund) {
+            fundLink = `https://joiedevivre-africa.com/f/${activeFund.id}`;
+          }
+        }
+
         // Build and send message
-        const message = MESSAGES[matchingInterval.msgKey](userName);
+        const message = MESSAGES[matchingInterval.msgKey](userName, fundLink);
         const channel = getPreferredChannel(ownerProfile.phone);
         
         let sendResult: { success: boolean; error?: string } = { success: false };
