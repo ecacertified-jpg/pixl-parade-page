@@ -30,7 +30,9 @@ const MESSAGES: Record<string, (name: string) => string> = {
   j14: (name, fundLink?: string) => fundLink
     ? `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Participez à sa cagnotte 👉 ${fundLink} ou offrez-lui un cadeau sur joiedevivre-africa.com`
     : `JoieDvivre: L'anniversaire de ${name} est dans 2 semaines. Offrez-lui un cadeau sur joiedevivre-africa.com/shop 🎁`,
-  j7: (name) => `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander!`,
+  j7: (name, fundLink?: string) => fundLink
+    ? `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Participez à sa cagnotte 👉 ${fundLink} ou offrez-lui un cadeau!`
+    : `JoieDvivre: L'anniversaire de ${name} est dans 1 semaine. Il est temps de commander sur joiedevivre-africa.com/shop 🎁`,
   j5: (name) => `JoieDvivre: ${name} fête son anniversaire dans 5 jours. Avez-vous trouvé le cadeau parfait?`,
   j3: (name) => `JoieDvivre: Plus que 3 jours avant l'anniversaire de ${name}! Découvrez nos idées cadeaux.`,
   j2: (name) => `JoieDvivre: L'anniversaire de ${name} approche (dans 2 jours). Commandez votre cadeau!`,
