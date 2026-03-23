@@ -168,8 +168,26 @@ serve(async (req) => {
           continue;
         }
 
+        // Look up active fund for this user's birthday (for J-14 and J-7 messages)
+        let fundLink: string | undefined;
+        if (matchingInterval.msgKey === 'j14' || matchingInterval.msgKey === 'j7') {
+          const { data: activeFund } = await supabase
+            .from('collective_funds')
+            .select('id')
+            .eq('status', 'active')
+            .eq('occasion', 'birthday')
+            .or(`beneficiary_user_id.eq.${user.user_id}`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (activeFund) {
+            fundLink = `https://joiedevivre-africa.com/f/${activeFund.id}`;
+          }
+        }
+
         // Build and send message
-        const message = MESSAGES[matchingInterval.msgKey](userName);
+        const message = MESSAGES[matchingInterval.msgKey](userName, fundLink);
         const channel = getPreferredChannel(ownerProfile.phone);
         
         let sendResult: { success: boolean; error?: string } = { success: false };
