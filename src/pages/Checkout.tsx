@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { isCorruptedSessionError, cleanupCorruptedSession } from "@/utils/authErrorHandler";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
-import { WavePaymentSimulation } from "@/components/WavePaymentSimulation";
+import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { CheckoutBreadcrumb } from "@/components/breadcrumbs";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
