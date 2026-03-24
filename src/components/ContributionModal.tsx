@@ -15,8 +15,9 @@ import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Smartphone } from "lucide-react";
 import { z } from "zod";
+import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 
 interface ContributionModalProps {
   isOpen: boolean;
