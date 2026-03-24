@@ -563,29 +563,55 @@ export function ContributionModal({
         </div>
 
         {/* Footer fixe avec boutons */}
-        <div className="flex-shrink-0 pt-4 border-t flex gap-2">
+        <div className="flex-shrink-0 pt-4 border-t space-y-2">
+          {/* Bouton Wave */}
           <Button
             type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleSubmit}
+            onClick={() => setShowWaveModal(true)}
             disabled={loading || !amount || loadingExisting}
-            className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+            className="w-full bg-[#1DC3C3] hover:bg-[#19AFAF] text-white"
           >
-            {loading 
-              ? "Envoi..." 
-              : isEditMode 
-                ? "Modifier ma contribution" 
-                : "Contribuer"
-            }
+            <Smartphone className="h-4 w-4 mr-2" />
+            {isEditMode ? "Modifier via Wave" : "Contribuer via Wave 🌊"}
           </Button>
+          
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !amount || loadingExisting}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+            >
+              {loading 
+                ? "Envoi..." 
+                : isEditMode 
+                  ? "Modifier" 
+                  : "Contribuer"
+              }
+            </Button>
+          </div>
         </div>
+
+        {/* Wave payment redirect for contributions */}
+        <WavePaymentRedirect
+          open={showWaveModal}
+          onOpenChange={setShowWaveModal}
+          amount={parseFloat(amount) || 0}
+          currency={currency}
+          freeAmount={true}
+          onSuccess={() => {
+            setShowWaveModal(false);
+            handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+          }}
+        />
       </DialogContent>
 
       {/* Modal de Gratitude après contribution */}
