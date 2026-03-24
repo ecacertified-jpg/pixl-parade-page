@@ -93,8 +93,8 @@ Deno.serve(async (req) => {
         markup_rate: Math.round(markupRate * 100) / 100,
         vendor_wave_phone: businessAccount?.wave_merchant_phone || null,
         platform_wave_phone: platformWavePhone || null,
-        vendor_transfer_status: 'simulated',
-        platform_transfer_status: 'simulated',
+        vendor_transfer_status: 'pending',
+        platform_transfer_status: 'received',
         payment_method: 'wave',
       })
       .select()
