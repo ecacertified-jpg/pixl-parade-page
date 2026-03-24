@@ -1,61 +1,76 @@
-# Plan : Enrichir les notifications aux contacts
 
-## Constat
 
-Le système de notifications est déjà **largement en place**. Quatre ajustements sont proposés pour combler les lacunes identifiées.
+# Plan : Intégrer le lien Wave Business pour les paiements réels
 
-## Changements proposés
+## Approche en 2 phases
 
-### 1. Rappel périodique aux contacts non-inscrits (nouvelle Edge Function)
+### Phase 1 — Immédiate : Lien marchand Wave (sans API)
 
-Créer `notify-contacts-join-reminder` — un CRON hebdomadaire qui :
+Remplacer la simulation Wave par une redirection vers le lien `pay.wave.com` de JDV. Le paiement est réel mais la confirmation reste manuelle (l'admin ou le prestataire confirme la réception).
 
-- Identifie les contacts ajoutés il y a plus de 7 jours qui n'ont toujours pas de compte utilisateur
-- Leur envoie un WhatsApp template les invitant à créer leur cercle d'amis
-- Limite : 1 rappel tous les 2 semaines par contact (déduplication via `birthday_contact_alerts`)
-- Template : `joiedevivre_join_reminder` avec paramètres `[nom_ami_qui_a_ajouté]`
-- Message : "{Prénom} t'a ajouté à son cercle d'amis sur Joie de Vivre. Crée ton cercle pour profiter aussi de la générosité de tes proches 👉 joiedevivre-africa.com"
+#### 1. Modifier `WavePaymentSimulation.tsx` → `WavePaymentRedirect.tsx`
 
-**Note** : Ce template WhatsApp devra être créé et approuvé dans Meta Business Manager avant de fonctionner. En attendant, le système utilisera un fallback SMS.
+Transformer le composant de simulation en composant de redirection :
+- Afficher le montant et un bouton "Payer via Wave"
+- Au clic, ouvrir `https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/?amount={montant}` dans un nouvel onglet (commandes individuelles)
+- Ou ouvrir sans `?amount` (cagnottes, l'utilisateur saisit le montant)
+- Après ouverture du lien, afficher un bouton "J'ai effectué le paiement" qui crée la commande avec statut `pending_payment_confirmation`
+- Supprimer le badge "Mode simulation"
 
-### 2. Notification de cotisation aux contacts proches d'un anniversaire
+#### 2. Modifier `Checkout.tsx` — Commandes individuelles
 
-Enrichir `check-birthday-alerts-for-contacts` pour ajouter un message de cotisation dans les rappels J-14 et J-7 :
+- Remplacer `WavePaymentSimulation` par `WavePaymentRedirect`
+- Passer le montant total majoré comme `amount`
+- Au retour ("J'ai payé"), créer la commande et appeler `process-wave-payment` pour enregistrer le split
 
-- Vérifier si une cagnotte existe pour l'anniversaire du contact
-- Si oui : inclure le lien de la cagnotte dans le message
-- Si non : suggérer de créer une cotisation
-- Modifier les messages `j14` et `j7` pour inclure l'appel à cotisation
+#### 3. Modifier `ContributionModal.tsx` — Cagnottes
 
-### 3. CRON job pour le rappel hebdomadaire
+- Ajouter un bouton "Contribuer via Wave" qui ouvre le lien sans montant pré-rempli (l'utilisateur choisit)
+- Après confirmation manuelle, enregistrer la contribution dans la cagnotte
 
-Ajouter un job pg_cron hebdomadaire (dimanche 10h UTC) pour déclencher `notify-contacts-join-reminder`.
+#### 4. Modifier `process-wave-payment` Edge Function
 
-### 4. Migration — aucune nouvelle table nécessaire
+- Changer `vendor_transfer_status` de `'simulated'` à `'pending'` pour indiquer que le transfert au prestataire est en attente
+- Ajouter une note que le payout sera fait manuellement ou via API Payout
 
-La table `birthday_contact_alerts` existante sera réutilisée avec un nouveau `alert_type: 'join_reminder'` pour la déduplication.
+#### 5. Nouveau statut de commande
 
-## Fichiers modifiés / créés
+Ajouter un statut `pending_payment_confirmation` dans le flux pour distinguer les commandes Wave en attente de vérification du paiement vs les commandes confirmées.
 
-- **Nouveau** : `supabase/functions/notify-contacts-join-reminder/index.ts`
-- **Modifié** : `supabase/functions/check-birthday-alerts-for-contacts/index.ts` (messages J-14/J-7 enrichis avec liens cagnotte)
-- **SQL** : nouveau CRON job via insert
+### Phase 2 — Future : API Wave Checkout + Payout (quand les clés API seront obtenues)
+
+Non implémenté maintenant, mais l'architecture est prête :
+- Remplacer le lien par `POST /v1/checkout/sessions` avec `success_url` et `error_url`
+- Webhook Wave pour confirmation automatique
+- `POST /v1/payout` pour reverser automatiquement au prestataire
+
+## Fichiers modifiés
+
+- `src/components/WavePaymentSimulation.tsx` → renommé en `WavePaymentRedirect.tsx`
+- `src/pages/Checkout.tsx` — utiliser le nouveau composant
+- `src/components/ContributionModal.tsx` — ajouter option Wave pour cagnottes
+- `supabase/functions/process-wave-payment/index.ts` — statut `pending` au lieu de `simulated`
 
 ## Détails techniques
 
-### Edge Function `notify-contacts-join-reminder`
-
-```text
-CRON (dimanche 10h) → 
-  SELECT contacts sans linked_user_id, ajoutés il y a > 7 jours →
-  FILTER pas de join_reminder envoyé dans les 30 derniers jours →
-  SEND WhatsApp template (fallback SMS) →
-  INSERT birthday_contact_alerts (alert_type = 'join_reminder')
+### URL construite pour commandes
+```
+https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/?amount={totalMajoré}
 ```
 
-### Messages J-14/J-7 enrichis
-
-```text
-Avant : "L'anniversaire de {nom} est dans 2 semaines. Découvrez nos idées cadeaux!"
-Après : "L'anniversaire de {nom} est dans 2 semaines. Participez à sa cagnotte 👉 {lien_cagnotte} ou offrez-lui un cadeau sur joiedevivre-africa.com"
+### URL pour cagnottes (montant libre)
 ```
+https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/
+```
+
+### Flux utilisateur (commande)
+```text
+Client clique "Payer via Wave"
+  → Nouvel onglet : pay.wave.com avec montant pré-rempli
+  → Client paie dans Wave
+  → Revient sur l'app, clique "J'ai effectué le paiement"
+  → Commande créée avec statut pending_payment_confirmation
+  → Admin/prestataire vérifie et confirme
+  → Split enregistré : commission JDV + montant prestataire
+```
+
