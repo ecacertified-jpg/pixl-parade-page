@@ -69,6 +69,7 @@ export function ContributionModal({
   const [loading, setLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [showGratitudeModal, setShowGratitudeModal] = useState(false);
+  const [showWaveModal, setShowWaveModal] = useState(false);
   const [beneficiaryId, setBeneficiaryId] = useState<string>("");
   const [existingContribution, setExistingContribution] = useState<ExistingContribution | null>(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
