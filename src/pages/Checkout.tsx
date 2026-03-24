@@ -658,8 +658,8 @@ export default function Checkout() {
           </RadioGroup>
         </Card>
 
-        {/* Wave simulation modal */}
-        <WavePaymentSimulation
+        {/* Wave payment redirect */}
+        <WavePaymentRedirect
           open={showWaveModal}
           onOpenChange={setShowWaveModal}
           amount={total}

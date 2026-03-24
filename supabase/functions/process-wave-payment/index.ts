@@ -112,8 +112,8 @@ Deno.serve(async (req) => {
         vendor_amount: vendorAmount,
         platform_amount: platformAmount,
         markup_rate: Math.round(markupRate * 100) / 100,
-        vendor_transfer_status: 'simulated',
-        platform_transfer_status: 'simulated',
+        vendor_transfer_status: 'pending',
+        platform_transfer_status: 'received',
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
