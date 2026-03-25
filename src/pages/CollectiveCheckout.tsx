@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, ShoppingCart, Phone, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Phone, MapPin, CreditCard, Smartphone } from "lucide-react";
+import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ export default function CollectiveCheckout() {
   const [addressDetails, setAddressDetails] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
   const [processing, setProcessing] = useState(false);
+  const [showWaveModal, setShowWaveModal] = useState(false);
 
   const deliveryAddress = useMemo(() => {
     if (!addressData) return "";
@@ -78,7 +80,20 @@ export default function CollectiveCheckout() {
            addressData !== null && addressData.city !== "";
   };
 
-  const handleConfirmCollectiveFund = async () => {
+  const handleConfirmCollectiveFund = async (skipWaveCheck = false) => {
+    // If Wave is selected and we haven't gone through the Wave modal yet, show it
+    if (paymentMethod === 'wave' && !skipWaveCheck) {
+      if (!isFormValid()) {
+        toast({
+          title: "Informations manquantes",
+          description: "Veuillez remplir tous les champs requis",
+          variant: "destructive"
+        });
+        return;
+      }
+      setShowWaveModal(true);
+      return;
+    }
     if (!isFormValid()) {
       toast({
         title: "Informations manquantes",
@@ -515,12 +530,34 @@ export default function CollectiveCheckout() {
                 </Label>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+              <RadioGroupItem value="wave" id="wave_collective" />
+              <div className="flex items-center gap-2 flex-1">
+                <Smartphone className="h-4 w-4 text-[#1DC3C3]" />
+                <Label htmlFor="wave_collective" className="flex-1 cursor-pointer">
+                  🌊 Wave
+                </Label>
+              </div>
+            </div>
           </RadioGroup>
         </Card>
 
+        <WavePaymentRedirect
+          open={showWaveModal}
+          onOpenChange={setShowWaveModal}
+          amount={total}
+          currency="F"
+          freeAmount={true}
+          onSuccess={() => {
+            setShowWaveModal(false);
+            handleConfirmCollectiveFund(true);
+          }}
+        />
+
         {/* Confirm Button */}
         <Button 
-          onClick={handleConfirmCollectiveFund}
+          onClick={() => handleConfirmCollectiveFund()}
           disabled={!isFormValid() || processing}
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg disabled:opacity-50"
         >
