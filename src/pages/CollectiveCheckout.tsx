@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, ShoppingCart, Phone, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Phone, MapPin, CreditCard, Smartphone } from "lucide-react";
+import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
