@@ -1,76 +1,34 @@
 
 
-# Plan : Intégrer le lien Wave Business pour les paiements réels
+# Plan : Ajouter l'option Wave dans le checkout des cagnottes
 
-## Approche en 2 phases
+## Problème
 
-### Phase 1 — Immédiate : Lien marchand Wave (sans API)
+La page `CollectiveCheckout.tsx` (Finaliser la cotisation) n'affiche que 2 modes de paiement : "Paiement à la livraison" et "Mobile Money (Orange/MTN)". L'option Wave est absente, contrairement à la page `Checkout.tsx` (commandes individuelles) qui l'a déjà.
 
-Remplacer la simulation Wave par une redirection vers le lien `pay.wave.com` de JDV. Le paiement est réel mais la confirmation reste manuelle (l'admin ou le prestataire confirme la réception).
+## Changements — `src/pages/CollectiveCheckout.tsx`
 
-#### 1. Modifier `WavePaymentSimulation.tsx` → `WavePaymentRedirect.tsx`
+### 1. Ajouter l'import de `WavePaymentRedirect` et `Smartphone`
 
-Transformer le composant de simulation en composant de redirection :
-- Afficher le montant et un bouton "Payer via Wave"
-- Au clic, ouvrir `https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/?amount={montant}` dans un nouvel onglet (commandes individuelles)
-- Ou ouvrir sans `?amount` (cagnottes, l'utilisateur saisit le montant)
-- Après ouverture du lien, afficher un bouton "J'ai effectué le paiement" qui crée la commande avec statut `pending_payment_confirmation`
-- Supprimer le badge "Mode simulation"
+### 2. Ajouter un state `showWaveModal`
 
-#### 2. Modifier `Checkout.tsx` — Commandes individuelles
+### 3. Ajouter l'option radio Wave dans le `RadioGroup` (après Mobile Money, ligne 517)
 
-- Remplacer `WavePaymentSimulation` par `WavePaymentRedirect`
-- Passer le montant total majoré comme `amount`
-- Au retour ("J'ai payé"), créer la commande et appeler `process-wave-payment` pour enregistrer le split
+Même style que dans `Checkout.tsx` : icône teal `#1DC3C3`, label "🌊 Wave".
 
-#### 3. Modifier `ContributionModal.tsx` — Cagnottes
+### 4. Ajouter le composant `WavePaymentRedirect` avec `freeAmount={true}`
 
-- Ajouter un bouton "Contribuer via Wave" qui ouvre le lien sans montant pré-rempli (l'utilisateur choisit)
-- Après confirmation manuelle, enregistrer la contribution dans la cagnotte
+Puisque c'est une cagnotte, le montant est libre — l'utilisateur saisit sa contribution sur Wave.
 
-#### 4. Modifier `process-wave-payment` Edge Function
+### 5. Modifier le handler de confirmation
 
-- Changer `vendor_transfer_status` de `'simulated'` à `'pending'` pour indiquer que le transfert au prestataire est en attente
-- Ajouter une note que le payout sera fait manuellement ou via API Payout
+Si `paymentMethod === 'wave'`, ouvrir le modal Wave au lieu de créer directement la cagnotte. Le `onSuccess` du modal déclenchera la création de la cagnotte.
 
-#### 5. Nouveau statut de commande
+### 6. Stocker le `payment_method` correctement
 
-Ajouter un statut `pending_payment_confirmation` dans le flux pour distinguer les commandes Wave en attente de vérification du paiement vs les commandes confirmées.
+Mapper `wave` → `"wave"` dans l'objet `collective_fund_orders` (actuellement seul `cash_on_delivery` et `mobile_money` sont gérés).
 
-### Phase 2 — Future : API Wave Checkout + Payout (quand les clés API seront obtenues)
+## Fichier modifié
 
-Non implémenté maintenant, mais l'architecture est prête :
-- Remplacer le lien par `POST /v1/checkout/sessions` avec `success_url` et `error_url`
-- Webhook Wave pour confirmation automatique
-- `POST /v1/payout` pour reverser automatiquement au prestataire
-
-## Fichiers modifiés
-
-- `src/components/WavePaymentSimulation.tsx` → renommé en `WavePaymentRedirect.tsx`
-- `src/pages/Checkout.tsx` — utiliser le nouveau composant
-- `src/components/ContributionModal.tsx` — ajouter option Wave pour cagnottes
-- `supabase/functions/process-wave-payment/index.ts` — statut `pending` au lieu de `simulated`
-
-## Détails techniques
-
-### URL construite pour commandes
-```
-https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/?amount={totalMajoré}
-```
-
-### URL pour cagnottes (montant libre)
-```
-https://pay.wave.com/m/M_ci_u0CaFw3Aj1Mt/c/ci/
-```
-
-### Flux utilisateur (commande)
-```text
-Client clique "Payer via Wave"
-  → Nouvel onglet : pay.wave.com avec montant pré-rempli
-  → Client paie dans Wave
-  → Revient sur l'app, clique "J'ai effectué le paiement"
-  → Commande créée avec statut pending_payment_confirmation
-  → Admin/prestataire vérifie et confirme
-  → Split enregistré : commission JDV + montant prestataire
-```
+- `src/pages/CollectiveCheckout.tsx`
 
