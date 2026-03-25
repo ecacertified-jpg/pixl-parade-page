@@ -80,7 +80,20 @@ export default function CollectiveCheckout() {
            addressData !== null && addressData.city !== "";
   };
 
-  const handleConfirmCollectiveFund = async () => {
+  const handleConfirmCollectiveFund = async (skipWaveCheck = false) => {
+    // If Wave is selected and we haven't gone through the Wave modal yet, show it
+    if (paymentMethod === 'wave' && !skipWaveCheck) {
+      if (!isFormValid()) {
+        toast({
+          title: "Informations manquantes",
+          description: "Veuillez remplir tous les champs requis",
+          variant: "destructive"
+        });
+        return;
+      }
+      setShowWaveModal(true);
+      return;
+    }
     if (!isFormValid()) {
       toast({
         title: "Informations manquantes",
