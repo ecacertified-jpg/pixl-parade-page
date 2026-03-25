@@ -517,8 +517,30 @@ export default function CollectiveCheckout() {
                 </Label>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+              <RadioGroupItem value="wave" id="wave_collective" />
+              <div className="flex items-center gap-2 flex-1">
+                <Smartphone className="h-4 w-4 text-[#1DC3C3]" />
+                <Label htmlFor="wave_collective" className="flex-1 cursor-pointer">
+                  🌊 Wave
+                </Label>
+              </div>
+            </div>
           </RadioGroup>
         </Card>
+
+        <WavePaymentRedirect
+          open={showWaveModal}
+          onOpenChange={setShowWaveModal}
+          amount={total}
+          currency="F"
+          freeAmount={true}
+          onSuccess={() => {
+            setShowWaveModal(false);
+            handleConfirmCollectiveFund(true);
+          }}
+        />
 
         {/* Confirm Button */}
         <Button 
