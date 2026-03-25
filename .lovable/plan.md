@@ -1,34 +1,35 @@
 
 
-# Plan : Ajouter l'option Wave dans le checkout des cagnottes
+# Plan : Transformer le bouton rose en option Mobile Money (Orange/MTN)
 
 ## Problème
 
-La page `CollectiveCheckout.tsx` (Finaliser la cotisation) n'affiche que 2 modes de paiement : "Paiement à la livraison" et "Mobile Money (Orange/MTN)". L'option Wave est absente, contrairement à la page `Checkout.tsx` (commandes individuelles) qui l'a déjà.
+Le modal de contribution affiche un bouton "Modifier"/"Contribuer" (rose) qui enregistre la contribution sans paiement réel. Il faut le transformer en option Mobile Money.
 
-## Changements — `src/pages/CollectiveCheckout.tsx`
+## Changement — `src/components/ContributionModal.tsx`
 
-### 1. Ajouter l'import de `WavePaymentRedirect` et `Smartphone`
+### Remplacer le bouton rose par un bouton Mobile Money
 
-### 2. Ajouter un state `showWaveModal`
+Dans le footer (lignes 588-599), transformer le bouton rose en bouton Mobile Money :
 
-### 3. Ajouter l'option radio Wave dans le `RadioGroup` (après Mobile Money, ligne 517)
+- Style : gradient orange classique avec icône `Phone`
+- Label : `"Contribuer via Mobile Money"` / `"Modifier via Mobile Money"`
+- Au clic : ouvrir le même flux CinetPay déjà utilisé dans `Checkout.tsx` pour Orange/MTN
+- Le bouton appellera `handleSubmit` avec `payment_method: 'mobile_money'` au lieu d'un submit sans paiement
 
-Même style que dans `Checkout.tsx` : icône teal `#1DC3C3`, label "🌊 Wave".
+### Layout final des boutons
 
-### 4. Ajouter le composant `WavePaymentRedirect` avec `freeAmount={true}`
+```text
+[  Contribuer via Wave 🌊  ]     ← teal, pleine largeur
+[ Contribuer via Mobile Money ]   ← orange/gradient, pleine largeur
+[  Annuler  ]                     ← outline, pleine largeur
+```
 
-Puisque c'est une cagnotte, le montant est libre — l'utilisateur saisit sa contribution sur Wave.
+### Logique de paiement Mobile Money
 
-### 5. Modifier le handler de confirmation
-
-Si `paymentMethod === 'wave'`, ouvrir le modal Wave au lieu de créer directement la cagnotte. Le `onSuccess` du modal déclenchera la création de la cagnotte.
-
-### 6. Stocker le `payment_method` correctement
-
-Mapper `wave` → `"wave"` dans l'objet `collective_fund_orders` (actuellement seul `cash_on_delivery` et `mobile_money` sont gérés).
+Vérifier si un composant de paiement CinetPay existe déjà pour les contributions. Si oui, l'intégrer. Sinon, utiliser le même pattern que Wave : redirection vers le flux Mobile Money existant, puis confirmation.
 
 ## Fichier modifié
 
-- `src/pages/CollectiveCheckout.tsx`
+- `src/components/ContributionModal.tsx`
 
