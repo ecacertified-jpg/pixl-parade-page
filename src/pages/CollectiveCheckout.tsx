@@ -41,6 +41,7 @@ export default function CollectiveCheckout() {
   const [addressDetails, setAddressDetails] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
   const [processing, setProcessing] = useState(false);
+  const [showWaveModal, setShowWaveModal] = useState(false);
 
   const deliveryAddress = useMemo(() => {
     if (!addressData) return "";
