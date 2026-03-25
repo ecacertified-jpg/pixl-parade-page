@@ -15,7 +15,7 @@ import { useSmartAmountSuggestions } from "@/hooks/useSmartAmountSuggestions";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
 import { useShareConversionTracking } from "@/hooks/useShareConversionTracking";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Smartphone } from "lucide-react";
+import { Info, Smartphone, Phone } from "lucide-react";
 import { z } from "zod";
 import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 
@@ -575,29 +575,29 @@ export function ContributionModal({
             {isEditMode ? "Modifier via Wave" : "Contribuer via Wave 🌊"}
           </Button>
           
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1"
-            >
-              Annuler
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={loading || !amount || loadingExisting}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
-            >
-              {loading 
-                ? "Envoi..." 
-                : isEditMode 
-                  ? "Modifier" 
-                  : "Contribuer"
-              }
-            </Button>
-          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !amount || loadingExisting}
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+          >
+            <Phone className="h-4 w-4 mr-2" />
+            {loading 
+              ? "Envoi..." 
+              : isEditMode 
+                ? "Modifier via Mobile Money" 
+                : "Contribuer via Mobile Money"
+            }
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+            className="w-full"
+          >
+            Annuler
+          </Button>
         </div>
 
         {/* Wave payment redirect for contributions */}
