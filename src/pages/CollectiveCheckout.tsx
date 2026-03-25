@@ -557,7 +557,7 @@ export default function CollectiveCheckout() {
 
         {/* Confirm Button */}
         <Button 
-          onClick={handleConfirmCollectiveFund}
+          onClick={() => handleConfirmCollectiveFund()}
           disabled={!isFormValid() || processing}
           className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg disabled:opacity-50"
         >
