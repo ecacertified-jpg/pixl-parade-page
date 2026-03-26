@@ -40,7 +40,7 @@ const KNOWN_TEMPLATES: TemplateDefinition[] = [
   { name: 'joiedevivre_join_reminder', description: 'Rappel inscription contacts non inscrits', edgeFunction: 'notify-contacts-join-reminder' },
   { name: 'joiedevivre_delivery_reminder', description: 'Rappel confirmation livraison', edgeFunction: 'check-delivery-confirmation-reminder', needsMetaCreation: true },
   { name: 'joiedevivre_welcome_add_friends', description: 'Bienvenue post-inscription', edgeFunction: 'check-friends-circle-reminders' },
-  { name: 'joiedevivre_friends_circle_reminder', description: 'Rappel étoffer cercle d\'amis', edgeFunction: 'check-friends-circle-reminders', needsMetaCreation: true },
+  { name: 'joiedevivre_friends_circle_reminder', description: 'Rappel étoffer cercle d\'amis', edgeFunction: 'check-friends-circle-reminders' },
 ];
 
 function computeStatus(def: TemplateDefinition, total: number, sent: number, failed: number): TemplateStatus {
