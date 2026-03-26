@@ -238,6 +238,24 @@ export default function WhatsAppTemplateDashboard() {
   );
 }
 
+const STATUS_CONFIG: Record<TemplateStatus, { label: string; className: string }> = {
+  active: { label: 'Actif', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+  degraded: { label: 'Dégradé', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  failing: { label: 'En échec', className: 'bg-destructive/10 text-destructive' },
+  never_sent: { label: 'Jamais envoyé', className: 'bg-muted text-muted-foreground' },
+  not_in_meta: { label: 'Non créé Meta', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
+};
+
+function StatusBadge({ status, rate }: { status: TemplateStatus; rate: number }) {
+  const cfg = STATUS_CONFIG[status];
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.className}`}>
+      {cfg.label}
+      {status === 'active' || status === 'degraded' ? ` ${rate}%` : ''}
+    </span>
+  );
+}
+
 function KpiCard({ title, value, icon, loading, color }: { title: string; value: string | number; icon: React.ReactNode; loading: boolean; color?: string }) {
   return (
     <Card>
