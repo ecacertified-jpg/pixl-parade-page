@@ -548,7 +548,7 @@ export default function CollectiveCheckout() {
           onOpenChange={setShowWaveModal}
           amount={total}
           currency="F"
-          freeAmount={true}
+          freeAmount={false}
           onSuccess={() => {
             setShowWaveModal(false);
             handleConfirmCollectiveFund(true);
