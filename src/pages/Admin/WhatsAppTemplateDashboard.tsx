@@ -5,16 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SimplePeriodSelector } from '@/components/admin/SimplePeriodSelector';
 import { useWhatsAppTemplateStats, getCountryName } from '@/hooks/useWhatsAppTemplateStats';
-import { RefreshCw, Send, CheckCircle, XCircle, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { useWhatsAppTemplateInventory, TemplateStatus } from '@/hooks/useWhatsAppTemplateInventory';
+import { RefreshCw, Send, CheckCircle, XCircle, LayoutGrid, AlertTriangle, Filter } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 type Period = 'today' | '7days' | '30days' | '90days';
+type StatusFilter = 'all' | TemplateStatus;
 
 export default function WhatsAppTemplateDashboard() {
   const [period, setPeriod] = useState<Period>('30days');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { data, isLoading, refetch } = useWhatsAppTemplateStats(period);
+  const { data: inventory, isLoading: invLoading } = useWhatsAppTemplateInventory();
 
   const kpis = data?.kpis;
 
@@ -42,6 +46,78 @@ export default function WhatsAppTemplateDashboard() {
           <KpiCard title="Templates actifs" value={kpis?.templates_count ?? 0} icon={<LayoutGrid className="h-5 w-5" />} loading={isLoading} />
           <KpiCard title="Échecs" value={kpis?.failed ?? 0} icon={<XCircle className="h-5 w-5" />} loading={isLoading} color="text-destructive" />
         </div>
+
+        {/* Template Inventory */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Filter className="h-4 w-4" /> Inventaire des templates
+              </CardTitle>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  ['all', 'Tous'],
+                  ['active', 'Actif'],
+                  ['degraded', 'Dégradé'],
+                  ['failing', 'En échec'],
+                  ['never_sent', 'Jamais envoyé'],
+                  ['not_in_meta', 'Non créé Meta'],
+                ] as [StatusFilter, string][]).map(([key, label]) => (
+                  <Button
+                    key={key}
+                    size="sm"
+                    variant={statusFilter === key ? 'default' : 'outline'}
+                    className="text-xs h-7 px-2"
+                    onClick={() => setStatusFilter(key)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {invLoading ? (
+              <p className="text-center text-muted-foreground py-6">Chargement…</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-muted-foreground text-left">
+                      <th className="pb-2 font-medium">Template</th>
+                      <th className="pb-2 font-medium hidden md:table-cell">Fonction Edge</th>
+                      <th className="pb-2 font-medium">Statut</th>
+                      <th className="pb-2 font-medium text-right">Envois</th>
+                      <th className="pb-2 font-medium text-right">Succès</th>
+                      <th className="pb-2 font-medium text-right">Échecs</th>
+                      <th className="pb-2 font-medium text-right hidden sm:table-cell">Dernier envoi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(inventory || [])
+                      .filter((t) => statusFilter === 'all' || t.status === statusFilter)
+                      .map((t) => (
+                        <tr key={t.name} className="border-b last:border-0">
+                          <td className="py-2">
+                            <span className="font-medium">{t.name.replace('joiedevivre_', '')}</span>
+                            <span className="block text-xs text-muted-foreground">{t.description}</span>
+                          </td>
+                          <td className="py-2 text-muted-foreground hidden md:table-cell text-xs">{t.edgeFunction}</td>
+                          <td className="py-2"><StatusBadge status={t.status} rate={t.successRate} /></td>
+                          <td className="py-2 text-right">{t.total}</td>
+                          <td className="py-2 text-right text-green-600">{t.sent}</td>
+                          <td className="py-2 text-right text-destructive">{t.failed}</td>
+                          <td className="py-2 text-right text-muted-foreground text-xs hidden sm:table-cell">
+                            {t.lastSentAt ? format(new Date(t.lastSentAt), 'dd/MM HH:mm') : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Chart */}
         <Card>
@@ -159,6 +235,24 @@ export default function WhatsAppTemplateDashboard() {
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+const STATUS_CONFIG: Record<TemplateStatus, { label: string; className: string }> = {
+  active: { label: 'Actif', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+  degraded: { label: 'Dégradé', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  failing: { label: 'En échec', className: 'bg-destructive/10 text-destructive' },
+  never_sent: { label: 'Jamais envoyé', className: 'bg-muted text-muted-foreground' },
+  not_in_meta: { label: 'Non créé Meta', className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' },
+};
+
+function StatusBadge({ status, rate }: { status: TemplateStatus; rate: number }) {
+  const cfg = STATUS_CONFIG[status];
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${cfg.className}`}>
+      {cfg.label}
+      {status === 'active' || status === 'degraded' ? ` ${rate}%` : ''}
+    </span>
   );
 }
 
