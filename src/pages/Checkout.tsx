@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Phone, MapPin, CreditCard, Smartphone } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, CreditCard, Smartphone, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -625,18 +625,39 @@ export default function Checkout() {
             📱 Mode de paiement
           </h3>
           
-          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-            <div className="flex items-center space-x-3 p-3 border rounded-lg">
-              <RadioGroupItem value="delivery" id="delivery" />
-              <Label htmlFor="delivery" className="flex items-center gap-3 flex-1 cursor-pointer">
-                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-orange-600" />
+          <RadioGroup value={paymentMethod} onValueChange={(value) => {
+            if (value === 'mobile') {
+              toast({
+                title: "Mode indisponible",
+                description: "Ce mode de paiement n'est pas encore disponible. Sélectionnez WAVE pour votre paiement.",
+                variant: "destructive"
+              });
+              setPaymentMethod('wave');
+              return;
+            }
+            setPaymentMethod(value);
+          }}>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <RadioGroupItem value="delivery" id="delivery" />
+                <Label htmlFor="delivery" className="flex items-center gap-3 flex-1 cursor-pointer">
+                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Phone className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <span className="font-medium">💰 Paiement à la livraison</span>
+                </Label>
+              </div>
+              {paymentMethod === 'delivery' && (
+                <div className="ml-4 p-2 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>⚠️ Attention ! Payez via WAVE dans MES COMMANDES des paramètres du profil pour le paiement à la livraison</span>
+                  </p>
                 </div>
-                <span className="font-medium">💰 Paiement à la livraison</span>
-              </Label>
+              )}
             </div>
             
-            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+            <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-60">
               <RadioGroupItem value="mobile" id="mobile" />
               <Label htmlFor="mobile" className="flex items-center gap-3 flex-1 cursor-pointer">
                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
