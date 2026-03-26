@@ -144,13 +144,36 @@ export default function FundPreview() {
   const { user } = useAuth();
 
   const handleContribute = () => {
-    const targetPath = `/dashboard?tab=cotisations`;
     if (user) {
-      navigate(targetPath);
+      setShowContributionModal(true);
     } else {
-      navigate(`/auth?redirect=${encodeURIComponent(targetPath)}`);
+      navigate(`/auth?redirect=${encodeURIComponent(`/f/${fundId}`)}`);
     }
   };
+
+  const refetchFund = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    // Re-trigger the useEffect by updating fundId dependency won't work,
+    // so we inline a refetch
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("collective_funds")
+          .select(`id, title, description, target_amount, current_amount, currency, occasion, status, deadline_date, created_at, products:business_product_id (id, name, image_url, price)`)
+          .eq("id", fundId!)
+          .maybeSingle();
+        if (data) {
+          const fundData: FundData = { ...data, product: data.products as FundData["product"], contact: fund?.contact || null, creator: fund?.creator || null };
+          setFund(fundData);
+        }
+      } catch (err) {
+        console.error("Error refetching fund:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fundId, fund?.contact, fund?.creator]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat("fr-FR").format(amount);
