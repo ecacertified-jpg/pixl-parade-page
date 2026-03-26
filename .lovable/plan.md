@@ -1,32 +1,47 @@
 
 
-# Plan : Afficher le nombre de proches (relations confirmées) dans le dashboard
+# Plan : Ajouter le template `joiedevivre_birthday_create_fund_nudge`
 
-## Problème
+## Contexte
 
-Actuellement, `useUserStats` compte les **contacts** (carnet d'adresses) via la table `contacts`. Ce chiffre inclut des personnes non inscrites et sans relation confirmée. Il faut afficher le nombre de **proches** — les relations bidirectionnelles confirmées dans `contact_relationships`.
+Actuellement, quand l'anniversaire d'un contact approche (J-7) et qu'aucune cagnotte n'existe, le système envoie `joiedevivre_birthday_no_fund_alert` qui redirige vers `/shop` (acheter un cadeau individuel). Il manque un template qui incite les proches à **créer une cagnotte** pour le bénéficiaire.
+
+## Nouveau template WhatsApp
+
+- **Nom** : `joiedevivre_birthday_create_fund_nudge`
+- **Objectif** : Inciter un proche à créer une cagnotte collective pour le bénéficiaire
+- **4 paramètres body** : `{{1}}` prénom bénéficiaire, `{{2}}` dayLabel (ex: "dans 5 jours"), `{{3}}` prénom du destinataire, `{{4}}` "JOIE DE VIVRE" (branding)
+- **Header** : Image (même image que no_fund_alert ou une dédiée configurable via `BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL`)
+- **Bouton CTA** : URL dynamique vers `/go/birthday?for={{1}}` (page de création de cagnotte pré-remplie avec le nom du bénéficiaire)
+- **Exemple de message** : "Bonjour {{3}} ! L'anniversaire de {{1}} est {{2}}. Pourquoi ne pas organiser une cagnotte collective sur {{4}} ? Vos amis pourront contribuer facilement. Créez la cagnotte maintenant !"
 
 ## Changements
 
-### 1. `src/hooks/useUserStats.ts` — Ajouter `closeRelationsCount`
+### 1. `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-Ajouter une requête parallèle sur `contact_relationships` comptant les lignes où `user_a = userId` OU `user_b = userId`. Exposer le résultat dans `UserStats` sous `closeRelationsCount`.
+Dans le bloc `sendNoFundFriendAlert` (lignes 473-536), remplacer l'envoi de `joiedevivre_birthday_no_fund_alert` par `joiedevivre_birthday_create_fund_nudge` :
 
-### 2. `src/components/ProfileDropdown.tsx` — Afficher "Proches" à côté de "Amis"
+- 4 paramètres body : `[contact.name, dayLabel, recipientName, 'JOIE DE VIVRE']`
+- 1 paramètre CTA bouton : suffixe dynamique pour l'URL (ex: `?for=${encodeURIComponent(contact.name)}`)
+- Header image configurable via `BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL` avec fallback vers l'image no_fund existante
+- Conserver le fallback SMS existant
+- Conserver le `alert_type` existant `friend_birthday_alert_no_fund` pour la déduplication (ou le renommer en `friend_birthday_create_fund_nudge`)
 
-Remplacer ou compléter la stat "Amis" (qui affiche `friendsCount` = contacts) par "Proches" affichant `closeRelationsCount`. Deux options :
-- **Option A** : Remplacer "Amis" par "Proches" (relations confirmées uniquement)
-- **Option B** : Garder "Amis" et ajouter une 4e stat "Proches"
+### 2. `.lovable/memory/whatsapp-messaging-strategy.md`
 
-Proposition : **Option A** — remplacer, car c'est la métrique la plus pertinente (les contacts non liés n'ont pas de valeur sociale réelle). Le label reste "Amis" mais la source devient `contact_relationships`.
+Ajouter le nouveau template dans la liste des templates actifs avec sa description et ses paramètres.
 
-### 3. `src/pages/UserProfile.tsx` — Même correction
+## Template à créer sur Meta Business Manager
 
-Remplacer le comptage `contacts` par `contact_relationships` pour la stat "Amis" affichée sur le profil public.
+Le template doit être créé manuellement dans Meta Business Manager avec :
+- Catégorie : UTILITY
+- Langue : Français (fr)
+- Header : IMAGE
+- Body : texte avec 4 variables
+- Bouton : CTA URL avec suffixe dynamique `{{1}}`
 
 ## Fichiers modifiés
 
-- `src/hooks/useUserStats.ts`
-- `src/components/ProfileDropdown.tsx`
-- `src/pages/UserProfile.tsx`
+- `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+- `.lovable/memory/whatsapp-messaging-strategy.md`
 
