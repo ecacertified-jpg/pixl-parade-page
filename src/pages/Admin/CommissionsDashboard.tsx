@@ -1,17 +1,21 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { SimplePeriodSelector } from '@/components/admin/SimplePeriodSelector';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { exportToCSV, ExportColumn, formatNumberFr, formatDateFr, formatCurrencyXOF } from '@/utils/exportUtils';
-import { DollarSign, Users, TrendingUp, Percent } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, Percent, CheckCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 type SimplePeriod = 'today' | '7days' | '30days' | '90days';
 
@@ -50,6 +54,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   pending: { label: 'En attente', variant: 'outline' },
   completed: { label: 'Complété', variant: 'default' },
   failed: { label: 'Échoué', variant: 'destructive' },
+  received: { label: 'Reçu', variant: 'default' },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -59,6 +64,9 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function CommissionsDashboard() {
   const [period, setPeriod] = useState<SimplePeriod>('30days');
+  const [transferModal, setTransferModal] = useState<{ open: boolean; splitId: string; businessName: string }>({ open: false, splitId: '', businessName: '' });
+  const [transferRef, setTransferRef] = useState('');
+  const queryClient = useQueryClient();
 
   const startDate = useMemo(() => {
     return subDays(new Date(), getPeriodDays(period)).toISOString();
@@ -75,6 +83,28 @@ export default function CommissionsDashboard() {
 
       if (error) throw error;
       return (data || []) as unknown as SplitRow[];
+    },
+  });
+
+  const markTransferMutation = useMutation({
+    mutationFn: async ({ splitId, ref }: { splitId: string; ref: string }) => {
+      const { error } = await supabase
+        .from('payment_splits')
+        .update({
+          vendor_transfer_status: 'completed',
+          vendor_transfer_ref: ref || null,
+        })
+        .eq('id', splitId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Transfert marqué comme complété');
+      queryClient.invalidateQueries({ queryKey: ['admin-commissions'] });
+      setTransferModal({ open: false, splitId: '', businessName: '' });
+      setTransferRef('');
+    },
+    onError: (err: Error) => {
+      toast.error('Erreur: ' + err.message);
     },
   });
 
@@ -214,6 +244,7 @@ export default function CommissionsDashboard() {
                       <TableHead className="text-right">Markup</TableHead>
                       <TableHead>Vendeur</TableHead>
                       <TableHead>Plateforme</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -231,6 +262,25 @@ export default function CommissionsDashboard() {
                         <TableCell className="text-right text-sm">{(s.markup_rate * 100).toFixed(1)}%</TableCell>
                         <TableCell><StatusBadge status={s.vendor_transfer_status} /></TableCell>
                         <TableCell><StatusBadge status={s.platform_transfer_status} /></TableCell>
+                        <TableCell>
+                          {s.vendor_transfer_status === 'pending' ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1"
+                              onClick={() => setTransferModal({
+                                open: true,
+                                splitId: s.id,
+                                businessName: s.business_orders?.business_accounts?.business_name || 'Prestataire',
+                              })}
+                            >
+                              <CheckCircle className="h-3 w-3" />
+                              Transféré
+                            </Button>
+                          ) : s.vendor_transfer_status === 'completed' && s.vendor_transfer_ref ? (
+                            <span className="text-xs text-muted-foreground">Réf: {s.vendor_transfer_ref}</span>
+                          ) : null}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -240,6 +290,35 @@ export default function CommissionsDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Transfer confirmation modal */}
+      <Dialog open={transferModal.open} onOpenChange={(open) => !open && setTransferModal({ open: false, splitId: '', businessName: '' })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer le transfert au prestataire</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Confirmez que vous avez transféré le montant à <strong>{transferModal.businessName}</strong> via Wave ou Mobile Money.
+          </p>
+          <Input
+            placeholder="Référence du transfert (optionnel)"
+            value={transferRef}
+            onChange={(e) => setTransferRef(e.target.value)}
+          />
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setTransferModal({ open: false, splitId: '', businessName: '' })}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => markTransferMutation.mutate({ splitId: transferModal.splitId, ref: transferRef })}
+              disabled={markTransferMutation.isPending}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {markTransferMutation.isPending ? 'Envoi...' : 'Confirmer le transfert'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
