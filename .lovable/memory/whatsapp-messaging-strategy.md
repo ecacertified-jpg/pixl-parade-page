@@ -6,7 +6,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_contact_added` — Notification d'ajout de contact
 - `joiedevivre_birthday_reminder` — Rappel d'anniversaire (à l'utilisateur)
 - `joiedevivre_birthday_friend_alert` — Alerte aux amis du cercle quand l'anniversaire d'un bénéficiaire approche (avec CTA vers cagnotte). 4 paramètres body : prénom bénéficiaire, jours restants, prénom organisateur, montant objectif. Header image. Bouton CTA : /f/{fund_id}
-- `joiedevivre_birthday_no_fund_alert` — **Nouveau** : Alerte aux proches quand l'anniversaire approche (J-7) et qu'aucune cagnotte n'est active. 3 paramètres body : prénom bénéficiaire, dayLabel, 'JOIE DE VIVRE'. Header image. Pas de bouton CTA.
+- `joiedevivre_birthday_create_fund_nudge` — **Nouveau** : Incite les proches à CRÉER une cagnotte quand aucune n'existe (J-7). 4 paramètres body : prénom bénéficiaire, dayLabel, prénom destinataire, 'JOIE DE VIVRE'. Header image. Bouton CTA dynamique : /go/birthday?for={{1}}. Remplace `joiedevivre_birthday_no_fund_alert` pour la notification sans cagnotte.
 - `joiedevivre_birthday_celebration` — Vidéo de célébration envoyée à l'utilisateur le jour de son anniversaire. 2 paramètres body : prénom, message personnalisé. **Header vidéo** (MP4, max 16 Mo). Bouton CTA : /dashboard/{suffix}. Fallback texte libre si template échoue.
 - `joiedevivre_refund_alert` — Alerte de remboursement
 - `joiedevivre_contribution_reminder` — Rappel de contribution
@@ -17,9 +17,10 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_fund_ready` — Alerte prestataire quand la cagnotte atteint 100%
 - `joiedevivre_fund_completed` — Félicitations envoyées à tous les amis (contributeurs + non-contributeurs) quand la cagnotte atteint 100%. 4 paramètres : prénom, titre cagnotte, nom bénéficiaire, montant. Bouton CTA : /f/{fund_id}
 
-## Template supprimé
+## Templates supprimés / remplacés
 
-- ~~`joiedevivre_contribution_nudge`~~ — Abandonné. Fusionné dans `joiedevivre_contribution_update` qui gère les deux audiences (contributeurs existants + amis non-contributeurs) avec un seul template à 6 paramètres.
+- ~~`joiedevivre_contribution_nudge`~~ — Abandonné. Fusionné dans `joiedevivre_contribution_update`.
+- ~~`joiedevivre_birthday_no_fund_alert`~~ — Remplacé par `joiedevivre_birthday_create_fund_nudge` qui incite à créer une cagnotte au lieu de rediriger vers /shop.
 
 ## Notes techniques
 
@@ -27,4 +28,4 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - Un fallback vers `sendWhatsApp` (texte libre) est maintenu pour les conversations actives.
 - Les fonctions Edge sont standardisées pour prioriser WhatsApp pour le Bénin, Togo, Mali et Burkina Faso.
 - La vidéo de célébration est configurable via la variable d'environnement `BIRTHDAY_CELEBRATION_VIDEO_URL` (fallback vers Supabase Storage).
-- L'image d'alerte sans cagnotte est configurable via `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL` (fallback vers `assets/birthday-no-fund-alert.jpg`).
+- L'image du nudge création cagnotte est configurable via `BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL` (fallback vers `BIRTHDAY_NO_FUND_ALERT_IMAGE_URL`, puis `assets/birthday-no-fund-alert.jpg`).

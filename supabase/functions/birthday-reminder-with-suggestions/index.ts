@@ -494,18 +494,19 @@ serve(async (req) => {
             let sendResult: { success: boolean; error?: string; sid?: string } = { success: false };
 
             const dayLabel = daysUntilBirthday === 1 ? 'demain' : `dans ${daysUntilBirthday} jours`;
-            const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Offrez un cadeau: joiedevivre-africa.com/shop`;
+            const smsMsg = `JoieDvivre: L'anniversaire de ${contact.name} est ${dayLabel} ! Organisez une cagnotte collective: joiedevivre-africa.com/go/birthday?for=${encodeURIComponent(contact.name)}`;
 
-            const noFundImageUrl = Deno.env.get('BIRTHDAY_NO_FUND_ALERT_IMAGE_URL')
+            const createFundImageUrl = Deno.env.get('BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL')
+              || Deno.env.get('BIRTHDAY_NO_FUND_ALERT_IMAGE_URL')
               || `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/assets/birthday-no-fund-alert.jpg`;
 
             if (channel === 'whatsapp') {
               sendResult = await sendWhatsAppTemplate(
                 phone,
-                'joiedevivre_birthday_no_fund_alert',
-                [contact.name, dayLabel, 'JOIE DE VIVRE'],
-                [],
-                noFundImageUrl
+                'joiedevivre_birthday_create_fund_nudge',
+                [contact.name, dayLabel, recipientName, 'JOIE DE VIVRE'],
+                [{ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: `?for=${encodeURIComponent(contact.name)}` }] }],
+                createFundImageUrl
               );
             } else {
               sendResult = await sendSms(phone, smsMsg);
