@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AnimatedRoutes } from "@/components/transitions";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -189,11 +189,11 @@ const App = () => (
 
             {/* Deep Links for Social Sharing & AI Referrals */}
             <Route path="/go/signup" element={<Navigate to="/auth?tab=signup&utm_source=deep_link" replace />} />
-            <Route path="/go/birthday" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=birthday&utm_source=deep_link" replace />} />
-            <Route path="/go/wedding" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=wedding&utm_source=deep_link" replace />} />
-            <Route path="/go/baby" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=baby&utm_source=deep_link" replace />} />
-            <Route path="/go/graduation" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=graduation&utm_source=deep_link" replace />} />
-            <Route path="/go/promotion" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=promotion&utm_source=deep_link" replace />} />
+            <Route path="/go/birthday" element={<DeepLinkRedirect occasion="birthday" />} />
+            <Route path="/go/wedding" element={<DeepLinkRedirect occasion="wedding" />} />
+            <Route path="/go/baby" element={<DeepLinkRedirect occasion="baby" />} />
+            <Route path="/go/graduation" element={<DeepLinkRedirect occasion="graduation" />} />
+            <Route path="/go/promotion" element={<DeepLinkRedirect occasion="promotion" />} />
             <Route path="/go/sell" element={<Navigate to="/business-auth?utm_source=deep_link" replace />} />
             <Route path="/go/sell/patisserie" element={<Navigate to="/business-auth?sector=patisserie&utm_source=deep_link" replace />} />
             <Route path="/go/sell/fleuriste" element={<Navigate to="/business-auth?sector=fleuriste&utm_source=deep_link" replace />} />

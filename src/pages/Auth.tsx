@@ -270,7 +270,17 @@ const Auth = () => {
         localStorage.removeItem('returnUrl');
         navigate(returnUrl);
       } else if (redirectParam) {
-        navigate(redirectParam);
+        // Transmit occasion & beneficiaryName params for create-fund deep links
+        const occasion = searchParams.get('occasion');
+        const beneficiaryName = searchParams.get('beneficiaryName');
+        if (redirectParam === 'create-fund' && (occasion || beneficiaryName)) {
+          const params = new URLSearchParams();
+          if (occasion) params.set('occasion', occasion);
+          if (beneficiaryName) params.set('beneficiaryName', beneficiaryName);
+          navigate(`/${redirectParam}?${params.toString()}`);
+        } else {
+          navigate(redirectParam);
+        }
       } else {
         handleSmartRedirect(user, navigate);
       }
