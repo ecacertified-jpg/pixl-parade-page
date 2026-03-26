@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
 import { FundBreadcrumb } from "@/components/breadcrumbs";
+import { ContributionModal } from "@/components/ContributionModal";
 
 interface FundData {
   id: string;
@@ -48,6 +49,7 @@ export default function FundPreview() {
   const [fund, setFund] = useState<FundData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showContributionModal, setShowContributionModal] = useState(false);
   
   const { detectAndStoreShareToken, cleanShareRefFromUrl } = useShareConversionTracking();
 
@@ -142,13 +144,36 @@ export default function FundPreview() {
   const { user } = useAuth();
 
   const handleContribute = () => {
-    const targetPath = `/dashboard?tab=cotisations`;
     if (user) {
-      navigate(targetPath);
+      setShowContributionModal(true);
     } else {
-      navigate(`/auth?redirect=${encodeURIComponent(targetPath)}`);
+      navigate(`/auth?redirect=${encodeURIComponent(`/f/${fundId}`)}`);
     }
   };
+
+  const refetchFund = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    // Re-trigger the useEffect by updating fundId dependency won't work,
+    // so we inline a refetch
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("collective_funds")
+          .select(`id, title, description, target_amount, current_amount, currency, occasion, status, deadline_date, created_at, products:business_product_id (id, name, image_url, price)`)
+          .eq("id", fundId!)
+          .maybeSingle();
+        if (data) {
+          const fundData: FundData = { ...data, product: data.products as FundData["product"], contact: fund?.contact || null, creator: fund?.creator || null };
+          setFund(fundData);
+        }
+      } catch (err) {
+        console.error("Error refetching fund:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [fundId, fund?.contact, fund?.creator]);
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat("fr-FR").format(amount);
@@ -372,6 +397,23 @@ export default function FundPreview() {
           © 2024 JOIE DE VIVRE - Célébrons ensemble
         </p>
       </footer>
+      {fund && (
+        <ContributionModal
+          isOpen={showContributionModal}
+          onClose={() => setShowContributionModal(false)}
+          fundId={fund.id}
+          fundTitle={fund.title}
+          targetAmount={fund.target_amount}
+          currentAmount={fund.current_amount || 0}
+          currency={fund.currency || 'XOF'}
+          isFromPublicFund={true}
+          occasion={fund.occasion || undefined}
+          onContributionSuccess={() => {
+            setShowContributionModal(false);
+            refetchFund();
+          }}
+        />
+      )}
     </div>
   );
 }
