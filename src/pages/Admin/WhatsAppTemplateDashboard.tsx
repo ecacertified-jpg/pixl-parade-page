@@ -16,7 +16,9 @@ type StatusFilter = 'all' | TemplateStatus;
 
 export default function WhatsAppTemplateDashboard() {
   const [period, setPeriod] = useState<Period>('30days');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { data, isLoading, refetch } = useWhatsAppTemplateStats(period);
+  const { data: inventory, isLoading: invLoading } = useWhatsAppTemplateInventory();
 
   const kpis = data?.kpis;
 
