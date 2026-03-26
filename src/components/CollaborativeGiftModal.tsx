@@ -141,7 +141,7 @@ export function CollaborativeGiftModal({
 
   const handleJoinFund = (fundId: string) => {
     onClose();
-    navigate(`/collective-fund/${fundId}`);
+    navigate(`/f/${fundId}`);
   };
 
   const handleStartFund = async () => {

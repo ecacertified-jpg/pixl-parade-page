@@ -33,7 +33,7 @@ export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: Searc
 
   const handleContribute = (fundId: string) => {
     onClose();
-    navigate(`/collective-fund/${fundId}`);
+    navigate(`/f/${fundId}`);
   };
 
   const handleCreateNew = () => {
