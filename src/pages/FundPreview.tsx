@@ -49,6 +49,7 @@ export default function FundPreview() {
   const [fund, setFund] = useState<FundData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showContributionModal, setShowContributionModal] = useState(false);
   
   const { detectAndStoreShareToken, cleanShareRefFromUrl } = useShareConversionTracking();
 
