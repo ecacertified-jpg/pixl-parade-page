@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { SimplePeriodSelector } from '@/components/admin/SimplePeriodSelector';
 import { useWhatsAppTemplateStats, getCountryName } from '@/hooks/useWhatsAppTemplateStats';
-import { RefreshCw, Send, CheckCircle, XCircle, LayoutGrid, AlertTriangle } from 'lucide-react';
+import { useWhatsAppTemplateInventory, TemplateStatus } from '@/hooks/useWhatsAppTemplateInventory';
+import { RefreshCw, Send, CheckCircle, XCircle, LayoutGrid, AlertTriangle, Filter } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 type Period = 'today' | '7days' | '30days' | '90days';
+type StatusFilter = 'all' | TemplateStatus;
 
 export default function WhatsAppTemplateDashboard() {
   const [period, setPeriod] = useState<Period>('30days');
