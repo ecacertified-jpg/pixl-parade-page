@@ -16,7 +16,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_contribution_update` — **Template unifié** : informe contributeurs ET non-contributeurs de la progression (%) et des jours restants. Remplace l'ancien template `joiedevivre_contribution_nudge` qui a été abandonné (rejeté par Meta pour similarité avec `_contribution_reminder`).
 - `joiedevivre_fund_ready` — Alerte prestataire quand la cagnotte atteint 100%
 - `joiedevivre_fund_completed` — Félicitations envoyées à tous les amis (contributeurs + non-contributeurs) quand la cagnotte atteint 100%. 4 paramètres : prénom, titre cagnotte, nom bénéficiaire, montant. Bouton CTA : /f/{fund_id}
-- `joiedevivre_new_order` — Notification au prestataire lors d'une nouvelle commande. 3 paramètres body : nom client, montant, résumé commande. Fonction Edge : `notify-business-order`.
+- `joiedevivre_new_order` — Notification au prestataire lors d'une nouvelle commande. 3 paramètres body : `{{1}}` nom client, `{{2}}` montant, `{{3}}` résumé commande. Body : `*Nouvelle commande sur Joie de Vivre !* Client : {{1}} Montant : {{2}} XOF Commande : {{3}} Connectez-vous pour accepter ou refuser cette commande.` Bouton CTA statique : "Connectez-vous" → `https://joiedevivre-africa.com/business-account?tab=orders`. Fonction Edge : `notify-business-order`.
 - `joiedevivre_order_confirmed` — Confirmation de commande envoyée au client. 3 paramètres body : prénom client, montant, nom boutique. Fonction Edge : `handle-order-action`.
 - `joiedevivre_order_rejected` — Rejet de commande envoyé au client. 3 paramètres body : prénom client, montant, nom boutique. Fonction Edge : `handle-order-action`.
 - `joiedevivre_join_reminder` — Rappel d'inscription envoyé aux contacts non inscrits ajoutés il y a > 7 jours. 1 paramètre body : nom de l'ami qui a ajouté. Bouton CTA : lien vers joiedevivre-africa.com. Fonction Edge : `notify-contacts-join-reminder`.
@@ -31,11 +31,11 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 
 ## Templates à créer dans Meta Business Manager
 
-Les 7 templates suivants sont utilisés dans le code (Edge Functions) mais doivent encore être créés et approuvés dans Meta Business Manager :
+Les 6 templates suivants sont utilisés dans le code (Edge Functions) mais doivent encore être créés et approuvés dans Meta Business Manager :
 
 | Template | Catégorie Meta | Paramètres body | Header | Bouton CTA | Fonction Edge |
 |----------|---------------|-----------------|--------|------------|---------------|
-| `joiedevivre_new_order` | UTILITY | `{{1}}` nom client, `{{2}}` montant, `{{3}}` résumé commande | — | — | `notify-business-order` |
+
 | `joiedevivre_order_confirmed` | UTILITY | `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique | — | — | `handle-order-action` |
 | `joiedevivre_order_rejected` | UTILITY | `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique | — | — | `handle-order-action` |
 | `joiedevivre_join_reminder` | MARKETING | `{{1}}` nom de l'ami qui a ajouté | — | CTA statique → `https://joiedevivre-africa.com` | `notify-contacts-join-reminder` |
