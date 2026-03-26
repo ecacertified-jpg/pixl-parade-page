@@ -1,24 +1,23 @@
 
 
-# Plan : Corriger le 404 sur le bouton "Contribuer" des cagnottes existantes
+# Plan : Pré-remplir le montant Wave pour les contributions
 
 ## Problème
 
-Quand l'utilisateur clique sur "Contribuer" dans l'alerte de cagnotte existante, la navigation va vers `/collective-fund/${fundId}` — une route qui **n'existe pas** dans `App.tsx`. D'où le 404.
+Dans `ContributionModal.tsx` (ligne 609), `freeAmount={true}` est codé en dur. Cela envoie l'utilisateur vers Wave **sans le montant**, l'obligeant à le ressaisir manuellement. Or le montant de la contribution est connu (saisi dans le modal).
 
-La bonne route est `/f/${fundId}` (page `FundPreview`), qui affiche la cagnotte et permet de contribuer.
+Le `freeAmount=true` avait été prévu pour la **création** de cagnottes (où le montant collectif est variable), mais pour une **contribution individuelle**, le montant est fixe.
 
-## Changements
+## Changement — `src/components/ContributionModal.tsx`
 
-Remplacer `navigate(\`/collective-fund/${fundId}\`)` par `navigate(\`/f/${fundId}\`)` dans **3 fichiers** :
+Passer `freeAmount={false}` au lieu de `true` (ligne 609). Le composant `WavePaymentRedirect` ajoutera automatiquement `?amount=1000` à l'URL Wave, pré-remplissant le montant.
 
-1. **`src/components/CollaborativeGiftModal.tsx`** (ligne 144)
-2. **`src/components/BusinessCollaborativeGiftModal.tsx`** (ligne 116)
-3. **`src/components/SearchExistingFundsModal.tsx`** (ligne 36)
+## Changement — `src/pages/CollectiveCheckout.tsx`
+
+Même correction : passer `freeAmount={false}` (ligne 551). Lors de la création d'une cagnotte, le montant total est aussi connu.
 
 ## Fichiers modifiés
 
-- `src/components/CollaborativeGiftModal.tsx`
-- `src/components/BusinessCollaborativeGiftModal.tsx`
-- `src/components/SearchExistingFundsModal.tsx`
+- `src/components/ContributionModal.tsx`
+- `src/pages/CollectiveCheckout.tsx`
 
