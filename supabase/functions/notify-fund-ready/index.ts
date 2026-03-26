@@ -53,6 +53,25 @@ serve(async (req) => {
       return new Response(JSON.stringify({ skipped: true, reason: 'not_at_target' }), { headers: corsHeaders });
     }
 
+    // Auto-create business order + payment split
+    try {
+      const completionResp = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/process-fund-completion`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ fund_id }),
+        }
+      );
+      const completionData = await completionResp.json();
+      console.log(`📦 process-fund-completion result:`, JSON.stringify(completionData));
+    } catch (completionErr) {
+      console.error('⚠️ process-fund-completion failed (non-blocking):', completionErr);
+    }
+
     // Find linked business fund
     const { data: bf } = await supabase
       .from('business_collective_funds')
