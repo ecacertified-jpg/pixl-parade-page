@@ -19,6 +19,7 @@ export interface CustomerOrder {
   currency: string;
   items: OrderItem[];
   deliveryAddress: string;
+  paymentMethod: string;
   donorPhone: string;
   beneficiaryPhone: string;
   paymentMethod: string;
