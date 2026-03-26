@@ -135,6 +135,17 @@ const BusinessFundWhatsAppLogs = lazy(() => import("./pages/Admin/BusinessFundWh
 const MyAssignments = lazy(() => import("./pages/Admin/MyAssignments"));
 const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboard"));
 
+// Deep link redirect that preserves query params (e.g. ?for=Name)
+const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
+  const [params] = useSearchParams();
+  const forParam = params.get('for');
+  let url = `/auth?tab=signup&redirect=create-fund&occasion=${occasion}&utm_source=deep_link`;
+  if (forParam) {
+    url += `&beneficiaryName=${encodeURIComponent(forParam)}`;
+  }
+  return <Navigate to={url} replace />;
+};
+
 // Suspense wrapper helper
 const L = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<LoadingTransition />}>{children}</Suspense>
