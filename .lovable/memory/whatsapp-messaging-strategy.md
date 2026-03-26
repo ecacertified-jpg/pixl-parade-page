@@ -18,7 +18,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_fund_completed` — Félicitations envoyées à tous les amis (contributeurs + non-contributeurs) quand la cagnotte atteint 100%. 4 paramètres : prénom, titre cagnotte, nom bénéficiaire, montant. Bouton CTA : /f/{fund_id}
 - `joiedevivre_new_order` — Notification au prestataire lors d'une nouvelle commande. 3 paramètres body : `{{1}}` nom client, `{{2}}` montant, `{{3}}` résumé commande. Body : `*Nouvelle commande sur Joie de Vivre !* Client : {{1}} Montant : {{2}} XOF Commande : {{3}} Connectez-vous pour accepter ou refuser cette commande.` Bouton CTA statique : "Connectez-vous" → `https://joiedevivre-africa.com/business-account?tab=orders`. Fonction Edge : `notify-business-order`.
 - `joiedevivre_order_confirmed` — Confirmation de commande envoyée au client. 3 paramètres body : `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique. Body : `Bonne nouvelle {{1}} ! Votre commande de {{2}} XOF chez {{3}} a ete confirmee. Suivez votre commande sur joiedevivre-africa.com`. Pas de bouton CTA. Fonction Edge : `handle-order-action`.
-- `joiedevivre_order_rejected` — Rejet de commande envoyé au client. 3 paramètres body : prénom client, montant, nom boutique. Fonction Edge : `handle-order-action`.
+- `joiedevivre_order_rejected` — Rejet de commande envoyé au client. 3 paramètres body : `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique. Body : `Bonjour {{1}}, votre commande de {{2}} XOF chez {{3}} n'a pas pu etre acceptee. Contactez-nous sur joiedevivre-africa.com pour plus d'informations.` Pas de bouton CTA. Fonction Edge : `handle-order-action`.
 - `joiedevivre_join_reminder` — Rappel d'inscription envoyé aux contacts non inscrits ajoutés il y a > 7 jours. 1 paramètre body : nom de l'ami qui a ajouté. Bouton CTA : lien vers joiedevivre-africa.com. Fonction Edge : `notify-contacts-join-reminder`.
 - `joiedevivre_delivery_reminder` — Rappel de confirmation de livraison au client. 3 paramètres body : prénom client, ID commande, nom boutique. Bouton CTA dynamique : `/orders/{{1}}`. Fonction Edge : `check-delivery-confirmation-reminder`.
 - `joiedevivre_welcome_add_friends` — Message de bienvenue post-inscription incitant à ajouter des amis. 1 paramètre body : prénom utilisateur. Bouton CTA : /contacts. Fonction Edge : `check-friends-circle-reminders` (envoi unique après inscription).
@@ -35,7 +35,7 @@ Les 5 templates suivants sont utilisés dans le code (Edge Functions) mais doive
 
 | Template | Catégorie Meta | Paramètres body | Header | Bouton CTA | Fonction Edge |
 |----------|---------------|-----------------|--------|------------|---------------|
-| `joiedevivre_order_rejected` | UTILITY | `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique | — | — | `handle-order-action` |
+
 | `joiedevivre_join_reminder` | MARKETING | `{{1}}` nom de l'ami qui a ajouté | — | CTA statique → `https://joiedevivre-africa.com` | `notify-contacts-join-reminder` |
 | `joiedevivre_delivery_reminder` | UTILITY | `{{1}}` prénom client, `{{2}}` ID commande, `{{3}}` nom boutique | — | CTA dynamique → Base URL `https://joiedevivre-africa.com/orders/` + `{{1}}` | `check-delivery-confirmation-reminder` |
 | `joiedevivre_welcome_add_friends` | MARKETING | `{{1}}` prénom utilisateur | — | CTA statique → `https://joiedevivre-africa.com/contacts` | `check-friends-circle-reminders` |
