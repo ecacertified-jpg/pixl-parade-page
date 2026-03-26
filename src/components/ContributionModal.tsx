@@ -576,16 +576,20 @@ export function ContributionModal({
           </Button>
           
           <Button
-            onClick={handleSubmit}
+            onClick={() => {
+              toast({
+                title: "Mode indisponible",
+                description: "Ce mode de paiement n'est pas encore disponible. Sélectionnez WAVE pour votre paiement.",
+                variant: "destructive"
+              });
+            }}
             disabled={loading || !amount || loadingExisting}
-            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white opacity-60"
           >
             <Phone className="h-4 w-4 mr-2" />
-            {loading 
-              ? "Envoi..." 
-              : isEditMode 
-                ? "Modifier via Mobile Money" 
-                : "Contribuer via Mobile Money"
+            {isEditMode 
+              ? "Modifier via Mobile Money" 
+              : "Contribuer via Mobile Money"
             }
           </Button>
 

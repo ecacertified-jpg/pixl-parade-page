@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star, Pencil } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Eye, Package, Clock, CheckCircle, XCircle, CheckCircle2, AlertTriangle, RefreshCw, Star, Pencil, Smartphone } from "lucide-react";
+import { WavePaymentRedirect } from "@/components/WavePaymentRedirect";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,9 +62,10 @@ interface OrderCardProps {
   onViewInvoice: (order: CustomerOrder) => void;
   onConfirmDelivery: (order: CustomerOrder) => void;
   onEditRating: (order: CustomerOrder) => void;
+  onPayViaWave: (order: CustomerOrder) => void;
 }
 
-const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: OrderCardProps) => {
+const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating, onPayViaWave }: OrderCardProps) => {
   const { canEditReview, getRemainingHours } = useEditRating();
   const itemCount = order.items.reduce((acc, item) => acc + item.quantity, 0) || 1;
   const canConfirmDelivery = order.status === 'delivered' && !order.customerConfirmedAt;
@@ -177,6 +179,18 @@ const OrderCard = ({ order, onViewInvoice, onConfirmDelivery, onEditRating }: Or
               </div>
             )}
 
+            {/* Bouton Payer via Wave pour les commandes en attente avec paiement à la livraison */}
+            {order.paymentMethod === 'cash_on_delivery' && (order.status === 'pending' || order.status === 'processing') && (
+              <Button
+                size="sm"
+                onClick={() => onPayViaWave(order)}
+                className="w-full sm:w-auto bg-[#1DC3C3] hover:bg-[#19AFAF] text-white"
+              >
+                <Smartphone className="h-4 w-4 mr-1" />
+                Payer via WAVE
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -219,6 +233,7 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<CustomerOrder | null>(null);
   const [orderToConfirm, setOrderToConfirm] = useState<CustomerOrder | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<CustomerOrder | null>(null);
+  const [wavePayOrder, setWavePayOrder] = useState<CustomerOrder | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
   const filteredOrders = orders?.filter(order => {
@@ -308,6 +323,7 @@ const Orders = () => {
                 onViewInvoice={setSelectedOrder}
                 onConfirmDelivery={setOrderToConfirm}
                 onEditRating={setOrderToEdit}
+                onPayViaWave={setWavePayOrder}
               />
             ))}
           </div>
@@ -334,6 +350,17 @@ const Orders = () => {
         order={orderToEdit}
         isOpen={!!orderToEdit}
         onClose={() => setOrderToEdit(null)}
+      />
+
+      {/* Wave Payment Modal for COD orders */}
+      <WavePaymentRedirect
+        open={!!wavePayOrder}
+        onOpenChange={(open) => { if (!open) setWavePayOrder(null); }}
+        amount={wavePayOrder?.totalAmount || 0}
+        currency={wavePayOrder?.currency || 'F'}
+        onSuccess={() => {
+          setWavePayOrder(null);
+        }}
       />
     </div>
   );

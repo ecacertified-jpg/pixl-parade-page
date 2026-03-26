@@ -39,7 +39,7 @@ export default function CollectiveCheckout() {
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [addressDetails, setAddressDetails] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
+  const [paymentMethod, setPaymentMethod] = useState("wave");
   const [processing, setProcessing] = useState(false);
   const [showWaveModal, setShowWaveModal] = useState(false);
 
@@ -510,18 +510,19 @@ export default function CollectiveCheckout() {
             <h3 className="font-semibold">Mode de paiement</h3>
           </div>
           
-          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-            <div className="flex items-center space-x-3 p-3 border rounded-lg">
-              <RadioGroupItem value="cash_on_delivery" id="cash_on_delivery" />
-              <div className="flex items-center gap-2 flex-1">
-                <Phone className="h-4 w-4 text-orange-500" />
-                <Label htmlFor="cash_on_delivery" className="flex-1 cursor-pointer">
-                  Paiement à la livraison
-                </Label>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3 p-3 border rounded-lg">
+          <RadioGroup value={paymentMethod} onValueChange={(value) => {
+            if (value === 'mobile_money') {
+              toast({
+                title: "Mode indisponible",
+                description: "Ce mode de paiement n'est pas encore disponible. Sélectionnez WAVE pour votre paiement.",
+                variant: "destructive"
+              });
+              setPaymentMethod('wave');
+              return;
+            }
+            setPaymentMethod(value);
+          }}>
+            <div className="flex items-center space-x-3 p-3 border rounded-lg opacity-60">
               <RadioGroupItem value="mobile_money" id="mobile_money" />
               <div className="flex items-center gap-2 flex-1">
                 <span className="text-green-500">📱</span>
