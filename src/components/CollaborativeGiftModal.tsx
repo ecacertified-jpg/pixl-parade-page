@@ -11,6 +11,8 @@ import { useCart } from "@/hooks/useCart";
 import { getDaysUntilBirthday } from "@/lib/utils";
 import { useExistingFundsForBeneficiary } from "@/hooks/useExistingFundsForBeneficiary";
 import { ExistingFundsAlert } from "@/components/ExistingFundsAlert";
+import { ContactWishlistSection } from "@/components/ContactWishlistSection";
+import { ContactWishlistItem } from "@/hooks/useContactWishlist";
 
 interface Contact {
   id: string;
@@ -298,6 +300,34 @@ export function CollaborativeGiftModal({
               onJoinFund={handleJoinFund}
               onCreateAnyway={() => setForceCreate(true)}
               loading={checkingFunds}
+            />
+          )}
+
+          {/* Wishlist du contact sélectionné */}
+          {selectedContact && (
+            <ContactWishlistSection
+              contactId={selectedContact.id}
+              contactName={selectedContact.name}
+              onSelectProduct={(wishlistItem: ContactWishlistItem) => {
+                if (wishlistItem.product) {
+                  addItem({
+                    id: wishlistItem.product.id,
+                    productId: wishlistItem.product.id,
+                    name: wishlistItem.product.name,
+                    description: wishlistItem.product.description || '',
+                    price: wishlistItem.product.price,
+                    currency: wishlistItem.product.currency,
+                    image: wishlistItem.product.image_url || '',
+                    isCollaborativeGift: true,
+                    beneficiaryName: selectedContact.name,
+                    beneficiaryContactId: selectedContact.id,
+                  });
+                  toast({ title: "Article ajouté ! 🎉", description: `Article de la wishlist ajouté au panier pour ${selectedContact.name}` });
+                  onClose();
+                  navigate('/cart');
+                }
+              }}
+              compact
             />
           )}
 
