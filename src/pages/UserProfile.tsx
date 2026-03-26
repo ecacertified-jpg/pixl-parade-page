@@ -98,11 +98,18 @@ export default function UserProfile() {
         .eq('user_id', userId)
         .eq('reaction_type', 'gift');
 
-      // Count friends from contacts
-      const { count: friendsCount } = await supabase
-        .from('contacts')
+      // Count confirmed relations (proches)
+      const { count: relationsA } = await supabase
+        .from('contact_relationships')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
+        .eq('user_a', userId);
+
+      const { count: relationsB } = await supabase
+        .from('contact_relationships')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_b', userId);
+
+      const friendsCount = (relationsA || 0) + (relationsB || 0);
 
       // Get reciprocity score - try different column names
       const { data: reciprocityData } = await supabase
