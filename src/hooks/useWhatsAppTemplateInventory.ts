@@ -37,7 +37,7 @@ const KNOWN_TEMPLATES: TemplateDefinition[] = [
   { name: 'joiedevivre_new_order', description: 'Notification nouvelle commande (prestataire)', edgeFunction: 'notify-business-order' },
   { name: 'joiedevivre_order_confirmed', description: 'Confirmation commande (client)', edgeFunction: 'handle-order-action' },
   { name: 'joiedevivre_order_rejected', description: 'Rejet commande (client)', edgeFunction: 'handle-order-action' },
-  { name: 'joiedevivre_join_reminder', description: 'Rappel inscription contacts non inscrits', edgeFunction: 'notify-contacts-join-reminder', needsMetaCreation: true },
+  { name: 'joiedevivre_join_reminder', description: 'Rappel inscription contacts non inscrits', edgeFunction: 'notify-contacts-join-reminder' },
   { name: 'joiedevivre_delivery_reminder', description: 'Rappel confirmation livraison', edgeFunction: 'check-delivery-confirmation-reminder', needsMetaCreation: true },
   { name: 'joiedevivre_welcome_add_friends', description: 'Bienvenue post-inscription', edgeFunction: 'check-friends-circle-reminders', needsMetaCreation: true },
   { name: 'joiedevivre_friends_circle_reminder', description: 'Rappel étoffer cercle d\'amis', edgeFunction: 'check-friends-circle-reminders', needsMetaCreation: true },
