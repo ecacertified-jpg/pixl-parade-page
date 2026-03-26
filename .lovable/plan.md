@@ -1,30 +1,24 @@
 
 
-# Plan : Afficher la wishlist dans le modal de cotisation groupée
+# Plan : Corriger le 404 sur le bouton "Contribuer" des cagnottes existantes
 
 ## Problème
 
-Quand l'utilisateur sélectionne un contact dans "Offrir à quelqu'un" (OrderModal), la liste de souhaits du contact s'affiche. Mais dans le modal "Cotisation groupée" (CollaborativeGiftModal), cette wishlist n'apparait pas.
+Quand l'utilisateur clique sur "Contribuer" dans l'alerte de cagnotte existante, la navigation va vers `/collective-fund/${fundId}` — une route qui **n'existe pas** dans `App.tsx`. D'où le 404.
 
-## Changement — `src/components/CollaborativeGiftModal.tsx`
+La bonne route est `/f/${fundId}` (page `FundPreview`), qui affiche la cagnotte et permet de contribuer.
 
-### Ajouter la ContactWishlistSection après la sélection du contact
+## Changements
 
-Quand un contact est sélectionné (`selectedContact` non null), afficher `<ContactWishlistSection>` entre la liste des contacts et le bouton "Démarrer une cotisation" :
+Remplacer `navigate(\`/collective-fund/${fundId}\`)` par `navigate(\`/f/${fundId}\`)` dans **3 fichiers** :
 
-- Importer `ContactWishlistSection` et `ContactWishlistItem`
-- Insérer le composant après le bloc `ExistingFundsAlert` (ligne 302) et avant le bloc `showCreateButton` (ligne 305)
-- Props : `contactId={selectedContact.id}`, `contactName={selectedContact.name}`, `compact`
-- `onSelectProduct` : quand l'utilisateur clique sur "Offrir" d'un souhait, remplacer le produit courant par celui de la wishlist et lancer la cotisation pour ce produit
+1. **`src/components/CollaborativeGiftModal.tsx`** (ligne 144)
+2. **`src/components/BusinessCollaborativeGiftModal.tsx`** (ligne 116)
+3. **`src/components/SearchExistingFundsModal.tsx`** (ligne 36)
 
-### Comportement du callback onSelectProduct
-
-Quand l'utilisateur clique sur un article de la wishlist :
-- Ajouter cet article au panier en mode `isCollaborativeGift` avec le contact comme bénéficiaire
-- Naviguer vers `/cart`
-- Fermer le modal
-
-## Fichier modifié
+## Fichiers modifiés
 
 - `src/components/CollaborativeGiftModal.tsx`
+- `src/components/BusinessCollaborativeGiftModal.tsx`
+- `src/components/SearchExistingFundsModal.tsx`
 
