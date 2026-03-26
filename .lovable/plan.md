@@ -1,47 +1,36 @@
 
 
-# Plan : Ajouter le template `joiedevivre_birthday_create_fund_nudge`
+# Plan : Transmettre le paramètre `?for=` via le redirect `/go/birthday`
 
-## Contexte
+## Problème
 
-Actuellement, quand l'anniversaire d'un contact approche (J-7) et qu'aucune cagnotte n'existe, le système envoie `joiedevivre_birthday_no_fund_alert` qui redirige vers `/shop` (acheter un cadeau individuel). Il manque un template qui incite les proches à **créer une cagnotte** pour le bénéficiaire.
+Le redirect dans `App.tsx` est statique :
+```tsx
+<Route path="/go/birthday" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=birthday&utm_source=deep_link" replace />} />
+```
 
-## Nouveau template WhatsApp
+Quand le template WhatsApp envoie `/go/birthday?for=Françoise`, le paramètre `?for=` est perdu car `<Navigate>` écrase tous les query params.
 
-- **Nom** : `joiedevivre_birthday_create_fund_nudge`
-- **Objectif** : Inciter un proche à créer une cagnotte collective pour le bénéficiaire
-- **4 paramètres body** : `{{1}}` prénom bénéficiaire, `{{2}}` dayLabel (ex: "dans 5 jours"), `{{3}}` prénom du destinataire, `{{4}}` "JOIE DE VIVRE" (branding)
-- **Header** : Image (même image que no_fund_alert ou une dédiée configurable via `BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL`)
-- **Bouton CTA** : URL dynamique vers `/go/birthday?for={{1}}` (page de création de cagnotte pré-remplie avec le nom du bénéficiaire)
-- **Exemple de message** : "Bonjour {{3}} ! L'anniversaire de {{1}} est {{2}}. Pourquoi ne pas organiser une cagnotte collective sur {{4}} ? Vos amis pourront contribuer facilement. Créez la cagnotte maintenant !"
+Ensuite, après login, `Auth.tsx` (ligne 273) fait `navigate(redirectParam)` qui navigue vers `create-fund` — sans le paramètre `for`.
 
-## Changements
+## Changement — `src/App.tsx`
 
-### 1. `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+Remplacer le `<Navigate>` statique par un petit composant wrapper `DeepLinkRedirect` qui :
 
-Dans le bloc `sendNoFundFriendAlert` (lignes 473-536), remplacer l'envoi de `joiedevivre_birthday_no_fund_alert` par `joiedevivre_birthday_create_fund_nudge` :
+1. Lit les query params de l'URL actuelle (ex: `?for=Françoise`)
+2. Les transmet au redirect vers `/auth` en ajoutant `&beneficiaryName=Françoise`
+3. Après login, `Auth.tsx` redirige vers `create-fund?occasion=birthday&beneficiaryName=Françoise`
 
-- 4 paramètres body : `[contact.name, dayLabel, recipientName, 'JOIE DE VIVRE']`
-- 1 paramètre CTA bouton : suffixe dynamique pour l'URL (ex: `?for=${encodeURIComponent(contact.name)}`)
-- Header image configurable via `BIRTHDAY_CREATE_FUND_NUDGE_IMAGE_URL` avec fallback vers l'image no_fund existante
-- Conserver le fallback SMS existant
-- Conserver le `alert_type` existant `friend_birthday_alert_no_fund` pour la déduplication (ou le renommer en `friend_birthday_create_fund_nudge`)
+Concrètement :
+- Créer un composant inline `DeepLinkRedirect` qui utilise `useSearchParams` pour capturer `for` et le passer comme `beneficiaryName` dans l'URL auth
+- Modifier le redirect `Auth.tsx` (ligne 272-273) pour inclure les query params `occasion` et `beneficiaryName` quand `redirectParam === 'create-fund'`
 
-### 2. `.lovable/memory/whatsapp-messaging-strategy.md`
+## Changement — `src/pages/Auth.tsx`
 
-Ajouter le nouveau template dans la liste des templates actifs avec sa description et ses paramètres.
-
-## Template à créer sur Meta Business Manager
-
-Le template doit être créé manuellement dans Meta Business Manager avec :
-- Catégorie : UTILITY
-- Langue : Français (fr)
-- Header : IMAGE
-- Body : texte avec 4 variables
-- Bouton : CTA URL avec suffixe dynamique `{{1}}`
+Ligne 272-273 : quand `redirectParam` est `create-fund`, construire l'URL de redirection avec les params `occasion` et `beneficiaryName` depuis `searchParams`.
 
 ## Fichiers modifiés
 
-- `supabase/functions/birthday-reminder-with-suggestions/index.ts`
-- `.lovable/memory/whatsapp-messaging-strategy.md`
+- `src/App.tsx` — composant `DeepLinkRedirect` + remplacement du `<Navigate>` statique
+- `src/pages/Auth.tsx` — transmission des query params lors du redirect post-login
 
