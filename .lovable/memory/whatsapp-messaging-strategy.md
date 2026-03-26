@@ -22,7 +22,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_join_reminder` — Rappel d'inscription envoyé aux contacts non inscrits ajoutés il y a > 7 jours. 1 paramètre body : `{{1}}` nom de l'ami qui a ajouté. Header image (statique dans Meta). Pied de page : `JOIE DE VIVRE - Célébrons ensemble`. Body : `😍 {{1}} t'a ajouté à son cercle d'amis sur Joie de Vivre 🎉\n\nCrée ton propre cercle pour profiter aussi de la générosité de tes proches et recevoir des cadeaux pour ton anniversaire !\n\n👉 Inscris-toi gratuitement sur joiedevivre-africa.com`. Bouton CTA statique : "Créer mon cercle d'amis" → `https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=join_reminder`. Fonction Edge : `notify-contacts-join-reminder`.
 - `joiedevivre_delivery_reminder` — Rappel de confirmation de livraison au client. 3 paramètres body : prénom client, ID commande, nom boutique. Bouton CTA dynamique : `/orders/{{1}}`. Fonction Edge : `check-delivery-confirmation-reminder`.
 - `joiedevivre_welcome_add_friends` — Message de bienvenue post-inscription incitant à ajouter des amis. 1 paramètre body : `{{1}}` prénom utilisateur. Body : `Bienvenue sur JOIE DE VIVRE, {{1}} ! Ajoute au moins 2 amis a ton cercle pour commencer a recevoir des cadeaux. Plus tu ajoutes d'amis, plus tu maximises tes chances d'obtenir un cadeau de ta liste de souhaits.` Bouton CTA statique : "Commence ici" → `https://joiedevivre-africa.com/contacts`. Pas de header ni pied de page. Fonction Edge : `check-friends-circle-reminders` (envoi unique après inscription).
-- `joiedevivre_friends_circle_reminder` — Rappel périodique pour étoffer son cercle d'amis. 1 paramètre body : prénom utilisateur. Bouton CTA : /contacts. Fonction Edge : `check-friends-circle-reminders` (CRON).
+- `joiedevivre_friends_circle_reminder` — Rappel périodique pour étoffer son cercle d'amis. Catégorie MARKETING. Header texte : "Joie de Vivre". 1 paramètre body : `{{1}}` prénom utilisateur. Body : `Salut {{1}}, Ton cercle d'amis n'est pas encore complet ! Ajoute des proches pour maximiser tes chances de recevoir un cadeau de ta liste de souhaits. Tu peux ajouter autant d'amis que tu veux.` Bouton CTA statique : "Ajoute-les ici" → `https://joiedevivre-africa.com/contacts`. Fonction Edge : `check-friends-circle-reminders` (CRON).
 
 ## Templates supprimés / remplacés
 
@@ -31,13 +31,11 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 
 ## Templates à créer dans Meta Business Manager
 
-Les 2 templates suivants sont utilisés dans le code (Edge Functions) mais doivent encore être créés et approuvés dans Meta Business Manager :
+Le template suivant est utilisé dans le code (Edge Functions) mais doit encore être créé et approuvé dans Meta Business Manager :
 
 | Template | Catégorie Meta | Paramètres body | Header | Bouton CTA | Fonction Edge |
 |----------|---------------|-----------------|--------|------------|---------------|
-
 | `joiedevivre_delivery_reminder` | UTILITY | `{{1}}` prénom client, `{{2}}` ID commande, `{{3}}` nom boutique | — | CTA dynamique → Base URL `https://joiedevivre-africa.com/orders/` + `{{1}}` | `check-delivery-confirmation-reminder` |
-| `joiedevivre_friends_circle_reminder` | MARKETING | `{{1}}` prénom utilisateur | — | CTA statique → `https://joiedevivre-africa.com/contacts` | `check-friends-circle-reminders` |
 
 ## Notes techniques
 
