@@ -31,7 +31,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 
 ## Templates à créer dans Meta Business Manager
 
-Les 7 templates suivants sont utilisés dans le code (Edge Functions) mais doivent encore être créés et approuvés dans Meta Business Manager :
+Les 6 templates suivants sont utilisés dans le code (Edge Functions) mais doivent encore être créés et approuvés dans Meta Business Manager :
 
 | Template | Catégorie Meta | Paramètres body | Header | Bouton CTA | Fonction Edge |
 |----------|---------------|-----------------|--------|------------|---------------|
