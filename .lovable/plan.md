@@ -1,32 +1,32 @@
 
 
-# Plan : Mobile Money indisponible, paiement Wave différé, masquer livraison pour cagnottes
+# Plan : Afficher le nombre de proches (relations confirmées) dans le dashboard
 
-## 3 changements
+## Problème
 
-### 1. Message "indisponible" pour Mobile Money — 3 fichiers
+Actuellement, `useUserStats` compte les **contacts** (carnet d'adresses) via la table `contacts`. Ce chiffre inclut des personnes non inscrites et sans relation confirmée. Il faut afficher le nombre de **proches** — les relations bidirectionnelles confirmées dans `contact_relationships`.
 
-**`src/pages/Checkout.tsx`** : Quand l'utilisateur sélectionne `mobile`, afficher un toast/alerte "Ce mode de paiement n'est pas encore disponible. Sélectionnez WAVE pour votre paiement" et remettre la sélection sur `wave`. Même logique dans **`src/pages/CollectiveCheckout.tsx`** (valeur `mobile_money`) et **`src/components/ContributionModal.tsx`**.
+## Changements
 
-### 2. Paiement à la livraison → message d'avertissement + bouton Wave dans Mes Commandes
+### 1. `src/hooks/useUserStats.ts` — Ajouter `closeRelationsCount`
 
-**`src/pages/Checkout.tsx`** : Sous l'option "Paiement à la livraison", ajouter une alerte visible :
-> ⚠️ Attention ! Payez via WAVE dans MES COMMANDES des paramètres du profil pour le paiement à la livraison
+Ajouter une requête parallèle sur `contact_relationships` comptant les lignes où `user_a = userId` OU `user_b = userId`. Exposer le résultat dans `UserStats` sous `closeRelationsCount`.
 
-**`src/pages/Orders.tsx`** (OrderCard) : Pour les commandes avec `paymentMethod === 'cash_on_delivery'` et statut `pending` ou `processing`, ajouter un bouton "Payer via Wave" qui ouvre le `WavePaymentRedirect` avec le montant de la commande pré-rempli. Nécessite :
-- Ajouter `paymentMethod` au type `CustomerOrder` et au hook `useCustomerOrders`
-- Ajouter un state `wavePayOrder` dans Orders pour le modal Wave
-- Après paiement Wave confirmé, mettre à jour le statut de la commande
+### 2. `src/components/ProfileDropdown.tsx` — Afficher "Proches" à côté de "Amis"
 
-### 3. Masquer "Paiement à la livraison" pour les cagnottes
+Remplacer ou compléter la stat "Amis" (qui affiche `friendsCount` = contacts) par "Proches" affichant `closeRelationsCount`. Deux options :
+- **Option A** : Remplacer "Amis" par "Proches" (relations confirmées uniquement)
+- **Option B** : Garder "Amis" et ajouter une 4e stat "Proches"
 
-**`src/pages/CollectiveCheckout.tsx`** : Retirer l'option `cash_on_delivery` du RadioGroup. Ne garder que Wave et Mobile Money (avec le message indisponible pour Mobile Money).
+Proposition : **Option A** — remplacer, car c'est la métrique la plus pertinente (les contacts non liés n'ont pas de valeur sociale réelle). Le label reste "Amis" mais la source devient `contact_relationships`.
+
+### 3. `src/pages/UserProfile.tsx` — Même correction
+
+Remplacer le comptage `contacts` par `contact_relationships` pour la stat "Amis" affichée sur le profil public.
 
 ## Fichiers modifiés
 
-- `src/pages/Checkout.tsx` — alerte sous paiement à la livraison + interception Mobile Money
-- `src/pages/CollectiveCheckout.tsx` — retrait cash_on_delivery + interception mobile_money
-- `src/components/ContributionModal.tsx` — interception mobile_money
-- `src/pages/Orders.tsx` — bouton "Payer via Wave" sur les commandes pending
-- `src/hooks/useCustomerOrders.ts` — exposer `paymentMethod`
+- `src/hooks/useUserStats.ts`
+- `src/components/ProfileDropdown.tsx`
+- `src/pages/UserProfile.tsx`
 
