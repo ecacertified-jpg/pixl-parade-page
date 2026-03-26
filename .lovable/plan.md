@@ -1,36 +1,21 @@
 
 
-# Plan : Transmettre le paramètre `?for=` via le redirect `/go/birthday`
+# Plan : Déclencher les alertes anniversaire à J-15 au lieu de J-7
 
 ## Problème
 
-Le redirect dans `App.tsx` est statique :
-```tsx
-<Route path="/go/birthday" element={<Navigate to="/auth?tab=signup&redirect=create-fund&occasion=birthday&utm_source=deep_link" replace />} />
-```
+Les deux blocs d'alerte WhatsApp dans `birthday-reminder-with-suggestions/index.ts` utilisent `daysUntilBirthday <= 7` comme condition. Cela ne laisse que 7 jours aux proches pour organiser ou contribuer à une cagnotte.
 
-Quand le template WhatsApp envoie `/go/birthday?for=Françoise`, le paramètre `?for=` est perdu car `<Navigate>` écrase tous les query params.
+## Changement — `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
-Ensuite, après login, `Auth.tsx` (ligne 273) fait `navigate(redirectParam)` qui navigue vers `create-fund` — sans le paramètre `for`.
+Deux modifications de condition :
 
-## Changement — `src/App.tsx`
+1. **Ligne 322** : `if (hasActiveFund && daysUntilBirthday <= 7)` → `daysUntilBirthday <= 15`
+2. **Ligne 467** : `else if (!hasActiveFund && daysUntilBirthday <= 7)` → `daysUntilBirthday <= 15`
 
-Remplacer le `<Navigate>` statique par un petit composant wrapper `DeepLinkRedirect` qui :
+La déduplication existante via `birthday_contact_alerts` empêche déjà les envois multiples pour le même contact/jour.
 
-1. Lit les query params de l'URL actuelle (ex: `?for=Françoise`)
-2. Les transmet au redirect vers `/auth` en ajoutant `&beneficiaryName=Françoise`
-3. Après login, `Auth.tsx` redirige vers `create-fund?occasion=birthday&beneficiaryName=Françoise`
+## Fichier modifié
 
-Concrètement :
-- Créer un composant inline `DeepLinkRedirect` qui utilise `useSearchParams` pour capturer `for` et le passer comme `beneficiaryName` dans l'URL auth
-- Modifier le redirect `Auth.tsx` (ligne 272-273) pour inclure les query params `occasion` et `beneficiaryName` quand `redirectParam === 'create-fund'`
-
-## Changement — `src/pages/Auth.tsx`
-
-Ligne 272-273 : quand `redirectParam` est `create-fund`, construire l'URL de redirection avec les params `occasion` et `beneficiaryName` depuis `searchParams`.
-
-## Fichiers modifiés
-
-- `src/App.tsx` — composant `DeepLinkRedirect` + remplacement du `<Navigate>` statique
-- `src/pages/Auth.tsx` — transmission des query params lors du redirect post-login
+- `supabase/functions/birthday-reminder-with-suggestions/index.ts`
 
