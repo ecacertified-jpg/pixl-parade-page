@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface UserStats {
   friendsCount: number;
+  closeRelationsCount: number;
   giftsGiven: number;
   giftsReceived: number;
   fundsCreated: number;
@@ -15,6 +16,7 @@ export const useUserStats = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<UserStats>({
     friendsCount: 0,
+    closeRelationsCount: 0,
     giftsGiven: 0,
     giftsReceived: 0,
     fundsCreated: 0,
@@ -35,6 +37,8 @@ export const useUserStats = () => {
       // Fetch all stats in parallel
       const [
         friendsResult,
+        closeRelationsResultA,
+        closeRelationsResultB,
         giftsGivenResult,
         giftsReceivedResult,
         fundsResult,
@@ -46,6 +50,18 @@ export const useUserStats = () => {
           .from("contacts")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id),
+
+        // Count confirmed relations (user_a)
+        supabase
+          .from("contact_relationships")
+          .select("*", { count: "exact", head: true })
+          .eq("user_a", user.id),
+
+        // Count confirmed relations (user_b)
+        supabase
+          .from("contact_relationships")
+          .select("*", { count: "exact", head: true })
+          .eq("user_b", user.id),
 
         // Count gifts given
         supabase
@@ -81,6 +97,7 @@ export const useUserStats = () => {
 
       setStats({
         friendsCount: friendsResult.count || 0,
+        closeRelationsCount: (closeRelationsResultA.count || 0) + (closeRelationsResultB.count || 0),
         giftsGiven: giftsGivenResult.count || 0,
         giftsReceived: giftsReceivedResult.count || 0,
         fundsCreated: fundsResult.count || 0,

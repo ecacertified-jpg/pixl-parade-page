@@ -133,11 +133,11 @@ export const ProfileDropdown = () => {
               {statsLoading ? (
                 <Skeleton className="h-5 w-10 mx-auto mb-1" />
               ) : (
-                <div className="font-bold text-foreground text-base">{stats.friendsCount}</div>
+                <div className="font-bold text-foreground text-base">{stats.closeRelationsCount}</div>
               )}
               <div className="text-muted-foreground text-xs flex items-center justify-center gap-1 mt-0.5">
                 <Users className="h-3 w-3 text-primary" />
-                Amis
+                Proches
               </div>
             </div>
             <div className="flex-1 bg-muted/30 rounded-xl py-2.5 px-1">
