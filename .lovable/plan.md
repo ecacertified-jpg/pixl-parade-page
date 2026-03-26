@@ -1,20 +1,25 @@
 
 
-# Plan : Mettre à jour la documentation pour joiedevivre_new_order
+# Plan : Mettre à jour la documentation pour joiedevivre_order_confirmed
 
-## Changement — `.lovable/memory/whatsapp-messaging-strategy.md`
+## Constat
 
-1. **Retirer** `joiedevivre_new_order` de la section "Templates à créer dans Meta Business Manager" (il n'en reste plus que 6)
-2. **Mettre à jour** son entrée dans les templates actifs avec les détails exacts :
-   - Body : `*Nouvelle commande sur Joie de Vivre !*\nClient : {{1}}\nMontant : {{2}} XOF\nCommande : {{3}}\nConnectez-vous pour accepter ou refuser cette commande.`
-   - Bouton CTA statique : "Connectez-vous" → `https://joiedevivre-africa.com/business-account?tab=orders`
+Le template `joiedevivre_order_confirmed` existe déjà dans Meta avec :
+- **Catégorie** : UTILITY
+- **Body** : `Bonne nouvelle {{1}} ! Votre commande de {{2}} XOF chez {{3}} a ete confirmee. Suivez votre commande sur joiedevivre-africa.com`
+- **Paramètres** : `{{1}}` prénom client, `{{2}}` montant, `{{3}}` nom boutique
+- **Bouton CTA** : aucun
 
-## Changement — `src/hooks/useWhatsAppTemplateInventory.ts`
+## Changements
 
-Retirer `needsMetaCreation: true` de l'entrée `joiedevivre_new_order` pour que le dashboard affiche le bon statut.
+### 1. `.lovable/memory/whatsapp-messaging-strategy.md`
+- Retirer `joiedevivre_order_confirmed` de la section "Templates à créer dans Meta Business Manager" (passe de 6 à 5)
+- Mettre à jour sa description dans les templates actifs avec le body exact
+
+### 2. `src/hooks/useWhatsAppTemplateInventory.ts`
+- Retirer `needsMetaCreation: true` de l'entrée `joiedevivre_order_confirmed`
 
 ## Fichiers modifiés
-
 - `.lovable/memory/whatsapp-messaging-strategy.md`
 - `src/hooks/useWhatsAppTemplateInventory.ts`
 
