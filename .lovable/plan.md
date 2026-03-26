@@ -1,35 +1,57 @@
 
 
-# Plan : Transformer le bouton rose en option Mobile Money (Orange/MTN)
+# Plan : Automatiser le flux post-cagnotte 100% et le split
 
 ## Problème
 
-Le modal de contribution affiche un bouton "Modifier"/"Contribuer" (rose) qui enregistre la contribution sans paiement réel. Il faut le transformer en option Mobile Money.
+Quand une cagnotte atteint 100%, il n'y a aucune commande créée automatiquement et aucun split calculé. L'argent arrive sur le compte Wave JDV mais rien ne se passe ensuite.
 
-## Changement — `src/components/ContributionModal.tsx`
-
-### Remplacer le bouton rose par un bouton Mobile Money
-
-Dans le footer (lignes 588-599), transformer le bouton rose en bouton Mobile Money :
-
-- Style : gradient orange classique avec icône `Phone`
-- Label : `"Contribuer via Mobile Money"` / `"Modifier via Mobile Money"`
-- Au clic : ouvrir le même flux CinetPay déjà utilisé dans `Checkout.tsx` pour Orange/MTN
-- Le bouton appellera `handleSubmit` avec `payment_method: 'mobile_money'` au lieu d'un submit sans paiement
-
-### Layout final des boutons
+## Flux cible
 
 ```text
-[  Contribuer via Wave 🌊  ]     ← teal, pleine largeur
-[ Contribuer via Mobile Money ]   ← orange/gradient, pleine largeur
-[  Annuler  ]                     ← outline, pleine largeur
+Cagnotte 100%
+  → notify-fund-ready (existant)
+  → NOUVEAU: créer automatiquement une business_order à partir de la cagnotte
+  → NOUVEAU: créer le payment_split (commission JDV + montant prestataire)
+  → Admin voit le split dans le dashboard Commissions
+  → Admin transfère manuellement au prestataire (Wave/Mobile Money)
+  → Admin marque vendor_transfer_status = 'completed'
 ```
 
-### Logique de paiement Mobile Money
+## Changements
 
-Vérifier si un composant de paiement CinetPay existe déjà pour les contributions. Si oui, l'intégrer. Sinon, utiliser le même pattern que Wave : redirection vers le flux Mobile Money existant, puis confirmation.
+### 1. Nouvelle Edge Function `process-fund-completion` 
 
-## Fichier modifié
+Déclenchée quand la cagnotte atteint `target_reached`. Elle :
 
-- `src/components/ContributionModal.tsx`
+- Récupère le produit lié via `business_collective_funds`
+- Crée une `business_order` automatique (statut `pending`, payment_method repris des contributions)
+- Calcule le split : prix produit original = montant prestataire, différence = commission JDV
+- Insère dans `payment_splits` avec `vendor_transfer_status: 'pending'`
+- Déduplication : vérifie qu'aucune commande n'existe déjà pour ce fund_id
+
+### 2. Appeler `process-fund-completion` depuis `notify-fund-ready`
+
+Ajouter un appel à cette fonction dans le flux existant de `notify-fund-ready`, après la vérification que la cagnotte est pleine (ligne 51-54).
+
+### 3. Bouton admin "Marquer comme transféré" dans `CommissionsDashboard.tsx`
+
+Ajouter un bouton pour que l'admin puisse passer `vendor_transfer_status` de `pending` à `completed` après avoir fait le virement manuel au prestataire, avec le champ `vendor_transfer_ref` pour saisir la référence du transfert.
+
+## Distribution des fonds (Phase actuelle — manuelle)
+
+| Destinataire | Montant | Comment |
+|---|---|---|
+| JDV (commission) | Prix majoré - Prix original | Reste sur le compte Wave Business JDV |
+| Prestataire | Prix original du produit | Admin transfère manuellement via Wave |
+
+## Phase future (avec API Wave)
+
+Quand les clés API Wave seront obtenues, `process-fund-completion` pourra appeler l'API Wave Transfer pour envoyer automatiquement le montant au prestataire.
+
+## Fichiers
+
+- `supabase/functions/process-fund-completion/index.ts` — nouvelle Edge Function
+- `supabase/functions/notify-fund-ready/index.ts` — appeler process-fund-completion
+- `src/pages/Admin/CommissionsDashboard.tsx` — bouton "Marquer comme transféré"
 
