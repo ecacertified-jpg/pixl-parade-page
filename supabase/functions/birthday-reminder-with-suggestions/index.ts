@@ -319,7 +319,7 @@ serve(async (req) => {
       console.log(`Created birthday reminder for ${contact.name} (${daysUntilBirthday} days) with ${suggestions.length} suggestions`);
 
       // --- WhatsApp: Send friend alert if there's an active fund ---
-      if (hasActiveFund && daysUntilBirthday <= 7) {
+      if (hasActiveFund && daysUntilBirthday <= 15) {
         try {
           // Get the active fund details
           const { data: activeFund } = await supabase
@@ -464,7 +464,7 @@ serve(async (req) => {
         }
       }
       // --- NEW: Send friend alert even WITHOUT a fund (free text WhatsApp + SMS fallback) ---
-      else if (!hasActiveFund && daysUntilBirthday <= 7) {
+      else if (!hasActiveFund && daysUntilBirthday <= 15) {
         try {
           const notifiedPhones = new Set<string>();
           let noFundAlertsSent = 0;
