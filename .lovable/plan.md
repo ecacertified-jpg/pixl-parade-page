@@ -1,21 +1,24 @@
 
 
-# Plan : Déclencher les alertes anniversaire à J-15 au lieu de J-7
+# Plan : Documenter les 7 templates manquants dans whatsapp-messaging-strategy.md
 
-## Problème
+## Changement — `.lovable/memory/whatsapp-messaging-strategy.md`
 
-Les deux blocs d'alerte WhatsApp dans `birthday-reminder-with-suggestions/index.ts` utilisent `daysUntilBirthday <= 7` comme condition. Cela ne laisse que 7 jours aux proches pour organiser ou contribuer à une cagnotte.
+Ajouter une nouvelle section **"Templates à créer dans Meta Business Manager"** avec les 7 templates identifiés dans le code mais absents de Meta :
 
-## Changement — `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+| Template | Fonction Edge | Paramètres body | Bouton CTA |
+|----------|--------------|-----------------|------------|
+| `joiedevivre_new_order` | `notify-business-order` | 3 : nom client, montant, résumé commande | — |
+| `joiedevivre_order_confirmed` | `handle-order-action` | 3 : prénom client, montant, nom boutique | — |
+| `joiedevivre_order_rejected` | `handle-order-action` | 3 : prénom client, montant, nom boutique | — |
+| `joiedevivre_join_reminder` | `notify-contacts-join-reminder` | 1 : nom de l'ami qui a ajouté | CTA vers joiedevivre-africa.com |
+| `joiedevivre_delivery_reminder` | `check-delivery-confirmation-reminder` | 3 : prénom client, ID commande, nom boutique | CTA dynamique `/orders/{{1}}` |
+| `joiedevivre_welcome_add_friends` | `check-friends-circle-reminders` (welcome) | 1 : prénom utilisateur | CTA vers /contacts |
+| `joiedevivre_friends_circle_reminder` | `check-friends-circle-reminders` (CRON) | 1 : prénom utilisateur | CTA vers /contacts |
 
-Deux modifications de condition :
-
-1. **Ligne 322** : `if (hasActiveFund && daysUntilBirthday <= 7)` → `daysUntilBirthday <= 15`
-2. **Ligne 467** : `else if (!hasActiveFund && daysUntilBirthday <= 7)` → `daysUntilBirthday <= 15`
-
-La déduplication existante via `birthday_contact_alerts` empêche déjà les envois multiples pour le même contact/jour.
+Mettre aussi à jour la liste des templates actifs existante pour inclure ces 7 entrées avec leurs descriptions.
 
 ## Fichier modifié
 
-- `supabase/functions/birthday-reminder-with-suggestions/index.ts`
+- `.lovable/memory/whatsapp-messaging-strategy.md`
 
