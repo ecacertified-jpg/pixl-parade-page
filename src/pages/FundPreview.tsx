@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { cleanMetaParam } from "@/utils/cleanMetaParam";
 import { EventSchema, getEventStatusFromFundStatus, getEventTypeFromOccasion } from "@/components/schema";
 import { SEOHead } from "@/components/SEOHead";
 import { FundBreadcrumb } from "@/components/breadcrumbs";
+import { ContributionModal } from "@/components/ContributionModal";
 
 interface FundData {
   id: string;
