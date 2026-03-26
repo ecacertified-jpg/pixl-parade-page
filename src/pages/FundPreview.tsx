@@ -397,6 +397,23 @@ export default function FundPreview() {
           © 2024 JOIE DE VIVRE - Célébrons ensemble
         </p>
       </footer>
+      {fund && (
+        <ContributionModal
+          isOpen={showContributionModal}
+          onClose={() => setShowContributionModal(false)}
+          fundId={fund.id}
+          fundTitle={fund.title}
+          targetAmount={fund.target_amount}
+          currentAmount={fund.current_amount || 0}
+          currency={fund.currency || 'XOF'}
+          isFromPublicFund={true}
+          occasion={fund.occasion || undefined}
+          onContributionSuccess={() => {
+            setShowContributionModal(false);
+            refetchFund();
+          }}
+        />
+      )}
     </div>
   );
 }
