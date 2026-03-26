@@ -1,23 +1,22 @@
 
 
-# Plan : Pré-remplir le montant Wave pour les contributions
+# Plan : Ouvrir le modal de contribution directement depuis FundPreview
 
 ## Problème
 
-Dans `ContributionModal.tsx` (ligne 609), `freeAmount={true}` est codé en dur. Cela envoie l'utilisateur vers Wave **sans le montant**, l'obligeant à le ressaisir manuellement. Or le montant de la contribution est connu (saisi dans le modal).
+`handleContribute` dans `FundPreview.tsx` (ligne 144) redirige vers `/dashboard?tab=cotisations` au lieu d'ouvrir le modal de contribution sur place. L'utilisateur perd le contexte de la cagnotte.
 
-Le `freeAmount=true` avait été prévu pour la **création** de cagnottes (où le montant collectif est variable), mais pour une **contribution individuelle**, le montant est fixe.
+## Changement — `src/pages/FundPreview.tsx`
 
-## Changement — `src/components/ContributionModal.tsx`
+1. Importer `ContributionModal`
+2. Ajouter un state `showContributionModal` (boolean, default false)
+3. Modifier `handleContribute` :
+   - Si l'utilisateur est connecté → `setShowContributionModal(true)`
+   - Si non connecté → rediriger vers `/auth?redirect=/f/${fundId}`
+4. Rendre `<ContributionModal>` en bas du composant avec les props du fund courant (`fundId`, `fundTitle`, `targetAmount`, `currentAmount`, `currency`)
+5. Au `onSuccess` du modal, rafraîchir les données du fund (re-fetch)
 
-Passer `freeAmount={false}` au lieu de `true` (ligne 609). Le composant `WavePaymentRedirect` ajoutera automatiquement `?amount=1000` à l'URL Wave, pré-remplissant le montant.
+## Fichier modifié
 
-## Changement — `src/pages/CollectiveCheckout.tsx`
-
-Même correction : passer `freeAmount={false}` (ligne 551). Lors de la création d'une cagnotte, le montant total est aussi connu.
-
-## Fichiers modifiés
-
-- `src/components/ContributionModal.tsx`
-- `src/pages/CollectiveCheckout.tsx`
+- `src/pages/FundPreview.tsx`
 
