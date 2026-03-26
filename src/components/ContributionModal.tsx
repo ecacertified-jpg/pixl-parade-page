@@ -606,7 +606,7 @@ export function ContributionModal({
           onOpenChange={setShowWaveModal}
           amount={parseFloat(amount) || 0}
           currency={currency}
-          freeAmount={true}
+          freeAmount={false}
           onSuccess={() => {
             setShowWaveModal(false);
             handleSubmit({ preventDefault: () => {} } as React.FormEvent);
