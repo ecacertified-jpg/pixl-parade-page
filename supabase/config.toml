@@ -276,3 +276,6 @@ verify_jwt = false
 
 [functions.check-delivery-confirmation-reminder]
 verify_jwt = false
+
+[functions.process-fund-completion]
+verify_jwt = false
