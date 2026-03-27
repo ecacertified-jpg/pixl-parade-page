@@ -908,6 +908,60 @@ export type Database = {
           },
         ]
       }
+      birthday_wishes_messages: {
+        Row: {
+          birthday_user_id: string
+          celebration_year: number
+          created_at: string | null
+          fund_id: string | null
+          id: string
+          is_from_fund: boolean | null
+          message_text: string
+          sender_id: string | null
+          sender_name: string | null
+          thanks_sent: boolean | null
+        }
+        Insert: {
+          birthday_user_id: string
+          celebration_year?: number
+          created_at?: string | null
+          fund_id?: string | null
+          id?: string
+          is_from_fund?: boolean | null
+          message_text: string
+          sender_id?: string | null
+          sender_name?: string | null
+          thanks_sent?: boolean | null
+        }
+        Update: {
+          birthday_user_id?: string
+          celebration_year?: number
+          created_at?: string | null
+          fund_id?: string | null
+          id?: string
+          is_from_fund?: boolean | null
+          message_text?: string
+          sender_id?: string | null
+          sender_name?: string | null
+          thanks_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_wishes_messages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_wishes_messages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_accounts: {
         Row: {
           address: string | null
