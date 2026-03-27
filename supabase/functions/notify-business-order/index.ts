@@ -509,7 +509,7 @@ async function sendGiftBeneficiaryNotification(
       'joiedevivre_gift_order',
       'fr',
       [senderName, productName, formattedAmount],
-      [orderId]
+      [`gift-received/${orderId}`]
     );
 
     if (result.success) {

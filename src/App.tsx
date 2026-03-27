@@ -215,6 +215,7 @@ const App = () => (
             <Route path="/go/shop" element={<Navigate to="/shop?utm_source=deep_link" replace />} />
             <Route path="/go/funds" element={<Navigate to="/cagnottes?utm_source=deep_link" replace />} />
 
+            <Route path="/gift-received/:orderId" element={<L><GiftReceived /></L>} />
             <Route path="/join/:code" element={<L><JoinAdmin /></L>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<L><ResetPassword /></L>} />
