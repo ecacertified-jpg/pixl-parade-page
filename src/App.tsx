@@ -95,6 +95,7 @@ const OccasionPage = lazy(() => import("./pages/OccasionPage"));
 const VendorSectorPage = lazy(() => import("./pages/VendorSectorPage"));
 const SeasonalPage = lazy(() => import("./pages/SeasonalPage"));
 const FillFriendForm = lazy(() => import("./pages/FillFriendForm"));
+const GiftReceived = lazy(() => import("./pages/GiftReceived"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
