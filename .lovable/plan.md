@@ -1,25 +1,44 @@
 
 
-# Plan : Mettre à jour l'URL CTA du template birthday_countdown vers /wishlist-catalog
+# Plan : Upload vidéo dans le bucket `assets` + mise à jour du modal
 
-## Contexte
+## Résumé
 
-L'URL du CTA dans Meta est modifiée de `/favorites` à `/wishlist-catalog`. Il faut synchroniser le code et la documentation.
+Modifier l'`AssetUploader` pour accepter les vidéos MP4 et mettre à jour `BirthdayCelebrationModal` pour charger la vidéo depuis le bucket `assets` au lieu de `birthday-videos`.
 
 ## Changements
 
-### 1. `supabase/functions/birthday-wishes/index.ts`
+### 1. `src/components/BirthdayCelebrationModal.tsx`
 
-Deux modifications identiques :
-- **Ligne 253** : `['favorites']` → `['wishlist-catalog']`
-- **Ligne 349** : `['favorites']` → `['wishlist-catalog']`
+Changer l'URL de la vidéo de :
+```
+birthday-videos/default-celebration.mp4
+```
+vers :
+```
+assets/default-celebration.mp4
+```
 
-### 2. `.lovable/memory/features/birthday-celebration-flow.md`
+Une seule ligne à modifier (ligne ~150).
 
-Mettre à jour la référence CTA de `/favorites` à `/wishlist-catalog` dans la section Template WhatsApp.
+### 2. `supabase/functions/birthday-wishes/index.ts`
+
+Mettre à jour le fallback vidéo qui référence `birthday-videos` pour pointer vers `assets` (si présent dans la logique de résolution vidéo).
+
+### 3. `.lovable/memory/infrastructure/public-media-storage.md`
+
+Mettre à jour la documentation pour indiquer que les vidéos d'anniversaire sont désormais dans le bucket `assets` (plus besoin du bucket `birthday-videos` séparé).
+
+## Résultat
+
+Après ces changements, vous pourrez :
+1. Aller dans **Admin → Settings → Assets**
+2. Cliquer ou glisser votre fichier `default-celebration.mp4`
+3. Le modal de célébration le chargera automatiquement
 
 ## Fichiers modifiés
 
-- `supabase/functions/birthday-wishes/index.ts`
-- `.lovable/memory/features/birthday-celebration-flow.md`
+- `src/components/BirthdayCelebrationModal.tsx`
+- `supabase/functions/birthday-wishes/index.ts` (si référence au bucket)
+- `.lovable/memory/infrastructure/public-media-storage.md`
 
