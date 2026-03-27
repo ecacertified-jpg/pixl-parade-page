@@ -1,61 +1,67 @@
 
 
-# Plan : Corriger les parametres du template `joiedevivre_contribution_reminder`
+# Plan : Corriger la page blanche du CTA "Voir mon cadeau"
 
 ## Probleme
 
-Le template Meta attend **4 parametres body** :
-- `{{1}}` = Nom du destinataire (ex: "Aminata")
-- `{{2}}` = Titre de la cagnotte (ex: "Anniversaire")
-- `{{3}}` = Nom du beneficiaire (ex: "Francoise")
-- `{{4}}` = Nombre de jours restants (ex: "7")
+Le CTA "Voir mon cadeau" du template `joiedevivre_gift_order` pointe vers `/order-confirmation?orderId={uuid}`, qui est enveloppé dans `<ProtectedRoute>`. Le bénéficiaire du cadeau (souvent non connecté) est redirigé vers `/auth` et voit une page blanche. De plus, même connecté, `OrderConfirmation.tsx` ne charge pas les données depuis la base — il lit `localStorage`, qui est vide pour le bénéficiaire.
 
-Le code n'envoie que **2 parametres** : `[fund.title, remaining XOF]`. Cela provoque une erreur `#132000` (parameter count mismatch) de Meta.
+## Solution
 
-De plus, le CTA est "Contribuer maintenant" (pas "Voir la cagnotte") -- le `buttonParameters` avec `share_token` reste correct car c'est un suffixe d'URL dynamique.
+Créer une page publique `/gift-received/:orderId` dédiée aux bénéficiaires de cadeaux, accessible sans authentification.
 
-## Correction
+### 1. Créer la page `GiftReceived.tsx`
 
-### Fichier : `supabase/functions/check-fund-contribution-reminders/index.ts`
+**Fichier** : `src/pages/GiftReceived.tsx`
 
-**Lignes 232-242** -- Recalculer `daysRemaining` et envoyer les 4 parametres corrects :
+- Route publique (pas de `ProtectedRoute`)
+- Récupère l'orderId depuis les params URL
+- Charge les détails de la commande depuis `business_orders` (nom du produit, montant, nom de l'expéditeur)
+- Affiche un écran festif : icône cadeau, nom du cadeau, valeur, message "offert par X"
+- Boutons : "Créer mon compte" (si non connecté) ou "Explorer la boutique" (si connecté)
+- Gestion des erreurs : commande introuvable, chargement
 
-```typescript
-if (channel === 'whatsapp') {
-  const remaining = fund.target_amount - fund.current_amount;
-  const daysRemaining = Math.max(0, Math.ceil(
-    (new Date(fund.deadline_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  ));
-  
-  // Get target user's name for {{1}}
-  let targetName = 'Ami(e)';
-  if (reminder.target_user_id) {
-    const { data: targetProfile } = await supabase
-      .from('profiles')
-      .select('first_name')
-      .eq('user_id', reminder.target_user_id)
-      .single();
-    if (targetProfile?.first_name) targetName = targetProfile.first_name;
-  }
-  
-  sendResult = await sendWhatsAppTemplate(
-    formattedPhone,
-    'joiedevivre_contribution_reminder',
-    'fr',
-    [targetName, fund.title || 'Cagnotte', beneficiaryName, String(daysRemaining)],
-    [fund.share_token]
-  );
-  // ... fallback unchanged
-}
+### 2. Ajouter la route publique dans `App.tsx`
+
+```text
+<Route path="/gift-received/:orderId" element={<L><GiftReceived /></L>} />
 ```
 
-Les 4 parametres correspondent maintenant exactement au template Meta :
-- `{{1}}` = targetName ("Aminata")
-- `{{2}}` = fund.title ("Anniversaire")
-- `{{3}}` = beneficiaryName ("Francoise")
-- `{{4}}` = daysRemaining ("7")
+Placée hors de `ProtectedRoute`, comme les routes `/c/:token` et `/f/:id`.
 
-## Fichier modifie
+### 3. Modifier le CTA dans le code d'envoi
 
-- `supabase/functions/check-fund-contribution-reminders/index.ts` -- correction des parametres body (2 -> 4)
+**Fichier** : `supabase/functions/notify-business-order/index.ts` (ligne 512)
+
+Changer le `buttonParameters` pour pointer vers la nouvelle route :
+
+```typescript
+// Avant
+[orderId]  // → /order-confirmation?orderId={orderId}
+
+// Après  
+[`gift-received/${orderId}`]  // → https://joiedevivre-africa.com/gift-received/{orderId}
+```
+
+### 4. Mettre à jour le template Meta
+
+Le template `joiedevivre_gift_order` dans Meta doit être modifié :
+- **URL de base** : `https://joiedevivre-africa.com/` (juste le domaine)
+- **Suffixe dynamique `{{1}}`** : `gift-received/{orderId}`
+
+Ou garder l'URL de base actuelle et ajuster le suffixe en conséquence.
+
+### 5. Ajouter au template health check
+
+**Fichier** : `supabase/functions/check-whatsapp-template-health/index.ts` — déjà présent, aucun changement nécessaire.
+
+## Fichiers modifiés
+
+- `src/pages/GiftReceived.tsx` — nouveau fichier (page publique cadeau reçu)
+- `src/App.tsx` — ajout route publique `/gift-received/:orderId`
+- `supabase/functions/notify-business-order/index.ts` — correction du suffixe URL du CTA
+
+## Action requise dans Meta
+
+Modifier l'URL du bouton CTA de `joiedevivre_gift_order` pour correspondre à la nouvelle route.
 
