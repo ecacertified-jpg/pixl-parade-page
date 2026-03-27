@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { SimplePeriodSelector } from '@/components/admin/SimplePeriodSelector';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { exportToCSV, ExportColumn, formatNumberFr, formatDateFr, formatCurrencyXOF } from '@/utils/exportUtils';
-import { DollarSign, Users, TrendingUp, Percent, CheckCircle } from 'lucide-react';
+import { DollarSign, Users, TrendingUp, Percent, CheckCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,8 +43,12 @@ interface SplitRow {
   platform_transfer_ref: string | null;
   business_orders: {
     id: string;
+    order_summary: any;
     business_accounts: {
       business_name: string;
+      phone: string | null;
+      address: string | null;
+      wave_payment_link: string | null;
     } | null;
   } | null;
 }
@@ -62,6 +66,17 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
+function getArticleName(orderSummary: any): string {
+  if (!orderSummary) return '—';
+  const items = orderSummary.items || orderSummary;
+  if (Array.isArray(items) && items.length > 0) {
+    const firstName = items[0]?.name || items[0]?.product_name || '—';
+    if (items.length > 1) return `${firstName} (+${items.length - 1})`;
+    return firstName;
+  }
+  return '—';
+}
+
 export default function CommissionsDashboard() {
   const [period, setPeriod] = useState<SimplePeriod>('30days');
   const [transferModal, setTransferModal] = useState<{ open: boolean; splitId: string; businessName: string }>({ open: false, splitId: '', businessName: '' });
@@ -77,7 +92,7 @@ export default function CommissionsDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('payment_splits')
-        .select('*, business_orders(id, business_accounts(business_name))')
+        .select('*, business_orders(id, order_summary, business_accounts(business_name, phone, address, wave_payment_link))')
         .gte('created_at', startDate)
         .order('created_at', { ascending: false });
 
@@ -131,10 +146,24 @@ export default function CommissionsDashboard() {
       }));
   }, [splits]);
 
+  const handleWavePayment = (split: SplitRow) => {
+    const waveLink = split.business_orders?.business_accounts?.wave_payment_link;
+    if (!waveLink) {
+      toast.error('Lien Wave non configuré pour ce prestataire');
+      return;
+    }
+    const separator = waveLink.includes('?') ? '&' : '?';
+    const url = `${waveLink}${separator}amount=${split.vendor_amount}`;
+    window.open(url, '_blank');
+  };
+
   const handleExport = () => {
     const columns: ExportColumn<SplitRow>[] = [
       { key: 'created_at', header: 'Date', format: (v) => formatDateFr(v) },
       { key: 'business_orders', header: 'Prestataire', format: (_, r) => r.business_orders?.business_accounts?.business_name || '-' },
+      { key: 'business_orders', header: 'Article', format: (_, r) => getArticleName(r.business_orders?.order_summary) },
+      { key: 'business_orders', header: 'Téléphone', format: (_, r) => r.business_orders?.business_accounts?.phone || '-' },
+      { key: 'business_orders', header: 'Lieu', format: (_, r) => r.business_orders?.business_accounts?.address || '-' },
       { key: 'total_client_amount', header: 'Montant client', format: (v) => formatCurrencyXOF(v) },
       { key: 'vendor_amount', header: 'Part prestataire', format: (v) => formatCurrencyXOF(v) },
       { key: 'platform_amount', header: 'Commission JDV', format: (v) => formatCurrencyXOF(v) },
@@ -238,6 +267,9 @@ export default function CommissionsDashboard() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Prestataire</TableHead>
+                      <TableHead>Article</TableHead>
+                      <TableHead>Téléphone</TableHead>
+                      <TableHead>Lieu</TableHead>
                       <TableHead className="text-right">Client</TableHead>
                       <TableHead className="text-right">Prestataire</TableHead>
                       <TableHead className="text-right">JDV</TableHead>
@@ -248,41 +280,75 @@ export default function CommissionsDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {splits.map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {format(new Date(s.created_at), 'dd/MM/yy HH:mm')}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {s.business_orders?.business_accounts?.business_name || '—'}
-                        </TableCell>
-                        <TableCell className="text-right text-sm">{formatNumberFr(s.total_client_amount)}</TableCell>
-                        <TableCell className="text-right text-sm">{formatNumberFr(s.vendor_amount)}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{formatNumberFr(s.platform_amount)}</TableCell>
-                        <TableCell className="text-right text-sm">{(s.markup_rate * 100).toFixed(1)}%</TableCell>
-                        <TableCell><StatusBadge status={s.vendor_transfer_status} /></TableCell>
-                        <TableCell><StatusBadge status={s.platform_transfer_status} /></TableCell>
-                        <TableCell>
-                          {s.vendor_transfer_status === 'pending' ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs gap-1"
-                              onClick={() => setTransferModal({
-                                open: true,
-                                splitId: s.id,
-                                businessName: s.business_orders?.business_accounts?.business_name || 'Prestataire',
-                              })}
-                            >
-                              <CheckCircle className="h-3 w-3" />
-                              Transféré
-                            </Button>
-                          ) : s.vendor_transfer_status === 'completed' && s.vendor_transfer_ref ? (
-                            <span className="text-xs text-muted-foreground">Réf: {s.vendor_transfer_ref}</span>
-                          ) : null}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {splits.map((s) => {
+                      const waveLink = s.business_orders?.business_accounts?.wave_payment_link;
+                      const canPay = (s.vendor_transfer_status === 'pending' || s.vendor_transfer_status === 'simulated');
+
+                      return (
+                        <TableRow key={s.id}>
+                          <TableCell className="whitespace-nowrap text-sm">
+                            {format(new Date(s.created_at), 'dd/MM/yy HH:mm')}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {s.business_orders?.business_accounts?.business_name || '—'}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[150px] truncate" title={getArticleName(s.business_orders?.order_summary)}>
+                            {getArticleName(s.business_orders?.order_summary)}
+                          </TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">
+                            {s.business_orders?.business_accounts?.phone || '—'}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[120px] truncate" title={s.business_orders?.business_accounts?.address || ''}>
+                            {s.business_orders?.business_accounts?.address || '—'}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">{formatNumberFr(s.total_client_amount)}</TableCell>
+                          <TableCell className="text-right text-sm">{formatNumberFr(s.vendor_amount)}</TableCell>
+                          <TableCell className="text-right text-sm font-medium">{formatNumberFr(s.platform_amount)}</TableCell>
+                          <TableCell className="text-right text-sm">{(s.markup_rate * 100).toFixed(1)}%</TableCell>
+                          <TableCell><StatusBadge status={s.vendor_transfer_status} /></TableCell>
+                          <TableCell><StatusBadge status={s.platform_transfer_status} /></TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {canPay && (
+                                waveLink ? (
+                                  <Button
+                                    size="sm"
+                                    className="text-xs gap-1 bg-[#1DC3F7] hover:bg-[#1DB0E0] text-white"
+                                    onClick={() => handleWavePayment(s)}
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    WAVE {formatNumberFr(s.vendor_amount)}
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-destructive flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3" />
+                                    Lien Wave non configuré
+                                  </span>
+                                )
+                              )}
+                              {canPay && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs gap-1"
+                                  onClick={() => setTransferModal({
+                                    open: true,
+                                    splitId: s.id,
+                                    businessName: s.business_orders?.business_accounts?.business_name || 'Prestataire',
+                                  })}
+                                >
+                                  <CheckCircle className="h-3 w-3" />
+                                  Transféré
+                                </Button>
+                              )}
+                              {s.vendor_transfer_status === 'completed' && s.vendor_transfer_ref && (
+                                <span className="text-xs text-muted-foreground">Réf: {s.vendor_transfer_ref}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

@@ -939,6 +939,7 @@ export type Database = {
           updated_at: string
           user_id: string
           wave_merchant_phone: string | null
+          wave_payment_link: string | null
           website_url: string | null
         }
         Insert: {
@@ -971,6 +972,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           wave_merchant_phone?: string | null
+          wave_payment_link?: string | null
           website_url?: string | null
         }
         Update: {
@@ -1003,6 +1005,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           wave_merchant_phone?: string | null
+          wave_payment_link?: string | null
           website_url?: string | null
         }
         Relationships: []

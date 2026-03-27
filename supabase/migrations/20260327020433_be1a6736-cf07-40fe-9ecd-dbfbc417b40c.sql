@@ -1,0 +1,1 @@
+ALTER TABLE public.business_accounts ADD COLUMN IF NOT EXISTS wave_payment_link TEXT;

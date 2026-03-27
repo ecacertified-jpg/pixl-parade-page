@@ -196,7 +196,8 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             latitude: formData.latitude,
             longitude: formData.longitude,
             wave_merchant_phone: formData.wave_merchant_phone || null,
-            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null
+            mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
+            wave_payment_link: formData.wave_payment_link || null
           })
           .eq('id', editingBusiness.id)
           .select()
@@ -226,6 +227,7 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
             longitude: formData.longitude,
             wave_merchant_phone: formData.wave_merchant_phone || null,
             mobile_money_merchant_phone: formData.mobile_money_merchant_phone || null,
+            wave_payment_link: formData.wave_payment_link || null,
             is_active: true,
             is_verified: false,
             status: 'active',
@@ -515,6 +517,20 @@ export function AddBusinessModal({ isOpen, onClose, onBusinessAdded, editingBusi
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Numéro Orange Money ou MTN Mobile Money pour recevoir les paiements
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="wave_payment_link">Lien de paiement Wave</Label>
+                <Input
+                  id="wave_payment_link"
+                  type="url"
+                  value={formData.wave_payment_link || ""}
+                  onChange={(e) => handleInputChange('wave_payment_link', e.target.value)}
+                  placeholder="https://pay.wave.com/m/..."
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Lien de paiement Wave pour recevoir les virements de la plateforme
                 </p>
               </div>
             </div>
