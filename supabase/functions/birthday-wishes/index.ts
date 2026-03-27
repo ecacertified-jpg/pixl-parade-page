@@ -154,12 +154,219 @@ serve(async (req) => {
 
     console.log('Starting birthday wishes check...');
 
-    // Get today's date (MM-DD format)
+    // Get today's date
     const today = new Date();
     const todayMonth = String(today.getMonth() + 1).padStart(2, '0');
     const todayDay = String(today.getDate()).padStart(2, '0');
+    const currentYear = today.getFullYear();
     
     console.log(`Checking birthdays for: ${todayMonth}-${todayDay}`);
+
+    // ============================================================
+    // PART A: Countdown notifications (J-7, J-5, J-3, J-1)
+    // ============================================================
+    const COUNTDOWN_DAYS = [7, 5, 3, 1];
+
+    // Fetch all profiles with birthday
+    const { data: allProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, user_id, first_name, last_name, birthday, phone')
+      .not('birthday', 'is', null);
+
+    if (profilesError) {
+      console.error('Error fetching profiles for countdown:', profilesError);
+    }
+
+    // Fetch all contacts with birthday
+    const { data: allContacts, error: contactsError } = await supabase
+      .from('contacts')
+      .select('id, user_id, name, birthday, phone')
+      .not('birthday', 'is', null);
+
+    if (contactsError) {
+      console.error('Error fetching contacts for countdown:', contactsError);
+    }
+
+    // Helper: calculate days until birthday
+    function getDaysUntilBirthday(birthdayStr: string): number {
+      const bday = new Date(birthdayStr);
+      const nextBirthday = new Date(currentYear, bday.getMonth(), bday.getDate());
+      if (nextBirthday < today) {
+        nextBirthday.setFullYear(currentYear + 1);
+      }
+      const diffTime = nextBirthday.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    let countdownSent = 0;
+
+    // Process user profiles countdown
+    for (const profile of allProfiles || []) {
+      if (!profile.birthday) continue;
+      const daysUntil = getDaysUntilBirthday(profile.birthday);
+
+      if (!COUNTDOWN_DAYS.includes(daysUntil)) continue;
+
+      // Deduplication check
+      const { data: existing } = await supabase
+        .from('birthday_contact_alerts')
+        .select('id')
+        .eq('user_id', profile.user_id || profile.id)
+        .eq('alert_type', 'birthday_countdown')
+        .eq('days_before', daysUntil)
+        .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString())
+        .limit(1);
+
+      if (existing && existing.length > 0) continue;
+
+      const firstName = profile.first_name || 'Ami(e)';
+
+      // In-app notification
+      await supabase.from('scheduled_notifications').insert({
+        user_id: profile.user_id || profile.id,
+        notification_type: 'birthday_countdown',
+        title: `🎂 Ton anniversaire dans ${daysUntil} jour(s) !`,
+        message: `Salut ${firstName}, ton anniversaire approche ! Assure-toi que ta liste de souhaits est à jour pour recevoir le cadeau parfait.`,
+        priority_score: 90 + (8 - daysUntil),
+        scheduled_for: new Date().toISOString(),
+        metadata: {
+          days_until: daysUntil,
+          is_own_birthday: true,
+          contact_name: firstName,
+        }
+      });
+
+      // WhatsApp notification
+      if (profile.phone) {
+        try {
+          const channel = getPreferredChannel(profile.phone);
+          if (channel === 'whatsapp') {
+            const waResult = await sendWhatsAppTemplate(
+              profile.phone,
+              'joiedevivre_birthday_countdown',
+              'fr',
+              [firstName, String(daysUntil)],
+              ['wishlist']
+            );
+            if (waResult.success) {
+              console.log(`[Countdown] WhatsApp sent to ${firstName} (J-${daysUntil})`);
+            }
+          }
+        } catch (waErr) {
+          console.warn(`[Countdown] WhatsApp failed for ${firstName}:`, waErr);
+        }
+      }
+
+      // Push notification
+      try {
+        const { data: pushSubs } = await supabase
+          .from('push_subscriptions')
+          .select('*')
+          .eq('user_id', profile.user_id || profile.id);
+
+        for (const sub of pushSubs || []) {
+          try {
+            const { sendPushNotification } = await import('../_shared/web-push.ts');
+            await sendPushNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              JSON.stringify({
+                title: `🎂 J-${daysUntil} avant ton anniversaire !`,
+                body: `${firstName}, mets à jour ta wishlist !`,
+                icon: '/icons/icon-192x192.png',
+                tag: `birthday-countdown-${daysUntil}`
+              })
+            );
+          } catch {}
+        }
+      } catch {}
+
+      // Record dedup
+      await supabase.from('birthday_contact_alerts').insert({
+        user_id: profile.user_id || profile.id,
+        alert_type: 'birthday_countdown',
+        days_before: daysUntil,
+        contact_phone: profile.phone || '',
+        contact_name: firstName,
+        channel: 'whatsapp',
+        status: 'sent'
+      }).catch(() => {});
+
+      countdownSent++;
+    }
+
+    // Process contacts countdown (non-users)
+    for (const contact of allContacts || []) {
+      if (!contact.birthday) continue;
+      const daysUntil = getDaysUntilBirthday(contact.birthday);
+
+      if (!COUNTDOWN_DAYS.includes(daysUntil)) continue;
+
+      // Dedup
+      const { data: existing } = await supabase
+        .from('birthday_contact_alerts')
+        .select('id')
+        .eq('contact_id', contact.id)
+        .eq('alert_type', 'birthday_countdown')
+        .eq('days_before', daysUntil)
+        .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString())
+        .limit(1);
+
+      if (existing && existing.length > 0) continue;
+
+      const contactName = contact.name || 'Votre contact';
+
+      // Notify contact owner (in-app)
+      await supabase.from('scheduled_notifications').insert({
+        user_id: contact.user_id,
+        notification_type: 'birthday_countdown',
+        title: `🎂 Anniversaire de ${contactName} dans ${daysUntil} jour(s) !`,
+        message: `L'anniversaire de ${contactName} approche. Préparez une surprise !`,
+        priority_score: 85 + (8 - daysUntil),
+        scheduled_for: new Date().toISOString(),
+        metadata: {
+          days_until: daysUntil,
+          is_own_birthday: false,
+          contact_name: contactName,
+          contact_id: contact.id,
+        }
+      });
+
+      // WhatsApp to the contact directly (incitation to join JDV)
+      if (contact.phone) {
+        try {
+          const channel = getPreferredChannel(contact.phone);
+          if (channel === 'whatsapp') {
+            await sendWhatsAppTemplate(
+              contact.phone,
+              'joiedevivre_birthday_countdown',
+              'fr',
+              [contactName, String(daysUntil)],
+              ['wishlist']
+            );
+          }
+        } catch {}
+      }
+
+      // Record dedup
+      await supabase.from('birthday_contact_alerts').insert({
+        user_id: contact.user_id,
+        contact_id: contact.id,
+        alert_type: 'birthday_countdown',
+        days_before: daysUntil,
+        contact_phone: contact.phone || '',
+        contact_name: contactName,
+        channel: 'whatsapp',
+        status: 'sent'
+      }).catch(() => {});
+
+      countdownSent++;
+    }
+
+    console.log(`[Countdown] Sent ${countdownSent} countdown notifications`);
+
+    // ============================================================
+    // PART B: D-Day birthday wishes (existing logic)
+    // ============================================================
 
     // Find all users whose birthday is today
     const { data: birthdayUsers, error: usersError } = await supabase
