@@ -233,6 +233,7 @@ serve(async (req) => {
         message: `Salut ${firstName}, ton anniversaire approche ! Assure-toi que ta liste de souhaits est à jour pour recevoir le cadeau parfait.`,
         priority_score: 90 + (8 - daysUntil),
         scheduled_for: new Date().toISOString(),
+        delivery_methods: ['in_app'],
         metadata: {
           days_until: daysUntil,
           is_own_birthday: true,
@@ -250,7 +251,7 @@ serve(async (req) => {
               'joiedevivre_birthday_countdown',
               'fr',
               [firstName, String(daysUntil)],
-              ['wishlist-catalog'],
+              undefined,
               countdownImageUrl
             );
             if (waResult.success) {
@@ -329,6 +330,7 @@ serve(async (req) => {
         message: `L'anniversaire de ${contactName} approche. Préparez une surprise !`,
         priority_score: 85 + (8 - daysUntil),
         scheduled_for: new Date().toISOString(),
+        delivery_methods: ['in_app'],
         metadata: {
           days_until: daysUntil,
           is_own_birthday: false,
@@ -415,7 +417,7 @@ serve(async (req) => {
         const { data: existingNotif } = await supabase
           .from('scheduled_notifications')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('user_id', user.user_id)
           .eq('notification_type', 'birthday_wish_ai')
           .gte('created_at', new Date(today.setHours(0, 0, 0, 0)).toISOString())
           .single();
@@ -430,7 +432,7 @@ serve(async (req) => {
         const { error: celebrationError } = await supabase
           .from('birthday_celebrations')
           .insert({
-            user_id: user.id,
+            user_id: user.user_id,
             celebration_year: currentYear,
             age_at_celebration: age,
             milestone_age: age ? [18, 20, 21, 25, 30, 40, 50, 60, 70, 80].includes(age) : false
@@ -444,7 +446,7 @@ serve(async (req) => {
         const { count: celebrationsCount } = await supabase
           .from('birthday_celebrations')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+          .eq('user_id', user.user_id);
 
         const totalCelebrations = celebrationsCount || 0;
 
@@ -452,7 +454,7 @@ serve(async (req) => {
         const { data: firstCelebration } = await supabase
           .from('birthday_celebrations')
           .select('celebrated_at')
-          .eq('user_id', user.id)
+          .eq('user_id', user.user_id)
           .order('celebrated_at', { ascending: true })
           .limit(1)
           .single();
@@ -487,7 +489,7 @@ serve(async (req) => {
               ? new Date(firstCelebration.celebrated_at).toISOString().split('T')[0]
               : new Date().toISOString().split('T')[0]
           })
-          .eq('user_id', user.id);
+          .eq('user_id', user.user_id);
 
         // Check if user earned a new badge
         const earnedNewBadge = totalCelebrations === 1 || totalCelebrations === 2 || 
@@ -498,7 +500,7 @@ serve(async (req) => {
         const firstName = user.birthday ? (await supabase
           .from('profiles')
           .select('first_name')
-          .eq('user_id', user.id)
+          .eq('user_id', user.user_id)
           .single()).data?.first_name || 'cher utilisateur' : 'cher utilisateur';
           
         const messages = getBirthdayMessagesByAge(age, firstName);
@@ -513,7 +515,7 @@ serve(async (req) => {
         const { error: notifError } = await supabase
           .from('scheduled_notifications')
           .insert({
-            user_id: user.id,
+            user_id: user.user_id,
             notification_type: 'birthday_wish_ai',
             title: age 
               ? `🎉 Joyeux ${age} ans ${firstName} !`
@@ -521,6 +523,7 @@ serve(async (req) => {
             message: randomMessage,
             priority_score: isMilestone ? 110 : 100, // Higher priority for milestones
             scheduled_for: new Date().toISOString(),
+            delivery_methods: ['in_app'],
             metadata: {
               age: age,
               is_birthday: true,
@@ -551,7 +554,7 @@ serve(async (req) => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('phone')
-            .eq('user_id', user.id)
+            .eq('user_id', user.user_id)
             .single();
 
           if (profile?.phone) {
