@@ -1,0 +1,2 @@
+ALTER TABLE public.birthday_contact_alerts DROP CONSTRAINT birthday_contact_alerts_alert_type_check;
+ALTER TABLE public.birthday_contact_alerts ADD CONSTRAINT birthday_contact_alerts_alert_type_check CHECK (alert_type = ANY (ARRAY['immediate','month','two_weeks','daily','contact_added','friends_circle_welcome','friends_circle_reminder','birthday_countdown']));

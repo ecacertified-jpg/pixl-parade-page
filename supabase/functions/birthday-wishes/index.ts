@@ -379,7 +379,7 @@ serve(async (req) => {
     // Find all users whose birthday is today
     const { data: birthdayUsers, error: usersError } = await supabase
       .from('profiles')
-      .select('id, full_name, birthday')
+      .select('id, first_name, last_name, birthday, user_id, phone')
       .not('birthday', 'is', null);
 
     if (usersError) {
