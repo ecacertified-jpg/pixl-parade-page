@@ -250,7 +250,7 @@ serve(async (req) => {
               'joiedevivre_birthday_countdown',
               'fr',
               [firstName, String(daysUntil)],
-              ['favorites'],
+              ['wishlist-catalog'],
               countdownImageUrl
             );
             if (waResult.success) {
@@ -346,7 +346,7 @@ serve(async (req) => {
               'joiedevivre_birthday_countdown',
               'fr',
               [contactName, String(daysUntil)],
-              ['favorites'],
+              ['wishlist-catalog'],
               countdownImageUrl
             );
           }

@@ -8,7 +8,7 @@ Updated: now
 - **Template WhatsApp** : `joiedevivre_birthday_countdown` (MARKETING, créé dans Meta ✅)
   - Header image : via env `BIRTHDAY_COUNTDOWN_IMAGE_URL` ou fallback bucket `assets/birthday-countdown.jpg`
   - Body : "Salut {{1}}, ton anniversaire arrive dans {{2}} jour(s) ! 🎉..."
-  - CTA : "Mettre à jour ma wishlist" → https://joiedevivre-africa.com/favorites
+  - CTA : "Mettre à jour ma wishlist" → https://joiedevivre-africa.com/wishlist-catalog
   - Params : {{1}} = Prénom, {{2}} = Nombre de jours
 - **Notifications** : In-app (`birthday_countdown`), Push, WhatsApp
 - **Déduplication** : Via `birthday_contact_alerts` (alert_type = 'birthday_countdown', days_before = X)
@@ -32,7 +32,7 @@ Updated: now
 - **Composant notification** : `BirthdayCountdownNotifCard.tsx` — carte in-app pour countdown avec urgence colorée
 
 ### Templates WhatsApp (tous synchronisés ✅)
-- `joiedevivre_birthday_countdown` : countdown J-7/5/3/1 avec header image + CTA → /favorites
+- `joiedevivre_birthday_countdown` : countdown J-7/5/3/1 avec header image + CTA → /wishlist-catalog
 - `joiedevivre_birthday_celebration` : vidéo jour J (existant)
 - `joiedevivre_birthday_reminder` : rappel utilisateur (existant)
 - `joiedevivre_birthday_friend_alert` : alerte amis du cercle (existant)
