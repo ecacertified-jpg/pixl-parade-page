@@ -237,7 +237,8 @@ serve(async (req) => {
             formattedPhone,
             'joiedevivre_contribution_reminder',
             'fr',
-            [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`]
+            [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`],
+            [fund.share_token]  // CTA dynamique → /c/{share_token}
           );
           if (!sendResult.success) {
             console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
