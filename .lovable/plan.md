@@ -1,54 +1,45 @@
 
 
-# Plan : Template WhatsApp dédié pour contacts non-inscrits (countdown)
+# Plan : Corriger le crash de `birthday-wishes` et vérifier le flow
 
-## Problème
+## Problème identifié
 
-Les contacts non-inscrits reçoivent actuellement `joiedevivre_birthday_countdown` avec un CTA "Mettre à jour ma wishlist" → `/wishlist-catalog`, ce qui n'a aucun sens pour quelqu'un sans compte.
+L'invocation de la Edge Function `birthday-wishes` retourne une **erreur 500** :
+
+```
+"supabase.from(...).insert(...).catch is not a function"
+```
+
+**Cause** : Le client Supabase JS retourne un `PostgrestFilterBuilder` (pas une `Promise` native) depuis `.insert()`. La méthode `.catch()` n'existe pas dessus. Cela se produit aux **lignes 297 et 366**.
 
 ## Solution
 
-### 1. Détails du template à créer dans Meta Business Manager
+Remplacer les 2 appels `.catch(() => {})` par une gestion d'erreur via déstructuration du résultat :
 
-| Champ | Valeur |
-|-------|--------|
-| **Nom** | `joiedevivre_birthday_countdown_invite` |
-| **Catégorie** | MARKETING |
-| **Langue** | Français (`fr`) |
-| **Header** | Image (même image que countdown : `birthday-countdown.jpeg`) |
-| **Body** | `Salut {{1}}, ton anniversaire arrive dans {{2}} jour(s) ! 🎉 Crée ton compte sur Joie de Vivre pour recevoir des cadeaux de tes proches et gérer ta liste de souhaits.` |
-| **Footer** | `JOIE DE VIVRE - Célébrons ensemble` |
-| **Bouton CTA** | Type : URL statique — Texte : `Créer mon compte` — URL : `https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=birthday_countdown` |
-| **Paramètres body** | `{{1}}` = Prénom contact, `{{2}}` = Nombre de jours |
-
-### 2. Modifier `supabase/functions/birthday-wishes/index.ts`
-
-**Lignes 344-351** : Remplacer l'envoi du template pour les contacts non-inscrits par `joiedevivre_birthday_countdown_invite` avec un CTA statique (pas de suffix dynamique) :
-
+**Ligne 289-297** (dedup pour utilisateurs inscrits) :
 ```typescript
-await sendWhatsAppTemplate(
-  contact.phone,
-  'joiedevivre_birthday_countdown_invite',
-  'fr',
-  [contactName, String(daysUntil)],
-  undefined, // CTA statique dans Meta, pas de suffix
-  countdownImageUrl
-);
+const { error: dedupError } = await supabase.from('birthday_contact_alerts').insert({
+  user_id: profile.user_id || profile.id,
+  alert_type: 'birthday_countdown',
+  days_before: daysUntil,
+  contact_phone: profile.phone || '',
+  contact_name: firstName,
+  channel: 'whatsapp',
+  status: 'sent'
+});
+if (dedupError) console.warn('Dedup insert error:', dedupError.message);
 ```
 
-### 3. Ajouter au monitoring
+**Ligne 357-366** (dedup pour contacts non-inscrits) — même pattern avec `contact_id`.
 
-Ajouter `"joiedevivre_birthday_countdown_invite"` dans `KNOWN_TEMPLATES` de `check-whatsapp-template-health/index.ts`.
+## Fichier modifié
 
-### 4. Mettre à jour la documentation
+- `supabase/functions/birthday-wishes/index.ts` — lignes 289-297 et 357-366
 
-- `.lovable/memory/whatsapp-messaging-strategy.md` — ajouter le nouveau template
-- `.lovable/memory/features/birthday-celebration-flow.md` — noter la distinction inscrit/non-inscrit
+## Résultat attendu
 
-## Fichiers modifiés
-
-- `supabase/functions/birthday-wishes/index.ts`
-- `supabase/functions/check-whatsapp-template-health/index.ts`
-- `.lovable/memory/whatsapp-messaging-strategy.md`
-- `.lovable/memory/features/birthday-celebration-flow.md`
+Après correction, la fonction s'exécutera sans crash et les logs confirmeront :
+- Envoi de `joiedevivre_birthday_countdown` aux utilisateurs inscrits
+- Envoi de `joiedevivre_birthday_countdown_invite` aux contacts non-inscrits
+- Envoi de `joiedevivre_birthday_celebration` au jour J
 
