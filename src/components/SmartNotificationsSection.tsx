@@ -8,7 +8,7 @@ import { SmartNotificationCard } from "./SmartNotificationCard";
 import { NotificationCard } from "./NotificationCard";
 import { BirthdayNotificationCard } from "./BirthdayNotificationCard";
 import { BadgeEarnedNotificationCard } from "./BadgeEarnedNotificationCard";
-import { BirthdayCountdownCard } from "./BirthdayCountdownCard";
+import { BirthdayCountdownNotifCard } from "./BirthdayCountdownNotifCard";
 import { BirthdayCelebrationModal } from "./BirthdayCelebrationModal";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
