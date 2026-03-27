@@ -1,30 +1,12 @@
 
 
-# Plan : Corriger l'extension du fichier birthday-countdown
+# Plan : Supprimer le doublon dans KNOWN_TEMPLATES
 
-## Problème détecté
+## Changement
 
-| Élément | Valeur |
-|---------|--------|
-| Fichier dans le bucket `assets` | `birthday-countdown.jpeg` |
-| Référence dans le code (Edge Function) | `birthday-countdown.jpg` |
-| Bucket public | ✅ Oui |
+Supprimer la ligne 30 (`"joiedevivre_birthday_celebration"`) qui est un doublon de la ligne 14 dans `supabase/functions/check-whatsapp-template-health/index.ts`.
 
-L'extension ne correspond pas → l'URL publique génère un 404.
+## Fichier modifié
 
-## Solution
-
-Renommer la référence dans le code de `.jpg` à `.jpeg` (plus simple que de renommer le fichier dans le bucket).
-
-### Fichier modifié : `supabase/functions/birthday-wishes/index.ts`
-
-**Ligne 205** : changer `birthday-countdown.jpg` → `birthday-countdown.jpeg`
-
-### Fichier modifié : `.lovable/memory/infrastructure/public-media-storage.md`
-
-Mettre à jour la référence avec l'extension correcte `.jpeg`.
-
-## Résultat
-
-L'URL publique `https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/birthday-countdown.jpeg` sera correctement résolue et utilisée comme header image du template WhatsApp `joiedevivre_birthday_countdown`.
+- `supabase/functions/check-whatsapp-template-health/index.ts` — suppression d'une ligne
 
