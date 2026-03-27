@@ -200,6 +200,10 @@ serve(async (req) => {
 
     let countdownSent = 0;
 
+    // Header image for countdown template
+    const countdownImageUrl = Deno.env.get('BIRTHDAY_COUNTDOWN_IMAGE_URL') || 
+      `${supabaseUrl}/storage/v1/object/public/assets/birthday-countdown.jpg`;
+
     // Process user profiles countdown
     for (const profile of allProfiles || []) {
       if (!profile.birthday) continue;
@@ -246,7 +250,8 @@ serve(async (req) => {
               'joiedevivre_birthday_countdown',
               'fr',
               [firstName, String(daysUntil)],
-              ['wishlist']
+              ['favorites'],
+              countdownImageUrl
             );
             if (waResult.success) {
               console.log(`[Countdown] WhatsApp sent to ${firstName} (J-${daysUntil})`);
@@ -341,7 +346,8 @@ serve(async (req) => {
               'joiedevivre_birthday_countdown',
               'fr',
               [contactName, String(daysUntil)],
-              ['wishlist']
+              ['favorites'],
+              countdownImageUrl
             );
           }
         } catch {}
