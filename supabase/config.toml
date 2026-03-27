@@ -279,3 +279,6 @@ verify_jwt = false
 
 [functions.process-fund-completion]
 verify_jwt = false
+
+[functions.check-whatsapp-template-health]
+verify_jwt = false
