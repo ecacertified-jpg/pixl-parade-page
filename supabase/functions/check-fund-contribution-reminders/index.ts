@@ -232,12 +232,26 @@ serve(async (req) => {
         let sendResult;
         if (channel === 'whatsapp') {
           // Try template first, fallback to free text
-          const remaining = fund.target_amount - fund.current_amount;
+          const daysRemaining = Math.max(0, Math.ceil(
+            (new Date(fund.deadline_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          ));
+          
+          // Get target user's name for {{1}}
+          let targetName = 'Ami(e)';
+          if (reminder.target_user_id) {
+            const { data: targetProfile } = await supabase
+              .from('profiles')
+              .select('first_name')
+              .eq('user_id', reminder.target_user_id)
+              .single();
+            if (targetProfile?.first_name) targetName = targetProfile.first_name;
+          }
+          
           sendResult = await sendWhatsAppTemplate(
             formattedPhone,
             'joiedevivre_contribution_reminder',
             'fr',
-            [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`],
+            [targetName, fund.title || 'Cagnotte', beneficiaryName, String(daysRemaining)],
             [fund.share_token]  // CTA dynamique → /c/{share_token}
           );
           if (!sendResult.success) {
