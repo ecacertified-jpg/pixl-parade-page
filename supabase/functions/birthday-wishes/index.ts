@@ -202,7 +202,7 @@ serve(async (req) => {
 
     // Header image for countdown template
     const countdownImageUrl = Deno.env.get('BIRTHDAY_COUNTDOWN_IMAGE_URL') || 
-      `${supabaseUrl}/storage/v1/object/public/assets/birthday-countdown.jpg`;
+      `${supabaseUrl}/storage/v1/object/public/assets/birthday-countdown.jpeg`;
 
     // Process user profiles countdown
     for (const profile of allProfiles || []) {
