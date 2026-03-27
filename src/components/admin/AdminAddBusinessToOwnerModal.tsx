@@ -59,6 +59,7 @@ export function AdminAddBusinessToOwnerModal({
     website_url: '',
     wave_merchant_phone: '',
     mobile_money_merchant_phone: '',
+    wave_payment_link: '',
   });
 
   useEffect(() => {
@@ -139,6 +140,7 @@ export function AdminAddBusinessToOwnerModal({
           website_url: formData.website_url.trim() || null,
           wave_merchant_phone: formData.wave_merchant_phone.trim() || null,
           mobile_money_merchant_phone: formData.mobile_money_merchant_phone.trim() || null,
+          wave_payment_link: formData.wave_payment_link.trim() || null,
           is_active: true,
           is_verified: false,
           status: 'active',
@@ -185,6 +187,7 @@ export function AdminAddBusinessToOwnerModal({
       website_url: '',
       wave_merchant_phone: '',
       mobile_money_merchant_phone: '',
+      wave_payment_link: '',
     });
   };
 
@@ -343,6 +346,20 @@ export function AdminAddBusinessToOwnerModal({
             />
             <p className="text-xs text-muted-foreground">
               Numéro Orange Money ou MTN pour recevoir les paiements
+            </p>
+          </div>
+
+          {/* Wave Payment Link */}
+          <div className="space-y-2">
+            <Label>Lien de paiement Wave</Label>
+            <Input
+              type="url"
+              value={formData.wave_payment_link}
+              onChange={(e) => setFormData({ ...formData, wave_payment_link: e.target.value })}
+              placeholder="https://pay.wave.com/m/..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Lien de paiement Wave pour recevoir les virements de la plateforme
             </p>
           </div>
 

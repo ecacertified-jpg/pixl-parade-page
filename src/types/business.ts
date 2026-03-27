@@ -20,4 +20,5 @@ export interface Business {
   longitude?: number | null;
   wave_merchant_phone?: string;
   mobile_money_merchant_phone?: string;
+  wave_payment_link?: string;
 }
