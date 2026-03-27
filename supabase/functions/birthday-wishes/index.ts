@@ -286,7 +286,7 @@ serve(async (req) => {
       } catch {}
 
       // Record dedup
-      await supabase.from('birthday_contact_alerts').insert({
+      const { error: dedupError } = await supabase.from('birthday_contact_alerts').insert({
         user_id: profile.user_id || profile.id,
         alert_type: 'birthday_countdown',
         days_before: daysUntil,
@@ -294,7 +294,8 @@ serve(async (req) => {
         contact_name: firstName,
         channel: 'whatsapp',
         status: 'sent'
-      }).catch(() => {});
+      });
+      if (dedupError) console.warn('Dedup insert error:', dedupError.message);
 
       countdownSent++;
     }
@@ -354,7 +355,7 @@ serve(async (req) => {
       }
 
       // Record dedup
-      await supabase.from('birthday_contact_alerts').insert({
+      const { error: dedupError2 } = await supabase.from('birthday_contact_alerts').insert({
         user_id: contact.user_id,
         contact_id: contact.id,
         alert_type: 'birthday_countdown',
@@ -363,7 +364,8 @@ serve(async (req) => {
         contact_name: contactName,
         channel: 'whatsapp',
         status: 'sent'
-      }).catch(() => {});
+      });
+      if (dedupError2) console.warn('Dedup insert error (contact):', dedupError2.message);
 
       countdownSent++;
     }
