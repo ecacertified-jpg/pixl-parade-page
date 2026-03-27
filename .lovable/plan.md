@@ -1,12 +1,30 @@
 
 
-# Plan : Ajouter `joiedevivre_birthday_celebration` au monitoring
+# Plan : Corriger l'extension du fichier birthday-countdown
 
-## Changement
+## Problème détecté
 
-Ajouter `"joiedevivre_birthday_celebration"` dans le tableau `KNOWN_TEMPLATES` de `supabase/functions/check-whatsapp-template-health/index.ts`.
+| Élément | Valeur |
+|---------|--------|
+| Fichier dans le bucket `assets` | `birthday-countdown.jpeg` |
+| Référence dans le code (Edge Function) | `birthday-countdown.jpg` |
+| Bucket public | ✅ Oui |
 
-## Fichier modifié
+L'extension ne correspond pas → l'URL publique génère un 404.
 
-- `supabase/functions/check-whatsapp-template-health/index.ts` — ajout d'une ligne dans le tableau `KNOWN_TEMPLATES`
+## Solution
+
+Renommer la référence dans le code de `.jpg` à `.jpeg` (plus simple que de renommer le fichier dans le bucket).
+
+### Fichier modifié : `supabase/functions/birthday-wishes/index.ts`
+
+**Ligne 205** : changer `birthday-countdown.jpg` → `birthday-countdown.jpeg`
+
+### Fichier modifié : `.lovable/memory/infrastructure/public-media-storage.md`
+
+Mettre à jour la référence avec l'extension correcte `.jpeg`.
+
+## Résultat
+
+L'URL publique `https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/birthday-countdown.jpeg` sera correctement résolue et utilisée comme header image du template WhatsApp `joiedevivre_birthday_countdown`.
 
