@@ -1,41 +1,61 @@
 
 
-# Plan : Ajouter un CTA dynamique au template `joiedevivre_contribution_reminder`
+# Plan : Corriger les parametres du template `joiedevivre_contribution_reminder`
 
-## Contexte
+## Probleme
 
-Le template est actuellement appelé **sans `buttonParameters`** (ligne 236-241 de `check-fund-contribution-reminders/index.ts`). Le `share_token` est déjà disponible dans l'objet `fund` récupéré à la ligne 116.
+Le template Meta attend **4 parametres body** :
+- `{{1}}` = Nom du destinataire (ex: "Aminata")
+- `{{2}}` = Titre de la cagnotte (ex: "Anniversaire")
+- `{{3}}` = Nom du beneficiaire (ex: "Francoise")
+- `{{4}}` = Nombre de jours restants (ex: "7")
 
-La fonction `sendWhatsAppTemplate` supporte déjà les `buttonParameters` — elle les envoie comme boutons URL dynamiques avec suffixe.
+Le code n'envoie que **2 parametres** : `[fund.title, remaining XOF]`. Cela provoque une erreur `#132000` (parameter count mismatch) de Meta.
 
-## Template Meta à créer/modifier
+De plus, le CTA est "Contribuer maintenant" (pas "Voir la cagnotte") -- le `buttonParameters` avec `share_token` reste correct car c'est un suffixe d'URL dynamique.
 
-| Champ | Valeur |
-|-------|--------|
-| Nom | `joiedevivre_contribution_reminder` |
-| Bouton CTA | Type URL, texte `Voir la cagnotte` |
-| URL | `https://joiedevivre-africa.com/c/{{1}}` |
-| `{{1}}` | `share_token` de la cagnotte |
-
-## Modification code
+## Correction
 
 ### Fichier : `supabase/functions/check-fund-contribution-reminders/index.ts`
 
-**Ligne 236-241** — Ajouter `[fund.share_token]` comme 5ème argument (`buttonParameters`) :
+**Lignes 232-242** -- Recalculer `daysRemaining` et envoyer les 4 parametres corrects :
 
 ```typescript
-sendResult = await sendWhatsAppTemplate(
-  formattedPhone,
-  'joiedevivre_contribution_reminder',
-  'fr',
-  [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`],
-  [fund.share_token]  // CTA dynamique → /c/{share_token}
-);
+if (channel === 'whatsapp') {
+  const remaining = fund.target_amount - fund.current_amount;
+  const daysRemaining = Math.max(0, Math.ceil(
+    (new Date(fund.deadline_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  ));
+  
+  // Get target user's name for {{1}}
+  let targetName = 'Ami(e)';
+  if (reminder.target_user_id) {
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('first_name')
+      .eq('user_id', reminder.target_user_id)
+      .single();
+    if (targetProfile?.first_name) targetName = targetProfile.first_name;
+  }
+  
+  sendResult = await sendWhatsAppTemplate(
+    formattedPhone,
+    'joiedevivre_contribution_reminder',
+    'fr',
+    [targetName, fund.title || 'Cagnotte', beneficiaryName, String(daysRemaining)],
+    [fund.share_token]
+  );
+  // ... fallback unchanged
+}
 ```
 
-C'est la seule modification nécessaire — `sendWhatsAppTemplate` gère déjà la construction du payload bouton.
+Les 4 parametres correspondent maintenant exactement au template Meta :
+- `{{1}}` = targetName ("Aminata")
+- `{{2}}` = fund.title ("Anniversaire")
+- `{{3}}` = beneficiaryName ("Francoise")
+- `{{4}}` = daysRemaining ("7")
 
-## Fichier modifié
+## Fichier modifie
 
-- `supabase/functions/check-fund-contribution-reminders/index.ts` — 1 ligne ajoutée
+- `supabase/functions/check-fund-contribution-reminders/index.ts` -- correction des parametres body (2 -> 4)
 
