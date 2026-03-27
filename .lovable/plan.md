@@ -1,71 +1,66 @@
 
 
-# Plan : Notification admin + déclenchement paiement prestataire à la confirmation de réception
+# Plan : Enrichir le tableau des splits + champ lien Wave prestataire
 
-## Contexte
+## Résumé
 
-Quand un client note sa commande (confirmation de réception), la fonction `notify-order-confirmation` notifie uniquement le **prestataire**. Il manque :
-1. Une **notification admin** (in-app + Push) informant qu'un client a confirmé la réception et noté la boutique
-2. Le **déclenchement automatique du payment split** (simulation en phase 1, API Wave réelle en phase 2)
+Ajouter des colonnes **Article**, **Téléphone**, **Lieu** et un bouton **WAVE** (lien de paiement) dans le tableau "Détail des splits" de `/admin/commissions`. Ajouter un champ **Lien de paiement Wave** dans la config business du prestataire.
 
 ## Changements
 
-### 1. Edge Function `notify-order-confirmation/index.ts` — Enrichir
+### 1. Migration : ajouter `wave_payment_link` à `business_accounts`
 
-Après les notifications au prestataire (lignes 73-121), ajouter :
+Nouvelle colonne `wave_payment_link TEXT` nullable pour stocker le lien Wave du prestataire (ex: `https://pay.wave.com/m/...`).
 
-**a) Notification admin (in-app)**
-- Récupérer tous les admins actifs depuis `admin_users`
-- Insérer une `admin_notifications` par admin avec :
-  - `type`: `receipt_confirmed` ou `refund_requested`
-  - `title`: "Réception confirmée par [client]" ou "Remboursement demandé par [client]"
-  - `message`: détails (commande, note, prestataire, montant)
-  - `severity`: `info` (satisfait) ou `warning` (remboursement)
-  - `action_url`: `/admin/orders`
-  - `entity_id`: orderId
+### 2. `src/pages/Admin/CommissionsDashboard.tsx` — Enrichir la requête et le tableau
 
-**b) Push notification aux admins**
-- Envoyer un push à tous les admins ayant des `push_subscriptions` actives
-
-**c) Déclenchement du payment split (phase 1 : simulé)**
-- Si `isSatisfied === true` (note ≥ 3), appeler la logique de `process-mobile-money-payment` ou `process-wave-payment` selon le `payment_method` de la commande
-- Vérifier qu'un split n'existe pas déjà pour cette commande (anti-doublon)
-- Créer le `payment_split` avec `vendor_transfer_status: 'simulated'`
-- Inclure dans la notification admin un message indiquant : "Paiement prestataire en attente de virement manuel" (phase 1) ou "Paiement automatique déclenché" (phase 2)
-
-### 2. Hook `useOrderConfirmation.ts` — Aucun changement nécessaire
-
-Le hook appelle déjà `notify-order-confirmation` avec toutes les infos nécessaires. La logique admin et paiement sera côté serveur.
-
-### 3. Hook `useEditRating.ts` — Ajouter appel notification
-
-Quand un client modifie sa note et que le statut change (satisfaction ↔ remboursement), appeler également `notify-order-confirmation` pour que l'admin soit informé de la transition.
-
-## Détails techniques
-
-### Logique payment split dans `notify-order-confirmation`
-
-```text
-Si isSatisfied ET pas de split existant pour cet orderId :
-  1. Lire order.payment_method
-  2. Calculer vendorAmount (prix de base des produits)
-  3. Calculer platformAmount (total - vendorAmount)
-  4. Lire vendor phone (business_accounts.mobile_money_merchant_phone)
-  5. Lire platform phone (platform_settings)
-  6. INSERT payment_splits avec status 'simulated'
-  7. Log dans la notification admin : "Split créé : X XOF vendeur / Y XOF plateforme"
+**Requête** : Étendre le `select` pour récupérer les infos nécessaires :
+```
+payment_splits → business_orders(id, order_summary, business_accounts(business_name, phone, address, wave_payment_link))
 ```
 
-### Anti-doublon payment split
+**Interface `SplitRow`** : Ajouter `phone`, `address`, `wave_payment_link` dans `business_accounts`, et `order_summary` dans `business_orders`.
 
-Avant de créer un split, vérifier :
-```sql
-SELECT id FROM payment_splits WHERE business_order_id = ?
-```
-Si un split existe déjà, ne pas en créer un nouveau.
+**Colonnes du tableau** : Ajouter entre "Prestataire" et "Client" :
+- **Article** : extrait de `order_summary.items[0].name` (ou liste si plusieurs)
+- **Téléphone** : `business_accounts.phone`
+- **Lieu** : `business_accounts.address`
+
+**Colonne Action** : Remplacer le bouton "Transféré" par un bouton **WAVE** (icône Wave, couleur bleue) qui :
+- Ouvre le `wave_payment_link` du prestataire avec `?amount={vendor_amount}` pré-rempli
+- S'affiche uniquement si `vendor_transfer_status === 'pending'` ou `'simulated'` ET que le lien existe
+- Si pas de lien Wave configuré, afficher un message "Lien Wave non configuré"
+- Garder le bouton "Transféré" existant pour marquer manuellement après paiement
+
+### 3. `src/components/AddBusinessModal.tsx` — Ajouter le champ lien Wave
+
+Ajouter un champ **"Lien de paiement Wave"** dans la section paiement (après le numéro Wave marchand) :
+- Input URL avec placeholder `https://pay.wave.com/m/...`
+- Description : "Lien de paiement Wave pour recevoir les virements de la plateforme"
+- Sauvegarder dans `wave_payment_link`
+
+### 4. `src/components/admin/AdminEditBusinessModal.tsx` — Même champ
+
+Ajouter le même champ dans le modal d'édition admin.
+
+### 5. `src/components/admin/AdminAddBusinessToOwnerModal.tsx` — Même champ
+
+Ajouter le même champ dans le modal admin de création.
+
+### 6. `src/types/business.ts` — Ajouter le type
+
+Ajouter `wave_payment_link?: string` à l'interface `Business`.
+
+### 7. Export CSV — Ajouter les nouvelles colonnes
+
+Ajouter Article, Téléphone, Lieu dans `handleExport`.
 
 ## Fichiers modifiés
 
-- `supabase/functions/notify-order-confirmation/index.ts` (enrichi : admin notif + payment split)
-- `src/hooks/useEditRating.ts` (ajout appel notify-order-confirmation sur changement de statut)
+- Migration SQL (nouvelle colonne `wave_payment_link`)
+- `src/pages/Admin/CommissionsDashboard.tsx`
+- `src/components/AddBusinessModal.tsx`
+- `src/components/admin/AdminEditBusinessModal.tsx`
+- `src/components/admin/AdminAddBusinessToOwnerModal.tsx`
+- `src/types/business.ts`
 
