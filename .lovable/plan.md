@@ -1,45 +1,41 @@
 
 
-# Plan : Corriger les 3 templates WhatsApp en échec
+# Plan : Ajouter un CTA dynamique au template `joiedevivre_contribution_reminder`
 
-## Diagnostic
+## Contexte
 
-| Template | Erreur Meta | Cause |
-|----------|-------------|-------|
-| `joiedevivre_birthday_reminder` | `#132001` — Template name does not exist in the translation | Le template n'existe pas dans Meta avec le code langue `fr`, ou a été créé avec `fr_FR` |
-| `joiedevivre_contribution_reminder` | `#132001` — Template name does not exist in the translation | Même problème : template absent ou mauvais code langue |
-| `joiedevivre_birthday_countdown` | `#132018` — Problème de paramètres | Déjà corrigé (suppression `buttonParameters`). Les 8 échecs datent d'avant le fix. Aucune action nécessaire. |
+Le template est actuellement appelé **sans `buttonParameters`** (ligne 236-241 de `check-fund-contribution-reminders/index.ts`). Le `share_token` est déjà disponible dans l'objet `fund` récupéré à la ligne 116.
 
-## Cause racine
+La fonction `sendWhatsAppTemplate` supporte déjà les `buttonParameters` — elle les envoie comme boutons URL dynamiques avec suffixe.
 
-L'erreur `#132001` signifie que Meta ne trouve pas ces templates. Deux possibilités :
-1. Les templates ont été créés dans Meta avec le code langue `fr_FR` au lieu de `fr`
-2. Les templates n'existent pas du tout dans Meta Business Manager
+## Template Meta à créer/modifier
 
-## Actions requises
+| Champ | Valeur |
+|-------|--------|
+| Nom | `joiedevivre_contribution_reminder` |
+| Bouton CTA | Type URL, texte `Voir la cagnotte` |
+| URL | `https://joiedevivre-africa.com/c/{{1}}` |
+| `{{1}}` | `share_token` de la cagnotte |
 
-### Action 1 — Vérification dans Meta (par vous)
+## Modification code
 
-Vous devez vérifier dans Meta Business Manager :
-- Le template `joiedevivre_birthday_reminder` existe-t-il ? Avec quel code langue ?
-- Le template `joiedevivre_contribution_reminder` existe-t-il ? Avec quel code langue ?
+### Fichier : `supabase/functions/check-fund-contribution-reminders/index.ts`
 
-Si le code langue est `fr_FR` au lieu de `fr`, nous corrigerons le code. S'ils n'existent pas, je vous fournirai les détails pour les créer.
+**Ligne 236-241** — Ajouter `[fund.share_token]` comme 5ème argument (`buttonParameters`) :
 
-### Action 2 — Correction du code (après votre retour)
+```typescript
+sendResult = await sendWhatsAppTemplate(
+  formattedPhone,
+  'joiedevivre_contribution_reminder',
+  'fr',
+  [fund.title || beneficiaryName, `${remaining.toLocaleString('fr-FR')} XOF`],
+  [fund.share_token]  // CTA dynamique → /c/{share_token}
+);
+```
 
-**Fichiers à modifier** :
-- `supabase/functions/birthday-reminder-with-suggestions/index.ts` — ligne 298
-- `supabase/functions/check-birthday-alerts-for-contacts/index.ts` — ligne 203
-- `supabase/functions/check-fund-contribution-reminders/index.ts` — ligne 238
+C'est la seule modification nécessaire — `sendWhatsAppTemplate` gère déjà la construction du payload bouton.
 
-Changement : adapter le code langue `'fr'` → `'fr_FR'` si c'est la cause, ou corriger le nom du template si nécessaire.
+## Fichier modifié
 
-### Action 3 — Template countdown (aucune action)
-
-Les 8 échecs de `joiedevivre_birthday_countdown` datent d'avant le fix déployé aujourd'hui. Le code est déjà corrigé. Les prochaines exécutions (CRON) devraient fonctionner.
-
-## Prochaine étape
-
-Pouvez-vous vérifier dans votre Meta Business Manager si `joiedevivre_birthday_reminder` et `joiedevivre_contribution_reminder` existent, et partager une capture d'écran de leurs détails (nom exact, langue, paramètres) ?
+- `supabase/functions/check-fund-contribution-reminders/index.ts` — 1 ligne ajoutée
 
