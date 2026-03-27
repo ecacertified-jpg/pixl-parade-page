@@ -157,7 +157,7 @@ export const SmartNotificationsSection = () => {
             // 🎂 Birthday countdown
             if (notification.notification_type === 'birthday_countdown') {
               return (
-                <BirthdayCountdownCard
+                <BirthdayCountdownNotifCard
                   key={notification.id}
                   notification={{
                     id: notification.id,
