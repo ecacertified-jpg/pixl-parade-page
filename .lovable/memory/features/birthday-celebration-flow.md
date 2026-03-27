@@ -32,7 +32,8 @@ Updated: now
 - **Composant notification** : `BirthdayCountdownNotifCard.tsx` — carte in-app pour countdown avec urgence colorée
 
 ### Templates WhatsApp (tous synchronisés ✅)
-- `joiedevivre_birthday_countdown` : countdown J-7/5/3/1 avec header image + CTA → /wishlist-catalog
+- `joiedevivre_birthday_countdown` : countdown J-7/5/3/1 pour utilisateurs INSCRITS avec header image + CTA → /wishlist-catalog
+- `joiedevivre_birthday_countdown_invite` : countdown J-7/5/3/1 pour contacts NON-INSCRITS avec header image + CTA → /auth (créer un compte)
 - `joiedevivre_birthday_celebration` : vidéo jour J (existant)
 - `joiedevivre_birthday_reminder` : rappel utilisateur (existant)
 - `joiedevivre_birthday_friend_alert` : alerte amis du cercle (existant)

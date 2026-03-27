@@ -343,10 +343,10 @@ serve(async (req) => {
           if (channel === 'whatsapp') {
             await sendWhatsAppTemplate(
               contact.phone,
-              'joiedevivre_birthday_countdown',
+              'joiedevivre_birthday_countdown_invite',
               'fr',
               [contactName, String(daysUntil)],
-              ['wishlist-catalog'],
+              undefined,
               countdownImageUrl
             );
           }

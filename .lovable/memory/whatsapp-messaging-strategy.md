@@ -24,6 +24,8 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 - `joiedevivre_welcome_add_friends` — Message de bienvenue post-inscription incitant à ajouter des amis. 1 paramètre body : `{{1}}` prénom utilisateur. Body : `Bienvenue sur JOIE DE VIVRE, {{1}} ! Ajoute au moins 2 amis a ton cercle pour commencer a recevoir des cadeaux. Plus tu ajoutes d'amis, plus tu maximises tes chances d'obtenir un cadeau de ta liste de souhaits.` Bouton CTA statique : "Commence ici" → `https://joiedevivre-africa.com/contacts`. Pas de header ni pied de page. Fonction Edge : `check-friends-circle-reminders` (envoi unique après inscription).
 - `joiedevivre_friends_circle_reminder` — Rappel périodique pour étoffer son cercle d'amis. Catégorie MARKETING. Header texte : "Joie de Vivre". 1 paramètre body : `{{1}}` prénom utilisateur. Body : `Salut {{1}}, Ton cercle d'amis n'est pas encore complet ! Ajoute des proches pour maximiser tes chances de recevoir un cadeau de ta liste de souhaits. Tu peux ajouter autant d'amis que tu veux.` Bouton CTA statique : "Ajoute-les ici" → `https://joiedevivre-africa.com/contacts`. Fonction Edge : `check-friends-circle-reminders` (CRON).
 
+- `joiedevivre_birthday_countdown_invite` — Countdown anniversaire pour contacts NON-INSCRITS. 2 paramètres body : prénom contact, nombre de jours. Header image (même que countdown). Footer : `JOIE DE VIVRE - Célébrons ensemble`. Bouton CTA statique : "Créer mon compte" → `https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=birthday_countdown`. Fonction Edge : `birthday-wishes`.
+
 ## Templates supprimés / remplacés
 
 - ~~`joiedevivre_contribution_nudge`~~ — Abandonné. Fusionné dans `joiedevivre_contribution_update`.
@@ -31,7 +33,7 @@ La stratégie de messagerie WhatsApp privilégie les modèles HSM (Highly Struct
 
 ## Statut des templates
 
-✅ **Tous les 21 templates sont créés et approuvés dans Meta Business Manager.** Aucun template en attente de création.
+⏳ **22 templates au total.** `joiedevivre_birthday_countdown_invite` est en attente de création dans Meta Business Manager. Les 21 autres sont approuvés.
 
 ## Notes techniques
 

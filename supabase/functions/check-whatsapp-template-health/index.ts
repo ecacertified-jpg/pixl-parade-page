@@ -27,6 +27,7 @@ const KNOWN_TEMPLATES = [
   "joiedevivre_delivery_reminder",
   "joiedevivre_welcome_add_friends",
   "joiedevivre_friends_circle_reminder",
+  "joiedevivre_birthday_countdown_invite",
 ];
 
 const MIN_SENDS = 5;
