@@ -125,7 +125,24 @@ export const useEditRating = () => {
         }
       }
 
-      // 5. Refresh & notify
+      // 5. Notify admin if status changed
+      if (statusChanged) {
+        try {
+          await supabase.functions.invoke("notify-order-confirmation", {
+            body: {
+              orderId,
+              rating: newRating,
+              reviewText: newReviewText,
+              isSatisfied: newRating >= 3,
+              businessAccountId: null,
+            },
+          });
+        } catch (notifError) {
+          console.error("Error sending edit notification:", notifError);
+        }
+      }
+
+      // 6. Refresh & notify
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
 
       if (statusChanged && newRating < 3) {
