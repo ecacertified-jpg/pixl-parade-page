@@ -1,43 +1,71 @@
 
 
-# Plan : Alertes automatiques pour templates WhatsApp failing/degraded
+# Plan : Notification admin + déclenchement paiement prestataire à la confirmation de réception
 
 ## Contexte
 
-Deux health checks CRON existent déjà (`check-whatsapp-otp-health`, `check-whatsapp-delivery-health`) mais ils surveillent des métriques globales (OTP, livraison), pas le statut individuel de chaque template. L'objectif est de créer un système qui analyse les 21 templates et alerte quand l'un d'eux passe en statut `failing` (100% échecs) ou `degraded` (taux de succès < 80%).
+Quand un client note sa commande (confirmation de réception), la fonction `notify-order-confirmation` notifie uniquement le **prestataire**. Il manque :
+1. Une **notification admin** (in-app + Push) informant qu'un client a confirmé la réception et noté la boutique
+2. Le **déclenchement automatique du payment split** (simulation en phase 1, API Wave réelle en phase 2)
 
-## Approche
+## Changements
 
-Créer une nouvelle Edge Function `check-whatsapp-template-health` qui :
-1. Récupère les logs des dernières 24h depuis `whatsapp_template_logs`
-2. Calcule le statut de chaque template (même logique que `computeStatus`)
-3. Pour chaque template `failing` ou `degraded`, vérifie l'anti-spam (pas d'alerte similaire dans les 6 dernières heures)
-4. Crée une `admin_notification` avec sévérité `critical` (failing) ou `warning` (degraded)
-5. Envoie un email aux admins via Resend si configuré
+### 1. Edge Function `notify-order-confirmation/index.ts` — Enrichir
 
-Planifier un CRON toutes les 6 heures pour exécuter cette fonction.
+Après les notifications au prestataire (lignes 73-121), ajouter :
+
+**a) Notification admin (in-app)**
+- Récupérer tous les admins actifs depuis `admin_users`
+- Insérer une `admin_notifications` par admin avec :
+  - `type`: `receipt_confirmed` ou `refund_requested`
+  - `title`: "Réception confirmée par [client]" ou "Remboursement demandé par [client]"
+  - `message`: détails (commande, note, prestataire, montant)
+  - `severity`: `info` (satisfait) ou `warning` (remboursement)
+  - `action_url`: `/admin/orders`
+  - `entity_id`: orderId
+
+**b) Push notification aux admins**
+- Envoyer un push à tous les admins ayant des `push_subscriptions` actives
+
+**c) Déclenchement du payment split (phase 1 : simulé)**
+- Si `isSatisfied === true` (note ≥ 3), appeler la logique de `process-mobile-money-payment` ou `process-wave-payment` selon le `payment_method` de la commande
+- Vérifier qu'un split n'existe pas déjà pour cette commande (anti-doublon)
+- Créer le `payment_split` avec `vendor_transfer_status: 'simulated'`
+- Inclure dans la notification admin un message indiquant : "Paiement prestataire en attente de virement manuel" (phase 1) ou "Paiement automatique déclenché" (phase 2)
+
+### 2. Hook `useOrderConfirmation.ts` — Aucun changement nécessaire
+
+Le hook appelle déjà `notify-order-confirmation` avec toutes les infos nécessaires. La logique admin et paiement sera côté serveur.
+
+### 3. Hook `useEditRating.ts` — Ajouter appel notification
+
+Quand un client modifie sa note et que le statut change (satisfaction ↔ remboursement), appeler également `notify-order-confirmation` pour que l'admin soit informé de la transition.
 
 ## Détails techniques
 
-### 1. Edge Function `supabase/functions/check-whatsapp-template-health/index.ts`
+### Logique payment split dans `notify-order-confirmation`
 
-- Liste statique des 21 templates (miroir de `KNOWN_TEMPLATES`)
-- Requête `whatsapp_template_logs` des dernières 24h, groupée par `template_name`
-- Seuils : `failing` = 100% échecs, `degraded` = succès < 80%, minimum 5 envois
-- Anti-spam par template : vérifie `admin_notifications` avec `type = 'whatsapp_template_health'` et `entity_id = template_name` dans les 6 dernières heures
-- Notification : titre = nom du template, message = taux de succès et détails, `action_url = '/admin/whatsapp-templates'`
-- Email groupé : un seul email listant tous les templates problématiques (pas un email par template)
+```text
+Si isSatisfied ET pas de split existant pour cet orderId :
+  1. Lire order.payment_method
+  2. Calculer vendorAmount (prix de base des produits)
+  3. Calculer platformAmount (total - vendorAmount)
+  4. Lire vendor phone (business_accounts.mobile_money_merchant_phone)
+  5. Lire platform phone (platform_settings)
+  6. INSERT payment_splits avec status 'simulated'
+  7. Log dans la notification admin : "Split créé : X XOF vendeur / Y XOF plateforme"
+```
 
-### 2. CRON job (SQL via insert tool)
+### Anti-doublon payment split
 
-Planifier `check-whatsapp-template-health` toutes les 6 heures via `pg_cron`.
+Avant de créer un split, vérifier :
+```sql
+SELECT id FROM payment_splits WHERE business_order_id = ?
+```
+Si un split existe déjà, ne pas en créer un nouveau.
 
-### 3. Mise à jour mémoire
+## Fichiers modifiés
 
-Ajouter le nouveau CRON dans `.lovable/memory` pour le suivi.
-
-## Fichiers créés/modifiés
-
-- `supabase/functions/check-whatsapp-template-health/index.ts` (nouveau)
-- `.lovable/memory/infrastructure/cron-jobs-alert-system.md` (mise à jour)
+- `supabase/functions/notify-order-confirmation/index.ts` (enrichi : admin notif + payment split)
+- `src/hooks/useEditRating.ts` (ajout appel notify-order-confirmation sur changement de statut)
 
