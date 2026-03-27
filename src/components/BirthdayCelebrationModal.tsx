@@ -147,7 +147,7 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
   };
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const videoUrl = `${supabaseUrl}/storage/v1/object/public/birthday-videos/default-celebration.mp4`;
+  const videoUrl = `${supabaseUrl}/storage/v1/object/public/assets/default-celebration.mp4`;
 
   if (!open) return null;
 

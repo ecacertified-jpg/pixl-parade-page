@@ -561,13 +561,13 @@ serve(async (req) => {
                 : `Que cette année soit exceptionnelle !`;
 
               // Video URL: try personalized video first, fallback to default
-              const storageBase = `${supabaseUrl}/storage/v1/object/public/birthday-videos`;
+              const storageBase = `${supabaseUrl}/storage/v1/object/public/assets`;
               let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
 
               // Check if a personalized video exists for this user
               try {
                 const { data: personalVideo } = await supabase.storage
-                  .from('birthday-videos')
+                  .from('assets')
                   .list('', { search: `${user.id}.mp4` });
                 if (personalVideo && personalVideo.length > 0) {
                   celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
