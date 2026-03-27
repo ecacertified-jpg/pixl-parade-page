@@ -1,45 +1,45 @@
 
 
-# Plan : Corriger les 3 problèmes résiduels dans `birthday-wishes`
+# Plan : Corriger les 3 templates WhatsApp en échec
 
-## Problèmes identifiés
+## Diagnostic
 
-| # | Problème | Cause | Impact |
-|---|----------|-------|--------|
-| 1 | `scheduled_notifications` insert échoue | Colonne `delivery_methods` (NOT NULL, pas de défaut) manquante dans les inserts | Aucune notification in-app créée |
-| 2 | `birthday_celebrations` insert échoue | FK vers `auth.users(id)` mais le code utilise `user.id` (= `profiles.id`, pas `auth.users.id`) | Pas de célébration enregistrée |
-| 3 | WhatsApp erreur #132018 | Le template `joiedevivre_birthday_countdown` dans Meta a un CTA statique (pas de `{{1}}` dynamique dans l'URL), mais le code envoie `['wishlist-catalog']` comme `buttonParameters` | Template rejeté par Meta |
+| Template | Erreur Meta | Cause |
+|----------|-------------|-------|
+| `joiedevivre_birthday_reminder` | `#132001` — Template name does not exist in the translation | Le template n'existe pas dans Meta avec le code langue `fr`, ou a été créé avec `fr_FR` |
+| `joiedevivre_contribution_reminder` | `#132001` — Template name does not exist in the translation | Même problème : template absent ou mauvais code langue |
+| `joiedevivre_birthday_countdown` | `#132018` — Problème de paramètres | Déjà corrigé (suppression `buttonParameters`). Les 8 échecs datent d'avant le fix. Aucune action nécessaire. |
 
-## Corrections
+## Cause racine
 
-### 1. Ajouter `delivery_methods` aux inserts `scheduled_notifications`
+L'erreur `#132001` signifie que Meta ne trouve pas ces templates. Deux possibilités :
+1. Les templates ont été créés dans Meta avec le code langue `fr_FR` au lieu de `fr`
+2. Les templates n'existent pas du tout dans Meta Business Manager
 
-**Fichier** : `supabase/functions/birthday-wishes/index.ts`
+## Actions requises
 
-4 inserts concernés (lignes ~229, ~325, ~513) — ajouter `delivery_methods: ['in_app']` à chaque insert.
+### Action 1 — Vérification dans Meta (par vous)
 
-### 2. Utiliser `user_id` au lieu de `id` pour `birthday_celebrations`
+Vous devez vérifier dans Meta Business Manager :
+- Le template `joiedevivre_birthday_reminder` existe-t-il ? Avec quel code langue ?
+- Le template `joiedevivre_contribution_reminder` existe-t-il ? Avec quel code langue ?
 
-**Fichier** : `supabase/functions/birthday-wishes/index.ts`
+Si le code langue est `fr_FR` au lieu de `fr`, nous corrigerons le code. S'ils n'existent pas, je vous fournirai les détails pour les créer.
 
-Ligne ~433 : remplacer `user_id: user.id` par `user_id: user.user_id` dans l'insert `birthday_celebrations`, car la FK pointe vers `auth.users(id)` et `user.user_id` correspond à l'UUID auth.
+### Action 2 — Correction du code (après votre retour)
 
-Même correction pour les queries qui utilisent `user.id` au lieu de `user.user_id` dans la section D-Day (lignes ~418, ~444, ~447, ~481, ~490, ~500, ~554).
+**Fichiers à modifier** :
+- `supabase/functions/birthday-reminder-with-suggestions/index.ts` — ligne 298
+- `supabase/functions/check-birthday-alerts-for-contacts/index.ts` — ligne 203
+- `supabase/functions/check-fund-contribution-reminders/index.ts` — ligne 238
 
-### 3. Supprimer les `buttonParameters` pour le template countdown
+Changement : adapter le code langue `'fr'` → `'fr_FR'` si c'est la cause, ou corriger le nom du template si nécessaire.
 
-**Fichier** : `supabase/functions/birthday-wishes/index.ts`
+### Action 3 — Template countdown (aucune action)
 
-Ligne ~253 : remplacer `['wishlist-catalog']` par `undefined` car le CTA du template `joiedevivre_birthday_countdown` est une URL statique dans Meta (pas de suffixe dynamique).
+Les 8 échecs de `joiedevivre_birthday_countdown` datent d'avant le fix déployé aujourd'hui. Le code est déjà corrigé. Les prochaines exécutions (CRON) devraient fonctionner.
 
-## Fichier modifié
+## Prochaine étape
 
-- `supabase/functions/birthday-wishes/index.ts` — ~10 corrections dans le fichier
-
-## Résultat attendu
-
-La Edge Function s'exécutera sans erreur et :
-1. Les notifications in-app seront créées correctement
-2. Les célébrations seront enregistrées dans `birthday_celebrations`
-3. Les templates WhatsApp seront acceptés par Meta
+Pouvez-vous vérifier dans votre Meta Business Manager si `joiedevivre_birthday_reminder` et `joiedevivre_contribution_reminder` existent, et partager une capture d'écran de leurs détails (nom exact, langue, paramètres) ?
 
