@@ -142,9 +142,9 @@ export const OnboardingExperience = ({
       return;
     }
 
-    // Vérifier la session avant l'appel
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData?.session) {
+    // Vérifier la session avant l'appel avec ensureValidSession
+    const { valid, session: validSession } = await ensureValidSession();
+    if (!valid || !validSession?.access_token) {
       toast.error('Session expirée, veuillez vous reconnecter');
       return;
     }
@@ -155,11 +155,19 @@ export const OnboardingExperience = ({
           invitee_phone: phone,
           message: `${firstName || 'Un ami'} t'invite à rejoindre Joie de Vivre !`,
         },
+        headers: {
+          Authorization: `Bearer ${validSession.access_token}`,
+        },
       });
 
       if (error) {
         console.error('Invitation error:', error);
-        const msg = error.message || "L'invitation n'a pas pu être envoyée";
+        // Try to extract server error message
+        let msg = "L'invitation n'a pas pu être envoyée";
+        try {
+          const parsed = typeof error === 'object' && error.context ? await error.context.json() : null;
+          if (parsed?.error) msg = parsed.error;
+        } catch { /* use default msg */ }
         toast.error(msg);
         return;
       }

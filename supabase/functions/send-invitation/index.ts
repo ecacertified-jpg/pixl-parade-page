@@ -26,21 +26,32 @@ const handler = async (req: Request): Promise<Response> => {
   console.log(`[send-invitation] Method: ${req.method}, Auth header present: ${!!req.headers.get("Authorization")}`);
 
   try {
+    // Extract JWT from Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("[send-invitation] Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization header manquant" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    const token = authHeader.replace("Bearer ", "");
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: { Authorization: authHeader },
         },
       }
     );
 
-    // Get the authenticated user
+    // Get the authenticated user with explicit token
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     console.log(`[send-invitation] Auth status: ${user ? 'authenticated' : 'failed'}`, authError?.message || 'OK');
 
