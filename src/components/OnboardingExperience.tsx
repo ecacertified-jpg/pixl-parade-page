@@ -129,6 +129,45 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep]);
 
+  // Load wishlist products when reaching step 3
+  useEffect(() => {
+    if (currentStep !== 3 || !user) return;
+    const loadProducts = async () => {
+      setLoadingProducts(true);
+      let query = supabase
+        .from('products')
+        .select('id, name, price, currency, image_url, business_id')
+        .eq('is_active', true)
+        .limit(12);
+
+      const { data } = await query;
+      setWishlistProducts(data || []);
+
+      // Load existing favorites
+      const { data: favs } = await supabase
+        .from('user_favorites')
+        .select('product_id')
+        .eq('user_id', user.id);
+      setFavoriteIds((favs || []).map((f: any) => f.product_id));
+      setLoadingProducts(false);
+    };
+    loadProducts();
+  }, [currentStep, user]);
+
+  // Toggle favorite
+  const toggleFavorite = async (productId: string) => {
+    if (!user) return;
+    const isFav = favoriteIds.includes(productId);
+    if (isFav) {
+      setFavoriteIds(prev => prev.filter(id => id !== productId));
+      await supabase.from('user_favorites').delete().eq('user_id', user.id).eq('product_id', productId);
+    } else {
+      setFavoriteIds(prev => [...prev, productId]);
+      await supabase.from('user_favorites').insert({ user_id: user.id, product_id: productId });
+      confetti({ particleCount: 15, spread: 40, origin: { y: 0.6 }, colors: ['#ec4899', '#a855f7'] });
+    }
+  };
+
   // Save birthday
   const saveBirthday = useCallback(async () => {
     if (!user || !birthday) return;
