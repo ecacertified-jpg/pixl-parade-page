@@ -252,12 +252,6 @@ const BirthdayPage = () => {
   };
 
 
-  // Calculate age
-  const getAge = () => {
-    if (!birthdayPerson.birthday) return null;
-    const bday = new Date(birthdayPerson.birthday);
-    return page ? page.celebration_year - bday.getFullYear() : null;
-  };
 
   if (loading) {
     return (
