@@ -15,6 +15,7 @@ import {
   PartyPopper, Heart, Camera, Gift, Send, Share2, MessageCircle,
   Sparkles, ImagePlus, Loader2
 } from "lucide-react";
+import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 
 interface BirthdayPageData {
@@ -36,12 +37,16 @@ interface WishMessage {
   is_from_fund: boolean | null;
 }
 
-interface PagePhoto {
+interface AlbumItem {
   id: string;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
   created_at: string;
+  media_type: string;
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  memory_text: string | null;
 }
 
 interface FundInfo {
@@ -59,15 +64,13 @@ const BirthdayPage = () => {
 
   const [page, setPage] = useState<BirthdayPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
-  const [photos, setPhotos] = useState<PagePhoto[]>([]);
+  const [albumItems, setAlbumItems] = useState<AlbumItem[]>([]);
   const [fund, setFund] = useState<FundInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [photoCaption, setPhotoCaption] = useState("");
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
