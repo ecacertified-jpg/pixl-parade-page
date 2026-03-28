@@ -1,31 +1,39 @@
 
 
-# Plan : Corriger le lien d'invitation pour pointer vers joiedevivre-africa.com
+# Plan : Appliquer le correctif domaine de production aux autres fichiers
 
-## Problème
+## Constat
 
-Ligne 182 : `window.location.origin` retourne l'URL de preview Lovable au lieu du domaine de production.
+`OnboardingExperience.tsx` a déjà le correctif `import.meta.env.PROD`. Mais d'autres fichiers génèrent aussi des liens d'invitation/parrainage avec `window.location.origin` sans correction :
+
+| Fichier | Lignes | Lien généré |
+|---------|--------|-------------|
+| `InviteFriendsModal.tsx` | 71, 274 | `/auth?invited=true` |
+| `ReferralCodes.tsx` | 34, 97 | `/auth?ref=CODE` |
 
 ## Solution
 
-Dans `src/components/OnboardingExperience.tsx`, remplacer la ligne 182 :
-
+1. **Créer un utilitaire centralisé** `src/utils/appUrl.ts` :
 ```tsx
-const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data.invitation_id}`;
+export const getAppBaseUrl = () =>
+  import.meta.env.PROD ? 'https://joiedevivre-africa.com' : window.location.origin;
 ```
 
-Par :
+2. **Remplacer `window.location.origin`** par `getAppBaseUrl()` dans :
+   - `InviteFriendsModal.tsx` (lignes 71, 274)
+   - `ReferralCodes.tsx` (lignes 34, 97)
+   - `OnboardingExperience.tsx` (ligne 182-184 — simplifier avec l'utilitaire)
 
-```tsx
-const appBaseUrl = import.meta.env.PROD 
-  ? 'https://joiedevivre-africa.com' 
-  : window.location.origin;
-const invitationLink = `${appBaseUrl}/auth?invited=true&ref=${data.invitation_id}`;
-```
+## Remarque importante
 
-## Fichier concerné
+En preview Lovable, le lien continuera à pointer vers le domaine de preview (comportement choisi). Sur le site publié, il pointera vers `joiedevivre-africa.com`.
 
-| Fichier | Modification |
-|---------|-------------|
-| `src/components/OnboardingExperience.tsx` (ligne 182) | Domaine de production conditionnel |
+## Fichiers concernés
+
+| Fichier | Action |
+|---------|--------|
+| `src/utils/appUrl.ts` | Créer — utilitaire centralisé |
+| `src/components/InviteFriendsModal.tsx` | Utiliser `getAppBaseUrl()` |
+| `src/pages/ReferralCodes.tsx` | Utiliser `getAppBaseUrl()` |
+| `src/components/OnboardingExperience.tsx` | Simplifier avec `getAppBaseUrl()` |
 
