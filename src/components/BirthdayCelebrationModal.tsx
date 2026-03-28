@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, Send, Play, Heart, Sparkles, PartyPopper, Volume2, VolumeX } from "lucide-react";
+import { X, Send, Play, Heart, Sparkles, PartyPopper, Volume2, VolumeX, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { BirthdayPageShareButton } from "./BirthdayPageShareButton";
 
 interface BirthdayCelebrationModalProps {
   open: boolean;
