@@ -750,8 +750,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 4: Birthday viral page */}
-          {currentStep === 4 && (
+          {/* Step 5: Birthday viral page */}
+          {currentStep === 5 && (
             <motion.div
               key="viral"
               initial={{ opacity: 0, y: 30 }}
