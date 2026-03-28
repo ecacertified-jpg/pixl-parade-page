@@ -44,7 +44,7 @@ import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotific
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { SearchExistingFundsModal } from "@/components/SearchExistingFundsModal";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
-import { OnboardingModal } from "@/components/OnboardingModal";
+import { OnboardingExperience } from "@/components/OnboardingExperience";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
 import { BadgeProgressCard } from "@/components/BadgeProgressCard";
@@ -1095,8 +1095,8 @@ export default function Dashboard() {
           initialData={initialData}
         />
         
-        {/* Onboarding Modal - Only shows if profile is complete */}
-        <OnboardingModal
+        {/* Onboarding Experience - Immersive full-screen */}
+        <OnboardingExperience
           open={shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading}
           onComplete={completeOnboarding}
           currentStep={currentStep}
