@@ -173,6 +173,7 @@ const Auth = () => {
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   
   const [isLoading, setIsLoading] = useState(false);
+  const [showDiscovery, setShowDiscovery] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
