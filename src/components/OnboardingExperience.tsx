@@ -82,6 +82,7 @@ export const OnboardingExperience = ({
   const [invitedCount, setInvitedCount] = useState(0);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
 
   // Load user data on mount
@@ -155,13 +156,29 @@ export const OnboardingExperience = ({
         return;
       }
 
+      const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data?.invitation_id || ''}`;
+      setGeneratedInviteLink(invitationLink);
       setInvitedCount(c => c + 1);
       setInvitePhone('');
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#ec4899'] });
-      toast.success(`Invitation envoyée au ${phone} ! 🎉`);
+      toast.info('Partagez ce lien avec votre ami !');
     } catch {
       toast.error("Erreur lors de l'envoi");
     }
+  };
+
+  const handleCopyInviteLink = () => {
+    if (!generatedInviteLink) return;
+    navigator.clipboard.writeText(generatedInviteLink);
+    toast.success('Lien copié ! 📋');
+  };
+
+  const handleShareInviteLinkWhatsApp = () => {
+    if (!generatedInviteLink) return;
+    const text = encodeURIComponent(
+      `🎉 ${firstName || 'Je'} t'invite à rejoindre Joie de Vivre ! Célèbre les moments importants avec tes proches ✨\n\n${generatedInviteLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   // Share on WhatsApp
@@ -491,7 +508,10 @@ export const OnboardingExperience = ({
               <div className="flex gap-2 mb-4">
                 <Input
                   value={invitePhone}
-                  onChange={e => setInvitePhone(e.target.value)}
+                  onChange={e => {
+                    setInvitePhone(e.target.value);
+                    if (generatedInviteLink) setGeneratedInviteLink(null);
+                  }}
                   placeholder="Numéro de téléphone"
                   className="flex-1"
                 />
@@ -500,12 +520,44 @@ export const OnboardingExperience = ({
                 </Button>
               </div>
 
-              <div className="flex flex-col gap-3">
-                <Button onClick={handleShareWhatsApp} variant="outline" className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50">
-                  <Share2 className="h-4 w-4" />
-                  Partager sur WhatsApp
-                </Button>
-              </div>
+              {generatedInviteLink && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
+                >
+                  <p className="text-sm font-nunito text-muted-foreground">
+                    📋 Partagez ce lien avec votre ami :
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={generatedInviteLink}
+                      readOnly
+                      className="flex-1 text-xs bg-muted"
+                    />
+                    <Button onClick={handleCopyInviteLink} size="icon" variant="outline" className="shrink-0">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={handleShareInviteLinkWhatsApp}
+                    variant="outline"
+                    className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Envoyer via WhatsApp
+                  </Button>
+                </motion.div>
+              )}
+
+              {!generatedInviteLink && (
+                <div className="flex flex-col gap-3">
+                  <Button onClick={handleShareWhatsApp} variant="outline" className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50">
+                    <Share2 className="h-4 w-4" />
+                    Partager sur WhatsApp
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
 
