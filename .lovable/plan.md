@@ -1,68 +1,98 @@
 
 
-# Plan : Indexation automatique et mots-cles SEO des pages anniversaire
+# Plan : Onboarding viral et experience utilisateur exceptionnelle
 
-## Probleme
+## Probleme actuel
 
-Les pages `/birthday/:slug` ne sont pas soumises aux moteurs de recherche (IndexNow) apres creation et n'ont aucune meta-donnee SEO (title, description, keywords, Open Graph, JSON-LD).
+L'onboarding existant est une modale statique en 3 etapes avec du texte descriptif. C'est fonctionnel mais ne cree aucune emotion forte, aucun engagement interactif, et aucun mecanisme viral. L'utilisateur peut tout "skipper" sans rien faire.
 
-## Solution
+## Concept : Onboarding immersif en plein ecran
 
-### 1. Soumettre a IndexNow apres creation de la page (Edge Function)
+Remplacer la modale par une **experience plein ecran immersive** en 5 etapes avec des micro-interactions, des animations emotionnelles et un **mecanisme viral integre** (invitation + partage).
 
-Dans `supabase/functions/birthday-wishes/index.ts`, apres l'insertion reussie dans `birthday_pages` (ligne ~490), ajouter l'URL a la table `seo_sync_queue` :
+### Etapes de l'onboarding
 
-```typescript
-await supabase.from('seo_sync_queue').insert({
-  entity_type: 'page',
-  entity_id: pageSlug,
-  action: 'create',
-  url: `https://joiedevivre-africa.com/birthday/${pageSlug}`,
-  priority: 'high',
-  metadata: { title: pageTitle, type: 'birthday_page' }
-});
-```
+| Etape | Titre | Experience | Action virale |
+|-------|-------|-----------|---------------|
+| 1. Bienvenue | "La joie de donner" | Animation plein ecran : confettis + coeurs flottants + message personnalise avec le prenom | - |
+| 2. Mon anniversaire | "Quand est ton anniversaire ?" | Saisie interactive de la date avec compte a rebours anime (J-X avant ton prochain anniv !) | - |
+| 3. Mon premier voeu | "Quel cadeau te ferait plaisir ?" | Selection rapide parmi des categories illustrees (tech, mode, voyage...) avec animation de selection | - |
+| 4. Mon cercle | "Invite 3 proches" | Import contacts telephone ou saisie manuelle. Chaque ajout declenche une animation festive | **Partage WhatsApp/SMS automatique** |
+| 5. Ma page virale | "Ta page anniversaire est prete !" | Preview de la page `/birthday/prenom-annee` avec bouton de partage multi-canal | **Partage immediat sur reseaux sociaux** |
 
-Le CRON `process-seo-sync-queue` (toutes les 15 min) soumettra automatiquement l'URL a Bing et Yandex via IndexNow. Google ne supporte pas IndexNow mais sera notifie via le ping sitemap quotidien.
+### Mecanismes viraux integres
 
-### 2. Meta tags dynamiques et mots-cles auto-generes (Frontend)
+1. **Etape 4** : L'utilisateur invite ses proches directement pendant l'onboarding. Chaque invitation envoie un lien avec le code de parrainage.
+2. **Etape 5** : L'utilisateur voit sa page anniversaire virale deja creee et peut la partager immediatement sur WhatsApp, Facebook, etc.
+3. **Gamification** : Barre de progression "Profil complete a X%" qui motive la completion.
+4. **Recompense** : Badge "Pionnier" attribue a la fin de l'onboarding complet.
 
-Dans `src/pages/BirthdayPage.tsx`, une fois les donnees chargees :
+## Implementation technique
 
-- **`document.title`** : "Anniversaire de Sarah - 30 ans | JOIE DE VIVRE"
-- **Meta description** : "Celebrez l'anniversaire de Sarah ! Ecrivez-lui un message, partagez vos photos et participez au cadeau collectif."
-- **Meta keywords** (auto-generes) : `anniversaire, Sarah, 30 ans, cadeau collectif, messages, album souvenir, JOIE DE VIVRE, celebration, Abidjan`
-- **Open Graph** : og:title, og:description, og:image (cover ou avatar), og:url, og:type=website
-- **Twitter Card** : summary_large_image
+### 1. Nouveau composant `OnboardingExperience.tsx`
 
-Creation d'un hook `useBirthdayPageSEO.ts` qui :
-- Recoit `firstName`, `age`, `slug`, `coverImage`, `messagesCount`, `photosCount`
-- Genere les mots-cles contextuels (prenom, age, occasion, ville si disponible)
-- Injecte les meta tags dans le `<head>` via `document.createElement`
-- Nettoie au unmount
+Experience plein ecran (pas une modale) avec :
+- Navigation par swipe horizontal (mobile) ou fleches
+- Animations Framer Motion entre chaque etape
+- Particules flottantes en fond (coeurs, etoiles, cadeaux)
+- Barre de progression en haut avec etapes numerotees
 
-### 3. Schema JSON-LD (Donnees structurees)
+### 2. Etape "Mon anniversaire" — Saisie interactive
 
-Utiliser le hook existant `useSchemaInjector` pour injecter un schema `Event` :
+- Si le profil a deja une date de naissance, pre-remplir et montrer le compte a rebours
+- Sinon, picker de date anime avec preview du compte a rebours en temps reel
+- Sauvegarde dans `profiles.birthday` via Supabase
 
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "Event",
-  "name": "Anniversaire de Sarah - 30 ans",
-  "description": "Page de celebration...",
-  "startDate": "2026-03-28",
-  "url": "https://joiedevivre-africa.com/birthday/sarah-2026",
-  "organizer": { "@type": "Organization", "name": "JOIE DE VIVRE" },
-  "image": "cover_url_or_avatar"
-}
-```
+### 3. Etape "Mon premier voeu" — Categories illustrees
+
+- Grille de 6-8 categories avec icones animees (Lucide)
+- Selection multiple possible
+- Sauvegarde dans `profiles` ou table de preferences (si existante)
+- Sert a personnaliser les suggestions de cadeaux futures
+
+### 4. Etape "Mon cercle" — Invitation virale
+
+- Reutilise la logique de `useDeviceContacts` et `useInvitations` existants
+- 3 methodes : import contacts, saisie manuelle, partage lien
+- Chaque ami ajoute = animation de celebration + compteur "+1"
+- Bouton "Partager sur WhatsApp" avec message pre-rempli et lien de parrainage
+
+### 5. Etape "Ma page virale" — Preview et partage
+
+- Genere automatiquement le slug `prenom-annee` si pas deja fait
+- Affiche un apercu miniature de la page anniversaire
+- Boutons de partage multi-canal (WhatsApp, Facebook, Telegram, copier le lien)
+- CTA final "Decouvrir mon espace" qui redirige vers le dashboard
+
+### 6. Hook `useOnboarding.ts` — Mise a jour
+
+- Passer de 3 a 5 etapes
+- Sauvegarder les donnees collectees (birthday, preferences) a chaque etape
+- Creer la page anniversaire virale a l'etape 5 si elle n'existe pas
+
+### 7. Integration dans `Dashboard.tsx`
+
+- Remplacer `<OnboardingModal>` par `<OnboardingExperience>`
+- L'experience plein ecran se superpose au dashboard (z-50)
+- Transition fluide vers le dashboard a la fin
 
 ## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/birthday-wishes/index.ts` | Ajouter insert dans `seo_sync_queue` apres creation page |
-| `src/hooks/useBirthdayPageSEO.ts` | Nouveau — meta tags + keywords + OG dynamiques |
-| `src/pages/BirthdayPage.tsx` | Appeler `useBirthdayPageSEO` + `useSchemaInjector` |
+| `src/components/OnboardingExperience.tsx` | Nouveau — experience plein ecran 5 etapes |
+| `src/components/OnboardingModal.tsx` | Conserve comme fallback mais plus utilise |
+| `src/hooks/useOnboarding.ts` | Mise a jour pour 5 etapes + sauvegarde donnees |
+| `src/pages/Dashboard.tsx` | Remplacer OnboardingModal par OnboardingExperience |
+
+## Boucle virale
+
+```text
+Nouvel utilisateur → Onboarding immersif
+  → Etape 4 : Invite 3 amis via WhatsApp
+    → Amis recoivent le lien → Telechargent/s'inscrivent
+  → Etape 5 : Partage sa page anniversaire
+    → Amis voient la page → Creent un compte pour ecrire un message
+      → Decouvrent JDV → Creent leur propre page → Cycle continue
+```
 
