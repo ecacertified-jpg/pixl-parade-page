@@ -223,16 +223,34 @@ export const OnboardingExperience = ({
         <Progress value={progressValue} className="h-2" indicatorClassName="bg-gradient-to-r from-primary to-accent" />
 
         {/* Step dots */}
-        <div className="flex justify-center gap-2 mt-3">
-          {[...Array(TOTAL_STEPS)].map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                'h-2 rounded-full transition-all duration-300',
-                i === currentStep ? 'w-8 bg-primary' : i < currentStep ? 'w-2 bg-green-500' : 'w-2 bg-muted'
-              )}
-            />
-          ))}
+        <div className="flex flex-col items-center mt-3">
+          <div className="flex justify-center gap-2">
+            {[...Array(TOTAL_STEPS)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => i <= currentStep + 1 && onSetStep(i)}
+                disabled={i > currentStep + 1}
+                aria-label={`Étape ${i + 1}`}
+                className={cn(
+                  'h-2 rounded-full transition-all duration-300',
+                  i === currentStep ? 'w-8 bg-primary' : 
+                  i < currentStep ? 'w-2 bg-success cursor-pointer hover:scale-150' : 
+                  i === currentStep + 1 ? 'w-2 bg-muted cursor-pointer hover:bg-primary/40' :
+                  'w-2 bg-muted opacity-50 cursor-not-allowed'
+                )}
+              />
+            ))}
+          </div>
+          <div className="flex justify-center gap-2 mt-1">
+            {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'].map((label, i) => (
+              <span key={i} className={cn(
+                'text-[9px] font-nunito transition-colors min-w-[3rem] text-center',
+                i === currentStep ? 'text-primary font-medium' : 'text-muted-foreground/50'
+              )}>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
