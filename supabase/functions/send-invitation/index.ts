@@ -94,8 +94,8 @@ const handler = async (req: Request): Promise<Response> => {
       .from("invitations")
       .insert({
         inviter_id: user.id,
-        invitee_email,
-        invitee_phone,
+        invitee_email: invitee_email || null,
+        invitee_phone: invitee_phone || null,
         invitation_token: invitationToken,
         message,
       })
