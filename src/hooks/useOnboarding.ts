@@ -36,6 +36,7 @@ const getSavedStep = (userId: string): number => {
 
 export const useOnboarding = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [manuallyCompleted, setManuallyCompleted] = useState(false);
   const [currentStep, setCurrentStepState] = useState(() =>
     user ? getSavedStep(user.id) : 0
