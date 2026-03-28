@@ -6,10 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
-  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight
+  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
