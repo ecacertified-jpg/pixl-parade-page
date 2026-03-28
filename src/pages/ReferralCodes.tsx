@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getAppBaseUrl } from '@/utils/appUrl';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +95,7 @@ export default function ReferralCodes() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Votre lien: {window.location.origin}/auth?ref={primaryCode.code}
+                Votre lien: {getAppBaseUrl()}/auth?ref={primaryCode.code}
               </p>
             </CardContent>
           </Card>
