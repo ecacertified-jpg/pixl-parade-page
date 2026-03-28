@@ -489,6 +489,22 @@ serve(async (req) => {
 
           if (!pageError || pageError.code === '23505') {
             console.log(`🎂 Birthday page created: /birthday/${pageSlug}`);
+            
+            // Submit to SEO sync queue for IndexNow indexing
+            const pageTitle = age ? `${age} ans de ${user.first_name || 'Ami(e)'}` : `Anniversaire de ${user.first_name || 'Ami(e)'}`;
+            try {
+              await supabase.from('seo_sync_queue').insert({
+                entity_type: 'page',
+                entity_id: pageSlug,
+                action: 'create',
+                url: `https://joiedevivre-africa.com/birthday/${pageSlug}`,
+                priority: 'high',
+                metadata: { title: pageTitle, type: 'birthday_page' }
+              });
+              console.log(`🔍 SEO: Birthday page queued for indexing: /birthday/${pageSlug}`);
+            } catch (seoErr) {
+              console.warn('⚠️ SEO queue insert failed (non-blocking):', seoErr);
+            }
           } else {
             console.warn(`⚠️ Error creating birthday page:`, pageError);
           }

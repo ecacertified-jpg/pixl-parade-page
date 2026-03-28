@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
+import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
+import { useSchemaInjector } from "@/components/schema";
 
 interface BirthdayPageData {
   id: string;
@@ -77,6 +79,54 @@ const BirthdayPage = () => {
 
   // Get profile info for the birthday person
   const [birthdayPerson, setBirthdayPerson] = useState<{ first_name: string; avatar_url: string | null; birthday: string | null }>({ first_name: '', avatar_url: null, birthday: null });
+
+  // Compute age for SEO
+  const age = useMemo(() => {
+    if (!birthdayPerson.birthday || !page) return null;
+    const bDate = new Date(birthdayPerson.birthday);
+    return page.celebration_year - bDate.getFullYear();
+  }, [birthdayPerson.birthday, page]);
+
+  const firstName = birthdayPerson.first_name || 'Ami(e)';
+
+  // SEO: meta tags, keywords, Open Graph
+  useBirthdayPageSEO({
+    firstName,
+    age,
+    slug: slug || '',
+    coverImage: page?.cover_image_url || null,
+    messagesCount: messages.length,
+    photosCount: albumItems.filter(i => i.media_type === 'image').length,
+    celebrationYear: page?.celebration_year || new Date().getFullYear(),
+  });
+
+  // SEO: JSON-LD Event schema
+  const eventSchema = useMemo(() => {
+    if (!page || !firstName) return null;
+    const ageText = age ? ` - ${age} ans` : '';
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      name: `Anniversaire de ${firstName}${ageText}`,
+      description: `Page de célébration pour l'anniversaire de ${firstName}. Écrivez un message, partagez des souvenirs et participez au cadeau collectif.`,
+      startDate: `${page.celebration_year}-01-01`,
+      url: `https://joiedevivre-africa.com/birthday/${slug}`,
+      image: page.cover_image_url || 'https://joiedevivre-africa.com/og-image.png',
+      eventStatus: 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+      organizer: {
+        '@type': 'Organization',
+        name: 'JOIE DE VIVRE',
+        url: 'https://joiedevivre-africa.com',
+      },
+      location: {
+        '@type': 'VirtualLocation',
+        url: `https://joiedevivre-africa.com/birthday/${slug}`,
+      },
+    };
+  }, [page, firstName, age, slug]);
+
+  useSchemaInjector('birthday-page', eventSchema);
 
   useEffect(() => {
     if (slug) loadPage();
@@ -202,12 +252,6 @@ const BirthdayPage = () => {
   };
 
 
-  // Calculate age
-  const getAge = () => {
-    if (!birthdayPerson.birthday) return null;
-    const bday = new Date(birthdayPerson.birthday);
-    return page ? page.celebration_year - bday.getFullYear() : null;
-  };
 
   if (loading) {
     return (
@@ -228,8 +272,6 @@ const BirthdayPage = () => {
     );
   }
 
-  const age = getAge();
-  const firstName = birthdayPerson.first_name || 'Ami(e)';
   const pageUrl = `${window.location.origin}/birthday/${slug}`;
 
   return (
