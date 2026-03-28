@@ -1191,6 +1191,26 @@ const Auth = () => {
             <Store className="h-4 w-4 mr-2" />
             Espace Business
           </Button>
+
+          {/* Teaser section */}
+          {!localStorage.getItem('jdv_discovery_seen') && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-4 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20 cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => setShowDiscovery(true)}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎂</span>
+                <div className="text-left flex-1">
+                  <p className="text-sm font-semibold text-foreground">Découvrez JDV en 30 secondes</p>
+                  <p className="text-xs text-muted-foreground">Voyez comment vos proches peuvent célébrer votre anniversaire</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-primary" />
+              </div>
+            </motion.div>
+          )}
         </CardHeader>
         <CardContent>
           {/* Étape 1: Sélection de méthode OTP (pour pays avec fallback WhatsApp) */}
@@ -1733,6 +1753,21 @@ const Auth = () => {
         onContinueAnyway={handleDuplicateContinueAnyway}
       />
       {/* SEO & Schema.org for registration page */}
+      {/* Pre-Auth Discovery Experience */}
+      <AnimatePresence>
+        {showDiscovery && (
+          <Suspense fallback={null}>
+            <PreAuthDiscovery
+              onClose={() => setShowDiscovery(false)}
+              onSignUp={() => {
+                setShowDiscovery(false);
+                setAuthMode('signup');
+              }}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
       <SEOHead
         title="Connexion & Inscription | Créer Compte Gratuit"
         description="Connectez-vous ou créez un compte gratuit pour créer des cagnottes collectives et offrir des cadeaux en groupe. Paiement Mobile Money."
