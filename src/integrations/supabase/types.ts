@@ -4234,7 +4234,7 @@ export type Database = {
           id: string
           invitation_token: string
           invited_at: string
-          invitee_email: string
+          invitee_email: string | null
           invitee_phone: string | null
           inviter_id: string
           message: string | null
@@ -4246,7 +4246,7 @@ export type Database = {
           id?: string
           invitation_token: string
           invited_at?: string
-          invitee_email: string
+          invitee_email?: string | null
           invitee_phone?: string | null
           inviter_id: string
           message?: string | null
@@ -4258,7 +4258,7 @@ export type Database = {
           id?: string
           invitation_token?: string
           invited_at?: string
-          invitee_email?: string
+          invitee_email?: string | null
           invitee_phone?: string | null
           inviter_id?: string
           message?: string | null
