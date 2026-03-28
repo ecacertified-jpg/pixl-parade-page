@@ -1,62 +1,47 @@
 
 
-# Plan : Corriger la page anniversaire vide et le slug manquant
+# Plan : Connecter l'invitation onboarding au cercle d'amis
 
-## Problemes identifies
+## Problème
 
-1. **Slug vide** : L'etape 5 affiche "Anniversaire de vous" et le lien `/birthday/` sans slug. Le `useEffect` de creation (ligne 218) depend de `firstName`, mais celui-ci peut ne pas etre charge quand l'utilisateur atteint l'etape 5.
+Quand un invité clique sur le lien d'invitation (`/auth?invited=true&ref=INVITATION_ID`) et s'inscrit, rien ne se passe côté inviteur : aucun contact n'est créé dans sa table `contacts`, aucune relation dans `contact_relationships`. L'invitation reste en statut "pending" indéfiniment.
 
-2. **Table vide** : Aucune page n'existe dans `birthday_pages` — l'insert echoue silencieusement car `firstName` est vide (le slug genere serait `-2026`).
-
-3. **`window.location.origin` restant** : `BirthdayPage.tsx` (ligne 275) et `BirthdayCelebrationModal.tsx` (ligne 429) utilisent encore `window.location.origin` au lieu de `getAppBaseUrl()`.
+Le flux "Ajouter un ami" (modal) fonctionne car il utilise un formulaire dédié (`save-friend-form`) qui insère directement dans `contacts`.
 
 ## Solution
 
-### 1. Rendre la creation de page plus resiliente (`OnboardingExperience.tsx`)
+Créer une Edge Function `accept-invitation` qui est appelée après l'inscription de l'invité pour :
+1. Valider le token d'invitation
+2. Marquer l'invitation comme "accepted"
+3. Créer un contact bidirectionnel (inviteur ↔ invité)
+4. Déclencher la liaison automatique via `contact_relationships`
 
-- Retirer la condition `!firstName` du `useEffect` — utiliser un fallback si le prenom est vide (ex: `user-${userId.slice(0,8)}-${year}`)
-- Ajouter `firstName` comme dependance pour mettre a jour le titre si le prenom arrive apres la creation
-- Empecher le partage tant que le slug n'est pas genere (desactiver les boutons)
+### 1. Edge Function `accept-invitation`
 
-```tsx
-useEffect(() => {
-  if (currentStep !== 4 || !user) return;
-  const createOrFetchPage = async () => {
-    const currentYear = new Date().getFullYear();
-    const { data: existing } = await supabase
-      .from('birthday_pages')
-      .select('slug')
-      .eq('user_id', user.id)
-      .eq('celebration_year', currentYear)
-      .maybeSingle();
-    if (existing) { setBirthdayPageSlug(existing.slug); return; }
+Nouveau fichier `supabase/functions/accept-invitation/index.ts` :
+- Reçoit `invitation_id` du nouvel utilisateur authentifié
+- Vérifie que l'invitation existe et est en statut "pending"
+- Met à jour l'invitation : `status = 'accepted'`, `accepted_at = now()`
+- Récupère le profil de l'invité (nom, téléphone, anniversaire)
+- Insère un contact dans `contacts` pour l'inviteur avec les infos de l'invité
+- Insère un contact dans `contacts` pour l'invité avec les infos de l'inviteur
+- Les triggers existants (`trg_auto_link_contact`) créeront automatiquement la relation dans `contact_relationships`
 
-    const nameForSlug = firstName 
-      ? firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')
-      : `user-${user.id.slice(0, 8)}`;
-    const slug = `${nameForSlug}-${currentYear}`;
-    // ... reste du code insert identique
-  };
-  createOrFetchPage();
-}, [currentStep, firstName, user]);
-```
+### 2. Appeler `accept-invitation` après inscription
 
-### 2. Corriger `window.location.origin` dans 2 fichiers
+Dans la page `/auth` (fichier `src/pages/Auth.tsx` ou composant d'authentification) :
+- Détecter les paramètres `invited=true&ref=INVITATION_ID` dans l'URL
+- Après inscription réussie, appeler `supabase.functions.invoke('accept-invitation', { body: { invitation_id } })`
+- Afficher un toast de succès ("Vous êtes maintenant connecté avec [inviteur] !")
 
-| Fichier | Ligne | Correction |
-|---------|-------|------------|
-| `src/pages/BirthdayPage.tsx` | 275 | `getAppBaseUrl()` |
-| `src/components/BirthdayCelebrationModal.tsx` | 429 | `getAppBaseUrl()` |
+### 3. Migration SQL
 
-### 3. Desactiver les boutons de partage si slug vide
+Aucune nouvelle table nécessaire. Vérifier que la politique RLS sur `contacts` permet l'insertion par l'Edge Function (via service role key, donc pas de souci RLS).
 
-Dans l'etape 5, conditionner les boutons "Partager sur WhatsApp" et "Copier le lien" a `birthdayPageSlug` non vide.
-
-## Fichiers concernes
+## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Resilience creation page, boutons conditionnels |
-| `src/pages/BirthdayPage.tsx` | `getAppBaseUrl()` |
-| `src/components/BirthdayCelebrationModal.tsx` | `getAppBaseUrl()` |
+| `supabase/functions/accept-invitation/index.ts` | Créer — logique d'acceptation |
+| `src/pages/Auth.tsx` ou composant auth | Appeler accept-invitation après inscription |
 
