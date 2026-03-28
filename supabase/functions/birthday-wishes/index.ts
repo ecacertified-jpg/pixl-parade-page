@@ -442,6 +442,60 @@ serve(async (req) => {
           console.error(`Error recording celebration for user ${user.id}:`, celebrationError);
         }
 
+        // --- Auto-generate birthday page ---
+        const firstName4Slug = (user.first_name || 'ami').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+        let pageSlug = `${firstName4Slug}-${currentYear}`;
+        
+        // Check if slug exists
+        const { data: existingPage } = await supabase
+          .from('birthday_pages')
+          .select('id')
+          .eq('slug', pageSlug)
+          .single();
+
+        if (!existingPage) {
+          // Find active fund for this user
+          const { data: activeFund } = await supabase
+            .from('collective_funds')
+            .select('id')
+            .eq('creator_id', user.user_id)
+            .eq('status', 'active')
+            .eq('occasion', 'birthday')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          const { error: pageError } = await supabase
+            .from('birthday_pages')
+            .insert({
+              user_id: user.user_id,
+              slug: pageSlug,
+              celebration_year: currentYear,
+              title: age ? `${age} ans de ${user.first_name || 'Ami(e)'}` : `Anniversaire de ${user.first_name || 'Ami(e)'}`,
+              fund_id: activeFund?.id || null,
+            });
+
+          if (pageError && pageError.code === '23505') {
+            // Slug collision — add random suffix
+            pageSlug = `${firstName4Slug}-${currentYear}-${Math.random().toString(36).slice(2, 6)}`;
+            await supabase.from('birthday_pages').insert({
+              user_id: user.user_id,
+              slug: pageSlug,
+              celebration_year: currentYear,
+              title: age ? `${age} ans de ${user.first_name || 'Ami(e)'}` : `Anniversaire de ${user.first_name || 'Ami(e)'}`,
+              fund_id: activeFund?.id || null,
+            });
+          }
+
+          if (!pageError || pageError.code === '23505') {
+            console.log(`🎂 Birthday page created: /birthday/${pageSlug}`);
+          } else {
+            console.warn(`⚠️ Error creating birthday page:`, pageError);
+          }
+        } else {
+          console.log(`🎂 Birthday page already exists for ${firstName4Slug}-${currentYear}`);
+        }
+
         // Get user's celebration count and update profile
         const { count: celebrationsCount } = await supabase
           .from('birthday_celebrations')

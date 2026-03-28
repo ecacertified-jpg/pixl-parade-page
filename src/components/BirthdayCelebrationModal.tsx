@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, Send, Play, Heart, Sparkles, PartyPopper, Volume2, VolumeX } from "lucide-react";
+import { X, Send, Play, Heart, Sparkles, PartyPopper, Volume2, VolumeX, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { BirthdayPageShareButton } from "./BirthdayPageShareButton";
 
 interface BirthdayCelebrationModalProps {
   open: boolean;
@@ -42,6 +43,8 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const confettiTriggered = useRef(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
 
   const age = notification.metadata?.age;
   const firstName = notification.title?.match(/Joyeux (?:\d+ ans )?(.+) !/)?.[1] || 'toi';
@@ -89,7 +92,7 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
     }
   }, [open, step, launchConfetti]);
 
-  // Load wish messages
+  // Load wish messages + birthday page slug
   useEffect(() => {
     if (!open || !user) return;
     const currentYear = new Date().getFullYear();
@@ -102,6 +105,18 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data) setMessages(data);
+      });
+
+    // Look up birthday page slug
+    supabase
+      .from('birthday_pages')
+      .select('slug')
+      .eq('user_id', user.id)
+      .eq('celebration_year', currentYear)
+      .eq('is_active', true)
+      .single()
+      .then(({ data }) => {
+        if (data) setBirthdayPageSlug(data.slug);
       });
   }, [open, user]);
 
@@ -382,6 +397,17 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
                     {sendingThanks ? 'Envoi en cours...' : 'Envoyer à tous'}
                   </Button>
 
+                  {birthdayPageSlug && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary/30 text-primary"
+                      onClick={() => setShowShareMenu(true)}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Partager ma page d'anniversaire
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     className="w-full text-muted-foreground"
@@ -394,6 +420,16 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
             )}
           </AnimatePresence>
         </div>
+
+        {birthdayPageSlug && (
+          <BirthdayPageShareButton
+            open={showShareMenu}
+            onOpenChange={setShowShareMenu}
+            firstName={firstName}
+            pageUrl={`${window.location.origin}/birthday/${birthdayPageSlug}`}
+            age={age}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
