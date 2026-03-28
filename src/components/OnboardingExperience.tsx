@@ -132,15 +132,33 @@ export const OnboardingExperience = ({
 
   // Invite friend by phone
   const handleInvite = async () => {
-    if (!invitePhone.trim() || !user) return;
+    const phone = invitePhone.trim();
+    if (!phone || !user) return;
+
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 8) {
+      toast.error('Numéro invalide (min. 8 chiffres)');
+      return;
+    }
+
     try {
-      await supabase.functions.invoke('send-invitation', {
-        body: { invitee_phone: invitePhone, message: `${firstName || 'Un ami'} t'invite à rejoindre Joie de Vivre !` },
+      const { data, error } = await supabase.functions.invoke('send-invitation', {
+        body: {
+          invitee_phone: phone,
+          message: `${firstName || 'Un ami'} t'invite à rejoindre Joie de Vivre !`,
+        },
       });
+
+      if (error) {
+        console.error('Invitation error:', error);
+        toast.error("L'invitation n'a pas pu être envoyée");
+        return;
+      }
+
       setInvitedCount(c => c + 1);
       setInvitePhone('');
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#ec4899'] });
-      toast.success('Invitation envoyée ! 🎉');
+      toast.success(`Invitation envoyée au ${phone} ! 🎉`);
     } catch {
       toast.error("Erreur lors de l'envoi");
     }
