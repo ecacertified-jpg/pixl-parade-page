@@ -96,6 +96,7 @@ const VendorSectorPage = lazy(() => import("./pages/VendorSectorPage"));
 const SeasonalPage = lazy(() => import("./pages/SeasonalPage"));
 const FillFriendForm = lazy(() => import("./pages/FillFriendForm"));
 const GiftReceived = lazy(() => import("./pages/GiftReceived"));
+const BirthdayPage = lazy(() => import("./pages/BirthdayPage"));
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/Admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/Admin/UserManagement"));
@@ -217,6 +218,7 @@ const App = () => (
             <Route path="/go/funds" element={<Navigate to="/cagnottes?utm_source=deep_link" replace />} />
 
             <Route path="/gift-received/:orderId" element={<L><GiftReceived /></L>} />
+            <Route path="/birthday/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/join/:code" element={<L><JoinAdmin /></L>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<L><ResetPassword /></L>} />
