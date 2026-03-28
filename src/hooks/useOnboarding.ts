@@ -1,24 +1,29 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
+  // Fast cache check
   const localFlag = localStorage.getItem(`onboarding_completed_${userId}`);
   if (localFlag === 'true') return false;
 
+  // URL override
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('onboarding') === 'true') return true;
 
+  // Source of truth: database flag
   const { data: profile } = await supabase
     .from('profiles')
-    .select('created_at')
+    .select('onboarding_completed')
     .eq('user_id', userId)
     .single();
 
-  if (profile) {
-    const diffMinutes = (Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60);
-    if (diffMinutes < 5) return true;
+  if (profile?.onboarding_completed === false) return true;
+
+  // Cache for next visit
+  if (profile?.onboarding_completed === true) {
+    localStorage.setItem(`onboarding_completed_${userId}`, 'true');
   }
 
   return false;
