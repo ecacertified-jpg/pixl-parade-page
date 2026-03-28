@@ -53,8 +53,19 @@ const handler = async (req: Request): Promise<Response> => {
     const { invitee_email, invitee_phone, message }: InvitationRequest =
       await req.json();
 
-    // Validate email
-    if (!invitee_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitee_email)) {
+    // Validate: at least one contact method required
+    if (!invitee_email && !invitee_phone) {
+      return new Response(
+        JSON.stringify({ error: "Email ou téléphone requis" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate email format if provided
+    if (invitee_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitee_email)) {
       return new Response(
         JSON.stringify({ error: "Invalid email address" }),
         {
@@ -83,8 +94,8 @@ const handler = async (req: Request): Promise<Response> => {
       .from("invitations")
       .insert({
         inviter_id: user.id,
-        invitee_email,
-        invitee_phone,
+        invitee_email: invitee_email || null,
+        invitee_phone: invitee_phone || null,
         invitation_token: invitationToken,
         message,
       })
@@ -108,124 +119,127 @@ const handler = async (req: Request): Promise<Response> => {
       throw invitationError;
     }
 
-    // Create invitation link
-    const invitationLink = `https://vaimfeurvzokepqqqrsl.supabase.co/auth?token=${invitationToken}&redirect_to=${encodeURIComponent('https://lovable.dev/projects/your-project')}`;
+    // Send email only if invitee_email is provided
+    if (invitee_email) {
+      // Create invitation link
+      const invitationLink = `https://vaimfeurvzokepqqqrsl.supabase.co/auth?token=${invitationToken}&redirect_to=${encodeURIComponent('https://lovable.dev/projects/your-project')}`;
 
-    // Send invitation email
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-              line-height: 1.6;
-              color: #333;
-              max-width: 600px;
-              margin: 0 auto;
-              padding: 20px;
-            }
-            .header {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white;
-              padding: 30px;
-              text-align: center;
-              border-radius: 10px 10px 0 0;
-            }
-            .content {
-              background: white;
-              padding: 30px;
-              border: 1px solid #e0e0e0;
-              border-top: none;
-            }
-            .button {
-              display: inline-block;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              color: white !important;
-              padding: 15px 30px;
-              text-decoration: none;
-              border-radius: 8px;
-              margin: 20px 0;
-              font-weight: bold;
-            }
-            .message-box {
-              background: #f8f9fa;
-              border-left: 4px solid #667eea;
-              padding: 15px;
-              margin: 20px 0;
-              border-radius: 4px;
-            }
-            .footer {
-              text-align: center;
-              color: #666;
-              font-size: 12px;
-              margin-top: 30px;
-              padding-top: 20px;
-              border-top: 1px solid #e0e0e0;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>🎉 Invitation à Joie de Vivre</h1>
-          </div>
-          <div class="content">
-            <p>Bonjour !</p>
-            <p><strong>${inviterName}</strong> vous invite à rejoindre <strong>Joie de Vivre</strong>, l'application qui célèbre les moments heureux de la vie !</p>
-            
-            ${message ? `
-              <div class="message-box">
-                <p><strong>Message personnel :</strong></p>
-                <p><em>${message}</em></p>
-              </div>
-            ` : ''}
-            
-            <p><strong>Joie de Vivre</strong> vous permet de :</p>
-            <ul>
-              <li>🎂 Célébrer les anniversaires de vos proches</li>
-              <li>🎓 Marquer les réussites académiques</li>
-              <li>💼 Fêter les promotions professionnelles</li>
-              <li>💑 Commémorer les anniversaires de mariage</li>
-              <li>🎁 Participer à des cagnottes collectives</li>
-              <li>❤️ Exprimer votre gratitude envers vos proches</li>
-            </ul>
-            
-            <div style="text-align: center;">
-              <a href="${invitationLink}" class="button">
-                Accepter l'invitation
-              </a>
+      // Send invitation email
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+                border-radius: 10px 10px 0 0;
+              }
+              .content {
+                background: white;
+                padding: 30px;
+                border: 1px solid #e0e0e0;
+                border-top: none;
+              }
+              .button {
+                display: inline-block;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white !important;
+                padding: 15px 30px;
+                text-decoration: none;
+                border-radius: 8px;
+                margin: 20px 0;
+                font-weight: bold;
+              }
+              .message-box {
+                background: #f8f9fa;
+                border-left: 4px solid #667eea;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 4px;
+              }
+              .footer {
+                text-align: center;
+                color: #666;
+                font-size: 12px;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e0e0e0;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>🎉 Invitation à Joie de Vivre</h1>
             </div>
-            
-            <p style="margin-top: 30px; font-size: 14px; color: #666;">
-              Ce lien d'invitation est valable pendant 30 jours.
-            </p>
-          </div>
-          <div class="footer">
-            <p>Joie de Vivre - Célébrez chaque moment de bonheur</p>
-            <p>Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email.</p>
-          </div>
-        </body>
-      </html>
-    `;
+            <div class="content">
+              <p>Bonjour !</p>
+              <p><strong>${inviterName}</strong> vous invite à rejoindre <strong>Joie de Vivre</strong>, l'application qui célèbre les moments heureux de la vie !</p>
+              
+              ${message ? `
+                <div class="message-box">
+                  <p><strong>Message personnel :</strong></p>
+                  <p><em>${message}</em></p>
+                </div>
+              ` : ''}
+              
+              <p><strong>Joie de Vivre</strong> vous permet de :</p>
+              <ul>
+                <li>🎂 Célébrer les anniversaires de vos proches</li>
+                <li>🎓 Marquer les réussites académiques</li>
+                <li>💼 Fêter les promotions professionnelles</li>
+                <li>💑 Commémorer les anniversaires de mariage</li>
+                <li>🎁 Participer à des cagnottes collectives</li>
+                <li>❤️ Exprimer votre gratitude envers vos proches</li>
+              </ul>
+              
+              <div style="text-align: center;">
+                <a href="${invitationLink}" class="button">
+                  Accepter l'invitation
+                </a>
+              </div>
+              
+              <p style="margin-top: 30px; font-size: 14px; color: #666;">
+                Ce lien d'invitation est valable pendant 30 jours.
+              </p>
+            </div>
+            <div class="footer">
+              <p>Joie de Vivre - Célébrez chaque moment de bonheur</p>
+              <p>Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email.</p>
+            </div>
+          </body>
+        </html>
+      `;
 
-    const { error: emailError } = await resend.emails.send({
-      from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
-      to: [invitee_email],
-      subject: `${inviterName} vous invite à rejoindre Joie de Vivre 🎉`,
-      html: emailHtml,
-    });
+      const { error: emailError } = await resend.emails.send({
+        from: "JOIE DE VIVRE <noreply@joiedevivre-africa.com>",
+        to: [invitee_email],
+        subject: `${inviterName} vous invite à rejoindre Joie de Vivre 🎉`,
+        html: emailHtml,
+      });
 
-    if (emailError) {
-      console.error("Error sending email:", emailError);
-      
-      // Delete the invitation if email fails
-      await supabaseClient
-        .from("invitations")
-        .delete()
-        .eq("id", invitation.id);
-      
-      throw emailError;
+      if (emailError) {
+        console.error("Error sending email:", emailError);
+        
+        // Delete the invitation if email fails
+        await supabaseClient
+          .from("invitations")
+          .delete()
+          .eq("id", invitation.id);
+        
+        throw emailError;
+      }
     }
 
     console.log("Invitation sent successfully:", {
