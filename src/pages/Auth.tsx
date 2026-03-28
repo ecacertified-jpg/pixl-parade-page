@@ -14,7 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock, Sparkles } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock, Sparkles, ChevronRight } from 'lucide-react';
 import { generateSecurePassword } from '@/utils/generatePassword';
 import type { LucideIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
