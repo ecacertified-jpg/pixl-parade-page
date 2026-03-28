@@ -1,61 +1,70 @@
 
 
-# Plan : Ajouter la navigation cliquable entre les etapes de l'onboarding
+# Plan : Remplacer les dots par des fleches de navigation
 
 ## Probleme
 
-Les dots indicateurs d'etape (ligne 226-236 de `OnboardingExperience.tsx`) sont de simples `div` non cliquables. L'utilisateur ne peut naviguer qu'avec "Retour" et "Continuer" en bas, sans pouvoir sauter directement a une etape.
+Les dots indicateurs d'etape sont peu visibles et peu intuitifs. L'utilisateur ne les identifie pas comme elements de navigation.
 
 ## Solution
 
-Transformer les dots en `button` cliquables qui appellent `onSetStep(index)`, et ajouter des labels d'etape visibles pour guider l'utilisateur.
+Remplacer la zone dots + labels (lignes 226-254) par une barre de navigation compacte avec :
+- Une fleche gauche (ChevronLeft) pour reculer
+- Le label de l'etape courante + compteur (ex: "Anniversaire · 2/5")
+- Une fleche droite (ChevronRight) pour avancer
+
+Les fleches respectent la meme logique : on peut reculer si `currentStep > 0`, avancer si `currentStep < TOTAL_STEPS - 1`.
 
 ## Modification dans `src/components/OnboardingExperience.tsx`
 
-### 1. Dots cliquables (lignes 226-236)
-
-Remplacer les `div` par des `button` avec `onClick={() => onSetStep(i)}` et un `aria-label`. Permettre de naviguer vers n'importe quelle etape deja visitee ou la suivante (pas sauter 3 etapes d'un coup).
+### Remplacement lignes 226-254
 
 ```tsx
-<div className="flex justify-center gap-2 mt-3">
-  {[...Array(TOTAL_STEPS)].map((_, i) => (
-    <button
-      key={i}
-      onClick={() => i <= currentStep + 1 && onSetStep(i)}
-      disabled={i > currentStep + 1}
-      aria-label={`Etape ${i + 1}`}
-      className={cn(
-        'h-2 rounded-full transition-all duration-300',
-        i === currentStep ? 'w-8 bg-primary' : 
-        i < currentStep ? 'w-2 bg-green-500 cursor-pointer hover:scale-150' : 
-        i === currentStep + 1 ? 'w-2 bg-muted cursor-pointer hover:bg-primary/40' :
-        'w-2 bg-muted opacity-50 cursor-not-allowed'
-      )}
-    />
-  ))}
-</div>
-```
+<div className="flex items-center justify-center gap-4 mt-3">
+  <button
+    onClick={() => currentStep > 0 && onSetStep(currentStep - 1)}
+    disabled={currentStep === 0}
+    aria-label="Étape précédente"
+    className={cn(
+      'p-1.5 rounded-full transition-all duration-200',
+      currentStep > 0
+        ? 'text-primary hover:bg-primary/10 cursor-pointer'
+        : 'text-muted-foreground/30 cursor-not-allowed'
+    )}
+  >
+    <ChevronLeft className="h-5 w-5" />
+  </button>
 
-### 2. Labels d'etapes sous les dots
-
-Ajouter les noms des etapes en petit texte pour que l'utilisateur sache ou il va :
-
-```tsx
-<div className="flex justify-center gap-2 mt-1">
-  {['Accueil', 'Anniversaire', 'Gouts', 'Amis', 'Ma page'].map((label, i) => (
-    <span key={i} className={cn(
-      'text-[9px] font-nunito transition-colors',
-      i === currentStep ? 'text-primary font-medium' : 'text-muted-foreground/50'
-    )}>
-      {label}
+  <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
+    {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'][currentStep]}
+    <span className="text-muted-foreground/50 ml-1.5 text-xs">
+      {currentStep + 1}/{TOTAL_STEPS}
     </span>
-  ))}
+  </span>
+
+  <button
+    onClick={() => currentStep < TOTAL_STEPS - 1 && onSetStep(currentStep + 1)}
+    disabled={currentStep >= TOTAL_STEPS - 1}
+    aria-label="Étape suivante"
+    className={cn(
+      'p-1.5 rounded-full transition-all duration-200',
+      currentStep < TOTAL_STEPS - 1
+        ? 'text-primary hover:bg-primary/10 cursor-pointer'
+        : 'text-muted-foreground/30 cursor-not-allowed'
+    )}
+  >
+    <ChevronRight className="h-5 w-5" />
+  </button>
 </div>
 ```
+
+### Import
+
+Ajouter `ChevronLeft, ChevronRight` aux imports de `lucide-react` (deja partiellement present avec ArrowLeft/ArrowRight).
 
 ## Fichier concerne
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Dots cliquables + labels d'etapes |
+| `src/components/OnboardingExperience.tsx` | Remplacer dots par fleches + label |
 
