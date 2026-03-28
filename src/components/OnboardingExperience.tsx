@@ -142,6 +142,13 @@ export const OnboardingExperience = ({
       return;
     }
 
+    // Vérifier la session avant l'appel
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      toast.error('Session expirée, veuillez vous reconnecter');
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('send-invitation', {
         body: {
@@ -152,18 +159,27 @@ export const OnboardingExperience = ({
 
       if (error) {
         console.error('Invitation error:', error);
-        toast.error("L'invitation n'a pas pu être envoyée");
+        const msg = error.message || "L'invitation n'a pas pu être envoyée";
+        toast.error(msg);
         return;
       }
 
-      const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data?.invitation_id || ''}`;
+      if (!data?.invitation_id) {
+        console.error('No invitation_id in response:', data);
+        const serverError = data?.error || "Erreur inattendue du serveur";
+        toast.error(serverError);
+        return;
+      }
+
+      const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data.invitation_id}`;
       setGeneratedInviteLink(invitationLink);
       setInvitedCount(c => c + 1);
       setInvitePhone('');
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#ec4899'] });
       toast.info('Partagez ce lien avec votre ami !');
-    } catch {
-      toast.error("Erreur lors de l'envoi");
+    } catch (err: any) {
+      console.error('Invitation catch error:', err);
+      toast.error(err?.message || "Erreur lors de l'envoi");
     }
   };
 
