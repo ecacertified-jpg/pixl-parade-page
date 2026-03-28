@@ -1,39 +1,59 @@
 
 
-# Plan : Appliquer le correctif domaine de production aux autres fichiers
+# Plan : Corriger la sélection du mois et de la date dans le calendrier
 
-## Constat
+## Problème
 
-`OnboardingExperience.tsx` a déjà le correctif `import.meta.env.PROD`. Mais d'autres fichiers génèrent aussi des liens d'invitation/parrainage avec `window.location.origin` sans correction :
-
-| Fichier | Lignes | Lien généré |
-|---------|--------|-------------|
-| `InviteFriendsModal.tsx` | 71, 274 | `/auth?invited=true` |
-| `ReferralCodes.tsx` | 34, 97 | `/auth?ref=CODE` |
+Le calendrier utilise `captionLayout="dropdown-buttons"` mais le composant `Calendar` ne définit pas les styles pour les classes de dropdown de `react-day-picker` : `caption_dropdowns`, `dropdown_month`, `dropdown_year`, `dropdown`. Les `<select>` natifs de mois/année ne sont pas correctement stylisés et les clics ne fonctionnent pas car `caption_label` masque les dropdowns.
 
 ## Solution
 
-1. **Créer un utilitaire centralisé** `src/utils/appUrl.ts` :
+Ajouter les classNames manquants dans `src/components/ui/calendar.tsx` :
+
 ```tsx
-export const getAppBaseUrl = () =>
-  import.meta.env.PROD ? 'https://joiedevivre-africa.com' : window.location.origin;
+caption: "flex justify-center pt-1 relative items-center",
+caption_label: "text-sm font-medium hidden",  // masquer le label quand dropdown actif
+caption_dropdowns: "flex gap-2 items-center",
+dropdown_month: "relative",
+dropdown_year: "relative",
+dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring",
+vhidden: "hidden",
 ```
 
-2. **Remplacer `window.location.origin`** par `getAppBaseUrl()` dans :
-   - `InviteFriendsModal.tsx` (lignes 71, 274)
-   - `ReferralCodes.tsx` (lignes 34, 97)
-   - `OnboardingExperience.tsx` (ligne 182-184 — simplifier avec l'utilitaire)
+Problème : `caption_label: "hidden"` masquerait le label même sans dropdowns. Il faut conditionner : si `captionLayout` inclut "dropdown", on masque le label.
 
-## Remarque importante
+Approche retenue : passer `captionLayout` en prop et conditionner `caption_label` :
 
-En preview Lovable, le lien continuera à pointer vers le domaine de preview (comportement choisi). Sur le site publié, il pointera vers `joiedevivre-africa.com`.
+```tsx
+function Calendar({
+  className,
+  classNames,
+  showOutsideDays = true,
+  captionLayout,
+  ...props
+}: CalendarProps) {
+  const isDropdown = captionLayout?.includes('dropdown');
+  
+  return (
+    <DayPicker
+      captionLayout={captionLayout}
+      classNames={{
+        caption_label: cn("text-sm font-medium", isDropdown && "hidden"),
+        caption_dropdowns: "flex gap-2 items-center",
+        dropdown_month: "relative",
+        dropdown_year: "relative",
+        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring",
+        vhidden: "hidden",
+        // ... rest unchanged
+      }}
+    />
+  );
+}
+```
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/utils/appUrl.ts` | Créer — utilitaire centralisé |
-| `src/components/InviteFriendsModal.tsx` | Utiliser `getAppBaseUrl()` |
-| `src/pages/ReferralCodes.tsx` | Utiliser `getAppBaseUrl()` |
-| `src/components/OnboardingExperience.tsx` | Simplifier avec `getAppBaseUrl()` |
+| `src/components/ui/calendar.tsx` | Ajouter les styles dropdown et conditionner `caption_label` |
 
