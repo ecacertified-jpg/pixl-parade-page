@@ -1,21 +1,28 @@
 
 
-# Plan : Corriger l'erreur "Partager l'invitation" sans email
+# Plan : Permettre le partage social sans obligation de remplir le formulaire
 
 ## Probleme
 
-Le formulaire d'invitation rend l'**email optionnel** et le **telephone obligatoire**, mais la Edge Function `send-invitation` **exige un email valide** (ligne 57). Quand l'utilisateur soumet avec seulement un numero de telephone, `invitee_email` est `undefined` et la fonction retourne une erreur 400.
+Le menu de partage (WhatsApp, Facebook, LinkedIn, etc.) n'apparait qu'apres avoir soumis le formulaire avec un numero de telephone obligatoire. L'utilisateur veut pouvoir partager l'invitation sur les reseaux sociaux directement.
 
 ## Solution
 
-Rendre l'email optionnel dans la Edge Function et adapter le flux :
+Ajouter un bouton "Partager sur les reseaux sociaux" visible en permanence sous le formulaire d'invitation (onglet "Invitation"). Ce bouton ouvre directement le menu de partage multi-canal avec un lien d'invitation generique (sans passer par la Edge Function).
 
-### 1. Edge Function `send-invitation/index.ts`
+### Modifications dans `src/components/InviteFriendsModal.tsx`
 
-- **Ligne 57** : Ne valider l'email que s'il est fourni. Si ni email ni phone ne sont presents, retourner une erreur.
-- **Ligne ~80-120** : Ne pas envoyer d'email Resend si `invitee_email` est absent — creer quand meme l'invitation en base avec le phone uniquement.
-- L'insertion dans `invitations` utilise `invitee_email: invitee_email || null`.
+1. **Ajouter une fonction `handleShareSocial`** qui genere le lien d'invitation et le prenom de l'utilisateur, puis affiche le menu de partage -- sans appeler `sendInvitation`.
 
-### 2. Composant `InviteFriendsModal.tsx`
+2. **Ajouter un separateur "ou" et un bouton** sous le bouton "Partager l'invitation" dans le formulaire :
+   - Divider avec texte "ou partagez directement"
+   - Bouton secondaire "Partager sur les reseaux sociaux" qui appelle `handleShareSocial`
 
-- **Ligne 68
+3. **Le lien d'invitation** sera `{origin}/auth?invited=true` (le meme lien generique deja utilise). Le menu de partage existant (WhatsApp, Facebook, LinkedIn, Gmail, SMS, Email, Copier le lien) reste inchange.
+
+4. **Le formulaire telephone reste disponible** pour les invitations tracees en base. Le partage social est une option complementaire rapide.
+
+## Fichier modifie
+
+- `src/components/InviteFriendsModal.tsx` -- ajout bouton partage social direct + fonction `handleShareSocial`
+
