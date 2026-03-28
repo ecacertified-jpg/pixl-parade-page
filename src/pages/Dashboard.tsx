@@ -44,7 +44,7 @@ import { ReciprocityNotificationsSection } from "@/components/ReciprocityNotific
 import { ShopForCollectiveGiftModal } from "@/components/ShopForCollectiveGiftModal";
 import { SearchExistingFundsModal } from "@/components/SearchExistingFundsModal";
 import { FavoriteArticlesSection } from "@/components/FavoriteArticlesSection";
-import { OnboardingModal } from "@/components/OnboardingModal";
+import { OnboardingExperience } from "@/components/OnboardingExperience";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { BirthdayStatsCard } from "@/components/BirthdayStatsCard";
 import { BadgeProgressCard } from "@/components/BadgeProgressCard";
