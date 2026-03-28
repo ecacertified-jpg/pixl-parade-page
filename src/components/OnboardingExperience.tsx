@@ -156,13 +156,29 @@ export const OnboardingExperience = ({
         return;
       }
 
+      const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data?.invitation_id || ''}`;
+      setGeneratedInviteLink(invitationLink);
       setInvitedCount(c => c + 1);
       setInvitePhone('');
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#ec4899'] });
-      toast.success(`Invitation envoyée au ${phone} ! 🎉`);
+      toast.info('Partagez ce lien avec votre ami !');
     } catch {
       toast.error("Erreur lors de l'envoi");
     }
+  };
+
+  const handleCopyInviteLink = () => {
+    if (!generatedInviteLink) return;
+    navigator.clipboard.writeText(generatedInviteLink);
+    toast.success('Lien copié ! 📋');
+  };
+
+  const handleShareInviteLinkWhatsApp = () => {
+    if (!generatedInviteLink) return;
+    const text = encodeURIComponent(
+      `🎉 ${firstName || 'Je'} t'invite à rejoindre Joie de Vivre ! Célèbre les moments importants avec tes proches ✨\n\n${generatedInviteLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   // Share on WhatsApp
