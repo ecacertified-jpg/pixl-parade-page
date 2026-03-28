@@ -98,7 +98,7 @@ const Landing = () => {
               <Button variant="ghost" onClick={() => navigate("/auth?tab=signin")}>
                 Connexion
               </Button>
-              <Button variant="default" onClick={() => navigate("/auth?tab=signup")}>
+              <Button variant="default" onClick={() => navigate("/auth?tab=signup&discovery=true")}>
                 S'inscrire
               </Button>
             </div>
@@ -130,7 +130,7 @@ const Landing = () => {
                 Inscrivez votre date et recevez enfin les cadeaux que vous aimez
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button size="lg" onClick={() => navigate("/auth?tab=signup")} className="text-lg px-8">
+                <Button size="lg" onClick={() => navigate("/auth?tab=signup&discovery=true")} className="text-lg px-8">
                   Créer mon anniversaire
                   <Calendar className="ml-2 h-5 w-5" />
                 </Button>
@@ -287,7 +287,7 @@ const Landing = () => {
             <div>
               <h3 className="font-semibold text-foreground mb-3">Plateforme</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="/auth?tab=signup" className="hover:text-foreground transition-colors">S'inscrire</a></li>
+                <li><a href="/auth?tab=signup&discovery=true" className="hover:text-foreground transition-colors">S'inscrire</a></li>
                 <li><a href="/business-auth" className="hover:text-foreground transition-colors">Espace Vendeur</a></li>
               </ul>
             </div>
