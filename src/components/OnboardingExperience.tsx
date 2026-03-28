@@ -262,7 +262,7 @@ export const OnboardingExperience = ({
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 overflow-y-auto">
+      <div className="relative z-10 flex-1 flex items-start justify-center px-4 pt-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           {/* Step 0: Welcome */}
           {currentStep === 0 && (
