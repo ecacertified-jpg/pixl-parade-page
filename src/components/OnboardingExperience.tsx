@@ -256,7 +256,7 @@ export const OnboardingExperience = ({
                 : 'text-muted-foreground/30 cursor-not-allowed'
             )}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className={cn("h-5 w-5", currentStep < TOTAL_STEPS - 1 && "animate-[bounce-right_1.5s_ease-in-out_infinite]")} />
           </button>
         </div>
       </div>
