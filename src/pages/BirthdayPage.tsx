@@ -279,7 +279,6 @@ const BirthdayPage = () => {
   }
 
   const pageUrl = `${window.location.origin}/birthday/${slug}`;
-  const pageUrl = `${window.location.origin}/birthday/${slug}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/30 via-background to-background">
