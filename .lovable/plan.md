@@ -1,38 +1,35 @@
 
 
-# Plan : Animation pulse sur la fleche "Avant" (ChevronRight)
+# Plan : Corriger le titre masque par la barre de navigation
 
-## Modification dans `src/components/OnboardingExperience.tsx`
+## Probleme
 
-### Ligne 259 — Ajouter une animation de rebond horizontal sur l'icone ChevronRight
+La barre de navigation (fleches + label "Gouts 3/5") chevauche le titre de l'etape car le header (`z-10`) et le contenu (`z-10`) se superposent. Le contenu commence sous le header mais ne laisse pas assez d'espace pour la zone de navigation ajoutee.
+
+## Solution
+
+Ajouter un `pb-3` au conteneur du header (ligne 214) pour que la barre de navigation ait son espace, et le contenu scrollable en dessous ne soit pas chevauche.
+
+**`src/components/OnboardingExperience.tsx` — ligne 214**
 
 Remplacer :
 ```tsx
-<ChevronRight className="h-5 w-5" />
+<div className="relative z-10 p-4 pb-0">
 ```
 
 Par :
 ```tsx
-<ChevronRight className="h-5 w-5 animate-[bounce-right_1.5s_ease-in-out_infinite]" />
+<div className="relative z-20 p-4 pb-3 bg-background">
 ```
 
-L'animation ne s'applique que si le bouton n'est pas desactive (`currentStep < TOTAL_STEPS - 1`).
+Cela :
+- Augmente le `z-index` du header a `z-20` (au-dessus du contenu `z-10`)
+- Ajoute `pb-3` pour espacer sous les fleches
+- Ajoute `bg-background` pour que le header ne soit pas transparent et ne laisse pas le contenu visible en dessous
 
-### Ajouter le keyframe `bounce-right` dans `src/index.css`
-
-```css
-@keyframes bounce-right {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
-}
-```
-
-Un mouvement subtil vers la droite (4px) en boucle, indiquant visuellement la direction "avant".
-
-## Fichiers concernes
+## Fichier concerne
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Animation conditionnelle sur ChevronRight |
-| `src/index.css` | Ajout keyframe `bounce-right` |
+| `src/components/OnboardingExperience.tsx` | Corriger z-index et padding du header |
 
