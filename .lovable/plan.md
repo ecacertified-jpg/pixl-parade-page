@@ -1,28 +1,35 @@
 
 
-# Plan : Corriger l'erreur d'invitation par telephone
+# Plan : Ajouter la politique RLS DELETE manquante sur `invitations`
 
-## Probleme
+## Constat
 
-La colonne `invitee_email` dans la table `invitations` est `NOT NULL`. Quand l'onboarding envoie uniquement un numero de telephone (sans email), l'edge function tente d'inserer `invitee_email: null`, ce qui viole la contrainte et provoque une erreur.
+| Politique | Existe | Correct |
+|-----------|--------|---------|
+| SELECT (own) | Oui | `inviter_id = auth.uid()` — OK |
+| INSERT | Oui | `inviter_id = auth.uid()` — OK |
+| UPDATE (own) | Oui | `inviter_id = auth.uid()` — OK |
+| DELETE | **Non** | **Manquante** |
 
-## Solution
+L'insertion fonctionne correctement (la politique INSERT est bien configuree). Cependant, la fonction `send-invitation` tente de supprimer l'invitation si l'envoi d'email echoue (nettoyage), et cette suppression echoue silencieusement sans politique DELETE.
 
-Modifier la colonne `invitee_email` pour la rendre nullable, puisque l'invitation peut se faire par telephone uniquement.
+De plus, il existe une contrainte UNIQUE sur `(inviter_id, invitee_email)`. Comme `invitee_email` est maintenant nullable, PostgreSQL traite les NULL comme distincts, donc les invitations par telephone uniquement ne sont pas bloquees par cette contrainte.
 
-### 1. Migration SQL
+## Migration SQL
 
 ```sql
-ALTER TABLE invitations ALTER COLUMN invitee_email DROP NOT NULL;
+CREATE POLICY "Users can delete their own invitations"
+ON public.invitations FOR DELETE
+USING (inviter_id = auth.uid());
 ```
 
-### 2. Aucune modification de code necessaire
+## Aucune modification de code necessaire
 
-L'edge function gere deja le cas `invitee_email: null` (ligne 97). Le code client envoie correctement uniquement le telephone. Seule la contrainte DB bloque.
+Le code client (`deleteInvitation` dans `useInvitations.ts`) et l'edge function utilisent deja les bons filtres (`inviter_id` / `eq('inviter_id', user.id)`).
 
-## Fichiers concernes
+## Fichier concerne
 
 | Element | Action |
 |---------|--------|
-| Table `invitations` | Migration : rendre `invitee_email` nullable |
+| Table `invitations` | Migration : ajouter politique DELETE |
 
