@@ -27,7 +27,7 @@ interface OnboardingExperienceProps {
   onSetStep: (step: number) => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const GIFT_CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -86,6 +86,9 @@ export const OnboardingExperience = ({
   const [linkCopied, setLinkCopied] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
+  const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
