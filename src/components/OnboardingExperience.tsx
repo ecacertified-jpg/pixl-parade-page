@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getAppBaseUrl } from '@/utils/appUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -179,10 +180,7 @@ export const OnboardingExperience = ({
         return;
       }
 
-      const appBaseUrl = import.meta.env.PROD 
-        ? 'https://joiedevivre-africa.com' 
-        : window.location.origin;
-      const invitationLink = `${appBaseUrl}/auth?invited=true&ref=${data.invitation_id}`;
+      const invitationLink = `${getAppBaseUrl()}/auth?invited=true&ref=${data.invitation_id}`;
       setGeneratedInviteLink(invitationLink);
       setInvitedCount(c => c + 1);
       setInvitePhone('');

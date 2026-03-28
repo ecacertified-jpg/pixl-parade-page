@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAppBaseUrl } from "@/utils/appUrl";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +69,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
     const result = await sendInvitation(email.trim() || undefined, phone.trim(), message.trim() || undefined);
 
     if (result.success) {
-      const link = `${window.location.origin}/auth?invited=true`;
+      const link = `${getAppBaseUrl()}/auth?invited=true`;
       setInvitationLink(link);
       setShowShareMenu(true);
     }
@@ -271,7 +272,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
                     firstName = profile?.first_name || "";
                     setUserFirstName(firstName);
                   }
-                  const link = `${window.location.origin}/auth?invited=true`;
+                  const link = `${getAppBaseUrl()}/auth?invited=true`;
                   setInvitationLink(link);
                   setShowShareMenu(true);
                 }}
