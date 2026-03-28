@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
-  Copy, Check, PartyPopper, X
+  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -222,35 +222,42 @@ export const OnboardingExperience = ({
         </div>
         <Progress value={progressValue} className="h-2" indicatorClassName="bg-gradient-to-r from-primary to-accent" />
 
-        {/* Step dots */}
-        <div className="flex flex-col items-center mt-3">
-          <div className="flex justify-center gap-2">
-            {[...Array(TOTAL_STEPS)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => i <= currentStep + 1 && onSetStep(i)}
-                disabled={i > currentStep + 1}
-                aria-label={`Étape ${i + 1}`}
-                className={cn(
-                  'h-2 rounded-full transition-all duration-300',
-                  i === currentStep ? 'w-8 bg-primary' : 
-                  i < currentStep ? 'w-2 bg-success cursor-pointer hover:scale-150' : 
-                  i === currentStep + 1 ? 'w-2 bg-muted cursor-pointer hover:bg-primary/40' :
-                  'w-2 bg-muted opacity-50 cursor-not-allowed'
-                )}
-              />
-            ))}
-          </div>
-          <div className="flex justify-center gap-2 mt-1">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'].map((label, i) => (
-              <span key={i} className={cn(
-                'text-[9px] font-nunito transition-colors min-w-[3rem] text-center',
-                i === currentStep ? 'text-primary font-medium' : 'text-muted-foreground/50'
-              )}>
-                {label}
-              </span>
-            ))}
-          </div>
+        {/* Step navigation arrows */}
+        <div className="flex items-center justify-center gap-4 mt-3">
+          <button
+            onClick={() => currentStep > 0 && onSetStep(currentStep - 1)}
+            disabled={currentStep === 0}
+            aria-label="Étape précédente"
+            className={cn(
+              'p-1.5 rounded-full transition-all duration-200',
+              currentStep > 0
+                ? 'text-primary hover:bg-primary/10 cursor-pointer'
+                : 'text-muted-foreground/30 cursor-not-allowed'
+            )}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
+            {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'][currentStep]}
+            <span className="text-muted-foreground/50 ml-1.5 text-xs">
+              {currentStep + 1}/{TOTAL_STEPS}
+            </span>
+          </span>
+
+          <button
+            onClick={() => currentStep < TOTAL_STEPS - 1 && onSetStep(currentStep + 1)}
+            disabled={currentStep >= TOTAL_STEPS - 1}
+            aria-label="Étape suivante"
+            className={cn(
+              'p-1.5 rounded-full transition-all duration-200',
+              currentStep < TOTAL_STEPS - 1
+                ? 'text-primary hover:bg-primary/10 cursor-pointer'
+                : 'text-muted-foreground/30 cursor-not-allowed'
+            )}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
