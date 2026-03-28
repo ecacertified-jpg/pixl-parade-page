@@ -1,111 +1,74 @@
 
 
-# Plan : Page anniversaire virale et partageable
+# Plan : Album souvenir partage sur la page anniversaire virale
 
-## Concept
+## Contexte actuel
 
-Chaque anniversaire d'un utilisateur devient une **page publique partageable** (ex: `joiedevivre-africa.com/birthday/sarah-2026`) ou les invites peuvent :
-- Ecrire un message d'anniversaire
-- Ajouter une photo souvenir
-- Participer au cadeau collectif (cagnotte liee)
-
-Chaque participant doit creer un compte pour contribuer, creant une **boucle virale naturelle**.
-
-## Architecture
-
-```text
-/birthday/:token  (page publique)
-       │
-       ├── Header festif (prenom, age, emoji occasion)
-       ├── Section Messages (lecture publique, ecriture = auth)
-       ├── Section Photos (galerie, ajout = auth)
-       ├── Section Cagnotte (barre progression, contribuer = auth)
-       └── Bouton Partager (WhatsApp, Facebook, etc.)
-```
+La page `/birthday/:slug` supporte deja les **photos** (table `birthday_page_photos`, bucket `birthday-page-photos`). Mais elle ne supporte pas les **videos** ni les **souvenirs textuels** (anecdotes, memories). L'UI actuelle est une simple grille de photos sans concept d'album.
 
 ## Modifications
 
-### 1. Migration SQL — Table `birthday_pages`
+### 1. Migration SQL — Etendre `birthday_page_photos` pour supporter videos + souvenirs
 
-Nouvelle table pour stocker les pages d'anniversaire virales :
+Renommer conceptuellement en "album items" en ajoutant des colonnes a la table existante :
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | PK |
-| user_id | uuid | FK profiles.user_id — la personne fetee |
-| slug | text | URL unique (ex: `sarah-2026`) |
-| celebration_year | integer | Annee |
-| title | text | "Anniversaire de Sarah" |
-| cover_image_url | text | Image de couverture optionnelle |
-| fund_id | uuid | FK collective_funds (cagnotte liee, optionnel) |
-| is_active | boolean | Page visible |
-| created_at | timestamp | |
+| Colonne ajoutee | Type | Description |
+|-----------------|------|-------------|
+| `media_type` | text | `'image'`, `'video'`, `'memory'` (defaut: `'image'`) |
+| `video_url` | text | URL video (bucket ou YouTube/externe) |
+| `video_thumbnail_url` | text | Miniature video |
+| `memory_text` | text | Texte souvenir/anecdote (pour type `'memory'`) |
 
-Table `birthday_page_photos` pour les photos partagees par les invites :
+Pas de nouvelle table — on etend la table existante pour garder la simplicite.
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| id | uuid | PK |
-| birthday_page_id | uuid | FK birthday_pages |
-| uploader_id | uuid | FK auth.users |
-| uploader_name | text | Nom affiche |
-| image_url | text | URL dans Supabase Storage |
-| caption | text | Legende optionnelle |
-| created_at | timestamp | |
+Mise a jour du bucket `birthday-page-photos` pour accepter aussi les fichiers video (la config RLS/storage reste identique, les videos sont juste des fichiers supplementaires).
 
-RLS : lecture publique, ecriture = authenticated. La table `birthday_wishes_messages` existante est reutilisee pour les messages (ajout d'une colonne `birthday_page_id`).
+### 2. Refonte UI — Section "Album souvenir partage"
 
-### 2. Nouvelle page `src/pages/BirthdayPage.tsx`
+Transformer la section "Photos souvenirs" en **"Album souvenir partage"** avec :
 
-Page publique accessible sans authentification a `/birthday/:slug`. Sections :
+- **Header album** : titre "Album souvenir de {prenom}", compteur (X photos, Y videos, Z souvenirs)
+- **3 boutons d'ajout** :
+  - "Ajouter une photo" (existant, conserve)
+  - "Ajouter une video" (upload video ou lien YouTube)
+  - "Ecrire un souvenir" (textarea pour anecdote/memory)
+- **Grille mixte** : affiche photos, miniatures video (avec icone play), et cartes souvenir textuelles
+- **Lightbox** : clic sur photo = vue plein ecran, clic sur video = lecture video
+- **Chaque item** affiche le nom de l'auteur et la date
 
-- **Header festif** : confettis legers, prenom, age, emoji, message d'accueil
-- **Messages** : liste des messages depuis `birthday_wishes_messages` filtres par `birthday_page_id`. Formulaire d'ajout (requiert auth, sinon bouton "Creer un compte pour ecrire")
-- **Photos** : galerie en grille depuis `birthday_page_photos`. Upload (requiert auth)
-- **Cagnotte** : si `fund_id` existe, affiche barre de progression + bouton "Participer au cadeau" (redirige vers `/f/:fundId` ou ouvre le modal de contribution si auth)
-- **Partage** : bouton flottant pour partager la page via WhatsApp, Facebook, SMS, copier le lien
+### 3. Composant `BirthdayAlbum.tsx`
 
-### 3. Route dans `App.tsx`
+Nouveau composant extrait de `BirthdayPage.tsx` pour gerer l'album :
 
-```typescript
-<Route path="/birthday/:slug" element={<L><BirthdayPage /></L>} />
-```
+- Props : `pageId`, `slug`, `firstName`, `user`
+- Gere les 3 types de media (photo, video, souvenir)
+- Upload video : meme logique que photo, bucket `birthday-page-photos`, accept `video/*`
+- Souvenir : formulaire textarea + bouton envoyer, insere dans `birthday_page_photos` avec `media_type = 'memory'`
+- Lightbox interne pour visualiser photos/videos en plein ecran
 
-Placee dans les routes publiques (pas de ProtectedRoute).
+### 4. Partage de l'album
 
-### 4. Generation automatique de la page
-
-Modification de la Edge Function `birthday-wishes` : quand une celebration d'anniversaire est creee (jour J), generer automatiquement une entree dans `birthday_pages` avec un slug base sur le prenom + annee (ex: `sarah-2026`). Si doublon, ajouter un suffixe aleatoire.
-
-### 5. Composant de partage de la page
-
-Nouveau composant `BirthdayPageShareButton.tsx` qui utilise le pattern existant de `ShareMenu.tsx` avec un message pre-formate :
-
-> "🎉 Anniversaire de Sarah 🎂 — Ecris-lui un message, ajoute une photo ou participe au cadeau collectif ! joiedevivre-africa.com/birthday/sarah-2026"
-
-### 6. Lien depuis le dashboard
-
-Dans `SmartNotificationsSection.tsx`, quand une notification `birthday_wish_ai` est cliquee, en plus du modal de celebration, afficher un bouton "Partager ma page d'anniversaire" qui copie/partage le lien de la page virale.
+- Le bouton de partage existant (`BirthdayPageShareButton`) inclut deja le lien de la page
+- Modifier le texte de partage pour mentionner l'album : "Ajoute tes photos, videos et souvenirs a l'album de {prenom} !"
+- Chaque contributeur voit un toast l'invitant a partager apres avoir ajoute un element
 
 ## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/migrations/xxx_birthday_pages.sql` | Nouveau — tables + RLS |
-| `src/pages/BirthdayPage.tsx` | Nouveau — page publique virale |
-| `src/components/BirthdayPageShareButton.tsx` | Nouveau — bouton partage |
-| `src/App.tsx` | Ajout route `/birthday/:slug` |
-| `supabase/functions/birthday-wishes/index.ts` | Generer la page auto au jour J |
-| `src/components/BirthdayCelebrationModal.tsx` | Ajouter bouton "Partager ma page" |
+| `supabase/migrations/xxx_album_souvenir.sql` | Ajout colonnes `media_type`, `video_url`, `video_thumbnail_url`, `memory_text` |
+| `src/components/BirthdayAlbum.tsx` | Nouveau — composant album complet |
+| `src/pages/BirthdayPage.tsx` | Remplacer la section photos par `<BirthdayAlbum />` |
+| `src/components/BirthdayPageShareButton.tsx` | Mise a jour du texte de partage |
 | `src/integrations/supabase/types.ts` | Regenere apres migration |
 
-## Boucle virale
+## Boucle virale renforcee
 
 ```text
-Sarah reçoit sa page → Partage sur WhatsApp
-    → Amis cliquent le lien → Voient la page festive
-        → "Ecrire un message" → Redirigé vers /auth
-            → Crée un compte → Ecrit son message
-                → Découvre JDV → Crée sa propre page pour son anniversaire
+Sarah partage sa page → Amis voient l'album
+  → "Ajouter une photo" → Creer un compte
+    → Upload sa photo → Toast "Partage l'album !"
+      → Partage sur WhatsApp → Nouveaux visiteurs
+        → Ajoutent leurs souvenirs → Cycle continue
 ```
 
