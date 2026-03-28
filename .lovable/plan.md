@@ -1,35 +1,44 @@
 
+Plan : Corriger définitivement l’erreur “l’invitation n’a pas pu être envoyée” pour les numéros de téléphone
 
-# Plan : Ajouter la politique RLS DELETE manquante sur `invitations`
+1) Constat confirmé
+- La base est maintenant correcte :
+  - `invitations.invitee_email` est nullable.
+  - Les politiques RLS `SELECT/INSERT/UPDATE/DELETE` existent sur `invitations`.
+- Pourtant l’erreur persiste côté UI.
+- Indice clé : aucune trace d’exécution récente de `send-invitation` dans les logs Edge, ce qui suggère un blocage avant l’exécution du code (préflight CORS/JWT gateway), pas un bug SQL/RLS interne à la fonction.
 
-## Constat
+2) Correctifs à implémenter
+- Fichier : `supabase/functions/send-invitation/index.ts`
+  - Uniformiser les headers CORS au format étendu déjà utilisé dans d’autres fonctions :
+    - inclure `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, `x-supabase-client-runtime-version`
+    - ajouter `Access-Control-Allow-Methods: POST, OPTIONS`
+  - Garder la réponse `OPTIONS` explicite avec ces headers.
+  - Ajouter des logs de diagnostic minimaux (méthode HTTP, présence auth header, statut de `auth.getUser`) pour distinguer clairement :
+    - blocage auth
+    - blocage CORS
+    - erreur insert DB
+- Fichier : `src/components/OnboardingExperience.tsx`
+  - Renforcer `handleInvite` :
+    - vérifier session valide avant `supabase.functions.invoke`
+    - afficher un message d’erreur contextualisé selon `error.message` (au lieu du message générique unique)
+    - ne considérer succès que si `error === null` ET `data?.invitation_id` présent
+    - conserver le lien copiable uniquement en cas de succès réel
 
-| Politique | Existe | Correct |
-|-----------|--------|---------|
-| SELECT (own) | Oui | `inviter_id = auth.uid()` — OK |
-| INSERT | Oui | `inviter_id = auth.uid()` — OK |
-| UPDATE (own) | Oui | `inviter_id = auth.uid()` — OK |
-| DELETE | **Non** | **Manquante** |
+3) Résultat attendu
+- Un numéro téléphone valide déclenche bien l’insertion `invitations` et renvoie `invitation_id`.
+- L’utilisateur voit le lien copiable et n’a plus le toast d’échec injustifié.
+- En cas d’échec réel, le message devient explicite (session expirée, accès refusé, validation, etc.).
 
-L'insertion fonctionne correctement (la politique INSERT est bien configuree). Cependant, la fonction `send-invitation` tente de supprimer l'invitation si l'envoi d'email echoue (nettoyage), et cette suppression echoue silencieusement sans politique DELETE.
-
-De plus, il existe une contrainte UNIQUE sur `(inviter_id, invitee_email)`. Comme `invitee_email` est maintenant nullable, PostgreSQL traite les NULL comme distincts, donc les invitations par telephone uniquement ne sont pas bloquees par cette contrainte.
-
-## Migration SQL
-
-```sql
-CREATE POLICY "Users can delete their own invitations"
-ON public.invitations FOR DELETE
-USING (inviter_id = auth.uid());
-```
-
-## Aucune modification de code necessaire
-
-Le code client (`deleteInvitation` dans `useInvitations.ts`) et l'edge function utilisent deja les bons filtres (`inviter_id` / `eq('inviter_id', user.id)`).
-
-## Fichier concerne
-
-| Element | Action |
-|---------|--------|
-| Table `invitations` | Migration : ajouter politique DELETE |
-
+4) Vérification de bout en bout (obligatoire)
+- Tester depuis l’onboarding étape “Amis” :
+  - saisir un numéro valide
+  - cliquer la flèche d’envoi
+  - vérifier :
+    - toast de succès
+    - affichage du lien copiable
+    - incrément du compteur d’invités
+- Contrôle technique :
+  - requête réseau vers `functions/v1/send-invitation` en 200
+  - présence d’entrées dans les logs de la fonction
+  - nouvelle ligne dans `public.invitations` avec `invitee_phone` renseigné.
