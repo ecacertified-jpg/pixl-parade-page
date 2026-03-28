@@ -1,65 +1,61 @@
 
 
-# Plan : Fiabiliser l'invitation d'amis dans l'onboarding
+# Plan : Generer un lien a copier apres saisie du telephone
 
-## Problème
+## Probleme
 
-La fonction `handleInvite` (ligne 134) appelle `supabase.functions.invoke('send-invitation')` mais ne vérifie pas le champ `error` de la réponse. `supabase.functions.invoke` ne lève **jamais** d'exception en cas d'erreur serveur — il retourne `{ data, error }`. Le compteur `invitedCount` est donc incrémenté même si l'invitation échoue.
+Quand l'utilisateur saisit un numero de telephone dans l'onboarding et clique sur la fleche, l'edge function `send-invitation` enregistre l'invitation en base mais **n'envoie rien** car elle ne gere que l'email (via Resend). Le message "+1 ami invite" est trompeur.
 
 ## Solution
 
-1. **Vérifier `error` et `data`** dans la réponse de l'edge function avant d'incrémenter le compteur
-2. **Valider le format du numéro** avant l'envoi (minimum 8 chiffres)
-3. **Afficher un feedback visuel clair** : toast de succès avec le numéro invité, ou toast d'erreur explicite
+Apres l'enregistrement reussi de l'invitation, afficher un **lien copiable** que l'utilisateur peut partager manuellement (via WhatsApp, SMS, etc.) au lieu de pretendre que l'ami a ete notifie.
 
-## Modification dans `src/components/OnboardingExperience.tsx`
+### Comportement cible
 
-### `handleInvite` (lignes 134-147) — Réécriture
+1. L'utilisateur saisit un numero et clique sur la fleche
+2. L'invitation est enregistree en base (comme aujourd'hui)
+3. Au lieu de "+1 ami invite", afficher le lien d'invitation avec un bouton "Copier le lien"
+4. L'utilisateur copie le lien et l'envoie lui-meme a son ami
+5. Un bouton "Envoyer via WhatsApp" pre-remplit un message WhatsApp avec le lien
+
+### Modifications dans `src/components/OnboardingExperience.tsx`
+
+**1. Ajouter un state pour stocker le lien genere**
 
 ```typescript
-const handleInvite = async () => {
-  const phone = invitePhone.trim();
-  if (!phone || !user) return;
-
-  // Validate phone format (at least 8 digits)
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length < 8) {
-    toast.error('Numéro invalide (min. 8 chiffres)');
-    return;
-  }
-
-  try {
-    const { data, error } = await supabase.functions.invoke('send-invitation', {
-      body: {
-        invitee_phone: phone,
-        message: `${firstName || 'Un ami'} t'invite à rejoindre Joie de Vivre !`,
-      },
-    });
-
-    if (error) {
-      console.error('Invitation error:', error);
-      toast.error("L'invitation n'a pas pu être envoyée");
-      return;
-    }
-
-    setInvitedCount(c => c + 1);
-    setInvitePhone('');
-    confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 }, colors: ['#a855f7', '#ec4899'] });
-    toast.success(`Invitation envoyée au ${phone} ! 🎉`);
-  } catch {
-    toast.error("Erreur lors de l'envoi");
-  }
-};
+const [generatedLink, setGeneratedLink] = useState<string | null>(null);
 ```
 
-Changements clés :
-- Validation du numéro (≥ 8 chiffres) avant appel réseau
-- Vérification de `error` dans la réponse — le compteur n'est incrémenté que si `error` est null
-- Toast de succès personnalisé avec le numéro pour confirmer visuellement quel contact a été invité
+**2. Modifier `handleInvite` (lignes 134-164)**
 
-## Fichier concerné
+Apres le succes de l'appel edge function, au lieu du toast "Invitation envoyee", generer le lien :
+
+```typescript
+const invitationLink = `https://joiedevivre-africa.com/auth?invited=true&ref=${data?.invitation_id || ''}`;
+setGeneratedLink(invitationLink);
+setInvitedCount(c => c + 1);
+setInvitePhone('');
+confetti(...);
+```
+
+**3. Modifier le rendu de l'etape "Amis" (step 3)**
+
+Apres la saisie du telephone, si `generatedLink` existe, afficher :
+- Le lien dans un champ texte en lecture seule
+- Un bouton "Copier le lien" qui utilise `navigator.clipboard.writeText()`
+- Un bouton "Envoyer via WhatsApp" qui ouvre `wa.me/?text=...` avec le lien
+- Un toast de confirmation "Lien copie !"
+- Le compteur "+N ami(s) invite(s)" reste visible
+
+Quand l'utilisateur saisit un nouveau numero, `generatedLink` est remis a null.
+
+**4. Ajuster le toast**
+
+Remplacer `toast.success('Invitation envoyee au ${phone}')` par `toast.info('Partagez ce lien avec votre ami')`.
+
+## Fichier concerne
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Fiabiliser `handleInvite` avec validation + vérification erreur |
+| `src/components/OnboardingExperience.tsx` | Ajouter le state `generatedLink`, modifier `handleInvite`, afficher le lien copiable |
 
