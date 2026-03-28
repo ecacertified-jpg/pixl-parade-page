@@ -19,7 +19,10 @@ const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
     .eq('user_id', userId)
     .single();
 
-  if (profile?.onboarding_completed === false) return true;
+  // Profile not yet created (race condition) → new user → show onboarding
+  if (!profile) return true;
+
+  if (profile.onboarding_completed === false) return true;
 
   // Cache for next visit
   if (profile?.onboarding_completed === true) {
@@ -47,6 +50,7 @@ export const useOnboarding = () => {
     queryFn: () => fetchOnboardingStatus(user!.id),
     enabled: !!user?.id,
     staleTime: 300000,
+    retry: 2,
   });
 
   const setCurrentStep = useCallback((step: number) => {
