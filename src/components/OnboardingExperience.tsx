@@ -216,7 +216,7 @@ export const OnboardingExperience = ({
 
   // Create or fetch birthday page in DB on step 4
   useEffect(() => {
-    if (currentStep !== 4 || !firstName || !user) return;
+    if (currentStep !== 4 || !user) return;
     const createOrFetchPage = async () => {
       const currentYear = new Date().getFullYear();
       const { data: existing } = await supabase
@@ -227,8 +227,11 @@ export const OnboardingExperience = ({
         .maybeSingle();
       if (existing) { setBirthdayPageSlug(existing.slug); return; }
 
-      const slug = `${firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')}-${currentYear}`;
-      const title = `Anniversaire de ${firstName}`;
+      const nameForSlug = firstName
+        ? firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')
+        : `user-${user.id.slice(0, 8)}`;
+      const slug = `${nameForSlug}-${currentYear}`;
+      const title = `Anniversaire de ${firstName || 'mon ami(e)'}`;
       const { data, error } = await supabase
         .from('birthday_pages')
         .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
@@ -669,11 +672,11 @@ export const OnboardingExperience = ({
               </motion.div>
 
               <div className="flex flex-col gap-3">
-                <Button onClick={handleShareBirthdayPage} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 w-full" size="lg">
+                <Button onClick={handleShareBirthdayPage} disabled={!birthdayPageSlug} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 w-full" size="lg">
                   <Share2 className="h-4 w-4" />
-                  Partager sur WhatsApp
+                  {birthdayPageSlug ? 'Partager sur WhatsApp' : 'Création en cours...'}
                 </Button>
-                <Button onClick={handleCopyLink} variant="outline" className="gap-2 w-full">
+                <Button onClick={handleCopyLink} disabled={!birthdayPageSlug} variant="outline" className="gap-2 w-full">
                   {linkCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   {linkCopied ? 'Copié !' : 'Copier le lien'}
                 </Button>

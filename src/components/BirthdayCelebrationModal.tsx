@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { BirthdayPageShareButton } from "./BirthdayPageShareButton";
+import { getAppBaseUrl } from "@/utils/appUrl";
 
 interface BirthdayCelebrationModalProps {
   open: boolean;
@@ -426,7 +427,7 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
             open={showShareMenu}
             onOpenChange={setShowShareMenu}
             firstName={firstName}
-            pageUrl={`${window.location.origin}/birthday/${birthdayPageSlug}`}
+            pageUrl={`${getAppBaseUrl()}/birthday/${birthdayPageSlug}`}
             age={age}
           />
         )}

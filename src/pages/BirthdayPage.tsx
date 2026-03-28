@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAppBaseUrl } from "@/utils/appUrl";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -272,7 +273,7 @@ const BirthdayPage = () => {
     );
   }
 
-  const pageUrl = `${window.location.origin}/birthday/${slug}`;
+  const pageUrl = `${getAppBaseUrl()}/birthday/${slug}`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/30 via-background to-background">
