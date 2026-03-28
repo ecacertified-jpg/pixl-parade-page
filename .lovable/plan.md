@@ -1,74 +1,68 @@
 
 
-# Plan : Album souvenir partage sur la page anniversaire virale
+# Plan : Indexation automatique et mots-cles SEO des pages anniversaire
 
-## Contexte actuel
+## Probleme
 
-La page `/birthday/:slug` supporte deja les **photos** (table `birthday_page_photos`, bucket `birthday-page-photos`). Mais elle ne supporte pas les **videos** ni les **souvenirs textuels** (anecdotes, memories). L'UI actuelle est une simple grille de photos sans concept d'album.
+Les pages `/birthday/:slug` ne sont pas soumises aux moteurs de recherche (IndexNow) apres creation et n'ont aucune meta-donnee SEO (title, description, keywords, Open Graph, JSON-LD).
 
-## Modifications
+## Solution
 
-### 1. Migration SQL — Etendre `birthday_page_photos` pour supporter videos + souvenirs
+### 1. Soumettre a IndexNow apres creation de la page (Edge Function)
 
-Renommer conceptuellement en "album items" en ajoutant des colonnes a la table existante :
+Dans `supabase/functions/birthday-wishes/index.ts`, apres l'insertion reussie dans `birthday_pages` (ligne ~490), ajouter l'URL a la table `seo_sync_queue` :
 
-| Colonne ajoutee | Type | Description |
-|-----------------|------|-------------|
-| `media_type` | text | `'image'`, `'video'`, `'memory'` (defaut: `'image'`) |
-| `video_url` | text | URL video (bucket ou YouTube/externe) |
-| `video_thumbnail_url` | text | Miniature video |
-| `memory_text` | text | Texte souvenir/anecdote (pour type `'memory'`) |
+```typescript
+await supabase.from('seo_sync_queue').insert({
+  entity_type: 'page',
+  entity_id: pageSlug,
+  action: 'create',
+  url: `https://joiedevivre-africa.com/birthday/${pageSlug}`,
+  priority: 'high',
+  metadata: { title: pageTitle, type: 'birthday_page' }
+});
+```
 
-Pas de nouvelle table — on etend la table existante pour garder la simplicite.
+Le CRON `process-seo-sync-queue` (toutes les 15 min) soumettra automatiquement l'URL a Bing et Yandex via IndexNow. Google ne supporte pas IndexNow mais sera notifie via le ping sitemap quotidien.
 
-Mise a jour du bucket `birthday-page-photos` pour accepter aussi les fichiers video (la config RLS/storage reste identique, les videos sont juste des fichiers supplementaires).
+### 2. Meta tags dynamiques et mots-cles auto-generes (Frontend)
 
-### 2. Refonte UI — Section "Album souvenir partage"
+Dans `src/pages/BirthdayPage.tsx`, une fois les donnees chargees :
 
-Transformer la section "Photos souvenirs" en **"Album souvenir partage"** avec :
+- **`document.title`** : "Anniversaire de Sarah - 30 ans | JOIE DE VIVRE"
+- **Meta description** : "Celebrez l'anniversaire de Sarah ! Ecrivez-lui un message, partagez vos photos et participez au cadeau collectif."
+- **Meta keywords** (auto-generes) : `anniversaire, Sarah, 30 ans, cadeau collectif, messages, album souvenir, JOIE DE VIVRE, celebration, Abidjan`
+- **Open Graph** : og:title, og:description, og:image (cover ou avatar), og:url, og:type=website
+- **Twitter Card** : summary_large_image
 
-- **Header album** : titre "Album souvenir de {prenom}", compteur (X photos, Y videos, Z souvenirs)
-- **3 boutons d'ajout** :
-  - "Ajouter une photo" (existant, conserve)
-  - "Ajouter une video" (upload video ou lien YouTube)
-  - "Ecrire un souvenir" (textarea pour anecdote/memory)
-- **Grille mixte** : affiche photos, miniatures video (avec icone play), et cartes souvenir textuelles
-- **Lightbox** : clic sur photo = vue plein ecran, clic sur video = lecture video
-- **Chaque item** affiche le nom de l'auteur et la date
+Creation d'un hook `useBirthdayPageSEO.ts` qui :
+- Recoit `firstName`, `age`, `slug`, `coverImage`, `messagesCount`, `photosCount`
+- Genere les mots-cles contextuels (prenom, age, occasion, ville si disponible)
+- Injecte les meta tags dans le `<head>` via `document.createElement`
+- Nettoie au unmount
 
-### 3. Composant `BirthdayAlbum.tsx`
+### 3. Schema JSON-LD (Donnees structurees)
 
-Nouveau composant extrait de `BirthdayPage.tsx` pour gerer l'album :
+Utiliser le hook existant `useSchemaInjector` pour injecter un schema `Event` :
 
-- Props : `pageId`, `slug`, `firstName`, `user`
-- Gere les 3 types de media (photo, video, souvenir)
-- Upload video : meme logique que photo, bucket `birthday-page-photos`, accept `video/*`
-- Souvenir : formulaire textarea + bouton envoyer, insere dans `birthday_page_photos` avec `media_type = 'memory'`
-- Lightbox interne pour visualiser photos/videos en plein ecran
-
-### 4. Partage de l'album
-
-- Le bouton de partage existant (`BirthdayPageShareButton`) inclut deja le lien de la page
-- Modifier le texte de partage pour mentionner l'album : "Ajoute tes photos, videos et souvenirs a l'album de {prenom} !"
-- Chaque contributeur voit un toast l'invitant a partager apres avoir ajoute un element
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "Anniversaire de Sarah - 30 ans",
+  "description": "Page de celebration...",
+  "startDate": "2026-03-28",
+  "url": "https://joiedevivre-africa.com/birthday/sarah-2026",
+  "organizer": { "@type": "Organization", "name": "JOIE DE VIVRE" },
+  "image": "cover_url_or_avatar"
+}
+```
 
 ## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/migrations/xxx_album_souvenir.sql` | Ajout colonnes `media_type`, `video_url`, `video_thumbnail_url`, `memory_text` |
-| `src/components/BirthdayAlbum.tsx` | Nouveau — composant album complet |
-| `src/pages/BirthdayPage.tsx` | Remplacer la section photos par `<BirthdayAlbum />` |
-| `src/components/BirthdayPageShareButton.tsx` | Mise a jour du texte de partage |
-| `src/integrations/supabase/types.ts` | Regenere apres migration |
-
-## Boucle virale renforcee
-
-```text
-Sarah partage sa page → Amis voient l'album
-  → "Ajouter une photo" → Creer un compte
-    → Upload sa photo → Toast "Partage l'album !"
-      → Partage sur WhatsApp → Nouveaux visiteurs
-        → Ajoutent leurs souvenirs → Cycle continue
-```
+| `supabase/functions/birthday-wishes/index.ts` | Ajouter insert dans `seo_sync_queue` apres creation page |
+| `src/hooks/useBirthdayPageSEO.ts` | Nouveau — meta tags + keywords + OG dynamiques |
+| `src/pages/BirthdayPage.tsx` | Appeler `useBirthdayPageSEO` + `useSchemaInjector` |
 
