@@ -179,7 +179,10 @@ export const OnboardingExperience = ({
         return;
       }
 
-      const invitationLink = `${window.location.origin}/auth?invited=true&ref=${data.invitation_id}`;
+      const appBaseUrl = import.meta.env.PROD 
+        ? 'https://joiedevivre-africa.com' 
+        : window.location.origin;
+      const invitationLink = `${appBaseUrl}/auth?invited=true&ref=${data.invitation_id}`;
       setGeneratedInviteLink(invitationLink);
       setInvitedCount(c => c + 1);
       setInvitePhone('');
