@@ -7,13 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
-  PartyPopper, Heart, Camera, Gift, Send, Share2, MessageCircle,
-  Sparkles, ImagePlus, Loader2
+  PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
+  Sparkles, Loader2
 } from "lucide-react";
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
@@ -73,7 +73,6 @@ const BirthdayPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiTriggered = useRef(false);
 
   // Get profile info for the birthday person
