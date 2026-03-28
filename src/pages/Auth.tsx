@@ -14,7 +14,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock, Sparkles } from 'lucide-react';
+import { Store, Gift, Loader2, Shield, Mail, Phone, Eye, EyeOff, Check, User, MapPin, Lock, Sparkles, ChevronRight } from 'lucide-react';
 import { generateSecurePassword } from '@/utils/generatePassword';
 import type { LucideIcon } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -33,6 +33,9 @@ import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndic
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
+import { lazy, Suspense } from 'react';
+
+const PreAuthDiscovery = lazy(() => import('@/components/PreAuthDiscovery').then(m => ({ default: m.PreAuthDiscovery })));
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
@@ -170,6 +173,7 @@ const Auth = () => {
   const initialTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   
   const [isLoading, setIsLoading] = useState(false);
+  const [showDiscovery, setShowDiscovery] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1187,6 +1191,26 @@ const Auth = () => {
             <Store className="h-4 w-4 mr-2" />
             Espace Business
           </Button>
+
+          {/* Teaser section */}
+          {!localStorage.getItem('jdv_discovery_seen') && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-4 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20 cursor-pointer hover:border-primary/40 transition-colors"
+              onClick={() => setShowDiscovery(true)}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🎂</span>
+                <div className="text-left flex-1">
+                  <p className="text-sm font-semibold text-foreground">Découvrez JDV en 30 secondes</p>
+                  <p className="text-xs text-muted-foreground">Voyez comment vos proches peuvent célébrer votre anniversaire</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-primary" />
+              </div>
+            </motion.div>
+          )}
         </CardHeader>
         <CardContent>
           {/* Étape 1: Sélection de méthode OTP (pour pays avec fallback WhatsApp) */}
@@ -1729,6 +1753,21 @@ const Auth = () => {
         onContinueAnyway={handleDuplicateContinueAnyway}
       />
       {/* SEO & Schema.org for registration page */}
+      {/* Pre-Auth Discovery Experience */}
+      <AnimatePresence>
+        {showDiscovery && (
+          <Suspense fallback={null}>
+            <PreAuthDiscovery
+              onClose={() => setShowDiscovery(false)}
+              onSignUp={() => {
+                setShowDiscovery(false);
+                setAuthMode('signup');
+              }}
+            />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
       <SEOHead
         title="Connexion & Inscription | Créer Compte Gratuit"
         description="Connectez-vous ou créez un compte gratuit pour créer des cagnottes collectives et offrir des cadeaux en groupe. Paiement Mobile Money."
