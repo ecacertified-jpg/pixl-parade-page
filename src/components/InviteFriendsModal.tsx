@@ -250,6 +250,35 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
                   )}
                 </Button>
               </form>
+
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">ou partagez directement</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  let firstName = userFirstName;
+                  if (!firstName && user?.id) {
+                    const { data: profile } = await supabase
+                      .from('profiles')
+                      .select('first_name')
+                      .eq('user_id', user.id)
+                      .single();
+                    firstName = profile?.first_name || "";
+                    setUserFirstName(firstName);
+                  }
+                  const link = `${window.location.origin}/auth?invited=true`;
+                  setInvitationLink(link);
+                  setShowShareMenu(true);
+                }}
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Partager sur les réseaux sociaux
+              </Button>
             </TabsContent>
 
             <TabsContent value="contacts" className="space-y-4 mt-4">
