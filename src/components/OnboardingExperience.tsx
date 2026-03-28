@@ -82,6 +82,7 @@ export const OnboardingExperience = ({
   const [invitedCount, setInvitedCount] = useState(0);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
 
   // Load user data on mount
