@@ -1095,8 +1095,8 @@ export default function Dashboard() {
           initialData={initialData}
         />
         
-        {/* Onboarding Modal - Only shows if profile is complete */}
-        <OnboardingModal
+        {/* Onboarding Experience - Immersive full-screen */}
+        <OnboardingExperience
           open={shouldShowOnboarding && !needsProfileCompletion && !profileCompletionLoading}
           onComplete={completeOnboarding}
           currentStep={currentStep}
