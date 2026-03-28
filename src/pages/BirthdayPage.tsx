@@ -278,8 +278,7 @@ const BirthdayPage = () => {
     );
   }
 
-  const age = getAge();
-  const firstName = birthdayPerson.first_name || 'Ami(e)';
+  const pageUrl = `${window.location.origin}/birthday/${slug}`;
   const pageUrl = `${window.location.origin}/birthday/${slug}`;
 
   return (
