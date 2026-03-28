@@ -1,44 +1,36 @@
 
-Plan : Corriger définitivement l’erreur “l’invitation n’a pas pu être envoyée” pour les numéros de téléphone
+Plan : Corriger l’erreur “Edge Function returned a non-2xx” sur l’invitation par téléphone
 
-1) Constat confirmé
-- La base est maintenant correcte :
-  - `invitations.invitee_email` est nullable.
-  - Les politiques RLS `SELECT/INSERT/UPDATE/DELETE` existent sur `invitations`.
-- Pourtant l’erreur persiste côté UI.
-- Indice clé : aucune trace d’exécution récente de `send-invitation` dans les logs Edge, ce qui suggère un blocage avant l’exécution du code (préflight CORS/JWT gateway), pas un bug SQL/RLS interne à la fonction.
+1. Diagnostic confirmé
+- Les logs `send-invitation` montrent `AuthSessionMissingError` alors que l’en-tête Authorization est présent.
+- Cause racine : la fonction utilise `supabaseClient.auth.getUser()` (sans token explicite). En Edge runtime, cela peut échouer car il n’y a pas de session locale.
 
-2) Correctifs à implémenter
-- Fichier : `supabase/functions/send-invitation/index.ts`
-  - Uniformiser les headers CORS au format étendu déjà utilisé dans d’autres fonctions :
-    - inclure `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, `x-supabase-client-runtime-version`
-    - ajouter `Access-Control-Allow-Methods: POST, OPTIONS`
-  - Garder la réponse `OPTIONS` explicite avec ces headers.
-  - Ajouter des logs de diagnostic minimaux (méthode HTTP, présence auth header, statut de `auth.getUser`) pour distinguer clairement :
-    - blocage auth
-    - blocage CORS
-    - erreur insert DB
-- Fichier : `src/components/OnboardingExperience.tsx`
-  - Renforcer `handleInvite` :
-    - vérifier session valide avant `supabase.functions.invoke`
-    - afficher un message d’erreur contextualisé selon `error.message` (au lieu du message générique unique)
-    - ne considérer succès que si `error === null` ET `data?.invitation_id` présent
-    - conserver le lien copiable uniquement en cas de succès réel
+2. Correctifs dans `supabase/functions/send-invitation/index.ts`
+- Lire `Authorization`, vérifier le format `Bearer <token>`, extraire le JWT.
+- Remplacer l’authentification par `supabaseClient.auth.getUser(token)` (au lieu de `getUser()`).
+- Garder le header Authorization sur le client Supabase pour que l’INSERT reste dans le contexte utilisateur (RLS).
+- Retourner des erreurs 401 claires (`Session invalide ou expirée`) quand le token est absent/invalide.
+- Ajuster le type de payload : `invitee_email?: string` pour refléter le flux téléphone-only.
 
-3) Résultat attendu
-- Un numéro téléphone valide déclenche bien l’insertion `invitations` et renvoie `invitation_id`.
-- L’utilisateur voit le lien copiable et n’a plus le toast d’échec injustifié.
-- En cas d’échec réel, le message devient explicite (session expirée, accès refusé, validation, etc.).
+3. Correctifs dans `src/components/OnboardingExperience.tsx`
+- Utiliser `ensureValidSession()` du `AuthContext` (plus robuste que `getSession()` seul).
+- Vérifier `session.access_token` avant l’appel Edge Function.
+- Passer explicitement `Authorization: Bearer ${session.access_token}` dans `supabase.functions.invoke(...)`.
+- Améliorer l’erreur affichée : tenter de lire le message JSON renvoyé par la fonction au lieu du message générique Supabase.
+- Conserver la règle actuelle : succès uniquement si `data?.invitation_id` existe (sinon pas de lien/copie/compteur).
 
-4) Vérification de bout en bout (obligatoire)
-- Tester depuis l’onboarding étape “Amis” :
-  - saisir un numéro valide
-  - cliquer la flèche d’envoi
-  - vérifier :
-    - toast de succès
-    - affichage du lien copiable
-    - incrément du compteur d’invités
-- Contrôle technique :
-  - requête réseau vers `functions/v1/send-invitation` en 200
-  - présence d’entrées dans les logs de la fonction
+4. Vérification end-to-end
+- Étape “Amis” : saisir un numéro valide puis cliquer la flèche.
+- Attendu :
+  - pas de toast “non-2xx”,
+  - toast de succès/partage,
+  - lien copiable visible,
+  - compteur “+1 ami invité” incrémenté.
+- Vérification technique :
+  - réponse réseau `functions/v1/send-invitation` en 200,
+  - logs Edge avec `Auth status: authenticated`,
   - nouvelle ligne dans `public.invitations` avec `invitee_phone` renseigné.
+
+5. Résultat attendu
+- Le flux invitation téléphone fonctionne de façon fiable pour un utilisateur connecté.
+- L’utilisateur voit des erreurs explicites uniquement en cas de vraie session invalide.
