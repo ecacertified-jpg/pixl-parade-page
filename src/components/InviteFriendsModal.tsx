@@ -65,7 +65,7 @@ export function InviteFriendsModal({ open, onOpenChange }: InviteFriendsModalPro
       setUserFirstName(firstName);
     }
 
-    const result = await sendInvitation(email || undefined as any, phone, message || undefined);
+    const result = await sendInvitation(email.trim() || undefined, phone.trim(), message.trim() || undefined);
 
     if (result.success) {
       const link = `${window.location.origin}/auth?invited=true`;

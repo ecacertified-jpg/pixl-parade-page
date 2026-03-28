@@ -53,8 +53,19 @@ const handler = async (req: Request): Promise<Response> => {
     const { invitee_email, invitee_phone, message }: InvitationRequest =
       await req.json();
 
-    // Validate email
-    if (!invitee_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitee_email)) {
+    // Validate: at least one contact method required
+    if (!invitee_email && !invitee_phone) {
+      return new Response(
+        JSON.stringify({ error: "Email ou téléphone requis" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate email format if provided
+    if (invitee_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invitee_email)) {
       return new Response(
         JSON.stringify({ error: "Invalid email address" }),
         {

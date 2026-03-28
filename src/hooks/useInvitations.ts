@@ -22,7 +22,7 @@ export function useInvitations() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
   const sendInvitation = async (
-    email: string,
+    email?: string,
     phone?: string,
     message?: string
   ) => {
