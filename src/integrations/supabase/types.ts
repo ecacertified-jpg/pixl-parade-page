@@ -908,8 +908,98 @@ export type Database = {
           },
         ]
       }
+      birthday_page_photos: {
+        Row: {
+          birthday_page_id: string
+          caption: string | null
+          created_at: string
+          id: string
+          image_url: string
+          uploader_id: string
+          uploader_name: string | null
+        }
+        Insert: {
+          birthday_page_id: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          uploader_id: string
+          uploader_name?: string | null
+        }
+        Update: {
+          birthday_page_id?: string
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          uploader_id?: string
+          uploader_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_photos_birthday_page_id_fkey"
+            columns: ["birthday_page_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      birthday_pages: {
+        Row: {
+          celebration_year: number
+          cover_image_url: string | null
+          created_at: string
+          fund_id: string | null
+          id: string
+          is_active: boolean
+          slug: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          celebration_year?: number
+          cover_image_url?: string | null
+          created_at?: string
+          fund_id?: string | null
+          id?: string
+          is_active?: boolean
+          slug: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          celebration_year?: number
+          cover_image_url?: string | null
+          created_at?: string
+          fund_id?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_pages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_pages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       birthday_wishes_messages: {
         Row: {
+          birthday_page_id: string | null
           birthday_user_id: string
           celebration_year: number
           created_at: string | null
@@ -922,6 +1012,7 @@ export type Database = {
           thanks_sent: boolean | null
         }
         Insert: {
+          birthday_page_id?: string | null
           birthday_user_id: string
           celebration_year?: number
           created_at?: string | null
@@ -934,6 +1025,7 @@ export type Database = {
           thanks_sent?: boolean | null
         }
         Update: {
+          birthday_page_id?: string | null
           birthday_user_id?: string
           celebration_year?: number
           created_at?: string | null
@@ -946,6 +1038,13 @@ export type Database = {
           thanks_sent?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "birthday_wishes_messages_birthday_page_id_fkey"
+            columns: ["birthday_page_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_pages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "birthday_wishes_messages_fund_id_fkey"
             columns: ["fund_id"]
