@@ -257,9 +257,9 @@ export const OnboardingExperience = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  // Create or fetch birthday page in DB on step 4
+  // Create or fetch birthday page in DB on step 5
   useEffect(() => {
-    if (currentStep !== 4 || !user) return;
+    if (currentStep !== 5 || !user) return;
     const createOrFetchPage = async () => {
       const currentYear = new Date().getFullYear();
       const { data: existing } = await supabase
@@ -366,7 +366,7 @@ export const OnboardingExperience = ({
           </button>
 
           <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'][currentStep]}
+            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'][currentStep]}
             <span className="text-muted-foreground/50 ml-1.5 text-xs">
               {currentStep + 1}/{TOTAL_STEPS}
             </span>
