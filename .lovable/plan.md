@@ -1,66 +1,61 @@
 
 
-# Plan : Declenchement fiable de l'onboarding via flag en base
+# Plan : Onboarding de decouverte avant inscription (Pre-Auth Experience)
 
 ## Probleme
 
-L'onboarding se declenche uniquement si le compte a ete cree il y a moins de 5 minutes. Si l'utilisateur met plus de temps (verification email, reseau lent), il rate l'onboarding. Le flag localStorage est fragile (changement de navigateur/device).
+Actuellement, l'onboarding immersif ne se declenche qu'apres l'inscription. Les visiteurs arrivent sur `/auth` et voient un formulaire froid. Aucune raison emotionnelle de s'inscrire.
 
-## Solution
+## Concept : "Decouvrir avant de s'inscrire"
 
-### 1. Migration : ajouter `onboarding_completed` a `profiles`
+Ajouter une **experience de decouverte interactive** accessible AVANT l'inscription, directement sur la page Auth. Le visiteur vit une mini-experience qui lui montre la valeur de JDV, puis est naturellement guide vers l'inscription.
 
-```sql
-ALTER TABLE profiles 
-  ADD COLUMN onboarding_completed boolean NOT NULL DEFAULT false;
+```text
+Visiteur arrive sur /auth
+  → Voit un bouton "Decouvrir JDV" sous le formulaire
+  → Lance une experience immersive en 3 ecrans :
+      1. "Imaginez..." — animation festive + proposition de valeur
+      2. "Votre prochain anniversaire" — apercu interactif d'une page anniversaire
+      3. "Pret a commencer ?" — CTA d'inscription avec incentive
+  → Retour au formulaire d'inscription, motive
 ```
 
-La valeur par defaut `false` garantit que tous les utilisateurs existants et nouveaux commencent avec l'onboarding non complete.
+## Modifications
 
-### 2. Hook `useOnboarding.ts` — nouvelle logique
+### 1. Nouveau composant `src/components/PreAuthDiscovery.tsx`
 
-Remplacer `fetchOnboardingStatus` :
+Experience immersive en 3 etapes (sans authentification requise) :
 
-```typescript
-// Avant : verifie localStorage + created_at < 5 min
-// Apres : verifie profiles.onboarding_completed en base
-const { data: profile } = await supabase
-  .from('profiles')
-  .select('onboarding_completed')
-  .eq('user_id', userId)
-  .single();
+- **Ecran 1 — "Imaginez..."** : Animation de confettis + particules flottantes. Texte emotionnel : "Imaginez que tous vos proches se reunissent pour celebrer votre anniversaire...". Bouton "Voir comment".
 
-return profile?.onboarding_completed === false;
-```
+- **Ecran 2 — "Votre page anniversaire"** : Apercu interactif d'une fausse page anniversaire avec mur de messages pre-remplis, album photo, barre de cagnotte animee. Le visiteur peut interagir (scroller, voir les messages). Texte : "Chaque anniversaire devient une celebration collective".
 
-Mettre a jour `completeOnboarding` :
+- **Ecran 3 — "Pret a vivre ca ?"** : Resume des benefices (page virale, album souvenir, cagnotte collective, notifications). Bouton CTA principal "Creer mon compte gratuitement" qui ferme la decouverte et focus le formulaire d'inscription. Bouton secondaire "Voir un exemple reel" qui redirige vers une page anniversaire publique existante.
 
-```typescript
-// Avant : localStorage seulement
-// Apres : update en base + localStorage (cache local)
-await supabase
-  .from('profiles')
-  .update({ onboarding_completed: true })
-  .eq('user_id', userId);
-localStorage.setItem(`onboarding_completed_${userId}`, 'true');
-```
+Le composant utilise Framer Motion pour les transitions, confetti pour l'ecran 1, et des donnees fictives pour l'apercu.
 
-Le localStorage reste comme **cache rapide** pour eviter un appel reseau a chaque visite, mais la source de verite est la base de donnees.
+### 2. Modification `src/pages/Auth.tsx`
 
-### 3. Gestion des utilisateurs existants
+- Ajouter un bouton "Decouvrir JDV en 30 secondes" sous le formulaire d'inscription (onglet signup uniquement).
+- Ce bouton ouvre `<PreAuthDiscovery />` en plein ecran.
+- Quand le visiteur termine la decouverte, le formulaire d'inscription recoit le focus automatiquement.
+- Stocker dans `localStorage` (`jdv_discovery_seen`) pour ne pas re-proposer.
 
-Les utilisateurs existants auront `onboarding_completed = false` par defaut. Pour eviter qu'ils voient l'onboarding, on ajoute dans la migration :
+### 3. Enrichir la page `/auth` avec un apercu visuel
 
-```sql
--- Marquer les comptes existants (crees il y a plus de 1 heure) comme deja completes
-UPDATE profiles SET onboarding_completed = true
-WHERE created_at < NOW() - INTERVAL '1 hour';
-```
+- Ajouter une section "teaser" au-dessus du formulaire (mobile) ou a cote (desktop) montrant des elements visuels attrayants : mini-apercu de page anniversaire, compteur anime de "celebrations creees", temoignages courts.
+
+## Details techniques
+
+- **Aucune base de donnees** requise — tout est cote client avec des donnees fictives.
+- **Donnees fictives** pour l'apercu : 3 messages d'anniversaire pre-ecrits, 4 photos placeholder, une barre de cagnotte a 65%.
+- **Performance** : Lazy-load du composant PreAuthDiscovery (React.lazy) car il inclut confetti + animations.
+- **Analytics** : Tracker `discovery_started` et `discovery_completed` via le hook useGoogleAnalytics existant pour mesurer la conversion.
 
 ## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| Migration SQL | Ajouter colonne `onboarding_completed` + update existants |
-| `src/hooks/useOnboarding.ts` | Lire/ecrire le flag en base au lieu du critere 5 min |
+| `src/components/PreAuthDiscovery.tsx` | Nouveau — experience de decouverte en 3 ecrans |
+| `src/pages/Auth.tsx` | Ajout bouton "Decouvrir JDV" + section teaser visuelle |
 
