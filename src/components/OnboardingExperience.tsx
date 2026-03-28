@@ -211,7 +211,7 @@ export const OnboardingExperience = ({
       <FloatingParticles />
 
       {/* Header with progress */}
-      <div className="relative z-10 p-4 pb-0">
+      <div className="relative z-20 p-4 pb-3 bg-background">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground font-nunito">
             Étape {currentStep + 1} sur {TOTAL_STEPS}
