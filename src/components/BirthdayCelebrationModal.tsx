@@ -43,6 +43,8 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const confettiTriggered = useRef(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
 
   const age = notification.metadata?.age;
   const firstName = notification.title?.match(/Joyeux (?:\d+ ans )?(.+) !/)?.[1] || 'toi';
@@ -90,7 +92,7 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
     }
   }, [open, step, launchConfetti]);
 
-  // Load wish messages
+  // Load wish messages + birthday page slug
   useEffect(() => {
     if (!open || !user) return;
     const currentYear = new Date().getFullYear();
@@ -103,6 +105,18 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         if (data) setMessages(data);
+      });
+
+    // Look up birthday page slug
+    supabase
+      .from('birthday_pages')
+      .select('slug')
+      .eq('user_id', user.id)
+      .eq('celebration_year', currentYear)
+      .eq('is_active', true)
+      .single()
+      .then(({ data }) => {
+        if (data) setBirthdayPageSlug(data.slug);
       });
   }, [open, user]);
 
