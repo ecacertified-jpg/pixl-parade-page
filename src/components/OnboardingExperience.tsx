@@ -214,22 +214,43 @@ export const OnboardingExperience = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  // Generate birthday page slug
-  const generateBirthdaySlug = useCallback(() => {
-    if (!firstName) return '';
-    const year = new Date().getFullYear();
-    return `${firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')}-${year}`;
-  }, [firstName]);
-
-  // Setup birthday page on step 4
+  // Create or fetch birthday page in DB on step 4
   useEffect(() => {
-    if (currentStep === 4 && firstName) {
-      setBirthdayPageSlug(generateBirthdaySlug());
-    }
-  }, [currentStep, firstName, generateBirthdaySlug]);
+    if (currentStep !== 4 || !firstName || !user) return;
+    const createOrFetchPage = async () => {
+      const currentYear = new Date().getFullYear();
+      const { data: existing } = await supabase
+        .from('birthday_pages')
+        .select('slug')
+        .eq('user_id', user.id)
+        .eq('celebration_year', currentYear)
+        .maybeSingle();
+      if (existing) { setBirthdayPageSlug(existing.slug); return; }
+
+      const slug = `${firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')}-${currentYear}`;
+      const title = `Anniversaire de ${firstName}`;
+      const { data, error } = await supabase
+        .from('birthday_pages')
+        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
+        .select('slug')
+        .single();
+      if (error?.code === '23505') {
+        const fallbackSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        const { data: d2 } = await supabase
+          .from('birthday_pages')
+          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true })
+          .select('slug')
+          .single();
+        if (d2) setBirthdayPageSlug(d2.slug);
+      } else if (data) {
+        setBirthdayPageSlug(data.slug);
+      }
+    };
+    createOrFetchPage();
+  }, [currentStep, firstName, user]);
 
   const handleCopyLink = () => {
-    const url = `https://joiedevivre-africa.com/birthday/${birthdayPageSlug}`;
+    const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     navigator.clipboard.writeText(url);
     setLinkCopied(true);
     toast.success('Lien copié !');
@@ -237,7 +258,7 @@ export const OnboardingExperience = ({
   };
 
   const handleShareBirthdayPage = () => {
-    const url = `https://joiedevivre-africa.com/birthday/${birthdayPageSlug}`;
+    const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(`🎂 Ma page anniversaire est prête ! Écris-moi un message ou participe au cadeau collectif 🎁\n\n${url}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
