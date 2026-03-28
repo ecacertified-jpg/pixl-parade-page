@@ -6,10 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
-  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight
+  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -26,7 +27,7 @@ interface OnboardingExperienceProps {
   onSetStep: (step: number) => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 const GIFT_CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -85,6 +86,9 @@ export const OnboardingExperience = ({
   const [linkCopied, setLinkCopied] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
+  const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
@@ -124,6 +128,45 @@ export const OnboardingExperience = ({
       frame();
     }
   }, [open, currentStep]);
+
+  // Load wishlist products when reaching step 3
+  useEffect(() => {
+    if (currentStep !== 3 || !user) return;
+    const loadProducts = async () => {
+      setLoadingProducts(true);
+      let query = supabase
+        .from('products')
+        .select('id, name, price, currency, image_url, business_id')
+        .eq('is_active', true)
+        .limit(12);
+
+      const { data } = await query;
+      setWishlistProducts(data || []);
+
+      // Load existing favorites
+      const { data: favs } = await supabase
+        .from('user_favorites')
+        .select('product_id')
+        .eq('user_id', user.id);
+      setFavoriteIds((favs || []).map((f: any) => f.product_id));
+      setLoadingProducts(false);
+    };
+    loadProducts();
+  }, [currentStep, user]);
+
+  // Toggle favorite
+  const toggleFavorite = async (productId: string) => {
+    if (!user) return;
+    const isFav = favoriteIds.includes(productId);
+    if (isFav) {
+      setFavoriteIds(prev => prev.filter(id => id !== productId));
+      await supabase.from('user_favorites').delete().eq('user_id', user.id).eq('product_id', productId);
+    } else {
+      setFavoriteIds(prev => [...prev, productId]);
+      await supabase.from('user_favorites').insert({ user_id: user.id, product_id: productId });
+      confetti({ particleCount: 15, spread: 40, origin: { y: 0.6 }, colors: ['#ec4899', '#a855f7'] });
+    }
+  };
 
   // Save birthday
   const saveBirthday = useCallback(async () => {
@@ -214,9 +257,9 @@ export const OnboardingExperience = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
-  // Create or fetch birthday page in DB on step 4
+  // Create or fetch birthday page in DB on step 5
   useEffect(() => {
-    if (currentStep !== 4 || !user) return;
+    if (currentStep !== 5 || !user) return;
     const createOrFetchPage = async () => {
       const currentYear = new Date().getFullYear();
       const { data: existing } = await supabase
@@ -323,7 +366,7 @@ export const OnboardingExperience = ({
           </button>
 
           <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Amis', 'Ma page'][currentStep]}
+            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'][currentStep]}
             <span className="text-muted-foreground/50 ml-1.5 text-xs">
               {currentStep + 1}/{TOTAL_STEPS}
             </span>
@@ -517,8 +560,105 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 3: Invite friends */}
+          {/* Step 3: Wishlist */}
           {currentStep === 3 && (
+            <motion.div
+              key="wishlist"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Gift className="h-10 w-10 text-white" />
+              </motion.div>
+
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Qu'est-ce qui te ferait plaisir ? 🎁
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-2">
+                Choisis des idées cadeaux pour que tes proches sachent quoi t'offrir !
+              </p>
+
+              {favoriteIds.length > 0 && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="mb-4 p-2 rounded-xl bg-primary/10 border border-primary/20"
+                >
+                  <p className="text-sm font-semibold text-primary font-poppins">
+                    {favoriteIds.length} article{favoriteIds.length > 1 ? 's' : ''} ajouté{favoriteIds.length > 1 ? 's' : ''} à ta liste ❤️
+                  </p>
+                </motion.div>
+              )}
+
+              {loadingProducts ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
+                  ))}
+                </div>
+              ) : wishlistProducts.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {wishlistProducts.map((product, idx) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="relative rounded-xl border border-border bg-card overflow-hidden shadow-sm"
+                    >
+                      <div className="aspect-square bg-muted">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Gift className="h-8 w-8 text-muted-foreground/40" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        <AnimatedFavoriteButton
+                          isFavorite={favoriteIds.includes(product.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          size="sm"
+                        />
+                      </div>
+                      <div className="p-2">
+                        <p className="text-xs font-medium font-nunito text-foreground truncate">{product.name}</p>
+                        <p className="text-xs text-primary font-semibold">
+                          {product.price?.toLocaleString()} {product.currency || 'XOF'}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 rounded-xl bg-muted/50 mb-4">
+                  <p className="text-muted-foreground font-nunito text-sm">
+                    Aucun produit disponible pour le moment
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={() => { onComplete(); window.location.href = '/wishlist-catalog'; }}
+                variant="outline"
+                className="gap-2 w-full"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Voir tout le catalogue
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step 4: Invite friends */}
+          {currentStep === 4 && (
             <motion.div
               key="circle"
               initial={{ opacity: 0, y: 30 }}
@@ -610,8 +750,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 4: Birthday viral page */}
-          {currentStep === 4 && (
+          {/* Step 5: Birthday viral page */}
+          {currentStep === 5 && (
             <motion.div
               key="viral"
               initial={{ opacity: 0, y: 30 }}
