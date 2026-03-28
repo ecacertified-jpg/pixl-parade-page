@@ -27,8 +27,8 @@ interface BirthdayPageShareButtonProps {
 
 export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl, age }: BirthdayPageShareButtonProps) {
   const shareText = age
-    ? `🎉 ${firstName} fête ses ${age} ans ! 🎂 Écris-lui un message, ajoute une photo ou participe au cadeau collectif !`
-    : `🎉 Joyeux anniversaire ${firstName} ! 🎂 Écris-lui un message, ajoute une photo ou participe au cadeau collectif !`;
+    ? `🎉 ${firstName} fête ses ${age} ans ! 🎂 Ajoute tes photos, vidéos et souvenirs à son album, écris-lui un message ou participe au cadeau collectif !`
+    : `🎉 Joyeux anniversaire ${firstName} ! 🎂 Ajoute tes photos, vidéos et souvenirs à son album, écris-lui un message ou participe au cadeau collectif !`;
 
   const nativeShare = async () => {
     if (navigator.share) {

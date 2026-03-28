@@ -915,8 +915,12 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          media_type: string
+          memory_text: string | null
           uploader_id: string
           uploader_name: string | null
+          video_thumbnail_url: string | null
+          video_url: string | null
         }
         Insert: {
           birthday_page_id: string
@@ -924,8 +928,12 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          media_type?: string
+          memory_text?: string | null
           uploader_id: string
           uploader_name?: string | null
+          video_thumbnail_url?: string | null
+          video_url?: string | null
         }
         Update: {
           birthday_page_id?: string
@@ -933,8 +941,12 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          media_type?: string
+          memory_text?: string | null
           uploader_id?: string
           uploader_name?: string | null
+          video_thumbnail_url?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
