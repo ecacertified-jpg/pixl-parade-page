@@ -726,6 +726,7 @@ const Auth = () => {
 
         // Auto-assign to admin if admin_ref present
         if (result.user_id) processAdminAutoAssign(result.user_id).catch(console.error);
+        if (result.is_new_user) acceptInvitationIfNeeded().catch(console.error);
         navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
         return;
       }
@@ -822,6 +823,7 @@ const Auth = () => {
             }
           })();
           processAdminAutoAssign(authData.user.id).catch(console.error);
+          acceptInvitationIfNeeded().catch(console.error);
           navigate(`${redirectPath}?onboarding=true`);
         } else {
           processAdminAutoAssign(authData.user.id).catch(console.error);
@@ -1118,6 +1120,7 @@ const Auth = () => {
             description: 'Votre compte a été créé avec succès !',
           });
           processAdminAutoAssign(authData.user.id).catch(console.error);
+          acceptInvitationIfNeeded().catch(console.error);
           navigate('/dashboard?onboarding=true');
         }
       }
