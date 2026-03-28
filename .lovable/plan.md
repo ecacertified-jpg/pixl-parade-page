@@ -1,61 +1,47 @@
 
 
-# Plan : Onboarding de decouverte avant inscription (Pre-Auth Experience)
+# Plan : Lancer la découverte JDV depuis la Landing Page
 
-## Probleme
+## Problème
 
-Actuellement, l'onboarding immersif ne se declenche qu'apres l'inscription. Les visiteurs arrivent sur `/auth` et voient un formulaire froid. Aucune raison emotionnelle de s'inscrire.
+Les boutons "Créer mon anniversaire" et "S'inscrire" de la landing page redirigent directement vers `/auth?tab=signup`. Le visiteur arrive sur un formulaire froid sans voir l'expérience de découverte.
 
-## Concept : "Decouvrir avant de s'inscrire"
+## Solution
 
-Ajouter une **experience de decouverte interactive** accessible AVANT l'inscription, directement sur la page Auth. Le visiteur vit une mini-experience qui lui montre la valeur de JDV, puis est naturellement guide vers l'inscription.
-
-```text
-Visiteur arrive sur /auth
-  → Voit un bouton "Decouvrir JDV" sous le formulaire
-  → Lance une experience immersive en 3 ecrans :
-      1. "Imaginez..." — animation festive + proposition de valeur
-      2. "Votre prochain anniversaire" — apercu interactif d'une page anniversaire
-      3. "Pret a commencer ?" — CTA d'inscription avec incentive
-  → Retour au formulaire d'inscription, motive
-```
+Ajouter un paramètre URL `?discovery=true` quand le visiteur vient de la landing page, et déclencher automatiquement le `PreAuthDiscovery` dans Auth.tsx quand ce paramètre est détecté.
 
 ## Modifications
 
-### 1. Nouveau composant `src/components/PreAuthDiscovery.tsx`
+### 1. `src/pages/Landing.tsx`
 
-Experience immersive en 3 etapes (sans authentification requise) :
+Changer les URLs de navigation des boutons "Créer mon anniversaire" et "S'inscrire" (header + hero + footer) :
 
-- **Ecran 1 — "Imaginez..."** : Animation de confettis + particules flottantes. Texte emotionnel : "Imaginez que tous vos proches se reunissent pour celebrer votre anniversaire...". Bouton "Voir comment".
+```
+navigate("/auth?tab=signup")  →  navigate("/auth?tab=signup&discovery=true")
+```
 
-- **Ecran 2 — "Votre page anniversaire"** : Apercu interactif d'une fausse page anniversaire avec mur de messages pre-remplis, album photo, barre de cagnotte animee. Le visiteur peut interagir (scroller, voir les messages). Texte : "Chaque anniversaire devient une celebration collective".
+3 occurrences : ligne 101, ligne 133, ligne 290.
 
-- **Ecran 3 — "Pret a vivre ca ?"** : Resume des benefices (page virale, album souvenir, cagnotte collective, notifications). Bouton CTA principal "Creer mon compte gratuitement" qui ferme la decouverte et focus le formulaire d'inscription. Bouton secondaire "Voir un exemple reel" qui redirige vers une page anniversaire publique existante.
+### 2. `src/pages/Auth.tsx`
 
-Le composant utilise Framer Motion pour les transitions, confetti pour l'ecran 1, et des donnees fictives pour l'apercu.
+Dans l'initialisation du composant, lire le paramètre `discovery` depuis l'URL et déclencher automatiquement `setShowDiscovery(true)` si présent :
 
-### 2. Modification `src/pages/Auth.tsx`
+```typescript
+// Au montage, si ?discovery=true → ouvrir la découverte
+useEffect(() => {
+  const discoveryParam = searchParams.get('discovery');
+  if (discoveryParam === 'true' && !localStorage.getItem('jdv_discovery_seen')) {
+    setShowDiscovery(true);
+  }
+}, []);
+```
 
-- Ajouter un bouton "Decouvrir JDV en 30 secondes" sous le formulaire d'inscription (onglet signup uniquement).
-- Ce bouton ouvre `<PreAuthDiscovery />` en plein ecran.
-- Quand le visiteur termine la decouverte, le formulaire d'inscription recoit le focus automatiquement.
-- Stocker dans `localStorage` (`jdv_discovery_seen`) pour ne pas re-proposer.
+Le bandeau existant "Découvrez JDV en 30 secondes" reste cliquable manuellement. Le `localStorage` empêche de relancer la découverte si déjà vue.
 
-### 3. Enrichir la page `/auth` avec un apercu visuel
-
-- Ajouter une section "teaser" au-dessus du formulaire (mobile) ou a cote (desktop) montrant des elements visuels attrayants : mini-apercu de page anniversaire, compteur anime de "celebrations creees", temoignages courts.
-
-## Details techniques
-
-- **Aucune base de donnees** requise — tout est cote client avec des donnees fictives.
-- **Donnees fictives** pour l'apercu : 3 messages d'anniversaire pre-ecrits, 4 photos placeholder, une barre de cagnotte a 65%.
-- **Performance** : Lazy-load du composant PreAuthDiscovery (React.lazy) car il inclut confetti + animations.
-- **Analytics** : Tracker `discovery_started` et `discovery_completed` via le hook useGoogleAnalytics existant pour mesurer la conversion.
-
-## Fichiers concernes
+## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/PreAuthDiscovery.tsx` | Nouveau — experience de decouverte en 3 ecrans |
-| `src/pages/Auth.tsx` | Ajout bouton "Decouvrir JDV" + section teaser visuelle |
+| `src/pages/Landing.tsx` | Ajouter `&discovery=true` aux 3 navigations vers signup |
+| `src/pages/Auth.tsx` | Lire le param URL et auto-déclencher la découverte |
 
