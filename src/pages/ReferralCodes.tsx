@@ -31,7 +31,7 @@ export default function ReferralCodes() {
 
   const copyPrimaryLink = () => {
     if (primaryCode) {
-      const link = `${window.location.origin}/auth?ref=${primaryCode.code}`;
+      const link = `${getAppBaseUrl()}/auth?ref=${primaryCode.code}`;
       navigator.clipboard.writeText(link);
       toast.success('Lien copié !');
     }
