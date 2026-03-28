@@ -7,14 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
-  PartyPopper, Heart, Camera, Gift, Send, Share2, MessageCircle,
-  Sparkles, ImagePlus, Loader2
+  PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
+  Sparkles, Loader2
 } from "lucide-react";
+import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
 
 interface BirthdayPageData {
@@ -36,12 +37,16 @@ interface WishMessage {
   is_from_fund: boolean | null;
 }
 
-interface PagePhoto {
+interface AlbumItem {
   id: string;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
   created_at: string;
+  media_type: string;
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  memory_text: string | null;
 }
 
 interface FundInfo {
@@ -59,18 +64,15 @@ const BirthdayPage = () => {
 
   const [page, setPage] = useState<BirthdayPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
-  const [photos, setPhotos] = useState<PagePhoto[]>([]);
+  const [albumItems, setAlbumItems] = useState<AlbumItem[]>([]);
   const [fund, setFund] = useState<FundInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [photoCaption, setPhotoCaption] = useState("");
   const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const confettiTriggered = useRef(false);
 
   // Get profile info for the birthday person
@@ -130,14 +132,14 @@ const BirthdayPage = () => {
 
       if (msgs) setMessages(msgs);
 
-      // Load photos
+      // Load album items
       const { data: pics } = await supabase
         .from('birthday_page_photos')
-        .select('id, uploader_name, image_url, caption, created_at')
+        .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
         .eq('birthday_page_id', pageData.id)
         .order('created_at', { ascending: false });
 
-      if (pics) setPhotos(pics);
+      if (pics) setAlbumItems(pics as AlbumItem[]);
 
       // Load fund
       if (pageData.fund_id) {
@@ -199,58 +201,6 @@ const BirthdayPage = () => {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user) {
-      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
-      return;
-    }
-    const file = e.target.files?.[0];
-    if (!file || !page) return;
-
-    setUploadingPhoto(true);
-    try {
-      const ext = file.name.split('.').pop();
-      const path = `${page.id}/${user.id}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('birthday-page-photos')
-        .upload(path, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('birthday-page-photos')
-        .getPublicUrl(path);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name')
-        .eq('user_id', user.id)
-        .single();
-
-      const { data: photo, error } = await supabase
-        .from('birthday_page_photos')
-        .insert({
-          birthday_page_id: page.id,
-          uploader_id: user.id,
-          uploader_name: profile?.first_name || 'Un ami',
-          image_url: urlData.publicUrl,
-          caption: photoCaption || null,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setPhotos(prev => [photo as PagePhoto, ...prev]);
-      setPhotoCaption("");
-      toast.success("Photo ajoutée ! 📸");
-    } catch (err) {
-      toast.error("Erreur lors de l'upload");
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
 
   // Calculate age
   const getAge = () => {
@@ -446,72 +396,16 @@ const BirthdayPage = () => {
           </Card>
         </motion.div>
 
-        {/* Photos section */}
+        {/* Album souvenir */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Camera className="h-5 w-5 text-accent" />
-              <h2 className="font-bold font-poppins">Photos souvenirs</h2>
-              <span className="text-xs text-muted-foreground ml-auto">{photos.length}</span>
-            </div>
-
-            {/* Upload */}
-            <div className="mb-4">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-              {user ? (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed"
-                  disabled={uploadingPhoto}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImagePlus className="h-4 w-4 mr-2" />}
-                  Ajouter une photo
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed"
-                  onClick={() => navigate(`/auth?redirect=/birthday/${slug}&invited=true`)}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Créer un compte pour ajouter une photo
-                </Button>
-              )}
-            </div>
-
-            {/* Gallery */}
-            {photos.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {photos.map((photo) => (
-                  <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group">
-                    <img
-                      src={photo.image_url}
-                      alt={photo.caption || 'Photo souvenir'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      loading="lazy"
-                    />
-                    {photo.caption && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1.5">
-                        <p className="text-[10px] text-white truncate">{photo.caption}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <Camera className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">Aucune photo pour le moment</p>
-              </div>
-            )}
-          </Card>
+          <BirthdayAlbum
+            pageId={page!.id}
+            slug={slug!}
+            firstName={firstName}
+            user={user}
+            items={albumItems}
+            onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
+          />
         </motion.div>
       </div>
 
