@@ -7,7 +7,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface InvitationRequest {
@@ -19,8 +20,10 @@ interface InvitationRequest {
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
+
+  console.log(`[send-invitation] Method: ${req.method}, Auth header present: ${!!req.headers.get("Authorization")}`);
 
   try {
     const supabaseClient = createClient(
@@ -38,6 +41,8 @@ const handler = async (req: Request): Promise<Response> => {
       data: { user },
       error: authError,
     } = await supabaseClient.auth.getUser();
+
+    console.log(`[send-invitation] Auth status: ${user ? 'authenticated' : 'failed'}`, authError?.message || 'OK');
 
     if (authError || !user) {
       console.error("Authentication error:", authError);
