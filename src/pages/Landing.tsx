@@ -99,7 +99,7 @@ const Landing = () => {
                 Connexion
               </Button>
               <Button variant="default" onClick={() => navigate("/auth?tab=signup&discovery=true")}>
-                S'inscrire
+                Célébrer
               </Button>
             </div>
           </div>
@@ -287,7 +287,7 @@ const Landing = () => {
             <div>
               <h3 className="font-semibold text-foreground mb-3">Plateforme</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="/auth?tab=signup&discovery=true" className="hover:text-foreground transition-colors">S'inscrire</a></li>
+                <li><a href="/auth?tab=signup&discovery=true" className="hover:text-foreground transition-colors">Célébrer</a></li>
                 <li><a href="/business-auth" className="hover:text-foreground transition-colors">Espace Vendeur</a></li>
               </ul>
             </div>
