@@ -899,6 +899,34 @@ const Auth = () => {
     }
   };
 
+  // Accept invitation if user came via invitation link
+  const acceptInvitationIfNeeded = async () => {
+    const invitedParam = searchParams.get('invited');
+    const refParam = searchParams.get('ref');
+    if (invitedParam !== 'true' || !refParam) return;
+    
+    try {
+      console.log('🤝 [Invitation] Accepting invitation:', refParam);
+      const { data, error } = await supabase.functions.invoke('accept-invitation', {
+        body: { invitation_id: refParam },
+      });
+      
+      if (error) {
+        console.error('❌ [Invitation] Error:', error);
+        return;
+      }
+      
+      if (data?.success && !data?.already_accepted) {
+        toast({
+          title: '🎉 Ami ajouté !',
+          description: data.message || 'Vous êtes maintenant connectés !',
+        });
+      }
+    } catch (e) {
+      console.error('❌ [Invitation] Unexpected error:', e);
+    }
+  };
+
   const resetOtpFlow = () => {
     setOtpSent(false);
     setCurrentPhone('');
