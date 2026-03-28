@@ -33,6 +33,9 @@ import { CountryDetectedIndicator } from '@/components/auth/CountryDetectedIndic
 import { OtpCountdownCircle } from '@/components/auth/OtpCountdownCircle';
 import { SEOHead, SEO_CONFIGS } from '@/components/SEOHead';
 import { SoftwareApplicationSchema, SpeakableSchema } from '@/components/schema/SoftwareApplicationSchema';
+import { lazy, Suspense } from 'react';
+
+const PreAuthDiscovery = lazy(() => import('@/components/PreAuthDiscovery').then(m => ({ default: m.PreAuthDiscovery })));
 import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
