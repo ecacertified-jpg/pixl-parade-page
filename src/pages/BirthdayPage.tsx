@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
+import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
+import { useSchemaInjector } from "@/components/schema";
 
 interface BirthdayPageData {
   id: string;
