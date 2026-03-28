@@ -66,7 +66,7 @@ export const useOnboarding = () => {
       localStorage.removeItem(`onboarding_step_${user.id}`);
       await supabase
         .from('profiles')
-        .update({ onboarding_completed: true } as any)
+        .update({ onboarding_completed: true })
         .eq('user_id', user.id);
       queryClient.invalidateQueries({ queryKey: ['onboarding-status', user.id] });
     }
