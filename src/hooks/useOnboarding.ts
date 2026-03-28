@@ -56,13 +56,18 @@ export const useOnboarding = () => {
     }
   }, [user]);
 
-  const completeOnboarding = useCallback(() => {
+  const completeOnboarding = useCallback(async () => {
     if (user) {
       localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
       localStorage.removeItem(`onboarding_step_${user.id}`);
+      await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true } as any)
+        .eq('user_id', user.id);
+      queryClient.invalidateQueries({ queryKey: ['onboarding-status', user.id] });
     }
     setManuallyCompleted(true);
-  }, [user]);
+  }, [user, queryClient]);
 
   return {
     shouldShowOnboarding: manuallyCompleted ? false : (shouldShow ?? false),
