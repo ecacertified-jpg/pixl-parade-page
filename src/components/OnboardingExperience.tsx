@@ -560,8 +560,105 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 3: Invite friends */}
+          {/* Step 3: Wishlist */}
           {currentStep === 3 && (
+            <motion.div
+              key="wishlist"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-heart to-gift flex items-center justify-center mb-6 shadow-lg"
+              >
+                <Gift className="h-10 w-10 text-white" />
+              </motion.div>
+
+              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                Qu'est-ce qui te ferait plaisir ? 🎁
+              </h2>
+              <p className="text-muted-foreground font-nunito mb-2">
+                Choisis des idées cadeaux pour que tes proches sachent quoi t'offrir !
+              </p>
+
+              {favoriteIds.length > 0 && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="mb-4 p-2 rounded-xl bg-primary/10 border border-primary/20"
+                >
+                  <p className="text-sm font-semibold text-primary font-poppins">
+                    {favoriteIds.length} article{favoriteIds.length > 1 ? 's' : ''} ajouté{favoriteIds.length > 1 ? 's' : ''} à ta liste ❤️
+                  </p>
+                </motion.div>
+              )}
+
+              {loadingProducts ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
+                  ))}
+                </div>
+              ) : wishlistProducts.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {wishlistProducts.map((product, idx) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="relative rounded-xl border border-border bg-card overflow-hidden shadow-sm"
+                    >
+                      <div className="aspect-square bg-muted">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Gift className="h-8 w-8 text-muted-foreground/40" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        <AnimatedFavoriteButton
+                          isFavorite={favoriteIds.includes(product.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                          size="sm"
+                        />
+                      </div>
+                      <div className="p-2">
+                        <p className="text-xs font-medium font-nunito text-foreground truncate">{product.name}</p>
+                        <p className="text-xs text-primary font-semibold">
+                          {product.price?.toLocaleString()} {product.currency || 'XOF'}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 rounded-xl bg-muted/50 mb-4">
+                  <p className="text-muted-foreground font-nunito text-sm">
+                    Aucun produit disponible pour le moment
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={() => { onComplete(); window.location.href = '/wishlist-catalog'; }}
+                variant="outline"
+                className="gap-2 w-full"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Voir tout le catalogue
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step 4: Invite friends */}
+          {currentStep === 4 && (
             <motion.div
               key="circle"
               initial={{ opacity: 0, y: 30 }}
