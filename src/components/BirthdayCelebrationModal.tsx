@@ -397,6 +397,17 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
                     {sendingThanks ? 'Envoi en cours...' : 'Envoyer à tous'}
                   </Button>
 
+                  {birthdayPageSlug && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-primary/30 text-primary"
+                      onClick={() => setShowShareMenu(true)}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Partager ma page d'anniversaire
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     className="w-full text-muted-foreground"
@@ -409,6 +420,16 @@ export const BirthdayCelebrationModal = ({ open, onClose, notification }: Birthd
             )}
           </AnimatePresence>
         </div>
+
+        {birthdayPageSlug && (
+          <BirthdayPageShareButton
+            open={showShareMenu}
+            onOpenChange={setShowShareMenu}
+            firstName={firstName}
+            pageUrl={`${window.location.origin}/birthday/${birthdayPageSlug}`}
+            age={age}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
