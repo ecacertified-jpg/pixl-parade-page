@@ -342,18 +342,19 @@ serve(async (req) => {
       // WhatsApp to the contact directly (incitation to join JDV)
       if (contact.phone) {
         try {
-          const channel = getPreferredChannel(contact.phone);
-          if (channel === 'whatsapp') {
-            await sendWhatsAppTemplate(
-              contact.phone,
-              'joiedevivre_birthday_countdown_invite',
-              'fr',
-              [contactName, String(daysUntil)],
-              undefined,
-              countdownImageUrl
-            );
-          }
-        } catch {}
+          // Always use WhatsApp for invitation templates — bypass getPreferredChannel
+          // This is an invitation for non-registered users, SMS fallback doesn't carry the same message
+          await sendWhatsAppTemplate(
+            contact.phone,
+            'joiedevivre_birthday_countdown_invite',
+            'fr',
+            [contactName, String(daysUntil)],
+            undefined,
+            countdownImageUrl
+          );
+        } catch (whatsappError) {
+          console.warn(`[Countdown] WhatsApp invite failed for ${contact.phone}:`, whatsappError);
+        }
       }
 
       // Record dedup
