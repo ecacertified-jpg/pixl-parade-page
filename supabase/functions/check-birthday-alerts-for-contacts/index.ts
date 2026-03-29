@@ -202,7 +202,7 @@ serve(async (req) => {
             ownerProfile.phone,
             'joiedevivre_birthday_reminder',
             'fr',
-            [userName, String(daysUntilBirthday)]
+            [userName, String(daysUntilBirthday), 'Préparez une surprise inoubliable 🎁']
           );
           if (waResult.success) {
             sendResult = { success: true };
