@@ -89,6 +89,7 @@ export const OnboardingExperience = ({
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [hasShared, setHasShared] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
@@ -299,6 +300,7 @@ export const OnboardingExperience = ({
     const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     navigator.clipboard.writeText(url);
     setLinkCopied(true);
+    setHasShared(true);
     toast.success('Lien copié !');
     setTimeout(() => setLinkCopied(false), 2000);
   };
@@ -307,6 +309,7 @@ export const OnboardingExperience = ({
     const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(`🎂 Ma page anniversaire est prête ! Écris-moi un message ou participe au cadeau collectif 🎁\n\n${url}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
+    setHasShared(true);
   };
 
   const handleNext = async () => {
@@ -821,6 +824,24 @@ export const OnboardingExperience = ({
                   {linkCopied ? 'Copié !' : 'Copier le lien'}
                 </Button>
               </div>
+
+              {hasShared && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  className="mt-4"
+                >
+                  <Button
+                    onClick={onComplete}
+                    size="lg"
+                    className="w-full gap-2 bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-700 text-white font-bold text-lg py-6 shadow-lg animate-pulse"
+                  >
+                    🎉 ACCÉDER À MON TABLEAU DE BORD
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
