@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, template, language } = await req.json();
+    const { phone, template, language, body_params } = await req.json();
 
     if (!phone || !template) {
       return new Response(JSON.stringify({ error: 'Missing phone or template' }), {
@@ -43,7 +43,21 @@ serve(async (req) => {
 
     const metaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    console.log(`🧪 Test send: template=${template}, phone=${phone}`);
+    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}`);
+
+    const templatePayload: any = {
+      name: template,
+      language: { code: language || 'fr' },
+    };
+
+    if (body_params && Array.isArray(body_params) && body_params.length > 0) {
+      templatePayload.components = [
+        {
+          type: 'body',
+          parameters: body_params.map((p: string) => ({ type: 'text', text: p })),
+        },
+      ];
+    }
 
     const response = await fetch(metaUrl, {
       method: 'POST',
@@ -55,10 +69,7 @@ serve(async (req) => {
         messaging_product: 'whatsapp',
         to: phone,
         type: 'template',
-        template: {
-          name: template,
-          language: { code: language || 'fr' },
-        },
+        template: templatePayload,
       }),
     });
 
