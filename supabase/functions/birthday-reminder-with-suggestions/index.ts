@@ -277,7 +277,7 @@ serve(async (req) => {
         if (!userProfile) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('phone')
+            .select('phone, first_name')
             .eq('user_id', contact.user_id)
             .single();
           userProfile = profile;
@@ -296,7 +296,7 @@ serve(async (req) => {
               userProfile.phone,
               'joiedevivre_birthday_reminder',
               'fr',
-              [contact.name, '1', 'Préparez une surprise inoubliable 🎁']
+              [userProfile.first_name || 'Ami(e)', contact.name, String(daysUntilBirthday)]
             );
             if (!sendResult.success) {
               console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
