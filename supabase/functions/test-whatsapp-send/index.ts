@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, template, language, body_params } = await req.json();
+    const { phone, template, language, body_params, header_image_url } = await req.json();
 
     if (!phone || !template) {
       return new Response(JSON.stringify({ error: 'Missing phone or template' }), {
@@ -43,20 +43,33 @@ serve(async (req) => {
 
     const metaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}`);
+    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}`);
 
     const templatePayload: any = {
       name: template,
       language: { code: language || 'fr' },
     };
 
+    const components: any[] = [];
+
+    // Header image support
+    if (header_image_url) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'image', image: { link: header_image_url } }],
+      });
+    }
+
+    // Body parameters
     if (body_params && Array.isArray(body_params) && body_params.length > 0) {
-      templatePayload.components = [
-        {
-          type: 'body',
-          parameters: body_params.map((p: string) => ({ type: 'text', text: p })),
-        },
-      ];
+      components.push({
+        type: 'body',
+        parameters: body_params.map((p: string) => ({ type: 'text', text: p })),
+      });
+    }
+
+    if (components.length > 0) {
+      templatePayload.components = components;
     }
 
     const response = await fetch(metaUrl, {
