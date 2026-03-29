@@ -1,70 +1,48 @@
 
 
-# Plan : Corriger les paramètres du template et tester l'envoi
+# Plan : Tester l'envoi du template `joiedevivre_birthday_countdown_invite`
 
-## Problème identifié
+## Constat
 
-Le template `joiedevivre_birthday_reminder` attend 3 variables body :
-- **{{1}}** = nom du destinataire (celui qui reçoit le WhatsApp, ex: "Aminata")
-- **{{2}}** = nom de la personne dont c'est l'anniversaire (ex: "Florentin")
-- **{{3}}** = nombre de jours restants (ex: "7")
+Le template Meta a cette structure :
+- **Header** : Image dynamique (doit etre fournie a chaque envoi)
+- **Body** : `Salut {{1}}, Ton anniversaire arrive dans {{2}} jour(s) !...`
+  - `{{1}}` = nom du contact
+  - `{{2}}` = nombre de jours
+- **Bouton CTA** : "Creer mon compte" — URL statique (`https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=birthday_countdown`)
+- **Footer** : "JOIE DE VIVRE - Celebrons ensemble"
 
-Le bouton CTA "Préparer une surprise" a une URL **statique** (`https://joiedevivre-africa.com/shop`) → pas de `buttonParameters`.
+## Probleme
 
-### Code actuel (incorrect)
+La fonction `test-whatsapp-send` ne supporte pas le **header image**, requis par ce template. Un envoi sans image echouera avec une erreur de parametres.
 
-**`check-birthday-alerts-for-contacts/index.ts` ligne 205** :
+## Modifications
+
+### 1. Enrichir `test-whatsapp-send` pour supporter le header image
+
+Ajouter un parametre `header_image_url` au body JSON. Si present, ajouter un composant `header` au payload template.
+
+### 2. Tester l'envoi avec des donnees reelles
+
+Utiliser `supabase--curl_edge_functions` pour appeler `test-whatsapp-send` avec :
+- Un contact reel de la base (nom + telephone)
+- L'image du header depuis le storage Supabase
+- Les 2 body params corrects
+
+### 3. Bug potentiel identifie
+
+Dans `birthday-wishes/index.ts` (ligne 345), le code fait :
 ```ts
-[userName, String(daysUntilBirthday), 'Préparez une surprise inoubliable 🎁']
-```
-- {{1}} reçoit `userName` (devrait être le nom du destinataire/owner)
-- {{3}} reçoit un texte libre au lieu du nombre de jours
-
-**`birthday-reminder-with-suggestions/index.ts` ligne 299** :
-```ts
-[contact.name, '1', 'Préparez une surprise inoubliable 🎁']
-```
-- Même problème : 3 params mais {{1}} devrait être le destinataire
-
-## Corrections
-
-### 1. `check-birthday-alerts-for-contacts/index.ts`
-
-Récupérer le prénom du owner (contact.name ou ownerProfile.first_name) et corriger l'ordre :
-```ts
-// Avant
-[userName, String(daysUntilBirthday), 'Préparez une surprise inoubliable 🎁']
-
-// Après — {{1}}=destinataire, {{2}}=fêté, {{3}}=jours
-[contact.name || 'Ami(e)', userName, String(daysUntilBirthday)]
+const channel = getPreferredChannel(contact.phone);
+if (channel === 'whatsapp') { ... }
 ```
 
-### 2. `birthday-reminder-with-suggestions/index.ts`
+Or `getPreferredChannel` retourne `'sms'` pour les numeros `+225` (Cote d'Ivoire). Resultat : **aucun utilisateur ivoirien ne recoit ce template**. Ce template est une invitation pour des non-inscrits — le SMS fallback n'envoie pas le meme message. Il faudrait toujours tenter WhatsApp pour ce template d'invitation.
 
-Corriger de la même façon :
-```ts
-// Avant
-[contact.name, '1', 'Préparez une surprise inoubliable 🎁']
-
-// Après — {{1}}=destinataire, {{2}}=fêté, {{3}}=jours
-[userProfile.first_name || 'Ami(e)', contact.name, String(daysUntilBirthday)]
-```
-
-### 3. Tester l'envoi
-
-Après déploiement, appeler `test-whatsapp-send` avec un numéro de test et les 3 body parameters corrects pour valider la réception.
-
-## Données de test disponibles
-
-| Owner (destinataire) | Contact (fêté) | Téléphone owner |
-|---------------------|----------------|-----------------|
-| Françoise | Aboutou WhatsApp | +2250708895257 |
-| Aboutou WhatsApp | Richmond | +2250546566646 |
-
-## Fichiers concernés
+## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Corriger l'ordre des 3 params |
-| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Corriger l'ordre des 3 params |
+| `supabase/functions/test-whatsapp-send/index.ts` | Ajouter support `header_image_url` |
+| `supabase/functions/birthday-wishes/index.ts` (ligne 345) | Supprimer la condition `getPreferredChannel` pour toujours envoyer via WhatsApp |
 
