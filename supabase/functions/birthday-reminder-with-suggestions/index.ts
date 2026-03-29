@@ -296,7 +296,7 @@ serve(async (req) => {
               userProfile.phone,
               'joiedevivre_birthday_reminder',
               'fr',
-              [contact.name, '1']
+              [contact.name, '1', 'Préparez une surprise inoubliable 🎁']
             );
             if (!sendResult.success) {
               console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${sendResult.error}`);
