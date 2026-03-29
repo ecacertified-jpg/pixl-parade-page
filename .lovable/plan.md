@@ -1,57 +1,70 @@
 
 
-# Plan : Diagnostiquer et corriger l'erreur #132001 sur joiedevivre_birthday_reminder
+# Plan : Corriger les paramètres du template et tester l'envoi
 
-## Diagnostic
+## Problème identifié
 
-Les logs `whatsapp_template_logs` montrent 100% d'echecs avec `(#132001) Template name does not exist` pour le template `joiedevivre_birthday_reminder`. Le template est approuve dans Meta mais l'API ne le reconnait pas.
+Le template `joiedevivre_birthday_reminder` attend 3 variables body :
+- **{{1}}** = nom du destinataire (celui qui reçoit le WhatsApp, ex: "Aminata")
+- **{{2}}** = nom de la personne dont c'est l'anniversaire (ex: "Florentin")
+- **{{3}}** = nombre de jours restants (ex: "7")
 
-## Actions a realiser
+Le bouton CTA "Préparer une surprise" a une URL **statique** (`https://joiedevivre-africa.com/shop`) → pas de `buttonParameters`.
 
-### 1. Verifier la correspondance WABA / Phone Number ID
+### Code actuel (incorrect)
 
-Dans le Supabase Dashboard (Edge Functions secrets), verifier que `WHATSAPP_PHONE_NUMBER_ID` correspond bien au numero associe au WABA ou le template est approuve. Un template approuve sur un WABA A ne fonctionne pas avec un numero du WABA B.
+**`check-birthday-alerts-for-contacts/index.ts` ligne 205** :
+```ts
+[userName, String(daysUntilBirthday), 'Préparez une surprise inoubliable 🎁']
+```
+- {{1}} reçoit `userName` (devrait être le nom du destinataire/owner)
+- {{3}} reçoit un texte libre au lieu du nombre de jours
 
-### 2. Verifier le nom exact du template
+**`birthday-reminder-with-suggestions/index.ts` ligne 299** :
+```ts
+[contact.name, '1', 'Préparez une surprise inoubliable 🎁']
+```
+- Même problème : 3 params mais {{1}} devrait être le destinataire
 
-Dans Meta Business Suite > WhatsApp Manager > Message Templates, copier le nom exact du template (attention aux underscores vs tirets, majuscules, espaces invisibles). Le comparer caractere par caractere avec `joiedevivre_birthday_reminder`.
+## Corrections
 
-### 3. Tester l'appel API manuellement
+### 1. `check-birthday-alerts-for-contacts/index.ts`
 
-Executer un test via curl dans le terminal Supabase ou via l'outil de test Edge Function pour isoler le probleme :
+Récupérer le prénom du owner (contact.name ou ownerProfile.first_name) et corriger l'ordre :
+```ts
+// Avant
+[userName, String(daysUntilBirthday), 'Préparez une surprise inoubliable 🎁']
 
-```bash
-curl -X POST "https://graph.facebook.com/v18.0/PHONE_NUMBER_ID/messages" \
-  -H "Authorization: Bearer ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messaging_product": "whatsapp",
-    "to": "22901XXXXXXX",
-    "type": "template",
-    "template": {
-      "name": "joiedevivre_birthday_reminder",
-      "language": {"code": "fr"},
-      "components": [{"type": "body", "parameters": [{"type": "text", "text": "Test"}, {"type": "text", "text": "7"}]}]
-    }
-  }'
+// Après — {{1}}=destinataire, {{2}}=fêté, {{3}}=jours
+[contact.name || 'Ami(e)', userName, String(daysUntilBirthday)]
 ```
 
-### 4. Si le nom differe, corriger dans le code
+### 2. `birthday-reminder-with-suggestions/index.ts`
 
-Mettre a jour le nom du template dans les 2 fichiers Edge Functions qui l'utilisent :
+Corriger de la même façon :
+```ts
+// Avant
+[contact.name, '1', 'Préparez une surprise inoubliable 🎁']
 
-| Fichier | Ligne |
-|---------|-------|
-| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | 203 |
-| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | 297 |
-| `supabase/functions/check-whatsapp-template-health/index.ts` | 11 |
-| `src/hooks/useWhatsAppTemplateInventory.ts` | 25 |
+// Après — {{1}}=destinataire, {{2}}=fêté, {{3}}=jours
+[userProfile.first_name || 'Ami(e)', contact.name, String(daysUntilBirthday)]
+```
 
-### 5. Verifier la version de l'API Graph
+### 3. Tester l'envoi
 
-Le code utilise `v18.0` de l'API Graph Facebook. Si le template a ete cree recemment, il peut necessiter une version plus recente (ex: `v21.0`). Mettre a jour dans `sms-sender.ts` ligne 409 si necessaire.
+Après déploiement, appeler `test-whatsapp-send` avec un numéro de test et les 3 body parameters corrects pour valider la réception.
 
-## Prochaine etape immediate
+## Données de test disponibles
 
-Avant tout changement de code, l'utilisateur doit verifier dans Meta Business Suite que le nom et le WABA sont corrects. Si le nom est identique et le WABA correct, le probleme vient probablement de la version de l'API ou d'un delai de propagation.
+| Owner (destinataire) | Contact (fêté) | Téléphone owner |
+|---------------------|----------------|-----------------|
+| Françoise | Aboutou WhatsApp | +2250708895257 |
+| Aboutou WhatsApp | Richmond | +2250546566646 |
+
+## Fichiers concernés
+
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/check-birthday-alerts-for-contacts/index.ts` | Corriger l'ordre des 3 params |
+| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Corriger l'ordre des 3 params |
 
