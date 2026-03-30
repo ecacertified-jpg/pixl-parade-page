@@ -82,9 +82,12 @@ export const OnboardingExperience = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [invitePhone, setInvitePhone] = useState('');
   const [invitedCount, setInvitedCount] = useState(0);
+  const [invitationsSentCount, setInvitationsSentCount] = useState(0);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+  const [friendFormLink, setFriendFormLink] = useState<string | null>(null);
+  const [generatingFormLink, setGeneratingFormLink] = useState(false);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -256,6 +259,51 @@ export const OnboardingExperience = ({
       `🎉 ${firstName || 'Je'} t'invite à rejoindre Joie de Vivre ! Célèbre les moments importants avec tes proches ✨\n\nhttps://joiedevivre-africa.com/auth?invited=true`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  // Generate friend form link
+  const handleGenerateFriendFormLink = async () => {
+    if (!user || generatingFormLink) return;
+    setGeneratingFormLink(true);
+    try {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      const { error } = await supabase.from('friend_form_tokens').insert({
+        token,
+        user_id: user.id,
+        prefilled_name: '',
+        prefilled_relation: '',
+        status: 'pending',
+        expires_at: expiresAt.toISOString(),
+      });
+      if (error) { toast.error("Erreur lors de la génération du lien"); return; }
+      const link = `${getAppBaseUrl()}/fill-friend-info/${token}`;
+      setFriendFormLink(link);
+    } catch { toast.error("Erreur inattendue"); } finally { setGeneratingFormLink(false); }
+  };
+
+  const handleShareFriendFormWhatsApp = () => {
+    if (!friendFormLink) return;
+    const text = encodeURIComponent(
+      `🎁 Salut ! Pour ne jamais oublier ton anniversaire, remplis ce petit formulaire :\n\n${friendFormLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    setInvitationsSentCount(c => c + 1);
+  };
+
+  const handleCopyFriendFormLink = () => {
+    if (!friendFormLink) return;
+    navigator.clipboard.writeText(friendFormLink);
+    toast.success('Lien copié ! 📋');
+    setInvitationsSentCount(c => c + 1);
+  };
+
+  const handleShareFriendFormSMS = () => {
+    if (!friendFormLink) return;
+    const text = encodeURIComponent(`🎁 Remplis ce formulaire pour que je n'oublie jamais ton anniversaire : ${friendFormLink}`);
+    window.open(`sms:?body=${text}`, '_blank');
+    setInvitationsSentCount(c => c + 1);
   };
 
   // Create or fetch birthday page in DB on step 5
@@ -682,73 +730,77 @@ export const OnboardingExperience = ({
                 Invite tes proches ! 👥
               </h2>
               <p className="text-muted-foreground font-nunito mb-6">
-                Plus ton cercle est grand, plus tu recevras de surprises
+                Envoie un formulaire à un proche pour qu'il complète ses infos
               </p>
 
-              {invitedCount > 0 && (
+              {(invitedCount > 0 || invitationsSentCount > 0) && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
                 >
                   <p className="text-lg font-bold text-green-600 font-poppins">
-                    +{invitedCount} ami{invitedCount > 1 ? 's' : ''} invité{invitedCount > 1 ? 's' : ''} ! 🎉
+                    {invitationsSentCount > 0 && `+${invitationsSentCount} invitation${invitationsSentCount > 1 ? 's' : ''} envoyée${invitationsSentCount > 1 ? 's' : ''} 🎉`}
+                    {invitedCount > 0 && invitationsSentCount > 0 && ' · '}
+                    {invitedCount > 0 && `+${invitedCount} ami${invitedCount > 1 ? 's' : ''} ajouté${invitedCount > 1 ? 's' : ''}`}
                   </p>
                 </motion.div>
               )}
 
-              <div className="flex gap-2 mb-4">
-                <Input
-                  value={invitePhone}
-                  onChange={e => {
-                    setInvitePhone(e.target.value);
-                    if (generatedInviteLink) setGeneratedInviteLink(null);
-                  }}
-                  placeholder="Numéro de téléphone"
-                  className="flex-1"
-                />
-                <Button onClick={handleInvite} disabled={!invitePhone.trim()} size="icon" className="bg-primary">
-                  <ArrowRight className="h-4 w-4" />
+              {!friendFormLink ? (
+                <Button
+                  onClick={handleGenerateFriendFormLink}
+                  disabled={generatingFormLink}
+                  className="gap-2 w-full bg-primary hover:bg-primary/90 mb-4"
+                  size="lg"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {generatingFormLink ? 'Génération...' : 'Envoyer à un proche pour qu\'il complète'}
                 </Button>
-              </div>
-
-              {generatedInviteLink && (
+              ) : (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
                 >
                   <p className="text-sm font-nunito text-muted-foreground">
-                    📋 Partagez ce lien avec votre ami :
+                    📋 Partagez ce lien avec votre proche :
                   </p>
                   <div className="flex gap-2">
                     <Input
-                      value={generatedInviteLink}
+                      value={friendFormLink}
                       readOnly
                       className="flex-1 text-xs bg-muted"
                     />
-                    <Button onClick={handleCopyInviteLink} size="icon" variant="outline" className="shrink-0">
+                    <Button onClick={handleCopyFriendFormLink} size="icon" variant="outline" className="shrink-0">
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleShareFriendFormWhatsApp}
+                      variant="outline"
+                      className="gap-2 flex-1 border-green-500/30 text-green-600 hover:bg-green-50"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      onClick={handleShareFriendFormSMS}
+                      variant="outline"
+                      className="gap-2 flex-1"
+                    >
+                      SMS
+                    </Button>
+                  </div>
                   <Button
-                    onClick={handleShareInviteLinkWhatsApp}
-                    variant="outline"
-                    className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50"
+                    onClick={() => { setFriendFormLink(null); }}
+                    variant="ghost"
+                    className="w-full text-sm text-muted-foreground"
                   >
-                    <Share2 className="h-4 w-4" />
-                    Envoyer via WhatsApp
+                    Générer un nouveau lien
                   </Button>
                 </motion.div>
-              )}
-
-              {!generatedInviteLink && (
-                <div className="flex flex-col gap-3">
-                  <Button onClick={handleShareWhatsApp} variant="outline" className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50">
-                    <Share2 className="h-4 w-4" />
-                    Partager sur WhatsApp
-                  </Button>
-                </div>
               )}
             </motion.div>
           )}
