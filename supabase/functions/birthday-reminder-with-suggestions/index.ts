@@ -386,6 +386,23 @@ serve(async (req) => {
                   headerImageUrl
                 );
 
+                // Log to whatsapp_template_logs for centralized monitoring
+                const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+                  template_name: 'joiedevivre_birthday_friend_alert',
+                  recipient_phone: normalizedPhone,
+                  country_prefix: normalizedPhone.substring(0, 4),
+                  whatsapp_message_id: sendResult.sid || null,
+                  status: sendResult.success ? 'sent' : 'failed',
+                  body_params: {
+                    contact_name: contact.name,
+                    days: daysUntilBirthday,
+                    creator: creatorName,
+                    target_amount: activeFund.target_amount
+                  },
+                  error_message: sendResult.error || null,
+                });
+                if (logErr) console.error('Failed to log birthday_friend_alert:', logErr);
+
                 // Fallback to free text if template fails
                 if (!sendResult.success) {
                   console.log(`⚠️ [WhatsApp] Template failed for ${recipientName}, trying free text: ${sendResult.error}`);
