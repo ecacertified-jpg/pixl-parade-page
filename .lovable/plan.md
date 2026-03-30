@@ -1,30 +1,43 @@
 
 
-# Plan : Invoquer `birthday-reminder-with-suggestions` et vérifier les logs
+# Plan : Ajouter le logging centralise pour `joiedevivre_order_confirmed` et `joiedevivre_order_rejected`
 
-## Étapes
+## Resultat du test
 
-### 1. Invoquer la fonction Edge
+- **Template envoye** : `joiedevivre_order_confirmed` accepte par Meta (ID: `wamid...RjUA`)
+- **Parametres valides** : 3 body params (`prenom`, `montant`, `nom_business`), pas de header image, pas de bouton CTA dynamique
+- **Logging** : 0 entrees dans `whatsapp_template_logs` — le code n'insere rien dans cette table
 
-Appeler `birthday-reminder-with-suggestions` via POST pour déclencher un cycle complet (envoi des templates birthday_friend_alert et birthday_create_fund_nudge).
+## Correction
 
-### 2. Lire les logs Edge Function
+Dans `supabase/functions/handle-order-action/index.ts`, apres l'envoi WhatsApp (ligne 228-229), ajouter un insert dans `whatsapp_template_logs` pour les deux templates (`joiedevivre_order_confirmed` et `joiedevivre_order_rejected`) :
 
-Consulter les logs de `birthday-reminder-with-suggestions` pour voir les messages de debug et confirmer l'exécution.
+```typescript
+// Après ligne 229 (après le log du résultat WhatsApp)
+try {
+  await supabase.from('whatsapp_template_logs').insert({
+    template_name: templateName,
+    recipient_phone: customerPhone,
+    country_prefix: customerPhone.substring(0, 4),
+    whatsapp_message_id: waResult.sid || null,
+    status: waResult.success ? 'sent' : 'failed',
+    body_params: {
+      customer_name: customerFirstName,
+      amount: formattedAmount,
+      business_name: bizName
+    },
+    error_message: waResult.error || null,
+  });
+} catch (logErr) {
+  console.error('Failed to log order template:', logErr);
+}
+```
 
-### 3. Vérifier `whatsapp_template_logs`
+Ce logging couvre les deux cas (accept/reject) car `templateName` est deja conditionnel.
 
-Requêter les entrées récentes pour `joiedevivre_birthday_create_fund_nudge` et `joiedevivre_birthday_friend_alert` pour confirmer que le logging centralisé fonctionne.
+## Fichier concerne
 
-### 4. Vérifier `birthday_contact_alerts`
-
-Requêter les alertes récentes pour confirmer la cohérence entre les deux tables de logs.
-
-## Outils utilisés
-
-| Outil | Action |
-|-------|--------|
-| `supabase--curl_edge_functions` | Invoquer la fonction |
-| `supabase--edge_function_logs` | Lire les logs d'exécution |
-| `supabase--read_query` | Vérifier `whatsapp_template_logs` et `birthday_contact_alerts` |
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/handle-order-action/index.ts` | Ajouter insert `whatsapp_template_logs` apres l'envoi WhatsApp (ligne 229) |
 
