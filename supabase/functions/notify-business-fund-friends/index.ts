@@ -263,6 +263,23 @@ serve(async (req) => {
           } else {
             console.warn('⚠️ Beneficiary invite failed:', result);
           }
+
+          // Log beneficiary invite in whatsapp_template_logs
+          const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+            template_name: 'joiedevivre_fund_beneficiary_invite',
+            recipient_phone: beneficiary_phone.substring(0, beneficiary_phone.length - 4) + '****',
+            country_prefix: beneficiary_phone.substring(0, 4),
+            whatsapp_message_id: result.messageId || null,
+            status: result.success ? 'sent' : 'failed',
+            body_params: {
+              beneficiary_name: beneficiaryDisplayName,
+              creator_name: creatorName,
+              product_name: product_name,
+              target_amount: formattedTarget
+            },
+            error_message: result.error || null,
+          });
+          if (logErr) console.error('Failed to log fund_beneficiary_invite:', logErr);
         } catch (e) {
           console.warn('⚠️ Beneficiary invite error (non-blocking):', e);
         }
