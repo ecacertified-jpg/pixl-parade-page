@@ -730,73 +730,77 @@ export const OnboardingExperience = ({
                 Invite tes proches ! 👥
               </h2>
               <p className="text-muted-foreground font-nunito mb-6">
-                Plus ton cercle est grand, plus tu recevras de surprises
+                Envoie un formulaire à un proche pour qu'il complète ses infos
               </p>
 
-              {invitedCount > 0 && (
+              {(invitedCount > 0 || invitationsSentCount > 0) && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
                 >
                   <p className="text-lg font-bold text-green-600 font-poppins">
-                    +{invitedCount} ami{invitedCount > 1 ? 's' : ''} invité{invitedCount > 1 ? 's' : ''} ! 🎉
+                    {invitationsSentCount > 0 && `+${invitationsSentCount} invitation${invitationsSentCount > 1 ? 's' : ''} envoyée${invitationsSentCount > 1 ? 's' : ''} 🎉`}
+                    {invitedCount > 0 && invitationsSentCount > 0 && ' · '}
+                    {invitedCount > 0 && `+${invitedCount} ami${invitedCount > 1 ? 's' : ''} ajouté${invitedCount > 1 ? 's' : ''}`}
                   </p>
                 </motion.div>
               )}
 
-              <div className="flex gap-2 mb-4">
-                <Input
-                  value={invitePhone}
-                  onChange={e => {
-                    setInvitePhone(e.target.value);
-                    if (generatedInviteLink) setGeneratedInviteLink(null);
-                  }}
-                  placeholder="Numéro de téléphone"
-                  className="flex-1"
-                />
-                <Button onClick={handleInvite} disabled={!invitePhone.trim()} size="icon" className="bg-primary">
-                  <ArrowRight className="h-4 w-4" />
+              {!friendFormLink ? (
+                <Button
+                  onClick={handleGenerateFriendFormLink}
+                  disabled={generatingFormLink}
+                  className="gap-2 w-full bg-primary hover:bg-primary/90 mb-4"
+                  size="lg"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {generatingFormLink ? 'Génération...' : 'Envoyer à un proche pour qu\'il complète'}
                 </Button>
-              </div>
-
-              {generatedInviteLink && (
+              ) : (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
                 >
                   <p className="text-sm font-nunito text-muted-foreground">
-                    📋 Partagez ce lien avec votre ami :
+                    📋 Partagez ce lien avec votre proche :
                   </p>
                   <div className="flex gap-2">
                     <Input
-                      value={generatedInviteLink}
+                      value={friendFormLink}
                       readOnly
                       className="flex-1 text-xs bg-muted"
                     />
-                    <Button onClick={handleCopyInviteLink} size="icon" variant="outline" className="shrink-0">
+                    <Button onClick={handleCopyFriendFormLink} size="icon" variant="outline" className="shrink-0">
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleShareFriendFormWhatsApp}
+                      variant="outline"
+                      className="gap-2 flex-1 border-green-500/30 text-green-600 hover:bg-green-50"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      onClick={handleShareFriendFormSMS}
+                      variant="outline"
+                      className="gap-2 flex-1"
+                    >
+                      SMS
+                    </Button>
+                  </div>
                   <Button
-                    onClick={handleShareInviteLinkWhatsApp}
-                    variant="outline"
-                    className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50"
+                    onClick={() => { setFriendFormLink(null); }}
+                    variant="ghost"
+                    className="w-full text-sm text-muted-foreground"
                   >
-                    <Share2 className="h-4 w-4" />
-                    Envoyer via WhatsApp
+                    Générer un nouveau lien
                   </Button>
                 </motion.div>
-              )}
-
-              {!generatedInviteLink && (
-                <div className="flex flex-col gap-3">
-                  <Button onClick={handleShareWhatsApp} variant="outline" className="gap-2 w-full border-green-500/30 text-green-600 hover:bg-green-50">
-                    <Share2 className="h-4 w-4" />
-                    Partager sur WhatsApp
-                  </Button>
-                </div>
               )}
             </motion.div>
           )}
