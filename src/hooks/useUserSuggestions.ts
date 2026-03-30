@@ -40,36 +40,29 @@ const fetchUserSuggestions = async (
   const excludeFilter = `(${excludeList.join(',')})`;
 
   // Batch 2: queries that depend on excludeList/followedUserIds
-  const batch2Promises: Promise<any>[] = [
-    // Friends of friends
-    followedUserIds.length > 0
-      ? supabase.from('user_follows').select('following_id')
-          .in('follower_id', followedUserIds)
-          .not('following_id', 'in', excludeFilter)
-      : Promise.resolve({ data: [] }),
-    // User posts with occasions
-    supabase.from('posts').select('user_id, occasion')
-      .not('user_id', 'in', excludeFilter)
-      .not('occasion', 'is', null),
-    // My posts with occasions
-    supabase.from('posts').select('occasion')
-      .eq('user_id', userId)
-      .not('occasion', 'is', null),
-    // Gift activity
-    supabase.from('post_reactions').select('user_id')
-      .eq('reaction_type', 'gift')
-      .not('user_id', 'in', excludeFilter),
-    // Same city users
-    myCity
-      ? supabase.from('profiles').select('user_id')
-          .eq('city', myCity)
-          .not('user_id', 'in', excludeFilter)
-          .limit(20)
-      : Promise.resolve({ data: [] }),
-  ];
-
   const [friendsOfFriendsRes, userPostsRes, myPostsRes, giftActivityRes, sameCityRes] =
-    await Promise.all(batch2Promises);
+    await Promise.all([
+      followedUserIds.length > 0
+        ? supabase.from('user_follows').select('following_id')
+            .in('follower_id', followedUserIds)
+            .not('following_id', 'in', excludeFilter)
+        : Promise.resolve({ data: [] as any[] }),
+      supabase.from('posts').select('user_id, occasion')
+        .not('user_id', 'in', excludeFilter)
+        .not('occasion', 'is', null),
+      supabase.from('posts').select('occasion')
+        .eq('user_id', userId)
+        .not('occasion', 'is', null),
+      supabase.from('post_reactions').select('user_id')
+        .eq('reaction_type', 'gift')
+        .not('user_id', 'in', excludeFilter),
+      myCity
+        ? supabase.from('profiles').select('user_id')
+            .eq('city', myCity)
+            .not('user_id', 'in', excludeFilter)
+            .limit(20)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
 
   // Build maps
   const mutualFollowsMap = new Map<string, number>();
