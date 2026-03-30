@@ -43,7 +43,7 @@ serve(async (req) => {
 
     const metaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}`);
+    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}, header_video_url=${header_video_url || 'none'}, button_params=${JSON.stringify(button_params)}`);
 
     const templatePayload: any = {
       name: template,
