@@ -1,60 +1,39 @@
 
 
-# Plan : Tester le template `joiedevivre_refund_alert` et ajouter le logging
+# Plan : Ajouter le logging centralisé pour `joiedevivre_fund_beneficiary_invite`
 
-## Analyse du template Meta (captures)
+## Problème
 
-- **Header** : Aucun
-- **Body** : 1 variable — `{{1}}` = ID court de la commande
-- **Footer** : JOIE DE VIVRE
-- **Bouton CTA** : "Gérer la demande" — URL **statique** `https://joiedevivre-africa.com/business-account?tab=orders`
-- **Pas de `button_params`** (URL statique, pas dynamique)
+Dans `notify-business-fund-friends/index.ts` (lignes 252-268), le template `joiedevivre_fund_beneficiary_invite` est envoyé au bénéficiaire mais jamais loggé dans `whatsapp_template_logs`. Il est donc invisible dans le dashboard `/admin/whatsapp-templates`.
 
-## Verification du code
+## Modification
 
-Le code dans `notify-order-confirmation/index.ts` (ligne 136-141) envoie correctement :
-- `body_params: [shortOrderId]` (1 param)
-- Pas de `button_params` (bouton statique)
-- Pas de `header_image_url`
-
-**Probleme** : Aucun insert dans `whatsapp_template_logs` apres l'envoi. Le template est invisible dans le dashboard de monitoring.
-
-## Etapes
-
-### 1. Tester le template via `test-whatsapp-send`
-
-Envoyer au numero verifie `+2250708895257` :
-- `template`: `joiedevivre_refund_alert`
-- `body_params`: `["81973980"]`
-- Pas de `header_image_url`, pas de `button_params`
-
-### 2. Ajouter le logging centralise
-
-Dans `notify-order-confirmation/index.ts`, apres ligne 149 (`smsSent = sendResult.success`), ajouter :
+Dans `notify-business-fund-friends/index.ts`, après ligne 265 (`console.warn`), ajouter un insert dans `whatsapp_template_logs` couvrant succès et échec :
 
 ```typescript
-// Log refund alert in whatsapp_template_logs
-if (channel === 'whatsapp') {
-  const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
-    template_name: 'joiedevivre_refund_alert',
-    recipient_phone: businessPhone,
-    country_prefix: businessPhone.substring(0, 4),
-    whatsapp_message_id: sendResult.sid || null,
-    status: sendResult.success ? 'sent' : 'failed',
-    body_params: { order_id: shortOrderId },
-    error_message: sendResult.error || null,
-  });
-  if (logErr) console.error('Failed to log refund_alert:', logErr);
-}
+// Log beneficiary invite in whatsapp_template_logs
+const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+  template_name: 'joiedevivre_fund_beneficiary_invite',
+  recipient_phone: beneficiary_phone.substring(0, beneficiary_phone.length - 4) + '****',
+  country_prefix: beneficiary_phone.substring(0, 4),
+  whatsapp_message_id: result.messageId || null,
+  status: result.success ? 'sent' : 'failed',
+  body_params: {
+    beneficiary_name: beneficiaryDisplayName,
+    creator_name: creatorName,
+    product_name: product_name,
+    target_amount: formattedTarget
+  },
+  error_message: result.error || null,
+});
+if (logErr) console.error('Failed to log fund_beneficiary_invite:', logErr);
 ```
 
-### 3. Deployer et verifier
+Ce bloc doit être placé **à l'intérieur** du `try` (après ligne 264), pour couvrir les deux cas (`result.success` true ou false). Le `catch` (ligne 266) ne log pas car on n'a pas de `result`.
 
-Redeployer la fonction `notify-order-confirmation` puis confirmer le deploiement.
-
-## Fichier concerne
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/notify-order-confirmation/index.ts` | Ajouter insert `whatsapp_template_logs` apres ligne 149 |
+| `supabase/functions/notify-business-fund-friends/index.ts` | Ajouter insert `whatsapp_template_logs` après ligne 264 |
 
