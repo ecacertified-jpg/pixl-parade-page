@@ -40,6 +40,9 @@ serve(async (req) => {
 
     console.log(`Found ${contacts?.length || 0} non-registered contacts older than ${MIN_AGE_DAYS} days`);
 
+    const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
+      || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
+
     let totalSent = 0;
     let totalSkipped = 0;
     let totalErrors = 0;
