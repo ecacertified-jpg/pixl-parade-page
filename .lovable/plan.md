@@ -1,42 +1,43 @@
 
 
-# Plan : Envoyer `joiedevivre_birthday_celebration` à tous les anniversaires du jour
+# Plan : Créer le CRON job manquant pour `birthday-wishes`
 
-## Problèmes
+## Diagnostic
 
-1. **`getPreferredChannel` bloque les +225** : Ligne 632, le code vérifie `if (channel === 'whatsapp')` avant d'envoyer. Les numéros ivoiriens retournent `'sms'`, donc ils sont exclus.
+La fonction Edge `birthday-wishes` n'a **aucun CRON job** configuré dans `pg_cron`. Les logs sont vides car elle n'est tout simplement jamais appelée automatiquement.
 
-2. **Contacts non traités** : La Part B ne boucle que sur `todayBirthdays` (profils). Les contacts dont c'est l'anniversaire ne reçoivent pas le template celebration.
+Les 4 jobs birthday existants sont :
+- `check-birthday-alerts-for-contacts-daily` (00h30) → appelle `check-birthday-alerts-for-contacts`
+- `notify-admin-birthdays-daily` (00h15) → appelle `notify-admin-birthdays`
+- `birthday-reminder-with-suggestions-daily` (01h00) → appelle `birthday-reminder-with-suggestions`
+- `check-birthday-opportunities-daily` (08h00) → appelle `notify-business-birthday-opportunity`
 
-## Corrections dans `birthday-wishes/index.ts`
+**Aucun** n'appelle `birthday-wishes`.
 
-### 1. Supprimer la condition `getPreferredChannel` pour la célébration
+## Correction
 
-Remplacer lignes 632-633 :
-```ts
-// AVANT
-const channel = getPreferredChannel(profile.phone);
-if (channel === 'whatsapp') {
+Créer un CRON job `birthday-wishes-daily` planifié à **00h01 UTC** (avant les autres jobs birthday) via SQL insert dans `cron.schedule`. Utiliser la clé `service_role` (comme le job `check-birthday-opportunities-daily`) car la fonction a besoin d'accéder aux données de tous les utilisateurs.
 
-// APRÈS — toujours tenter WhatsApp pour la célébration
-if (profile.phone) {
+```sql
+SELECT cron.schedule(
+  'birthday-wishes-daily',
+  '1 0 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://vaimfeurvzokepqqqrsl.supabase.co/functions/v1/birthday-wishes',
+    headers := '{"Content-Type": "application/json", "Authorization": "Bearer <SERVICE_ROLE_KEY>"}'::jsonb,
+    body := concat('{"timestamp": "', now(), '"}')::jsonb
+  ) AS request_id;
+  $$
+);
 ```
 
-Supprimer le `}` fermant correspondant (ligne 678).
-
-### 2. Ajouter l'envoi aux contacts dont c'est l'anniversaire
-
-Après la boucle des profils (après ligne 687), ajouter une section qui :
-- Filtre `allContacts` pour ceux dont l'anniversaire est aujourd'hui
-- Pour chaque contact avec un téléphone :
-  - Vérifie la déduplication via `birthday_contact_alerts` (alert_type = `birthday_celebration_contact`)
-  - Envoie `joiedevivre_birthday_celebration` avec `[contactName, "Que cette année soit exceptionnelle !"]` + bouton `['birthday']` + vidéo par défaut
-  - Enregistre dans `birthday_contact_alerts`
-  - Notifie aussi le propriétaire du contact (in-app) que c'est l'anniversaire de son contact
+Après création du CRON, déclencher manuellement la fonction via `supabase--curl_edge_functions` pour envoyer immédiatement le template `joiedevivre_birthday_celebration` aux 7 utilisateurs dont l'anniversaire est aujourd'hui (30 mars).
 
 ## Fichiers concernés
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/birthday-wishes/index.ts` | Supprimer condition channel, ajouter boucle contacts jour J |
+| Action | Détail |
+|--------|--------|
+| SQL insert via `cron.schedule` | Créer le job `birthday-wishes-daily` à 00h01 UTC |
+| Invocation manuelle | Appeler `birthday-wishes` pour traiter les anniversaires du 30 mars |
 
