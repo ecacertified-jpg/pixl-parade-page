@@ -1,31 +1,31 @@
 
 
-# Plan : Tester l'envoi du template `joiedevivre_fund_completed`
+# Plan : Tester l'envoi du template `joiedevivre_contribution_reminder`
 
 ## Analyse du template Meta (captures)
 
-- **Header** : Image (obligatoire)
-- **Body** : 4 variables — `{{1}}` prenom, `{{2}}` titre cagnotte, `{{3}}` beneficiaire, `{{4}}` montant
-- **Bouton CTA** : "Voir la cagnotte" — URL dynamique `https://joiedevivre-africa.com/f/{{1}}`
+- **Header** : Aucun (pas d'image)
+- **Body** : 4 variables — `{{1}}` destinataire, `{{2}}` titre cagnotte, `{{3}}` beneficiaire, `{{4}}` jours restants
+- **Bouton CTA** : "Contribuer maintenant" — URL dynamique `https://joiedevivre-africa.com/c/{{1}}`
 
 ## Verification du code existant
 
-Le code dans `notify-fund-ready/index.ts` (ligne 221-228) envoie deja correctement :
-- `body_params`: `[recipientName, fundTitle, beneficiaryName, fundAmount]` (4 params)
-- `button_params`: `[fund_id]` (suffixe dynamique pour `/f/`)
-- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
+Le code dans `check-fund-contribution-reminders/index.ts` (lignes 250-256) envoie correctement :
+- `body_params`: `[targetName, fundTitle, beneficiaryName, daysRemaining]` (4 params)
+- `button_params`: `[fund.share_token]` (suffixe dynamique pour `/c/`)
+- Pas de header image (conforme au template)
 
-Aucune correction necessaire — le code est conforme au template Meta.
+Aucune correction necessaire.
 
 ## Action : Test via `test-whatsapp-send`
 
 Envoyer un test au numero verifie `+2250708895257` (Francoise) avec :
-- `template`: `joiedevivre_fund_completed`
-- `body_params`: `["Françoise", "Anniversaire de Koffi", "Koffi Kouassi", "50000"]`
-- `button_params`: `["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]`
-- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
+- `template`: `joiedevivre_contribution_reminder`
+- `body_params`: `["Françoise", "Anniversaire", "Koffi", "7"]`
+- `button_params`: `["abc123def"]`
+- Pas de `header_image_url`
 
-Puis verifier dans `whatsapp_template_logs` que l'entree est logguee avec `status = 'sent'`.
+Puis verifier dans `whatsapp_template_logs` que le template est bien logge.
 
 ## Fichiers concernes
 
