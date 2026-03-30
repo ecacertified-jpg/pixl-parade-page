@@ -629,51 +629,48 @@ serve(async (req) => {
             .single();
 
           if (profile?.phone) {
-            const channel = getPreferredChannel(profile.phone);
-            if (channel === 'whatsapp') {
-              // Build personalized short message for param {{2}}
-              const shortMsg = isMilestone && age
-                ? `${age} ans, un cap magnifique !`
-                : `Que cette année soit exceptionnelle !`;
+            // Build personalized short message for param {{2}}
+            const shortMsg = isMilestone && age
+              ? `${age} ans, un cap magnifique !`
+              : `Que cette année soit exceptionnelle !`;
 
-              // Video URL: try personalized video first, fallback to default
-              const storageBase = `${supabaseUrl}/storage/v1/object/public/assets`;
-              let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
+            // Video URL: try personalized video first, fallback to default
+            const storageBase = `${supabaseUrl}/storage/v1/object/public/assets`;
+            let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
 
-              // Check if a personalized video exists for this user
-              try {
-                const { data: personalVideo } = await supabase.storage
-                  .from('assets')
-                  .list('', { search: `${user.id}.mp4` });
-                if (personalVideo && personalVideo.length > 0) {
-                  celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
-                  console.log(`🎬 Using personalized video for ${firstName}`);
-                }
-              } catch (storageErr) {
-                console.warn(`⚠️ Storage check failed, using default video:`, storageErr);
+            // Check if a personalized video exists for this user
+            try {
+              const { data: personalVideo } = await supabase.storage
+                .from('assets')
+                .list('', { search: `${user.id}.mp4` });
+              if (personalVideo && personalVideo.length > 0) {
+                celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
+                console.log(`🎬 Using personalized video for ${firstName}`);
               }
+            } catch (storageErr) {
+              console.warn(`⚠️ Storage check failed, using default video:`, storageErr);
+            }
 
-              const waResult = await sendWhatsAppTemplate(
-                profile.phone,
-                'joiedevivre_birthday_celebration',
-                'fr',
-                [firstName, shortMsg],          // body params
-                ['birthday'],                    // button CTA suffix
-                undefined,                       // no header image
-                celebrationVideoUrl              // header video
-              );
+            const waResult = await sendWhatsAppTemplate(
+              profile.phone,
+              'joiedevivre_birthday_celebration',
+              'fr',
+              [firstName, shortMsg],          // body params
+              ['birthday'],                    // button CTA suffix
+              undefined,                       // no header image
+              celebrationVideoUrl              // header video
+            );
 
-              if (waResult.success) {
-                console.log(`🎬 [WhatsApp] Birthday celebration video sent to ${firstName}: ${waResult.sid}`);
+            if (waResult.success) {
+              console.log(`🎬 [WhatsApp] Birthday celebration video sent to ${firstName}: ${waResult.sid}`);
+            } else {
+              // Fallback: free text
+              const fallbackMsg = `🎉🎂 Joyeux anniversaire ${firstName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour ! ${shortMsg}`;
+              const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+              if (fallbackResult.success) {
+                console.log(`📱 [WhatsApp] Birthday celebration fallback sent to ${firstName}: ${fallbackResult.sid}`);
               } else {
-                // Fallback: free text
-                const fallbackMsg = `🎉🎂 Joyeux anniversaire ${firstName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour ! ${shortMsg}`;
-                const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-                if (fallbackResult.success) {
-                  console.log(`📱 [WhatsApp] Birthday celebration fallback sent to ${firstName}: ${fallbackResult.sid}`);
-                } else {
-                  console.warn(`⚠️ [WhatsApp] Birthday celebration failed for ${firstName}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-                }
+                console.warn(`⚠️ [WhatsApp] Birthday celebration failed for ${firstName}: template=${waResult.error}, fallback=${fallbackResult.error}`);
               }
             }
           }
@@ -686,11 +683,98 @@ serve(async (req) => {
       }
     }
 
+    // ============================================================
+    // PART C: D-Day celebration for CONTACTS (non-registered users)
+    // ============================================================
+    let contactCelebrationsSent = 0;
+    const storageBaseForContacts = `${supabaseUrl}/storage/v1/object/public/assets`;
+    const defaultVideoUrl = `${storageBaseForContacts}/default-celebration.mp4`;
+
+    for (const contact of allContacts || []) {
+      if (!contact.birthday || !contact.phone) continue;
+
+      const contactBday = new Date(contact.birthday);
+      const contactBdayMonth = String(contactBday.getMonth() + 1).padStart(2, '0');
+      const contactBdayDay = String(contactBday.getDate()).padStart(2, '0');
+      if (contactBdayMonth !== todayMonth || contactBdayDay !== todayDay) continue;
+
+      const contactName = contact.name || 'Ami(e)';
+
+      // Deduplication check
+      try {
+        const { data: existingAlert } = await supabase
+          .from('birthday_contact_alerts')
+          .select('id')
+          .eq('contact_id', contact.id)
+          .eq('alert_type', 'birthday_celebration_contact')
+          .eq('days_before', 0)
+          .gte('created_at', new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString())
+          .limit(1);
+
+        if (existingAlert && existingAlert.length > 0) continue;
+
+        // Send celebration template to contact
+        const waResult = await sendWhatsAppTemplate(
+          contact.phone,
+          'joiedevivre_birthday_celebration',
+          'fr',
+          [contactName, 'Que cette année soit exceptionnelle !'],
+          ['birthday'],
+          undefined,
+          defaultVideoUrl
+        );
+
+        if (waResult.success) {
+          console.log(`🎬 [WhatsApp] Birthday celebration sent to contact ${contactName}: ${waResult.sid}`);
+        } else {
+          // Fallback free text
+          const fallbackMsg = `🎉🎂 Joyeux anniversaire ${contactName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour !`;
+          await sendWhatsApp(contact.phone, fallbackMsg);
+          console.log(`📱 [WhatsApp] Birthday celebration fallback sent to contact ${contactName}`);
+        }
+
+        // Record dedup
+        await supabase.from('birthday_contact_alerts').insert({
+          user_id: contact.user_id,
+          contact_id: contact.id,
+          alert_type: 'birthday_celebration_contact',
+          days_before: 0,
+          contact_phone: contact.phone,
+          contact_name: contactName,
+          channel: 'whatsapp',
+          status: 'sent'
+        });
+
+        // Notify contact owner in-app
+        await supabase.from('scheduled_notifications').insert({
+          user_id: contact.user_id,
+          notification_type: 'birthday_wish_ai',
+          title: `🎂 C'est l'anniversaire de ${contactName} aujourd'hui !`,
+          message: `N'oubliez pas de souhaiter un joyeux anniversaire à ${contactName} !`,
+          priority_score: 95,
+          scheduled_for: new Date().toISOString(),
+          delivery_methods: ['in_app'],
+          metadata: {
+            contact_name: contactName,
+            contact_id: contact.id,
+            is_own_birthday: false,
+          }
+        });
+
+        contactCelebrationsSent++;
+      } catch (contactErr) {
+        console.error(`⚠️ Error processing contact celebration for ${contactName}:`, contactErr);
+      }
+    }
+
+    console.log(`[D-Day Contacts] Sent ${contactCelebrationsSent} celebration(s) to contacts`);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         birthdaysProcessed: todayBirthdays.length,
-        message: `Processed ${todayBirthdays.length} birthday(s)` 
+        contactCelebrationsSent,
+        message: `Processed ${todayBirthdays.length} birthday(s) + ${contactCelebrationsSent} contact celebration(s)` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
