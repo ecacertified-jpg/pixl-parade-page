@@ -1,35 +1,43 @@
 
 
-# Plan : Tester l'envoi du template `joiedevivre_birthday_friend_alert`
+# Plan : Ajouter le logging centralisé pour `joiedevivre_birthday_friend_alert`
 
-## Analyse du template Meta (captures)
+## Problème
 
-- **Header** : Image (obligatoire)
-- **Body** : 4 variables — `{{1}}` nom de la personne, `{{2}}` jours restants, `{{3}}` nom du createur de la cagnotte, `{{4}}` montant objectif
-- **Bouton CTA** : "Contribuer" — URL dynamique `https://joiedevivre-africa.com/f/{{1}}`
+La fonction `birthday-reminder-with-suggestions/index.ts` envoie correctement le template WhatsApp mais ne l'enregistre que dans `birthday_contact_alerts`. Il manque l'insert dans `whatsapp_template_logs`, ce qui rend le template invisible dans le dashboard de monitoring `/admin/whatsapp-templates`.
 
-## Verification du code existant
+## Correction
 
-Le code dans `birthday-reminder-with-suggestions/index.ts` (lignes 375-387) envoie correctement :
-- `body_params`: `[contact.name, daysUntilBirthday, creatorName, target_amount]` (4 params)
-- `button_params`: `[activeFund.id]` (suffixe dynamique pour `/f/`)
-- `header_image_url`: presente
+Dans `supabase/functions/birthday-reminder-with-suggestions/index.ts`, après l'envoi WhatsApp réussi (ligne 387), ajouter un insert dans `whatsapp_template_logs` :
 
-**Probleme identifie** : Le template n'est **jamais logge** dans `whatsapp_template_logs` (0 entrees). Le logging se fait uniquement dans `birthday_contact_alerts`. Ce n'est pas un bug bloquant mais une lacune de tracabilite.
+```typescript
+// Après sendWhatsAppTemplate (ligne 387)
+const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+  template_name: 'joiedevivre_birthday_friend_alert',
+  recipient_phone: normalizedPhone,
+  country_prefix: normalizedPhone.substring(0, 4),
+  whatsapp_message_id: sendResult.sid || null,
+  status: sendResult.success ? 'sent' : 'failed',
+  body_params: {
+    contact_name: contact.name,
+    days: daysUntilBirthday,
+    creator: creatorName,
+    target_amount: activeFund.target_amount
+  },
+  error_message: sendResult.error || null,
+});
+if (logErr) console.error('Failed to log birthday_friend_alert:', logErr);
+```
 
-## Action : Test via `test-whatsapp-send`
+Ce logging doit couvrir les **deux cas** :
+1. Template WhatsApp réussi
+2. Template WhatsApp échoué (pour tracer les erreurs)
 
-Envoyer un test au numero verifie `+2250708895257` (Francoise) avec :
-- `template`: `joiedevivre_birthday_friend_alert`
-- `body_params`: `["Florentin", "4", "Françoise", "35000"]`
-- `button_params`: `["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]`
-- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
+Le fallback SMS/free-text n'a pas besoin d'être loggé ici (il utilise un canal différent).
 
-Puis verifier la reponse Meta pour confirmer le succes.
-
-## Fichiers concernes
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| Aucun | Test d'envoi uniquement via `curl_edge_functions` |
+| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Ajouter insert `whatsapp_template_logs` après l'envoi du template |
 
