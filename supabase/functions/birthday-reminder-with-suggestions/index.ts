@@ -521,8 +521,9 @@ serve(async (req) => {
               sendResult = await sendWhatsAppTemplate(
                 phone,
                 'joiedevivre_birthday_create_fund_nudge',
+                'fr',
                 [contact.name, dayLabel, recipientName, 'JOIE DE VIVRE'],
-                [{ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: `?for=${encodeURIComponent(contact.name)}` }] }],
+                [`?for=${encodeURIComponent(contact.name)}`],
                 createFundImageUrl
               );
             } else {
