@@ -237,7 +237,6 @@ serve(async (req) => {
         message_id: messageId,
         http_status: response.status,
         phone_validation: phoneValidation,
-        whatsapp_check: whatsappCheck,
         raw,
       }), {
         status: 200,
@@ -253,7 +252,7 @@ serve(async (req) => {
         error: raw.error?.message || 'Unknown error',
         error_type: raw.error?.type,
         phone_validation: phoneValidation,
-        whatsapp_check: whatsappCheck,
+        
         raw,
       }), {
         status: 200,
