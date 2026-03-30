@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getAppBaseUrl } from "@/utils/appUrl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,7 +115,7 @@ export function AddFriendModal({ isOpen, onClose, onAddFriend, existingPhones = 
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/fill-friend-info/${data.token}`;
+      const link = `${getAppBaseUrl()}/fill-friend-info/${data.token}`;
       setShareLink(link);
       setShowShareMenu(true);
     } catch (err) {
