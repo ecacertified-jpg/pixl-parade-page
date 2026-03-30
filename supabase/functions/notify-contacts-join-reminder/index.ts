@@ -75,31 +75,32 @@ serve(async (req) => {
         ? `${ownerProfile.first_name}${ownerProfile.last_name ? ' ' + ownerProfile.last_name : ''}`
         : 'Un ami';
 
-      // 4. Send notification
+      // 4. Send notification — WhatsApp-first strategy
       const channel = getPreferredChannel(contact.phone);
       const message = `${ownerName} t'a ajouté à son cercle d'amis sur Joie de Vivre 🎉 Crée ton cercle pour profiter aussi de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
+      const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
+        || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
+
       let sendResult: { success: boolean; error?: string } = { success: false };
 
-      // Try WhatsApp template first
-      if (channel === 'whatsapp') {
-        console.log(`📤 [WhatsApp] Sending join reminder to ${contact.phone}`);
-        const waResult = await sendWhatsAppTemplate(
-          contact.phone,
-          'joiedevivre_join_reminder',
-          'fr',
-          [ownerName]
-        );
-        if (waResult.success) {
-          sendResult = { success: true };
-        } else {
-          console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${waResult.error}`);
-          const fallbackResult = await sendWhatsApp(contact.phone, message);
-          sendResult = { success: fallbackResult.success, error: fallbackResult.error };
-        }
+      // Always try WhatsApp template first (WhatsApp-first for viral invitations)
+      console.log(`📤 [WhatsApp] Sending join reminder to ${contact.phone}`);
+      const waResult = await sendWhatsAppTemplate(
+        contact.phone,
+        'joiedevivre_join_reminder',
+        'fr',
+        [ownerName],
+        undefined,              // No buttonParameters (static CTA)
+        JOIN_REMINDER_IMAGE_URL // Header image required by Meta template
+      );
+      if (waResult.success) {
+        sendResult = { success: true };
+      } else {
+        console.log(`⚠️ [WhatsApp] Template failed: ${waResult.error}`);
       }
 
-      // Fallback to SMS if WhatsApp failed or channel is SMS
+      // Fallback to SMS if WhatsApp failed
       if (!sendResult.success) {
         console.log(`📤 [SMS] Sending join reminder to ${contact.phone}`);
         const smsResult = await sendSms(contact.phone, message);
