@@ -1,31 +1,31 @@
 
 
-# Plan : Corriger le lien fill-friend-info dans AddFriendModal
+# Plan : Corriger `getAppBaseUrl` pour le preview Lovable
 
-## Probleme
+## Problème
 
-Dans `src/components/AddFriendModal.tsx` (ligne 117), le lien est genere avec `window.location.origin` au lieu de `getAppBaseUrl()`. Cela produit des liens pointant vers le domaine Lovable preview au lieu de `joiedevivre-africa.com`.
+`import.meta.env.PROD` est `true` aussi bien sur le preview Lovable que sur le site publié (les deux sont des builds de production Vite). Résultat : les liens générés dans le preview pointent vers `joiedevivre-africa.com` au lieu du domaine preview, ce qui les rend inaccessibles depuis le preview.
 
-`OnboardingExperience.tsx` utilise deja correctement `getAppBaseUrl()`.
+## Solution
 
-## Modification
+Modifier `src/utils/appUrl.ts` pour détecter si on est sur le domaine de production réel (`joiedevivre-africa.com`) ou sur un autre domaine (preview Lovable, localhost, etc.) :
+
+```typescript
+export const getAppBaseUrl = () => {
+  const isProductionDomain = window.location.hostname === 'joiedevivre-africa.com' 
+    || window.location.hostname === 'www.joiedevivre-africa.com';
+  return isProductionDomain ? 'https://joiedevivre-africa.com' : window.location.origin;
+};
+```
+
+Ainsi :
+- Sur `joiedevivre-africa.com` → liens vers `joiedevivre-africa.com`
+- Sur le preview Lovable → liens vers le domaine preview
+- En localhost → liens vers localhost
+
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/AddFriendModal.tsx` | Remplacer `window.location.origin` par `getAppBaseUrl()` (ligne 117) et ajouter l'import de `getAppBaseUrl` |
-
-### Detail
-
-```typescript
-// Avant
-const link = `${window.location.origin}/fill-friend-info/${data.token}`;
-
-// Apres
-const link = `${getAppBaseUrl()}/fill-friend-info/${data.token}`;
-```
-
-Ajouter en haut du fichier :
-```typescript
-import { getAppBaseUrl } from '@/utils/appUrl';
-```
+| `src/utils/appUrl.ts` | Détecter le hostname au lieu de `import.meta.env.PROD` |
 
