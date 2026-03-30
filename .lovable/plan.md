@@ -1,48 +1,53 @@
 
 
-# Plan : Tester l'envoi du template `joiedevivre_birthday_countdown_invite`
+# Plan : Tester l'envoi du template `joiedevivre_birthday_celebration`
 
-## Constat
+## Analyse du template Meta
 
-Le template Meta a cette structure :
-- **Header** : Image dynamique (doit etre fournie a chaque envoi)
-- **Body** : `Salut {{1}}, Ton anniversaire arrive dans {{2}} jour(s) !...`
-  - `{{1}}` = nom du contact
-  - `{{2}}` = nombre de jours
-- **Bouton CTA** : "Creer mon compte" — URL statique (`https://joiedevivre-africa.com/auth?utm_source=whatsapp&utm_medium=birthday_countdown`)
+D'apres les captures :
+- **Header** : Video dynamique
+- **Body** : 2 variables — `{{1}}` = prenom (ex: "Aminata"), `{{2}}` = message personnalise (ex: "Que cette annee soit exceptionnelle !")
+- **Bouton CTA** : "Voir ma celebration" — URL **dynamique** avec suffixe `{{1}}` (base: `https://joiedevivre-africa.com/dashboard/`, exemple: `.../dashboard/birthday`)
 - **Footer** : "JOIE DE VIVRE - Celebrons ensemble"
 
-## Probleme
+## Etat actuel du code
 
-La fonction `test-whatsapp-send` ne supporte pas le **header image**, requis par ce template. Un envoi sans image echouera avec une erreur de parametres.
+**`birthday-wishes/index.ts` (ligne 656-664)** — deja correct :
+```ts
+sendWhatsAppTemplate(
+  profile.phone,
+  'joiedevivre_birthday_celebration',
+  'fr',
+  [firstName, shortMsg],      // body: {{1}}=prenom, {{2}}=message
+  ['birthday'],                // button: suffixe URL dynamique
+  undefined,                   // pas d'image header
+  celebrationVideoUrl          // header video
+);
+```
+Les parametres correspondent au template Meta. Pas de correction necessaire.
+
+## Probleme : `test-whatsapp-send` ne supporte pas les videos ni les boutons
+
+L'utilitaire de test ne gere que `header_image_url`, pas les videos ni les `button_parameters`. Il faut l'enrichir pour tester ce template.
 
 ## Modifications
 
-### 1. Enrichir `test-whatsapp-send` pour supporter le header image
+### 1. Enrichir `test-whatsapp-send`
 
-Ajouter un parametre `header_image_url` au body JSON. Si present, ajouter un composant `header` au payload template.
+Ajouter le support de :
+- `header_video_url` — composant header video
+- `button_params` — tableau de suffixes pour boutons CTA dynamiques
 
-### 2. Tester l'envoi avec des donnees reelles
+### 2. Tester avec des donnees reelles
 
-Utiliser `supabase--curl_edge_functions` pour appeler `test-whatsapp-send` avec :
-- Un contact reel de la base (nom + telephone)
-- L'image du header depuis le storage Supabase
-- Les 2 body params corrects
-
-### 3. Bug potentiel identifie
-
-Dans `birthday-wishes/index.ts` (ligne 345), le code fait :
-```ts
-const channel = getPreferredChannel(contact.phone);
-if (channel === 'whatsapp') { ... }
-```
-
-Or `getPreferredChannel` retourne `'sms'` pour les numeros `+225` (Cote d'Ivoire). Resultat : **aucun utilisateur ivoirien ne recoit ce template**. Ce template est une invitation pour des non-inscrits — le SMS fallback n'envoie pas le meme message. Il faudrait toujours tenter WhatsApp pour ce template d'invitation.
+Recuperer un utilisateur dont c'est l'anniversaire (ou n'importe quel utilisateur avec un telephone valide) et envoyer le template avec :
+- `body_params`: `["Prenom", "Que cette annee soit exceptionnelle !"]`
+- `button_params`: `["birthday"]`
+- `header_video_url`: URL de la video par defaut dans le storage
 
 ## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/test-whatsapp-send/index.ts` | Ajouter support `header_image_url` |
-| `supabase/functions/birthday-wishes/index.ts` (ligne 345) | Supprimer la condition `getPreferredChannel` pour toujours envoyer via WhatsApp |
+| `supabase/functions/test-whatsapp-send/index.ts` | Ajouter support `header_video_url` et `button_params` |
 
