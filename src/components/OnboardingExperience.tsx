@@ -82,9 +82,12 @@ export const OnboardingExperience = ({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [invitePhone, setInvitePhone] = useState('');
   const [invitedCount, setInvitedCount] = useState(0);
+  const [invitationsSentCount, setInvitationsSentCount] = useState(0);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+  const [friendFormLink, setFriendFormLink] = useState<string | null>(null);
+  const [generatingFormLink, setGeneratingFormLink] = useState(false);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -256,6 +259,51 @@ export const OnboardingExperience = ({
       `🎉 ${firstName || 'Je'} t'invite à rejoindre Joie de Vivre ! Célèbre les moments importants avec tes proches ✨\n\nhttps://joiedevivre-africa.com/auth?invited=true`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  // Generate friend form link
+  const handleGenerateFriendFormLink = async () => {
+    if (!user || generatingFormLink) return;
+    setGeneratingFormLink(true);
+    try {
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      const { error } = await supabase.from('friend_form_tokens').insert({
+        token,
+        user_id: user.id,
+        prefilled_name: '',
+        prefilled_relation: '',
+        status: 'pending',
+        expires_at: expiresAt.toISOString(),
+      });
+      if (error) { toast.error("Erreur lors de la génération du lien"); return; }
+      const link = `${getAppBaseUrl()}/fill-friend-info/${token}`;
+      setFriendFormLink(link);
+    } catch { toast.error("Erreur inattendue"); } finally { setGeneratingFormLink(false); }
+  };
+
+  const handleShareFriendFormWhatsApp = () => {
+    if (!friendFormLink) return;
+    const text = encodeURIComponent(
+      `🎁 Salut ! Pour ne jamais oublier ton anniversaire, remplis ce petit formulaire :\n\n${friendFormLink}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    setInvitationsSentCount(c => c + 1);
+  };
+
+  const handleCopyFriendFormLink = () => {
+    if (!friendFormLink) return;
+    navigator.clipboard.writeText(friendFormLink);
+    toast.success('Lien copié ! 📋');
+    setInvitationsSentCount(c => c + 1);
+  };
+
+  const handleShareFriendFormSMS = () => {
+    if (!friendFormLink) return;
+    const text = encodeURIComponent(`🎁 Remplis ce formulaire pour que je n'oublie jamais ton anniversaire : ${friendFormLink}`);
+    window.open(`sms:?body=${text}`, '_blank');
+    setInvitationsSentCount(c => c + 1);
   };
 
   // Create or fetch birthday page in DB on step 5
