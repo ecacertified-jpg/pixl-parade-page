@@ -1,54 +1,58 @@
 
 
-# Plan : Corriger et tester le template `joiedevivre_join_reminder`
+# Plan : Envoyer `joiedevivre_join_reminder` aux utilisateurs inscrits sans cercle d'amis
 
-## Diagnostic
+## Contexte
 
-### Erreur Meta #132012 : "Parameter format does not match format in the created template"
+Actuellement :
+- `notify-contacts-join-reminder` → cible les **contacts non inscrits** (linked_user_id IS NULL)
+- `check-friends-circle-reminders` → cible les **utilisateurs inscrits avec < N contacts** via le template `joiedevivre_friends_circle_reminder`
 
-Le template Meta `joiedevivre_join_reminder` a un **header image** configurable (visible dans les captures). Le code dans `notify-contacts-join-reminder/index.ts` (ligne 87-91) appelle `sendWhatsAppTemplate` avec seulement les `bodyParameters` -- **sans passer de `headerImageUrl`**. Meta rejette l'envoi car le template attend un composant header image.
+L'objectif est d'ajouter dans `notify-contacts-join-reminder` une **seconde phase** ciblant les utilisateurs inscrits qui n'ont **aucun contact** (cercle vide), en leur envoyant le même template `joiedevivre_join_reminder` avec l'image header.
 
-De plus, le bouton CTA est **statique** (visible dans la capture : Type d'URL = Statique), donc aucun `buttonParameters` ne doit etre passe.
+## Modification
 
-### 7/7 echecs confirmes dans les logs
+### Fichier : `supabase/functions/notify-contacts-join-reminder/index.ts`
 
-Tous les envois echouent avec `#132012` ou `#131009` (meme cause racine).
+Ajouter une **Phase 2** après la boucle contacts existante (ligne 133) :
 
-## Corrections
+1. Requêter les `profiles` inscrits depuis > 7 jours, ayant un phone, et n'ayant **aucun contact** dans la table `contacts`
+2. Appliquer la même déduplication (alert_type `join_reminder_registered`, 14 jours)
+3. Envoyer `joiedevivre_join_reminder` avec `bodyParameters: ["Joie de Vivre"]` (pas de "owner" ici, c'est la plateforme qui invite) et le header image
+4. Logger dans `birthday_contact_alerts` avec `alert_type: 'join_reminder_registered'` pour distinguer des contacts non inscrits
 
-### 1. Ajouter l'image header dans `notify-contacts-join-reminder/index.ts`
-
-Ligne 87-91, modifier l'appel a `sendWhatsAppTemplate` pour passer une image header (URL de l'image Joie de Vivre depuis Supabase Storage ou variable d'environnement) :
-
-```typescript
-const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
-  || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
-
-const waResult = await sendWhatsAppTemplate(
-  contact.phone,
-  'joiedevivre_join_reminder',
-  'fr',
-  [ownerName],
-  undefined,          // pas de buttonParameters (bouton statique)
-  JOIN_REMINDER_IMAGE_URL  // header image requis par Meta
-);
+```text
+Phase 1 (existante) : contacts non inscrits → "X t'a ajouté..."
+Phase 2 (nouvelle)  : utilisateurs inscrits sans contacts → "Crée ton cercle..."
 ```
 
-### 2. Supprimer la condition `channel === 'whatsapp'`
+### Requête Phase 2
 
-Ligne 85, le code verifie `if (channel === 'whatsapp')` ce qui exclut les numeros ivoiriens (+225). Appliquer la strategie WhatsApp-first : toujours tenter WhatsApp, puis SMS en fallback.
+```sql
+SELECT p.user_id, p.first_name, p.phone
+FROM profiles p
+WHERE p.phone IS NOT NULL
+  AND p.created_at <= cutoff_date
+  AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.user_id = p.user_id)
+  AND NOT EXISTS (
+    SELECT 1 FROM birthday_contact_alerts bca
+    WHERE bca.contact_phone = p.phone
+      AND bca.alert_type = 'join_reminder_registered'
+      AND bca.created_at >= dedup_date
+  )
+```
 
-### 3. Tester via `test-whatsapp-send`
+Ceci sera traduit en appels Supabase JS (sous-requête via `.not()` ou en deux étapes : lister les user_ids ayant des contacts, puis exclure).
 
-Apres deploiement, envoyer un test au numero verifie `+2250708895257` :
-- `template`: `joiedevivre_join_reminder`
-- `body_params`: `["Aboutou"]`
-- `header_image_url`: URL de l'image header
-- Pas de `button_params` (bouton statique)
+### Paramètres du template
 
-## Fichier concerne
+- `bodyParameters`: `[firstName]` (prénom de l'utilisateur)
+- `buttonParameters`: `undefined` (CTA statique)
+- `headerImageUrl`: même `JOIN_REMINDER_IMAGE_URL`
+
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/notify-contacts-join-reminder/index.ts` | Ajouter header image + WhatsApp-first |
+| `supabase/functions/notify-contacts-join-reminder/index.ts` | Ajouter Phase 2 pour utilisateurs inscrits sans contacts |
 
