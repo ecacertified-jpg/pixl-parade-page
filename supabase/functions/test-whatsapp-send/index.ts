@@ -76,6 +76,18 @@ serve(async (req) => {
       });
     }
 
+    // Button parameters (dynamic URL suffix)
+    if (button_params && Array.isArray(button_params) && button_params.length > 0) {
+      button_params.forEach((param: string, index: number) => {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: String(index),
+          parameters: [{ type: 'text', text: param }],
+        });
+      });
+    }
+
     if (components.length > 0) {
       templatePayload.components = components;
     }
