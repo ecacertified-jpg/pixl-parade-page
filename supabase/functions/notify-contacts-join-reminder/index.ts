@@ -40,6 +40,9 @@ serve(async (req) => {
 
     console.log(`Found ${contacts?.length || 0} non-registered contacts older than ${MIN_AGE_DAYS} days`);
 
+    const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
+      || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
+
     let totalSent = 0;
     let totalSkipped = 0;
     let totalErrors = 0;
@@ -79,8 +82,6 @@ serve(async (req) => {
       const channel = getPreferredChannel(contact.phone);
       const message = `${ownerName} t'a ajouté à son cercle d'amis sur Joie de Vivre 🎉 Crée ton cercle pour profiter aussi de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
-      const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
-        || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
 
       let sendResult: { success: boolean; error?: string } = { success: false };
 
@@ -132,10 +133,122 @@ serve(async (req) => {
       }
     }
 
-    console.log(`CRON completed: ${totalSent} sent, ${totalSkipped} skipped (dedup), ${totalErrors} errors`);
+    console.log(`Phase 1 completed: ${totalSent} sent, ${totalSkipped} skipped (dedup), ${totalErrors} errors`);
+
+    // ============================================================
+    // PHASE 2: Registered users with NO contacts (empty circle)
+    // ============================================================
+    console.log('--- Phase 2: Registered users with no contacts ---');
+
+    let phase2Sent = 0;
+    let phase2Skipped = 0;
+    let phase2Errors = 0;
+
+    // Get all user_ids that have at least one contact
+    const { data: usersWithContacts } = await supabase
+      .from('contacts')
+      .select('user_id');
+
+    const userIdsWithContacts = new Set(
+      (usersWithContacts || []).map((c: any) => c.user_id)
+    );
+
+    // Get profiles registered > 7 days ago with a phone
+    const { data: allProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('user_id, first_name, phone')
+      .not('phone', 'is', null)
+      .lte('created_at', cutoffDate.toISOString());
+
+    if (profilesError) {
+      console.error('Error fetching profiles for Phase 2:', profilesError.message);
+    } else {
+      // Filter to only users with zero contacts
+      const usersWithoutContacts = (allProfiles || []).filter(
+        (p: any) => p.phone && !userIdsWithContacts.has(p.user_id)
+      );
+
+      console.log(`Found ${usersWithoutContacts.length} registered users with no contacts`);
+
+      for (const profile of usersWithoutContacts) {
+        // Deduplication check
+        const dedupDate = new Date();
+        dedupDate.setDate(dedupDate.getDate() - DEDUP_DAYS);
+
+        const { data: existingAlert } = await supabase
+          .from('birthday_contact_alerts')
+          .select('id')
+          .eq('contact_phone', profile.phone)
+          .eq('alert_type', 'join_reminder_registered')
+          .gte('created_at', dedupDate.toISOString())
+          .maybeSingle();
+
+        if (existingAlert) {
+          phase2Skipped++;
+          continue;
+        }
+
+        const firstName = profile.first_name || 'Joie de Vivre';
+        const channel = getPreferredChannel(profile.phone);
+        const message = `Bienvenue sur Joie de Vivre 🎉 Crée ton cercle d'amis pour ne jamais oublier un anniversaire et profiter de la générosité de tes proches 👉 joiedevivre-africa.com`;
+
+        let sendResult: { success: boolean; error?: string } = { success: false };
+
+        // WhatsApp template first
+        console.log(`📤 [Phase2/WhatsApp] Sending join reminder to ${profile.phone}`);
+        const waResult = await sendWhatsAppTemplate(
+          profile.phone,
+          'joiedevivre_join_reminder',
+          'fr',
+          [firstName],
+          undefined,
+          JOIN_REMINDER_IMAGE_URL
+        );
+
+        if (waResult.success) {
+          sendResult = { success: true };
+        } else {
+          console.log(`⚠️ [Phase2/WhatsApp] Template failed: ${waResult.error}`);
+          // Fallback SMS
+          console.log(`📤 [Phase2/SMS] Sending join reminder to ${profile.phone}`);
+          const smsResult = await sendSms(profile.phone, message);
+          sendResult = { success: smsResult.success, error: smsResult.error };
+        }
+
+        // Log for deduplication
+        await supabase
+          .from('birthday_contact_alerts')
+          .insert({
+            user_id: profile.user_id,
+            contact_phone: profile.phone,
+            contact_name: firstName,
+            alert_type: 'join_reminder_registered',
+            channel: channel,
+            days_before: 0,
+            status: sendResult.success ? 'sent' : 'failed',
+            sent_at: sendResult.success ? new Date().toISOString() : null,
+            error_message: sendResult.error || null,
+          });
+
+        if (sendResult.success) {
+          phase2Sent++;
+          console.log(`✅ [Phase2] Join reminder sent to ${profile.phone} (${firstName})`);
+        } else {
+          phase2Errors++;
+          console.log(`❌ [Phase2] Failed: ${profile.phone}: ${sendResult.error}`);
+        }
+      }
+    }
+
+    console.log(`Phase 2 completed: ${phase2Sent} sent, ${phase2Skipped} skipped, ${phase2Errors} errors`);
+    console.log(`CRON total: Phase1(${totalSent}/${totalSkipped}/${totalErrors}) + Phase2(${phase2Sent}/${phase2Skipped}/${phase2Errors})`);
 
     return new Response(
-      JSON.stringify({ success: true, sent: totalSent, skipped: totalSkipped, errors: totalErrors }),
+      JSON.stringify({
+        success: true,
+        phase1: { sent: totalSent, skipped: totalSkipped, errors: totalErrors },
+        phase2: { sent: phase2Sent, skipped: phase2Skipped, errors: phase2Errors },
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
