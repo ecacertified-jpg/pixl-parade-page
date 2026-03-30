@@ -629,51 +629,48 @@ serve(async (req) => {
             .single();
 
           if (profile?.phone) {
-            const channel = getPreferredChannel(profile.phone);
-            if (channel === 'whatsapp') {
-              // Build personalized short message for param {{2}}
-              const shortMsg = isMilestone && age
-                ? `${age} ans, un cap magnifique !`
-                : `Que cette année soit exceptionnelle !`;
+            // Build personalized short message for param {{2}}
+            const shortMsg = isMilestone && age
+              ? `${age} ans, un cap magnifique !`
+              : `Que cette année soit exceptionnelle !`;
 
-              // Video URL: try personalized video first, fallback to default
-              const storageBase = `${supabaseUrl}/storage/v1/object/public/assets`;
-              let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
+            // Video URL: try personalized video first, fallback to default
+            const storageBase = `${supabaseUrl}/storage/v1/object/public/assets`;
+            let celebrationVideoUrl = `${storageBase}/default-celebration.mp4`;
 
-              // Check if a personalized video exists for this user
-              try {
-                const { data: personalVideo } = await supabase.storage
-                  .from('assets')
-                  .list('', { search: `${user.id}.mp4` });
-                if (personalVideo && personalVideo.length > 0) {
-                  celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
-                  console.log(`🎬 Using personalized video for ${firstName}`);
-                }
-              } catch (storageErr) {
-                console.warn(`⚠️ Storage check failed, using default video:`, storageErr);
+            // Check if a personalized video exists for this user
+            try {
+              const { data: personalVideo } = await supabase.storage
+                .from('assets')
+                .list('', { search: `${user.id}.mp4` });
+              if (personalVideo && personalVideo.length > 0) {
+                celebrationVideoUrl = `${storageBase}/${user.id}.mp4`;
+                console.log(`🎬 Using personalized video for ${firstName}`);
               }
+            } catch (storageErr) {
+              console.warn(`⚠️ Storage check failed, using default video:`, storageErr);
+            }
 
-              const waResult = await sendWhatsAppTemplate(
-                profile.phone,
-                'joiedevivre_birthday_celebration',
-                'fr',
-                [firstName, shortMsg],          // body params
-                ['birthday'],                    // button CTA suffix
-                undefined,                       // no header image
-                celebrationVideoUrl              // header video
-              );
+            const waResult = await sendWhatsAppTemplate(
+              profile.phone,
+              'joiedevivre_birthday_celebration',
+              'fr',
+              [firstName, shortMsg],          // body params
+              ['birthday'],                    // button CTA suffix
+              undefined,                       // no header image
+              celebrationVideoUrl              // header video
+            );
 
-              if (waResult.success) {
-                console.log(`🎬 [WhatsApp] Birthday celebration video sent to ${firstName}: ${waResult.sid}`);
+            if (waResult.success) {
+              console.log(`🎬 [WhatsApp] Birthday celebration video sent to ${firstName}: ${waResult.sid}`);
+            } else {
+              // Fallback: free text
+              const fallbackMsg = `🎉🎂 Joyeux anniversaire ${firstName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour ! ${shortMsg}`;
+              const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
+              if (fallbackResult.success) {
+                console.log(`📱 [WhatsApp] Birthday celebration fallback sent to ${firstName}: ${fallbackResult.sid}`);
               } else {
-                // Fallback: free text
-                const fallbackMsg = `🎉🎂 Joyeux anniversaire ${firstName} ! Toute l'équipe Joie de Vivre te souhaite une journée exceptionnelle remplie de bonheur et d'amour ! ${shortMsg}`;
-                const fallbackResult = await sendWhatsApp(profile.phone, fallbackMsg);
-                if (fallbackResult.success) {
-                  console.log(`📱 [WhatsApp] Birthday celebration fallback sent to ${firstName}: ${fallbackResult.sid}`);
-                } else {
-                  console.warn(`⚠️ [WhatsApp] Birthday celebration failed for ${firstName}: template=${waResult.error}, fallback=${fallbackResult.error}`);
-                }
+                console.warn(`⚠️ [WhatsApp] Birthday celebration failed for ${firstName}: template=${waResult.error}, fallback=${fallbackResult.error}`);
               }
             }
           }
