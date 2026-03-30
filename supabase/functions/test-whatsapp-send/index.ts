@@ -165,28 +165,7 @@ serve(async (req) => {
       });
     }
 
-    // === STEP 2: WhatsApp registration check ===
-    let whatsappCheck: WhatsAppCheck = { status: 'skipped', wa_id: null, wa_id_mismatch: false, mismatch_detail: null, raw: null };
-
-    if (!skip_validation) {
-      whatsappCheck = await checkWhatsAppRegistration(phoneValidation.cleaned, phoneValidation.digits_only);
-      console.log(`📲 WhatsApp check: ${JSON.stringify(whatsappCheck)}`);
-
-      if (whatsappCheck.status === 'invalid') {
-        return new Response(JSON.stringify({
-          success: false,
-          step: 'whatsapp_check',
-          phone_validation: phoneValidation,
-          whatsapp_check: whatsappCheck,
-          message: `Le numéro ${phone} n'est PAS enregistré sur WhatsApp. Aucun message envoyé.`,
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
-
-    // === STEP 3: Send template (existing logic) ===
+    // === STEP 2: Send template ===
     const metaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
     console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}, header_video_url=${header_video_url || 'none'}, button_params=${JSON.stringify(button_params)}`);
