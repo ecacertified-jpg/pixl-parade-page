@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, template, language, body_params, header_image_url } = await req.json();
+    const { phone, template, language, body_params, header_image_url, header_video_url, button_params } = await req.json();
 
     if (!phone || !template) {
       return new Response(JSON.stringify({ error: 'Missing phone or template' }), {
