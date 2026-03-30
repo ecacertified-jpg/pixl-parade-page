@@ -224,15 +224,19 @@ serve(async (req) => {
     // Log OTP in whatsapp_template_logs for unified tracking
     if (sendResult.messageId) {
       const maskedPhone = phone.substring(0, 7) + '****' + phone.substring(phone.length - 2);
-      await supabaseAdmin.from('whatsapp_template_logs').insert({
+      const { error: logError } = await supabaseAdmin.from('whatsapp_template_logs').insert({
         template_name: 'joiedevivre_otp',
         recipient_phone: maskedPhone,
         country_prefix: phone.substring(0, 4),
         whatsapp_message_id: sendResult.messageId,
         status: 'sent',
-        template_params: { purpose },
+        body_params: { purpose },
       });
-      console.log(`📊 OTP logged in whatsapp_template_logs for unified tracking`);
+      if (logError) {
+        console.error('Failed to log OTP in template_logs:', logError);
+      } else {
+        console.log(`📊 OTP logged in whatsapp_template_logs for unified tracking`);
+      }
     }
 
     // Clean up expired codes
