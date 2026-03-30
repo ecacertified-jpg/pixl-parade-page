@@ -1,30 +1,35 @@
 
 
-# Plan : Invoquer manuellement `notify-contacts-join-reminder` et vérifier les logs
+# Plan : Tester l'envoi du template `joiedevivre_fund_completed`
 
-## Étapes
+## Analyse du template Meta (captures)
 
-### 1. Invoquer la fonction Edge via `curl_edge_functions`
+- **Header** : Image (obligatoire)
+- **Body** : 4 variables — `{{1}}` prenom, `{{2}}` titre cagnotte, `{{3}}` beneficiaire, `{{4}}` montant
+- **Bouton CTA** : "Voir la cagnotte" — URL dynamique `https://joiedevivre-africa.com/f/{{1}}`
 
-Appeler `notify-contacts-join-reminder` avec une requête POST vide pour déclencher les deux phases (contacts non inscrits + utilisateurs sans cercle).
+## Verification du code existant
 
-### 2. Vérifier les résultats dans les logs Edge Function
+Le code dans `notify-fund-ready/index.ts` (ligne 221-228) envoie deja correctement :
+- `body_params`: `[recipientName, fundTitle, beneficiaryName, fundAmount]` (4 params)
+- `button_params`: `[fund_id]` (suffixe dynamique pour `/f/`)
+- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
 
-Consulter les logs de la fonction pour voir le détail : combien de contacts/utilisateurs ciblés, envois réussis, skippés (dédup), erreurs.
+Aucune correction necessaire — le code est conforme au template Meta.
 
-### 3. Vérifier `whatsapp_template_logs`
+## Action : Test via `test-whatsapp-send`
 
-Requêter la table pour confirmer que de nouvelles entrées avec `template_name = 'joiedevivre_join_reminder'` et `status = 'sent'` apparaissent après l'invocation.
+Envoyer un test au numero verifie `+2250708895257` (Francoise) avec :
+- `template`: `joiedevivre_fund_completed`
+- `body_params`: `["Françoise", "Anniversaire de Koffi", "Koffi Kouassi", "50000"]`
+- `button_params`: `["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]`
+- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
 
-### 4. Vérifier `birthday_contact_alerts`
+Puis verifier dans `whatsapp_template_logs` que l'entree est logguee avec `status = 'sent'`.
 
-Requêter les alertes de type `join_reminder` et `join_reminder_registered` pour confirmer la déduplication fonctionne.
+## Fichiers concernes
 
-## Outils utilisés
-
-| Outil | Action |
-|-------|--------|
-| `supabase--curl_edge_functions` | Invoquer `notify-contacts-join-reminder` |
-| `supabase--edge_function_logs` | Lire les logs d'exécution |
-| `supabase--read_query` | Vérifier `whatsapp_template_logs` et `birthday_contact_alerts` |
+| Fichier | Action |
+|---------|--------|
+| Aucun | Test d'envoi uniquement via `curl_edge_functions` |
 
