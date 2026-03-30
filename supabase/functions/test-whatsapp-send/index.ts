@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, template, language, body_params, header_image_url } = await req.json();
+    const { phone, template, language, body_params, header_image_url, header_video_url, button_params } = await req.json();
 
     if (!phone || !template) {
       return new Response(JSON.stringify({ error: 'Missing phone or template' }), {
@@ -43,7 +43,7 @@ serve(async (req) => {
 
     const metaUrl = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
 
-    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}`);
+    console.log(`🧪 Test send: template=${template}, phone=${phone}, body_params=${JSON.stringify(body_params)}, header_image_url=${header_image_url || 'none'}, header_video_url=${header_video_url || 'none'}, button_params=${JSON.stringify(button_params)}`);
 
     const templatePayload: any = {
       name: template,
@@ -60,11 +60,31 @@ serve(async (req) => {
       });
     }
 
+    // Header video support
+    if (header_video_url) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'video', video: { link: header_video_url } }],
+      });
+    }
+
     // Body parameters
     if (body_params && Array.isArray(body_params) && body_params.length > 0) {
       components.push({
         type: 'body',
         parameters: body_params.map((p: string) => ({ type: 'text', text: p })),
+      });
+    }
+
+    // Button parameters (dynamic URL suffix)
+    if (button_params && Array.isArray(button_params) && button_params.length > 0) {
+      button_params.forEach((param: string, index: number) => {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: String(index),
+          parameters: [{ type: 'text', text: param }],
+        });
       });
     }
 
