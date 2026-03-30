@@ -82,8 +82,7 @@ serve(async (req) => {
       const channel = getPreferredChannel(contact.phone);
       const message = `${ownerName} t'a ajouté à son cercle d'amis sur Joie de Vivre 🎉 Crée ton cercle pour profiter aussi de la générosité de tes proches 👉 joiedevivre-africa.com`;
 
-      const JOIN_REMINDER_IMAGE_URL = Deno.env.get('JOIN_REMINDER_IMAGE_URL')
-        || 'https://vaimfeurvzokepqqqrsl.supabase.co/storage/v1/object/public/assets/join-reminder-header.jpg';
+      const JOIN_REMINDER_IMG = JOIN_REMINDER_IMAGE_URL;
 
       let sendResult: { success: boolean; error?: string } = { success: false };
 
