@@ -543,6 +543,25 @@ serve(async (req) => {
               error_message: sendResult.error || null,
             });
 
+            // Log to centralized whatsapp_template_logs
+            if (channel === 'whatsapp') {
+              const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+                template_name: 'joiedevivre_birthday_create_fund_nudge',
+                recipient_phone: normalizedPhone,
+                country_prefix: normalizedPhone.substring(0, 4),
+                whatsapp_message_id: sendResult.sid || null,
+                status: sendResult.success ? 'sent' : 'failed',
+                body_params: {
+                  contact_name: contact.name,
+                  days_label: dayLabel,
+                  recipient: recipientName,
+                  platform: 'JOIE DE VIVRE'
+                },
+                error_message: sendResult.error || null,
+              });
+              if (logErr) console.error('Failed to log create_fund_nudge:', logErr);
+            }
+
             notifiedPhones.add(normalizedPhone);
             if (sendResult.success) {
               noFundAlertsSent++;
