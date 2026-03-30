@@ -1,30 +1,55 @@
 
 
-# Plan : Tester l'envoi du template `joiedevivre_delivery_reminder`
+# Plan : Validation stricte des numéros WhatsApp dans `test-whatsapp-send`
 
-## Analyse du template Meta
+## Objectif
 
-D'apres les captures :
-- **Body** : 3 variables — `{{1}}` = prenom client, `{{2}}` = ID commande court, `{{3}}` = nom du prestataire
-- **Bouton CTA** : "Confirmer la reception" — URL dynamique `https://joiedevivre-africa.com/orders/{{1}}`
+Ajouter une étape de validation et de pré-vérification du numéro de téléphone avant l'envoi du template, pour détecter les numéros invalides ou non-WhatsApp et retourner un diagnostic clair.
 
-## Action
+## Validations à ajouter
 
-Utiliser `test-whatsapp-send` via `supabase--curl_edge_functions` avec des donnees reelles issues de la base :
+### 1. Validation de format (avant appel Meta)
+- Nettoyer le numéro : supprimer espaces, tirets, parenthèses
+- Vérifier qu'il commence par `+` ou un indicatif pays (1-3 chiffres)
+- Vérifier la longueur totale (10-15 chiffres après nettoyage)
+- Vérifier les indicatifs pays connus (225 = CI, 229 = BJ, 33 = FR, etc.)
+- Pour les numéros CI (+225) : vérifier que la partie locale fait 10 chiffres (réforme 2021), alerter si 8 chiffres
 
-1. Requeter `business_orders` pour trouver une commande recente avec un `customer_id` et un telephone
-2. Recuperer le `first_name` du client et le `business_name` du prestataire
-3. Envoyer le template avec :
-   - `body_params`: `["Prenom", "ORDERID", "NomBusiness"]`
-   - `button_params`: `["order-uuid-complet"]` (suffixe dynamique pour l'URL `/orders/`)
+### 2. Pré-vérification WhatsApp via Meta Contacts API
+Avant d'envoyer le template, appeler l'endpoint Meta `contacts` pour vérifier si le numéro est enregistré sur WhatsApp :
+```
+POST https://graph.facebook.com/v18.0/{PHONE_ID}/contacts
+{ "blocking": "wait", "contacts": ["+225..."] }
+```
+Cela retourne un `status: "valid"` ou `"invalid"` et le `wa_id` mappé.
 
-## Verification du code existant
+### 3. Diagnostic enrichi dans la réponse
+Retourner dans la réponse :
+- `phone_validation` : résultat du nettoyage et format
+- `whatsapp_check` : résultat de la pré-vérification (valid/invalid, wa_id mappé)
+- `wa_id_mismatch` : alerte si le wa_id retourné diffère du numéro envoyé (problème connu CI)
+- Si le numéro est invalide, ne pas envoyer le template et retourner le diagnostic directement
 
-Le code dans `check-delivery-confirmation-reminder` (ligne 145-150) et `notify-delivery-completed` (ligne 128-133) utilise deja les bons parametres dans le bon ordre. Aucune correction necessaire — il s'agit uniquement d'un test d'envoi.
+## Structure du code modifié
 
-## Fichiers concernes
+```text
+1. Recevoir le payload
+2. Nettoyer et valider le format du numéro
+   → Si format invalide → retourner erreur 400 avec diagnostic
+3. Appeler Meta Contacts API pour vérifier le numéro
+   → Si "invalid" → retourner warning avec diagnostic (pas d'envoi)
+   → Si wa_id ≠ input → ajouter warning de mismatch
+4. Envoyer le template (logique existante inchangée)
+5. Retourner résultat enrichi avec phone_validation + whatsapp_check
+```
+
+## Option skip_validation
+
+Ajouter un paramètre optionnel `skip_validation: true` dans le payload pour forcer l'envoi sans pré-vérification (utile pour les tests de debug).
+
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| Aucun | Test d'envoi uniquement via `curl_edge_functions` |
+| `supabase/functions/test-whatsapp-send/index.ts` | Ajouter validation format + pré-vérification Meta Contacts API |
 
