@@ -71,7 +71,8 @@ export function useFriendshipSuggestions(contacts: LinkedContact[]) {
     queryKey: ['friendship-suggestions', user?.id, contactsKey],
     queryFn: () => fetchSuggestions(user!.id, contacts),
     enabled: !!user?.id && contacts.length > 0,
-    staleTime: 30000,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const confirmRelationship = async (contactId: string, linkedUserId: string) => {
