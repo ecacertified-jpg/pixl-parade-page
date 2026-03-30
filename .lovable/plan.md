@@ -1,58 +1,30 @@
 
 
-# Plan : Envoyer `joiedevivre_join_reminder` aux utilisateurs inscrits sans cercle d'amis
+# Plan : Invoquer manuellement `notify-contacts-join-reminder` et vérifier les logs
 
-## Contexte
+## Étapes
 
-Actuellement :
-- `notify-contacts-join-reminder` → cible les **contacts non inscrits** (linked_user_id IS NULL)
-- `check-friends-circle-reminders` → cible les **utilisateurs inscrits avec < N contacts** via le template `joiedevivre_friends_circle_reminder`
+### 1. Invoquer la fonction Edge via `curl_edge_functions`
 
-L'objectif est d'ajouter dans `notify-contacts-join-reminder` une **seconde phase** ciblant les utilisateurs inscrits qui n'ont **aucun contact** (cercle vide), en leur envoyant le même template `joiedevivre_join_reminder` avec l'image header.
+Appeler `notify-contacts-join-reminder` avec une requête POST vide pour déclencher les deux phases (contacts non inscrits + utilisateurs sans cercle).
 
-## Modification
+### 2. Vérifier les résultats dans les logs Edge Function
 
-### Fichier : `supabase/functions/notify-contacts-join-reminder/index.ts`
+Consulter les logs de la fonction pour voir le détail : combien de contacts/utilisateurs ciblés, envois réussis, skippés (dédup), erreurs.
 
-Ajouter une **Phase 2** après la boucle contacts existante (ligne 133) :
+### 3. Vérifier `whatsapp_template_logs`
 
-1. Requêter les `profiles` inscrits depuis > 7 jours, ayant un phone, et n'ayant **aucun contact** dans la table `contacts`
-2. Appliquer la même déduplication (alert_type `join_reminder_registered`, 14 jours)
-3. Envoyer `joiedevivre_join_reminder` avec `bodyParameters: ["Joie de Vivre"]` (pas de "owner" ici, c'est la plateforme qui invite) et le header image
-4. Logger dans `birthday_contact_alerts` avec `alert_type: 'join_reminder_registered'` pour distinguer des contacts non inscrits
+Requêter la table pour confirmer que de nouvelles entrées avec `template_name = 'joiedevivre_join_reminder'` et `status = 'sent'` apparaissent après l'invocation.
 
-```text
-Phase 1 (existante) : contacts non inscrits → "X t'a ajouté..."
-Phase 2 (nouvelle)  : utilisateurs inscrits sans contacts → "Crée ton cercle..."
-```
+### 4. Vérifier `birthday_contact_alerts`
 
-### Requête Phase 2
+Requêter les alertes de type `join_reminder` et `join_reminder_registered` pour confirmer la déduplication fonctionne.
 
-```sql
-SELECT p.user_id, p.first_name, p.phone
-FROM profiles p
-WHERE p.phone IS NOT NULL
-  AND p.created_at <= cutoff_date
-  AND NOT EXISTS (SELECT 1 FROM contacts c WHERE c.user_id = p.user_id)
-  AND NOT EXISTS (
-    SELECT 1 FROM birthday_contact_alerts bca
-    WHERE bca.contact_phone = p.phone
-      AND bca.alert_type = 'join_reminder_registered'
-      AND bca.created_at >= dedup_date
-  )
-```
+## Outils utilisés
 
-Ceci sera traduit en appels Supabase JS (sous-requête via `.not()` ou en deux étapes : lister les user_ids ayant des contacts, puis exclure).
-
-### Paramètres du template
-
-- `bodyParameters`: `[firstName]` (prénom de l'utilisateur)
-- `buttonParameters`: `undefined` (CTA statique)
-- `headerImageUrl`: même `JOIN_REMINDER_IMAGE_URL`
-
-## Fichier concerné
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/notify-contacts-join-reminder/index.ts` | Ajouter Phase 2 pour utilisateurs inscrits sans contacts |
+| Outil | Action |
+|-------|--------|
+| `supabase--curl_edge_functions` | Invoquer `notify-contacts-join-reminder` |
+| `supabase--edge_function_logs` | Lire les logs d'exécution |
+| `supabase--read_query` | Vérifier `whatsapp_template_logs` et `birthday_contact_alerts` |
 
