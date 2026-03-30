@@ -113,57 +113,8 @@ function validatePhone(phone: string): PhoneValidation {
   return result;
 }
 
-interface WhatsAppCheck {
-  status: 'valid' | 'invalid' | 'error' | 'skipped';
-  wa_id: string | null;
-  wa_id_mismatch: boolean;
-  mismatch_detail: string | null;
-  raw: any;
-}
-
-async function checkWhatsAppRegistration(phone: string, digitsOnly: string): Promise<WhatsAppCheck> {
-  const url = `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/contacts`;
-
-  try {
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        blocking: 'wait',
-        contacts: [phone],
-      }),
-    });
-
-    const data = await resp.json();
-    const contact = data?.contacts?.[0];
-
-    if (!contact) {
-      return { status: 'error', wa_id: null, wa_id_mismatch: false, mismatch_detail: null, raw: data };
-    }
-
-    const waId = contact.wa_id || null;
-    let mismatch = false;
-    let mismatchDetail: string | null = null;
-
-    if (waId && waId !== digitsOnly) {
-      mismatch = true;
-      mismatchDetail = `Numéro envoyé: ${digitsOnly}, wa_id retourné: ${waId}. Meta mappe peut-être à l'ancien format (problème connu CI).`;
-    }
-
-    return {
-      status: contact.status === 'valid' ? 'valid' : 'invalid',
-      wa_id: waId,
-      wa_id_mismatch: mismatch,
-      mismatch_detail: mismatchDetail,
-      raw: data,
-    };
-  } catch (err) {
-    return { status: 'error', wa_id: null, wa_id_mismatch: false, mismatch_detail: null, raw: String(err) };
-  }
-}
+// Note: Meta Cloud API does not support the Contacts API (On-Premise only).
+// Validation is format-based only.
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
