@@ -144,7 +144,7 @@ serve(async (req) => {
         // Get the contact owner's profile (the one who added the user)
         const { data: ownerProfile } = await supabase
           .from('profiles')
-          .select('phone')
+          .select('phone, first_name')
           .eq('user_id', contact.user_id)
           .single();
 
