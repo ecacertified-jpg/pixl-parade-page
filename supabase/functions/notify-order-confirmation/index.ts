@@ -147,6 +147,24 @@ serve(async (req) => {
         sendResult = await sendSms(businessPhone, smsMessage);
       }
       smsSent = sendResult.success;
+
+      // Log refund alert in whatsapp_template_logs
+      if (channel === 'whatsapp') {
+        try {
+          const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+            template_name: 'joiedevivre_refund_alert',
+            recipient_phone: businessPhone,
+            country_prefix: businessPhone.substring(0, 4),
+            whatsapp_message_id: sendResult.sid || null,
+            status: sendResult.success ? 'sent' : 'failed',
+            body_params: { order_id: shortOrderId },
+            error_message: sendResult.error || null,
+          });
+          if (logErr) console.error('Failed to log refund_alert:', logErr);
+        } catch (logErr) {
+          console.error('Failed to log refund_alert:', logErr);
+        }
+      }
     }
 
     // ═══════════════════════════════════════════════
