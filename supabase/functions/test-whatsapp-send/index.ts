@@ -60,6 +60,14 @@ serve(async (req) => {
       });
     }
 
+    // Header video support
+    if (header_video_url) {
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'video', video: { link: header_video_url } }],
+      });
+    }
+
     // Body parameters
     if (body_params && Array.isArray(body_params) && body_params.length > 0) {
       components.push({
