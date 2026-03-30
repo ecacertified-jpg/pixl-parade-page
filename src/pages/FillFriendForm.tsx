@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,15 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { AddressSelector, type AddressResult } from "@/components/AddressSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Gift, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 
 export default function FillFriendForm() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [celebrationPhase, setCelebrationPhase] = useState<'confetti' | 'cta' | null>(null);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -56,7 +60,6 @@ export default function FillFriendForm() {
         return;
       }
 
-      // Prefill data
       if (data.prefilled_name) setName(data.prefilled_name);
       if (data.prefilled_relation) setRelation(data.prefilled_relation);
 
@@ -65,6 +68,27 @@ export default function FillFriendForm() {
 
     loadToken();
   }, [token]);
+
+  // Trigger celebration phases after submission
+  useEffect(() => {
+    if (!submitted) return;
+
+    // Phase 1: confetti burst
+    setCelebrationPhase('confetti');
+    const burst = () => {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#a855f7', '#ec4899'] });
+      confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#f97316', '#22c55e'] });
+    };
+    burst();
+    const t1 = setTimeout(burst, 800);
+    const t2 = setTimeout(burst, 1600);
+
+    // Phase 2: CTA after 3.5s
+    const t3 = setTimeout(() => setCelebrationPhase('cta'), 3500);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [submitted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,13 +158,81 @@ export default function FillFriendForm() {
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-8 pb-8 space-y-4">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-            <h2 className="text-xl font-semibold text-foreground">Merci ! 🎉</h2>
-            <p className="text-muted-foreground">
-              Vos informations ont été enregistrées avec succès. Votre ami sera notifié de votre anniversaire !
-            </p>
+        <Card className="w-full max-w-md text-center overflow-hidden">
+          <CardContent className="pt-8 pb-8 space-y-6">
+            <AnimatePresence mode="wait">
+              {celebrationPhase === 'confetti' && (
+                <motion.div
+                  key="phase1"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  className="space-y-4"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', delay: 0.2 }}
+                  >
+                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+                  </motion.div>
+                  <motion.h2
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-xl font-semibold font-poppins text-foreground"
+                  >
+                    Bravo ! Ton ami(e) n'oubliera plus ton anniversaire 🎉
+                  </motion.h2>
+                </motion.div>
+              )}
+
+              {celebrationPhase === 'cta' && (
+                <motion.div
+                  key="phase2"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  className="space-y-6"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', delay: 0.1 }}
+                  >
+                    <Sparkles className="h-12 w-12 text-primary mx-auto" />
+                  </motion.div>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-lg font-nunito text-foreground leading-relaxed"
+                  >
+                    Et si <span className="font-bold text-primary">PLUSIEURS</span> de tes proches se souvenaient de ton anniversaire ?
+                    <br />
+                    <span className="text-muted-foreground">Imagine un peu ce qui t'attend !</span>
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="space-y-2"
+                  >
+                    <span className="inline-block text-xs font-medium font-poppins text-primary/80 bg-primary/10 px-3 py-1 rounded-full">
+                      Découvrez JDV
+                    </span>
+                    <Button
+                      onClick={() => navigate('/auth?discovery=true')}
+                      size="lg"
+                      className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-bold text-lg py-6 shadow-lg animate-pulse"
+                    >
+                      🎂 Créer mon anniversaire
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </CardContent>
         </Card>
       </div>
