@@ -1,39 +1,60 @@
 
 
-# Plan : Simuler l'acceptation d'une commande pending
+# Plan : Tester le template `joiedevivre_refund_alert` et ajouter le logging
 
-## Problème
+## Analyse du template Meta (captures)
 
-La fonction `handle-order-action` exige un JWT utilisateur valide (via `getClaims`) et vérifie que l'appelant est bien le propriétaire du business. On ne peut pas l'appeler directement avec la service role key — elle sera rejetée avec "Unauthorized: invalid token".
+- **Header** : Aucun
+- **Body** : 1 variable — `{{1}}` = ID court de la commande
+- **Footer** : JOIE DE VIVRE
+- **Bouton CTA** : "Gérer la demande" — URL **statique** `https://joiedevivre-africa.com/business-account?tab=orders`
+- **Pas de `button_params`** (URL statique, pas dynamique)
 
-## Approche
+## Verification du code
 
-Créer un appel via `test-whatsapp-send` n'est pas adapté ici. Il faut contourner la vérification JWT pour ce test unique.
+Le code dans `notify-order-confirmation/index.ts` (ligne 136-141) envoie correctement :
+- `body_params: [shortOrderId]` (1 param)
+- Pas de `button_params` (bouton statique)
+- Pas de `header_image_url`
 
-**Option retenue** : Appeler `handle-order-action` via `curl_edge_functions` avec la service role key dans le header Authorization. La méthode `getClaims` sur un JWT service_role retourne un `sub` qui ne correspondra pas au `business_user_id`, donc on recevra un 403.
+**Probleme** : Aucun insert dans `whatsapp_template_logs` apres l'envoi. Le template est invisible dans le dashboard de monitoring.
 
-**Solution** : Utiliser la commande `psql` pour simuler directement l'effet de l'acceptation, puis invoquer uniquement la partie notification via `test-whatsapp-send` pour valider le logging.
+## Etapes
 
-### Étape 1 — Tester le template via `test-whatsapp-send`
+### 1. Tester le template via `test-whatsapp-send`
 
-Envoyer `joiedevivre_order_confirmed` au numéro d'un client d'une commande pending pour confirmer que le template fonctionne :
+Envoyer au numero verifie `+2250708895257` :
+- `template`: `joiedevivre_refund_alert`
+- `body_params`: `["81973980"]`
+- Pas de `header_image_url`, pas de `button_params`
 
-- **Commande** : `b7c54dce` (BABY SNUS, 3500 XOF, client `+2250707467445`)
-- **Params** : `body_params: ["Client", "3 500", "BABY SNUS"]`
+### 2. Ajouter le logging centralise
 
-### Étape 2 — Vérifier le logging dans `whatsapp_template_logs`
+Dans `notify-order-confirmation/index.ts`, apres ligne 149 (`smsSent = sendResult.success`), ajouter :
 
-Requêter les entrées récentes pour `joiedevivre_order_confirmed`.
+```typescript
+// Log refund alert in whatsapp_template_logs
+if (channel === 'whatsapp') {
+  const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+    template_name: 'joiedevivre_refund_alert',
+    recipient_phone: businessPhone,
+    country_prefix: businessPhone.substring(0, 4),
+    whatsapp_message_id: sendResult.sid || null,
+    status: sendResult.success ? 'sent' : 'failed',
+    body_params: { order_id: shortOrderId },
+    error_message: sendResult.error || null,
+  });
+  if (logErr) console.error('Failed to log refund_alert:', logErr);
+}
+```
 
-### Étape 3 — Vérifier le code de logging dans handle-order-action
+### 3. Deployer et verifier
 
-Le logging est déjà ajouté (lignes 231-250). Quand un vrai marchand acceptera une commande via l'app, le log sera automatiquement créé. Le test via `test-whatsapp-send` confirme que le template Meta est valide et accepté.
+Redeployer la fonction `notify-order-confirmation` puis confirmer le deploiement.
 
-## Résumé
+## Fichier concerne
 
-| Action | Outil |
-|--------|-------|
-| Envoyer template `joiedevivre_order_confirmed` | `curl_edge_functions` (test-whatsapp-send) |
-| Vérifier logs | `read_query` sur `whatsapp_template_logs` |
-| Confirmer code logging | Déjà vérifié (lignes 231-250) |
+| Fichier | Action |
+|---------|--------|
+| `supabase/functions/notify-order-confirmation/index.ts` | Ajouter insert `whatsapp_template_logs` apres ligne 149 |
 
