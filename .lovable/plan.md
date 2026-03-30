@@ -1,18 +1,40 @@
 
 
-# Plan : Ajouter `joiedevivre_birthday_countdown_invite` à KNOWN_TEMPLATES
+# Plan : Tester le template `joiedevivre_fund_beneficiary_invite` et verifier le logging
 
-## Modification
+## Analyse du template Meta (captures)
 
-Dans `src/hooks/useWhatsAppTemplateInventory.ts`, ajouter une entrée dans le tableau `KNOWN_TEMPLATES` :
+- **Header** : Aucun
+- **Body** : 4 variables -- `{{1}}` = beneficiary name, `{{2}}` = creator name, `{{3}}` = product name, `{{4}}` = target amount
+- **Footer** : JOIE DE VIVRE
+- **Bouton CTA** : "Voir ma surprise" -- URL **dynamique** `https://joiedevivre-africa.com/f/{{1}}` (suffixe = fund_id)
 
-```typescript
-{ name: 'joiedevivre_birthday_countdown_invite', description: 'Invitation compte à rebours anniversaire', edgeFunction: 'birthday-wishes' },
-```
+## Correspondance code (lignes 253-258)
 
-## Fichier concerné
+Le code envoie deja correctement :
+- `body_params`: `[beneficiaryDisplayName, creatorName, product_name, formattedTarget]`
+- `button_params`: `[fund_id]`
+- Logging centralise : present (lignes 268-282)
 
-| Fichier | Action |
-|---------|--------|
-| `src/hooks/useWhatsAppTemplateInventory.ts` | Ajouter 1 entrée à `KNOWN_TEMPLATES` |
+## Etapes
+
+### 1. Envoyer le template via `test-whatsapp-send`
+
+Appeler la fonction Edge avec :
+- `template_name`: `joiedevivre_fund_beneficiary_invite`
+- `to`: numero verifie depuis la base
+- `body_params`: `["Francoise", "Aminata", "Gateau d'anniversaire", "35 000"]`
+- `button_params`: `["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]`
+- `lang`: `fr`
+
+### 2. Verifier `whatsapp_template_logs`
+
+Requeter les logs recents pour confirmer que le template est correctement enregistre avec les bons parametres.
+
+## Outils utilises
+
+| Outil | Action |
+|-------|--------|
+| `supabase--curl_edge_functions` | Envoyer le template de test |
+| `supabase--read_query` | Verifier les logs dans `whatsapp_template_logs` |
 
