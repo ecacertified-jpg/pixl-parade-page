@@ -144,7 +144,7 @@ serve(async (req) => {
         // Get the contact owner's profile (the one who added the user)
         const { data: ownerProfile } = await supabase
           .from('profiles')
-          .select('phone')
+          .select('phone, first_name')
           .eq('user_id', contact.user_id)
           .single();
 
@@ -192,24 +192,24 @@ serve(async (req) => {
         
         let sendResult: { success: boolean; error?: string } = { success: false };
 
-        if (channel === 'sms' && preferences.sms_enabled) {
-          const smsResult = await sendSms(ownerProfile.phone, message);
-          sendResult = { success: smsResult.success, error: smsResult.error };
-        } else if (channel === 'whatsapp' || preferences.whatsapp_enabled) {
-          // Try WhatsApp template first, fallback to free text
-          console.log(`📤 [WhatsApp] Sending birthday alert to ${ownerProfile.phone}`);
-          const waResult = await sendWhatsAppTemplate(
-            ownerProfile.phone,
-            'joiedevivre_birthday_reminder',
-            'fr',
-            [contact.name || 'Ami(e)', userName, String(daysUntilBirthday)]
-          );
-          if (waResult.success) {
-            sendResult = { success: true };
+        // Always try WhatsApp template first (WhatsApp-first routing)
+        console.log(`📤 [WhatsApp] Sending birthday reminder to ${ownerProfile.phone}`);
+        const waResult = await sendWhatsAppTemplate(
+          ownerProfile.phone,
+          'joiedevivre_birthday_reminder',
+          'fr',
+          [ownerProfile.first_name || 'Ami(e)', contact.name || userName, String(daysUntilBirthday)]
+        );
+        if (waResult.success) {
+          sendResult = { success: true };
+        } else {
+          console.log(`⚠️ [WhatsApp] Template failed: ${waResult.error}`);
+          // Fallback to SMS only if channel is SMS-reliable
+          if (channel === 'sms' && preferences.sms_enabled) {
+            const smsResult = await sendSms(ownerProfile.phone, message);
+            sendResult = { success: smsResult.success, error: smsResult.error };
           } else {
-            console.log(`⚠️ [WhatsApp] Template failed, trying free text: ${waResult.error}`);
-            const fallbackResult = await sendWhatsApp(ownerProfile.phone, message);
-            sendResult = { success: fallbackResult.success, error: fallbackResult.error };
+            sendResult = { success: false, error: waResult.error };
           }
         }
 
