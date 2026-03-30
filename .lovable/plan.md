@@ -1,52 +1,35 @@
 
 
-# Plan : Corriger le logging OTP dans `whatsapp_template_logs`
+# Plan : Tester l'envoi du template `joiedevivre_birthday_friend_alert`
 
-## Diagnostic
+## Analyse du template Meta (captures)
 
-Le template `joiedevivre_otp` est **correctement envoyé** (100% de delivrabilite dans `whatsapp_otp_codes`), mais **jamais logge** dans `whatsapp_template_logs` (0 entrees).
+- **Header** : Image (obligatoire)
+- **Body** : 4 variables — `{{1}}` nom de la personne, `{{2}}` jours restants, `{{3}}` nom du createur de la cagnotte, `{{4}}` montant objectif
+- **Bouton CTA** : "Contribuer" — URL dynamique `https://joiedevivre-africa.com/f/{{1}}`
 
-**Cause** : Ligne 233 de `send-whatsapp-otp/index.ts` insere `template_params: { purpose }` alors que la colonne s'appelle `body_params`. L'insert echoue silencieusement car l'erreur n'est pas verifiee.
+## Verification du code existant
 
-## Conformite du template Meta (captures)
+Le code dans `birthday-reminder-with-suggestions/index.ts` (lignes 375-387) envoie correctement :
+- `body_params`: `[contact.name, daysUntilBirthday, creatorName, target_amount]` (4 params)
+- `button_params`: `[activeFund.id]` (suffixe dynamique pour `/f/`)
+- `header_image_url`: presente
 
-- **Header** : Aucun
-- **Body** : 1 parametre (le code OTP) — template d'authentification
-- **Bouton** : "Copier le code" (bouton URL avec le code en suffixe)
-- **Code actuel** : Correct — envoie `body: [{ text: code }]` + `button: [{ text: code }]`
+**Probleme identifie** : Le template n'est **jamais logge** dans `whatsapp_template_logs` (0 entrees). Le logging se fait uniquement dans `birthday_contact_alerts`. Ce n'est pas un bug bloquant mais une lacune de tracabilite.
 
-## Correction
+## Action : Test via `test-whatsapp-send`
 
-Dans `supabase/functions/send-whatsapp-otp/index.ts`, ligne 227-234 :
+Envoyer un test au numero verifie `+2250708895257` (Francoise) avec :
+- `template`: `joiedevivre_birthday_friend_alert`
+- `body_params`: `["Florentin", "4", "Françoise", "35000"]`
+- `button_params`: `["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]`
+- `header_image_url`: `https://joiedevivre-africa.com/og-image.png`
 
-**Avant** :
-```js
-await supabaseAdmin.from('whatsapp_template_logs').insert({
-  template_name: 'joiedevivre_otp',
-  recipient_phone: maskedPhone,
-  country_prefix: phone.substring(0, 4),
-  whatsapp_message_id: sendResult.messageId,
-  status: 'sent',
-  template_params: { purpose },  // ❌ colonne inexistante
-});
-```
+Puis verifier la reponse Meta pour confirmer le succes.
 
-**Apres** :
-```js
-const { error: logError } = await supabaseAdmin.from('whatsapp_template_logs').insert({
-  template_name: 'joiedevivre_otp',
-  recipient_phone: maskedPhone,
-  country_prefix: phone.substring(0, 4),
-  whatsapp_message_id: sendResult.messageId,
-  status: 'sent',
-  body_params: { purpose },  // ✅ colonne correcte
-});
-if (logError) console.error('Failed to log OTP in template_logs:', logError);
-```
-
-## Fichier concerne
+## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/send-whatsapp-otp/index.ts` | Renommer `template_params` → `body_params` + ajouter gestion d'erreur |
+| Aucun | Test d'envoi uniquement via `curl_edge_functions` |
 
