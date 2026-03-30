@@ -227,6 +227,27 @@ serve(async (req) => {
         const waResult = await sendWhatsAppTemplate(customerPhone, templateName, 'fr', [customerFirstName, formattedAmount, bizName]);
         if (waResult.success) console.log(`✅ [WhatsApp] Status notification sent: ${waResult.sid}`);
         else console.error(`⚠️ [WhatsApp] Failed: ${waResult.error}`);
+
+        // Log to whatsapp_template_logs for centralized monitoring
+        try {
+          const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
+            template_name: templateName,
+            recipient_phone: customerPhone,
+            country_prefix: customerPhone.substring(0, 4),
+            whatsapp_message_id: waResult.sid || null,
+            status: waResult.success ? 'sent' : 'failed',
+            body_params: {
+              customer_name: customerFirstName,
+              amount: formattedAmount,
+              business_name: bizName
+            },
+            error_message: waResult.error || null,
+          });
+          if (logErr) console.error('⚠️ Failed to log order template:', logErr);
+          else console.log(`✅ [WhatsApp] Template ${templateName} logged to whatsapp_template_logs`);
+        } catch (logErr) {
+          console.error('⚠️ Failed to log order template:', logErr);
+        }
       } catch (waError) {
         console.error('⚠️ [WhatsApp] Error:', waError);
       }
