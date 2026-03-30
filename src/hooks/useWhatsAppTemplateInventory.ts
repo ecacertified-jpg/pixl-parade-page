@@ -42,6 +42,7 @@ const KNOWN_TEMPLATES: TemplateDefinition[] = [
   { name: 'joiedevivre_welcome_add_friends', description: 'Bienvenue post-inscription', edgeFunction: 'check-friends-circle-reminders' },
   { name: 'joiedevivre_friends_circle_reminder', description: 'Rappel étoffer cercle d\'amis', edgeFunction: 'check-friends-circle-reminders' },
   { name: 'joiedevivre_birthday_countdown', description: 'Compte à rebours anniversaire (J-7/5/3/1)', edgeFunction: 'birthday-wishes' },
+  { name: 'joiedevivre_birthday_countdown_invite', description: 'Invitation compte à rebours anniversaire', edgeFunction: 'birthday-wishes' },
 ];
 
 function computeStatus(def: TemplateDefinition, total: number, sent: number, failed: number): TemplateStatus {
