@@ -112,6 +112,7 @@ export function useFriendRequests() {
     queryKey: ['friend-requests', user?.id],
     queryFn: () => fetchFriendRequests(user!.id),
     enabled: !!user?.id,
+    staleTime: 30_000,
     placeholderData: (prev) => prev,
   });
 
@@ -229,3 +230,6 @@ export function useFriendRequests() {
     refreshRequests: invalidate,
   };
 }
+
+// Prefetch function for use in Index.tsx
+export const prefetchFriendRequests = (userId: string) => fetchFriendRequests(userId);

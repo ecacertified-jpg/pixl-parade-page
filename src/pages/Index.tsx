@@ -36,6 +36,16 @@ const Index = () => {
       import('@/hooks/useDashboardData').then(({ prefetchDashboardData }) => {
         prefetchDashboardData(queryClient, user.id);
       });
+      queryClient.prefetchQuery({
+        queryKey: ['friend-requests', user.id],
+        queryFn: () => import('@/hooks/useFriendRequests').then(m => m.prefetchFriendRequests(user.id)),
+        staleTime: 30_000,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ['user-suggestions', user.id, null, 5],
+        queryFn: () => import('@/hooks/useUserSuggestions').then(m => m.prefetchUserSuggestions(user.id)),
+        staleTime: 60_000,
+      });
     }
   }, [user?.id, queryClient]);
 
