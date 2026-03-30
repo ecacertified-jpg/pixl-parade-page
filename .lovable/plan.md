@@ -1,41 +1,30 @@
 
 
-# Plan : Ajouter le logging centralisé pour `joiedevivre_birthday_create_fund_nudge`
+# Plan : Invoquer `birthday-reminder-with-suggestions` et vérifier les logs
 
-## Résultat du test
+## Étapes
 
-- **Template envoyé** : Meta a accepté le message (ID: `wamid...FCDFA`)
-- **Paramètres validés** : 4 body params + 1 button param (suffixe `?for=`) + header image
-- **Logging** : 0 entrées dans `whatsapp_template_logs` — le code (ligne 532-544) ne logge que dans `birthday_contact_alerts`
+### 1. Invoquer la fonction Edge
 
-## Correction
+Appeler `birthday-reminder-with-suggestions` via POST pour déclencher un cycle complet (envoi des templates birthday_friend_alert et birthday_create_fund_nudge).
 
-Dans `supabase/functions/birthday-reminder-with-suggestions/index.ts`, après l'insert dans `birthday_contact_alerts` (ligne 544), ajouter un insert dans `whatsapp_template_logs` pour tracer l'envoi du template `joiedevivre_birthday_create_fund_nudge` :
+### 2. Lire les logs Edge Function
 
-```typescript
-// Après l'insert birthday_contact_alerts (ligne 544)
-if (channel === 'whatsapp') {
-  const { error: logErr } = await supabase.from('whatsapp_template_logs').insert({
-    template_name: 'joiedevivre_birthday_create_fund_nudge',
-    recipient_phone: normalizedPhone,
-    country_prefix: normalizedPhone.substring(0, 4),
-    whatsapp_message_id: sendResult.sid || null,
-    status: sendResult.success ? 'sent' : 'failed',
-    body_params: {
-      contact_name: contact.name,
-      days_label: dayLabel,
-      recipient: recipientName,
-      platform: 'JOIE DE VIVRE'
-    },
-    error_message: sendResult.error || null,
-  });
-  if (logErr) console.error('Failed to log create_fund_nudge:', logErr);
-}
-```
+Consulter les logs de `birthday-reminder-with-suggestions` pour voir les messages de debug et confirmer l'exécution.
 
-## Fichier concerné
+### 3. Vérifier `whatsapp_template_logs`
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/birthday-reminder-with-suggestions/index.ts` | Ajouter insert `whatsapp_template_logs` après ligne 544 |
+Requêter les entrées récentes pour `joiedevivre_birthday_create_fund_nudge` et `joiedevivre_birthday_friend_alert` pour confirmer que le logging centralisé fonctionne.
+
+### 4. Vérifier `birthday_contact_alerts`
+
+Requêter les alertes récentes pour confirmer la cohérence entre les deux tables de logs.
+
+## Outils utilisés
+
+| Outil | Action |
+|-------|--------|
+| `supabase--curl_edge_functions` | Invoquer la fonction |
+| `supabase--edge_function_logs` | Lire les logs d'exécution |
+| `supabase--read_query` | Vérifier `whatsapp_template_logs` et `birthday_contact_alerts` |
 
