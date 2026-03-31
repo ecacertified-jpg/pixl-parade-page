@@ -1006,7 +1006,7 @@ const BusinessAuth = () => {
         // Standard SMS OTP verification
         const { data: authData, error } = await supabase.auth.verifyOtp({
           phone: currentPhone,
-          token: otpValue,
+          token: otpValue.trim().replace(/\D/g, ''),
           type: 'sms',
         });
 
