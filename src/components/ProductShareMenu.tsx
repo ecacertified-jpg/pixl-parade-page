@@ -10,6 +10,7 @@ import { useProductShareCard } from "@/hooks/useProductShareCard";
 import { useProductShares } from "@/hooks/useProductShares";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { getAppBaseUrl } from "@/utils/appUrl";
 
 interface ProductShareMenuProps {
   open: boolean;
