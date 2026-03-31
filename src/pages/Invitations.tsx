@@ -31,7 +31,8 @@ export default function Invitations() {
     fetchInvitations();
   }, []);
 
-  const referralLink = user?.id ? `${window.location.origin}/auth?ref=${user.id}` : '';
+  const referralLink = user?.id ? `${getAppBaseUrl()}/auth?ref=${user.id}` : '';
+  const viralMessage = `🎉 Rejoins Joie de Vivre, l'appli qui renforce les liens entre proches !\n\nCrée des cagnottes, offre des cadeaux collectifs et ne rate plus aucun anniversaire 🎂\n\nInscris-toi avec mon lien ⬇️\n${referralLink}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralLink);
