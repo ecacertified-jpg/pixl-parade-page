@@ -1,83 +1,113 @@
 
-Objectif: supprimer l’erreur persistante “Code invalide” quand l’utilisateur saisit un OTP WhatsApp encore valable, surtout après plusieurs demandes ou un copier-coller depuis WhatsApp.
+# Plan : corriger définitivement l’erreur OTP persistante
 
-1. Corriger la vraie cause dans l’Edge Function `verify-whatsapp-otp`
-- Le bug principal vient du fait que la fonction ne lit que le dernier OTP non vérifié pour un numéro:
-  - `order(created_at desc).limit(1).maybeSingle()`
-- Si l’utilisateur a reçu plusieurs codes encore valides, il peut entrer un ancien code toujours dans WhatsApp, mais la fonction compare uniquement avec le plus récent et renvoie “Code invalide”.
-- Modification prévue:
-  - rechercher d’abord un OTP exact par `phone + code` parmi les OTP non vérifiés et non expirés
-  - ne plus dépendre uniquement du “dernier OTP”
-  - si aucun OTP exact n’existe, retourner l’erreur actuelle
-- Bonus sécurité:
-  - après validation réussie d’un code, invalider aussi les autres OTP actifs du même numéro pour éviter les ambiguïtés futures
+## Ce que j’ai confirmé
 
-2. Assainir la génération d’OTP dans `send-whatsapp-otp`
-- Aujourd’hui, plusieurs OTP actifs peuvent coexister pour un même numéro.
-- Modification prévue:
-  - avant d’insérer un nouveau code, supprimer ou marquer invalides les OTP précédents non vérifiés du même numéro
-  - conserver la règle de rate limit 60s
-- Résultat:
-  - un seul OTP actif par numéro
-  - cohérence entre le code reçu et le code attendu côté vérification
+- L’envoi WhatsApp fonctionne bien : la requête `send-whatsapp-otp` renvoie `200` avec `success: true`.
+- Le collage du code est déjà nettoyé côté client et côté Edge Function.
+- Donc le vrai problème n’est probablement plus le copier-coller.
 
-3. Aligner `BusinessAuth.tsx` avec `Auth.tsx` sur le rate limit
-- `Auth.tsx` gère déjà le `429 rate_limit` correctement en affichant l’écran de saisie OTP et en synchronisant le countdown.
-- `BusinessAuth.tsx` affiche encore une erreur destructrice dans ce cas.
-- Modification prévue:
-  - reproduire la même logique dans `BusinessAuth.tsx`
-  - si le serveur répond `rate_limit`, ouvrir l’écran OTP au lieu d’afficher une erreur bloquante
+## Do I know what the issue is?
 
-4. Durcir l’UX contre les doubles demandes
-- Le flux OTP peut être relancé plusieurs fois rapidement, créant des situations ambiguës.
-- Modification prévue:
-  - ajouter un garde-fou simple côté client pour éviter les doubles clics / doubles soumissions pendant l’envoi
-  - réutiliser le pattern déjà recommandé dans les mémoires de résilience auth
-- Impact:
-  - moins de créations d’OTP concurrents
-  - moins de cas où l’utilisateur reçoit plusieurs codes rapprochés
+Oui.
 
-5. Vérifier les deux écrans concernés
-- `src/pages/Auth.tsx`
-- `src/pages/BusinessAuth.tsx`
-- Vérifications à couvrir après implémentation:
-  - connexion: demander un code, coller le code WhatsApp, validation OK
-  - inscription: même comportement
-  - renvoi avant 60s: bascule vers l’écran OTP sans erreur bloquante
-  - ancien code expiré: erreur claire
-  - dernier code valide: connexion réussie
+Le bug le plus probable est un **mauvais routage du canal OTP au moment de la vérification** :
 
-Fichiers à modifier
-- `supabase/functions/verify-whatsapp-otp/index.ts`
-- `supabase/functions/send-whatsapp-otp/index.ts`
-- `src/pages/BusinessAuth.tsx`
-- possiblement `src/pages/Auth.tsx` pour harmoniser le garde-fou anti double soumission
+- `Auth.tsx` et `BusinessAuth.tsx` choisissent le canal avec `otpMethod || defaultMethod`
+- or en Côte d’Ivoire, `defaultMethod` reste **`sms`**
+- si l’utilisateur a reçu un code **WhatsApp**, mais que l’état local du canal n’est plus la source de vérité, l’app peut tenter une vérification **SMS** au lieu de `verify-whatsapp-otp`
+- résultat : le code est bon pour WhatsApp, mais il est vérifié dans le mauvais backend, donc “Code invalide”
 
-Pourquoi l’erreur continue aujourd’hui
-- Le code n’est plus rejeté à cause du copier-coller uniquement.
-- Le problème le plus probable est maintenant un décalage entre:
-  - le code que l’utilisateur voit dans WhatsApp
-  - le code le plus récent stocké dans `whatsapp_otp_codes`
-- Donc un code “valide pour l’utilisateur” peut être “invalide pour la fonction” si un autre OTP a été créé après.
+C’est cohérent avec le fait que :
+- l’envoi WhatsApp réussit
+- les anciennes corrections sur la sanitisation n’ont pas suffi
+- le problème persiste surtout dans un contexte mobile où l’utilisateur sort vers WhatsApp puis revient
 
-Détail technique
+## Pourquoi les fixes précédents ne suffisent pas
+
+Ils ont corrigé :
+- les caractères invisibles
+- les OTP multiples actifs
+
+Mais ils n’ont pas rendu **persistante et fiable** la méthode réellement utilisée pour envoyer le code.
+
+## Implémentation proposée
+
+### 1. Introduire une vraie source de vérité : `activeOtpMethod`
+Dans `Auth.tsx` et `BusinessAuth.tsx` :
+
+- créer un état dédié pour la méthode effectivement envoyée (`sms` ou `whatsapp`)
+- le définir uniquement **au moment où l’envoi réussit réellement**
+- ne plus utiliser `defaultMethod` pour la vérification d’un code déjà envoyé
+
+Règle :
 ```text
-Aujourd’hui:
-verify-whatsapp-otp
-→ prend le dernier OTP actif du numéro
-→ compare son code au code saisi
-
-Cas d’échec:
-OTP A envoyé
-OTP B envoyé ensuite
-utilisateur saisit OTP A
-→ la fonction charge OTP B
-→ comparaison échoue
-→ "Code invalide"
-
-Après correction:
-verify-whatsapp-otp
-→ cherche l’OTP actif correspondant exactement au code saisi
-→ si trouvé: succès
-→ sinon: erreur
+méthode choisie pour l’envoi = méthode obligatoire pour verify + resend
 ```
+
+### 2. Persister ce canal pendant le flux OTP
+Toujours dans `Auth.tsx` et `BusinessAuth.tsx` :
+
+- stocker temporairement en `sessionStorage` :
+  - `activeOtpMethod`
+  - `currentPhone`
+  - `authMode`
+  - expiration/countdown
+- restaurer ces infos au retour depuis WhatsApp si la page a été remount/rechargée
+
+But :
+- éviter qu’un retour depuis WhatsApp fasse retomber le flux sur `defaultMethod = sms`
+
+### 3. Vérifier avec le bon backend
+Modifier la logique de vérification :
+
+- si `activeOtpMethod === 'whatsapp'` → appeler uniquement `verify-whatsapp-otp`
+- si `activeOtpMethod === 'sms'` → appeler uniquement `supabase.auth.verifyOtp({ type: 'sms' })`
+
+Et faire la même chose pour **renvoyer** le code :
+- resend WhatsApp si le dernier envoi était WhatsApp
+- resend SMS si le dernier envoi était SMS
+
+### 4. Afficher clairement le canal dans l’écran OTP
+Améliorer l’UI OTP dans les deux pages :
+
+- afficher “Code envoyé via WhatsApp” ou “Code envoyé par SMS”
+- éviter le texte générique “Code envoyé au ...”
+
+Cela réduit la confusion utilisateur et sert aussi de vérification visuelle du bon flux.
+
+### 5. Ajouter un logging ciblé et sûr
+Comme l’erreur persiste depuis plusieurs itérations :
+
+- ajouter des logs masqués côté client et Edge Function :
+  - canal utilisé pour l’envoi
+  - canal utilisé pour la vérification
+  - téléphone masqué
+  - résultat de lookup OTP
+- ne jamais logger le code OTP brut
+
+## Fichiers à modifier
+
+| Fichier | Action |
+|---|---|
+| `src/pages/Auth.tsx` | mémoriser/restaurer `activeOtpMethod`, utiliser ce canal pour verify/resend, afficher le canal dans l’UI OTP |
+| `src/pages/BusinessAuth.tsx` | même correction que `Auth.tsx` |
+| `supabase/functions/verify-whatsapp-otp/index.ts` | enrichir les logs de diagnostic, sans exposer de données sensibles |
+
+## Détail technique
+
+```text
+Aujourd’hui
+send via WhatsApp -> état local fragile -> verify choisit parfois sms -> "Code invalide"
+
+Après correction
+send via WhatsApp -> activeOtpMethod = whatsapp (persisté) -> verify-whatsapp-otp
+send via SMS      -> activeOtpMethod = sms       (persisté) -> supabase.auth.verifyOtp
+```
+
+## Résultat attendu
+
+- un code reçu sur WhatsApp est toujours vérifié via le flux WhatsApp
+- le retour depuis WhatsApp ne casse plus le canal choisi
+- le même correctif couvre connexion et inscription
+- le bug cesse sur la page Auth et sur la page BusinessAuth
