@@ -219,7 +219,7 @@ const BirthdayPage = () => {
 
   const handleSendMessage = async () => {
     if (!user) {
-      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
       return;
     }
     if (!newMessage.trim() || !page) return;
@@ -230,11 +230,11 @@ const BirthdayPage = () => {
         .from('profiles')
         .select('first_name, last_name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      const senderName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Un ami';
+      const senderName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Un ami' : 'Un ami';
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('birthday_wishes_messages')
         .insert({
           birthday_user_id: page.user_id,
@@ -243,13 +243,18 @@ const BirthdayPage = () => {
           sender_name: senderName,
           message_text: newMessage.trim(),
           celebration_year: page.celebration_year,
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
-      setMessages(prev => [data as WishMessage, ...prev]);
+      const newMsg: WishMessage = {
+        id: crypto.randomUUID(),
+        sender_name: senderName,
+        message_text: newMessage.trim(),
+        created_at: new Date().toISOString(),
+        is_from_fund: false,
+      };
+      setMessages(prev => [newMsg, ...prev]);
       setNewMessage("");
       toast.success("Message envoyé ! 💖");
     } catch (err) {

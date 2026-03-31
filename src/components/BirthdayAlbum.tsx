@@ -58,7 +58,7 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
 
   const requireAuth = () => {
     if (!user) {
-      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
       return true;
     }
     return false;
