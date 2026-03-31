@@ -1,44 +1,83 @@
 
+Objectif: supprimer l’erreur persistante “Code invalide” quand l’utilisateur saisit un OTP WhatsApp encore valable, surtout après plusieurs demandes ou un copier-coller depuis WhatsApp.
 
-# Plan : Corriger la vérification OTP copié-collé depuis WhatsApp
+1. Corriger la vraie cause dans l’Edge Function `verify-whatsapp-otp`
+- Le bug principal vient du fait que la fonction ne lit que le dernier OTP non vérifié pour un numéro:
+  - `order(created_at desc).limit(1).maybeSingle()`
+- Si l’utilisateur a reçu plusieurs codes encore valides, il peut entrer un ancien code toujours dans WhatsApp, mais la fonction compare uniquement avec le plus récent et renvoie “Code invalide”.
+- Modification prévue:
+  - rechercher d’abord un OTP exact par `phone + code` parmi les OTP non vérifiés et non expirés
+  - ne plus dépendre uniquement du “dernier OTP”
+  - si aucun OTP exact n’existe, retourner l’erreur actuelle
+- Bonus sécurité:
+  - après validation réussie d’un code, invalider aussi les autres OTP actifs du même numéro pour éviter les ambiguïtés futures
 
-## Problème
+2. Assainir la génération d’OTP dans `send-whatsapp-otp`
+- Aujourd’hui, plusieurs OTP actifs peuvent coexister pour un même numéro.
+- Modification prévue:
+  - avant d’insérer un nouveau code, supprimer ou marquer invalides les OTP précédents non vérifiés du même numéro
+  - conserver la règle de rate limit 60s
+- Résultat:
+  - un seul OTP actif par numéro
+  - cohérence entre le code reçu et le code attendu côté vérification
 
-Quand l'utilisateur copie-colle un code OTP depuis WhatsApp, la vérification échoue avec "Code invalide". Deux causes probables :
+3. Aligner `BusinessAuth.tsx` avec `Auth.tsx` sur le rate limit
+- `Auth.tsx` gère déjà le `429 rate_limit` correctement en affichant l’écran de saisie OTP et en synchronisant le countdown.
+- `BusinessAuth.tsx` affiche encore une erreur destructrice dans ce cas.
+- Modification prévue:
+  - reproduire la même logique dans `BusinessAuth.tsx`
+  - si le serveur répond `rate_limit`, ouvrir l’écran OTP au lieu d’afficher une erreur bloquante
 
-1. **Caractères invisibles dans le presse-papier** : WhatsApp peut ajouter des espaces, zero-width spaces, ou retours à la ligne lors du copier-coller. Le composant `InputOTP` filtre les caractères visuels mais certains caractères Unicode invisibles peuvent passer.
+4. Durcir l’UX contre les doubles demandes
+- Le flux OTP peut être relancé plusieurs fois rapidement, créant des situations ambiguës.
+- Modification prévue:
+  - ajouter un garde-fou simple côté client pour éviter les doubles clics / doubles soumissions pendant l’envoi
+  - réutiliser le pattern déjà recommandé dans les mémoires de résilience auth
+- Impact:
+  - moins de créations d’OTP concurrents
+  - moins de cas où l’utilisateur reçoit plusieurs codes rapprochés
 
-2. **Pas de sanitisation côté client ni serveur** : Le code OTP est envoyé tel quel (`data.otp` / `otpValue`) sans `.trim()` ni suppression des non-chiffres. Côté edge function, la regex `^\d{6}$` rejette les codes avec caractères parasites, retournant "Le code doit contenir 6 chiffres" — ou si les caractères passent la regex, le code ne matche pas avec celui en base.
+5. Vérifier les deux écrans concernés
+- `src/pages/Auth.tsx`
+- `src/pages/BusinessAuth.tsx`
+- Vérifications à couvrir après implémentation:
+  - connexion: demander un code, coller le code WhatsApp, validation OK
+  - inscription: même comportement
+  - renvoi avant 60s: bascule vers l’écran OTP sans erreur bloquante
+  - ancien code expiré: erreur claire
+  - dernier code valide: connexion réussie
 
-## Solution
+Fichiers à modifier
+- `supabase/functions/verify-whatsapp-otp/index.ts`
+- `supabase/functions/send-whatsapp-otp/index.ts`
+- `src/pages/BusinessAuth.tsx`
+- possiblement `src/pages/Auth.tsx` pour harmoniser le garde-fou anti double soumission
 
-Ajouter une sanitisation `trim().replace(/\D/g, '')` à 3 niveaux :
+Pourquoi l’erreur continue aujourd’hui
+- Le code n’est plus rejeté à cause du copier-coller uniquement.
+- Le problème le plus probable est maintenant un décalage entre:
+  - le code que l’utilisateur voit dans WhatsApp
+  - le code le plus récent stocké dans `whatsapp_otp_codes`
+- Donc un code “valide pour l’utilisateur” peut être “invalide pour la fonction” si un autre OTP a été créé après.
 
-### 1. Client — Auth.tsx (connexion + inscription)
-Sanitiser `data.otp` avant envoi dans `verifyOtp()` :
-```typescript
-const cleanCode = data.otp.trim().replace(/\D/g, '');
-// puis utiliser cleanCode au lieu de data.otp
+Détail technique
+```text
+Aujourd’hui:
+verify-whatsapp-otp
+→ prend le dernier OTP actif du numéro
+→ compare son code au code saisi
+
+Cas d’échec:
+OTP A envoyé
+OTP B envoyé ensuite
+utilisateur saisit OTP A
+→ la fonction charge OTP B
+→ comparaison échoue
+→ "Code invalide"
+
+Après correction:
+verify-whatsapp-otp
+→ cherche l’OTP actif correspondant exactement au code saisi
+→ si trouvé: succès
+→ sinon: erreur
 ```
-
-### 2. Client — BusinessAuth.tsx (espace business)
-Même sanitisation sur `otpValue` dans `verifyOtp()` :
-```typescript
-const cleanCode = otpValue.trim().replace(/\D/g, '');
-```
-
-### 3. Serveur — Edge Function `verify-whatsapp-otp`
-Sanitiser `code` à la réception avant toute validation :
-```typescript
-const cleanCode = code.trim().replace(/\D/g, '');
-// Utiliser cleanCode pour la validation et la comparaison
-```
-
-## Fichiers concernés
-
-| Fichier | Action |
-|---------|--------|
-| `src/pages/Auth.tsx` | Sanitiser `data.otp` dans `verifyOtp()` |
-| `src/pages/BusinessAuth.tsx` | Sanitiser `otpValue` dans `verifyOtp()` |
-| `supabase/functions/verify-whatsapp-otp/index.ts` | Sanitiser `code` à la réception (défense en profondeur) |
-
