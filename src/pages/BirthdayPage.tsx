@@ -208,6 +208,20 @@ const BirthdayPage = () => {
           .single();
 
         if (fundData) setFund(fundData as FundInfo);
+      } else {
+        // Fallback: chercher une cagnotte birthday active pour cet utilisateur
+        const { data: existingFunds } = await supabase
+          .from('collective_funds')
+          .select('id, title, target_amount, current_amount, share_token')
+          .eq('creator_id', pageData.user_id)
+          .eq('occasion', 'birthday')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (existingFunds && existingFunds.length > 0) {
+          setFund(existingFunds[0] as FundInfo);
+        }
       }
     } catch (err) {
       console.error('Error loading birthday page:', err);
