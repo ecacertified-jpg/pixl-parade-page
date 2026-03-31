@@ -112,8 +112,8 @@ export function BirthdayPageShareButton({ open, onOpenChange, firstName, pageUrl
       bgColor: 'hover:bg-primary/10',
       action: async () => {
         try {
-          await navigator.clipboard.writeText(pageUrl);
-          toast.success('Lien copié ! 📋');
+          await navigator.clipboard.writeText(shareText + '\n\n' + pageUrl);
+          toast.success('Message + lien copiés ! 📋');
           onOpenChange(false);
         } catch { toast.error('Erreur lors de la copie'); }
       },
