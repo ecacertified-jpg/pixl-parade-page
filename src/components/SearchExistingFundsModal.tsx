@@ -194,15 +194,27 @@ export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: Searc
           )}
         </div>
 
-        {/* Fixed bottom button */}
-        <div className="border-t px-6 py-4">
+        {/* Fixed bottom buttons */}
+        <div className="border-t px-6 py-4 space-y-2">
+          <Button
+            className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+            onClick={() => {
+              onClose();
+              clearResults();
+              setQuery('');
+              navigate('/favorites');
+            }}
+          >
+            <Gift className="h-4 w-4" />
+            Créer ma cagnotte
+          </Button>
           <Button
             variant="outline"
             className="w-full gap-2"
             onClick={handleCreateNew}
           >
             <Plus className="h-4 w-4" />
-            Créer une nouvelle cagnotte
+            Cotiser pour un autre
           </Button>
         </div>
       </DialogContent>

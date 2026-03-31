@@ -157,6 +157,7 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
+      const isSelfFund = selectedContact.id === 'self';
       addItem({
         id: product.id,
         productId: product.id,
@@ -167,7 +168,8 @@ export function CollaborativeGiftModal({
         image: product.image,
         isCollaborativeGift: true,
         beneficiaryName: selectedContact.name,
-        beneficiaryContactId: selectedContact.id
+        beneficiaryContactId: isSelfFund ? undefined : selectedContact.id,
+        isSelfFund
       });
 
       toast({
