@@ -179,7 +179,7 @@ export default function CollectiveCheckout() {
           target_amount: item.price * item.quantity,
           business_product_id: businessProductId,
           created_by_business_id: createdByBusinessId,
-          occasion: 'cadeau',
+          occasion: item.isSelfFund ? 'birthday' : 'cadeau',
           currency: 'XOF',
           status: 'active'
         })
