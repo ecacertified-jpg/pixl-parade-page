@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle, Settings, ShoppingBag, Sparkles } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Heart, Share2, AlertCircle, Settings, ShoppingBag, Sparkles, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
