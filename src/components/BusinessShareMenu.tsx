@@ -25,7 +25,7 @@ export function BusinessShareMenu({
   const [sharing, setSharing] = useState(false);
   const { recordShare } = useBusinessShareTracking(businessId);
 
-  const baseUrl = `${window.location.origin}/b/${businessId}`;
+  const baseUrl = `${getAppBaseUrl()}/b/${businessId}`;
   const shareText = `Découvre ${businessName} sur JOIE DE VIVRE ! ${businessType ? `(${businessType})` : ''} 🎁`;
 
   const getTrackableUrl = async (platform: SharePlatform): Promise<string> => {
