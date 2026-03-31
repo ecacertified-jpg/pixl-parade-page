@@ -644,10 +644,11 @@ const Auth = () => {
         // Verify via WhatsApp edge function
         console.log('🔐 [WhatsApp OTP Verify] Verifying code for:', currentPhone);
         
+        const cleanCode = (data.otp || '').trim().replace(/\D/g, '');
         const { data: result, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
           body: {
             phone: currentPhone,
-            code: data.otp,
+            code: cleanCode,
           },
         });
 
