@@ -5,7 +5,9 @@ import { Cake, Share2, Gift, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getDaysUntilBirthday } from '@/lib/utils';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface BirthdayCountdownCardProps {
   birthday: string | null;
@@ -271,12 +273,17 @@ export function BirthdayCountdownCard({ birthday, userName, onCompleteProfile }:
                 variant="ghost" 
                 className="h-7 text-xs px-2 gap-1"
                 onClick={() => {
+                  const viralText = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nPlus que ${daysUntil} jours !\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️`;
+                  const shareUrl = getAppBaseUrl();
                   if (navigator.share) {
                     navigator.share({
-                      title: 'Mon anniversaire approche !',
-                      text: `Plus que ${daysUntil} jours avant mon anniversaire ! 🎂`,
-                      url: window.location.origin,
+                      title: 'Mon anniversaire approche ! 🎂',
+                      text: viralText,
+                      url: shareUrl,
                     });
+                  } else {
+                    navigator.clipboard.writeText(`${viralText}\n\n${shareUrl}`);
+                    toast.success('Message copié !');
                   }
                 }}
               >

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 export function usePostActions() {
   const [loading, setLoading] = useState(false);
 
   const copyLink = async (postId: string) => {
-    const url = `${window.location.origin}/publications/${postId}`;
+    const url = `${getAppBaseUrl()}/publications/${postId}`;
     try {
       await navigator.clipboard.writeText(url);
       toast({

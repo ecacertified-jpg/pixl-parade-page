@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Users, TrendingUp, Target, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 export default function Invitations() {
   const navigate = useNavigate();
@@ -30,12 +31,13 @@ export default function Invitations() {
     fetchInvitations();
   }, []);
 
-  const referralLink = user?.id ? `${window.location.origin}/auth?ref=${user.id}` : '';
+  const referralLink = user?.id ? `${getAppBaseUrl()}/auth?ref=${user.id}` : '';
+  const viralMessage = `🎉 Rejoins Joie de Vivre, l'appli qui renforce les liens entre proches !\n\nCrée des cagnottes, offre des cadeaux collectifs et ne rate plus aucun anniversaire 🎂\n\nInscris-toi avec mon lien ⬇️\n${referralLink}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(referralLink);
+    navigator.clipboard.writeText(viralMessage);
     setCopied(true);
-    toast.success('Lien de parrainage copié !');
+    toast.success('Message de parrainage copié !');
     setTimeout(() => setCopied(false), 2000);
   };
 

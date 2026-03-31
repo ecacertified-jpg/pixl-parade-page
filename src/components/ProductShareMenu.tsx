@@ -10,6 +10,7 @@ import { useProductShareCard } from "@/hooks/useProductShareCard";
 import { useProductShares } from "@/hooks/useProductShares";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useGoogleAnalytics } from "@/hooks/useGoogleAnalytics";
+import { getAppBaseUrl } from "@/utils/appUrl";
 
 interface ProductShareMenuProps {
   open: boolean;
@@ -84,7 +85,7 @@ export function ProductShareMenu({
 
   if (!product) return null;
 
-  const baseProductUrl = `${window.location.origin}/p/${product.id}`;
+  const baseProductUrl = `${getAppBaseUrl()}/p/${product.id}`;
   const formattedPrice = `${product.price.toLocaleString()} ${product.currency}`;
   
   // Inclure le message personnalisé dans le texte de partage si présent
@@ -110,7 +111,8 @@ export function ProductShareMenu({
       });
       const trackableUrl = createTrackableUrl(shareToken);
       
-      await navigator.clipboard.writeText(trackableUrl);
+      const fullMessage = `🎁 J'ai trouvé LE cadeau parfait ! ✨\n\n📦 ${product.name}\n💰 ${formattedPrice}\n🏪 ${product.vendor}\n\nSur Joie de Vivre, la boutique de cadeaux en Afrique 🌍\n\n➡️ ${trackableUrl}`;
+      await navigator.clipboard.writeText(fullMessage);
       trackSocialShare('copy_link', 'product', String(product.id));
       setCopied(true);
       toast.success("Lien copié !");
