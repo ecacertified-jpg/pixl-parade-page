@@ -1,8 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, Phone, MapPin, MessageSquare, Bell } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
+
 interface OrderSummary {
   items: Array<{
     name: string;
@@ -26,28 +30,61 @@ interface ConfirmationState {
   deliveryAddress: string;
   beneficiaryName: string;
   notificationStats?: NotificationStats | null;
+  isSelfFund?: boolean;
 }
+
 export default function CollectiveOrderConfirmation() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const state = location.state as ConfirmationState;
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [birthdaySlug, setBirthdaySlug] = useState<string | undefined>();
+
   useEffect(() => {
-    // Redirect if no state is provided
     if (!state) {
       navigate("/dashboard");
     }
   }, [state, navigate]);
+
+  // If self-fund, fetch birthday page slug and auto-show share modal
+  useEffect(() => {
+    if (!state?.isSelfFund || !user?.id) return;
+
+    const fetchSlug = async () => {
+      const { data } = await supabase
+        .from('birthday_pages')
+        .select('slug')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.slug) {
+        setBirthdaySlug(data.slug);
+      }
+      // Auto-open the share modal after a brief delay
+      setTimeout(() => setShowShareModal(true), 800);
+    };
+    fetchSlug();
+  }, [state?.isSelfFund, user?.id]);
+
   if (!state) {
     return null;
   }
+
   const {
     orderSummary,
     donorPhone,
     deliveryAddress,
     beneficiaryName,
-    notificationStats
+    notificationStats,
+    isSelfFund
   } = state;
-  return <div className="min-h-screen bg-gradient-background">
+
+  return (
+    <div className="min-h-screen bg-gradient-background">
       <main className="max-w-md mx-auto px-4 py-8">
         {/* Success Icon */}
         <div className="flex justify-center mb-6">
@@ -62,29 +99,26 @@ export default function CollectiveOrderConfirmation() {
             🎉 Commande confirmée !
           </h1>
           <p className="text-muted-foreground text-sm">
-            Votre cotisation pour {beneficiaryName} a été créée avec succès
+            {isSelfFund
+              ? "Votre cagnotte d'anniversaire a été créée avec succès !"
+              : `Votre cotisation pour ${beneficiaryName} a été créée avec succès`}
           </p>
         </div>
 
         {/* Order Summary Card */}
         <Card className="p-6 mb-6">
           <div className="space-y-4">
-            {/* Total */}
             <div className="text-center py-4 border-b">
               <p className="text-lg font-semibold text-foreground">
                 Total: {orderSummary.total.toLocaleString()} F
               </p>
             </div>
-
-            {/* Phone Number */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                 <Phone className="w-4 h-4 text-purple-600" />
               </div>
               <span className="text-foreground font-medium">{donorPhone}</span>
             </div>
-
-            {/* Delivery Address */}
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mt-1">
                 <MapPin className="w-4 h-4 text-red-500" />
@@ -126,12 +160,32 @@ export default function CollectiveOrderConfirmation() {
           </Card>
         )}
 
+        {/* Self-fund: Share birthday page CTA */}
+        {isSelfFund && (
+          <Card className="p-5 mb-6 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="text-center">
+              <p className="text-2xl mb-2">🎂</p>
+              <p className="font-semibold text-foreground mb-1">
+                Partagez votre page d'anniversaire !
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Invitez vos amis à contribuer et à vous écrire un mot
+              </p>
+              <Button
+                onClick={() => setShowShareModal(true)}
+                className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              >
+                🎉 Partager à mes cercles d'amis
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <div className="space-y-3">
           <Button onClick={() => navigate("/shop")} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg">
             Continuer mes achats
           </Button>
-          
           <Button onClick={() => navigate("/dashboard?tab=cotisations")} variant="outline" className="w-full py-3 rounded-lg border-border hover:bg-muted">
             Voir mes commandes
           </Button>
@@ -139,5 +193,14 @@ export default function CollectiveOrderConfirmation() {
 
         <div className="pb-20" />
       </main>
-    </div>;
+
+      {/* Share Birthday Modal */}
+      <ShareBirthdayToCirclesModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        birthdaySlug={birthdaySlug}
+        userName={beneficiaryName}
+      />
+    </div>
+  );
 }

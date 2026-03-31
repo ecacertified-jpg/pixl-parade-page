@@ -104,10 +104,6 @@ export function CollaborativeGiftModal({
       }
 
       const formattedContacts: Contact[] = data
-        .filter(contact => {
-          return contact.name !== session.user.user_metadata?.first_name + ' ' + session.user.user_metadata?.last_name &&
-                 contact.email !== session.user.email;
-        })
         .map(contact => ({
           id: contact.id,
           name: contact.name,
@@ -116,7 +112,19 @@ export function CollaborativeGiftModal({
           avatar_url: contact.avatar_url
         }));
 
-      setContacts(formattedContacts);
+      // Add current user as first entry ("Moi-même")
+      const firstName = session.user.user_metadata?.first_name || '';
+      const lastName = session.user.user_metadata?.last_name || '';
+      const selfName = `${firstName} ${lastName}`.trim() || 'Moi';
+      const selfEntry: Contact = {
+        id: 'self',
+        name: selfName,
+        relationship: 'Moi-même',
+        birthday: undefined,
+        avatar_url: session.user.user_metadata?.avatar_url
+      };
+
+      setContacts([selfEntry, ...formattedContacts]);
     } catch (error) {
       console.error('Erreur lors du chargement des contacts:', error);
       toast({
@@ -149,6 +157,7 @@ export function CollaborativeGiftModal({
 
     setIsCreating(true);
     try {
+      const isSelfFund = selectedContact.id === 'self';
       addItem({
         id: product.id,
         productId: product.id,
@@ -159,7 +168,8 @@ export function CollaborativeGiftModal({
         image: product.image,
         isCollaborativeGift: true,
         beneficiaryName: selectedContact.name,
-        beneficiaryContactId: selectedContact.id
+        beneficiaryContactId: isSelfFund ? undefined : selectedContact.id,
+        isSelfFund
       });
 
       toast({
@@ -244,7 +254,7 @@ export function CollaborativeGiftModal({
                   </div>
                 )}
                 <div className="text-xs text-amber-600 mt-2 p-2 bg-amber-50 rounded-md">
-                  ℹ️ Vous ne pouvez pas créer une cagnotte pour vous-même
+                  ℹ️ Ajoutez des amis depuis votre tableau de bord
                 </div>
               </div>
             ) : (

@@ -16,6 +16,7 @@ interface CartItem {
   beneficiaryName?: string;
   beneficiaryId?: string;
   beneficiaryContactId?: string;
+  isSelfFund?: boolean;
 }
 
 interface StoredCartData {

@@ -26,7 +26,8 @@ interface CollectiveItem {
   beneficiaryName?: string;
   beneficiaryId?: string;
   beneficiaryContactId?: string;
-  productId?: string; // ID du produit business
+  productId?: string;
+  isSelfFund?: boolean;
 }
 
 export default function CollectiveCheckout() {
@@ -178,7 +179,7 @@ export default function CollectiveCheckout() {
           target_amount: item.price * item.quantity,
           business_product_id: businessProductId,
           created_by_business_id: createdByBusinessId,
-          occasion: 'cadeau',
+          occasion: item.isSelfFund ? 'birthday' : 'cadeau',
           currency: 'XOF',
           status: 'active'
         })
@@ -369,7 +370,8 @@ export default function CollectiveCheckout() {
           donorPhone,
           deliveryAddress,
           beneficiaryName: item.beneficiaryName,
-          notificationStats
+          notificationStats,
+          isSelfFund: item.isSelfFund || false
         }
       });
       
