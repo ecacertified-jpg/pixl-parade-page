@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Mail, MessageCircle, Share2, Facebook, Smartphone, Loader2 } from "lucide-react";
+import { getAppBaseUrl } from "@/utils/appUrl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
