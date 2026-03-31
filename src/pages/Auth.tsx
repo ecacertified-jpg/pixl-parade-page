@@ -423,6 +423,19 @@ const Auth = () => {
 
       if (!response.ok || !result?.success) {
         console.error('❌ [WhatsApp OTP] Send error:', result?.error);
+        
+        // Handle rate limit: the OTP was already sent recently, let user enter it
+        if (result?.error === 'rate_limit' && result?.retry_after) {
+          setCurrentPhone(fullPhone);
+          setOtpSent(true);
+          setCountdown(result.retry_after);
+          toast({
+            title: 'Code déjà envoyé',
+            description: `Un code a déjà été envoyé. Vérifiez votre WhatsApp ou réessayez dans ${result.retry_after}s.`,
+          });
+          return;
+        }
+        
         toast({
           title: 'Erreur',
           description: result?.message || 'Impossible d\'envoyer le code WhatsApp',
