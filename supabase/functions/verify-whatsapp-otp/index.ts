@@ -64,9 +64,12 @@ serve(async (req) => {
 
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { phone, code }: VerifyOtpRequest = await req.json();
+    const { phone, code: rawCode }: VerifyOtpRequest = await req.json();
 
     logger = createLogger(phone || 'unknown');
+
+    // Sanitize OTP: remove invisible chars, spaces, non-digits (WhatsApp copy-paste artifacts)
+    const code = (rawCode || '').trim().replace(/\D/g, '');
 
     // Validate inputs
     if (!phone || !code) {

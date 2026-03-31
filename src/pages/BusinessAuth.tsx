@@ -968,8 +968,9 @@ const BusinessAuth = () => {
         // Verify via WhatsApp edge function
         console.log('🔐 [Business WhatsApp OTP Verify] Verifying code for:', currentPhone);
         
+        const cleanCode = otpValue.trim().replace(/\D/g, '');
         const { data: result, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
-          body: { phone: currentPhone, code: otpValue },
+          body: { phone: currentPhone, code: cleanCode },
         });
 
         if (error || !result?.success) {
