@@ -1,110 +1,44 @@
-# Plan : Cagnotte pour soi-meme depuis la wishlist + partage aux cercles d'amis
-
-## Resume
-
-Permettre a l'utilisateur de creer une cagnotte pour lui-meme depuis sa liste de souhaits, puis apres finalisation, afficher un selecteur de cercles d'amis pour partager sa page d'anniversaire sur les reseaux sociaux.
-
-## Modifications
-
-### 1. Bouton "Creer ma cagnotte" sur la page Favorites
-
-**Fichier** : `src/pages/Favorites.tsx`
-
-Ajouter un bouton "Creer ma cagnotte" visible en haut de la page (sous les stats). Ce bouton ouvre le `ShopForCollectiveGiftModal` pre-configure pour soi-meme, OU mieux : ouvre directement un nouveau modal permettant de selectionner un article de sa wishlist pour creer une cagnotte.
-
-### 2. Boutons "Creer ma cagnotte" / "Cotiser pour un autre" dans le SearchExistingFundsModal
-
-**Fichier** : `src/components/SearchExistingFundsModal.tsx`
-
-Remplacer le bouton unique "Creer une nouvelle cagnotte" en bas par deux boutons :
-
-- "Creer ma cagnotte" → ouvre le flow self-fund
-- "Cotiser pour un autre" → flow existant (`onCreateNew`)
-
-### 3. Autoriser la selection de soi-meme dans CollaborativeGiftModal
-
-**Fichier** : `src/components/CollaborativeGiftModal.tsx`
-
-- Supprimer le filtre qui exclut l'utilisateur connecte de la liste des contacts (lignes 106-110)
-- Ajouter l'utilisateur connecte en premiere position dans la liste avec son profil (prenom/nom depuis `profiles` ou `user_metadata`)
-- Quand l'utilisateur se selectionne lui-meme, marquer l'item avec un flag `isSelfFund: true`
-
-### 4. Creer un composant ShareBirthdayToCirclesModal
-
-**Nouveau fichier** : `src/components/ShareBirthdayToCirclesModal.tsx`
-
-Modal affiche apres la finalisation d'une cagnotte pour soi-meme. Contenu :
-
-- Liste des cercles d'amis de l'utilisateur (via `useFriendCircles`)
-- Cases a cocher pour selectionner des cercles ou des amis individuels
-- Bouton "Partager ma page d'anniversaire" qui :
-  - Genere le lien de la page d'anniversaire
-  - Ouvre le partage natif (`navigator.share`) ou copie le message viral avec l'URL
-  - Message viral incluant le lien vers la page d'anniversaire
-
-### 5. Declencher le partage apres finalisation de la cagnotte pour soi
-
-**Fichier** : `src/pages/CollectiveOrderConfirmation.tsx`
-
-- Detecter si `beneficiaryName` correspond au nom de l'utilisateur connecte (self-fund)
-- Si oui, afficher automatiquement le `ShareBirthdayToCirclesModal` au lieu de la page de confirmation classique, ou en plus de celle-ci
-- Alternative : ajouter un bouton "Partager ma page d'anniversaire" sur la page de confirmation quand c'est une self-cagnotte
-
-### 6. Passer le flag self-fund dans le flow checkout
-
-**Fichier** : `src/pages/CollectiveCheckout.tsx`
-
-- Quand `beneficiaryContactId` correspond a l'utilisateur connecte (ou flag `isSelfFund`), passer `occasion: 'birthday'` au lieu de `'cadeau'` dans le fund insert
-- Transmettre un flag `isSelfFund: true` dans le state de navigation vers la confirmation
-
-## Fichiers concernes
 
 
-| Fichier                                          | Action                                            |
-| ------------------------------------------------ | ------------------------------------------------- |
-| `src/pages/Favorites.tsx`                        | Ajouter bouton "Creer ma cagnotte"                |
-| `src/components/SearchExistingFundsModal.tsx`    | Split bouton en "Ma cagnotte" / "Pour autrui"     |
-| `src/components/CollaborativeGiftModal.tsx`      | Ajouter l'utilisateur comme beneficiaire possible |
-| `src/components/ShareBirthdayToCirclesModal.tsx` | Nouveau : modal de partage aux cercles            |
-| `src/pages/CollectiveCheckout.tsx`               | Flag self-fund + occasion birthday                |
-| `src/pages/CollectiveOrderConfirmation.tsx`      | Afficher modal de partage si self-fund            |
+# Plan : Corriger la vérification OTP copié-collé depuis WhatsApp
 
+## Problème
 
-## Detail technique
+Quand l'utilisateur copie-colle un code OTP depuis WhatsApp, la vérification échoue avec "Code invalide". Deux causes probables :
 
-### CollaborativeGiftModal - Ajout de soi-meme
+1. **Caractères invisibles dans le presse-papier** : WhatsApp peut ajouter des espaces, zero-width spaces, ou retours à la ligne lors du copier-coller. Le composant `InputOTP` filtre les caractères visuels mais certains caractères Unicode invisibles peuvent passer.
 
+2. **Pas de sanitisation côté client ni serveur** : Le code OTP est envoyé tel quel (`data.otp` / `otpValue`) sans `.trim()` ni suppression des non-chiffres. Côté edge function, la regex `^\d{6}$` rejette les codes avec caractères parasites, retournant "Le code doit contenir 6 chiffres" — ou si les caractères passent la regex, le code ne matche pas avec celui en base.
+
+## Solution
+
+Ajouter une sanitisation `trim().replace(/\D/g, '')` à 3 niveaux :
+
+### 1. Client — Auth.tsx (connexion + inscription)
+Sanitiser `data.otp` avant envoi dans `verifyOtp()` :
 ```typescript
-// Ajouter l'utilisateur connecte en tete de liste
-const selfEntry: Contact = {
-  id: 'self',
-  name: `${session.user.user_metadata?.first_name || ''} ${session.user.user_metadata?.last_name || ''}`.trim() || 'Moi',
-  relationship: 'Moi-meme',
-  birthday: undefined, // sera recupere depuis profiles
-  avatar_url: session.user.user_metadata?.avatar_url
-};
-
-setContacts([selfEntry, ...formattedContacts]);
+const cleanCode = data.otp.trim().replace(/\D/g, '');
+// puis utiliser cleanCode au lieu de data.otp
 ```
 
-Quand "self" est selectionne, le cart item porte `isSelfFund: true` et `beneficiaryName` = le nom de l'utilisateur.
-
-### ShareBirthdayToCirclesModal
-
-```text
-┌────────────────────────────────────┐
-│ 🎂 Partagez votre page            │
-│    d'anniversaire !                │
-│                                    │
-│ Selectionnez vos cercles d'amis :  │
-│                                    │
-│ [x] Famille (8 amis)               │
-│ [ ] Collegues (5 amis)             │
-│ [x] Amis proches (12 amis)         │
-│                                    │
-│ [🎉 Partager sur WhatsApp]         │
-│ [📋 Copier le lien]                │
-└────────────────────────────────────┘
+### 2. Client — BusinessAuth.tsx (espace business)
+Même sanitisation sur `otpValue` dans `verifyOtp()` :
+```typescript
+const cleanCode = otpValue.trim().replace(/\D/g, '');
 ```
 
-Le message viral contient le lien vers `/birthday/{slug}` avec la cagnotte visible, le compte a rebours, les messages, l'album souvenir, les videos et images - tout ce qui est deja en place sur la page d'anniversaire.
+### 3. Serveur — Edge Function `verify-whatsapp-otp`
+Sanitiser `code` à la réception avant toute validation :
+```typescript
+const cleanCode = code.trim().replace(/\D/g, '');
+// Utiliser cleanCode pour la validation et la comparaison
+```
+
+## Fichiers concernés
+
+| Fichier | Action |
+|---------|--------|
+| `src/pages/Auth.tsx` | Sanitiser `data.otp` dans `verifyOtp()` |
+| `src/pages/BusinessAuth.tsx` | Sanitiser `otpValue` dans `verifyOtp()` |
+| `supabase/functions/verify-whatsapp-otp/index.ts` | Sanitiser `code` à la réception (défense en profondeur) |
+
