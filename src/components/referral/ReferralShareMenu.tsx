@@ -22,8 +22,8 @@ interface ReferralShareMenuProps {
 export const ReferralShareMenu = ({ open, onOpenChange, code }: ReferralShareMenuProps) => {
   if (!code) return null;
 
-  const referralLink = `${window.location.origin}/auth?ref=${code.code}`;
-  const message = `Rejoins-moi sur Joie de Vivre ! 🎉\n\nUtilise mon code ${code.code} pour t'inscrire et recevoir des bonus de bienvenue !\n\n${referralLink}`;
+  const referralLink = `${getAppBaseUrl()}/auth?ref=${code.code}`;
+  const message = `🎉 Rejoins Joie de Vivre, l'appli qui renforce les liens entre proches !\n\nCrée des cagnottes, offre des cadeaux collectifs et ne rate plus aucun anniversaire 🎂\n\nUtilise mon code ${code.code} pour t'inscrire et recevoir des bonus de bienvenue ! 🎁\n\nInscris-toi ici ⬇️\n${referralLink}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);

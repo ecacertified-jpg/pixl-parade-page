@@ -7,7 +7,7 @@ export function usePostActions() {
   const [loading, setLoading] = useState(false);
 
   const copyLink = async (postId: string) => {
-    const url = `${window.location.origin}/publications/${postId}`;
+    const url = `${getAppBaseUrl()}/publications/${postId}`;
     try {
       await navigator.clipboard.writeText(url);
       toast({

@@ -139,7 +139,8 @@ export function ShareMenu({ open, onOpenChange, postId, postContent, authorName 
       bgColor: 'hover:bg-primary/10',
       action: async () => {
         try {
-          await navigator.clipboard.writeText(postUrl);
+          const fullMessage = `${shareText}\n\n➡️ ${postUrl}`;
+          await navigator.clipboard.writeText(fullMessage);
           toast.success('Lien copié dans le presse-papier ! 📋');
           onOpenChange(false);
         } catch (error) {

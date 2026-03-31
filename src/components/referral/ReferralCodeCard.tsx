@@ -28,9 +28,10 @@ export const ReferralCodeCard = ({
   onDelete,
 }: ReferralCodeCardProps) => {
   const copyCode = () => {
-    const link = `${window.location.origin}/auth?ref=${code.code}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Lien copié !');
+    const link = `${getAppBaseUrl()}/auth?ref=${code.code}`;
+    const viralMessage = `🎉 Rejoins Joie de Vivre, l'appli qui renforce les liens entre proches !\n\nCrée des cagnottes, offre des cadeaux collectifs et ne rate plus aucun anniversaire 🎂\n\nInscris-toi avec mon lien ⬇️\n${link}`;
+    navigator.clipboard.writeText(viralMessage);
+    toast.success('Message copié !');
   };
 
   const conversionRate =

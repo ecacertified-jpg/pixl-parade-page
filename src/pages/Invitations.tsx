@@ -35,9 +35,9 @@ export default function Invitations() {
   const viralMessage = `🎉 Rejoins Joie de Vivre, l'appli qui renforce les liens entre proches !\n\nCrée des cagnottes, offre des cadeaux collectifs et ne rate plus aucun anniversaire 🎂\n\nInscris-toi avec mon lien ⬇️\n${referralLink}`;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(referralLink);
+    navigator.clipboard.writeText(viralMessage);
     setCopied(true);
-    toast.success('Lien de parrainage copié !');
+    toast.success('Message de parrainage copié !');
     setTimeout(() => setCopied(false), 2000);
   };
 

@@ -111,7 +111,8 @@ export function ProductShareMenu({
       });
       const trackableUrl = createTrackableUrl(shareToken);
       
-      await navigator.clipboard.writeText(trackableUrl);
+      const fullMessage = `🎁 J'ai trouvé LE cadeau parfait ! ✨\n\n📦 ${product.name}\n💰 ${formattedPrice}\n🏪 ${product.vendor}\n\nSur Joie de Vivre, la boutique de cadeaux en Afrique 🌍\n\n➡️ ${trackableUrl}`;
+      await navigator.clipboard.writeText(fullMessage);
       trackSocialShare('copy_link', 'product', String(product.id));
       setCopied(true);
       toast.success("Lien copié !");

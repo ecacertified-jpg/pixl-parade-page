@@ -60,7 +60,7 @@ export function QuickBusinessShareMenu({
 
   // Generate trackable share URL
   const getShareUrl = useCallback(() => {
-    const baseUrl = window.location.origin;
+    const baseUrl = getAppBaseUrl();
     return `${baseUrl}/boutique/${businessId}/produit/${product.id}?ref=share`;
   }, [businessId, product.id]);
 

@@ -83,7 +83,7 @@ export function ShareFundModal({
   const { generateFundPost } = useSocialPost();
 
   // Use new /f/ URL for sharing (Edge Function with OG meta tags)
-  const fundUrl = `${window.location.origin}/f/${fundId}`;
+  const fundUrl = `${getAppBaseUrl()}/f/${fundId}`;
   const shareText = `🎁 Contribuez à cette cagnotte : ${fundTitle}${fundDescription ? ` - ${fundDescription.substring(0, 80)}` : ''}`;
 
   // Get suggested hashtags based on occasion
