@@ -219,7 +219,7 @@ const BirthdayPage = () => {
 
   const handleSendMessage = async () => {
     if (!user) {
-      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+      navigate(`/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true`);
       return;
     }
     if (!newMessage.trim() || !page) return;
