@@ -25,6 +25,7 @@ import { useProductShares, SharePlatform } from "@/hooks/useProductShares";
 import { toast } from "sonner";
 import { PRODUCT_TEMPLATES, buildHashtags, type HashtagCategory, HASHTAGS } from "@/data/social-media-content";
 import { useSocialPost } from "@/hooks/useSocialPost";
+import { getAppBaseUrl } from "@/utils/appUrl";
 
 interface QuickBusinessShareMenuProps {
   open: boolean;
