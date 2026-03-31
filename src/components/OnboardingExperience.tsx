@@ -346,16 +346,17 @@ export const OnboardingExperience = ({
 
   const handleCopyLink = () => {
     const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
-    navigator.clipboard.writeText(url);
+    const message = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`;
+    navigator.clipboard.writeText(message);
     setLinkCopied(true);
     setHasShared(true);
-    toast.success('Lien copié !');
+    toast.success('Message + lien copiés ! 📋');
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const handleShareBirthdayPage = () => {
     const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
-    const text = encodeURIComponent(`🎂 Ma page anniversaire est prête ! Écris-moi un message ou participe au cadeau collectif 🎁\n\n${url}`);
+    const text = encodeURIComponent(`🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
     setHasShared(true);
   };
