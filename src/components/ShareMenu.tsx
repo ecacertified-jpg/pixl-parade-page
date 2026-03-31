@@ -27,8 +27,9 @@ interface ShareMenuProps {
 }
 
 export function ShareMenu({ open, onOpenChange, postId, postContent, authorName }: ShareMenuProps) {
-  const postUrl = `${window.location.origin}/post/${postId}`;
-  const shareText = `${postContent.substring(0, 100)}${postContent.length > 100 ? '...' : ''} - Partagé par ${authorName} sur JOIE DE VIVRE`;
+  const postUrl = `${getAppBaseUrl()}/post/${postId}`;
+  const excerpt = postContent.substring(0, 100) + (postContent.length > 100 ? '...' : '');
+  const shareText = `✨ Découvrez cette publication sur Joie de Vivre !\n\n"${excerpt}"\n\n— ${authorName} 🌍`;
 
   // Détection mobile pour WhatsApp
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
