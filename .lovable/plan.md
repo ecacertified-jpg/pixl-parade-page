@@ -1,78 +1,51 @@
 
 
-# Plan : Rendre les messages d'anniversaire visibles à tous les visiteurs
+# Plan : Corriger le lien de partage boutique + confirmer le référencement automatique
 
-## Problème
+## Ce qui existe déjà
 
-Deux bugs liés :
+Oui, chaque boutique a sa propre page publique accessible via deux routes :
 
-1. **Messages invisibles pour les visiteurs** : La policy RLS SELECT sur `birthday_wishes_messages` est `birthday_user_id = auth.uid()`. Seul le propriétaire de l'anniversaire peut lire les messages. Les visiteurs (authentifiés ou non) ne voient rien — les messages disparaissent au rechargement.
+- **`/b/:businessId`** — Page publique (sans authentification), utilisée pour le partage externe
+- **`/boutique/:businessId`** — Page complète avec produits, avis, galerie (nécessite connexion)
 
-2. **Nom "Ami(e)" au lieu du vrai prénom** : La requête `profiles` (ligne 176) peut échouer selon les policies RLS, empêchant le fallback `firstName` de fonctionner correctement.
+Le lien de partage est disponible dans le composant `BusinessShareMenu` (bouton de partage sur la page `/boutique/:businessId`), qui génère le lien `/b/:businessId`.
 
-## Solution
+## Référencement automatique — déjà en place
 
-### 1. Nouvelle policy RLS SELECT sur `birthday_wishes_messages`
+Le système de référencement automatique est **déjà opérationnel** :
 
-Remplacer la policy restrictive par une policy qui autorise la lecture pour **tout le monde** sur une page d'anniversaire active. Les messages d'anniversaire sont du contenu public par nature (comme un livre d'or).
+| Élément | Statut |
+|---------|--------|
+| Trigger SQL sur `business_accounts` | Actif — ajoute automatiquement l'URL `/b/{id}` dans `seo_sync_queue` quand une boutique est créée ou modifiée |
+| Soumission IndexNow (Bing, Yandex) | Actif — traité toutes les 15 min via CRON |
+| Ping sitemaps Google/Bing | Actif — quotidien à 6h UTC |
+| SEOHead + JSON-LD LocalBusiness | Actif sur les pages boutique |
 
-```sql
--- Supprimer l'ancienne policy
-DROP POLICY IF EXISTS "Birthday user can read their messages" 
-  ON public.birthday_wishes_messages;
+Les boutiques approuvées (`is_active = true`, `status = 'approved'`) sont **automatiquement soumises** à Google, Bing et Yandex via IndexNow.
 
--- Nouvelle policy : tout utilisateur authentifié peut lire 
--- les messages d'une page anniversaire active
-CREATE POLICY "Anyone can read birthday messages on active pages"
-  ON public.birthday_wishes_messages
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.birthday_pages bp
-      WHERE bp.id = birthday_page_id
-      AND bp.is_active = true
-    )
-  );
-```
+## Bug à corriger
 
-Cela garantit que :
-- Tous les visiteurs connectés voient les messages existants
-- Les messages persistent entre les rechargements
-- L'effet "livre d'or social" encourage les autres à écrire
+Le `BusinessShareMenu` utilise `window.location.origin` au lieu de `getAppBaseUrl()` (ligne 27). En preview Lovable, le lien partagé pointe vers le domaine preview au lieu de `joiedevivre-africa.com`.
 
-### 2. Autoriser aussi les visiteurs non authentifiés (anon)
-
-La page d'anniversaire est partagée sur les réseaux sociaux — beaucoup de visiteurs ne sont pas connectés. Il faut qu'ils puissent **voir** les messages même sans compte (l'écriture reste réservée aux authentifiés).
-
-```sql
-CREATE POLICY "Anon can read birthday messages on active pages"
-  ON public.birthday_wishes_messages
-  FOR SELECT
-  TO anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.birthday_pages bp
-      WHERE bp.id = birthday_page_id
-      AND bp.is_active = true
-    )
-  );
-```
-
-### 3. Vérifier la policy SELECT sur `profiles` pour le nom
-
-S'assurer que le profil du birthday person est lisible par les visiteurs (policy existante sur `profiles` basée sur `privacy_setting`). Si nécessaire, la requête dans `BirthdayPage.tsx` utilise déjà le fallback via `page.title`.
-
-## Fichiers concernés
+## Correction
 
 | Fichier | Action |
 |---------|--------|
-| Migration SQL | Remplacer la policy SELECT de `birthday_wishes_messages` par une policy ouverte aux visiteurs |
+| `src/components/BusinessShareMenu.tsx` | Remplacer `window.location.origin` par `getAppBaseUrl()` + ajouter l'import |
 
-## Résultat attendu
+### Détail
 
-- Tous les visiteurs (connectés ou non) voient les messages existants sur la page d'anniversaire
-- Les messages persistent après rechargement
-- L'effet social (voir les messages des autres) encourage les nouveaux visiteurs à écrire
-- L'écriture reste protégée (INSERT = authentifié uniquement)
+```typescript
+// Avant (ligne 27)
+const baseUrl = `${window.location.origin}/b/${businessId}`;
+
+// Après
+const baseUrl = `${getAppBaseUrl()}/b/${businessId}`;
+```
+
+Ajouter en haut du fichier :
+```typescript
+import { getAppBaseUrl } from '@/utils/appUrl';
+```
 
