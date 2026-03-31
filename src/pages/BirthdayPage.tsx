@@ -88,7 +88,14 @@ const BirthdayPage = () => {
     return page.celebration_year - bDate.getFullYear();
   }, [birthdayPerson.birthday, page]);
 
-  const firstName = birthdayPerson.first_name || 'Ami(e)';
+  const firstName = useMemo(() => {
+    if (birthdayPerson.first_name) return birthdayPerson.first_name;
+    if (page?.title) {
+      const match = page.title.match(/Anniversaire de (.+)/i);
+      if (match && match[1] && match[1].toLowerCase() !== "mon ami(e)") return match[1];
+    }
+    return 'Ami(e)';
+  }, [birthdayPerson.first_name, page?.title]);
 
   // SEO: meta tags, keywords, Open Graph
   useBirthdayPageSEO({
