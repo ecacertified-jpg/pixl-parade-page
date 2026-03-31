@@ -370,7 +370,8 @@ export default function CollectiveCheckout() {
           donorPhone,
           deliveryAddress,
           beneficiaryName: item.beneficiaryName,
-          notificationStats
+          notificationStats,
+          isSelfFund: item.isSelfFund || false
         }
       });
       
