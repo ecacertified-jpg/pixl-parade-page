@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Mail, MessageCircle, Share2, Facebook, Smartphone, Loader2 } from "lucide-react";
+import { getAppBaseUrl } from "@/utils/appUrl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -24,7 +25,7 @@ export function BusinessShareMenu({
   const [sharing, setSharing] = useState(false);
   const { recordShare } = useBusinessShareTracking(businessId);
 
-  const baseUrl = `${window.location.origin}/b/${businessId}`;
+  const baseUrl = `${getAppBaseUrl()}/b/${businessId}`;
   const shareText = `Découvre ${businessName} sur JOIE DE VIVRE ! ${businessType ? `(${businessType})` : ''} 🎁`;
 
   const getTrackableUrl = async (platform: SharePlatform): Promise<string> => {
