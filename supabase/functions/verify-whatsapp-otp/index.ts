@@ -88,14 +88,14 @@ serve(async (req) => {
       );
     }
 
-    // Find the OTP record
+    // Find the OTP record by exact phone + code match (handles multiple active OTPs)
     const { data: otpRecord, error: fetchError } = await supabaseAdmin
       .from('whatsapp_otp_codes')
       .select('*')
       .eq('phone', phone)
+      .eq('code', code)
       .is('verified_at', null)
       .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -117,7 +117,7 @@ serve(async (req) => {
     if (!otpRecord) {
       logger.summary('error_no_otp');
       return new Response(
-        JSON.stringify({ success: false, error: 'no_otp', message: 'Aucun code valide trouvé. Veuillez en demander un nouveau.' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.' }),
         { status: 400, headers: jsonHeaders }
       );
     }
