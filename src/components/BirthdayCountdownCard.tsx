@@ -5,6 +5,7 @@ import { Cake, Share2, Gift, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getDaysUntilBirthday } from '@/lib/utils';
 import { getAppBaseUrl } from '@/utils/appUrl';
 
