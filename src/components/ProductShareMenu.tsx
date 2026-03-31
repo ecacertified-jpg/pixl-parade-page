@@ -85,7 +85,7 @@ export function ProductShareMenu({
 
   if (!product) return null;
 
-  const baseProductUrl = `${window.location.origin}/p/${product.id}`;
+  const baseProductUrl = `${getAppBaseUrl()}/p/${product.id}`;
   const formattedPrice = `${product.price.toLocaleString()} ${product.currency}`;
   
   // Inclure le message personnalisé dans le texte de partage si présent
