@@ -686,6 +686,19 @@ const BusinessAuth = () => {
 
       const result = await response.json();
 
+      // Handle rate limit: treat as "code already sent"
+      if (result?.error === 'rate_limit' && result?.retry_after) {
+        console.log('⏳ [Business WhatsApp OTP] Rate limited, switching to OTP screen');
+        setCurrentPhone(fullPhone);
+        setOtpSent(true);
+        setCountdown(result.retry_after);
+        toast({
+          title: 'Code déjà envoyé',
+          description: `Un code a déjà été envoyé. Vérifiez votre WhatsApp ou réessayez dans ${result.retry_after}s.`,
+        });
+        return;
+      }
+
       if (!response.ok || !result?.success) {
         console.error('❌ [Business WhatsApp OTP] Send error:', result?.error);
         toast({

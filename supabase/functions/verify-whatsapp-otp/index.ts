@@ -88,14 +88,14 @@ serve(async (req) => {
       );
     }
 
-    // Find the OTP record
+    // Find the OTP record by exact phone + code match (handles multiple active OTPs)
     const { data: otpRecord, error: fetchError } = await supabaseAdmin
       .from('whatsapp_otp_codes')
       .select('*')
       .eq('phone', phone)
+      .eq('code', code)
       .is('verified_at', null)
       .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -117,7 +117,7 @@ serve(async (req) => {
     if (!otpRecord) {
       logger.summary('error_no_otp');
       return new Response(
-        JSON.stringify({ success: false, error: 'no_otp', message: 'Aucun code valide trouvé. Veuillez en demander un nouveau.' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.' }),
         { status: 400, headers: jsonHeaders }
       );
     }
@@ -133,17 +133,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if code matches
-    if (otpRecord.code !== code) {
-      await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
-      const remainingAttempts = otpRecord.max_attempts - otpRecord.attempts - 1;
-      logger.log('otp_validation', { result: 'invalid', remaining_attempts: remainingAttempts });
-      logger.summary('error_invalid_code');
-      return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: `Code incorrect. ${remainingAttempts} tentative(s) restante(s).`, remaining_attempts: remainingAttempts }),
-        { status: 400, headers: jsonHeaders }
-      );
-    }
+    // Code matches (guaranteed by query), increment attempts for audit
+    await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
 
     logger.log('otp_validation', { result: 'valid' });
 
@@ -320,8 +311,8 @@ serve(async (req) => {
 
     logger.log('session_create', { result: 'success', has_session: true });
 
-    // Cleanup
-    await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('id', otpRecord.id);
+    // Cleanup: delete this OTP + all other active OTPs for the same phone
+    await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('phone', phone).is('verified_at', null);
     logger.log('cleanup', { result: 'success' });
 
     logger.summary('success', { is_new_user: isNewUser });
