@@ -172,6 +172,13 @@ serve(async (req) => {
       );
     }
 
+    // Invalidate all previous unverified OTPs for this phone number
+    await supabaseAdmin
+      .from('whatsapp_otp_codes')
+      .delete()
+      .eq('phone', phone)
+      .is('verified_at', null);
+
     const code = generateOtpCode();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 

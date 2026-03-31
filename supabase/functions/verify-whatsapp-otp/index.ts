@@ -311,8 +311,8 @@ serve(async (req) => {
 
     logger.log('session_create', { result: 'success', has_session: true });
 
-    // Cleanup
-    await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('id', otpRecord.id);
+    // Cleanup: delete this OTP + all other active OTPs for the same phone
+    await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('phone', phone).is('verified_at', null);
     logger.log('cleanup', { result: 'success' });
 
     logger.summary('success', { is_new_user: isNewUser });
