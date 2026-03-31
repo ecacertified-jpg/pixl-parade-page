@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Users, TrendingUp, Target, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 export default function Invitations() {
   const navigate = useNavigate();
