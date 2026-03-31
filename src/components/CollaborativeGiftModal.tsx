@@ -252,7 +252,7 @@ export function CollaborativeGiftModal({
                   </div>
                 )}
                 <div className="text-xs text-amber-600 mt-2 p-2 bg-amber-50 rounded-md">
-                  ℹ️ Vous ne pouvez pas créer une cagnotte pour vous-même
+                  ℹ️ Ajoutez des amis depuis votre tableau de bord
                 </div>
               </div>
             ) : (
