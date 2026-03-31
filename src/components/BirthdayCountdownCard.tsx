@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
 import { getDaysUntilBirthday } from '@/lib/utils';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface BirthdayCountdownCardProps {
   birthday: string | null;
