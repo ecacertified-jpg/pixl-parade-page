@@ -252,6 +252,7 @@ const BirthdayPage = () => {
         sender_name: senderName,
         message_text: newMessage.trim(),
         created_at: new Date().toISOString(),
+        is_from_fund: false,
       };
       setMessages(prev => [newMsg, ...prev]);
       setNewMessage("");
