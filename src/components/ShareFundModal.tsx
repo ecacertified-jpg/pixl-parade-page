@@ -29,6 +29,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useGoogleAnalytics } from '@/hooks/useGoogleAnalytics';
 import { FUND_TEMPLATES, buildHashtags, getOccasionEmoji, type HashtagCategory, HASHTAGS } from '@/data/social-media-content';
 import { useSocialPost } from '@/hooks/useSocialPost';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface FundData {
   title: string;
