@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Send
 } from 'lucide-react';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface ShareMenuProps {
   open: boolean;
