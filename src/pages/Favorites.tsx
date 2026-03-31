@@ -191,6 +191,28 @@ export default function Favorites() {
             estimatedBudget={stats.estimatedBudget}
           />
 
+          {/* CTA: Créer ma cagnotte */}
+          {stats.total > 0 && (
+            <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Gift className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground text-sm">Créer ma cagnotte 🎂</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Choisissez un article et invitez vos amis à cotiser
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={() => navigate('/shop')}>
+                    Choisir
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Filters */}
           <FavoriteFilters
             selectedOccasion={selectedOccasion}
