@@ -1,87 +1,78 @@
 
-Plan : Corriger l’erreur d’envoi depuis un lien d’anniversaire partagé
 
-- Le vrai problème n’est probablement pas WhatsApp lui-même.
-- Le lien partagé amène souvent un visiteur externe qui crée/se connecte à son compte, puis essaie d’envoyer un message.
-- Dans `src/pages/BirthdayPage.tsx`, l’envoi fait actuellement :
-  - un `insert(...)`
-  - puis `.select().single()`
-- Or la table `birthday_wishes_messages` a une policy RLS qui :
-  - autorise l’`INSERT` aux utilisateurs authentifiés
-  - n’autorise le `SELECT` qu’à la personne dont c’est l’anniversaire
-- Résultat : l’insertion peut réussir, mais la lecture immédiate de la ligne insérée échoue pour l’ami qui vient d’écrire le message.
+# Plan : Rendre les messages d'anniversaire visibles à tous les visiteurs
 
-## Correction proposée
+## Problème
 
-### 1. Corriger l’insert côté front
-Dans `src/pages/BirthdayPage.tsx` :
-- retirer `.select().single()` après l’`insert`
-- garder seulement l’insert
-- si l’insert réussit, ajouter localement le message dans l’état React avec un objet construit côté client
-- conserver un toast de succès clair
+Deux bugs liés :
 
-Cela évite de relire une ligne que l’expéditeur n’a pas le droit de consulter.
+1. **Messages invisibles pour les visiteurs** : La policy RLS SELECT sur `birthday_wishes_messages` est `birthday_user_id = auth.uid()`. Seul le propriétaire de l'anniversaire peut lire les messages. Les visiteurs (authentifiés ou non) ne voient rien — les messages disparaissent au rechargement.
 
-### 2. Sécuriser la récupération du profil expéditeur
-Toujours dans `BirthdayPage.tsx` :
-- remplacer le `.single()` sur `profiles` par `.maybeSingle()` pour éviter une erreur si le profil est incomplet ou absent
-- prévoir un fallback propre pour `senderName`
+2. **Nom "Ami(e)" au lieu du vrai prénom** : La requête `profiles` (ligne 176) peut échouer selon les policies RLS, empêchant le fallback `firstName` de fonctionner correctement.
 
-### 3. Fiabiliser le retour après connexion
-Le lien vers `/auth` est aujourd’hui construit ainsi :
-```ts
-/auth?redirect=/birthday/${slug}&invited=true
+## Solution
+
+### 1. Nouvelle policy RLS SELECT sur `birthday_wishes_messages`
+
+Remplacer la policy restrictive par une policy qui autorise la lecture pour **tout le monde** sur une page d'anniversaire active. Les messages d'anniversaire sont du contenu public par nature (comme un livre d'or).
+
+```sql
+-- Supprimer l'ancienne policy
+DROP POLICY IF EXISTS "Birthday user can read their messages" 
+  ON public.birthday_wishes_messages;
+
+-- Nouvelle policy : tout utilisateur authentifié peut lire 
+-- les messages d'une page anniversaire active
+CREATE POLICY "Anyone can read birthday messages on active pages"
+  ON public.birthday_wishes_messages
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.birthday_pages bp
+      WHERE bp.id = birthday_page_id
+      AND bp.is_active = true
+    )
+  );
 ```
-Ce format casse le paramètre `redirect` car `&invited=true` devient un paramètre séparé.
 
-Je propose de :
-- encoder le redirect :
-```ts
-/auth?redirect=${encodeURIComponent(`/birthday/${slug}?invited=true`)}
-```
-ou
-```ts
-/auth?redirect=${encodeURIComponent(`/birthday/${slug}`)}&invited=true
-```
-- utiliser le même format partout dans la page anniversaire et l’album
+Cela garantit que :
+- Tous les visiteurs connectés voient les messages existants
+- Les messages persistent entre les rechargements
+- L'effet "livre d'or social" encourage les autres à écrire
 
-But : après connexion depuis un lien partagé, l’utilisateur revient de façon fiable sur la bonne page.
+### 2. Autoriser aussi les visiteurs non authentifiés (anon)
+
+La page d'anniversaire est partagée sur les réseaux sociaux — beaucoup de visiteurs ne sont pas connectés. Il faut qu'ils puissent **voir** les messages même sans compte (l'écriture reste réservée aux authentifiés).
+
+```sql
+CREATE POLICY "Anon can read birthday messages on active pages"
+  ON public.birthday_wishes_messages
+  FOR SELECT
+  TO anon
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.birthday_pages bp
+      WHERE bp.id = birthday_page_id
+      AND bp.is_active = true
+    )
+  );
+```
+
+### 3. Vérifier la policy SELECT sur `profiles` pour le nom
+
+S'assurer que le profil du birthday person est lisible par les visiteurs (policy existante sur `profiles` basée sur `privacy_setting`). Si nécessaire, la requête dans `BirthdayPage.tsx` utilise déjà le fallback via `page.title`.
 
 ## Fichiers concernés
 
 | Fichier | Action |
-|---|---|
-| `src/pages/BirthdayPage.tsx` | Retirer `.select().single()` après insert, construire le message localement, utiliser `.maybeSingle()` pour le profil |
-| `src/components/BirthdayAlbum.tsx` | Harmoniser l’URL de redirection vers `/auth` |
-| éventuellement `src/pages/Auth.tsx` | Vérifier que `redirect` est bien consommé même quand des query params sont encodés |
-
-## Détail technique
-Le schéma actuel confirme la cause :
-- policy `INSERT` :
-```sql
-CREATE POLICY "Authenticated users can insert messages"
-ON public.birthday_wishes_messages FOR INSERT
-TO authenticated
-WITH CHECK (true);
-```
-- policy `SELECT` :
-```sql
-CREATE POLICY "Birthday user can read their messages"
-ON public.birthday_wishes_messages FOR SELECT
-TO authenticated
-USING (birthday_user_id = auth.uid());
-```
-
-Donc :
-```text
-ami connecté -> INSERT autorisé
-ami connecté -> SELECT de retour interdit
-=> erreur à l’envoi si le code demande la ligne insérée
-```
+|---------|--------|
+| Migration SQL | Remplacer la policy SELECT de `birthday_wishes_messages` par une policy ouverte aux visiteurs |
 
 ## Résultat attendu
-Après correction :
-- un visiteur venant de WhatsApp peut se connecter puis envoyer son message
-- le message part sans erreur
-- l’interface affiche immédiatement le nouveau message
-- la page anniversaire reste émotionnelle et fluide, sans exposer d’erreur technique
+
+- Tous les visiteurs (connectés ou non) voient les messages existants sur la page d'anniversaire
+- Les messages persistent après rechargement
+- L'effet social (voir les messages des autres) encourage les nouveaux visiteurs à écrire
+- L'écriture reste protégée (INSERT = authentifié uniquement)
+
