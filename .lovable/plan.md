@@ -1,88 +1,53 @@
 
 
-# Plan : Accélérer le chargement des éléments du cercle d'amis
+# Plan : Messages viraux pour le partage de la page anniversaire
 
 ## Problème
 
-Les 3 composants visibles dans l'image (suggestions de relation, recherche utilisateur, suggestions "pour vous") chargent lentement car :
+Quand l'utilisateur copie le lien ou le partage, le message d'accompagnement est soit absent (copier le lien = URL nue), soit trop générique. Résultat : un lien froid dans WhatsApp qui n'incite personne à cliquer.
 
-1. **`useUserSuggestions`** — Pas de cache TanStack Query. Utilise `useState`/`useEffect` brut avec 6+ requêtes séquentielles Supabase. Chaque navigation re-fetch tout.
-2. **`useFriendshipSuggestions`** — Dépend du chargement complet de `useDashboardData` (waterfall : dashboard → contacts → suggestions).
-3. **`useFriendRequests`** — Utilise TanStack Query mais sans `staleTime`, donc re-fetch à chaque mount.
-4. **Pas de prefetch** — Aucun de ces hooks n'est préchargé depuis la page d'accueil.
+## Solution
 
-## Modifications
+Rendre **tous** les points de partage viraux avec un message émotionnel et personnalisé qui accompagne le lien.
 
-### 1. Migrer `useUserSuggestions` vers TanStack Query (fichier principal)
+### 1. `BirthdayPageShareButton.tsx` — Messages viraux par plateforme
 
-**`src/hooks/useUserSuggestions.ts`**
-
-- Extraire `fetchSuggestions` en fonction pure (comme les autres hooks)
-- Remplacer `useState`/`useEffect` par `useQuery` avec `staleTime: 60_000`, `gcTime: 600_000`, `placeholderData: prev => prev`
-- Paralléliser les 6 requêtes Supabase internes avec `Promise.all` au lieu de les exécuter séquentiellement
+Réécrire `shareText` avec un message bien plus engageant, émotionnel et viral :
 
 ```typescript
-// Avant : 6 requêtes séquentielles
-const { data: myProfile } = await supabase...
-const { data: followedUsers } = await supabase...
-const { data: friendsOfFriends } = await supabase...
-// etc.
-
-// Après : groupées en parallèle
-const [myProfile, followedUsers] = await Promise.all([
-  supabase.from('profiles')...,
-  supabase.from('user_follows')...,
-]);
-// Puis 2e batch parallèle avec les IDs obtenus
+const shareText = age
+  ? `🎂🎉 ${firstName} fête ses ${age} ans !\n\nSon anniversaire approche et tu peux lui faire plaisir en 30 secondes :\n👉 Écris-lui un petit mot\n👉 Ajoute une photo souvenir\n👉 Participe au cadeau collectif\n\nClique ici, ça prend 30 secondes ⬇️`
+  : `🎂🎉 C'est l'anniversaire de ${firstName} !\n\nTu peux lui faire plaisir en 30 secondes :\n👉 Écris-lui un petit mot\n👉 Ajoute une photo souvenir\n👉 Participe au cadeau collectif\n\nClique ici, ça prend 30 secondes ⬇️`;
 ```
 
-### 2. Ajouter `staleTime` aux hooks existants
-
-**`src/hooks/useFriendRequests.ts`** — Ajouter `staleTime: 30_000` au `useQuery` (ligne 111)
-
-**`src/hooks/useFriendshipSuggestions.ts`** — Augmenter `staleTime` de 30s à 60s et ajouter `placeholderData`
-
-### 3. Prefetch depuis la page d'accueil
-
-**`src/pages/Index.tsx`** — Ajouter le prefetch de `friend-requests` et `user-suggestions` dans le `useEffect` existant (ligne 37), en parallèle du prefetch dashboard déjà en place.
-
+**"Copier le lien"** : copier le **message complet + URL** au lieu de l'URL seule :
 ```typescript
-useEffect(() => {
-  if (user?.id) {
-    import('@/hooks/useDashboardData').then(({ prefetchDashboardData }) => {
-      prefetchDashboardData(queryClient, user.id);
-    });
-    // Prefetch friend requests & suggestions
-    queryClient.prefetchQuery({
-      queryKey: ['friend-requests', user.id],
-      queryFn: () => import('@/hooks/useFriendRequests').then(m => m.prefetchFriendRequests(user.id)),
-    });
-    queryClient.prefetchQuery({
-      queryKey: ['user-suggestions', user.id],
-      queryFn: () => import('@/hooks/useUserSuggestions').then(m => m.prefetchUserSuggestions(user.id)),
-    });
-  }
-}, [user?.id, queryClient]);
+// Avant
+await navigator.clipboard.writeText(pageUrl);
+
+// Après
+await navigator.clipboard.writeText(shareText + '\n\n' + pageUrl);
+toast.success('Message + lien copiés ! 📋');
 ```
 
-### 4. Exporter des fonctions `prefetch` depuis les hooks
+### 2. `OnboardingExperience.tsx` — Même traitement
 
-**`src/hooks/useFriendRequests.ts`** — Exporter `prefetchFriendRequests(userId)`
+**`handleCopyLink`** (ligne 347) : copier un message viral + URL au lieu de l'URL nue :
+```typescript
+const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
+const message = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`;
+navigator.clipboard.writeText(message);
+```
 
-**`src/hooks/useUserSuggestions.ts`** — Exporter `prefetchUserSuggestions(userId)`
+**`handleShareBirthdayPage`** (ligne 356) : même message viral pour WhatsApp :
+```typescript
+const text = encodeURIComponent(`🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`);
+```
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/hooks/useUserSuggestions.ts` | Migrer vers TanStack Query + paralléliser les requêtes + export prefetch |
-| `src/hooks/useFriendRequests.ts` | Ajouter `staleTime: 30_000` + export prefetch |
-| `src/hooks/useFriendshipSuggestions.ts` | Augmenter `staleTime` à 60s |
-| `src/pages/Index.tsx` | Prefetch friend-requests et user-suggestions |
-
-## Impact attendu
-
-- Élimination du waterfall de 6 requêtes séquentielles → ~2x plus rapide
-- Cache TanStack Query → navigation instantanée entre pages
-- Prefetch depuis l'accueil → données prêtes avant même d'ouvrir le dashboard
+| `src/components/BirthdayPageShareButton.tsx` | Message viral + copier message complet au lieu de l'URL seule |
+| `src/components/OnboardingExperience.tsx` | Même message viral pour handleCopyLink et handleShareBirthdayPage |
 
