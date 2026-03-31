@@ -208,6 +208,20 @@ const BirthdayPage = () => {
           .single();
 
         if (fundData) setFund(fundData as FundInfo);
+      } else {
+        // Fallback: chercher une cagnotte birthday active pour cet utilisateur
+        const { data: existingFunds } = await supabase
+          .from('collective_funds')
+          .select('id, title, target_amount, current_amount, share_token')
+          .eq('creator_id', pageData.user_id)
+          .eq('occasion', 'birthday')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (existingFunds && existingFunds.length > 0) {
+          setFund(existingFunds[0] as FundInfo);
+        }
       }
     } catch (err) {
       console.error('Error loading birthday page:', err);
@@ -327,48 +341,71 @@ const BirthdayPage = () => {
       </motion.div>
 
       <div className="max-w-lg mx-auto px-4 pb-24 space-y-6 mt-6">
-        {/* Cagnotte section */}
-        {fund && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
-              <div className="flex items-center gap-2 mb-3">
-                <Gift className="h-5 w-5 text-primary" />
-                <h2 className="font-bold font-poppins">Cadeau collectif</h2>
+        {/* Cagnotte section — toujours visible */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Card className="p-5 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="h-5 w-5 text-primary" />
+              <h2 className="font-bold font-poppins">Cadeau collectif</h2>
+            </div>
+
+            {fund ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">{fund.title}</p>
+                <div className="mb-2">
+                  <Progress
+                    value={fund.target_amount > 0 ? (fund.current_amount / fund.target_amount) * 100 : 0}
+                    className="h-3"
+                    indicatorClassName="bg-gradient-to-r from-primary to-accent"
+                  />
+                </div>
+                <div className="flex justify-between text-sm mb-4">
+                  <span className="font-semibold text-primary">
+                    {fund.current_amount.toLocaleString('fr-FR')} XOF
+                  </span>
+                  <span className="text-muted-foreground">
+                    / {fund.target_amount.toLocaleString('fr-FR')} XOF
+                  </span>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    if (!user) {
+                      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+                      return;
+                    }
+                    if (fund.share_token) {
+                      navigate(`/f/${fund.share_token}`);
+                    }
+                  }}
+                >
+                  <Gift className="h-4 w-4 mr-2" />
+                  Participer au cadeau
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-4 space-y-3">
+                <div className="text-4xl">🎁</div>
+                <p className="text-sm text-muted-foreground font-nunito">
+                  Réunissez-vous entre amis pour offrir un cadeau mémorable à <span className="font-semibold text-foreground">{firstName}</span> !
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    if (!user) {
+                      navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
+                      return;
+                    }
+                    navigate('/gifts');
+                  }}
+                >
+                  <Gift className="h-4 w-4 mr-2" />
+                  Créer une cagnotte pour {firstName}
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground mb-3">{fund.title}</p>
-              <div className="mb-2">
-                <Progress
-                  value={fund.target_amount > 0 ? (fund.current_amount / fund.target_amount) * 100 : 0}
-                  className="h-3"
-                  indicatorClassName="bg-gradient-to-r from-primary to-accent"
-                />
-              </div>
-              <div className="flex justify-between text-sm mb-4">
-                <span className="font-semibold text-primary">
-                  {fund.current_amount.toLocaleString('fr-FR')} XOF
-                </span>
-                <span className="text-muted-foreground">
-                  / {fund.target_amount.toLocaleString('fr-FR')} XOF
-                </span>
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => {
-                  if (!user) {
-                    navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
-                    return;
-                  }
-                  if (fund.share_token) {
-                    navigate(`/f/${fund.share_token}`);
-                  }
-                }}
-              >
-                <Gift className="h-4 w-4 mr-2" />
-                Participer au cadeau
-              </Button>
-            </Card>
-          </motion.div>
-        )}
+            )}
+          </Card>
+        </motion.div>
 
         {/* Messages section */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
