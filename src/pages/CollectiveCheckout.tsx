@@ -26,7 +26,8 @@ interface CollectiveItem {
   beneficiaryName?: string;
   beneficiaryId?: string;
   beneficiaryContactId?: string;
-  productId?: string; // ID du produit business
+  productId?: string;
+  isSelfFund?: boolean;
 }
 
 export default function CollectiveCheckout() {
