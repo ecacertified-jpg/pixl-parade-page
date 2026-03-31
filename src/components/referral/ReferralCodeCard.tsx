@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Copy, BarChart3, Share2, MoreVertical } from 'lucide-react';
 import { ReferralCode } from '@/hooks/useReferralCodes';
 import { toast } from 'sonner';
+import { getAppBaseUrl } from '@/utils/appUrl';
 import {
   DropdownMenu,
   DropdownMenuContent,
