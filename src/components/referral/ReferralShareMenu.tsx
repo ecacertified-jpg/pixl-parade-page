@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ReferralCode } from '@/hooks/useReferralCodes';
+import { getAppBaseUrl } from '@/utils/appUrl';
 
 interface ReferralShareMenuProps {
   open: boolean;
