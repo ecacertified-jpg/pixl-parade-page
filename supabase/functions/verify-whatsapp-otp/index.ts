@@ -133,17 +133,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if code matches
-    if (otpRecord.code !== code) {
-      await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
-      const remainingAttempts = otpRecord.max_attempts - otpRecord.attempts - 1;
-      logger.log('otp_validation', { result: 'invalid', remaining_attempts: remainingAttempts });
-      logger.summary('error_invalid_code');
-      return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: `Code incorrect. ${remainingAttempts} tentative(s) restante(s).`, remaining_attempts: remainingAttempts }),
-        { status: 400, headers: jsonHeaders }
-      );
-    }
+    // Code matches (guaranteed by query), increment attempts for audit
+    await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
 
     logger.log('otp_validation', { result: 'valid' });
 
