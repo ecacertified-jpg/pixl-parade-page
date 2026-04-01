@@ -204,7 +204,7 @@ export default function Dashboard() {
     }
   }, [user, pushSupported, pushSubscribed, pushPermission, shouldShowOnboarding, needsProfileCompletion, profileCompletionLoading]);
 
-  // Fetch birthday page slug for sharing banner
+  // Fetch or auto-create birthday page slug for sharing banner
   useEffect(() => {
     if (!user) return;
     const shared = localStorage.getItem(`birthday_shared_${user.id}`);
@@ -212,17 +212,54 @@ export default function Dashboard() {
       setHasSharedBirthday(true);
       return;
     }
-    const currentYear = new Date().getFullYear();
-    supabase
-      .from('birthday_pages')
-      .select('slug')
-      .eq('user_id', user.id)
-      .eq('celebration_year', currentYear)
-      .eq('is_active', true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.slug) setBirthdayPageSlug(data.slug);
-      });
+    const fetchOrCreateBirthdayPage = async () => {
+      const currentYear = new Date().getFullYear();
+      const { data: existing } = await supabase
+        .from('birthday_pages')
+        .select('slug')
+        .eq('user_id', user.id)
+        .eq('celebration_year', currentYear)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (existing?.slug) {
+        setBirthdayPageSlug(existing.slug);
+        return;
+      }
+
+      // Auto-create birthday page
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const firstName = profile?.first_name || '';
+      const nameForSlug = firstName
+        ? firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')
+        : `user-${user.id.slice(0, 8)}`;
+      const slug = `${nameForSlug}-${currentYear}`;
+      const title = `Anniversaire de ${firstName || 'mon ami(e)'}`;
+
+      const { data, error } = await supabase
+        .from('birthday_pages')
+        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
+        .select('slug')
+        .single();
+
+      if (error?.code === '23505') {
+        const fallbackSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        const { data: d2 } = await supabase
+          .from('birthday_pages')
+          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true })
+          .select('slug')
+          .single();
+        if (d2) setBirthdayPageSlug(d2.slug);
+      } else if (data) {
+        setBirthdayPageSlug(data.slug);
+      }
+    };
+    fetchOrCreateBirthdayPage();
   }, [user]);
 
 
