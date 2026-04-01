@@ -349,7 +349,7 @@ export default function CollectiveCheckout() {
         .insert({
           fund_id: fundData.id,
           creator_id: currentUserId, // Use validated session user ID
-          donor_phone: donorPhone,
+          donor_phone: isSelfFund ? beneficiaryPhone : donorPhone,
           beneficiary_phone: beneficiaryPhone,
           delivery_address: deliveryAddress,
           payment_method: paymentMethod,
