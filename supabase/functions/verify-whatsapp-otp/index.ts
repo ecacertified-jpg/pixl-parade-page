@@ -119,7 +119,7 @@ serve(async (req) => {
     if (!otpRecord) {
       logger.summary('error_no_otp');
       return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
