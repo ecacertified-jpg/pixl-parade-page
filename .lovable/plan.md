@@ -1,113 +1,121 @@
 
-# Plan : corriger définitivement l’erreur OTP persistante
+Plan : diagnostiquer et corriger la vraie cause de l’erreur OTP persistante
 
-## Ce que j’ai confirmé
+## Conclusion rapide
 
-- L’envoi WhatsApp fonctionne bien : la requête `send-whatsapp-otp` renvoie `200` avec `success: true`.
-- Le collage du code est déjà nettoyé côté client et côté Edge Function.
-- Donc le vrai problème n’est probablement plus le copier-coller.
+Non, le problème ne ressemble pas principalement à un mauvais alignement du template WhatsApp avec Supabase.
 
-## Do I know what the issue is?
+Ce que j’ai pu confirmer :
+- `send-whatsapp-otp` répond bien `200 success`
+- le client vérifie bien avec la méthode `whatsapp`
+- le payload template actuel est cohérent avec la documentation Meta pour un template “copy code” :
+  - `type: "template"`
+  - `components.body` avec le code
+  - `components.button` avec le même code
 
-Oui.
+Donc si le code d’envoi était mal aligné avec le template, l’échec apparaîtrait surtout à l’envoi. Or ici l’envoi réussit, et l’erreur apparaît à la vérification.
 
-Le bug le plus probable est un **mauvais routage du canal OTP au moment de la vérification** :
+## Vrai problème probable
 
-- `Auth.tsx` et `BusinessAuth.tsx` choisissent le canal avec `otpMethod || defaultMethod`
-- or en Côte d’Ivoire, `defaultMethod` reste **`sms`**
-- si l’utilisateur a reçu un code **WhatsApp**, mais que l’état local du canal n’est plus la source de vérité, l’app peut tenter une vérification **SMS** au lieu de `verify-whatsapp-otp`
-- résultat : le code est bon pour WhatsApp, mais il est vérifié dans le mauvais backend, donc “Code invalide”
+Le bug le plus probable est que `verify-whatsapp-otp` retourne une erreur serveur non-2xx, mais l’UI l’affiche à tort comme “Code invalide”.
 
-C’est cohérent avec le fait que :
-- l’envoi WhatsApp réussit
-- les anciennes corrections sur la sanitisation n’ont pas suffi
-- le problème persiste surtout dans un contexte mobile où l’utilisateur sort vers WhatsApp puis revient
+Preuve dans le code :
+- `src/pages/Auth.tsx` et `src/pages/BusinessAuth.tsx` font :
+  - `if (error || !result?.success) => toast "Code invalide"`
+- donc un `500 internal_error` est actuellement masqué comme une erreur de code
 
-## Pourquoi les fixes précédents ne suffisent pas
+Cela explique très bien :
+- pourquoi le message WhatsApp arrive
+- pourquoi le bon canal est utilisé
+- pourquoi l’utilisateur voit quand même “Code invalide”
 
-Ils ont corrigé :
-- les caractères invisibles
-- les OTP multiples actifs
+## Ce que je corrigerais
 
-Mais ils n’ont pas rendu **persistante et fiable** la méthode réellement utilisée pour envoyer le code.
+### 1. Corriger l’affichage d’erreur côté client
+Dans :
+- `src/pages/Auth.tsx`
+- `src/pages/BusinessAuth.tsx`
 
-## Implémentation proposée
+Modifier la gestion de `supabase.functions.invoke('verify-whatsapp-otp')` pour :
+- distinguer un vrai `400 invalid_code`
+- d’un `500 internal_error` ou autre erreur serveur
+- afficher un message utilisateur correct :
+  - `Code invalide ou expiré` seulement pour les erreurs métier
+  - `Erreur temporaire de vérification, veuillez réessayer` pour les erreurs serveur
 
-### 1. Introduire une vraie source de vérité : `activeOtpMethod`
-Dans `Auth.tsx` et `BusinessAuth.tsx` :
+Impact :
+- on ne confondra plus un crash serveur avec un mauvais OTP
 
-- créer un état dédié pour la méthode effectivement envoyée (`sms` ou `whatsapp`)
-- le définir uniquement **au moment où l’envoi réussit réellement**
-- ne plus utiliser `defaultMethod` pour la vérification d’un code déjà envoyé
+### 2. Durcir `verify-whatsapp-otp`
+Dans `supabase/functions/verify-whatsapp-otp/index.ts`, renforcer les zones fragiles après la validation du code :
+- lookup utilisateur
+- création utilisateur
+- `updateUserById`
+- `generateLink`
+- extraction du token
+- création de session
 
-Règle :
-```text
-méthode choisie pour l’envoi = méthode obligatoire pour verify + resend
-```
+Ajouter :
+- logs structurés à chaque étape critique
+- `requestId` renvoyé dans les erreurs serveur
+- réponses JSON explicites par type d’échec
 
-### 2. Persister ce canal pendant le flux OTP
-Toujours dans `Auth.tsx` et `BusinessAuth.tsx` :
+Objectif :
+- identifier précisément l’étape qui casse réellement
 
-- stocker temporairement en `sessionStorage` :
-  - `activeOtpMethod`
-  - `currentPhone`
-  - `authMode`
-  - expiration/countdown
-- restaurer ces infos au retour depuis WhatsApp si la page a été remount/rechargée
+### 3. Vérifier la stratégie de session utilisée après OTP
+La zone la plus sensible est la partie :
+- email synthétique `@phone.joiedevivre.app`
+- `generateLink({ type: 'magiclink' })`
+- `verifyOtp({ token_hash, type: 'magiclink' })`
 
-But :
-- éviter qu’un retour depuis WhatsApp fasse retomber le flux sur `defaultMethod = sms`
+C’est probablement là que se produit le crash si le code OTP lui-même est déjà trouvé.
 
-### 3. Vérifier avec le bon backend
-Modifier la logique de vérification :
+Je garderais l’architecture actuelle, mais je la sécuriserais avec :
+- validation stricte des données retournées
+- fallback propre si `action_link` ou `token`/`token_hash` n’est pas présent
+- message serveur explicite au lieu d’un simple échec générique
 
-- si `activeOtpMethod === 'whatsapp'` → appeler uniquement `verify-whatsapp-otp`
-- si `activeOtpMethod === 'sms'` → appeler uniquement `supabase.auth.verifyOtp({ type: 'sms' })`
+### 4. Confirmer la version réellement déployée
+Le fait qu’aucun log n’apparaisse pour `verify-whatsapp-otp` malgré l’appel côté client suggère aussi un point à vérifier :
+- soit la fonction déployée ne correspond pas exactement au code lu
+- soit le logging actuel n’est pas suffisant sur la version active
 
-Et faire la même chose pour **renvoyer** le code :
-- resend WhatsApp si le dernier envoi était WhatsApp
-- resend SMS si le dernier envoi était SMS
+Je prévoirais donc dans l’implémentation :
+- redéploiement propre de `verify-whatsapp-otp`
+- puis retest immédiat du flux OTP
 
-### 4. Afficher clairement le canal dans l’écran OTP
-Améliorer l’UI OTP dans les deux pages :
+### 5. Vérifier les deux écrans
+Tester après correction :
+- `src/pages/Auth.tsx`
+- `src/pages/BusinessAuth.tsx`
 
-- afficher “Code envoyé via WhatsApp” ou “Code envoyé par SMS”
-- éviter le texte générique “Code envoyé au ...”
+Scénarios :
+- envoi WhatsApp puis collage du code
+- retour depuis WhatsApp vers l’app
+- code invalide réel
+- erreur serveur simulée
+- renvoi du code avant/après cooldown
 
-Cela réduit la confusion utilisateur et sert aussi de vérification visuelle du bon flux.
-
-### 5. Ajouter un logging ciblé et sûr
-Comme l’erreur persiste depuis plusieurs itérations :
-
-- ajouter des logs masqués côté client et Edge Function :
-  - canal utilisé pour l’envoi
-  - canal utilisé pour la vérification
-  - téléphone masqué
-  - résultat de lookup OTP
-- ne jamais logger le code OTP brut
-
-## Fichiers à modifier
+## Fichiers concernés
 
 | Fichier | Action |
 |---|---|
-| `src/pages/Auth.tsx` | mémoriser/restaurer `activeOtpMethod`, utiliser ce canal pour verify/resend, afficher le canal dans l’UI OTP |
-| `src/pages/BusinessAuth.tsx` | même correction que `Auth.tsx` |
-| `supabase/functions/verify-whatsapp-otp/index.ts` | enrichir les logs de diagnostic, sans exposer de données sensibles |
-
-## Détail technique
-
-```text
-Aujourd’hui
-send via WhatsApp -> état local fragile -> verify choisit parfois sms -> "Code invalide"
-
-Après correction
-send via WhatsApp -> activeOtpMethod = whatsapp (persisté) -> verify-whatsapp-otp
-send via SMS      -> activeOtpMethod = sms       (persisté) -> supabase.auth.verifyOtp
-```
+| `src/pages/Auth.tsx` | Ne plus transformer toute erreur serveur en “Code invalide” |
+| `src/pages/BusinessAuth.tsx` | Même correction |
+| `supabase/functions/verify-whatsapp-otp/index.ts` | Ajouter logs, requestId, erreurs explicites, durcir la création de session |
 
 ## Résultat attendu
 
-- un code reçu sur WhatsApp est toujours vérifié via le flux WhatsApp
-- le retour depuis WhatsApp ne casse plus le canal choisi
-- le même correctif couvre connexion et inscription
-- le bug cesse sur la page Auth et sur la page BusinessAuth
+Après correction :
+- si le code est réellement faux, l’utilisateur voit une erreur OTP correcte
+- si le serveur casse, l’utilisateur voit une erreur technique temporaire adaptée
+- on identifie enfin la vraie étape en échec dans `verify-whatsapp-otp`
+- on confirme ou écarte définitivement l’hypothèse “template WhatsApp mal aligné”
+
+## Réponse à votre question
+
+Mon diagnostic est :
+- le template WhatsApp semble globalement correctement aligné
+- le problème est beaucoup plus probablement dans la phase de vérification/session côté Edge Function
+- et surtout dans le fait que le front masque actuellement toute erreur backend en “Code invalide”
