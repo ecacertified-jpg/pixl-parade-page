@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Gift, Users, Plus, Loader2 } from 'lucide-react';
+import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ interface SearchExistingFundsModalProps {
 export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: SearchExistingFundsModalProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const { results, loading, searchFunds, clearResults } = useSearchPublicFunds();
 
   const handleQueryChange = (value: string) => {
@@ -198,12 +200,7 @@ export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: Searc
         <div className="border-t px-6 py-4 space-y-2">
           <Button
             className="w-full gap-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
-            onClick={() => {
-              onClose();
-              clearResults();
-              setQuery('');
-              navigate('/favorites');
-            }}
+            onClick={() => setShowWishlistPicker(true)}
           >
             <Gift className="h-4 w-4" />
             Créer ma cagnotte
@@ -218,6 +215,11 @@ export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: Searc
           </Button>
         </div>
       </DialogContent>
+
+      <WishlistFundPickerModal
+        isOpen={showWishlistPicker}
+        onClose={() => setShowWishlistPicker(false)}
+      />
     </Dialog>
   );
 }
