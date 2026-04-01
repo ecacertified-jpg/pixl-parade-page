@@ -363,7 +363,7 @@ export const OnboardingExperience = ({
           </button>
 
           <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'][currentStep]}
+            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'][currentStep]}
             <span className="text-muted-foreground/50 ml-1.5 text-xs">
               {currentStep + 1}/{TOTAL_STEPS}
             </span>
