@@ -735,6 +735,50 @@ export default function Dashboard() {
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
           <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
+            {/* Birthday page sharing banner */}
+            {!hasSharedBirthday && birthdayPageSlug && (
+              <Card className="p-4 mb-4 border-primary/30 bg-primary/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🎂</span>
+                  <p className="font-semibold text-sm font-poppins">Partagez votre page d'anniversaire !</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Invitez vos amis à vous écrire un mot ou participer à votre cagnotte
+                </p>
+                <div className="bg-muted/50 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-xs font-mono text-foreground break-all">
+                    {getAppBaseUrl()}/birthday/{birthdayPageSlug}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs flex-1"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`${getAppBaseUrl()}/birthday/${birthdayPageSlug}`);
+                        setBirthdayLinkCopied(true);
+                        toast({ title: 'Lien copié ! 📋' });
+                        setTimeout(() => setBirthdayLinkCopied(false), 2000);
+                      } catch { toast({ title: 'Erreur', variant: 'destructive' }); }
+                    }}
+                  >
+                    {birthdayLinkCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {birthdayLinkCopied ? 'Copié !' : 'Copier'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs flex-1"
+                    onClick={() => setShowShareBirthdayModal(true)}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Partager
+                  </Button>
+                </div>
+              </Card>
+            )}
+
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
               <Button
