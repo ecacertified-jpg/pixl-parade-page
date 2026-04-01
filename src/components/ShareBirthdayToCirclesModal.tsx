@@ -32,6 +32,7 @@ export function ShareBirthdayToCirclesModal({
   const { circles, loading } = useFriendCircles();
   const { toast } = useToast();
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; name: string; phone: string | null }[]>([]);
   const [contactsLoading, setContactsLoading] = useState(true);
