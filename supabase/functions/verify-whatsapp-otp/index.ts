@@ -209,6 +209,7 @@ serve(async (req) => {
         if (createError.message?.includes('phone_exists') || (createError as any).code === 'phone_exists') {
           logger.log('phone_exists_retry', { result: 'retrying' });
 
+          // Strategy 1: profiles table
           const { data: retryProfile } = await supabaseAdmin
             .from('profiles')
             .select('user_id')
@@ -221,17 +222,62 @@ serve(async (req) => {
             if (ud?.user) existingUser = ud.user;
           }
 
+          // Strategy 2: Direct GoTrue Admin API (bypasses listUsers filter issues)
           if (!existingUser) {
-            // Try by synthetic email (most reliable for returning users)
-            const emailForLookup = `${phoneWithoutPlus}@phone.joiedevivre.app`;
-            const { data: emailLookup } = await supabaseAdmin.auth.admin.listUsers({ filter: emailForLookup, page: 1, perPage: 10 });
-            existingUser = emailLookup?.users?.find(u => u.email === emailForLookup) || null;
-            logger.log('email_lookup_retry', { result: existingUser ? 'found' : 'not_found', email: emailForLookup });
+            try {
+              const gotrueUrl = `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`;
+              const gotrueResponse = await fetch(gotrueUrl, {
+                headers: {
+                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  'apikey': SUPABASE_SERVICE_ROLE_KEY,
+                },
+              });
+              if (gotrueResponse.ok) {
+                const gotrueData = await gotrueResponse.json();
+                const users = gotrueData?.users || gotrueData || [];
+                existingUser = users.find((u: any) => 
+                  u.phone === phoneWithPlus || u.phone === phoneWithoutPlus
+                ) || null;
+                logger.log('gotrue_direct_lookup', { 
+                  result: existingUser ? 'found' : 'not_found', 
+                  total_users_checked: users.length,
+                  user_id: existingUser?.id,
+                });
+              }
+            } catch (e) {
+              logger.log('gotrue_direct_lookup', { result: 'error', error: (e as Error).message }, 'error');
+            }
           }
 
+          // Strategy 3: Search with multiple phone format variations
           if (!existingUser) {
-            const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus, page: 1, perPage: 1000 });
-            existingUser = retryData?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
+            // CI numbers: try old 8-digit format if current is 10-digit
+            const phoneVariations = [phoneWithPlus, phoneWithoutPlus];
+            // +2250707467445 → also try +22507467445 (old CI format without leading 0)
+            if (phoneWithPlus.startsWith('+22507') || phoneWithPlus.startsWith('+22505') || phoneWithPlus.startsWith('+22501')) {
+              const oldFormat = '+225' + phoneWithPlus.slice(6); // remove the extra digit after +225
+              phoneVariations.push(oldFormat, oldFormat.replace(/^\+/, ''));
+            }
+            
+            for (const variant of phoneVariations) {
+              if (existingUser) break;
+              const { data: variantData } = await supabaseAdmin.auth.admin.listUsers({ filter: variant, page: 1, perPage: 50 });
+              const found = variantData?.users?.find((u: any) => 
+                phoneVariations.includes(u.phone || '') || phoneVariations.includes(`+${u.phone}`)
+              );
+              if (found) {
+                existingUser = found;
+                logger.log('variant_lookup', { result: 'found', variant, user_id: found.id });
+              }
+            }
+          }
+
+          // Strategy 4: Synthetic email lookup
+          if (!existingUser) {
+            const emailForLookup = `${phoneWithoutPlus}@phone.joiedevivre.app`;
+            const { data: emailLookup } = await supabaseAdmin.auth.admin.listUsers({ filter: emailForLookup, page: 1, perPage: 10 });
+            existingUser = emailLookup?.users?.find((u: any) => u.email === emailForLookup) || null;
+            logger.log('email_lookup_retry', { result: existingUser ? 'found' : 'not_found', email: emailForLookup });
           }
 
           if (existingUser) {
