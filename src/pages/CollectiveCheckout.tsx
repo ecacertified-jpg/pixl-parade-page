@@ -44,6 +44,7 @@ export default function CollectiveCheckout() {
   const [paymentMethod, setPaymentMethod] = useState("wave");
   const [processing, setProcessing] = useState(false);
   const [showWaveModal, setShowWaveModal] = useState(false);
+  const [selfFundAmount, setSelfFundAmount] = useState("");
 
   const deliveryAddress = useMemo(() => {
     if (!addressData) return "";
