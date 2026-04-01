@@ -18,6 +18,7 @@ export default function Cart() {
   const total = subtotal + shippingCost;
   const progressToFreeShipping = Math.min(subtotal / FREE_SHIPPING_THRESHOLD * 100, 100);
   const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
+  const hasCollaborativeGifts = cartItems.some(item => (item as any).isCollaborativeGift);
   const handleQuantityChange = (id: string | number, newQuantity: number) => {
     if (newQuantity === 0) {
       removeItem(id);
@@ -69,7 +70,8 @@ export default function Cart() {
         {/* Offline mode notification */}
         
 
-        {/* Free shipping progress */}
+        {/* Free shipping progress - hidden for collective */}
+        {!hasCollaborativeGifts && (
         <Card className="p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-orange-600">🚚</span>
@@ -86,6 +88,7 @@ export default function Cart() {
           }} />
           </div>
         </Card>
+        )}
 
         {/* Delivery advice */}
         <Card className="p-3 mb-4 bg-blue-50 border-blue-200">
@@ -162,27 +165,37 @@ export default function Cart() {
 
         {/* Order summary */}
         <Card className="p-4 mb-6">
-          <h3 className="font-semibold mb-3">Résumé de commande</h3>
+          <h3 className="font-semibold mb-3">{hasCollaborativeGifts ? "Objectif de la cagnotte" : "Résumé de commande"}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span>Sous-total</span>
+              <span>{hasCollaborativeGifts ? "Montant cible" : "Sous-total"}</span>
               <span>{subtotal.toLocaleString()} F</span>
             </div>
+            {!hasCollaborativeGifts && (
             <div className="flex justify-between">
               <span>Livraison</span>
               <span>{shippingCost === 0 ? "Gratuit" : `${shippingCost.toLocaleString()} F`}</span>
             </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold text-lg text-primary">
-              <span>Total</span>
-              <span>{total.toLocaleString()} F</span>
+              <span>{hasCollaborativeGifts ? "Montant à collecter" : "Total"}</span>
+              <span>{(hasCollaborativeGifts ? subtotal : total).toLocaleString()} F</span>
             </div>
           </div>
+          {hasCollaborativeGifts && (
+            <p className="text-xs text-muted-foreground mt-3">
+              💡 Vos amis contribueront selon leurs moyens pour atteindre cet objectif
+            </p>
+          )}
         </Card>
 
         {/* Checkout button */}
-        <Button onClick={proceedToCheckout} className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg">
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Passer commande individuelle - {total.toLocaleString()} F
+        <Button onClick={proceedToCheckout} className={`w-full text-white font-medium py-3 rounded-lg ${hasCollaborativeGifts ? 'bg-primary hover:bg-primary/90' : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'}`}>
+          {hasCollaborativeGifts ? (
+            <>🎁 Lancer ma cagnotte - {subtotal.toLocaleString()} F</>
+          ) : (
+            <><ShoppingCart className="h-4 w-4 mr-2" />Passer commande individuelle - {total.toLocaleString()} F</>
+          )}
         </Button>
 
         <div className="pb-20" />
