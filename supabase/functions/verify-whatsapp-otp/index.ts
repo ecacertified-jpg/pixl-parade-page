@@ -222,6 +222,14 @@ serve(async (req) => {
           }
 
           if (!existingUser) {
+            // Try by synthetic email (most reliable for returning users)
+            const emailForLookup = `${phoneWithoutPlus}@phone.joiedevivre.app`;
+            const { data: emailLookup } = await supabaseAdmin.auth.admin.listUsers({ filter: emailForLookup, page: 1, perPage: 10 });
+            existingUser = emailLookup?.users?.find(u => u.email === emailForLookup) || null;
+            logger.log('email_lookup_retry', { result: existingUser ? 'found' : 'not_found', email: emailForLookup });
+          }
+
+          if (!existingUser) {
             const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus, page: 1, perPage: 1000 });
             existingUser = retryData?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
           }
