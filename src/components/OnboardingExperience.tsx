@@ -27,7 +27,7 @@ interface OnboardingExperienceProps {
   onSetStep: (step: number) => void;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 const GIFT_CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -83,8 +83,6 @@ export const OnboardingExperience = ({
   const [invitePhone, setInvitePhone] = useState('');
   const [invitedCount, setInvitedCount] = useState(0);
   const [invitationsSentCount, setInvitationsSentCount] = useState(0);
-  const [birthdayPageSlug, setBirthdayPageSlug] = useState('');
-  const [linkCopied, setLinkCopied] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [friendFormLink, setFriendFormLink] = useState<string | null>(null);
   const [generatingFormLink, setGeneratingFormLink] = useState(false);
@@ -92,7 +90,7 @@ export const OnboardingExperience = ({
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [hasShared, setHasShared] = useState(false);
+  
 
   // Load user data on mount
   useEffect(() => {
@@ -306,60 +304,7 @@ export const OnboardingExperience = ({
     setInvitationsSentCount(c => c + 1);
   };
 
-  // Create or fetch birthday page in DB on step 5
-  useEffect(() => {
-    if (currentStep !== 5 || !user) return;
-    const createOrFetchPage = async () => {
-      const currentYear = new Date().getFullYear();
-      const { data: existing } = await supabase
-        .from('birthday_pages')
-        .select('slug')
-        .eq('user_id', user.id)
-        .eq('celebration_year', currentYear)
-        .maybeSingle();
-      if (existing) { setBirthdayPageSlug(existing.slug); return; }
 
-      const nameForSlug = firstName
-        ? firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')
-        : `user-${user.id.slice(0, 8)}`;
-      const slug = `${nameForSlug}-${currentYear}`;
-      const title = `Anniversaire de ${firstName || 'mon ami(e)'}`;
-      const { data, error } = await supabase
-        .from('birthday_pages')
-        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
-        .select('slug')
-        .single();
-      if (error?.code === '23505') {
-        const fallbackSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
-        const { data: d2 } = await supabase
-          .from('birthday_pages')
-          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true })
-          .select('slug')
-          .single();
-        if (d2) setBirthdayPageSlug(d2.slug);
-      } else if (data) {
-        setBirthdayPageSlug(data.slug);
-      }
-    };
-    createOrFetchPage();
-  }, [currentStep, firstName, user]);
-
-  const handleCopyLink = () => {
-    const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
-    const message = `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`;
-    navigator.clipboard.writeText(message);
-    setLinkCopied(true);
-    setHasShared(true);
-    toast.success('Message + lien copiés ! 📋');
-    setTimeout(() => setLinkCopied(false), 2000);
-  };
-
-  const handleShareBirthdayPage = () => {
-    const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
-    const text = encodeURIComponent(`🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${url}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    setHasShared(true);
-  };
 
   const handleNext = async () => {
     if (currentStep === 1 && birthday) await saveBirthday();
@@ -418,7 +363,7 @@ export const OnboardingExperience = ({
           </button>
 
           <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'][currentStep]}
+            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'][currentStep]}
             <span className="text-muted-foreground/50 ml-1.5 text-xs">
               {currentStep + 1}/{TOTAL_STEPS}
             </span>
@@ -803,90 +748,19 @@ export const OnboardingExperience = ({
                   </Button>
                 </motion.div>
               )}
-            </motion.div>
-          )}
 
-          {/* Step 5: Birthday viral page */}
-          {currentStep === 5 && (
-            <motion.div
-              key="viral"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              className="text-center max-w-md mx-auto w-full"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6 shadow-lg"
-              >
-                <Sparkles className="h-10 w-10 text-white" />
-              </motion.div>
-
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Ta page anniversaire est prête ! 🎂
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-4">
-                Partage-la pour recevoir des messages et des cadeaux de tes proches
-              </p>
-
-              {/* Page preview card */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/10 border border-primary/20 text-left"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
-                    {firstName?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div>
-                    <p className="font-poppins font-semibold text-foreground">
-                      Anniversaire de {firstName || 'vous'}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-nunito">
-                      joiedevivre-africa.com/birthday/{birthdayPageSlug}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 p-2 rounded-lg bg-card text-center">
-                    <p className="text-xs text-muted-foreground">Messages</p>
-                    <p className="font-bold text-foreground">0</p>
-                  </div>
-                  <div className="flex-1 p-2 rounded-lg bg-card text-center">
-                    <p className="text-xs text-muted-foreground">Photos</p>
-                    <p className="font-bold text-foreground">0</p>
-                  </div>
-                  <div className="flex-1 p-2 rounded-lg bg-card text-center">
-                    <p className="text-xs text-muted-foreground">Cagnotte</p>
-                    <p className="font-bold text-foreground">0 XOF</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              <div className="flex flex-col gap-3">
-                <Button onClick={handleShareBirthdayPage} disabled={!birthdayPageSlug} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 w-full" size="lg">
-                  <Share2 className="h-4 w-4" />
-                  {birthdayPageSlug ? 'Partager sur WhatsApp' : 'Création en cours...'}
-                </Button>
-                <Button onClick={handleCopyLink} disabled={!birthdayPageSlug} variant="outline" className="gap-2 w-full">
-                  {linkCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  {linkCopied ? 'Copié !' : 'Copier le lien'}
-                </Button>
-              </div>
-
-              {hasShared && (
+              {invitationsSentCount > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="mt-4"
+                  className="mt-6"
                 >
                   <Button
-                    onClick={onComplete}
+                    onClick={() => {
+                      confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+                      onComplete();
+                    }}
                     size="lg"
                     className="w-full gap-2 bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-700 text-white font-bold text-lg py-6 shadow-lg animate-pulse"
                   >
