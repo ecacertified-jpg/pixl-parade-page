@@ -77,7 +77,7 @@ serve(async (req) => {
     if (!phone || !code) {
       logger.summary('error_missing_fields');
       return new Response(
-        JSON.stringify({ success: false, error: 'missing_fields', message: 'Téléphone et code requis' }),
+        JSON.stringify({ success: false, error: 'missing_fields', message: 'Téléphone et code requis', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
