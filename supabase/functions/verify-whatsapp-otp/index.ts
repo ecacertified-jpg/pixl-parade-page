@@ -241,7 +241,7 @@ serve(async (req) => {
           logger.log('user_creation', { result: 'error', error: createError.message }, 'error');
           logger.summary('error_user_creation');
           return new Response(
-            JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte' }),
+            JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte', requestId }),
             { status: 500, headers: jsonHeaders }
           );
         }
