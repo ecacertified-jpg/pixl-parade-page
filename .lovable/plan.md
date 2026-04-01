@@ -1,20 +1,69 @@
 
 
-# Plan : Ajouter des checkboxes aux contacts individuels dans le modal de partage
+# Plan : Onglet "Anniversaires" style TikTok dans le Dashboard
 
-## Probleme
+## Resume
 
-Les contacts individuels (Chandy, Meera) sont affiches en lecture seule (simple `div`) sans checkbox, contrairement aux cercles. L'utilisateur ne peut donc pas les selectionner.
+Ajouter un 6e onglet "Anniv." dans le Dashboard avec une grille de cards style TikTok (comme les videos sous un profil TikTok). L'onglet contient deux sous-onglets ("Cette annee" / "Souvenirs") chacun avec deux filtres ("Moi" / "Proches").
 
-## Solution
+## Structure de l'onglet
 
-Ajouter un state `selectedContacts`, des checkboxes sur chaque contact, et inclure les contacts selectionnes dans le compteur. Le bouton WhatsApp enverra le message viral pour les contacts selectionnes (ouverture WhatsApp pre-rempli avec leur numero).
+```text
+[Amis] [Events] [Cotis.] [Cadeaux] [Anniv.] [🏆]
+                              ↓
+         [Cette année]  [Souvenirs]
+            [Moi]  [Proches]
+                ↓
+    ┌─────┐  ┌─────┐  ┌─────┐
+    │ 🎂  │  │ 🎂  │  │ 🎂  │
+    │cover│  │cover│  │cover│
+    │ nom │  │ nom │  │ nom │
+    │ year│  │ year│  │ year│
+    └─────┘  └─────┘  └─────┘
+```
 
-### Modifications dans `src/components/ShareBirthdayToCirclesModal.tsx`
+Chaque card affiche : image de couverture (ou gradient par defaut), prenom, annee, nombre de messages/voeux. Un clic ouvre la page `/birthday/:slug`.
 
-1. Ajouter `selectedContacts` state (`string[]`)
-2. Ajouter `toggleContact` handler
-3. Transformer les `div` des contacts en `label` avec `Checkbox` (meme pattern que les cercles)
-4. Mettre a jour le compteur `totalSelected` pour inclure les contacts selectionnes
-5. Adapter `handleShareWhatsApp` : si des contacts avec numero sont selectionnes, ouvrir WhatsApp directement vers leur numero (`https://wa.me/{phone}?text=...`), sinon comportement actuel
+## Donnees
+
+- **"Moi"** : `birthday_pages` ou `user_id = auth.uid()`
+- **"Proches"** : `birthday_pages` de mes contacts (via `contacts.linked_user_id`) + pages auxquelles j'ai contribue (via `birthday_wishes_messages.sender_user_id` ou `fund_contributions.contributor_id`)
+- **"Cette annee"** : `celebration_year = annee courante`
+- **"Souvenirs"** : `celebration_year < annee courante`
+- Tri : du plus recent au plus ancien
+
+## Fichiers a creer/modifier
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/BirthdaysTab.tsx` | **Nouveau** - composant principal de l'onglet avec sous-onglets et grille TikTok |
+| `src/components/BirthdayGridCard.tsx` | **Nouveau** - card individuelle style TikTok (cover, nom, annee, compteur voeux) |
+| `src/hooks/useBirthdayPages.ts` | **Nouveau** - hook pour fetch les birthday_pages (moi + proches, cette annee + souvenirs) |
+| `src/pages/Dashboard.tsx` | **Modifier** - ajouter le 6e onglet "Anniv." avec icone Cake, grid-cols-6, et le TabsContent correspondant |
+
+## Details techniques
+
+### Hook `useBirthdayPages`
+- Fetch `birthday_pages` avec jointure sur `profiles` (first_name, avatar_url) pour obtenir le nom et la photo
+- Pour "Proches" : fetch les `linked_user_id` depuis `contacts`, puis les `birthday_pages` de ces users
+- Compter les `birthday_wishes_messages` par page (count query)
+- Separer par annee courante vs anterieures
+
+### Composant `BirthdayGridCard`
+- Aspect ratio 3:4 (comme TikTok)
+- Image de couverture ou gradient violet/rose par defaut
+- Overlay en bas : prenom, annee de celebration
+- Badge avec nombre de voeux
+- Clic → `navigate('/birthday/${slug}')`
+
+### Composant `BirthdaysTab`
+- Sous-onglets "Cette annee" / "Souvenirs" (Tabs imbriques ou boutons toggle)
+- Filtre "Moi" / "Proches" (chips/boutons)
+- Grille `grid-cols-3 gap-1` (exactement comme TikTok)
+- Etat vide avec message encourageant ("Creez votre page d'anniversaire !")
+
+### Dashboard.tsx
+- Changer `grid-cols-5` en `grid-cols-6` dans le TabsList
+- Ajouter le TabsTrigger "Anniv." avec icone `Cake`
+- Ajouter le TabsContent avec `<BirthdaysTab />`
 
