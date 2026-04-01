@@ -1084,7 +1084,7 @@ const BusinessAuth = () => {
   const resendOtp = async () => {
     if (countdown > 0) return;
     
-    const method = otpMethod || defaultMethod;
+    const method = otpMethod || (sessionStorage.getItem('jdv_biz_otp_method') as OtpMethod) || defaultMethod;
     
     if (method === 'whatsapp') {
       const metadata = signupFormData ? {
