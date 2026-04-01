@@ -75,6 +75,9 @@ import { useFriendCircles } from "@/hooks/useFriendCircles";
 import { FriendCircleChips } from "@/components/FriendCircleChips";
 import { CreateCircleModal } from "@/components/CreateCircleModal";
 import { AssignCircleMenu } from "@/components/AssignCircleMenu";
+import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
+import { getAppBaseUrl } from "@/utils/appUrl";
+import { Copy, Check as CheckIcon, Share2 } from "lucide-react";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
@@ -100,6 +103,12 @@ export default function Dashboard() {
   const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
+
+  // Birthday page sharing banner
+  const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
+  const [hasSharedBirthday, setHasSharedBirthday] = useState(false);
+  const [showShareBirthdayModal, setShowShareBirthdayModal] = useState(false);
+  const [birthdayLinkCopied, setBirthdayLinkCopied] = useState(false);
   const {
     user
   } = useAuth();
@@ -195,7 +204,28 @@ export default function Dashboard() {
     }
   }, [user, pushSupported, pushSubscribed, pushPermission, shouldShowOnboarding, needsProfileCompletion, profileCompletionLoading]);
 
-  // Déterminer l'onglet par défaut selon les paramètres URL
+  // Fetch birthday page slug for sharing banner
+  useEffect(() => {
+    if (!user) return;
+    const shared = localStorage.getItem(`birthday_shared_${user.id}`);
+    if (shared === 'true') {
+      setHasSharedBirthday(true);
+      return;
+    }
+    const currentYear = new Date().getFullYear();
+    supabase
+      .from('birthday_pages')
+      .select('slug')
+      .eq('user_id', user.id)
+      .eq('celebration_year', currentYear)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.slug) setBirthdayPageSlug(data.slug);
+      });
+  }, [user]);
+
+
   const defaultTab = searchParams.get('tab') || 'amis';
 
   // Callback pour mettre à jour les compteurs de cadeaux
@@ -705,6 +735,50 @@ export default function Dashboard() {
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
           <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
+            {/* Birthday page sharing banner */}
+            {!hasSharedBirthday && birthdayPageSlug && (
+              <Card className="p-4 mb-4 border-primary/30 bg-primary/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🎂</span>
+                  <p className="font-semibold text-sm font-poppins">Partagez votre page d'anniversaire !</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Invitez vos amis à vous écrire un mot ou participer à votre cagnotte
+                </p>
+                <div className="bg-muted/50 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-xs font-mono text-foreground break-all">
+                    {getAppBaseUrl()}/birthday/{birthdayPageSlug}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs flex-1"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(`${getAppBaseUrl()}/birthday/${birthdayPageSlug}`);
+                        setBirthdayLinkCopied(true);
+                        toast({ title: 'Lien copié ! 📋' });
+                        setTimeout(() => setBirthdayLinkCopied(false), 2000);
+                      } catch { toast({ title: 'Erreur', variant: 'destructive' }); }
+                    }}
+                  >
+                    {birthdayLinkCopied ? <CheckIcon className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {birthdayLinkCopied ? 'Copié !' : 'Copier'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs flex-1"
+                    onClick={() => setShowShareBirthdayModal(true)}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Partager
+                  </Button>
+                </div>
+              </Card>
+            )}
+
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-base">Mon cercle d'amis</h2>
               <Button
@@ -1167,6 +1241,19 @@ export default function Dashboard() {
           open={showCreateCircleModal}
           onOpenChange={setShowCreateCircleModal}
           onSubmit={async (name, color) => { await createCircle(name, color); }}
+        />
+
+        <ShareBirthdayToCirclesModal
+          isOpen={showShareBirthdayModal}
+          onClose={() => {
+            setShowShareBirthdayModal(false);
+            if (user) {
+              localStorage.setItem(`birthday_shared_${user.id}`, 'true');
+              setHasSharedBirthday(true);
+            }
+          }}
+          birthdaySlug={birthdayPageSlug || undefined}
+          userName={userProfile?.first_name || user?.user_metadata?.first_name || 'Utilisateur'}
         />
     </div>
   </>;
