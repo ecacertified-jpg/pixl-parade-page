@@ -565,21 +565,37 @@ export default function CollectiveCheckout() {
           onOpenChange={setShowWaveModal}
           amount={total}
           currency="F"
-          freeAmount={false}
+          freeAmount={isSelfFund}
           onSuccess={() => {
             setShowWaveModal(false);
             handleConfirmCollectiveFund(true);
           }}
         />
 
+        {/* Self-fund explanatory message */}
+        {isSelfFund && (
+          <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 mb-4 text-sm text-center">
+            <p className="text-foreground font-medium">💡 Déposez un montant de votre choix pour lancer votre cagnotte.</p>
+            <p className="text-muted-foreground mt-1">Vos amis contribueront ensuite pour atteindre l'objectif.</p>
+          </div>
+        )}
+
         {/* Confirm Button */}
         <Button 
           onClick={() => handleConfirmCollectiveFund()}
           disabled={!isFormValid() || processing}
-          className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-medium py-3 rounded-lg disabled:opacity-50"
+          className={`w-full font-medium py-3 rounded-lg disabled:opacity-50 text-white ${
+            isSelfFund 
+              ? 'bg-primary hover:bg-primary/90' 
+              : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
+          }`}
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {processing ? "Création en cours..." : `Confirmer la cotisation - ${total.toLocaleString()} F`}
+          {isSelfFund ? '🎁' : <ShoppingCart className="h-4 w-4 mr-2" />}
+          {processing 
+            ? "Création en cours..." 
+            : isSelfFund 
+              ? " Lancer ma cagnotte" 
+              : ` Confirmer la cotisation - ${total.toLocaleString()} F`}
         </Button>
 
         <div className="pb-20" />
