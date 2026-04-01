@@ -411,6 +411,12 @@ const Auth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist SMS method for flow consistency
+      sessionStorage.setItem('jdv_otp_method', 'sms');
+      sessionStorage.setItem('jdv_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_otp_sent', 'true');
+      sessionStorage.setItem('jdv_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé',
         description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
