@@ -61,6 +61,7 @@ serve(async (req) => {
 
   const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
   let logger: ReturnType<typeof createLogger> | null = null;
+  let requestId = 'unknown';
 
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
