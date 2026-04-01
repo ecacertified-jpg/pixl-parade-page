@@ -14,7 +14,6 @@ interface VerifyOtpRequest {
   code: string;
 }
 
-// --- Structured Logger ---
 function maskPhone(phone: string): string {
   if (phone.length <= 6) return '***';
   return phone.slice(0, 4) + '***' + phone.slice(-4);
@@ -43,15 +42,162 @@ function createLogger(phone: string) {
   const summary = (result: string, extra: Record<string, unknown> = {}) => {
     const total_duration_ms = Date.now() - startTime;
     console.log(JSON.stringify({
-      requestId, step: 'request_complete', phone: maskedPhone,
-      total_duration_ms, result, steps, ...extra,
+      requestId,
+      step: 'request_complete',
+      phone: maskedPhone,
+      total_duration_ms,
+      result,
+      steps,
+      ...extra,
     }));
   };
 
-  // Log start immediately
   log('request_start', { timestamp: new Date().toISOString() });
 
   return { log, summary, requestId };
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-()]/g, '').trim();
+}
+
+function buildPhoneCandidates(phone: string): string[] {
+  const normalized = normalizePhone(phone);
+  const withPlus = normalized.startsWith('+') ? normalized : `+${normalized}`;
+  const withoutPlus = withPlus.replace(/^\+/, '');
+  const candidates = new Set<string>([withPlus, withoutPlus]);
+
+  if (
+    withPlus.startsWith('+22507') ||
+    withPlus.startsWith('+22505') ||
+    withPlus.startsWith('+22501')
+  ) {
+    const legacyWithPlus = `+225${withPlus.slice(6)}`;
+    candidates.add(legacyWithPlus);
+    candidates.add(legacyWithPlus.replace(/^\+/, ''));
+  }
+
+  return Array.from(candidates).filter(Boolean);
+}
+
+function buildSyntheticEmailCandidates(phoneCandidates: string[]): string[] {
+  return Array.from(
+    new Set(
+      phoneCandidates.map((candidate) => `${candidate.replace(/^\+/, '')}@phone.joiedevivre.app`.toLowerCase())
+    )
+  );
+}
+
+function userMatchesCandidates(user: any, phoneCandidates: Set<string>, emailCandidates: Set<string>): boolean {
+  const normalizedUserPhone = normalizePhone(user.phone || '');
+  const userPhoneWithPlus = normalizedUserPhone
+    ? (normalizedUserPhone.startsWith('+') ? normalizedUserPhone : `+${normalizedUserPhone}`)
+    : '';
+  const userPhoneWithoutPlus = userPhoneWithPlus.replace(/^\+/, '');
+  const userEmail = (user.email || '').toLowerCase();
+
+  return (
+    phoneCandidates.has(userPhoneWithPlus) ||
+    phoneCandidates.has(userPhoneWithoutPlus) ||
+    emailCandidates.has(userEmail)
+  );
+}
+
+async function findUserFromProfiles(
+  supabaseAdmin: any,
+  phoneCandidates: string[],
+  logger: ReturnType<typeof createLogger>,
+  step: string,
+) {
+  const { data: profileData, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('user_id, phone')
+    .in('phone', phoneCandidates)
+    .limit(1)
+    .maybeSingle();
+
+  if (profileError) {
+    logger.log(step, { result: 'error', error: profileError.message }, 'error');
+    return null;
+  }
+
+  if (!profileData?.user_id) {
+    logger.log(step, { result: 'not_found' });
+    return null;
+  }
+
+  const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(profileData.user_id);
+  if (userError || !userData?.user) {
+    logger.log(step, {
+      result: 'auth_user_missing',
+      user_id: profileData.user_id,
+      error: userError?.message || 'user_not_found',
+    }, 'error');
+    return null;
+  }
+
+  logger.log(step, { result: 'found', user_id: userData.user.id });
+  return userData.user;
+}
+
+async function findAuthUserByPhoneOrEmail(
+  supabaseAdmin: any,
+  phoneCandidates: string[],
+  emailCandidates: string[],
+  logger: ReturnType<typeof createLogger>,
+  step: string,
+) {
+  const phoneSet = new Set(phoneCandidates);
+  const emailSet = new Set(emailCandidates);
+  const perPage = 1000;
+  const maxPages = 50;
+  let page = 1;
+  let pagesScanned = 0;
+  let totalUsersChecked = 0;
+
+  while (page <= maxPages) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      logger.log(step, {
+        result: 'error',
+        page,
+        pages_scanned: pagesScanned,
+        total_users_checked: totalUsersChecked,
+        error: error.message,
+      }, 'error');
+      return null;
+    }
+
+    const users = data?.users || [];
+    pagesScanned += 1;
+    totalUsersChecked += users.length;
+
+    const foundUser = users.find((user: any) => userMatchesCandidates(user, phoneSet, emailSet)) || null;
+    if (foundUser) {
+      logger.log(step, {
+        result: 'found',
+        user_id: foundUser.id,
+        pages_scanned: pagesScanned,
+        total_users_checked: totalUsersChecked,
+      });
+      return foundUser;
+    }
+
+    if (users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  logger.log(step, {
+    result: 'not_found',
+    pages_scanned: pagesScanned,
+    total_users_checked: totalUsersChecked,
+  });
+
+  return null;
 }
 
 serve(async (req) => {
@@ -64,16 +210,16 @@ serve(async (req) => {
   let requestId = 'unknown';
 
   try {
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
     const { phone, code: rawCode }: VerifyOtpRequest = await req.json();
 
     logger = createLogger(phone || 'unknown');
     requestId = logger.requestId;
 
-    // Sanitize OTP: remove invisible chars, spaces, non-digits (WhatsApp copy-paste artifacts)
     const code = (rawCode || '').trim().replace(/\D/g, '');
 
-    // Validate inputs
     if (!phone || !code) {
       logger.summary('error_missing_fields');
       return new Response(
@@ -90,7 +236,6 @@ serve(async (req) => {
       );
     }
 
-    // Find the OTP record by exact phone + code match (handles multiple active OTPs)
     const { data: otpRecord, error: fetchError } = await supabaseAdmin
       .from('whatsapp_otp_codes')
       .select('*')
@@ -124,7 +269,6 @@ serve(async (req) => {
       );
     }
 
-    // Check max attempts
     if (otpRecord.attempts >= otpRecord.max_attempts) {
       await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('id', otpRecord.id);
       logger.log('otp_validation', { result: 'max_attempts_exceeded' });
@@ -135,54 +279,28 @@ serve(async (req) => {
       );
     }
 
-    // Code matches (guaranteed by query), increment attempts for audit
-    await supabaseAdmin.from('whatsapp_otp_codes').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
+    await supabaseAdmin
+      .from('whatsapp_otp_codes')
+      .update({ attempts: otpRecord.attempts + 1 })
+      .eq('id', otpRecord.id);
 
     logger.log('otp_validation', { result: 'valid' });
 
-    // NOTE: Do NOT mark verified_at here — wait until session is created successfully
-    // This allows the user to retry if user-lookup or session-creation fails
-
-    // Get or create user
     const metadata = otpRecord.user_metadata || {};
-    const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
-    const phoneWithoutPlus = phone.replace(/^\+/, '');
+    const phoneCandidates = buildPhoneCandidates(phone);
+    const phoneWithPlus = phoneCandidates.find((candidate) => candidate.startsWith('+')) || `+${normalizePhone(phone).replace(/^\+/, '')}`;
+    const phoneWithoutPlus = phoneWithPlus.replace(/^\+/, '');
+    const emailCandidates = buildSyntheticEmailCandidates(phoneCandidates);
 
-    // 1. Search in profiles table first
-    let existingUser = null;
-    const { data: profileData } = await supabaseAdmin
-      .from('profiles')
-      .select('user_id')
-      .or(`phone.eq.${phoneWithPlus},phone.eq.${phoneWithoutPlus}`)
-      .limit(1)
-      .maybeSingle();
-
-    if (profileData?.user_id) {
-      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(profileData.user_id);
-      if (userData?.user) {
-        existingUser = userData.user;
-      }
-    }
-
-    logger.log('profile_lookup', {
-      result: existingUser ? 'found' : 'not_found',
-      user_id: existingUser?.id,
-    });
-
-    // 2. If not in profiles, try listUsers
+    let existingUser = await findUserFromProfiles(supabaseAdmin, phoneCandidates, logger, 'profile_lookup');
     if (!existingUser) {
-      const { data: listData1 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithPlus });
-      existingUser = listData1?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
-
-      if (!existingUser) {
-        const { data: listData2 } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus });
-        existingUser = listData2?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
-      }
-
-      logger.log('listusers_lookup', {
-        result: existingUser ? 'found' : 'not_found',
-        user_id: existingUser?.id,
-      });
+      existingUser = await findAuthUserByPhoneOrEmail(
+        supabaseAdmin,
+        phoneCandidates,
+        emailCandidates,
+        logger,
+        'auth_users_lookup'
+      );
     }
 
     let user;
@@ -191,7 +309,6 @@ serve(async (req) => {
     if (existingUser) {
       user = existingUser;
     } else {
-      // Create new user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         phone: phoneWithPlus,
         phone_confirm: true,
@@ -209,82 +326,26 @@ serve(async (req) => {
         if (createError.message?.includes('phone_exists') || (createError as any).code === 'phone_exists') {
           logger.log('phone_exists_retry', { result: 'retrying' });
 
-          // Strategy 1: profiles table
-          const { data: retryProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('user_id')
-            .or(`phone.eq.${phoneWithPlus},phone.eq.${phoneWithoutPlus}`)
-            .limit(1)
-            .maybeSingle();
-
-          if (retryProfile?.user_id) {
-            const { data: ud } = await supabaseAdmin.auth.admin.getUserById(retryProfile.user_id);
-            if (ud?.user) existingUser = ud.user;
-          }
-
-          // Strategy 2: Direct GoTrue Admin API (bypasses listUsers filter issues)
+          existingUser = await findUserFromProfiles(supabaseAdmin, phoneCandidates, logger, 'profile_retry_lookup');
           if (!existingUser) {
-            try {
-              const gotrueUrl = `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`;
-              const gotrueResponse = await fetch(gotrueUrl, {
-                headers: {
-                  'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-                  'apikey': SUPABASE_SERVICE_ROLE_KEY,
-                },
-              });
-              if (gotrueResponse.ok) {
-                const gotrueData = await gotrueResponse.json();
-                const users = gotrueData?.users || gotrueData || [];
-                existingUser = users.find((u: any) => 
-                  u.phone === phoneWithPlus || u.phone === phoneWithoutPlus
-                ) || null;
-                logger.log('gotrue_direct_lookup', { 
-                  result: existingUser ? 'found' : 'not_found', 
-                  total_users_checked: users.length,
-                  user_id: existingUser?.id,
-                });
-              }
-            } catch (e) {
-              logger.log('gotrue_direct_lookup', { result: 'error', error: (e as Error).message }, 'error');
-            }
-          }
-
-          // Strategy 3: Search with multiple phone format variations
-          if (!existingUser) {
-            // CI numbers: try old 8-digit format if current is 10-digit
-            const phoneVariations = [phoneWithPlus, phoneWithoutPlus];
-            // +2250707467445 → also try +22507467445 (old CI format without leading 0)
-            if (phoneWithPlus.startsWith('+22507') || phoneWithPlus.startsWith('+22505') || phoneWithPlus.startsWith('+22501')) {
-              const oldFormat = '+225' + phoneWithPlus.slice(6); // remove the extra digit after +225
-              phoneVariations.push(oldFormat, oldFormat.replace(/^\+/, ''));
-            }
-            
-            for (const variant of phoneVariations) {
-              if (existingUser) break;
-              const { data: variantData } = await supabaseAdmin.auth.admin.listUsers({ filter: variant, page: 1, perPage: 50 });
-              const found = variantData?.users?.find((u: any) => 
-                phoneVariations.includes(u.phone || '') || phoneVariations.includes(`+${u.phone}`)
-              );
-              if (found) {
-                existingUser = found;
-                logger.log('variant_lookup', { result: 'found', variant, user_id: found.id });
-              }
-            }
-          }
-
-          // Strategy 4: Synthetic email lookup
-          if (!existingUser) {
-            const emailForLookup = `${phoneWithoutPlus}@phone.joiedevivre.app`;
-            const { data: emailLookup } = await supabaseAdmin.auth.admin.listUsers({ filter: emailForLookup, page: 1, perPage: 10 });
-            existingUser = emailLookup?.users?.find((u: any) => u.email === emailForLookup) || null;
-            logger.log('email_lookup_retry', { result: existingUser ? 'found' : 'not_found', email: emailForLookup });
+            existingUser = await findAuthUserByPhoneOrEmail(
+              supabaseAdmin,
+              phoneCandidates,
+              emailCandidates,
+              logger,
+              'phone_exists_retry_lookup'
+            );
           }
 
           if (existingUser) {
             user = existingUser;
             logger.log('phone_exists_retry', { result: 'found', user_id: user.id });
           } else {
-            logger.log('phone_exists_retry', { result: 'not_found' }, 'error');
+            logger.log('phone_exists_retry', {
+              result: 'not_found',
+              phone_candidates: phoneCandidates.length,
+              email_candidates: emailCandidates.length,
+            }, 'error');
             logger.summary('error_user_lookup_failed');
             return new Response(
               JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.', requestId }),
@@ -310,14 +371,16 @@ serve(async (req) => {
           : phoneWithPlus.startsWith('+226') ? 'BF'
           : phoneWithPlus.startsWith('+225') ? 'CI' : 'CI';
 
-        await supabaseAdmin.from('profiles').update({ country_code: detectedCountry, phone: phoneWithPlus }).eq('user_id', user.id);
+        await supabaseAdmin
+          .from('profiles')
+          .update({ country_code: detectedCountry, phone: phoneWithPlus })
+          .eq('user_id', user.id);
 
         logger.log('user_creation', { result: 'success', user_id: user.id, country: detectedCountry });
       }
     }
 
-    // Generate session via magiclink
-    const emailForPhone = `${phone.replace(/\+/g, '')}@phone.joiedevivre.app`;
+    const emailForPhone = `${phoneWithoutPlus}@phone.joiedevivre.app`;
 
     await supabaseAdmin.auth.admin.updateUserById(user.id, { email: emailForPhone });
     logger.log('email_setup', { email: emailForPhone });
@@ -339,7 +402,6 @@ serve(async (req) => {
 
     logger.log('magiclink_generate', { result: 'success' });
 
-    // Extract token_hash
     const actionUrl = new URL(linkData.properties.action_link);
     const tokenHash = actionUrl.searchParams.get('token') || actionUrl.hash?.match(/token=([^&]+)/)?.[1];
 
@@ -370,10 +432,7 @@ serve(async (req) => {
 
     logger.log('session_create', { result: 'success', has_session: true });
 
-    // NOW mark OTP as verified (session was created successfully)
     await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
-
-    // Cleanup: delete all other active OTPs for the same phone
     await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('phone', phone).is('verified_at', null);
     logger.log('cleanup', { result: 'success' });
 
