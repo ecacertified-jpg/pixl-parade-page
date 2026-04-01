@@ -89,9 +89,11 @@ export default function CollectiveCheckout() {
 
   const isFormValid = () => {
     const needsDonor = !isSelfFund;
+    const selfFundAmountValid = isSelfFund ? (Number(selfFundAmount) > 0) : true;
     return (needsDonor ? donorPhone.trim() !== "" : true) && 
            beneficiaryPhone.trim() !== "" && 
-           addressData !== null && addressData.city !== "";
+           addressData !== null && addressData.city !== "" &&
+           selfFundAmountValid;
   };
 
   const handleConfirmCollectiveFund = async (skipWaveCheck = false) => {
