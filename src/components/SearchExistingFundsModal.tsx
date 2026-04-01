@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Gift, Users, Plus, Loader2 } from 'lucide-react';
+import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import {
   Dialog,
   DialogContent,
