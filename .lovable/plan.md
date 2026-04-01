@@ -1,22 +1,53 @@
 
 
-# Plan : Permettre la saisie libre du montant pour les cagnottes self-fund
+# Plan : Afficher le lien de la page d'anniversaire dans l'onglet Cercle d'amis
 
-## Probleme
+## Resume
 
-Quand l'utilisateur cree une cagnotte pour lui-meme et clique "Confirmer la cotisation", le modal Wave affiche le montant total du produit pre-rempli (`freeAmount={false}`, `amount={total}`). Or, pour une cagnotte collective, l'utilisateur devrait pouvoir deposer un montant minimum de son choix (sa premiere contribution), puisque ses amis completeront via leurs propres contributions.
+Ajouter une banniere dans l'onglet "amis" du Dashboard qui affiche le lien de la page d'anniversaire de l'utilisateur tant qu'il ne l'a pas encore partagee. La banniere disparait une fois le partage effectue.
 
 ## Solution
 
-Pour les commandes `isSelfFund`, passer `freeAmount={true}` au composant `WavePaymentRedirect` afin que l'utilisateur saisisse librement le montant de sa contribution initiale sur la page Wave.
+### 1. Ajouter un state et un fetch dans Dashboard.tsx
 
-### Fichier : `src/pages/CollectiveCheckout.tsx`
+- Ajouter un state `birthdayPageSlug` et `hasSharedBirthday`
+- Au mount, interroger `birthday_pages` pour le slug de l'utilisateur courant (annee en cours)
+- Verifier si au moins un partage a ete effectue (on peut utiliser un flag local `localStorage` car il n'y a pas de table de suivi des partages, ou verifier si le `ShareBirthdayToCirclesModal` a ete utilise)
 
-1. Changer la prop `freeAmount` du `WavePaymentRedirect` : `freeAmount={isSelfFund}` au lieu de `freeAmount={false}`
-2. Adapter le texte du bouton de confirmation pour les self-funds : "Lancer ma cagnotte" au lieu de "Confirmer la cotisation - {total} F"
-3. Ajouter un message explicatif au-dessus du bouton pour les self-funds : "Deposez un montant de votre choix pour lancer votre cagnotte. Vos amis contribueront ensuite."
+### 2. Banniere dans l'onglet "amis" (entre le titre et les chips)
 
-| Fichier | Modification |
-|---------|-------------|
-| `src/pages/CollectiveCheckout.tsx` | `freeAmount={isSelfFund}`, texte bouton adapte, message explicatif |
+Afficher une carte CTA avec :
+- Icone gateau + texte "Partagez votre page d'anniversaire avec vos amis !"
+- Le lien cliquable/copiable `/birthday/{slug}`
+- Bouton "Partager a mes cercles" qui ouvre `ShareBirthdayToCirclesModal`
+- Bouton "Copier le lien"
+- La banniere se masque apres un partage reussi (via `localStorage` flag)
+
+### 3. Importer et rendre ShareBirthdayToCirclesModal
+
+- Ajouter un state `showShareBirthdayModal`
+- Rendre le modal dans le JSX du Dashboard
+- Quand le modal est ferme apres partage, setter le flag localStorage
+
+## Fichiers concernes
+
+| Fichier | Action |
+|---------|--------|
+| `src/pages/Dashboard.tsx` | Fetch birthday slug, afficher banniere CTA dans onglet amis, integrer ShareBirthdayToCirclesModal |
+
+## Comportement
+
+```text
+Onglet "Cercle d'amis"
+┌──────────────────────────────────┐
+│ 🎂 Partagez votre page !        │
+│ joiedevivre.../birthday/slug     │
+│ [📋 Copier] [🎉 Partager]       │
+└──────────────────────────────────┘
+│ Mon cercle d'amis    [+ Ajouter] │
+│ [Tous] [Famille] [Amis] [+]     │
+│ ...                              │
+```
+
+La banniere disparait quand l'utilisateur a partage au moins une fois (stocke en localStorage sous `birthday_shared_{userId}`).
 
