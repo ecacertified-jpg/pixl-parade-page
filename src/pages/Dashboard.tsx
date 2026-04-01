@@ -78,6 +78,7 @@ import { AssignCircleMenu } from "@/components/AssignCircleMenu";
 import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
 import { getAppBaseUrl } from "@/utils/appUrl";
 import { Copy, Check as CheckIcon, Share2 } from "lucide-react";
+const BirthdaysTab = lazy(() => import('@/components/BirthdaysTab').then(m => ({ default: m.BirthdaysTab })));
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
