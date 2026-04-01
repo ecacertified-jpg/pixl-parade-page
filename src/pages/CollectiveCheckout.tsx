@@ -38,6 +38,7 @@ export default function CollectiveCheckout() {
   const [items, setItems] = useState<CollectiveItem[]>([]);
   const [donorPhone, setDonorPhone] = useState("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
+  const isSelfFund = items.some(item => item.isSelfFund);
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [addressDetails, setAddressDetails] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("wave");
