@@ -233,7 +233,7 @@ serve(async (req) => {
             logger.log('phone_exists_retry', { result: 'not_found' }, 'error');
             logger.summary('error_user_lookup_failed');
             return new Response(
-              JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.' }),
+              JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.', requestId }),
               { status: 500, headers: jsonHeaders }
             );
           }
