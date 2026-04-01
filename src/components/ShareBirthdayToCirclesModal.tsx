@@ -14,6 +14,7 @@ import { useFriendCircles } from '@/hooks/useFriendCircles';
 import { getAppBaseUrl } from '@/utils/appUrl';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountrySafe } from '@/contexts/CountryContext';
 
 interface ShareBirthdayToCirclesModalProps {
   isOpen: boolean;
