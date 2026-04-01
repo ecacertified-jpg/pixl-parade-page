@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Gift, Share2, Copy, Check, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Gift, Share2, Copy, Check, Users, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useFriendCircles } from '@/hooks/useFriendCircles';
 import { getAppBaseUrl } from '@/utils/appUrl';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ShareBirthdayToCirclesModalProps {
   isOpen: boolean;
