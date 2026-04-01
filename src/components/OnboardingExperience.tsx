@@ -304,43 +304,6 @@ export const OnboardingExperience = ({
     setInvitationsSentCount(c => c + 1);
   };
 
-  // Create or fetch birthday page in DB on step 5
-  useEffect(() => {
-    if (currentStep !== 5 || !user) return;
-    const createOrFetchPage = async () => {
-      const currentYear = new Date().getFullYear();
-      const { data: existing } = await supabase
-        .from('birthday_pages')
-        .select('slug')
-        .eq('user_id', user.id)
-        .eq('celebration_year', currentYear)
-        .maybeSingle();
-      if (existing) { setBirthdayPageSlug(existing.slug); return; }
-
-      const nameForSlug = firstName
-        ? firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '-')
-        : `user-${user.id.slice(0, 8)}`;
-      const slug = `${nameForSlug}-${currentYear}`;
-      const title = `Anniversaire de ${firstName || 'mon ami(e)'}`;
-      const { data, error } = await supabase
-        .from('birthday_pages')
-        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
-        .select('slug')
-        .single();
-      if (error?.code === '23505') {
-        const fallbackSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
-        const { data: d2 } = await supabase
-          .from('birthday_pages')
-          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true })
-          .select('slug')
-          .single();
-        if (d2) setBirthdayPageSlug(d2.slug);
-      } else if (data) {
-        setBirthdayPageSlug(data.slug);
-      }
-    };
-    createOrFetchPage();
-  }, [currentStep, firstName, user]);
 
   const handleCopyLink = () => {
     const url = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
