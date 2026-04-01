@@ -1242,6 +1242,19 @@ export default function Dashboard() {
           onOpenChange={setShowCreateCircleModal}
           onSubmit={async (name, color) => { await createCircle(name, color); }}
         />
+
+        <ShareBirthdayToCirclesModal
+          isOpen={showShareBirthdayModal}
+          onClose={() => {
+            setShowShareBirthdayModal(false);
+            if (user) {
+              localStorage.setItem(`birthday_shared_${user.id}`, 'true');
+              setHasSharedBirthday(true);
+            }
+          }}
+          birthdaySlug={birthdayPageSlug || undefined}
+          userName={userProfile?.first_name || user?.user_metadata?.first_name || 'Utilisateur'}
+        />
     </div>
   </>;
 }
