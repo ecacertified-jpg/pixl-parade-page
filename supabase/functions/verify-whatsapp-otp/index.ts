@@ -105,7 +105,7 @@ serve(async (req) => {
       logger.log('otp_lookup', { result: 'error', error: fetchError.message }, 'error');
       logger.summary('error_otp_fetch');
       return new Response(
-        JSON.stringify({ success: false, error: 'fetch_error', message: 'Erreur lors de la vérification' }),
+        JSON.stringify({ success: false, error: 'fetch_error', message: 'Erreur lors de la vérification', requestId }),
         { status: 500, headers: jsonHeaders }
       );
     }
