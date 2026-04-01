@@ -140,8 +140,8 @@ serve(async (req) => {
 
     logger.log('otp_validation', { result: 'valid' });
 
-    // Code is valid - mark as verified
-    await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
+    // NOTE: Do NOT mark verified_at here — wait until session is created successfully
+    // This allows the user to retry if user-lookup or session-creation fails
 
     // Get or create user
     const metadata = otpRecord.user_metadata || {};
