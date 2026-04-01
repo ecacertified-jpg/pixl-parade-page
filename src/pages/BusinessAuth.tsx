@@ -1036,6 +1036,8 @@ const BusinessAuth = () => {
         }
 
         console.log('✅ [Business WhatsApp OTP Verify] Success, user:', result.user_id);
+        // Clear OTP session state
+        ['jdv_biz_otp_method', 'jdv_biz_otp_phone', 'jdv_biz_otp_sent', 'jdv_biz_otp_auth_mode', 'jdv_biz_otp_expiry'].forEach(k => sessionStorage.removeItem(k));
 
         // Set session from WhatsApp verification
         if (result.access_token && result.refresh_token) {
