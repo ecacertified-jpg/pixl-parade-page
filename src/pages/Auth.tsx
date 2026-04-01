@@ -683,8 +683,9 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      // Check if we're using WhatsApp OTP
-      const method = otpMethod || defaultMethod;
+      // Use persisted method — NEVER fall back to defaultMethod during verification
+      const method = otpMethod || (sessionStorage.getItem('jdv_otp_method') as OtpMethod) || defaultMethod;
+      console.log('🔐 [OTP Verify] Using method:', method, '(otpMethod state:', otpMethod, ')');
       
       if (method === 'whatsapp') {
         // Verify via WhatsApp edge function
