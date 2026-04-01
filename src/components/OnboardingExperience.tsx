@@ -27,7 +27,7 @@ interface OnboardingExperienceProps {
   onSetStep: (step: number) => void;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 const GIFT_CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
