@@ -208,9 +208,36 @@ const Auth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   
-  // États pour WhatsApp OTP fallback
-  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(null);
+   // États pour WhatsApp OTP fallback — restore from sessionStorage on mount (survives WhatsApp app-switch)
+  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(() => {
+    const stored = sessionStorage.getItem('jdv_otp_method');
+    return (stored === 'whatsapp' || stored === 'sms') ? stored : null;
+  });
   const [pendingFormData, setPendingFormData] = useState<SignUpFormData | SignInFormData | null>(null);
+
+  // Restore OTP flow state from sessionStorage (survives WhatsApp app-switch)
+  useEffect(() => {
+    const savedPhone = sessionStorage.getItem('jdv_otp_phone');
+    const savedMethod = sessionStorage.getItem('jdv_otp_method');
+    const savedOtpSent = sessionStorage.getItem('jdv_otp_sent');
+    const savedAuthMode = sessionStorage.getItem('jdv_otp_auth_mode');
+    const savedExpiry = sessionStorage.getItem('jdv_otp_expiry');
+
+    if (savedPhone && savedOtpSent === 'true' && savedMethod) {
+      setCurrentPhone(savedPhone);
+      setOtpSent(true);
+      setOtpMethod(savedMethod as OtpMethod);
+      if (savedAuthMode === 'signin' || savedAuthMode === 'signup') {
+        setAuthMode(savedAuthMode);
+      }
+      // Restore countdown from saved expiry
+      if (savedExpiry) {
+        const remaining = Math.max(0, Math.floor((parseInt(savedExpiry, 10) - Date.now()) / 1000));
+        if (remaining > 0) setCountdown(remaining);
+      }
+      console.log('🔄 [OTP Restore] Restored OTP flow from sessionStorage:', { phone: savedPhone, method: savedMethod });
+    }
+  }, []);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
