@@ -680,6 +680,12 @@ const BusinessAuth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist SMS method
+      sessionStorage.setItem('jdv_biz_otp_method', 'sms');
+      sessionStorage.setItem('jdv_biz_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_biz_otp_sent', 'true');
+      sessionStorage.setItem('jdv_biz_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_biz_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé',
         description: `Un code de vérification a été envoyé au ${fullPhone}`,
