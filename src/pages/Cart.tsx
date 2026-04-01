@@ -165,21 +165,28 @@ export default function Cart() {
 
         {/* Order summary */}
         <Card className="p-4 mb-6">
-          <h3 className="font-semibold mb-3">Résumé de commande</h3>
+          <h3 className="font-semibold mb-3">{hasCollaborativeGifts ? "Objectif de la cagnotte" : "Résumé de commande"}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span>Sous-total</span>
+              <span>{hasCollaborativeGifts ? "Montant cible" : "Sous-total"}</span>
               <span>{subtotal.toLocaleString()} F</span>
             </div>
+            {!hasCollaborativeGifts && (
             <div className="flex justify-between">
               <span>Livraison</span>
               <span>{shippingCost === 0 ? "Gratuit" : `${shippingCost.toLocaleString()} F`}</span>
             </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold text-lg text-primary">
-              <span>Total</span>
-              <span>{total.toLocaleString()} F</span>
+              <span>{hasCollaborativeGifts ? "Montant à collecter" : "Total"}</span>
+              <span>{(hasCollaborativeGifts ? subtotal : total).toLocaleString()} F</span>
             </div>
           </div>
+          {hasCollaborativeGifts && (
+            <p className="text-xs text-muted-foreground mt-3">
+              💡 Vos amis contribueront selon leurs moyens pour atteindre cet objectif
+            </p>
+          )}
         </Card>
 
         {/* Checkout button */}
