@@ -1175,6 +1175,12 @@ export default function Dashboard() {
             </Suspense>
           </TabsContent>
 
+          <TabsContent value="anniversaires" className="mt-4" forceMount={activeTab === 'anniversaires' ? true : undefined} hidden={activeTab !== 'anniversaires'}>
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <BirthdaysTab />
+            </Suspense>
+          </TabsContent>
+
           <TabsContent value="badges" className="mt-4" forceMount={activeTab === 'badges' ? true : undefined} hidden={activeTab !== 'badges'}>
             <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
               <div className="space-y-4">
