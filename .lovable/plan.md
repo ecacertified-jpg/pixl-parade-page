@@ -1,47 +1,25 @@
 
 
-# Plan : Modal wishlist avec creation directe de cagnotte pour soi-meme
+# Plan : Masquer le champ "Donateur" pour les cagnottes self-fund
 
-## Resume
+## Problème
 
-Quand l'utilisateur clique "Creer ma cagnotte" dans le `SearchExistingFundsModal`, afficher un nouveau modal listant ses articles de wishlist. Chaque article a un bouton "Creer" qui ajoute automatiquement l'article au panier en mode cagnotte collaborative pour soi-meme (beneficiaire = l'utilisateur), puis redirige vers le checkout.
+Sur la page "Finaliser la cotisation", le champ "Numéro de téléphone du donateur" est affiché même quand l'utilisateur crée une cagnotte pour lui-même. Dans ce cas, il est le bénéficiaire, pas un donateur — ce champ n'a pas de sens.
 
-## Fichiers concernes
+## Solution
+
+Détecter si les articles sont en mode `isSelfFund` et :
+
+1. **Masquer** le champ "Numéro de téléphone du donateur" 
+2. **Pré-remplir** le téléphone du bénéficiaire avec le numéro de l'utilisateur connecté (depuis `user.phone` ou `user_metadata`)
+3. **Adapter la validation** : ne plus exiger `donorPhone` quand c'est un self-fund
+4. **Adapter l'insertion** : envoyer `donor_phone` vide ou égal au bénéficiaire pour le self-fund
+5. **Page de confirmation** : masquer la ligne "donateur" si self-fund
+
+## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/WishlistFundPickerModal.tsx` | **Nouveau** — Modal affichant les articles de la wishlist avec bouton "Creer" par article |
-| `src/components/SearchExistingFundsModal.tsx` | Ouvrir le nouveau modal au lieu de naviguer vers `/favorites` |
-
-## Detail technique
-
-### 1. Nouveau composant `WishlistFundPickerModal.tsx`
-
-- Utilise `useFavorites()` pour charger les articles de la wishlist
-- Affiche chaque article : image, nom, prix, bouton "Creer"
-- Au clic sur "Creer" :
-  - Recupere le prenom/nom de l'utilisateur via `useAuth()` (user_metadata)
-  - Appelle `addItem()` du `useCart()` avec `isCollaborativeGift: true`, `isSelfFund: true`, `beneficiaryName: "Prenom Nom"`
-  - Redirige vers `/cart` pour finaliser la commande (qui declenche ensuite le `ShareBirthdayToCirclesModal`)
-- Etats : loading, liste vide (CTA vers `/favorites` pour ajouter des articles), liste d'articles
-
-### 2. Modification de `SearchExistingFundsModal.tsx`
-
-- Ajouter un state `showWishlistPicker`
-- Au clic "Creer ma cagnotte" : `setShowWishlistPicker(true)` au lieu de `navigate('/favorites')`
-- Rendre `<WishlistFundPickerModal>` dans le JSX
-- Quand le wishlist modal se ferme, revenir au SearchExistingFundsModal
-
-### Flux utilisateur
-
-```text
-SearchExistingFundsModal
-  → clic "Creer ma cagnotte"
-  → WishlistFundPickerModal (liste des articles wishlist)
-    → clic "Creer" sur un article
-    → article ajoute au panier (mode self-fund)
-    → redirection /cart
-    → checkout → CollectiveOrderConfirmation
-      → ShareBirthdayToCirclesModal (partage aux cercles)
-```
+| `src/pages/CollectiveCheckout.tsx` | Détecter `isSelfFund`, masquer champ donateur, adapter validation et insertion |
+| `src/pages/CollectiveOrderConfirmation.tsx` | Masquer la ligne donateur si `isSelfFund` |
 
