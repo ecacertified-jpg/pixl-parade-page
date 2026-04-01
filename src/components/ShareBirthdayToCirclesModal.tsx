@@ -32,6 +32,7 @@ export function ShareBirthdayToCirclesModal({
   const { circles, loading } = useFriendCircles();
   const { toast } = useToast();
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; name: string; phone: string | null }[]>([]);
   const [contactsLoading, setContactsLoading] = useState(true);
@@ -64,6 +65,14 @@ export function ShareBirthdayToCirclesModal({
     );
   };
 
+  const toggleContact = (contactId: string) => {
+    setSelectedContacts((prev) =>
+      prev.includes(contactId)
+        ? prev.filter((id) => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(viralMessage);
@@ -77,7 +86,15 @@ export function ShareBirthdayToCirclesModal({
 
   const handleShareWhatsApp = () => {
     const encoded = encodeURIComponent(viralMessage);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    const selectedContactsWithPhone = contacts.filter(
+      (c) => selectedContacts.includes(c.id) && c.phone
+    );
+    if (selectedContactsWithPhone.length > 0) {
+      const phone = selectedContactsWithPhone[0].phone!.replace(/[^0-9+]/g, '');
+      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    } else {
+      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    }
   };
 
   const handleNativeShare = async () => {
@@ -96,9 +113,10 @@ export function ShareBirthdayToCirclesModal({
     }
   };
 
-  const totalSelected = circles
+  const totalCircleMembers = circles
     .filter((c) => selectedCircles.includes(c.id))
     .reduce((sum, c) => sum + c.member_count, 0);
+  const totalSelected = totalCircleMembers + selectedContacts.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -153,10 +171,14 @@ export function ShareBirthdayToCirclesModal({
                 <>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mt-3">Vos amis</p>
                   {contacts.map((contact) => (
-                    <div
+                    <label
                       key={contact.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/30 cursor-pointer transition-colors"
                     >
+                      <Checkbox
+                        checked={selectedContacts.includes(contact.id)}
+                        onCheckedChange={() => toggleContact(contact.id)}
+                      />
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <User className="h-4 w-4 text-primary" />
                       </div>
@@ -166,7 +188,7 @@ export function ShareBirthdayToCirclesModal({
                           <p className="text-xs text-muted-foreground">{contact.phone}</p>
                         )}
                       </div>
-                    </div>
+                    </label>
                   ))}
                 </>
               )}
