@@ -109,7 +109,6 @@ export default function Dashboard() {
   const [hasSharedBirthday, setHasSharedBirthday] = useState(false);
   const [showShareBirthdayModal, setShowShareBirthdayModal] = useState(false);
   const [birthdayLinkCopied, setBirthdayLinkCopied] = useState(false);
-  const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const {
     user
   } = useAuth();
