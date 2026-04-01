@@ -65,6 +65,14 @@ export function ShareBirthdayToCirclesModal({
     );
   };
 
+  const toggleContact = (contactId: string) => {
+    setSelectedContacts((prev) =>
+      prev.includes(contactId)
+        ? prev.filter((id) => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(viralMessage);
