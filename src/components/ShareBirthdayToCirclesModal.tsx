@@ -171,10 +171,14 @@ export function ShareBirthdayToCirclesModal({
                 <>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mt-3">Vos amis</p>
                   {contacts.map((contact) => (
-                    <div
+                    <label
                       key={contact.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/30 cursor-pointer transition-colors"
                     >
+                      <Checkbox
+                        checked={selectedContacts.includes(contact.id)}
+                        onCheckedChange={() => toggleContact(contact.id)}
+                      />
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <User className="h-4 w-4 text-primary" />
                       </div>
@@ -184,7 +188,7 @@ export function ShareBirthdayToCirclesModal({
                           <p className="text-xs text-muted-foreground">{contact.phone}</p>
                         )}
                       </div>
-                    </div>
+                    </label>
                   ))}
                 </>
               )}
