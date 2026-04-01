@@ -896,7 +896,7 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      const method = otpMethod || defaultMethod;
+      const method = otpMethod || (sessionStorage.getItem('jdv_otp_method') as OtpMethod) || defaultMethod;
       console.log('🔄 [OTP Resend] Resending OTP to:', currentPhone, 'via:', method);
 
       if (method === 'whatsapp') {
