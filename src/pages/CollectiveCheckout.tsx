@@ -76,8 +76,19 @@ export default function CollectiveCheckout() {
   const shippingCost = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shippingCost;
 
+  // Pre-fill beneficiary phone for self-fund
+  useEffect(() => {
+    if (isSelfFund && user) {
+      const phone = user.phone || user.user_metadata?.phone || '';
+      if (phone && !beneficiaryPhone) {
+        setBeneficiaryPhone(phone);
+      }
+    }
+  }, [isSelfFund, user]);
+
   const isFormValid = () => {
-    return donorPhone.trim() !== "" && 
+    const needsDonor = !isSelfFund;
+    return (needsDonor ? donorPhone.trim() !== "" : true) && 
            beneficiaryPhone.trim() !== "" && 
            addressData !== null && addressData.city !== "";
   };
