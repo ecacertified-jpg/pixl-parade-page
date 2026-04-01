@@ -130,7 +130,7 @@ serve(async (req) => {
       logger.log('otp_validation', { result: 'max_attempts_exceeded' });
       logger.summary('error_max_attempts');
       return new Response(
-        JSON.stringify({ success: false, error: 'max_attempts', message: 'Trop de tentatives. Veuillez demander un nouveau code.' }),
+        JSON.stringify({ success: false, error: 'max_attempts', message: 'Trop de tentatives. Veuillez demander un nouveau code.', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
