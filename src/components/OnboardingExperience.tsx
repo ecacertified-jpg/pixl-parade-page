@@ -90,7 +90,7 @@ export const OnboardingExperience = ({
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [hasShared, setHasShared] = useState(false);
+  
 
   // Load user data on mount
   useEffect(() => {
