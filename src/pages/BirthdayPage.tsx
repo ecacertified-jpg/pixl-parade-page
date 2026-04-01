@@ -374,9 +374,7 @@ const BirthdayPage = () => {
                       navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
                       return;
                     }
-                    if (fund.share_token) {
-                      navigate(`/f/${fund.share_token}`);
-                    }
+                    navigate(`/f/${fund.id}`);
                   }}
                 >
                   <Gift className="h-4 w-4 mr-2" />
