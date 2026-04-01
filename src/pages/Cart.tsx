@@ -70,7 +70,8 @@ export default function Cart() {
         {/* Offline mode notification */}
         
 
-        {/* Free shipping progress */}
+        {/* Free shipping progress - hidden for collective */}
+        {!hasCollaborativeGifts && (
         <Card className="p-4 mb-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-orange-600">🚚</span>
@@ -87,6 +88,7 @@ export default function Cart() {
           }} />
           </div>
         </Card>
+        )}
 
         {/* Delivery advice */}
         <Card className="p-3 mb-4 bg-blue-50 border-blue-200">
