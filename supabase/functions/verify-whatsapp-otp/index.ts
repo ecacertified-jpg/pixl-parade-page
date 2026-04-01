@@ -140,8 +140,8 @@ serve(async (req) => {
 
     logger.log('otp_validation', { result: 'valid' });
 
-    // Code is valid - mark as verified
-    await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
+    // NOTE: Do NOT mark verified_at here — wait until session is created successfully
+    // This allows the user to retry if user-lookup or session-creation fails
 
     // Get or create user
     const metadata = otpRecord.user_metadata || {};
@@ -222,6 +222,14 @@ serve(async (req) => {
           }
 
           if (!existingUser) {
+            // Try by synthetic email (most reliable for returning users)
+            const emailForLookup = `${phoneWithoutPlus}@phone.joiedevivre.app`;
+            const { data: emailLookup } = await supabaseAdmin.auth.admin.listUsers({ filter: emailForLookup, page: 1, perPage: 10 });
+            existingUser = emailLookup?.users?.find(u => u.email === emailForLookup) || null;
+            logger.log('email_lookup_retry', { result: existingUser ? 'found' : 'not_found', email: emailForLookup });
+          }
+
+          if (!existingUser) {
             const { data: retryData } = await supabaseAdmin.auth.admin.listUsers({ filter: phoneWithoutPlus, page: 1, perPage: 1000 });
             existingUser = retryData?.users?.find(u => u.phone === phoneWithPlus || u.phone === phoneWithoutPlus) || null;
           }
@@ -275,6 +283,7 @@ serve(async (req) => {
 
     if (linkError || !linkData?.properties?.action_link) {
       logger.log('magiclink_generate', { result: 'error', error: linkError?.message }, 'error');
+      await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
       logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
         JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
@@ -290,6 +299,7 @@ serve(async (req) => {
 
     if (!tokenHash) {
       logger.log('session_create', { result: 'no_token' }, 'error');
+      await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
       logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
         JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
@@ -304,6 +314,7 @@ serve(async (req) => {
 
     if (sessionError || !sessionData.session) {
       logger.log('session_create', { result: 'error', error: sessionError?.message }, 'error');
+      await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
       logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
         JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
@@ -313,7 +324,10 @@ serve(async (req) => {
 
     logger.log('session_create', { result: 'success', has_session: true });
 
-    // Cleanup: delete this OTP + all other active OTPs for the same phone
+    // NOW mark OTP as verified (session was created successfully)
+    await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
+
+    // Cleanup: delete all other active OTPs for the same phone
     await supabaseAdmin.from('whatsapp_otp_codes').delete().eq('phone', phone).is('verified_at', null);
     logger.log('cleanup', { result: 'success' });
 
