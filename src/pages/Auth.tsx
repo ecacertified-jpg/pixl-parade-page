@@ -475,6 +475,12 @@ const Auth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist OTP flow state for WhatsApp app-switch survival
+      sessionStorage.setItem('jdv_otp_method', 'whatsapp');
+      sessionStorage.setItem('jdv_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_otp_sent', 'true');
+      sessionStorage.setItem('jdv_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
