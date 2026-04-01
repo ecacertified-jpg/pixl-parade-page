@@ -1,26 +1,22 @@
 
 
-# Plan : Adapter le panier pour les commandes collectives (cagnottes)
+# Plan : Permettre la saisie libre du montant pour les cagnottes self-fund
 
-## Problème
+## Probleme
 
-Quand un article est ajouté depuis la wishlist en mode cagnotte (`isCollaborativeGift: true`), le panier affiche "Passer commande individuelle" au lieu de "Lancer ma cagnotte" ou équivalent. L'utilisateur est confus car il crée une cagnotte pour ses amis, pas une commande individuelle.
+Quand l'utilisateur cree une cagnotte pour lui-meme et clique "Confirmer la cotisation", le modal Wave affiche le montant total du produit pre-rempli (`freeAmount={false}`, `amount={total}`). Or, pour une cagnotte collective, l'utilisateur devrait pouvoir deposer un montant minimum de son choix (sa premiere contribution), puisque ses amis completeront via leurs propres contributions.
 
 ## Solution
 
-Adapter dynamiquement le bouton et le résumé du panier selon le type d'articles :
+Pour les commandes `isSelfFund`, passer `freeAmount={true}` au composant `WavePaymentRedirect` afin que l'utilisateur saisisse librement le montant de sa contribution initiale sur la page Wave.
 
-### Fichier : `src/pages/Cart.tsx`
+### Fichier : `src/pages/CollectiveCheckout.tsx`
 
-1. **Détecter le mode collectif** : `const hasCollaborativeGifts = cartItems.some(item => item.isCollaborativeGift);`
+1. Changer la prop `freeAmount` du `WavePaymentRedirect` : `freeAmount={isSelfFund}` au lieu de `freeAmount={false}`
+2. Adapter le texte du bouton de confirmation pour les self-funds : "Lancer ma cagnotte" au lieu de "Confirmer la cotisation - {total} F"
+3. Ajouter un message explicatif au-dessus du bouton pour les self-funds : "Deposez un montant de votre choix pour lancer votre cagnotte. Vos amis contribueront ensuite."
 
-2. **Bouton principal** : 
-   - Si collectif → `🎁 Lancer ma cagnotte - {total} F` (avec style violet/primary au lieu d'orange)
-   - Sinon → `🛒 Passer commande individuelle - {total} F` (actuel)
-
-3. **Résumé de commande adapté** :
-   - Si collectif → afficher "Objectif de la cagnotte" au lieu de "Sous-total", masquer les frais de livraison (la livraison sera gérée après la collecte), et afficher "Montant à collecter" au lieu de "Total"
-   - Ajouter un texte explicatif : "Vos amis contribueront selon leurs moyens pour atteindre cet objectif"
-
-4. **Masquer la barre de livraison gratuite** pour les commandes collectives (pas pertinent à ce stade)
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/CollectiveCheckout.tsx` | `freeAmount={isSelfFund}`, texte bouton adapte, message explicatif |
 
