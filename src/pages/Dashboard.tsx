@@ -103,6 +103,13 @@ export default function Dashboard() {
   const [showCreateCircleModal, setShowCreateCircleModal] = useState(false);
   const [receivedGiftsCount, setReceivedGiftsCount] = useState(0);
   const [givenGiftsCount, setGivenGiftsCount] = useState(0);
+
+  // Birthday page sharing banner
+  const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
+  const [hasSharedBirthday, setHasSharedBirthday] = useState(false);
+  const [showShareBirthdayModal, setShowShareBirthdayModal] = useState(false);
+  const [birthdayLinkCopied, setBirthdayLinkCopied] = useState(false);
+  const [givenGiftsCount, setGivenGiftsCount] = useState(0);
   const {
     user
   } = useAuth();
