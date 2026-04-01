@@ -18,6 +18,7 @@ export default function Cart() {
   const total = subtotal + shippingCost;
   const progressToFreeShipping = Math.min(subtotal / FREE_SHIPPING_THRESHOLD * 100, 100);
   const remainingForFreeShipping = Math.max(FREE_SHIPPING_THRESHOLD - subtotal, 0);
+  const hasCollaborativeGifts = cartItems.some(item => (item as any).isCollaborativeGift);
   const handleQuantityChange = (id: string | number, newQuantity: number) => {
     if (newQuantity === 0) {
       removeItem(id);
