@@ -748,7 +748,6 @@ export const OnboardingExperience = ({
                   </Button>
                 </motion.div>
               )}
-            </motion.div>
 
               {invitationsSentCount > 0 && (
                 <motion.div
