@@ -566,21 +566,43 @@ export default function CollectiveCheckout() {
         <WavePaymentRedirect
           open={showWaveModal}
           onOpenChange={setShowWaveModal}
-          amount={total}
+          amount={isSelfFund ? Number(selfFundAmount) : total}
           currency="F"
-          freeAmount={isSelfFund}
+          freeAmount={false}
           onSuccess={() => {
             setShowWaveModal(false);
             handleConfirmCollectiveFund(true);
           }}
         />
 
-        {/* Self-fund explanatory message */}
+        {/* Self-fund: contribution amount input */}
         {isSelfFund && (
-          <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 mb-4 text-sm text-center">
-            <p className="text-foreground font-medium">💡 Déposez un montant de votre choix pour lancer votre cagnotte.</p>
-            <p className="text-muted-foreground mt-1">Vos amis contribueront ensuite pour atteindre l'objectif.</p>
-          </div>
+          <Card className="p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">💰</span>
+              <h3 className="font-semibold text-sm">Votre contribution initiale</h3>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Saisissez le montant que vous souhaitez déposer pour lancer votre cagnotte. Vos amis contribueront ensuite pour atteindre l'objectif de {total.toLocaleString()} F.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Ex: 5000"
+                value={selfFundAmount}
+                onChange={(e) => setSelfFundAmount(e.target.value)}
+                className="flex-1 text-lg font-semibold"
+                min={1}
+              />
+              <span className="text-lg font-bold text-muted-foreground">F</span>
+            </div>
+            {Number(selfFundAmount) > 0 && (
+              <p className="text-xs text-primary mt-2 text-center font-medium">
+                Ce montant de {Number(selfFundAmount).toLocaleString()} F sera pré-rempli dans Wave
+              </p>
+            )}
+          </Card>
         )}
 
         {/* Confirm Button */}
