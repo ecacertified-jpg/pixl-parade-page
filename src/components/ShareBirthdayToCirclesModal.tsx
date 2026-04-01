@@ -14,6 +14,7 @@ import { useFriendCircles } from '@/hooks/useFriendCircles';
 import { getAppBaseUrl } from '@/utils/appUrl';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCountrySafe } from '@/contexts/CountryContext';
 
 interface ShareBirthdayToCirclesModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function ShareBirthdayToCirclesModal({
   userName,
 }: ShareBirthdayToCirclesModalProps) {
   const { user } = useAuth();
+  const countryCtx = useCountrySafe();
   const { circles, loading } = useFriendCircles();
   const { toast } = useToast();
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
@@ -84,14 +86,28 @@ export function ShareBirthdayToCirclesModal({
     }
   };
 
+  const normalizePhoneForWhatsApp = (phone: string): string => {
+    const cleaned = phone.replace(/[^0-9+]/g, '');
+    if (cleaned.startsWith('+')) {
+      return cleaned.replace('+', '');
+    }
+    if (cleaned.startsWith('00')) {
+      return cleaned.slice(2);
+    }
+    // Add country prefix for national numbers
+    const prefix = (countryCtx?.country.phonePrefix || '+225').replace('+', '');
+    return prefix + cleaned;
+  };
+
   const handleShareWhatsApp = () => {
     const encoded = encodeURIComponent(viralMessage);
     const selectedContactsWithPhone = contacts.filter(
       (c) => selectedContacts.includes(c.id) && c.phone
     );
-    if (selectedContactsWithPhone.length > 0) {
-      const phone = selectedContactsWithPhone[0].phone!.replace(/[^0-9+]/g, '');
-      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    // Only target a specific number if exactly 1 contact with phone is selected
+    if (selectedContactsWithPhone.length === 1) {
+      const normalizedPhone = normalizePhoneForWhatsApp(selectedContactsWithPhone[0].phone!);
+      window.open(`https://wa.me/${normalizedPhone}?text=${encoded}`, '_blank');
     } else {
       window.open(`https://wa.me/?text=${encoded}`, '_blank');
     }
