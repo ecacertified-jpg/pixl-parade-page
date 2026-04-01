@@ -30,6 +30,7 @@ export function ShareBirthdayToCirclesModal({
   userName,
 }: ShareBirthdayToCirclesModalProps) {
   const { user } = useAuth();
+  const countryCtx = useCountrySafe();
   const { circles, loading } = useFriendCircles();
   const { toast } = useToast();
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
