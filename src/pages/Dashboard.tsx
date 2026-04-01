@@ -204,7 +204,28 @@ export default function Dashboard() {
     }
   }, [user, pushSupported, pushSubscribed, pushPermission, shouldShowOnboarding, needsProfileCompletion, profileCompletionLoading]);
 
-  // Déterminer l'onglet par défaut selon les paramètres URL
+  // Fetch birthday page slug for sharing banner
+  useEffect(() => {
+    if (!user) return;
+    const shared = localStorage.getItem(`birthday_shared_${user.id}`);
+    if (shared === 'true') {
+      setHasSharedBirthday(true);
+      return;
+    }
+    const currentYear = new Date().getFullYear();
+    supabase
+      .from('birthday_pages')
+      .select('slug')
+      .eq('user_id', user.id)
+      .eq('celebration_year', currentYear)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.slug) setBirthdayPageSlug(data.slug);
+      });
+  }, [user]);
+
+
   const defaultTab = searchParams.get('tab') || 'amis';
 
   // Callback pour mettre à jour les compteurs de cadeaux
