@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2 } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2, Cake } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InlineUserSearchResults } from "@/components/InlineUserSearchResults";
 import { type SearchResult } from "@/hooks/useFriendRequests";
