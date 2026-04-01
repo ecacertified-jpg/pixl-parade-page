@@ -1750,7 +1750,7 @@ const Auth = () => {
               <div className="text-center">
                 <h3 className="text-lg font-semibold">Vérification du numéro</h3>
                 <p className="text-sm text-muted-foreground">
-                  Code envoyé au {currentPhone}
+                  Code envoyé {(otpMethod || sessionStorage.getItem('jdv_otp_method')) === 'whatsapp' ? 'via WhatsApp' : 'par SMS'} au {currentPhone}
                 </p>
               </div>
               
