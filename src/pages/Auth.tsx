@@ -208,9 +208,36 @@ const Auth = () => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialTab);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   
-  // États pour WhatsApp OTP fallback
-  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(null);
+   // États pour WhatsApp OTP fallback — restore from sessionStorage on mount (survives WhatsApp app-switch)
+  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(() => {
+    const stored = sessionStorage.getItem('jdv_otp_method');
+    return (stored === 'whatsapp' || stored === 'sms') ? stored : null;
+  });
   const [pendingFormData, setPendingFormData] = useState<SignUpFormData | SignInFormData | null>(null);
+
+  // Restore OTP flow state from sessionStorage (survives WhatsApp app-switch)
+  useEffect(() => {
+    const savedPhone = sessionStorage.getItem('jdv_otp_phone');
+    const savedMethod = sessionStorage.getItem('jdv_otp_method');
+    const savedOtpSent = sessionStorage.getItem('jdv_otp_sent');
+    const savedAuthMode = sessionStorage.getItem('jdv_otp_auth_mode');
+    const savedExpiry = sessionStorage.getItem('jdv_otp_expiry');
+
+    if (savedPhone && savedOtpSent === 'true' && savedMethod) {
+      setCurrentPhone(savedPhone);
+      setOtpSent(true);
+      setOtpMethod(savedMethod as OtpMethod);
+      if (savedAuthMode === 'signin' || savedAuthMode === 'signup') {
+        setAuthMode(savedAuthMode);
+      }
+      // Restore countdown from saved expiry
+      if (savedExpiry) {
+        const remaining = Math.max(0, Math.floor((parseInt(savedExpiry, 10) - Date.now()) / 1000));
+        if (remaining > 0) setCountdown(remaining);
+      }
+      console.log('🔄 [OTP Restore] Restored OTP flow from sessionStorage:', { phone: savedPhone, method: savedMethod });
+    }
+  }, []);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -384,6 +411,12 @@ const Auth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist SMS method for flow consistency
+      sessionStorage.setItem('jdv_otp_method', 'sms');
+      sessionStorage.setItem('jdv_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_otp_sent', 'true');
+      sessionStorage.setItem('jdv_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé',
         description: 'Un code de vérification a été envoyé par SMS. Le SMS peut prendre jusqu\'à 2 minutes.',
@@ -448,6 +481,12 @@ const Auth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist OTP flow state for WhatsApp app-switch survival
+      sessionStorage.setItem('jdv_otp_method', 'whatsapp');
+      sessionStorage.setItem('jdv_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_otp_sent', 'true');
+      sessionStorage.setItem('jdv_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
@@ -650,8 +689,9 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      // Check if we're using WhatsApp OTP
-      const method = otpMethod || defaultMethod;
+      // Use persisted method — NEVER fall back to defaultMethod during verification
+      const method = otpMethod || (sessionStorage.getItem('jdv_otp_method') as OtpMethod) || defaultMethod;
+      console.log('🔐 [OTP Verify] Using method:', method, '(otpMethod state:', otpMethod, ')');
       
       if (method === 'whatsapp') {
         // Verify via WhatsApp edge function
@@ -676,6 +716,8 @@ const Auth = () => {
         }
 
         console.log('✅ [WhatsApp OTP Verify] Success, user:', result.user_id);
+        // Clear OTP session state
+        ['jdv_otp_method', 'jdv_otp_phone', 'jdv_otp_sent', 'jdv_otp_auth_mode', 'jdv_otp_expiry'].forEach(k => sessionStorage.removeItem(k));
 
         // If we got tokens, set the session
         if (result.access_token && result.refresh_token) {
@@ -862,7 +904,7 @@ const Auth = () => {
     try {
       setIsLoading(true);
       
-      const method = otpMethod || defaultMethod;
+      const method = otpMethod || (sessionStorage.getItem('jdv_otp_method') as OtpMethod) || defaultMethod;
       console.log('🔄 [OTP Resend] Resending OTP to:', currentPhone, 'via:', method);
 
       if (method === 'whatsapp') {
@@ -1716,7 +1758,7 @@ const Auth = () => {
               <div className="text-center">
                 <h3 className="text-lg font-semibold">Vérification du numéro</h3>
                 <p className="text-sm text-muted-foreground">
-                  Code envoyé au {currentPhone}
+                  Code envoyé {(otpMethod || sessionStorage.getItem('jdv_otp_method')) === 'whatsapp' ? 'via WhatsApp' : 'par SMS'} au {currentPhone}
                 </p>
               </div>
               

@@ -372,9 +372,35 @@ const BusinessAuth = () => {
   const [otpValue, setOtpValue] = useState('');
   const [countryCode, setCountryCode] = useState(country.phonePrefix);
   
-  // États pour WhatsApp OTP fallback
-  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(null);
+  // États pour WhatsApp OTP fallback — restore from sessionStorage
+  const [otpMethod, setOtpMethod] = useState<OtpMethod | null>(() => {
+    const stored = sessionStorage.getItem('jdv_biz_otp_method');
+    return (stored === 'whatsapp' || stored === 'sms') ? stored : null;
+  });
   const [pendingPhoneFormData, setPendingPhoneFormData] = useState<SignUpFormData | SignInFormData | null>(null);
+
+  // Restore OTP flow state from sessionStorage (survives WhatsApp app-switch)
+  useEffect(() => {
+    const savedPhone = sessionStorage.getItem('jdv_biz_otp_phone');
+    const savedMethod = sessionStorage.getItem('jdv_biz_otp_method');
+    const savedOtpSent = sessionStorage.getItem('jdv_biz_otp_sent');
+    const savedAuthMode = sessionStorage.getItem('jdv_biz_otp_auth_mode');
+    const savedExpiry = sessionStorage.getItem('jdv_biz_otp_expiry');
+
+    if (savedPhone && savedOtpSent === 'true' && savedMethod) {
+      setCurrentPhone(savedPhone);
+      setOtpSent(true);
+      setOtpMethod(savedMethod as OtpMethod);
+      if (savedAuthMode === 'signin' || savedAuthMode === 'signup') {
+        setAuthMode(savedAuthMode);
+      }
+      if (savedExpiry) {
+        const remaining = Math.max(0, Math.floor((parseInt(savedExpiry, 10) - Date.now()) / 1000));
+        if (remaining > 0) setCountdown(remaining);
+      }
+      console.log('🔄 [Biz OTP Restore] Restored OTP flow:', { phone: savedPhone, method: savedMethod });
+    }
+  }, []);
   
   // États pour détection des doublons
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -654,6 +680,12 @@ const BusinessAuth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist SMS method
+      sessionStorage.setItem('jdv_biz_otp_method', 'sms');
+      sessionStorage.setItem('jdv_biz_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_biz_otp_sent', 'true');
+      sessionStorage.setItem('jdv_biz_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_biz_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé',
         description: `Un code de vérification a été envoyé au ${fullPhone}`,
@@ -713,6 +745,12 @@ const BusinessAuth = () => {
       setCurrentPhone(fullPhone);
       setOtpSent(true);
       setCountdown(300);
+      // Persist OTP flow state for WhatsApp app-switch survival
+      sessionStorage.setItem('jdv_biz_otp_method', 'whatsapp');
+      sessionStorage.setItem('jdv_biz_otp_phone', fullPhone);
+      sessionStorage.setItem('jdv_biz_otp_sent', 'true');
+      sessionStorage.setItem('jdv_biz_otp_auth_mode', authMode);
+      sessionStorage.setItem('jdv_biz_otp_expiry', String(Date.now() + 300_000));
       toast({
         title: 'Code envoyé via WhatsApp',
         description: 'Un code de vérification a été envoyé sur votre WhatsApp.',
@@ -974,7 +1012,8 @@ const BusinessAuth = () => {
     }
 
     setIsLoading(true);
-    const method = otpMethod || defaultMethod;
+    const method = otpMethod || (sessionStorage.getItem('jdv_biz_otp_method') as OtpMethod) || defaultMethod;
+    console.log('🔐 [Biz OTP Verify] Using method:', method, '(otpMethod state:', otpMethod, ')');
     
     try {
       if (method === 'whatsapp') {
@@ -997,6 +1036,8 @@ const BusinessAuth = () => {
         }
 
         console.log('✅ [Business WhatsApp OTP Verify] Success, user:', result.user_id);
+        // Clear OTP session state
+        ['jdv_biz_otp_method', 'jdv_biz_otp_phone', 'jdv_biz_otp_sent', 'jdv_biz_otp_auth_mode', 'jdv_biz_otp_expiry'].forEach(k => sessionStorage.removeItem(k));
 
         // Set session from WhatsApp verification
         if (result.access_token && result.refresh_token) {
@@ -1051,7 +1092,7 @@ const BusinessAuth = () => {
   const resendOtp = async () => {
     if (countdown > 0) return;
     
-    const method = otpMethod || defaultMethod;
+    const method = otpMethod || (sessionStorage.getItem('jdv_biz_otp_method') as OtpMethod) || defaultMethod;
     
     if (method === 'whatsapp') {
       const metadata = signupFormData ? {
