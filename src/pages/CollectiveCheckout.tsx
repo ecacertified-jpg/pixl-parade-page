@@ -38,6 +38,7 @@ export default function CollectiveCheckout() {
   const [items, setItems] = useState<CollectiveItem[]>([]);
   const [donorPhone, setDonorPhone] = useState("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
+  const isSelfFund = items.some(item => item.isSelfFund);
   const [addressData, setAddressData] = useState<AddressResult | null>(null);
   const [addressDetails, setAddressDetails] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("wave");
@@ -75,8 +76,19 @@ export default function CollectiveCheckout() {
   const shippingCost = subtotal >= 25000 ? 0 : 2500;
   const total = subtotal + shippingCost;
 
+  // Pre-fill beneficiary phone for self-fund
+  useEffect(() => {
+    if (isSelfFund && user) {
+      const phone = user.phone || user.user_metadata?.phone || '';
+      if (phone && !beneficiaryPhone) {
+        setBeneficiaryPhone(phone);
+      }
+    }
+  }, [isSelfFund, user]);
+
   const isFormValid = () => {
-    return donorPhone.trim() !== "" && 
+    const needsDonor = !isSelfFund;
+    return (needsDonor ? donorPhone.trim() !== "" : true) && 
            beneficiaryPhone.trim() !== "" && 
            addressData !== null && addressData.city !== "";
   };
@@ -337,7 +349,7 @@ export default function CollectiveCheckout() {
         .insert({
           fund_id: fundData.id,
           creator_id: currentUserId, // Use validated session user ID
-          donor_phone: donorPhone,
+          donor_phone: isSelfFund ? beneficiaryPhone : donorPhone,
           beneficiary_phone: beneficiaryPhone,
           delivery_address: deliveryAddress,
           payment_method: paymentMethod,
@@ -454,19 +466,21 @@ export default function CollectiveCheckout() {
           </div>
           
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="donor-phone" className="text-sm font-medium">
-                Numéro de téléphone du donateur *
-              </Label>
-              <Input
-                id="donor-phone"
-                type="tel"
-                placeholder="+225 XX XX XX XX XX"
-                value={donorPhone}
-                onChange={(e) => setDonorPhone(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+            {!isSelfFund && (
+              <div>
+                <Label htmlFor="donor-phone" className="text-sm font-medium">
+                  Numéro de téléphone du donateur *
+                </Label>
+                <Input
+                  id="donor-phone"
+                  type="tel"
+                  placeholder="+225 XX XX XX XX XX"
+                  value={donorPhone}
+                  onChange={(e) => setDonorPhone(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
 
             <div>
               <Label htmlFor="beneficiary-phone" className="text-sm font-medium">

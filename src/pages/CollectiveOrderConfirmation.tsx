@@ -113,12 +113,14 @@ export default function CollectiveOrderConfirmation() {
                 Total: {orderSummary.total.toLocaleString()} F
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <Phone className="w-4 h-4 text-purple-600" />
+            {!isSelfFund && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-purple-600" />
+                </div>
+                <span className="text-foreground font-medium">{donorPhone}</span>
               </div>
-              <span className="text-foreground font-medium">{donorPhone}</span>
-            </div>
+            )}
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mt-1">
                 <MapPin className="w-4 h-4 text-red-500" />
