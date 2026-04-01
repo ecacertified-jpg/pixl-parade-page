@@ -314,6 +314,7 @@ serve(async (req) => {
 
     if (sessionError || !sessionData.session) {
       logger.log('session_create', { result: 'error', error: sessionError?.message }, 'error');
+      await supabaseAdmin.from('whatsapp_otp_codes').update({ verified_at: new Date().toISOString() }).eq('id', otpRecord.id);
       logger.summary('success_requires_reauth', { is_new_user: isNewUser });
       return new Response(
         JSON.stringify({ success: true, user_id: user.id, is_new_user: isNewUser, message: 'Vérification réussie', requires_reauth: true, phone }),
