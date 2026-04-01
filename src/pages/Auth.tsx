@@ -710,6 +710,8 @@ const Auth = () => {
         }
 
         console.log('✅ [WhatsApp OTP Verify] Success, user:', result.user_id);
+        // Clear OTP session state
+        ['jdv_otp_method', 'jdv_otp_phone', 'jdv_otp_sent', 'jdv_otp_auth_mode', 'jdv_otp_expiry'].forEach(k => sessionStorage.removeItem(k));
 
         // If we got tokens, set the session
         if (result.access_token && result.refresh_token) {
