@@ -75,6 +75,9 @@ import { useFriendCircles } from "@/hooks/useFriendCircles";
 import { FriendCircleChips } from "@/components/FriendCircleChips";
 import { CreateCircleModal } from "@/components/CreateCircleModal";
 import { AssignCircleMenu } from "@/components/AssignCircleMenu";
+import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
+import { getAppBaseUrl } from "@/utils/appUrl";
+import { Copy, Check as CheckIcon, Share2 } from "lucide-react";
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
