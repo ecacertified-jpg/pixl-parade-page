@@ -113,9 +113,10 @@ export function ShareBirthdayToCirclesModal({
     }
   };
 
-  const totalSelected = circles
+  const totalCircleMembers = circles
     .filter((c) => selectedCircles.includes(c.id))
     .reduce((sum, c) => sum + c.member_count, 0);
+  const totalSelected = totalCircleMembers + selectedContacts.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
