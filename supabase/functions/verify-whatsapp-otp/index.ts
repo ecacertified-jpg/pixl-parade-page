@@ -68,6 +68,7 @@ serve(async (req) => {
     const { phone, code: rawCode }: VerifyOtpRequest = await req.json();
 
     logger = createLogger(phone || 'unknown');
+    requestId = logger.requestId;
 
     // Sanitize OTP: remove invisible chars, spaces, non-digits (WhatsApp copy-paste artifacts)
     const code = (rawCode || '').trim().replace(/\D/g, '');
