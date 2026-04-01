@@ -75,9 +75,7 @@ export default function FundPreview() {
 
       try {
         // Step 1: Base query without contacts/profiles JOINs (works for anonymous users)
-        const { data, error: fetchError } = await supabase
-          .from("collective_funds")
-          .select(`
+        const selectQuery = `
             id,
             title,
             description,
@@ -94,9 +92,21 @@ export default function FundPreview() {
               image_url,
               price
             )
-          `)
-          .eq("id", fundId)
-          .maybeSingle();
+          `;
+
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fundId || "");
+        
+        const query = supabase
+          .from("collective_funds")
+          .select(selectQuery);
+
+        if (isUUID) {
+          query.eq("id", fundId);
+        } else {
+          query.eq("share_token", fundId);
+        }
+
+        const { data, error: fetchError } = await query.maybeSingle();
 
         if (fetchError || !data) {
           setError("Cagnotte introuvable");
