@@ -25,6 +25,7 @@ interface SearchExistingFundsModalProps {
 export function SearchExistingFundsModal({ isOpen, onClose, onCreateNew }: SearchExistingFundsModalProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
   const { results, loading, searchFunds, clearResults } = useSearchPublicFunds();
 
   const handleQueryChange = (value: string) => {
