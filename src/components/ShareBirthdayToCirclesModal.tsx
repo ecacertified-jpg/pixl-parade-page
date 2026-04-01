@@ -112,41 +112,75 @@ export function ShareBirthdayToCirclesModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Circles list */}
+        {/* Circles & Contacts list */}
         <div className="space-y-2 max-h-60 overflow-y-auto py-2">
-          {loading ? (
+          {(loading || contactsLoading) ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
             </div>
-          ) : circles.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-sm">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              Aucun cercle d'amis créé.
-              <br />
-              Partagez directement le lien ci-dessous !
-            </div>
           ) : (
-            circles.map((circle) => (
-              <label
-                key={circle.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/30 cursor-pointer transition-colors"
-              >
-                <Checkbox
-                  checked={selectedCircles.includes(circle.id)}
-                  onCheckedChange={() => toggleCircle(circle.id)}
-                />
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: circle.color }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{circle.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {circle.member_count} ami{circle.member_count > 1 ? 's' : ''}
-                  </p>
+            <>
+              {/* Circles */}
+              {circles.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">Cercles</p>
+                  {circles.map((circle) => (
+                    <label
+                      key={circle.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:border-primary/30 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedCircles.includes(circle.id)}
+                        onCheckedChange={() => toggleCircle(circle.id)}
+                      />
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: circle.color }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{circle.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {circle.member_count} ami{circle.member_count > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </>
+              )}
+
+              {/* Individual contacts */}
+              {contacts.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mt-3">Vos amis</p>
+                  {contacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border/60"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{contact.name}</p>
+                        {contact.phone && (
+                          <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Empty state */}
+              {circles.length === 0 && contacts.length === 0 && (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  Aucun ami ajouté.
+                  <br />
+                  Partagez directement le lien ci-dessous !
                 </div>
-              </label>
-            ))
+              )}
+            </>
           )}
         </div>
 
