@@ -340,7 +340,7 @@ serve(async (req) => {
       console.error(JSON.stringify({ step: 'unexpected_error', error: (error as Error).message }));
     }
     return new Response(
-      JSON.stringify({ success: false, error: 'internal_error', message: 'Une erreur inattendue s\'est produite' }),
+      JSON.stringify({ success: false, error: 'internal_error', message: 'Une erreur inattendue s\'est produite', requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
