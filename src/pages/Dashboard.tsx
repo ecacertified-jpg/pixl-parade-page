@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2 } from "lucide-react";
+import { Users, CalendarDays, Gift, Plus, ArrowLeft, Trash2, Edit2, PiggyBank, TrendingUp, HelpCircle, BookOpen, Bot, Send, CheckCircle, UserPlus, Search, X, Link2, Cake } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InlineUserSearchResults } from "@/components/InlineUserSearchResults";
 import { type SearchResult } from "@/hooks/useFriendRequests";
@@ -78,6 +78,7 @@ import { AssignCircleMenu } from "@/components/AssignCircleMenu";
 import { ShareBirthdayToCirclesModal } from "@/components/ShareBirthdayToCirclesModal";
 import { getAppBaseUrl } from "@/utils/appUrl";
 import { Copy, Check as CheckIcon, Share2 } from "lucide-react";
+const BirthdaysTab = lazy(() => import('@/components/BirthdaysTab').then(m => ({ default: m.BirthdaysTab })));
 
 // UserProfile interface moved to useDashboardData
 interface Friend {
@@ -700,7 +701,7 @@ export default function Dashboard() {
         {/* Onglets */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TooltipProvider>
-            <TabsList className="grid grid-cols-5 gap-0 bg-card/90 dark:bg-card/90 backdrop-blur-sm p-1 rounded-xl border border-border h-auto shadow-card">
+            <TabsList className="grid grid-cols-6 gap-0 bg-card/90 dark:bg-card/90 backdrop-blur-sm p-1 rounded-xl border border-border h-auto shadow-card">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <TabsTrigger value="amis" className={`flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] ${activeTab === 'amis' ? 'bg-transparent text-primary font-bold border-primary shadow-none' : 'bg-transparent text-muted-foreground border-transparent'}`} aria-label="Gérer mes amis et contacts">
@@ -746,6 +747,18 @@ export default function Dashboard() {
                 </TooltipTrigger>
                 <TooltipContent className="sm:hidden">
                   <p>Cadeaux</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="anniversaires" className={`flex flex-col sm:flex-row gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-2.5 rounded-none border-b-[3px] ${activeTab === 'anniversaires' ? 'bg-transparent text-primary font-bold border-primary shadow-none' : 'bg-transparent text-muted-foreground border-transparent'}`} aria-label="Voir les pages d'anniversaire">
+                    <Cake className="h-4 w-4 sm:h-3 sm:w-3" aria-hidden />
+                    <span>Anniv.</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">
+                  <p>Anniversaires</p>
                 </TooltipContent>
               </Tooltip>
 
@@ -1159,6 +1172,12 @@ export default function Dashboard() {
             </div>
             <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
               <GiftsSection onGiftCountChange={handleGiftCountChange} />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="anniversaires" className="mt-4" forceMount={activeTab === 'anniversaires' ? true : undefined} hidden={activeTab !== 'anniversaires'}>
+            <Suspense fallback={<Skeleton className="h-40 w-full rounded-xl" />}>
+              <BirthdaysTab />
             </Suspense>
           </TabsContent>
 
