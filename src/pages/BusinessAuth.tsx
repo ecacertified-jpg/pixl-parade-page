@@ -1021,17 +1021,35 @@ const BusinessAuth = () => {
         console.log('🔐 [Business WhatsApp OTP Verify] Verifying code for:', currentPhone);
         
         const cleanCode = otpValue.trim().replace(/\D/g, '');
-        const { data: result, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
-          body: { phone: currentPhone, code: cleanCode },
+        
+        // Use fetch directly to get actual HTTP status (supabase.functions.invoke masks 400 vs 500)
+        const verifyResponse = await fetch(`${SUPABASE_URL}/functions/v1/verify-whatsapp-otp`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ phone: currentPhone, code: cleanCode }),
         });
-
-        if (error || !result?.success) {
-          console.error('❌ [Business WhatsApp OTP Verify] Failed:', error || result?.error);
-          toast({
-            title: 'Code invalide',
-            description: result?.message || 'Le code saisi est incorrect ou expiré',
-            variant: 'destructive',
-          });
+        
+        const result = await verifyResponse.json();
+        
+        if (!verifyResponse.ok || !result?.success) {
+          console.error('❌ [Business WhatsApp OTP Verify] Failed:', { status: verifyResponse.status, error: result?.error, requestId: result?.requestId });
+          
+          if (verifyResponse.status >= 500) {
+            toast({
+              title: 'Erreur temporaire',
+              description: 'La vérification a échoué côté serveur. Veuillez réessayer dans quelques instants.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Code invalide',
+              description: result?.message || 'Le code saisi est incorrect ou expiré',
+              variant: 'destructive',
+            });
+          }
           return;
         }
 

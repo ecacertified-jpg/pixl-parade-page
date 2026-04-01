@@ -61,12 +61,14 @@ serve(async (req) => {
 
   const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
   let logger: ReturnType<typeof createLogger> | null = null;
+  let requestId = 'unknown';
 
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { phone, code: rawCode }: VerifyOtpRequest = await req.json();
 
     logger = createLogger(phone || 'unknown');
+    requestId = logger.requestId;
 
     // Sanitize OTP: remove invisible chars, spaces, non-digits (WhatsApp copy-paste artifacts)
     const code = (rawCode || '').trim().replace(/\D/g, '');
@@ -75,7 +77,7 @@ serve(async (req) => {
     if (!phone || !code) {
       logger.summary('error_missing_fields');
       return new Response(
-        JSON.stringify({ success: false, error: 'missing_fields', message: 'Téléphone et code requis' }),
+        JSON.stringify({ success: false, error: 'missing_fields', message: 'Téléphone et code requis', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
@@ -83,7 +85,7 @@ serve(async (req) => {
     if (code.length !== 6 || !/^\d{6}$/.test(code)) {
       logger.summary('error_invalid_code_format');
       return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: 'Le code doit contenir 6 chiffres' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Le code doit contenir 6 chiffres', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
@@ -103,7 +105,7 @@ serve(async (req) => {
       logger.log('otp_lookup', { result: 'error', error: fetchError.message }, 'error');
       logger.summary('error_otp_fetch');
       return new Response(
-        JSON.stringify({ success: false, error: 'fetch_error', message: 'Erreur lors de la vérification' }),
+        JSON.stringify({ success: false, error: 'fetch_error', message: 'Erreur lors de la vérification', requestId }),
         { status: 500, headers: jsonHeaders }
       );
     }
@@ -117,7 +119,7 @@ serve(async (req) => {
     if (!otpRecord) {
       logger.summary('error_no_otp');
       return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Code invalide ou expiré. Veuillez vérifier ou demander un nouveau code.', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
@@ -128,7 +130,7 @@ serve(async (req) => {
       logger.log('otp_validation', { result: 'max_attempts_exceeded' });
       logger.summary('error_max_attempts');
       return new Response(
-        JSON.stringify({ success: false, error: 'max_attempts', message: 'Trop de tentatives. Veuillez demander un nouveau code.' }),
+        JSON.stringify({ success: false, error: 'max_attempts', message: 'Trop de tentatives. Veuillez demander un nouveau code.', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
@@ -231,7 +233,7 @@ serve(async (req) => {
             logger.log('phone_exists_retry', { result: 'not_found' }, 'error');
             logger.summary('error_user_lookup_failed');
             return new Response(
-              JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.' }),
+              JSON.stringify({ success: false, error: 'user_lookup_failed', message: 'Erreur de recherche utilisateur. Veuillez réessayer.', requestId }),
               { status: 500, headers: jsonHeaders }
             );
           }
@@ -239,7 +241,7 @@ serve(async (req) => {
           logger.log('user_creation', { result: 'error', error: createError.message }, 'error');
           logger.summary('error_user_creation');
           return new Response(
-            JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte' }),
+            JSON.stringify({ success: false, error: 'user_creation_failed', message: 'Impossible de créer le compte', requestId }),
             { status: 500, headers: jsonHeaders }
           );
         }
@@ -338,7 +340,7 @@ serve(async (req) => {
       console.error(JSON.stringify({ step: 'unexpected_error', error: (error as Error).message }));
     }
     return new Response(
-      JSON.stringify({ success: false, error: 'internal_error', message: 'Une erreur inattendue s\'est produite' }),
+      JSON.stringify({ success: false, error: 'internal_error', message: 'Une erreur inattendue s\'est produite', requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
