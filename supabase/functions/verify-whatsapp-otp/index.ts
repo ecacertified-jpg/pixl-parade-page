@@ -85,7 +85,7 @@ serve(async (req) => {
     if (code.length !== 6 || !/^\d{6}$/.test(code)) {
       logger.summary('error_invalid_code_format');
       return new Response(
-        JSON.stringify({ success: false, error: 'invalid_code', message: 'Le code doit contenir 6 chiffres' }),
+        JSON.stringify({ success: false, error: 'invalid_code', message: 'Le code doit contenir 6 chiffres', requestId }),
         { status: 400, headers: jsonHeaders }
       );
     }
