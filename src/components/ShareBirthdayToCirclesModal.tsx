@@ -28,10 +28,27 @@ export function ShareBirthdayToCirclesModal({
   birthdaySlug,
   userName,
 }: ShareBirthdayToCirclesModalProps) {
+  const { user } = useAuth();
   const { circles, loading } = useFriendCircles();
   const { toast } = useToast();
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [contacts, setContacts] = useState<{ id: string; name: string; phone: string | null }[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      if (!user) { setContacts([]); setContactsLoading(false); return; }
+      const { data } = await supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .eq('user_id', user.id)
+        .order('name');
+      setContacts(data || []);
+      setContactsLoading(false);
+    };
+    if (isOpen) fetchContacts();
+  }, [isOpen, user]);
 
   const birthdayUrl = birthdaySlug
     ? `${getAppBaseUrl()}/birthday/${birthdaySlug}`
