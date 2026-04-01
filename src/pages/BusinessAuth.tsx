@@ -1006,7 +1006,8 @@ const BusinessAuth = () => {
     }
 
     setIsLoading(true);
-    const method = otpMethod || defaultMethod;
+    const method = otpMethod || (sessionStorage.getItem('jdv_biz_otp_method') as OtpMethod) || defaultMethod;
+    console.log('🔐 [Biz OTP Verify] Using method:', method, '(otpMethod state:', otpMethod, ')');
     
     try {
       if (method === 'whatsapp') {
