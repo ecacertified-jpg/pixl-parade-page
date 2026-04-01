@@ -86,7 +86,15 @@ export function ShareBirthdayToCirclesModal({
 
   const handleShareWhatsApp = () => {
     const encoded = encodeURIComponent(viralMessage);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    const selectedContactsWithPhone = contacts.filter(
+      (c) => selectedContacts.includes(c.id) && c.phone
+    );
+    if (selectedContactsWithPhone.length > 0) {
+      const phone = selectedContactsWithPhone[0].phone!.replace(/[^0-9+]/g, '');
+      window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    } else {
+      window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    }
   };
 
   const handleNativeShare = async () => {
