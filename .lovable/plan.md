@@ -1,30 +1,45 @@
 
 
-# Plan : Corriger "Cagnotte introuvable" depuis la page d'anniversaire
+# Plan : Corriger le partage WhatsApp dans le modal de partage d'anniversaire
 
 ## Probleme
 
-`BirthdayPage.tsx` navigue vers `/f/${fund.share_token}` (ligne 378), mais `FundPreview.tsx` fait `.eq("id", fundId)` (ligne 98) — il cherche par UUID. Le `share_token` n'est pas un UUID, donc la requete echoue systematiquement.
+Le `ShareBirthdayToCirclesModal` ouvre WhatsApp avec le numero brut du contact (ex: `0707467445`). WhatsApp ne reconnait pas ce numero car il manque l'indicatif pays (`+225`). L'erreur affichee est "Impossible de chercher le numero de telephone 0707467445, car il manque l'indicatif pays ou le numero est errone."
+
+De plus, si plusieurs contacts sont selectionnes, seul le premier est cible. L'utilisateur souhaite un partage generique (WhatsApp sans destinataire precis) quand plusieurs contacts sont selectionnes.
 
 ## Solution
 
-Deux corrections complementaires :
+### Fichier : `src/components/ShareBirthdayToCirclesModal.tsx`
 
-### 1. `src/pages/BirthdayPage.tsx`
-- Ligne 378 : remplacer `navigate('/f/${fund.share_token}')` par `navigate('/f/${fund.id}')`
-- Le `fund.id` est le vrai UUID, coherent avec tous les autres endroits du code qui utilisent `/f/`
+1. **Normaliser le numero de telephone** : quand un seul contact est selectionne et qu'il a un numero, ajouter automatiquement le prefixe pays de l'utilisateur connecte si le numero ne commence pas deja par `+`
+   - Importer `useCountry` depuis `@/contexts/CountryContext`
+   - Logique : si le numero commence par `0`, le remplacer par le prefixe pays (ex: `0707...` → `+2250707...`)
+   - Si le numero commence deja par `+`, le garder tel quel
 
-### 2. `src/pages/FundPreview.tsx`
-- Ajouter un fallback : si `fundId` n'est pas un UUID valide (regex check), faire la requete sur `share_token` au lieu de `id`
-- Cela rend la route `/f/:fundId` resiliente aux deux formats (UUID et share_token), utile si d'anciens liens partagés utilisent le share_token
+2. **Gerer la selection multiple** : si plusieurs contacts sont selectionnes, ouvrir WhatsApp en mode generique (`wa.me/?text=...`) sans numero specifique, pour que l'utilisateur choisisse le destinataire dans WhatsApp
+
+### Logique de normalisation
 
 ```text
-const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-.../.test(fundId);
-if (isUUID) → .eq("id", fundId)
-else        → .eq("share_token", fundId)
+function normalizeForWhatsApp(phone, countryPrefix):
+  cleaned = phone.replace(/[^0-9+]/g, '')
+  if cleaned.startsWith('+'):
+    return cleaned.replace('+', '')  // wa.me attend sans le +
+  if cleaned.startsWith('00'):
+    return cleaned.slice(2)
+  // Numero national : ajouter le prefixe pays
+  prefix = countryPrefix.replace('+', '')  // ex: "225"
+  if cleaned.startsWith('0'):
+    return prefix + cleaned  // +225 + 0707... = 2250707...
+  return prefix + cleaned
 ```
 
-## Impact
-- Corrige le bug immediat (clic "Participer au cadeau" → cagnotte introuvable)
-- Les liens deja partages avec share_token continueront de fonctionner grace au fallback
+### Comportement final
+
+```text
+1 contact selectionne avec tel → wa.me/2250707467445?text=...
+Plusieurs contacts selectionnes → wa.me/?text=... (generique)
+0 contacts selectionnes         → wa.me/?text=... (generique)
+```
 
