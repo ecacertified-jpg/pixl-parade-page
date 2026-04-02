@@ -666,111 +666,151 @@ export const OnboardingExperience = ({
               exit={{ opacity: 0, y: -30 }}
               className="text-center max-w-md mx-auto w-full"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring' }}
-                className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 shadow-lg"
-              >
-                <Users className="h-10 w-10 text-white" />
-              </motion.div>
-
-              <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Invite tes proches ! 👥
-              </h2>
-              <p className="text-muted-foreground font-nunito mb-6">
-                Envoie un formulaire à un proche pour qu'il complète ses infos
-              </p>
-
-              {(invitedCount > 0 || invitationsSentCount > 0) && (
+              {invitationsSentCount >= 3 ? (
+                // 🎉 Success state — auto-redirect
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200 }}
+                  className="py-8"
                 >
-                  <p className="text-lg font-bold text-green-600 font-poppins">
-                    {invitationsSentCount > 0 && `+${invitationsSentCount} invitation${invitationsSentCount > 1 ? 's' : ''} envoyée${invitationsSentCount > 1 ? 's' : ''} 🎉`}
-                    {invitedCount > 0 && invitationsSentCount > 0 && ' · '}
-                    {invitedCount > 0 && `+${invitedCount} ami${invitedCount > 1 ? 's' : ''} ajouté${invitedCount > 1 ? 's' : ''}`}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring' }}
+                    className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 shadow-lg"
+                  >
+                    <PartyPopper className="h-12 w-12 text-white" />
+                  </motion.div>
+                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-3">
+                    Bravo {firstName} ! 🎉
+                  </h2>
+                  <p className="text-lg text-muted-foreground font-nunito mb-4">
+                    Ton cercle d'amis est prêt !<br />
+                    Tu ne manqueras plus aucun anniversaire.
                   </p>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
+                  >
+                    <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Redirection vers ton tableau de bord...
+                  </motion.div>
                 </motion.div>
-              )}
-
-              {!friendFormLink ? (
-                <Button
-                  onClick={handleGenerateFriendFormLink}
-                  disabled={generatingFormLink}
-                  className="gap-2 w-full bg-primary hover:bg-primary/90 mb-4"
-                  size="lg"
-                >
-                  <Share2 className="h-4 w-4" />
-                  {generatingFormLink ? 'Génération...' : 'Envoyer à un proche pour qu\'il complète'}
-                </Button>
               ) : (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
-                >
-                  <p className="text-sm font-nunito text-muted-foreground">
-                    📋 Partagez ce lien avec votre proche :
+                // Normal state — invite friends
+                <>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring' }}
+                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-5 shadow-lg"
+                  >
+                    <Users className="h-10 w-10 text-white" />
+                  </motion.div>
+
+                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                    Ton cercle d'amis, ta force ! 💪
+                  </h2>
+                  <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
+                    Ajoute au moins <span className="font-bold text-primary">3 proches</span> pour ne manquer aucun anniversaire.
+                    Plus ton cercle est grand, plus tu recevras de surprises ! 🎁
                   </p>
-                  <div className="flex gap-2">
-                    <Input
-                      value={friendFormLink}
-                      readOnly
-                      className="flex-1 text-xs bg-muted"
+
+                  {/* Progress dots + bar */}
+                  <div className="mb-5">
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          initial={false}
+                          animate={{
+                            scale: invitationsSentCount > i ? 1.15 : 1,
+                            backgroundColor: invitationsSentCount > i ? 'hsl(142, 76%, 36%)' : 'hsl(var(--muted))',
+                          }}
+                          className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                        >
+                          {invitationsSentCount > i ? (
+                            <Check className="h-4 w-4 text-white" />
+                          ) : (
+                            <Users className="h-4 w-4 text-muted-foreground/40" />
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                    <Progress
+                      value={Math.min((invitationsSentCount / 3) * 100, 100)}
+                      className="h-2.5 mx-auto max-w-[200px]"
+                      indicatorClassName={cn(
+                        'transition-all duration-500',
+                        invitationsSentCount >= 3
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-600'
+                          : 'bg-gradient-to-r from-primary to-accent'
+                      )}
                     />
-                    <Button onClick={handleCopyFriendFormLink} size="icon" variant="outline" className="shrink-0">
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                    <p className="text-sm font-poppins font-semibold mt-2 text-foreground">
+                      {invitationsSentCount}/3 amis invités
+                    </p>
                   </div>
-                  <div className="flex gap-2">
+
+                  {!friendFormLink ? (
                     <Button
-                      onClick={handleShareFriendFormWhatsApp}
-                      variant="outline"
-                      className="gap-2 flex-1 border-green-500/30 text-green-600 hover:bg-green-50"
+                      onClick={handleGenerateFriendFormLink}
+                      disabled={generatingFormLink}
+                      className="gap-2 w-full bg-primary hover:bg-primary/90 mb-4"
+                      size="lg"
                     >
                       <Share2 className="h-4 w-4" />
-                      WhatsApp
+                      {generatingFormLink ? 'Génération...' : '📨 Générer un lien d\'invitation'}
                     </Button>
-                    <Button
-                      onClick={handleShareFriendFormSMS}
-                      variant="outline"
-                      className="gap-2 flex-1"
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-4 rounded-xl bg-card border border-primary/20 space-y-3"
                     >
-                      SMS
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={() => { setFriendFormLink(null); }}
-                    variant="ghost"
-                    className="w-full text-sm text-muted-foreground"
-                  >
-                    Générer un nouveau lien
-                  </Button>
-                </motion.div>
-              )}
-
-              {invitationsSentCount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="mt-6"
-                >
-                  <Button
-                    onClick={() => {
-                      confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-                      onComplete();
-                    }}
-                    size="lg"
-                    className="w-full gap-2 bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-700 text-white font-bold text-lg py-6 shadow-lg animate-pulse"
-                  >
-                    🎉 ACCÉDER À MON TABLEAU DE BORD
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </motion.div>
+                      <p className="text-sm font-nunito text-muted-foreground">
+                        📋 Partagez ce lien avec votre proche :
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={friendFormLink}
+                          readOnly
+                          className="flex-1 text-xs bg-muted"
+                        />
+                        <Button onClick={handleCopyFriendFormLink} size="icon" variant="outline" className="shrink-0">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleShareFriendFormWhatsApp}
+                          variant="outline"
+                          className="gap-2 flex-1 border-green-500/30 text-green-600 hover:bg-green-50"
+                        >
+                          <Share2 className="h-4 w-4" />
+                          WhatsApp
+                        </Button>
+                        <Button
+                          onClick={handleShareFriendFormSMS}
+                          variant="outline"
+                          className="gap-2 flex-1"
+                        >
+                          SMS
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={() => { setFriendFormLink(null); }}
+                        variant="ghost"
+                        className="w-full text-sm text-muted-foreground"
+                      >
+                        Générer un nouveau lien
+                      </Button>
+                    </motion.div>
+                  )}
+                </>
               )}
             </motion.div>
           )}
