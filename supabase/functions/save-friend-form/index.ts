@@ -78,6 +78,27 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Ensure inviter has a profile (required by contacts FK)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", tokenData.user_id)
+      .single();
+
+    if (!profile) {
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .insert({ user_id: tokenData.user_id });
+
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Erreur lors de la création du profil" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
     // Insert the contact for the inviter
     const { error: contactError } = await supabaseAdmin
       .from("contacts")
