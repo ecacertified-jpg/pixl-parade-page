@@ -374,13 +374,16 @@ export const OnboardingExperience = ({
             disabled={currentStep >= TOTAL_STEPS - 1}
             aria-label="Étape suivante"
             className={cn(
-              'p-1.5 rounded-full transition-all duration-200',
+              'rounded-full transition-all duration-200',
               currentStep < TOTAL_STEPS - 1
-                ? 'text-primary hover:bg-primary/10 cursor-pointer'
-                : 'text-muted-foreground/30 cursor-not-allowed'
+                ? 'p-2.5 bg-red-500 text-white shadow-lg shadow-red-500/40 ring-2 ring-red-300 animate-pulse cursor-pointer hover:bg-red-600 active:scale-95'
+                : 'p-1.5 text-muted-foreground/30 cursor-not-allowed'
             )}
           >
-            <ChevronRight className={cn("h-5 w-5", currentStep < TOTAL_STEPS - 1 && "animate-[bounce-right_1.5s_ease-in-out_infinite]")} />
+            <ChevronRight className={cn(
+              currentStep < TOTAL_STEPS - 1 ? "h-7 w-7" : "h-5 w-5",
+              currentStep < TOTAL_STEPS - 1 && "animate-[bounce-right_1.5s_ease-in-out_infinite]"
+            )} />
           </button>
         </div>
       </div>
