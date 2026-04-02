@@ -73,19 +73,24 @@ export default function FillFriendForm() {
   useEffect(() => {
     if (!submitted) return;
 
-    // Phase 1: confetti burst
     setCelebrationPhase('confetti');
-    const burst = () => {
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-      confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#a855f7', '#ec4899'] });
-      confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#f97316', '#22c55e'] });
-    };
-    burst();
-    const t1 = setTimeout(burst, 800);
-    const t2 = setTimeout(burst, 1600);
 
-    // Phase 2: CTA after 3.5s
-    const t3 = setTimeout(() => setCelebrationPhase('cta'), 3500);
+    let t1: ReturnType<typeof setTimeout>;
+    let t2: ReturnType<typeof setTimeout>;
+    let t3: ReturnType<typeof setTimeout>;
+
+    import("canvas-confetti").then(({ default: confettiFn }) => {
+      const burst = () => {
+        confettiFn({ particleCount: 80, spread: 70, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+        confettiFn({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#a855f7', '#ec4899'] });
+        confettiFn({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.6 }, colors: ['#f97316', '#22c55e'] });
+      };
+      burst();
+      t1 = setTimeout(burst, 800);
+      t2 = setTimeout(burst, 1600);
+    });
+
+    t3 = setTimeout(() => setCelebrationPhase('cta'), 3500);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [submitted]);
