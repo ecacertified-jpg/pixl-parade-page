@@ -1,65 +1,59 @@
 
 
-# Plan : Refonte de l'étape "Amis" avec objectif 3 amis et accès automatique au dashboard
+# Plan : Corriger l'erreur d'insertion du formulaire d'ami et optimiser le chargement
 
-## Résumé
+## Probleme 1 : "Une erreur est survenue" apres soumission
 
-Remplacer l'étape 4 actuelle (simple envoi de formulaire) par une expérience engageante avec un message incitatif, un compteur visuel d'amis ajoutés (objectif 3), et une redirection automatique vers le dashboard une fois l'objectif atteint.
+**Cause identifiee** : L'utilisateur qui a genere le lien (user_id `b8d0d4e4...`) existe dans `auth.users` mais n'a **pas de profil** dans la table `profiles`. La table `contacts` a une contrainte FK `contacts_user_id_fkey` qui reference `profiles.user_id`. L'insertion echoue avec l'erreur `23503` (foreign key violation).
 
-## Comportement cible
+**Solution** : Dans l'Edge Function `save-friend-form`, avant d'inserer le contact, verifier si le profil de l'inviteur existe. S'il n'existe pas, creer un profil minimal (avec `user_id` et `first_name` extrait de l'email ou vide).
 
-```text
-Étape 5 : Amis
-┌─────────────────────────────────────┐
-│  👥 (icône)                         │
-│                                     │
-│  "Ton cercle d'amis, ta force !"    │
-│                                     │
-│  Message incitatif expliquant       │
-│  pourquoi ajouter 3 amis            │
-│                                     │
-│  ●●○  2/3 amis ajoutés             │
-│  [████████░░░░] barre de progrès    │
-│                                     │
-│  [Générer un lien d'invitation]     │
-│  → partage WhatsApp / SMS / copie   │
-│                                     │
-│  Quand 3 atteints :                 │
-│  🎉 Confettis auto + message bravo  │
-│  → Redirection auto vers /dashboard │
-│  après 2.5 secondes                 │
-└─────────────────────────────────────┘
+### Fichier : `supabase/functions/save-friend-form/index.ts`
+
+Apres la validation du token (ligne 80), ajouter :
+
+```typescript
+// Ensure inviter has a profile (required by contacts FK)
+const { data: profile } = await supabaseAdmin
+  .from("profiles")
+  .select("user_id")
+  .eq("user_id", tokenData.user_id)
+  .single();
+
+if (!profile) {
+  await supabaseAdmin
+    .from("profiles")
+    .insert({ user_id: tokenData.user_id });
+}
 ```
 
-## Modifications dans `src/components/OnboardingExperience.tsx`
+## Probleme 2 : Lenteur d'ouverture du lien
 
-### 1. Nouveau message incitatif (remplace le texte actuel)
-- Titre : "Ton cercle d'amis, ta force ! 💪"
-- Sous-titre explicatif : "Ajoute au moins 3 proches pour ne manquer aucun anniversaire. Plus ton cercle est grand, plus tu recevras de surprises !"
-- Ton chaleureux et motivant
+**Cause** : Le formulaire charge l'ensemble de l'application React (bundle JS complet) avant d'afficher le formulaire. C'est inherent au SPA.
 
-### 2. Compteur visuel d'amis (nouveau)
-- 3 cercles/dots indiquant la progression (remplis au fur et mesure)
-- Barre de progression `invitationsSentCount / 3`
-- Texte "{n}/3 amis invités"
+**Optimisation** : Ajouter un lazy loading pour la page `FillFriendForm` dans le routeur, ce qui permet de ne charger que le code necessaire. De plus, reduire le poids du composant en utilisant des imports dynamiques pour `confetti` et `framer-motion` (qui ne sont utiles qu'apres soumission).
 
-### 3. Logique d'auto-complétion (nouveau)
-- Quand `invitationsSentCount >= 3` :
-  - Lancer confettis automatiquement
-  - Afficher message de félicitations "Bravo ! Ton cercle est prêt 🎉"
-  - `setTimeout` de 2.5s puis appeler `onComplete()` automatiquement
-  - Pas de bouton "Accéder au dashboard" — c'est automatique
+### Fichier : `src/App.tsx` (ou fichier de routes)
 
-### 4. Suppression
-- Retirer le bouton "ACCÉDER À MON TABLEAU DE BORD" conditionné par `invitationsSentCount > 0`
-- Retirer le bouton "Découvrir mon espace" du footer pour la dernière étape (remplacé par l'auto-redirection)
+Remplacer l'import statique par un `React.lazy()` :
+```typescript
+const FillFriendForm = React.lazy(() => import("@/pages/FillFriendForm"));
+```
 
-### 5. Le bouton footer de la dernière étape
-- Devient "Passer cette étape" (style ghost/discret) pour permettre de skip si l'utilisateur ne veut pas inviter maintenant
+### Fichier : `src/pages/FillFriendForm.tsx`
 
-## Fichier concerné
+Importer `confetti` dynamiquement uniquement lors de la soumission reussie :
+```typescript
+// Au lieu de: import confetti from "canvas-confetti";
+// Importer dynamiquement dans le useEffect:
+const { default: confetti } = await import("canvas-confetti");
+```
+
+## Fichiers concernes
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Refonte du bloc step 4, ajout compteur, auto-complétion à 3 invitations |
+| `supabase/functions/save-friend-form/index.ts` | Auto-creer le profil si absent avant insertion du contact |
+| `src/pages/FillFriendForm.tsx` | Import dynamique de confetti et framer-motion |
+| Fichier de routes | Lazy load de FillFriendForm |
 
