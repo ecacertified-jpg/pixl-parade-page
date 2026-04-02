@@ -844,9 +844,8 @@ export const OnboardingExperience = ({
               <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleNext} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90" size="lg">
-              Découvrir mon espace
-              <Sparkles className="h-4 w-4" />
+            <Button onClick={onComplete} variant="ghost" className="text-muted-foreground text-sm">
+              Passer cette étape
             </Button>
           )}
         </div>
