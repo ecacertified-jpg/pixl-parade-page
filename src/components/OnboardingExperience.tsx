@@ -131,6 +131,17 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep]);
 
+  // Auto-redirect when 3 friends invited
+  useEffect(() => {
+    if (invitationsSentCount >= 3 && currentStep === 4) {
+      confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      const timer = setTimeout(() => {
+        onComplete();
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [invitationsSentCount, currentStep, onComplete]);
+
   // Load wishlist products when reaching step 3
   useEffect(() => {
     if (currentStep !== 3 || !user) return;
