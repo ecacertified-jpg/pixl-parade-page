@@ -72,6 +72,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFriendCircles } from "@/hooks/useFriendCircles";
+import { useFavorites } from "@/hooks/useFavorites";
 import { FriendCircleChips } from "@/components/FriendCircleChips";
 import { CreateCircleModal } from "@/components/CreateCircleModal";
 import { AssignCircleMenu } from "@/components/AssignCircleMenu";
@@ -128,6 +129,7 @@ export default function Dashboard() {
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
   const { circles, contactCircleMap, createCircle, deleteCircle, addToCircle, removeFromCircle } = useFriendCircles();
+  const { stats: favoriteStats } = useFavorites();
   const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
   const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
@@ -650,6 +652,46 @@ export default function Dashboard() {
 
         {/* Section Liste de souhaits */}
         <FavoriteArticlesSection />
+
+        {/* CTA Créer ma page d'anniversaire */}
+        {favoriteStats.total >= 3 && friends.length >= 3 && !hasSharedBirthday && birthdayPageSlug && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="mb-4"
+          >
+            <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10">
+              {/* Decorative background circles */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 bg-primary/10 rounded-full blur-xl" />
+              <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-accent/10 rounded-full blur-lg" />
+              
+              <div className="relative p-5 text-center space-y-3">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent mx-auto">
+                  <Cake className="h-7 w-7 text-primary-foreground" />
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">
+                    Ta page d'anniversaire t'attend ! 🎂
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    Tu as tes amis et ta liste de souhaits. Crée maintenant ta page d'anniversaire pour que tes proches puissent te gâter, t'écrire des mots doux et participer à ta cagnotte ! 🎁
+                  </p>
+                </div>
+
+                <Button
+                  size="lg"
+                  onClick={() => navigate(`/birthday/${birthdayPageSlug}`)}
+                  className="w-full bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/40 ring-2 ring-primary/30 animate-bounce hover:scale-105 transition-transform"
+                >
+                  <Cake className="h-5 w-5 mr-2" />
+                  Créer ma page d'anniversaire
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Cartes de badges */}
         <div className="grid grid-cols-1 gap-4 mb-4">
