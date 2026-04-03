@@ -72,6 +72,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFriendCircles } from "@/hooks/useFriendCircles";
+import { useFavorites } from "@/hooks/useFavorites";
 import { FriendCircleChips } from "@/components/FriendCircleChips";
 import { CreateCircleModal } from "@/components/CreateCircleModal";
 import { AssignCircleMenu } from "@/components/AssignCircleMenu";
