@@ -828,7 +828,7 @@ export default function Dashboard() {
           >
           <TabsContent value="amis" className="mt-4" forceMount={activeTab === 'amis' ? true : undefined} hidden={activeTab !== 'amis'}>
             {/* Birthday page sharing banner */}
-            {!hasSharedBirthday && birthdayPageSlug && (
+            {!hasSharedBirthday && birthdayPageSlug && funds.some(f => f.occasion === 'birthday' && f.creatorId === user?.id && (f.status === 'active' || f.status === 'completed')) && (
               <Card className="p-4 mb-4 border-primary/30 bg-primary/5">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">🎂</span>
