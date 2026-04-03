@@ -329,7 +329,7 @@ export const OnboardingExperience = ({
     if (!friendFormLink) return;
     const text = encodeURIComponent(`🎁 Remplis ce formulaire pour que je n'oublie jamais ton anniversaire : ${friendFormLink}`);
     window.open(`sms:?body=${text}`, '_blank');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien partagé ! En attente de réponse... ⏳');
   };
 
 
