@@ -316,7 +316,7 @@ export const OnboardingExperience = ({
       `🎁 Salut ! Pour ne jamais oublier ton anniversaire, remplis ce petit formulaire :\n\n${friendFormLink}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien partagé ! En attente de réponse... ⏳');
   };
 
   const handleCopyFriendFormLink = () => {
