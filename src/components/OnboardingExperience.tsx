@@ -131,6 +131,24 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep]);
 
+  // Poll completed friend form tokens every 5 seconds
+  useEffect(() => {
+    if (currentStep !== 4 || !user) return;
+
+    const fetchCompletedCount = async () => {
+      const { count } = await supabase
+        .from('friend_form_tokens')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+      setInvitationsSentCount(count || 0);
+    };
+
+    fetchCompletedCount();
+    const interval = setInterval(fetchCompletedCount, 5000);
+    return () => clearInterval(interval);
+  }, [currentStep, user]);
+
   // Auto-redirect when 3 friends invited
   useEffect(() => {
     if (invitationsSentCount >= 3 && currentStep === 4) {
@@ -298,21 +316,20 @@ export const OnboardingExperience = ({
       `🎁 Salut ! Pour ne jamais oublier ton anniversaire, remplis ce petit formulaire :\n\n${friendFormLink}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien partagé ! En attente de réponse... ⏳');
   };
 
   const handleCopyFriendFormLink = () => {
     if (!friendFormLink) return;
     navigator.clipboard.writeText(friendFormLink);
-    toast.success('Lien copié ! 📋');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien copié ! En attente de réponse... ⏳');
   };
 
   const handleShareFriendFormSMS = () => {
     if (!friendFormLink) return;
     const text = encodeURIComponent(`🎁 Remplis ce formulaire pour que je n'oublie jamais ton anniversaire : ${friendFormLink}`);
     window.open(`sms:?body=${text}`, '_blank');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien partagé ! En attente de réponse... ⏳');
   };
 
 
