@@ -1,59 +1,65 @@
+# Plan : Bouton "Crée ma page d'anniversaire" ostentatoire dans le Dashboard
 
+## Contexte
 
-# Plan : Corriger l'erreur d'insertion du formulaire d'ami et optimiser le chargement
+Apres l'onboarding, l'utilisateur a complete sa wishlist (≥3 articles) et ajoute des amis (≥3). Il faut maintenant l'inciter a creer/partager sa page d'anniversaire avec un CTA tres visible et anime, place dans le dashboard principal (avant les onglets).
 
-## Probleme 1 : "Une erreur est survenue" apres soumission
+## Conditions d'affichage
 
-**Cause identifiee** : L'utilisateur qui a genere le lien (user_id `b8d0d4e4...`) existe dans `auth.users` mais n'a **pas de profil** dans la table `profiles`. La table `contacts` a une contrainte FK `contacts_user_id_fkey` qui reference `profiles.user_id`. L'insertion echoue avec l'erreur `23503` (foreign key violation).
+Le bouton s'affiche **uniquement** quand :
 
-**Solution** : Dans l'Edge Function `save-friend-form`, avant d'inserer le contact, verifier si le profil de l'inviteur existe. S'il n'existe pas, creer un profil minimal (avec `user_id` et `first_name` extrait de l'email ou vide).
+1. `stats.total >= 3` (wishlist complete — via `useFavorites`)
+2. `friends.length >= 3` (au moins 3 ami)
+3. `!hasSharedBirthday` (n'a pas encore partage sa page)
+4. `birthdayPageSlug` existe (page auto-creee)
 
-### Fichier : `supabase/functions/save-friend-form/index.ts`
+## Emplacement
 
-Apres la validation du token (ligne 80), ajouter :
+Dans `Dashboard.tsx`, **entre la section "Liste de souhaits" (`FavoriteArticlesSection`) et les cartes de badges** (ligne ~653), pour une visibilite maximale dans le flux naturel du dashboard.
 
-```typescript
-// Ensure inviter has a profile (required by contacts FK)
-const { data: profile } = await supabaseAdmin
-  .from("profiles")
-  .select("user_id")
-  .eq("user_id", tokenData.user_id)
-  .single();
+## Composant
 
-if (!profile) {
-  await supabaseAdmin
-    .from("profiles")
-    .insert({ user_id: tokenData.user_id });
-}
+Un nouveau composant `CreateBirthdayPageCTA` inline dans Dashboard.tsx (ou separe) :
+
+```text
+┌────────────────────────────────────────────┐
+│  🎂                                        │
+│  Ta page d'anniversaire t'attend !         │
+│                                            │
+│  Tu as tes amis et ta liste de souhaits.   │
+│  Il ne reste plus qu'à créer ta page       │
+│  d'anniversaire pour que tes proches       │
+│  puissent te gâter ! 🎁                    │
+│                                            │
+│  [🎂 Créer ma page d'anniversaire]         │
+│  (bouton animé, pulsant, gradient violet)  │
+└────────────────────────────────────────────┘
 ```
 
-## Probleme 2 : Lenteur d'ouverture du lien
+### Style du bouton
 
-**Cause** : Le formulaire charge l'ensemble de l'application React (bundle JS complet) avant d'afficher le formulaire. C'est inherent au SPA.
+- Gradient `bg-gradient-to-r from-primary via-accent to-secondary`
+- `animate-bounce` + `shadow-lg shadow-primary/40`
+- Taille large, texte bold, icone Cake
+- Bordure lumineuse `ring-2 ring-primary/30`
 
-**Optimisation** : Ajouter un lazy loading pour la page `FillFriendForm` dans le routeur, ce qui permet de ne charger que le code necessaire. De plus, reduire le poids du composant en utilisant des imports dynamiques pour `confetti` et `framer-motion` (qui ne sont utiles qu'apres soumission).
+### Message incitatif
 
-### Fichier : `src/App.tsx` (ou fichier de routes)
+- Titre : "Ta page d'anniversaire t'attend ! 🎂"
+- Description : "Tu as tes amis et ta liste de souhaits. Crée maintenant ta page d'anniversaire pour que tes proches puissent te gâter, t'écrire des mots doux et participer à ta cagnotte !"
 
-Remplacer l'import statique par un `React.lazy()` :
-```typescript
-const FillFriendForm = React.lazy(() => import("@/pages/FillFriendForm"));
-```
+### Action du bouton
 
-### Fichier : `src/pages/FillFriendForm.tsx`
+- Clic → `navigate('/birthday/${birthdayPageSlug}')` pour ouvrir la page d'anniversaire existante (auto-creee)
+- Puis l'utilisateur peut la partager depuis la page elle-meme
 
-Importer `confetti` dynamiquement uniquement lors de la soumission reussie :
-```typescript
-// Au lieu de: import confetti from "canvas-confetti";
-// Importer dynamiquement dans le useEffect:
-const { default: confetti } = await import("canvas-confetti");
-```
+### Apres partage
 
-## Fichiers concernes
+- Une fois `hasSharedBirthday === true`, le CTA disparait definitivement
 
-| Fichier | Action |
-|---------|--------|
-| `supabase/functions/save-friend-form/index.ts` | Auto-creer le profil si absent avant insertion du contact |
-| `src/pages/FillFriendForm.tsx` | Import dynamique de confetti et framer-motion |
-| Fichier de routes | Lazy load de FillFriendForm |
+## Fichier concerne
 
+
+| Fichier                   | Action                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/pages/Dashboard.tsx` | Ajouter le bloc CTA anime entre FavoriteArticlesSection et les cartes de badges, conditionne par wishlist ≥ 3 + friends ≥ 3 + !hasSharedBirthday |
