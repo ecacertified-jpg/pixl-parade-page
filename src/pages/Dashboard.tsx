@@ -129,6 +129,7 @@ export default function Dashboard() {
   } = useCollectiveFunds();
   const { score: reciprocityScore } = useReciprocityScore();
   const { circles, contactCircleMap, createCircle, deleteCircle, addToCircle, removeFromCircle } = useFriendCircles();
+  const { stats: favoriteStats } = useFavorites();
   const [showShopForCollectiveGiftModal, setShowShopForCollectiveGiftModal] = useState(false);
   const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
