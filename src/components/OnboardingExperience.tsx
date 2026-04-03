@@ -322,8 +322,7 @@ export const OnboardingExperience = ({
   const handleCopyFriendFormLink = () => {
     if (!friendFormLink) return;
     navigator.clipboard.writeText(friendFormLink);
-    toast.success('Lien copié ! 📋');
-    setInvitationsSentCount(c => c + 1);
+    toast.success('Lien copié ! En attente de réponse... ⏳');
   };
 
   const handleShareFriendFormSMS = () => {
