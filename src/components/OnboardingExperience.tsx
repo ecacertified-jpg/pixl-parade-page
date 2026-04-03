@@ -131,6 +131,24 @@ export const OnboardingExperience = ({
     }
   }, [open, currentStep]);
 
+  // Poll completed friend form tokens every 5 seconds
+  useEffect(() => {
+    if (currentStep !== 4 || !user) return;
+
+    const fetchCompletedCount = async () => {
+      const { count } = await supabase
+        .from('friend_form_tokens')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+      setInvitationsSentCount(count || 0);
+    };
+
+    fetchCompletedCount();
+    const interval = setInterval(fetchCompletedCount, 5000);
+    return () => clearInterval(interval);
+  }, [currentStep, user]);
+
   // Auto-redirect when 3 friends invited
   useEffect(() => {
     if (invitationsSentCount >= 3 && currentStep === 4) {
