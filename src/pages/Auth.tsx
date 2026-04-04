@@ -1896,7 +1896,7 @@ const Auth = () => {
         pageName="auth" 
         cssSelectors={[".card-title", ".card-description"]} 
       />
-      <WhatsAppFloatingButton phoneNumber="2250700000000" />
+      <WhatsAppFloatingButton phoneNumber="2250707467445" />
     </div>
   );
 };
