@@ -41,6 +41,7 @@ import { AddressSelector, type AddressResult } from '@/components/AddressSelecto
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { format } from 'date-fns';
 import { processAdminAutoAssign } from '@/utils/adminAutoAssign';
+import WhatsAppFloatingButton from '@/components/WhatsAppFloatingButton';
 
 // Client Signup Progress Indicator
 const ClientSignupProgressIndicator = ({ 
@@ -1895,6 +1896,7 @@ const Auth = () => {
         pageName="auth" 
         cssSelectors={[".card-title", ".card-description"]} 
       />
+      <WhatsAppFloatingButton phoneNumber="2250700000000" />
     </div>
   );
 };

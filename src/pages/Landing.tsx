@@ -13,6 +13,7 @@ import { CountrySelector } from "@/components/CountrySelector";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { LandingVideoPlayer } from "@/components/LandingVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -353,6 +354,7 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+      <WhatsAppFloatingButton phoneNumber="2250700000000" />
     </div>
   </>;
 };
