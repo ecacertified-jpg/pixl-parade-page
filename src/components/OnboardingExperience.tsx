@@ -548,6 +548,19 @@ export const OnboardingExperience = ({
                 </PopoverContent>
               </Popover>
 
+              <AnimatePresence>
+                {!birthday && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                  >
+                    📅 Sélectionne ta date d'anniversaire pour que tes proches puissent te célébrer !
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {birthday && daysUntilBirthday !== null && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -621,6 +634,19 @@ export const OnboardingExperience = ({
                   );
                 })}
               </div>
+
+              <AnimatePresence>
+                {selectedCategories.length < 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                  >
+                    🎁 Choisis au moins une catégorie pour qu'on te propose les meilleurs cadeaux !
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
@@ -660,6 +686,19 @@ export const OnboardingExperience = ({
                   </p>
                 </motion.div>
               )}
+
+              <AnimatePresence>
+                {favoriteIds.length < 3 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                  >
+                    ❤️ Ajoute au moins 3 articles ({favoriteIds.length}/3 ajoutés) pour créer ta liste de souhaits parfaite !
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {loadingProducts ? (
                 <div className="grid grid-cols-2 gap-3">
