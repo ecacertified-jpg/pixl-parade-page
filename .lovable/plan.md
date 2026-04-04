@@ -1,15 +1,32 @@
 
+# Plan : Repositionner le bouton WhatsApp pour éviter le chevauchement avec le chat IA
 
-# Plan : Mettre à jour le numéro WhatsApp
+## Probleme
 
-## Modification
+Le bouton WhatsApp flottant est positionne en `bottom-6 right-6`, exactement la ou se trouve le widget de chat IA Lovable. Il est donc masque.
 
-Remplacer le numéro placeholder `2250700000000` par le vrai numéro `2250707467445` dans les deux fichiers.
+## Solution
 
-## Fichiers concernés
+Deplacer le bouton WhatsApp en **bas a gauche** (`bottom-6 left-6`) et le transformer en widget plus elabore inspire de l'image de reference : un bouton rond qui, au clic, ouvre une mini-carte avec message de salutation et CTA "Discutons !".
 
-| Fichier | Ligne | Changement |
-|---------|-------|-----------|
-| `src/pages/Landing.tsx` | ~357 | `phoneNumber="2250707467445"` |
-| `src/pages/Auth.tsx` | ~1899 | `phoneNumber="2250707467445"` |
+### Design (inspire de l'image)
 
+- Bouton rond en bas a gauche avec icone WhatsApp + gradient violet/rose
+- Au clic : popup carte avec :
+  - Salutation dynamique (Bonjour/Bon apres-midi/Bonsoir selon l'heure)
+  - Message "Besoin d'une idee cadeau ? 🎁"
+  - Bouton CTA "Discutons ! ✈️" qui ouvre le lien wa.me
+  - Bouton X pour fermer
+- Animation d'entree avec framer-motion
+
+### Comportement
+
+- Le popup s'ouvre automatiquement apres 5s (comme le hint actuel) puis se referme apres 8s
+- Clic sur le bouton rond : toggle le popup
+- Clic sur "Discutons !" : ouvre WhatsApp
+
+## Fichier concerne
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/WhatsAppFloatingButton.tsx` | Refonte complete : position `bottom-6 left-6`, widget avec carte popup |
