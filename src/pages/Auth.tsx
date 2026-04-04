@@ -245,7 +245,7 @@ const Auth = () => {
   const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
   
   // Auth method selector: phone or email
-  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email' | null>(null);
   
   // Password visibility toggles
   const [showSignInPassword, setShowSignInPassword] = useState(false);
