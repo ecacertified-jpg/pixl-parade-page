@@ -1,60 +1,44 @@
 
-# Plan : Persister les goûts sélectionnés dans l'onboarding
 
-## Analyse de l'existant
+# Plan : Dashboard Admin des Conversations WhatsApp IA
 
-| Étape | Donnée | Persistée en DB ? |
-|-------|--------|-------------------|
-| 1 - Anniversaire | `profiles.birthday` | ✅ Sauvé au clic "Suivant" |
-| 2 - Goûts | `selectedCategories` | ❌ **État local uniquement, perdu à la fermeture** |
-| 3 - Souhaits | `user_favorites` | ✅ Sauvé immédiatement au toggle |
-| 4 - Amis | `friend_form_tokens` | ✅ Sauvé côté serveur |
+## Contexte
 
-**Seule l'étape 2 (Goûts) n'est pas persistée.** Les autres étapes sont déjà sauvegardées en base et restaurées au retour de l'utilisateur.
+Les tables `whatsapp_conversations` et `whatsapp_messages` stockent déjà toutes les conversations IA. Il manque une interface admin pour les visualiser.
 
-## Solution
+## Architecture
 
-Ajouter une colonne `selected_tastes` (tableau de textes) à la table `profiles`, sauvegarder les goûts au clic "Suivant", et les recharger à l'ouverture.
+Dashboard en 2 panneaux : liste des conversations à gauche, détail des messages à droite (style messagerie).
 
-## Modifications
-
-### 1. Migration SQL — Ajouter la colonne
-
-```sql
-ALTER TABLE public.profiles 
-ADD COLUMN selected_tastes text[] DEFAULT '{}';
-```
-
-### 2. `src/components/OnboardingExperience.tsx`
-
-- **Chargement** (lignes ~106-117) : ajouter `selected_tastes` au `select` du profil, et initialiser `setSelectedCategories` si le tableau n'est pas vide
-- **Sauvegarde** (ligne ~471) : quand `currentStep === 2`, sauvegarder les goûts en DB :
-  ```typescript
-  if (currentStep === 2) {
-    await supabase.from('profiles')
-      .update({ selected_tastes: selectedCategories })
-      .eq('user_id', user.id);
-  }
-  ```
-
-### 3. `src/hooks/useOnboarding.ts`
-
-- Ajouter la vérification de l'étape 2 dans `fetchOnboardingStatus` : si `selected_tastes` est vide/null, retourner `firstIncompleteStep: 2`
-- Modifier le `select` existant pour inclure `selected_tastes` :
-  ```typescript
-  supabase.from('profiles').select('birthday, selected_tastes').eq('user_id', userId).single()
-  ```
-- Ajouter la condition entre les vérifications birthday et favorites :
-  ```typescript
-  if (!profileRes.data?.selected_tastes?.length) {
-    return { shouldShow: true, firstIncompleteStep: 2 };
-  }
-  ```
-
-## Fichiers concernés
+## Fichiers à créer/modifier
 
 | Fichier | Action |
 |---------|--------|
-| Migration SQL | Ajouter colonne `selected_tastes text[]` à `profiles` |
-| `src/components/OnboardingExperience.tsx` | Charger et sauvegarder les goûts |
-| `src/hooks/useOnboarding.ts` | Vérifier l'étape 2 dans le statut d'onboarding |
+| `src/hooks/useWhatsAppConversations.ts` | Créer : hook pour charger conversations + messages + stats |
+| `src/components/admin/WhatsAppAIConversations.tsx` | Créer : composant principal avec liste + détail |
+| `src/pages/Admin/WhatsAppAIChat.tsx` | Créer : page admin avec AdminLayout |
+| `src/App.tsx` | Ajouter route `/admin/whatsapp-ai` |
+| `src/components/AdminLayout.tsx` | Ajouter lien dans la navigation |
+
+## Détails
+
+### Hook `useWhatsAppConversations`
+- Charge `whatsapp_conversations` triées par `last_message_at`
+- Fonction `fetchMessages(conversationId)` pour charger les messages d'une conversation
+- Stats : total conversations, actives aujourd'hui, messages total
+- Recherche par numéro de téléphone ou nom
+- Realtime subscription sur `whatsapp_messages` pour les nouveaux messages
+
+### Composant `WhatsAppAIConversations`
+- **Panneau gauche** : liste des conversations avec nom/téléphone, dernier message, badge de statut, heure
+- **Panneau droit** : fil de messages style chat (bulles inbound à gauche, outbound à droite)
+- **En-tête** : KPIs (total conversations, actives, messages aujourd'hui)
+- Filtre par statut (active/closed) et recherche
+
+### Page `WhatsAppAIChat`
+- Utilise `AdminLayout` + `AdminPageHeader`
+- Route : `/admin/whatsapp-ai`
+
+### Navigation
+- Ajouter entrée "Chat IA WhatsApp" dans le menu admin, section messagerie (près des liens WhatsApp existants)
+
