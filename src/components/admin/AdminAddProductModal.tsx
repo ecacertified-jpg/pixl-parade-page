@@ -397,7 +397,7 @@ export function AdminAddProductModal({
 
           {/* Category */}
           <div className="space-y-2">
-            <Label>Catégorie</Label>
+            <Label>Catégorie <span className="text-destructive">*</span></Label>
             <Select 
               value={formData.category_id} 
               onValueChange={(value) => setFormData({ ...formData, category_id: value })}
