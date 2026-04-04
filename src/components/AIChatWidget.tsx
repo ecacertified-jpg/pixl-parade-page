@@ -34,6 +34,7 @@ const getTimeBasedGreeting = () => {
 };
 
 export const AIChatWidget = () => {
+  const location = useLocation();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
