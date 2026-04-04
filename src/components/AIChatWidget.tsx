@@ -127,6 +127,11 @@ export const AIChatWidget = () => {
     }
   };
 
+  const hiddenRoutes = ['/', '/auth'];
+  if (hiddenRoutes.includes(location.pathname)) {
+    return null;
+  }
+
   return (
     <>
       {/* Widget Container */}
