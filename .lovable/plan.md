@@ -1,34 +1,76 @@
 
-Plan : Corriger la confusion du compteur dans l’étape "Amis"
 
-Constat
-- Le backend est déjà correct : le token passe à `completed` uniquement quand l’invité remplit réellement le formulaire et que le contact est bien enregistré.
-- La confusion vient surtout de l’UI de l’onboarding :
-  1. le libellé actuel parle d’"amis invités", ce qui laisse croire qu’un simple partage incrémente le compteur ;
-  2. le compteur démarre visuellement à `0`, puis se met à jour après lecture de la base, ce qui peut donner l’impression que le partage vient d’ajouter 1.
+# Plan : Bloquer la navigation tant que l'étape n'est pas complétée
 
-Ce que je vais ajuster
-1. Dans `src/components/OnboardingExperience.tsx`, charger le vrai compteur dès l’ouverture de l’étape "Amis" et afficher un petit état de chargement avant d’afficher `0/3`.
-2. Garder le compteur branché uniquement sur `friend_form_tokens.status = 'completed'` (source de vérité réelle).
-3. Renommer le texte pour enlever l’ambiguïté :
-   - au lieu de `X/3 amis invités`
-   - afficher `X/3 amis ajoutés` ou `X/3 formulaires complétés`
-4. Ajouter un message explicatif sous la barre :
-   - "Le compteur augmente uniquement quand ton proche remplit et envoie le formulaire."
-5. Vérifier que les actions de partage (`WhatsApp`, `Copier`, `SMS`) n’écrivent jamais dans le compteur local et n’affichent qu’un toast de type :
-   - "Lien partagé. En attente de la réponse de ton proche..."
+## Principe
 
-Fichier concerné
-- `src/components/OnboardingExperience.tsx`
+Chaque étape doit être validée avant de pouvoir avancer. L'utilisateur ne peut pas sauter une étape incomplète.
 
-Détails techniques
-- Ajouter un état du type `isLoadingCompletedForms`
-- Faire le premier fetch immédiatement à l’entrée sur l’étape 4
-- Ne rendre le score/progress qu’après ce premier fetch pour éviter le faux effet `0 → 1`
-- Conserver la logique d’auto-redirection seulement quand le count réel en base atteint 3
-- Aucun changement de base de données ni Edge Function nécessaire
+## Conditions de complétion par étape
 
-Résultat attendu
-- Partager un lien ne fera plus penser qu’un ami a été ajouté
-- Le compteur n’évoluera visuellement que lorsqu’un invité aura réellement rempli et envoyé le formulaire
-- L’étape sera beaucoup plus claire et rassurante pour l’utilisateur
+| Étape | Condition |
+|-------|-----------|
+| 0 - Accueil | Toujours complétée (simple écran d'accueil) |
+| 1 - Anniversaire | `birthday` est défini |
+| 2 - Goûts | Au moins 1 catégorie sélectionnée (`selectedCategories.length >= 1`) |
+| 3 - Souhaits | Au moins 3 articles en favoris (`favoriteIds.length >= 3`) |
+| 4 - Amis | Géré par l'auto-redirection existante (3 formulaires complétés) |
+
+## Modifications dans `src/components/OnboardingExperience.tsx`
+
+### 1. Ajouter une fonction de validation
+
+```typescript
+const isStepCompleted = (step: number): boolean => {
+  switch (step) {
+    case 0: return true;
+    case 1: return !!birthday;
+    case 2: return selectedCategories.length >= 1;
+    case 3: return favoriteIds.length >= 3;
+    case 4: return invitationsSentCount >= 3;
+    default: return false;
+  }
+};
+
+const canGoNext = isStepCompleted(currentStep);
+```
+
+### 2. Bloquer la flèche "Suivant" (ChevronRight, lignes 403-418)
+
+- Remplacer `disabled={currentStep >= TOTAL_STEPS - 1}` par `disabled={currentStep >= TOTAL_STEPS - 1 || !canGoNext}`
+- Quand désactivé : style grisé au lieu du rouge pulsant
+- Au clic sur la flèche désactivée : afficher un toast expliquant ce qu'il faut faire
+
+### 3. Bloquer `handleNext` (ligne 340)
+
+Ajouter un guard en début de fonction :
+```typescript
+if (!isStepCompleted(currentStep)) {
+  toast.info(stepHintMessage(currentStep));
+  return;
+}
+```
+
+### 4. Messages d'aide par étape
+
+```typescript
+const stepHintMessage = (step: number): string => {
+  switch (step) {
+    case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
+    case 2: return "Choisis au moins une catégorie de cadeau 🎁";
+    case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
+    default: return "Complete cette étape pour continuer";
+  }
+};
+```
+
+### 5. Indicateur visuel sous chaque étape
+
+Ajouter un petit texte sous le contenu de chaque étape (sauf step 0) indiquant la condition restante, par exemple pour l'étape 3 : "2/3 articles ajoutés".
+
+## Fichier concerné
+
+| Fichier | Action |
+|---------|--------|
+| `src/components/OnboardingExperience.tsx` | Ajouter validation, bloquer navigation, afficher messages d'aide |
+
