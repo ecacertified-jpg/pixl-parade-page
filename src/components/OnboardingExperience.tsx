@@ -337,12 +337,37 @@ export const OnboardingExperience = ({
 
 
 
+  const isStepCompleted = (step: number): boolean => {
+    switch (step) {
+      case 0: return true;
+      case 1: return !!birthday;
+      case 2: return selectedCategories.length >= 1;
+      case 3: return favoriteIds.length >= 3;
+      case 4: return invitationsSentCount >= 3;
+      default: return false;
+    }
+  };
+
+  const stepHintMessage = (step: number): string => {
+    switch (step) {
+      case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
+      case 2: return "Choisis au moins une catégorie de cadeau 🎁";
+      case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
+      default: return "Complète cette étape pour continuer";
+    }
+  };
+
+  const canGoNext = isStepCompleted(currentStep);
+
   const handleNext = async () => {
+    if (!isStepCompleted(currentStep)) {
+      toast.info(stepHintMessage(currentStep));
+      return;
+    }
     if (currentStep === 1 && birthday) await saveBirthday();
     if (currentStep < TOTAL_STEPS - 1) {
       onSetStep(currentStep + 1);
     } else {
-      // Final step — complete
       confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       onComplete();
     }
@@ -401,19 +426,27 @@ export const OnboardingExperience = ({
           </span>
 
           <button
-            onClick={() => currentStep < TOTAL_STEPS - 1 && onSetStep(currentStep + 1)}
+            onClick={() => {
+              if (!isStepCompleted(currentStep)) {
+                toast.info(stepHintMessage(currentStep));
+                return;
+              }
+              if (currentStep < TOTAL_STEPS - 1) onSetStep(currentStep + 1);
+            }}
             disabled={currentStep >= TOTAL_STEPS - 1}
             aria-label="Étape suivante"
             className={cn(
               'rounded-full transition-all duration-200',
-              currentStep < TOTAL_STEPS - 1
-                ? 'p-2.5 bg-red-500 text-white shadow-lg shadow-red-500/40 ring-2 ring-red-300 animate-pulse cursor-pointer hover:bg-red-600 active:scale-95'
-                : 'p-1.5 text-muted-foreground/30 cursor-not-allowed'
+              currentStep >= TOTAL_STEPS - 1
+                ? 'p-1.5 text-muted-foreground/30 cursor-not-allowed'
+                : canGoNext
+                  ? 'p-2.5 bg-red-500 text-white shadow-lg shadow-red-500/40 ring-2 ring-red-300 animate-pulse cursor-pointer hover:bg-red-600 active:scale-95'
+                  : 'p-2.5 bg-muted text-muted-foreground cursor-not-allowed opacity-50'
             )}
           >
             <ChevronRight className={cn(
               currentStep < TOTAL_STEPS - 1 ? "h-7 w-7" : "h-5 w-5",
-              currentStep < TOTAL_STEPS - 1 && "animate-[bounce-right_1.5s_ease-in-out_infinite]"
+              currentStep < TOTAL_STEPS - 1 && canGoNext && "animate-[bounce-right_1.5s_ease-in-out_infinite]"
             )} />
           </button>
         </div>
