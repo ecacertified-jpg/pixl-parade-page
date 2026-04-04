@@ -1,55 +1,62 @@
 
-# Plan : Utiliser les catégories de goûts de l'onboarding dans les boutiques
 
-## Principe
+# Diagnostic : Les catégories de goûts ne matchent pas les articles
 
-Remplacer les catégories produit actuelles de la boutique principale (Bijoux & Accessoires, Tech & Électronique, etc.) par les 8 catégories de goûts de l'onboarding (Tech, Mode, Voyage, Musique, Gastronomie, Sport, Bijoux, Bien-être). Un mapping associe chaque goût aux catégories produit existantes en base. Le même filtre est ajouté dans les boutiques prestataires.
+## Problème identifié
 
-## Mapping goûts → catégories produit en base
+La grande majorité des produits en base (481 sur 522) ont un `category_name` **NULL**. Le mapping actuel dans `matchesTaste()` compare le `category_name` du produit aux noms de catégories attendus, mais comme presque tous les produits n'ont pas de catégorie assignée, aucun filtre de goût ne retourne de résultat (sauf "Tous").
+
+**Données réelles en base :**
+| category_name | Nombre de produits |
+|---|---|
+| NULL | 481 |
+| Mode & Vêtements | 21 |
+| Parfums & Beauté | 6 |
+| Tech & Électronique | 6 |
+| Gastronomie & Délices | 2 |
+| Autres (5 catégories) | 5 chacune ~1 |
+
+## Solution proposée
+
+### 1. Assigner automatiquement une catégorie aux produits sans `category_name`
+
+Créer un script (migration SQL) qui analyse le **nom** et la **description** de chaque produit sans catégorie et leur assigne une `category_name` par mots-clés :
 
 ```text
-tech        → Tech & Électronique, Loisirs & Divertissement
-mode        → Mode & Vêtements, Bijoux & Accessoires
-voyage      → Séjours & Hébergement, Expériences VIP
-musique     → Loisirs & Divertissement, Culture & Loisirs
-gastronomie → Gastronomie & Délices, Restaurants & Gastronomie
-sport       → Loisirs & Divertissement
-bijoux      → Bijoux & Accessoires, Parfums & Beauté
-bien-etre   → Bien-être & Spa, Parfums & Beauté
+"perruque", "robe", "jean", "boubou", "pagne", "wax", "talon" → Mode & Vêtements
+"gâteau", "chocolat", "vin", "café" → Gastronomie & Délices
+"parfum", "soin", "crème", "garnier", "beauté" → Parfums & Beauté
+"montre", "bracelet", "collier", "bague", "bijou" → Bijoux & Accessoires
+"téléphone", "écouteur", "chargeur" → Tech & Électronique
+"spa", "massage", "bien-être" → Bien-être & Spa
+(produits non classifiés) → Mode & Vêtements (catégorie par défaut, car majorité mode)
 ```
 
-## Modifications
+### 2. Rendre le mapping bidirectionnel plus large
 
-### 1. Nouveau fichier : `src/data/taste-categories.ts`
-- Exporter `TASTE_CATEGORIES` (8 catégories avec id, label, icône, couleur)
-- Exporter `TASTE_TO_PRODUCT_CATEGORIES` : mapping goût → tableau de `category_name`
-- Exporter `ALL_TASTE` (option "Tous")
-- Exporter `matchesTaste(categoryName, tasteId)` : fonction de filtrage
+Ajuster `TASTE_TO_PRODUCT_CATEGORIES` pour couvrir les catégories réellement présentes en base, y compris celles qui ne sont pas encore mappées :
 
-### 2. `src/pages/Shop.tsx`
-- Supprimer les tableaux `productCategories` et `experienceCategories` en dur (lignes 282-308)
-- Importer `TASTE_CATEGORIES`, `ALL_TASTE`, `matchesTaste`
-- Remplacer `selectedCategory` par `selectedTaste` (string = taste id)
-- Adapter `filteredProducts` : utiliser `matchesTaste(product.categoryName, selectedTaste)` au lieu de `product.categoryName === selectedCategory`
-- Remplacer les boutons de catégorie (lignes 525-542, 557-574) par les boutons de goûts avec icônes colorées, dans les deux onglets (produits et expériences)
-- Adapter `getCategoryCount` pour utiliser `matchesTaste`
+```text
+mode → Mode & Vêtements, Décoration & Maison
+gastronomie → Gastronomie & Délices, Restaurants & Gastronomie
+bijoux → Bijoux & Accessoires, Occasions Spéciales
+bien-etre → Bien-être & Spa, Parfums & Beauté
+tech → Tech & Électronique, Affaires & Bureau
+```
 
-### 3. `src/pages/VendorShop.tsx`
-- Importer `TASTE_CATEGORIES`, `ALL_TASTE`, `matchesTaste`
-- Ajouter état `selectedTaste`
-- Ajouter une barre de filtres horizontale avant la grille de produits
-- Filtrer `filteredProducts` via `matchesTaste`
+### 3. Assurer que les futurs produits reçoivent une catégorie
 
-### 4. `src/components/OnboardingExperience.tsx`
-- Importer `TASTE_CATEGORIES` depuis `@/data/taste-categories`
-- Supprimer la définition locale `GIFT_CATEGORIES` (lignes 32-41)
-- Adapter les références : `GIFT_CATEGORIES` → `TASTE_CATEGORIES`, `cat.id` reste identique
+Modifier le formulaire de création de produit business pour rendre le champ catégorie **obligatoire** et pré-remplir avec les catégories existantes.
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/data/taste-categories.ts` | Créer : catégories partagées + mapping |
-| `src/pages/Shop.tsx` | Modifier : remplacer catégories par goûts |
-| `src/pages/VendorShop.tsx` | Modifier : ajouter filtre par goûts |
-| `src/components/OnboardingExperience.tsx` | Modifier : importer depuis fichier partagé |
+| Migration SQL | Assigner `category_name` aux 481 produits NULL |
+| `src/data/taste-categories.ts` | Élargir le mapping pour couvrir toutes les catégories existantes |
+| Formulaire produit business | Rendre la catégorie obligatoire (optionnel, étape suivante) |
+
+## Impact
+
+Après la migration, chaque produit aura une catégorie, et les filtres de goûts retourneront des résultats pertinents dans toutes les boutiques.
+
