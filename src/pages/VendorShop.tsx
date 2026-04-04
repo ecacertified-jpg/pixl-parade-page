@@ -420,7 +420,7 @@ export default function VendorShop() {
                     onClick={() => setSelectedTaste(taste.id)}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {taste.label}
+                    {taste.label} ({getTasteCount(taste.id, true)})
                   </Button>
                 );
               })}
