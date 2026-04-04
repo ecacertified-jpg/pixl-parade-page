@@ -1,51 +1,60 @@
 
+# Plan : Persister les goûts sélectionnés dans l'onboarding
 
-# Plan : Accélérer la soumission du formulaire d'ami
+## Analyse de l'existant
 
-## Diagnostic
+| Étape | Donnée | Persistée en DB ? |
+|-------|--------|-------------------|
+| 1 - Anniversaire | `profiles.birthday` | ✅ Sauvé au clic "Suivant" |
+| 2 - Goûts | `selectedCategories` | ❌ **État local uniquement, perdu à la fermeture** |
+| 3 - Souhaits | `user_favorites` | ✅ Sauvé immédiatement au toggle |
+| 4 - Amis | `friend_form_tokens` | ✅ Sauvé côté serveur |
 
-La lenteur vient de deux facteurs :
+**Seule l'étape 2 (Goûts) n'est pas persistée.** Les autres étapes sont déjà sauvegardées en base et restaurées au retour de l'utilisateur.
 
-1. **Cold start de l'Edge Function** : la première invocation après inactivité prend 2-5s pour démarrer le runtime Deno
-2. **4 requêtes DB séquentielles** : token lookup → profile check → contact insert → token update, chacune ajoutant ~100-200ms de latence réseau
+## Solution
 
-## Optimisations
-
-### 1. Paralléliser les requêtes DB dans l'Edge Function
-
-Regrouper le token lookup et le profile check en un `Promise.all`, puis le contact insert et le token update en un second `Promise.all`.
-
-```text
-Avant (séquentiel) :  Token → Profile → Insert → Update  (~800ms DB)
-Après (parallèle) :  [Token + Profile] → [Insert + Update]  (~400ms DB)
-```
-
-### 2. Feedback instantané côté client
-
-Afficher l'écran de succès (confettis) **immédiatement** après l'appel, sans attendre la fin de l'animation de chargement. Actuellement le bouton reste en "Envoi en cours..." pendant toute la durée de la requête. On peut :
-- Passer en mode "optimistic" : afficher le succès dès que la requête part, et gérer l'erreur en rollback
-- Ou mieux : lancer les confettis **dès réception de la réponse** sans délai supplémentaire (c'est déjà le cas, mais le cold start reste le goulot)
-
-### 3. Pré-chauffer l'Edge Function au chargement de la page
-
-Au `useEffect` initial (quand le token est validé côté client), envoyer un appel OPTIONS/ping léger pour "réveiller" la fonction avant que l'utilisateur ne soumette.
+Ajouter une colonne `selected_tastes` (tableau de textes) à la table `profiles`, sauvegarder les goûts au clic "Suivant", et les recharger à l'ouverture.
 
 ## Modifications
 
-### `supabase/functions/save-friend-form/index.ts`
+### 1. Migration SQL — Ajouter la colonne
 
-- Paralléliser token lookup + profile check avec `Promise.all`
-- Paralléliser contact insert + token update avec `Promise.all`
+```sql
+ALTER TABLE public.profiles 
+ADD COLUMN selected_tastes text[] DEFAULT '{}';
+```
 
-### `src/pages/FillFriendForm.tsx`
+### 2. `src/components/OnboardingExperience.tsx`
 
-- Ajouter un appel de pré-chauffe (warm-up) dans le `useEffect` de chargement du token : un simple `supabase.functions.invoke("save-friend-form", { body: {} })` qui retournera une erreur 400 mais réveillera la fonction
-- Cela se fait en parallèle du chargement du formulaire, invisible pour l'utilisateur
+- **Chargement** (lignes ~106-117) : ajouter `selected_tastes` au `select` du profil, et initialiser `setSelectedCategories` si le tableau n'est pas vide
+- **Sauvegarde** (ligne ~471) : quand `currentStep === 2`, sauvegarder les goûts en DB :
+  ```typescript
+  if (currentStep === 2) {
+    await supabase.from('profiles')
+      .update({ selected_tastes: selectedCategories })
+      .eq('user_id', user.id);
+  }
+  ```
+
+### 3. `src/hooks/useOnboarding.ts`
+
+- Ajouter la vérification de l'étape 2 dans `fetchOnboardingStatus` : si `selected_tastes` est vide/null, retourner `firstIncompleteStep: 2`
+- Modifier le `select` existant pour inclure `selected_tastes` :
+  ```typescript
+  supabase.from('profiles').select('birthday, selected_tastes').eq('user_id', userId).single()
+  ```
+- Ajouter la condition entre les vérifications birthday et favorites :
+  ```typescript
+  if (!profileRes.data?.selected_tastes?.length) {
+    return { shouldShow: true, firstIncompleteStep: 2 };
+  }
+  ```
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `supabase/functions/save-friend-form/index.ts` | Paralléliser les requêtes DB |
-| `src/pages/FillFriendForm.tsx` | Ajouter warm-up de l'Edge Function au chargement |
-
+| Migration SQL | Ajouter colonne `selected_tastes text[]` à `profiles` |
+| `src/components/OnboardingExperience.tsx` | Charger et sauvegarder les goûts |
+| `src/hooks/useOnboarding.ts` | Vérifier l'étape 2 dans le statut d'onboarding |
