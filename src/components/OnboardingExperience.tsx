@@ -705,7 +705,7 @@ export const OnboardingExperience = ({
               </AnimatePresence>
 
               <div className="grid grid-cols-2 gap-3">
-                {GIFT_CATEGORIES.map((cat, idx) => {
+                {TASTE_CATEGORIES.map((cat, idx) => {
                   const Icon = cat.icon;
                   const isSelected = selectedCategories.includes(cat.id);
                   return (
