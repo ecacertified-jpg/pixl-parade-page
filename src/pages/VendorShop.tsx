@@ -108,7 +108,9 @@ export default function VendorShop() {
     }
   }, [searchParams, products, loading]);
 
-  const filteredProducts = products.filter(p => p.isExperience === (activeTab === "experiences"));
+  const filteredProducts = products.filter(p => 
+    p.isExperience === (activeTab === "experiences") && matchesTaste(p.categoryName, selectedTaste)
+  );
   const productCount = products.filter(p => !p.isExperience).length;
   const experienceCount = products.filter(p => p.isExperience).length;
 
