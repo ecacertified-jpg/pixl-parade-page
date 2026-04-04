@@ -162,6 +162,11 @@ export function AdminAddProductModal({
       return;
     }
 
+    if (!formData.category_id) {
+      toast.error('Veuillez sélectionner une catégorie');
+      return;
+    }
+
     setLoading(true);
     try {
       // Find the business to get the owner's user_id
