@@ -281,15 +281,16 @@ export default function Shop() {
 
   // Dynamic breadcrumb based on selected category
   const categoryBreadcrumbData = useMemo(() => {
-    if (selectedCategory === "Tous") return null;
+    if (selectedCategory === "tous") return null;
     
-    const categoryDef = getCategoryByName(selectedCategory);
-    const CategoryIcon = categoryDef?.icon;
+    const taste = TASTE_CATEGORIES.find(t => t.id === selectedCategory);
+    if (!taste) return null;
+    const TasteIcon = taste.icon;
     
     return {
-      slug: categoryDef?.slug || selectedCategory.toLowerCase().replace(/\s+/g, '-'),
-      name: selectedCategory,
-      icon: CategoryIcon ? <CategoryIcon className="h-3.5 w-3.5" /> : undefined
+      slug: taste.id,
+      name: taste.label,
+      icon: <TasteIcon className="h-3.5 w-3.5" />
     };
   }, [selectedCategory]);
 
