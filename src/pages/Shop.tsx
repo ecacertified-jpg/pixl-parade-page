@@ -31,7 +31,7 @@ import { Globe } from "lucide-react";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { ShopBreadcrumb, CategoryBreadcrumb } from "@/components/breadcrumbs";
-import { getCategoryByName } from "@/data/product-categories";
+import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
@@ -53,7 +53,7 @@ export default function Shop() {
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tous");
+  const [selectedCategory, setSelectedCategory] = useState("tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(profileCountryCode || 'CI');
   
@@ -253,14 +253,11 @@ export default function Shop() {
 
 
 
-  const getCategoryCount = (categoryName: string, isExperience: boolean) => {
-    if (categoryName === "Tous") {
-      return products.filter(p => (p.isExperience || false) === isExperience).length;
+  const getTasteCount = (tasteId: string) => {
+    if (tasteId === 'tous') {
+      return products.length;
     }
-    return products.filter(p => 
-      p.categoryName === categoryName && 
-      (p.isExperience || false) === isExperience
-    ).length;
+    return products.filter(p => matchesTaste(p.categoryName, tasteId)).length;
   };
 
   // Determine active country filter: use effectiveCountryFilter, or fallback to user's home country (then CI) when geolocation unavailable
@@ -268,7 +265,7 @@ export default function Shop() {
 
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
-    const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
+    const matchesCategory = matchesTaste(product.categoryName, selectedCategory);
     const matchesLocation = !selectedLocation || selectedLocation === "Tous les lieux" || (product.businessAddress && product.businessAddress.toLowerCase().includes(selectedLocation.toLowerCase()));
     
     const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
@@ -279,47 +276,20 @@ export default function Shop() {
     
     return matchesTab && matchesCategory && matchesLocation && matchesSearch && matchesCountry;
   });
-  const productCategories = [
-    { name: "Tous", icon: Gift },
-    { name: "Bijoux & Accessoires", icon: Gem },
-    { name: "Parfums & Beauté", icon: Sparkles },
-    { name: "Tech & Électronique", icon: Smartphone },
-    { name: "Mode & Vêtements", icon: Shirt },
-    { name: "Artisanat Ivoirien", icon: Hammer },
-    { name: "Gastronomie & Délices", icon: UtensilsCrossed },
-    { name: "Décoration & Maison", icon: Home },
-    { name: "Loisirs & Divertissement", icon: Gamepad2 },
-    { name: "Bébé & Enfants", icon: Baby },
-    { name: "Affaires & Bureau", icon: Briefcase }
-  ];
-
-  const experienceCategories = [
-    { name: "Tous", icon: Gift },
-    { name: "Restaurants & Gastronomie", icon: UtensilsCrossed },
-    { name: "Bien-être & Spa", icon: Sparkles },
-    { name: "Séjours & Hébergement", icon: Hotel },
-    { name: "Événements & Célébrations", icon: PartyPopper },
-    { name: "Formation & Développement", icon: GraduationCap },
-    { name: "Expériences VIP", icon: Star },
-    { name: "Souvenirs & Photographie", icon: Camera },
-    { name: "Culture & Loisirs", icon: Palette },
-    { name: "Mariage & Fiançailles", icon: Heart },
-    { name: "Occasions Spéciales", icon: Gift }
-  ];
-
-  const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
+  const tasteFilters = [ALL_TASTE, ...TASTE_CATEGORIES];
 
   // Dynamic breadcrumb based on selected category
   const categoryBreadcrumbData = useMemo(() => {
-    if (selectedCategory === "Tous") return null;
+    if (selectedCategory === "tous") return null;
     
-    const categoryDef = getCategoryByName(selectedCategory);
-    const CategoryIcon = categoryDef?.icon;
+    const taste = TASTE_CATEGORIES.find(t => t.id === selectedCategory);
+    if (!taste) return null;
+    const TasteIcon = taste.icon;
     
     return {
-      slug: categoryDef?.slug || selectedCategory.toLowerCase().replace(/\s+/g, '-'),
-      name: selectedCategory,
-      icon: CategoryIcon ? <CategoryIcon className="h-3.5 w-3.5" /> : undefined
+      slug: taste.id,
+      name: taste.label,
+      icon: <TasteIcon className="h-3.5 w-3.5" />
     };
   }, [selectedCategory]);
 
@@ -503,7 +473,7 @@ export default function Shop() {
         {/* Tabs for Products vs Experiences */}
         <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
           setActiveTab(value as "products" | "experiences");
-          setSelectedCategory("Tous");
+          setSelectedCategory("tous");
         }}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="products">🛍️ Produits</TabsTrigger>
@@ -523,19 +493,19 @@ export default function Shop() {
             </div>
             
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {productCategories.map((category, index) => {
-                const Icon = category.icon;
-                const count = getCategoryCount(category.name, false);
+              {tasteFilters.map((taste) => {
+                const Icon = taste.icon;
+                const count = getTasteCount(taste.id);
                 return (
                   <Button 
-                    key={index} 
-                    variant={selectedCategory === category.name ? "default" : "outline"} 
+                    key={taste.id} 
+                    variant={selectedCategory === taste.id ? "default" : "outline"} 
                     size="sm" 
                     className="whitespace-nowrap flex items-center gap-2"
-                    onClick={() => setSelectedCategory(category.name)}
+                    onClick={() => setSelectedCategory(taste.id)}
                   >
                     <Icon className="h-4 w-4" />
-                    {category.name} ({count})
+                    {taste.label} ({count})
                   </Button>
                 );
               })}
@@ -555,19 +525,19 @@ export default function Shop() {
             </div>
             
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {experienceCategories.map((category, index) => {
-                const Icon = category.icon;
-                const count = getCategoryCount(category.name, true);
+              {tasteFilters.map((taste) => {
+                const Icon = taste.icon;
+                const count = getTasteCount(taste.id);
                 return (
                   <Button 
-                    key={index} 
-                    variant={selectedCategory === category.name ? "default" : "outline"} 
+                    key={taste.id} 
+                    variant={selectedCategory === taste.id ? "default" : "outline"} 
                     size="sm" 
                     className="whitespace-nowrap flex items-center gap-2"
-                    onClick={() => setSelectedCategory(category.name)}
+                    onClick={() => setSelectedCategory(taste.id)}
                   >
                     <Icon className="h-4 w-4" />
-                    {category.name} ({count})
+                    {taste.label} ({count})
                   </Button>
                 );
               })}

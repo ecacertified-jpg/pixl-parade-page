@@ -29,16 +29,7 @@ interface OnboardingExperienceProps {
   firstIncompleteStep?: number;
 }
 
-const GIFT_CATEGORIES = [
-  { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  { id: 'mode', label: 'Mode', icon: ShoppingBag, color: 'bg-pink-500/10 text-pink-500 border-pink-500/20' },
-  { id: 'voyage', label: 'Voyage', icon: Plane, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-  { id: 'musique', label: 'Musique', icon: Music, color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
-  { id: 'gastronomie', label: 'Gastronomie', icon: Utensils, color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
-  { id: 'sport', label: 'Sport', icon: Dumbbell, color: 'bg-red-500/10 text-red-500 border-red-500/20' },
-  { id: 'bijoux', label: 'Bijoux', icon: Star, color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-  { id: 'bien-etre', label: 'Bien-être', icon: Heart, color: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
-];
+import { TASTE_CATEGORIES } from "@/data/taste-categories";
 
 // Floating particles component
 const FloatingParticles = () => (
@@ -714,7 +705,7 @@ export const OnboardingExperience = ({
               </AnimatePresence>
 
               <div className="grid grid-cols-2 gap-3">
-                {GIFT_CATEGORIES.map((cat, idx) => {
+                {TASTE_CATEGORIES.map((cat, idx) => {
                   const Icon = cat.icon;
                   const isSelected = selectedCategories.includes(cat.id);
                   return (

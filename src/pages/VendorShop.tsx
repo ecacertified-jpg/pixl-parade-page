@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -87,6 +88,7 @@ export default function VendorShop() {
   }, [galleryItems, products]);
 
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
+  const [selectedTaste, setSelectedTaste] = useState("tous");
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
@@ -106,7 +108,9 @@ export default function VendorShop() {
     }
   }, [searchParams, products, loading]);
 
-  const filteredProducts = products.filter(p => p.isExperience === (activeTab === "experiences"));
+  const filteredProducts = products.filter(p => 
+    p.isExperience === (activeTab === "experiences") && matchesTaste(p.categoryName, selectedTaste)
+  );
   const productCount = products.filter(p => !p.isExperience).length;
   const experienceCount = products.filter(p => p.isExperience).length;
 
@@ -343,6 +347,24 @@ export default function VendorShop() {
           </TabsList>
 
           <TabsContent value="products" className="mt-4">
+            {/* Taste filter bar */}
+            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+              {[ALL_TASTE, ...TASTE_CATEGORIES].map((taste) => {
+                const Icon = taste.icon;
+                return (
+                  <Button 
+                    key={taste.id} 
+                    variant={selectedTaste === taste.id ? "default" : "outline"} 
+                    size="sm" 
+                    className="whitespace-nowrap flex items-center gap-1.5"
+                    onClick={() => setSelectedTaste(taste.id)}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {taste.label}
+                  </Button>
+                );
+              })}
+            </div>
             {productCount === 0 ? (
               <Card className="p-8 text-center">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -380,6 +402,24 @@ export default function VendorShop() {
           </TabsContent>
 
           <TabsContent value="experiences" className="mt-4">
+            {/* Taste filter bar */}
+            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+              {[ALL_TASTE, ...TASTE_CATEGORIES].map((taste) => {
+                const Icon = taste.icon;
+                return (
+                  <Button 
+                    key={taste.id} 
+                    variant={selectedTaste === taste.id ? "default" : "outline"} 
+                    size="sm" 
+                    className="whitespace-nowrap flex items-center gap-1.5"
+                    onClick={() => setSelectedTaste(taste.id)}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {taste.label}
+                  </Button>
+                );
+              })}
+            </div>
             {experienceCount === 0 ? (
               <Card className="p-8 text-center">
                 <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
