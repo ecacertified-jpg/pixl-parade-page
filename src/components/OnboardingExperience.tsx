@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getAppBaseUrl } from '@/utils/appUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { TASTE_TO_PRODUCT_CATEGORIES } from '@/data/taste-categories';
 
 interface OnboardingExperienceProps {
   open: boolean;
@@ -207,6 +208,12 @@ export const OnboardingExperience = ({
     }
   }, [hasBirthdayPage, currentStep, shouldShowBirthdayPageStep, onComplete]);
 
+  // Build category_name list from selected tastes
+  const tasteCategoryNames = useMemo(() => {
+    if (!selectedCategories.length) return [];
+    return selectedCategories.flatMap(taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []);
+  }, [selectedCategories]);
+
   // Load wishlist products when reaching step 3
   useEffect(() => {
     if (currentStep !== 3 || !user) return;
@@ -215,8 +222,13 @@ export const OnboardingExperience = ({
       let query = supabase
         .from('products')
         .select('id, name, price, currency, image_url, business_id')
-        .eq('is_active', true)
-        .limit(12);
+        .eq('is_active', true);
+
+      if (tasteCategoryNames.length > 0) {
+        query = query.in('category_name', tasteCategoryNames);
+      }
+
+      query = query.limit(20);
 
       const { data } = await query;
       setWishlistProducts(data || []);
@@ -230,7 +242,7 @@ export const OnboardingExperience = ({
       setLoadingProducts(false);
     };
     loadProducts();
-  }, [currentStep, user]);
+  }, [currentStep, user, tasteCategoryNames]);
 
   // Toggle favorite
   const toggleFavorite = async (productId: string) => {
