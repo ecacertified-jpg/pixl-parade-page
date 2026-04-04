@@ -242,7 +242,7 @@ export const OnboardingExperience = ({
       setLoadingProducts(false);
     };
     loadProducts();
-  }, [currentStep, user]);
+  }, [currentStep, user, tasteCategoryNames]);
 
   // Toggle favorite
   const toggleFavorite = async (productId: string) => {
