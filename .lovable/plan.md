@@ -1,40 +1,51 @@
 
 
-# Plan : Filtrer les articles de l'étape Souhaits par les goûts sélectionnés
+# Plan : Accélérer la soumission du formulaire d'ami
 
-## Problème
+## Diagnostic
 
-À l'étape 3 (Souhaits) de l'onboarding, la requête charge simplement 12 produits actifs sans tenir compte des goûts choisis à l'étape 2. Un utilisateur qui sélectionne "Tech" voit des robes et des gâteaux au lieu de smartphones et montres connectées.
+La lenteur vient de deux facteurs :
 
-## Solution
+1. **Cold start de l'Edge Function** : la première invocation après inactivité prend 2-5s pour démarrer le runtime Deno
+2. **4 requêtes DB séquentielles** : token lookup → profile check → contact insert → token update, chacune ajoutant ~100-200ms de latence réseau
 
-Utiliser les `selectedCategories` (goûts choisis à l'étape 2) pour filtrer les produits via le mapping `TASTE_TO_PRODUCT_CATEGORIES`. La requête Supabase utilisera un filtre `.in('category_name', [...])` avec les noms de catégories correspondant aux goûts sélectionnés.
+## Optimisations
 
-## Modification
+### 1. Paralléliser les requêtes DB dans l'Edge Function
 
-### `src/components/OnboardingExperience.tsx`
-
-**Lignes 210-222** — Refonte de la requête produits :
-
-1. Importer `TASTE_TO_PRODUCT_CATEGORIES` depuis `@/data/taste-categories.ts`
-2. Construire la liste des `category_name` correspondant aux goûts sélectionnés :
-   ```typescript
-   const categoryNames = selectedCategories.flatMap(
-     taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []
-   );
-   ```
-3. Si des catégories sont trouvées, ajouter `.in('category_name', categoryNames)` à la requête
-4. Augmenter la limite à 20 pour compenser le filtrage
-5. Ajouter `selectedCategories` dans les dépendances du `useEffect` pour recharger si l'utilisateur revient modifier ses goûts
+Regrouper le token lookup et le profile check en un `Promise.all`, puis le contact insert et le token update en un second `Promise.all`.
 
 ```text
-Avant :  .eq('is_active', true).limit(12)
-Après :  .eq('is_active', true).in('category_name', categoryNames).limit(20)
+Avant (séquentiel) :  Token → Profile → Insert → Update  (~800ms DB)
+Après (parallèle) :  [Token + Profile] → [Insert + Update]  (~400ms DB)
 ```
 
-## Fichier concerné
+### 2. Feedback instantané côté client
+
+Afficher l'écran de succès (confettis) **immédiatement** après l'appel, sans attendre la fin de l'animation de chargement. Actuellement le bouton reste en "Envoi en cours..." pendant toute la durée de la requête. On peut :
+- Passer en mode "optimistic" : afficher le succès dès que la requête part, et gérer l'erreur en rollback
+- Ou mieux : lancer les confettis **dès réception de la réponse** sans délai supplémentaire (c'est déjà le cas, mais le cold start reste le goulot)
+
+### 3. Pré-chauffer l'Edge Function au chargement de la page
+
+Au `useEffect` initial (quand le token est validé côté client), envoyer un appel OPTIONS/ping léger pour "réveiller" la fonction avant que l'utilisateur ne soumette.
+
+## Modifications
+
+### `supabase/functions/save-friend-form/index.ts`
+
+- Paralléliser token lookup + profile check avec `Promise.all`
+- Paralléliser contact insert + token update avec `Promise.all`
+
+### `src/pages/FillFriendForm.tsx`
+
+- Ajouter un appel de pré-chauffe (warm-up) dans le `useEffect` de chargement du token : un simple `supabase.functions.invoke("save-friend-form", { body: {} })` qui retournera une erreur 400 mais réveillera la fonction
+- Cela se fait en parallèle du chargement du formulaire, invisible pour l'utilisateur
+
+## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Filtrer les produits par goûts sélectionnés à l'étape 2 |
+| `supabase/functions/save-friend-form/index.ts` | Paralléliser les requêtes DB |
+| `src/pages/FillFriendForm.tsx` | Ajouter warm-up de l'Edge Function au chargement |
 
