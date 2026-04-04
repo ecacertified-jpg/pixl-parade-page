@@ -277,35 +277,7 @@ export default function Shop() {
     
     return matchesTab && matchesCategory && matchesLocation && matchesSearch && matchesCountry;
   });
-  const productCategories = [
-    { name: "Tous", icon: Gift },
-    { name: "Bijoux & Accessoires", icon: Gem },
-    { name: "Parfums & Beauté", icon: Sparkles },
-    { name: "Tech & Électronique", icon: Smartphone },
-    { name: "Mode & Vêtements", icon: Shirt },
-    { name: "Artisanat Ivoirien", icon: Hammer },
-    { name: "Gastronomie & Délices", icon: UtensilsCrossed },
-    { name: "Décoration & Maison", icon: Home },
-    { name: "Loisirs & Divertissement", icon: Gamepad2 },
-    { name: "Bébé & Enfants", icon: Baby },
-    { name: "Affaires & Bureau", icon: Briefcase }
-  ];
-
-  const experienceCategories = [
-    { name: "Tous", icon: Gift },
-    { name: "Restaurants & Gastronomie", icon: UtensilsCrossed },
-    { name: "Bien-être & Spa", icon: Sparkles },
-    { name: "Séjours & Hébergement", icon: Hotel },
-    { name: "Événements & Célébrations", icon: PartyPopper },
-    { name: "Formation & Développement", icon: GraduationCap },
-    { name: "Expériences VIP", icon: Star },
-    { name: "Souvenirs & Photographie", icon: Camera },
-    { name: "Culture & Loisirs", icon: Palette },
-    { name: "Mariage & Fiançailles", icon: Heart },
-    { name: "Occasions Spéciales", icon: Gift }
-  ];
-
-  const currentCategories = activeTab === "products" ? productCategories : experienceCategories;
+  const tasteFilters = [ALL_TASTE, ...TASTE_CATEGORIES];
 
   // Dynamic breadcrumb based on selected category
   const categoryBreadcrumbData = useMemo(() => {
