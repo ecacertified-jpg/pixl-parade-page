@@ -1,36 +1,40 @@
 
 
-# Plan : Ajouter un compteur de produits aux catégories de goût dans VendorShop
+# Plan : Filtrer les articles de l'étape Souhaits par les goûts sélectionnés
 
-## Constat
+## Problème
 
-- **Shop.tsx** : a déjà `getTasteCount()` et affiche `{taste.label} ({count})` — rien à faire.
-- **VendorShop.tsx** : affiche uniquement `{taste.label}` sans compteur dans les deux onglets (produits et expériences).
+À l'étape 3 (Souhaits) de l'onboarding, la requête charge simplement 12 produits actifs sans tenir compte des goûts choisis à l'étape 2. Un utilisateur qui sélectionne "Tech" voit des robes et des gâteaux au lieu de smartphones et montres connectées.
+
+## Solution
+
+Utiliser les `selectedCategories` (goûts choisis à l'étape 2) pour filtrer les produits via le mapping `TASTE_TO_PRODUCT_CATEGORIES`. La requête Supabase utilisera un filtre `.in('category_name', [...])` avec les noms de catégories correspondant aux goûts sélectionnés.
 
 ## Modification
 
-### `src/pages/VendorShop.tsx`
+### `src/components/OnboardingExperience.tsx`
 
-1. Ajouter une fonction `getTasteCount(tasteId, isExperience)` qui compte les produits correspondant au goût pour l'onglet courant :
+**Lignes 210-222** — Refonte de la requête produits :
 
-```typescript
-const getTasteCount = (tasteId: string, isExperience: boolean) => {
-  return products.filter(p => 
-    p.isExperience === isExperience && matchesTaste(p.categoryName, tasteId)
-  ).length;
-};
-```
+1. Importer `TASTE_TO_PRODUCT_CATEGORIES` depuis `@/data/taste-categories.ts`
+2. Construire la liste des `category_name` correspondant aux goûts sélectionnés :
+   ```typescript
+   const categoryNames = selectedCategories.flatMap(
+     taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []
+   );
+   ```
+3. Si des catégories sont trouvées, ajouter `.in('category_name', categoryNames)` à la requête
+4. Augmenter la limite à 20 pour compenser le filtrage
+5. Ajouter `selectedCategories` dans les dépendances du `useEffect` pour recharger si l'utilisateur revient modifier ses goûts
 
-2. Dans les deux blocs `TASTE_CATEGORIES.map` (lignes ~352-366 et ~407-421), ajouter le compteur au label du bouton :
-
-```
-{taste.label} ({getTasteCount(taste.id, false)})   // onglet produits
-{taste.label} ({getTasteCount(taste.id, true)})     // onglet expériences
+```text
+Avant :  .eq('is_active', true).limit(12)
+Après :  .eq('is_active', true).in('category_name', categoryNames).limit(20)
 ```
 
 ## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/pages/VendorShop.tsx` | Ajouter `getTasteCount` + afficher le compteur sur chaque bouton filtre |
+| `src/components/OnboardingExperience.tsx` | Filtrer les produits par goûts sélectionnés à l'étape 2 |
 
