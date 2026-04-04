@@ -1,44 +1,33 @@
 
+# Plan : Masquer les champs Téléphone par défaut
 
-# Plan : Incrémenter le compteur uniquement quand le formulaire est rempli
+## Probleme
 
-## Problème
-
-Actuellement, `invitationsSentCount` s'incrémente dès que l'utilisateur clique sur "Partager WhatsApp", "Copier le lien" ou "SMS" — avant même que l'invité n'ait rempli le formulaire. Le compteur est donc trompeur.
+Actuellement, `authInputMethod` est initialisé à `'phone'`, ce qui affiche immédiatement tous les champs du formulaire Téléphone. L'utilisateur veut que les champs ne se dévoilent qu'après avoir cliqué sur le bouton "Téléphone" (même comportement que pour "Email").
 
 ## Solution
 
-Remplacer l'incrémentation locale par un polling sur la table `friend_form_tokens` pour compter les tokens dont le `status === 'completed'`.
+### Fichier : `src/pages/Auth.tsx`
 
-### Modifications dans `src/components/OnboardingExperience.tsx`
-
-1. **Stocker les tokens générés** : maintenir un tableau `generatedTokens: string[]` qui s'enrichit à chaque appel de `handleGenerateFriendFormLink`
-
-2. **Polling des formulaires complétés** : ajouter un `useEffect` avec un `setInterval` (toutes les 5 secondes) qui interroge `friend_form_tokens` pour compter les tokens de l'utilisateur courant ayant `status = 'completed'`
-
-```text
-SELECT count(*) FROM friend_form_tokens
-WHERE user_id = current_user AND status = 'completed'
-```
-
-Mettre à jour `invitationsSentCount` avec ce count réel.
-
-3. **Retirer les incrémentations manuelles** : supprimer les `setInvitationsSentCount(c => c + 1)` dans `handleShareFriendFormWhatsApp`, `handleCopyFriendFormLink` et `handleShareFriendFormSMS`
-
-4. **Feedback immédiat au partage** : remplacer l'incrémentation par un simple toast de confirmation ("Lien partagé ! En attente de réponse...")
+1. Changer le type de `authInputMethod` pour accepter `null` : `useState<'phone' | 'email' | null>(null)`
+2. Initialiser à `null` au lieu de `'phone'`
+3. Les deux boutons (Email / Téléphone) restent visibles, mais aucun formulaire ne s'affiche tant que l'utilisateur n'a pas cliqué sur l'un des deux
+4. Le rendu conditionnel existant (`authInputMethod === 'phone' ? ... : ...`) devient un triple check : `null` → rien, `'phone'` → formulaire téléphone, `'email'` → formulaire email
 
 ### Comportement final
 
 ```text
-Clic "Partager WhatsApp" → Toast "Lien partagé !" (compteur reste à 0)
-L'invité remplit le formulaire → status = 'completed' en base
-Polling (5s) → compteur passe à 1/3
-3 formulaires remplis → confettis + redirection auto
+Etat initial :
+  [Google]
+  --- ou ---
+  [Email]  [Téléphone]    ← les deux en variant="outline"
+  (aucun champ affiché)
+
+Clic sur "Téléphone" :
+  [Email]  [Téléphone ✓]  ← Téléphone en variant="default"
+  → Les champs se dévoilent (Prénom, Anniversaire, Localisation, Téléphone)
+
+Clic sur "Email" :
+  [Email ✓]  [Téléphone]  ← Email en variant="default"
+  → Les champs Email se dévoilent
 ```
-
-## Fichier concerné
-
-| Fichier | Action |
-|---------|--------|
-| `src/components/OnboardingExperience.tsx` | Retirer incrémentations manuelles, ajouter polling sur `friend_form_tokens` |
-
