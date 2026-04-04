@@ -472,6 +472,9 @@ export const OnboardingExperience = ({
       return;
     }
     if (currentStep === 1 && birthday) await saveBirthday();
+    if (currentStep === 2 && user) {
+      await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
+    }
     if (currentStep < DYNAMIC_TOTAL_STEPS - 1) {
       onSetStep(currentStep + 1);
     } else {

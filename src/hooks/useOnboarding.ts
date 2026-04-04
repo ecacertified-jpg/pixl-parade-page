@@ -17,7 +17,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
 
   // Check all steps in parallel
   const [profileRes, favRes, friendRes] = await Promise.all([
-    supabase.from('profiles').select('birthday').eq('user_id', userId).single(),
+    supabase.from('profiles').select('birthday, selected_tastes').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
   ]);
@@ -27,7 +27,11 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     return { shouldShow: true, firstIncompleteStep: 1 };
   }
 
-  // Step 2: Goûts — skip check (always considered done if birthday is set)
+  // Step 2: Goûts (≥1 taste selected)
+  if (!(profileRes.data as any)?.selected_tastes?.length) {
+    return { shouldShow: true, firstIncompleteStep: 2 };
+  }
+
   // Step 3: Souhaits (≥3 favorites)
   if ((favRes.count || 0) < 3) {
     return { shouldShow: true, firstIncompleteStep: 3 };
