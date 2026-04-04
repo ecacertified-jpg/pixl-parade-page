@@ -149,6 +149,15 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
       return;
     }
 
+    if (useCustomCategory && !formData.business_category_id) {
+      toast.error('Veuillez sélectionner une catégorie personnalisée');
+      return;
+    }
+    if (!useCustomCategory && !formData.category_name) {
+      toast.error('Veuillez sélectionner une catégorie');
+      return;
+    }
+
     setLoading(true);
     try {
       // Upload new images
