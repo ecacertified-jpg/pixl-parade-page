@@ -473,7 +473,7 @@ export default function Shop() {
         {/* Tabs for Products vs Experiences */}
         <Tabs defaultValue="products" className="mb-6" onValueChange={(value) => {
           setActiveTab(value as "products" | "experiences");
-          setSelectedCategory("Tous");
+          setSelectedCategory("tous");
         }}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="products">🛍️ Produits</TabsTrigger>
