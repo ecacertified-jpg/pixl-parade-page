@@ -50,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Look up the token
+    // PARALLEL: Token lookup + profile prefetch (we'll need user_id from token first)
     const { data: tokenData, error: tokenError } = await supabaseAdmin
       .from("friend_form_tokens")
       .select("*")
@@ -78,56 +78,40 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Ensure inviter has a profile (required by contacts FK)
-    const { data: profile } = await supabaseAdmin
+    // Ensure profile exists (upsert pattern - faster than select+insert)
+    await supabaseAdmin
       .from("profiles")
-      .select("user_id")
-      .eq("user_id", tokenData.user_id)
-      .single();
+      .upsert({ user_id: tokenData.user_id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-    if (!profile) {
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .insert({ user_id: tokenData.user_id });
+    // PARALLEL: Insert contact + mark token as completed
+    const [contactResult, _tokenUpdate] = await Promise.all([
+      supabaseAdmin
+        .from("contacts")
+        .insert({
+          user_id: tokenData.user_id,
+          name: name.trim().substring(0, 100),
+          phone: phone.trim().substring(0, 20),
+          relationship: relation || tokenData.prefilled_relation || "ami",
+          birthday,
+          city: city?.trim(),
+          neighborhood: neighborhood?.trim(),
+          location: location?.trim(),
+          latitude,
+          longitude,
+        }),
+      supabaseAdmin
+        .from("friend_form_tokens")
+        .update({ status: "completed" })
+        .eq("id", tokenData.id),
+    ]);
 
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Erreur lors de la création du profil" }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-    }
-
-    // Insert the contact for the inviter
-    const { error: contactError } = await supabaseAdmin
-      .from("contacts")
-      .insert({
-        user_id: tokenData.user_id,
-        name: name.trim().substring(0, 100),
-        phone: phone.trim().substring(0, 20),
-        relationship: relation || tokenData.prefilled_relation || "ami",
-        birthday,
-        city: city?.trim(),
-        neighborhood: neighborhood?.trim(),
-        location: location?.trim(),
-        latitude,
-        longitude,
-      });
-
-    if (contactError) {
-      console.error("Error inserting contact:", contactError);
+    if (contactResult.error) {
+      console.error("Error inserting contact:", contactResult.error);
       return new Response(
         JSON.stringify({ error: "Erreur lors de l'enregistrement" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    // Mark token as completed
-    await supabaseAdmin
-      .from("friend_form_tokens")
-      .update({ status: "completed" })
-      .eq("id", tokenData.id);
 
     return new Response(
       JSON.stringify({ success: true, message: "Contact ajouté avec succès !" }),
