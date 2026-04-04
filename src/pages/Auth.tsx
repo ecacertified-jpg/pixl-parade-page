@@ -1432,7 +1432,11 @@ const Auth = () => {
                         </Button>
                       </div>
 
-                      {authInputMethod === 'phone' ? (
+                      {authInputMethod === null ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          Choisissez votre méthode de connexion ci-dessus
+                        </p>
+                      ) : authInputMethod === 'phone' ? (
                         <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
