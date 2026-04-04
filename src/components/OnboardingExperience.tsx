@@ -105,12 +105,15 @@ export const OnboardingExperience = ({
     const loadProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, birthday')
+        .select('first_name, birthday, selected_tastes')
         .eq('user_id', user.id)
         .single();
       if (data?.first_name) setFirstName(data.first_name);
       if (data?.birthday) {
         setBirthday(new Date(data.birthday));
+      }
+      if (data?.selected_tastes && (data.selected_tastes as string[]).length > 0) {
+        setSelectedCategories(data.selected_tastes as string[]);
       }
     };
     loadProfile();
