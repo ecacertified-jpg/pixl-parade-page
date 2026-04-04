@@ -220,6 +220,7 @@ export function AdminAddProductModal({
           price: parseFloat(formData.price),
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           category_id: formData.category_id || null,
+          category_name: categories.find(c => c.id === formData.category_id)?.name_fr || null,
           is_experience: formData.is_experience,
           experience_type: formData.is_experience ? formData.experience_type : null,
           location_name: formData.is_experience ? formData.location_name : null,

@@ -392,7 +392,7 @@ export function EditProductModal({ product, isOpen, onClose, onProductUpdated }:
               </div>
             ) : (
               <div>
-                <Label>Catégorie prédéfinie</Label>
+                <Label>Catégorie prédéfinie <span className="text-destructive">*</span></Label>
                 <Select 
                   value={formData.category_name} 
                   onValueChange={(value) => setFormData({ ...formData, category_name: value })}
