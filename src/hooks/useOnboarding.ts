@@ -3,81 +3,92 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-const fetchOnboardingStatus = async (userId: string): Promise<boolean> => {
-  // Fast cache check
-  const localFlag = localStorage.getItem(`onboarding_completed_${userId}`);
-  if (localFlag === 'true') return false;
+interface OnboardingStatus {
+  shouldShow: boolean;
+  firstIncompleteStep: number;
+}
 
+const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> => {
   // URL override
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('onboarding') === 'true') return true;
-
-  // Source of truth: database flag
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('onboarding_completed')
-    .eq('user_id', userId)
-    .single();
-
-  // Profile not yet created (race condition) → new user → show onboarding
-  if (!profile) return true;
-
-  if (profile.onboarding_completed === false) return true;
-
-  // Cache for next visit
-  if (profile?.onboarding_completed === true) {
-    localStorage.setItem(`onboarding_completed_${userId}`, 'true');
+  if (urlParams.get('onboarding') === 'true') {
+    return { shouldShow: true, firstIncompleteStep: 0 };
   }
 
-  return false;
-};
+  // Check all steps in parallel
+  const [profileRes, favRes, friendRes] = await Promise.all([
+    supabase.from('profiles').select('birthday').eq('user_id', userId).single(),
+    supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
+  ]);
 
-const getSavedStep = (userId: string): number => {
-  const saved = localStorage.getItem(`onboarding_step_${userId}`);
-  return saved ? parseInt(saved, 10) : 0;
+  // Step 1: Birthday
+  if (!profileRes.data?.birthday) {
+    return { shouldShow: true, firstIncompleteStep: 1 };
+  }
+
+  // Step 2: Goûts — skip check (always considered done if birthday is set)
+  // Step 3: Souhaits (≥3 favorites)
+  if ((favRes.count || 0) < 3) {
+    return { shouldShow: true, firstIncompleteStep: 3 };
+  }
+
+  // Step 4: Amis (≥3 completed friend forms)
+  if ((friendRes.count || 0) < 3) {
+    return { shouldShow: true, firstIncompleteStep: 4 };
+  }
+
+  // All steps done
+  return { shouldShow: false, firstIncompleteStep: 0 };
 };
 
 export const useOnboarding = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [manuallyCompleted, setManuallyCompleted] = useState(false);
-  const [currentStep, setCurrentStepState] = useState(() =>
-    user ? getSavedStep(user.id) : 0
-  );
 
-  const { data: shouldShow, isLoading } = useQuery({
+  const { data: status, isLoading } = useQuery({
     queryKey: ['onboarding-status', user?.id],
     queryFn: () => fetchOnboardingStatus(user!.id),
     enabled: !!user?.id,
-    staleTime: 300000,
+    staleTime: 60000,
     retry: 2,
   });
 
+  const shouldShow = status?.shouldShow ?? false;
+  const firstIncompleteStep = status?.firstIncompleteStep ?? 0;
+
+  const [currentStep, setCurrentStepState] = useState<number | null>(null);
+
+  // Initialize currentStep from firstIncompleteStep once loaded
+  const effectiveCurrentStep = currentStep ?? firstIncompleteStep;
+
   const setCurrentStep = useCallback((step: number) => {
     setCurrentStepState(step);
-    if (user) {
-      localStorage.setItem(`onboarding_step_${user.id}`, String(step));
-    }
-  }, [user]);
+  }, []);
 
   const completeOnboarding = useCallback(async () => {
     if (user) {
-      localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
-      localStorage.removeItem(`onboarding_step_${user.id}`);
-      await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('user_id', user.id);
+      // Mark onboarding_completed in DB only if all steps are truly done
+      const fresh = await fetchOnboardingStatus(user.id);
+      if (!fresh.shouldShow) {
+        await supabase
+          .from('profiles')
+          .update({ onboarding_completed: true })
+          .eq('user_id', user.id);
+        localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+      }
       queryClient.invalidateQueries({ queryKey: ['onboarding-status', user.id] });
     }
     setManuallyCompleted(true);
   }, [user, queryClient]);
 
   return {
-    shouldShowOnboarding: manuallyCompleted ? false : (shouldShow ?? false),
+    shouldShowOnboarding: manuallyCompleted ? false : shouldShow,
     isLoading,
     completeOnboarding,
-    currentStep,
+    currentStep: effectiveCurrentStep,
     setCurrentStep,
+    firstIncompleteStep,
   };
 };
