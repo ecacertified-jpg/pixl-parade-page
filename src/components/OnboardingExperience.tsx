@@ -752,38 +752,50 @@ export const OnboardingExperience = ({
 
                   {/* Progress dots + bar */}
                   <div className="mb-5">
-                    <div className="flex items-center justify-center gap-3 mb-3">
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          initial={false}
-                          animate={{
-                            scale: invitationsSentCount > i ? 1.15 : 1,
-                            backgroundColor: invitationsSentCount > i ? 'hsl(142, 76%, 36%)' : 'hsl(var(--muted))',
-                          }}
-                          className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                        >
-                          {invitationsSentCount > i ? (
-                            <Check className="h-4 w-4 text-white" />
-                          ) : (
-                            <Users className="h-4 w-4 text-muted-foreground/40" />
+                    {isLoadingCompletedForms ? (
+                      <div className="flex items-center justify-center gap-2 py-4">
+                        <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm text-muted-foreground font-nunito">Chargement...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          {[0, 1, 2].map((i) => (
+                            <motion.div
+                              key={i}
+                              initial={false}
+                              animate={{
+                                scale: invitationsSentCount > i ? 1.15 : 1,
+                                backgroundColor: invitationsSentCount > i ? 'hsl(142, 76%, 36%)' : 'hsl(var(--muted))',
+                              }}
+                              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                            >
+                              {invitationsSentCount > i ? (
+                                <Check className="h-4 w-4 text-white" />
+                              ) : (
+                                <Users className="h-4 w-4 text-muted-foreground/40" />
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                        <Progress
+                          value={Math.min((invitationsSentCount / 3) * 100, 100)}
+                          className="h-2.5 mx-auto max-w-[200px]"
+                          indicatorClassName={cn(
+                            'transition-all duration-500',
+                            invitationsSentCount >= 3
+                              ? 'bg-gradient-to-r from-green-400 to-emerald-600'
+                              : 'bg-gradient-to-r from-primary to-accent'
                           )}
-                        </motion.div>
-                      ))}
-                    </div>
-                    <Progress
-                      value={Math.min((invitationsSentCount / 3) * 100, 100)}
-                      className="h-2.5 mx-auto max-w-[200px]"
-                      indicatorClassName={cn(
-                        'transition-all duration-500',
-                        invitationsSentCount >= 3
-                          ? 'bg-gradient-to-r from-green-400 to-emerald-600'
-                          : 'bg-gradient-to-r from-primary to-accent'
-                      )}
-                    />
-                    <p className="text-sm font-poppins font-semibold mt-2 text-foreground">
-                      {invitationsSentCount}/3 amis invités
-                    </p>
+                        />
+                        <p className="text-sm font-poppins font-semibold mt-2 text-foreground">
+                          {invitationsSentCount}/3 amis ajoutés
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 font-nunito mt-1">
+                          Le compteur augmente uniquement quand ton proche remplit et envoie le formulaire.
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {!friendFormLink ? (
