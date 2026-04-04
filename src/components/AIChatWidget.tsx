@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageCircle, X, Sparkles, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
@@ -33,6 +34,7 @@ const getTimeBasedGreeting = () => {
 };
 
 export const AIChatWidget = () => {
+  const location = useLocation();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
@@ -124,6 +126,11 @@ export const AIChatWidget = () => {
       setShowWelcome(false);
     }
   };
+
+  const hiddenRoutes = ['/', '/auth'];
+  if (hiddenRoutes.includes(location.pathname)) {
+    return null;
+  }
 
   return (
     <>
