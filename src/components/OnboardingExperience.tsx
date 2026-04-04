@@ -10,7 +10,8 @@ import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import {
   Sparkles, CalendarDays, Gift, Users, Share2, ArrowRight, ArrowLeft,
   Heart, Star, Laptop, ShoppingBag, Plane, Music, Utensils, Dumbbell,
-  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink
+  Copy, Check, PartyPopper, X, ChevronLeft, ChevronRight, ExternalLink,
+  Cake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -26,8 +27,6 @@ interface OnboardingExperienceProps {
   currentStep: number;
   onSetStep: (step: number) => void;
 }
-
-const TOTAL_STEPS = 5;
 
 const GIFT_CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: Laptop, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
@@ -91,7 +90,19 @@ export const OnboardingExperience = ({
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  
+
+  // Birthday page step states
+  const [hasBirthdayPage, setHasBirthdayPage] = useState(false);
+  const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
+  const [creatingBirthdayPage, setCreatingBirthdayPage] = useState(false);
+
+  // Dynamic total steps
+  const shouldShowBirthdayPageStep = daysUntilBirthday !== null && daysUntilBirthday <= 45;
+  const DYNAMIC_TOTAL_STEPS = shouldShowBirthdayPageStep ? 6 : 5;
+
+  const stepLabels = shouldShowBirthdayPageStep
+    ? ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page']
+    : ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'];
 
   // Load user data on mount
   useEffect(() => {
@@ -118,6 +129,25 @@ export const OnboardingExperience = ({
     if (next <= today) next.setFullYear(next.getFullYear() + 1);
     setDaysUntilBirthday(Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   }, [birthday]);
+
+  // Check if birthday page exists for current year
+  useEffect(() => {
+    if (!user) return;
+    const checkBirthdayPage = async () => {
+      const currentYear = new Date().getFullYear();
+      const { data } = await supabase
+        .from('birthday_pages')
+        .select('id, slug')
+        .eq('user_id', user.id)
+        .eq('celebration_year', currentYear)
+        .maybeSingle();
+      if (data) {
+        setHasBirthdayPage(true);
+        setBirthdayPageSlug(data.slug);
+      }
+    };
+    checkBirthdayPage();
+  }, [user]);
 
   // Confetti on step 0
   useEffect(() => {
@@ -152,16 +182,36 @@ export const OnboardingExperience = ({
     return () => clearInterval(interval);
   }, [currentStep, user]);
 
-  // Auto-redirect when 3 friends invited
+  // Auto-redirect when 3 friends invited (step 4) — only if no birthday page step
   useEffect(() => {
     if (invitationsSentCount >= 3 && currentStep === 4) {
+      if (shouldShowBirthdayPageStep) {
+        // Move to step 5 instead of completing
+        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+        const timer = setTimeout(() => {
+          onSetStep(5);
+        }, 1500);
+        return () => clearTimeout(timer);
+      } else {
+        confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+        const timer = setTimeout(() => {
+          onComplete();
+        }, 2500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [invitationsSentCount, currentStep, onComplete, shouldShowBirthdayPageStep, onSetStep]);
+
+  // Auto-redirect when birthday page created (step 5)
+  useEffect(() => {
+    if (hasBirthdayPage && currentStep === 5 && shouldShowBirthdayPageStep) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [invitationsSentCount, currentStep, onComplete]);
+  }, [hasBirthdayPage, currentStep, shouldShowBirthdayPageStep, onComplete]);
 
   // Load wishlist products when reaching step 3
   useEffect(() => {
@@ -220,7 +270,6 @@ export const OnboardingExperience = ({
       return;
     }
 
-    // Vérifier la session avant l'appel avec ensureValidSession
     const { valid, session: validSession } = await ensureValidSession();
     if (!valid || !validSession?.access_token) {
       toast.error('Session expirée, veuillez vous reconnecter');
@@ -240,7 +289,6 @@ export const OnboardingExperience = ({
 
       if (error) {
         console.error('Invitation error:', error);
-        // Try to extract server error message
         let msg = "L'invitation n'a pas pu être envoyée";
         try {
           const parsed = typeof error === 'object' && error.context ? await error.context.json() : null;
@@ -335,7 +383,55 @@ export const OnboardingExperience = ({
     toast.success('Lien partagé ! En attente de réponse... ⏳');
   };
 
+  // Create birthday page
+  const handleCreateBirthdayPage = async () => {
+    if (!user || creatingBirthdayPage) return;
+    setCreatingBirthdayPage(true);
+    try {
+      const currentYear = new Date().getFullYear();
+      const slug = `${user.id.slice(0, 8)}-${currentYear}`;
+      
+      const { data: existing } = await supabase
+        .from('birthday_pages')
+        .select('id, slug')
+        .eq('user_id', user.id)
+        .eq('celebration_year', currentYear)
+        .maybeSingle();
 
+      if (existing) {
+        setHasBirthdayPage(true);
+        setBirthdayPageSlug(existing.slug);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('birthday_pages')
+        .insert({
+          user_id: user.id,
+          slug,
+          title: `Anniversaire de ${firstName || 'mon ami(e)'}`,
+          celebration_year: currentYear,
+          is_active: true,
+        })
+        .select('id, slug')
+        .single();
+
+      if (error) {
+        console.error('Error creating birthday page:', error);
+        toast.error("Erreur lors de la création de la page");
+        return;
+      }
+
+      setBirthdayPageSlug(data.slug);
+      setHasBirthdayPage(true);
+      confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+    } catch (err) {
+      console.error('Birthday page creation error:', err);
+      toast.error("Erreur inattendue");
+    } finally {
+      setCreatingBirthdayPage(false);
+    }
+  };
 
   const isStepCompleted = (step: number): boolean => {
     switch (step) {
@@ -344,6 +440,7 @@ export const OnboardingExperience = ({
       case 2: return selectedCategories.length >= 1;
       case 3: return favoriteIds.length >= 3;
       case 4: return invitationsSentCount >= 3;
+      case 5: return hasBirthdayPage;
       default: return false;
     }
   };
@@ -353,6 +450,7 @@ export const OnboardingExperience = ({
       case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
       case 2: return "Choisis au moins une catégorie de cadeau 🎁";
       case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
+      case 5: return "Crée ta page d'anniversaire pour continuer 🎂";
       default: return "Complète cette étape pour continuer";
     }
   };
@@ -365,7 +463,7 @@ export const OnboardingExperience = ({
       return;
     }
     if (currentStep === 1 && birthday) await saveBirthday();
-    if (currentStep < TOTAL_STEPS - 1) {
+    if (currentStep < DYNAMIC_TOTAL_STEPS - 1) {
       onSetStep(currentStep + 1);
     } else {
       confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
@@ -377,7 +475,7 @@ export const OnboardingExperience = ({
     if (currentStep > 0) onSetStep(currentStep - 1);
   };
 
-  const progressValue = ((currentStep + 1) / TOTAL_STEPS) * 100;
+  const progressValue = ((currentStep + 1) / DYNAMIC_TOTAL_STEPS) * 100;
 
   if (!open) return null;
 
@@ -394,7 +492,7 @@ export const OnboardingExperience = ({
       <div className="relative z-20 p-4 pb-3 bg-background">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-muted-foreground font-nunito">
-            Étape {currentStep + 1} sur {TOTAL_STEPS}
+            Étape {currentStep + 1} sur {DYNAMIC_TOTAL_STEPS}
           </span>
           <button onClick={onComplete} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-5 w-5" />
@@ -419,9 +517,9 @@ export const OnboardingExperience = ({
           </button>
 
           <span className="text-sm font-nunito text-foreground/70 min-w-[8rem] text-center">
-            {['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'][currentStep]}
+            {stepLabels[currentStep]}
             <span className="text-muted-foreground/50 ml-1.5 text-xs">
-              {currentStep + 1}/{TOTAL_STEPS}
+              {currentStep + 1}/{DYNAMIC_TOTAL_STEPS}
             </span>
           </span>
 
@@ -431,13 +529,13 @@ export const OnboardingExperience = ({
                 toast.info(stepHintMessage(currentStep));
                 return;
               }
-              if (currentStep < TOTAL_STEPS - 1) onSetStep(currentStep + 1);
+              if (currentStep < DYNAMIC_TOTAL_STEPS - 1) onSetStep(currentStep + 1);
             }}
-            disabled={currentStep >= TOTAL_STEPS - 1}
+            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1}
             aria-label="Étape suivante"
             className={cn(
               'rounded-full transition-all duration-200',
-              currentStep >= TOTAL_STEPS - 1
+              currentStep >= DYNAMIC_TOTAL_STEPS - 1
                 ? 'p-1.5 text-muted-foreground/30 cursor-not-allowed'
                 : canGoNext
                   ? 'p-2.5 bg-red-500 text-white shadow-lg shadow-red-500/40 ring-2 ring-red-300 animate-pulse cursor-pointer hover:bg-red-600 active:scale-95'
@@ -445,8 +543,8 @@ export const OnboardingExperience = ({
             )}
           >
             <ChevronRight className={cn(
-              currentStep < TOTAL_STEPS - 1 ? "h-7 w-7" : "h-5 w-5",
-              currentStep < TOTAL_STEPS - 1 && canGoNext && "animate-[bounce-right_1.5s_ease-in-out_infinite]"
+              currentStep < DYNAMIC_TOTAL_STEPS - 1 ? "h-7 w-7" : "h-5 w-5",
+              currentStep < DYNAMIC_TOTAL_STEPS - 1 && canGoNext && "animate-[bounce-right_1.5s_ease-in-out_infinite]"
             )} />
           </button>
         </div>
@@ -770,7 +868,7 @@ export const OnboardingExperience = ({
               className="text-center max-w-md mx-auto w-full"
             >
               {invitationsSentCount >= 3 ? (
-                // 🎉 Success state — auto-redirect
+                // 🎉 Success state
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -799,7 +897,7 @@ export const OnboardingExperience = ({
                     className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
                   >
                     <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    Redirection vers ton tableau de bord...
+                    {shouldShowBirthdayPageStep ? "Passage à l'étape suivante..." : "Redirection vers ton tableau de bord..."}
                   </motion.div>
                 </motion.div>
               ) : (
@@ -929,6 +1027,119 @@ export const OnboardingExperience = ({
               )}
             </motion.div>
           )}
+
+          {/* Step 5: Birthday Page (conditional) */}
+          {currentStep === 5 && shouldShowBirthdayPageStep && (
+            <motion.div
+              key="birthday-page"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              className="text-center max-w-md mx-auto w-full"
+            >
+              {hasBirthdayPage ? (
+                // Success state
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200 }}
+                  className="py-8"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: 'spring' }}
+                    className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center mb-6 shadow-lg"
+                  >
+                    <PartyPopper className="h-12 w-12 text-white" />
+                  </motion.div>
+                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-3">
+                    Ta page est prête ! 🎂
+                  </h2>
+                  <p className="text-lg text-muted-foreground font-nunito mb-2">
+                    Tes proches pourront t'envoyer des messages et des cadeaux !
+                  </p>
+                  {birthdayPageSlug && (
+                    <p className="text-sm text-primary font-nunito mb-4">
+                      🔗 /anniversaire/{birthdayPageSlug}
+                    </p>
+                  )}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
+                  >
+                    <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Redirection vers ton tableau de bord...
+                  </motion.div>
+                </motion.div>
+              ) : (
+                // CTA state
+                <>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring' }}
+                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center mb-5 shadow-lg"
+                  >
+                    <Cake className="h-10 w-10 text-white" />
+                  </motion.div>
+
+                  <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
+                    Ton anniversaire approche ! 🎂
+                  </h2>
+                  <p className="text-muted-foreground font-nunito mb-3 text-sm leading-relaxed">
+                    {daysUntilBirthday !== null && (
+                      <>Dans <span className="font-bold text-primary">J-{daysUntilBirthday}</span>, c'est ton jour ! </>
+                    )}
+                    Crée ta page d'anniversaire pour recevoir des cadeaux et des messages de tes proches. 🎁
+                  </p>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 border border-pink-200 dark:border-pink-700"
+                  >
+                    <p className="text-sm text-foreground/80 font-nunito leading-relaxed">
+                      ✨ Tes amis pourront :<br />
+                      <span className="font-semibold">• T'écrire des messages</span><br />
+                      <span className="font-semibold">• Partager des photos souvenirs</span><br />
+                      <span className="font-semibold">• Contribuer à ta cagnotte cadeaux</span>
+                    </p>
+                  </motion.div>
+
+                  <motion.div
+                    animate={{ scale: [1, 1.02, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Button
+                      onClick={handleCreateBirthdayPage}
+                      disabled={creatingBirthdayPage}
+                      className="gap-2 w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg shadow-pink-500/30"
+                      size="lg"
+                    >
+                      <Cake className="h-5 w-5" />
+                      {creatingBirthdayPage ? 'Création en cours...' : '🎂 Créer ma page d\'anniversaire'}
+                    </Button>
+                  </motion.div>
+
+                  <AnimatePresence>
+                    {!hasBirthdayPage && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                      >
+                        🎂 Crée ta page d'anniversaire pour que tes proches puissent te célébrer !
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -942,7 +1153,7 @@ export const OnboardingExperience = ({
             </Button>
           )}
           <div className="flex-1" />
-          {currentStep < TOTAL_STEPS - 1 ? (
+          {currentStep < DYNAMIC_TOTAL_STEPS - 1 ? (
             <Button onClick={handleNext} className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90" size="lg">
               {currentStep === 0 ? "C'est parti !" : 'Continuer'}
               <ArrowRight className="h-4 w-4" />
