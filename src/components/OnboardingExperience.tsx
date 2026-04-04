@@ -208,6 +208,12 @@ export const OnboardingExperience = ({
     }
   }, [hasBirthdayPage, currentStep, shouldShowBirthdayPageStep, onComplete]);
 
+  // Build category_name list from selected tastes
+  const tasteCategoryNames = useMemo(() => {
+    if (!selectedCategories.length) return [];
+    return selectedCategories.flatMap(taste => TASTE_TO_PRODUCT_CATEGORIES[taste] || []);
+  }, [selectedCategories]);
+
   // Load wishlist products when reaching step 3
   useEffect(() => {
     if (currentStep !== 3 || !user) return;
@@ -216,8 +222,13 @@ export const OnboardingExperience = ({
       let query = supabase
         .from('products')
         .select('id, name, price, currency, image_url, business_id')
-        .eq('is_active', true)
-        .limit(12);
+        .eq('is_active', true);
+
+      if (tasteCategoryNames.length > 0) {
+        query = query.in('category_name', tasteCategoryNames);
+      }
+
+      query = query.limit(20);
 
       const { data } = await query;
       setWishlistProducts(data || []);
