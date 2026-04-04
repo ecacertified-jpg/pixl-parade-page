@@ -136,6 +136,7 @@ export const OnboardingExperience = ({
   useEffect(() => {
     if (currentStep !== 4 || !user) return;
 
+    setIsLoadingCompletedForms(true);
     const fetchCompletedCount = async () => {
       const { count } = await supabase
         .from('friend_form_tokens')
@@ -143,6 +144,7 @@ export const OnboardingExperience = ({
         .eq('user_id', user.id)
         .eq('status', 'completed');
       setInvitationsSentCount(count || 0);
+      setIsLoadingCompletedForms(false);
     };
 
     fetchCompletedCount();
