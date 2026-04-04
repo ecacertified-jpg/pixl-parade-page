@@ -354,7 +354,7 @@ const Landing = () => {
           </div>
         </div>
       </footer>
-      <WhatsAppFloatingButton phoneNumber="2250700000000" />
+      <WhatsAppFloatingButton phoneNumber="2250707467445" />
     </div>
   </>;
 };
