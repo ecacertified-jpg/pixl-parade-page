@@ -687,6 +687,19 @@ export const OnboardingExperience = ({
                 </motion.div>
               )}
 
+              <AnimatePresence>
+                {favoriteIds.length < 3 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                  >
+                    ❤️ Ajoute au moins 3 articles ({favoriteIds.length}/3 ajoutés) pour créer ta liste de souhaits parfaite !
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {loadingProducts ? (
                 <div className="grid grid-cols-2 gap-3">
                   {[...Array(4)].map((_, i) => (
