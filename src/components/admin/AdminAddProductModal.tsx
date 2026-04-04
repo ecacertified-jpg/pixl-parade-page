@@ -162,6 +162,11 @@ export function AdminAddProductModal({
       return;
     }
 
+    if (!formData.category_id) {
+      toast.error('Veuillez sélectionner une catégorie');
+      return;
+    }
+
     setLoading(true);
     try {
       // Find the business to get the owner's user_id
@@ -215,6 +220,7 @@ export function AdminAddProductModal({
           price: parseFloat(formData.price),
           stock_quantity: parseInt(formData.stock_quantity) || 0,
           category_id: formData.category_id || null,
+          category_name: categories.find(c => c.id === formData.category_id)?.name_fr || null,
           is_experience: formData.is_experience,
           experience_type: formData.is_experience ? formData.experience_type : null,
           location_name: formData.is_experience ? formData.location_name : null,
@@ -392,7 +398,7 @@ export function AdminAddProductModal({
 
           {/* Category */}
           <div className="space-y-2">
-            <Label>Catégorie</Label>
+            <Label>Catégorie <span className="text-destructive">*</span></Label>
             <Select 
               value={formData.category_id} 
               onValueChange={(value) => setFormData({ ...formData, category_id: value })}
