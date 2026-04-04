@@ -254,14 +254,11 @@ export default function Shop() {
 
 
 
-  const getCategoryCount = (categoryName: string, isExperience: boolean) => {
-    if (categoryName === "Tous") {
-      return products.filter(p => (p.isExperience || false) === isExperience).length;
+  const getTasteCount = (tasteId: string) => {
+    if (tasteId === 'tous') {
+      return products.length;
     }
-    return products.filter(p => 
-      p.categoryName === categoryName && 
-      (p.isExperience || false) === isExperience
-    ).length;
+    return products.filter(p => matchesTaste(p.categoryName, tasteId)).length;
   };
 
   // Determine active country filter: use effectiveCountryFilter, or fallback to user's home country (then CI) when geolocation unavailable
