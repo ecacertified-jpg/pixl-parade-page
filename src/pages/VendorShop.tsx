@@ -88,6 +88,7 @@ export default function VendorShop() {
   }, [galleryItems, products]);
 
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
+  const [selectedTaste, setSelectedTaste] = useState("tous");
   const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
