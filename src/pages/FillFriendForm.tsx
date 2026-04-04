@@ -35,6 +35,9 @@ export default function FillFriendForm() {
       return;
     }
 
+    // Warm up the edge function in background (absorbs cold start)
+    supabase.functions.invoke("save-friend-form", { body: {} }).catch(() => {});
+
     const loadToken = async () => {
       const { data, error: fetchError } = await supabase
         .from("friend_form_tokens")
