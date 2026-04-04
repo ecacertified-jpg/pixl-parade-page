@@ -75,8 +75,10 @@ export const OnboardingExperience = ({
   onComplete,
   currentStep,
   onSetStep,
+  firstIncompleteStep = 0,
 }: OnboardingExperienceProps) => {
   const { user, ensureValidSession } = useAuth();
+  const isReturningUser = firstIncompleteStep > 0;
   const [firstName, setFirstName] = useState('');
   const [birthday, setBirthday] = useState<Date | undefined>();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);

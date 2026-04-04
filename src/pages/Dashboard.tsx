@@ -1273,6 +1273,7 @@ export default function Dashboard() {
           onComplete={completeOnboarding}
           currentStep={currentStep}
           onSetStep={setCurrentStep}
+          firstIncompleteStep={firstIncompleteStep}
         />
         
         {/* Push Notification Prompt - Shows after onboarding */}
