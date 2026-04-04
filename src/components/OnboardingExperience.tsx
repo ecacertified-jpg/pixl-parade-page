@@ -86,6 +86,7 @@ export const OnboardingExperience = ({
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [friendFormLink, setFriendFormLink] = useState<string | null>(null);
   const [generatingFormLink, setGeneratingFormLink] = useState(false);
+  const [isLoadingCompletedForms, setIsLoadingCompletedForms] = useState(true);
   const [daysUntilBirthday, setDaysUntilBirthday] = useState<number | null>(null);
   const [wishlistProducts, setWishlistProducts] = useState<any[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
