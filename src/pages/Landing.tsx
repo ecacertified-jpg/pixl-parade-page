@@ -353,7 +353,7 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+      <WhatsAppFloatingButton phoneNumber="2250700000000" />
     </div>
   </>;
-};
 export default Landing;
