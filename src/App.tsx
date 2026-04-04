@@ -136,6 +136,7 @@ const WhatsAppTemplateDashboard = lazy(() => import("./pages/Admin/WhatsAppTempl
 const BusinessFundWhatsAppLogs = lazy(() => import("./pages/Admin/BusinessFundWhatsAppLogs"));
 const MyAssignments = lazy(() => import("./pages/Admin/MyAssignments"));
 const CommissionsDashboard = lazy(() => import("./pages/Admin/CommissionsDashboard"));
+const WhatsAppAIChat = lazy(() => import("./pages/Admin/WhatsAppAIChat"));
 
 // Deep link redirect that preserves query params (e.g. ?for=Name)
 const DeepLinkRedirect = ({ occasion }: { occasion: string }) => {
@@ -299,6 +300,7 @@ const App = () => (
             <Route path="/admin/forecast" element={<AdminRoute><L><ForecastPage /></L></AdminRoute>} />
             <Route path="/admin/commissions" element={<AdminRoute><L><CommissionsDashboard /></L></AdminRoute>} />
             <Route path="/admin/birthdays" element={<AdminRoute><L><AdminBirthdays /></L></AdminRoute>} />
+            <Route path="/admin/whatsapp-ai" element={<AdminRoute><L><WhatsAppAIChat /></L></AdminRoute>} />
 
             {/* Dedicated page for WhatsApp CTA link - loads specific fund directly */}
             <Route path="/business/orders/:fundId" element={<ProtectedRoute><L><BusinessFundOrderView /></L></ProtectedRoute>} />

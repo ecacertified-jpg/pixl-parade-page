@@ -30,7 +30,8 @@ import {
   Share2,
   Rocket,
   MessageSquare,
-  Cake
+  Cake,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -78,6 +79,7 @@ const navItems: NavItem[] = [
   { title: 'Stats WhatsApp OTP', href: '/admin/whatsapp-otp', icon: MessageSquare },
   { title: 'Délivrabilité SMS/WA', href: '/admin/messaging-delivery', icon: Radio },
   { title: 'Templates WA', href: '/admin/whatsapp-templates', icon: MessageSquare },
+  { title: 'Chat IA WA', href: '/admin/whatsapp-ai', icon: Bot },
   { title: 'WA Cagnottes', href: '/admin/business-fund-wa', icon: Gift },
   { title: 'Anniversaires', href: '/admin/birthdays', icon: Cake },
   { title: 'Réciprocité', href: '/admin/reciprocity', icon: Heart },
