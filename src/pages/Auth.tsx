@@ -1581,7 +1581,11 @@ const Auth = () => {
                         </Button>
                       </div>
 
-                      {authInputMethod === 'phone' ? (
+                      {authInputMethod === null ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          Choisissez votre méthode d'inscription ci-dessus
+                        </p>
+                      ) : authInputMethod === 'phone' ? (
                         <>
                         <PhoneSignupProgress form={signUpForm} />
                         <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4" noValidate>
