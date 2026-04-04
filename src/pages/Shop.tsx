@@ -493,19 +493,19 @@ export default function Shop() {
             </div>
             
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {productCategories.map((category, index) => {
-                const Icon = category.icon;
-                const count = getCategoryCount(category.name, false);
+              {tasteFilters.map((taste) => {
+                const Icon = taste.icon;
+                const count = getTasteCount(taste.id);
                 return (
                   <Button 
-                    key={index} 
-                    variant={selectedCategory === category.name ? "default" : "outline"} 
+                    key={taste.id} 
+                    variant={selectedCategory === taste.id ? "default" : "outline"} 
                     size="sm" 
                     className="whitespace-nowrap flex items-center gap-2"
-                    onClick={() => setSelectedCategory(category.name)}
+                    onClick={() => setSelectedCategory(taste.id)}
                   >
                     <Icon className="h-4 w-4" />
-                    {category.name} ({count})
+                    {taste.label} ({count})
                   </Button>
                 );
               })}
