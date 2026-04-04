@@ -634,6 +634,19 @@ export const OnboardingExperience = ({
                   );
                 })}
               </div>
+
+              <AnimatePresence>
+                {selectedCategories.length < 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
+                  >
+                    🎁 Choisis au moins une catégorie pour qu'on te propose les meilleurs cadeaux !
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
 
