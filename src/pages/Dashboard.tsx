@@ -134,7 +134,7 @@ export default function Dashboard() {
   const [showSearchFundsModal, setShowSearchFundsModal] = useState(false);
   
   // Onboarding
-  const { shouldShowOnboarding, completeOnboarding, currentStep, setCurrentStep } = useOnboarding();
+  const { shouldShowOnboarding, completeOnboarding, currentStep, setCurrentStep, firstIncompleteStep } = useOnboarding();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'amis');
   
   // Profile completion check (for Google sign-up users)
@@ -1273,6 +1273,7 @@ export default function Dashboard() {
           onComplete={completeOnboarding}
           currentStep={currentStep}
           onSetStep={setCurrentStep}
+          firstIncompleteStep={firstIncompleteStep}
         />
         
         {/* Push Notification Prompt - Shows after onboarding */}

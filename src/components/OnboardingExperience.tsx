@@ -26,6 +26,7 @@ interface OnboardingExperienceProps {
   onComplete: () => void;
   currentStep: number;
   onSetStep: (step: number) => void;
+  firstIncompleteStep?: number;
 }
 
 const GIFT_CATEGORIES = [
@@ -74,8 +75,10 @@ export const OnboardingExperience = ({
   onComplete,
   currentStep,
   onSetStep,
+  firstIncompleteStep = 0,
 }: OnboardingExperienceProps) => {
   const { user, ensureValidSession } = useAuth();
+  const isReturningUser = firstIncompleteStep > 0;
   const [firstName, setFirstName] = useState('');
   const [birthday, setBirthday] = useState<Date | undefined>();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -149,9 +152,9 @@ export const OnboardingExperience = ({
     checkBirthdayPage();
   }, [user]);
 
-  // Confetti on step 0
+  // Confetti on step 0 (only for new users)
   useEffect(() => {
-    if (open && currentStep === 0) {
+    if (open && currentStep === 0 && !isReturningUser) {
       const end = Date.now() + 2500;
       const frame = () => {
         confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.6 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
@@ -160,7 +163,7 @@ export const OnboardingExperience = ({
       };
       frame();
     }
-  }, [open, currentStep]);
+  }, [open, currentStep, isReturningUser]);
 
   // Poll completed friend form tokens every 5 seconds
   useEffect(() => {
