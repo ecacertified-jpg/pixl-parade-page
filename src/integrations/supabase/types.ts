@@ -5969,6 +5969,7 @@ export type Database = {
           privacy_setting: string
           referral_earnings: number | null
           referred_by: string | null
+          selected_tastes: string[] | null
           suspended_at: string | null
           suspension_reason: string | null
           total_birthdays_celebrated: number | null
@@ -6007,6 +6008,7 @@ export type Database = {
           privacy_setting?: string
           referral_earnings?: number | null
           referred_by?: string | null
+          selected_tastes?: string[] | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null
@@ -6045,6 +6047,7 @@ export type Database = {
           privacy_setting?: string
           referral_earnings?: number | null
           referred_by?: string | null
+          selected_tastes?: string[] | null
           suspended_at?: string | null
           suspension_reason?: string | null
           total_birthdays_celebrated?: number | null

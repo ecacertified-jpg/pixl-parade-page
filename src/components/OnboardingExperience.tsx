@@ -105,12 +105,15 @@ export const OnboardingExperience = ({
     const loadProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, birthday')
+        .select('first_name, birthday, selected_tastes')
         .eq('user_id', user.id)
         .single();
       if (data?.first_name) setFirstName(data.first_name);
       if (data?.birthday) {
         setBirthday(new Date(data.birthday));
+      }
+      if (data?.selected_tastes && (data.selected_tastes as string[]).length > 0) {
+        setSelectedCategories(data.selected_tastes as string[]);
       }
     };
     loadProfile();
@@ -469,6 +472,9 @@ export const OnboardingExperience = ({
       return;
     }
     if (currentStep === 1 && birthday) await saveBirthday();
+    if (currentStep === 2 && user) {
+      await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
+    }
     if (currentStep < DYNAMIC_TOTAL_STEPS - 1) {
       onSetStep(currentStep + 1);
     } else {
