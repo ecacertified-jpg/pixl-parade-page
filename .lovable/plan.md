@@ -1,36 +1,36 @@
 
 
-# Plan : Rendre le champ catégorie obligatoire dans les formulaires produit
+# Plan : Ajouter un compteur de produits aux catégories de goût dans VendorShop
 
 ## Constat
 
-3 formulaires de création/modification de produits existent :
+- **Shop.tsx** : a déjà `getTasteCount()` et affiche `{taste.label} ({count})` — rien à faire.
+- **VendorShop.tsx** : affiche uniquement `{taste.label}` sans compteur dans les deux onglets (produits et expériences).
 
-| Formulaire | Validation catégorie | Statut |
-|---|---|---|
-| `AddProductModal.tsx` (business) | Oui, lignes 177-184 | OK |
-| `EditProductModal.tsx` (business) | Non, ligne 147 ne vérifie que name/price | A corriger |
-| `AdminAddProductModal.tsx` (admin) | Non, ligne 160 ne vérifie que business/name/price | A corriger |
+## Modification
 
-## Modifications
+### `src/pages/VendorShop.tsx`
 
-### 1. `src/components/EditProductModal.tsx`
+1. Ajouter une fonction `getTasteCount(tasteId, isExperience)` qui compte les produits correspondant au goût pour l'onglet courant :
 
-Ajouter une validation catégorie dans `handleSubmit` (après ligne 150) :
-- Si `useCustomCategory` et pas de `business_category_id` → toast erreur
-- Si catégorie prédéfinie et pas de `category_name` → toast erreur
-- Ajouter un indicateur visuel `*` sur le label catégorie (ligne ~386)
+```typescript
+const getTasteCount = (tasteId: string, isExperience: boolean) => {
+  return products.filter(p => 
+    p.isExperience === isExperience && matchesTaste(p.categoryName, tasteId)
+  ).length;
+};
+```
 
-### 2. `src/components/admin/AdminAddProductModal.tsx`
+2. Dans les deux blocs `TASTE_CATEGORIES.map` (lignes ~352-366 et ~407-421), ajouter le compteur au label du bouton :
 
-- Ajouter une validation dans `handleSubmit` (après ligne 163) : si pas de `category_id` → toast erreur
-- Remplacer le label "Catégorie" par "Catégorie *" (ligne ~395)
-- Aussi ajouter `category_name` dans l'insert (ligne ~217) en résolvant le nom depuis la liste des catégories, pour que le mapping taste fonctionne
+```
+{taste.label} ({getTasteCount(taste.id, false)})   // onglet produits
+{taste.label} ({getTasteCount(taste.id, true)})     // onglet expériences
+```
 
-## Fichiers concernés
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/EditProductModal.tsx` | Ajouter validation catégorie obligatoire |
-| `src/components/admin/AdminAddProductModal.tsx` | Ajouter validation catégorie obligatoire + label `*` |
+| `src/pages/VendorShop.tsx` | Ajouter `getTasteCount` + afficher le compteur sur chaque bouton filtre |
 
