@@ -111,6 +111,11 @@ export default function VendorShop() {
   const filteredProducts = products.filter(p => 
     p.isExperience === (activeTab === "experiences") && matchesTaste(p.categoryName, selectedTaste)
   );
+
+  const getTasteCount = (tasteId: string, isExperience: boolean) => {
+    if (tasteId === 'tous') return products.filter(p => p.isExperience === isExperience).length;
+    return products.filter(p => p.isExperience === isExperience && matchesTaste(p.categoryName, tasteId)).length;
+  };
   const productCount = products.filter(p => !p.isExperience).length;
   const experienceCount = products.filter(p => p.isExperience).length;
 
