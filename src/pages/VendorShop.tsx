@@ -111,6 +111,11 @@ export default function VendorShop() {
   const filteredProducts = products.filter(p => 
     p.isExperience === (activeTab === "experiences") && matchesTaste(p.categoryName, selectedTaste)
   );
+
+  const getTasteCount = (tasteId: string, isExperience: boolean) => {
+    if (tasteId === 'tous') return products.filter(p => p.isExperience === isExperience).length;
+    return products.filter(p => p.isExperience === isExperience && matchesTaste(p.categoryName, tasteId)).length;
+  };
   const productCount = products.filter(p => !p.isExperience).length;
   const experienceCount = products.filter(p => p.isExperience).length;
 
@@ -360,7 +365,7 @@ export default function VendorShop() {
                     onClick={() => setSelectedTaste(taste.id)}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {taste.label}
+                    {taste.label} ({getTasteCount(taste.id, false)})
                   </Button>
                 );
               })}
@@ -415,7 +420,7 @@ export default function VendorShop() {
                     onClick={() => setSelectedTaste(taste.id)}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {taste.label}
+                    {taste.label} ({getTasteCount(taste.id, true)})
                   </Button>
                 );
               })}
