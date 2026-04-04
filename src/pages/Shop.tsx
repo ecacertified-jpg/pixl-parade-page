@@ -269,7 +269,7 @@ export default function Shop() {
 
   const filteredProducts = products.filter(product => {
     const matchesTab = (product.isExperience || false) === (activeTab === "experiences");
-    const matchesCategory = selectedCategory === "Tous" || product.categoryName === selectedCategory;
+    const matchesCategory = matchesTaste(product.categoryName, selectedCategory);
     const matchesLocation = !selectedLocation || selectedLocation === "Tous les lieux" || (product.businessAddress && product.businessAddress.toLowerCase().includes(selectedLocation.toLowerCase()));
     
     const currentSearchQuery = activeTab === "experiences" ? experienceSearchQuery : productSearchQuery;
