@@ -20,6 +20,7 @@ import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { TASTE_TO_PRODUCT_CATEGORIES } from '@/data/taste-categories';
 
 interface OnboardingExperienceProps {
   open: boolean;
