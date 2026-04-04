@@ -54,7 +54,7 @@ export default function Shop() {
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [experienceSearchQuery, setExperienceSearchQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tous");
+  const [selectedCategory, setSelectedCategory] = useState("tous");
   const [activeTab, setActiveTab] = useState<"products" | "experiences">("products");
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>(profileCountryCode || 'CI');
   
