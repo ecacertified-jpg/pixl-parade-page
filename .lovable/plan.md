@@ -1,53 +1,55 @@
-# Plan : Utiliser les catégories de l'onboarding dans les boutiques
+
+# Plan : Utiliser les catégories de goûts de l'onboarding dans les boutiques
 
 ## Principe
 
-Remplacer les catégories actuelles de la boutique (Bijoux & Accessoires, Tech & Électronique, etc.) par les 8 catégories de goûts de l'onboarding (Tech, Mode, Voyage, Musique, Gastronomie, Sport, Bijoux, Bien-être). Quand un utilisateur sélectionne une catégorie, les produits sont filtrés via un mapping qui associe chaque goût aux catégories produit existantes en base.
+Remplacer les catégories produit actuelles de la boutique principale (Bijoux & Accessoires, Tech & Électronique, etc.) par les 8 catégories de goûts de l'onboarding (Tech, Mode, Voyage, Musique, Gastronomie, Sport, Bijoux, Bien-être). Un mapping associe chaque goût aux catégories produit existantes en base. Le même filtre est ajouté dans les boutiques prestataires.
 
-## Mapping goûts → catégories produit
+## Mapping goûts → catégories produit en base
 
 ```text
-tech       → Tech & Électronique, Loisirs & Divertissement
-mode       → Mode & Vêtements, Bijoux & Accessoires
-voyage     → Séjours & Hébergement, Expériences VIP
-musique    → Loisirs & Divertissement, Culture & Loisirs
+tech        → Tech & Électronique, Loisirs & Divertissement
+mode        → Mode & Vêtements, Bijoux & Accessoires
+voyage      → Séjours & Hébergement, Expériences VIP
+musique     → Loisirs & Divertissement, Culture & Loisirs
 gastronomie → Gastronomie & Délices, Restaurants & Gastronomie
-sport      → Loisirs & Divertissement
-bijoux     → Bijoux & Accessoires, Parfums & Beauté
-bien-etre  → Bien-être & Spa, Parfums & Beauté
+sport       → Loisirs & Divertissement
+bijoux      → Bijoux & Accessoires, Parfums & Beauté
+bien-etre   → Bien-être & Spa, Parfums & Beauté
 ```
 
 ## Modifications
 
 ### 1. Nouveau fichier : `src/data/taste-categories.ts`
+- Exporter `TASTE_CATEGORIES` (8 catégories avec id, label, icône, couleur)
+- Exporter `TASTE_TO_PRODUCT_CATEGORIES` : mapping goût → tableau de `category_name`
+- Exporter `ALL_TASTE` (option "Tous")
+- Exporter `matchesTaste(categoryName, tasteId)` : fonction de filtrage
 
-- Exporter `TASTE_CATEGORIES` (les 8 catégories avec id, label, icône, couleur — extraites de `OnboardingExperience.tsx`)
-- Exporter `TASTE_TO_PRODUCT_CATEGORIES_MAP` : mapping d'un taste id vers un tableau de `category_name` en base
-- Exporter une fonction `filterProductsByTaste(products, tasteId)` qui retourne les produits dont le `categoryName` matche
+### 2. `src/pages/Shop.tsx`
+- Supprimer les tableaux `productCategories` et `experienceCategories` en dur (lignes 282-308)
+- Importer `TASTE_CATEGORIES`, `ALL_TASTE`, `matchesTaste`
+- Remplacer `selectedCategory` par `selectedTaste` (string = taste id)
+- Adapter `filteredProducts` : utiliser `matchesTaste(product.categoryName, selectedTaste)` au lieu de `product.categoryName === selectedCategory`
+- Remplacer les boutons de catégorie (lignes 525-542, 557-574) par les boutons de goûts avec icônes colorées, dans les deux onglets (produits et expériences)
+- Adapter `getCategoryCount` pour utiliser `matchesTaste`
 
-### 2. Fichier : `src/pages/Shop.tsx`
+### 3. `src/pages/VendorShop.tsx`
+- Importer `TASTE_CATEGORIES`, `ALL_TASTE`, `matchesTaste`
+- Ajouter état `selectedTaste`
+- Ajouter une barre de filtres horizontale avant la grille de produits
+- Filtrer `filteredProducts` via `matchesTaste`
 
-- Remplacer `productCategories` et `experienceCategories` par les `TASTE_CATEGORIES` importées
-- Adapter le filtre `matchesCategory` : au lieu de comparer `product.categoryName === selectedCategory`, utiliser le mapping pour vérifier si le `categoryName` du produit fait partie des catégories associées au goût sélectionné
-- Conserver "Tous" comme première option
-- Supprimer la séparation produits/expériences dans le filtre catégorie (les goûts couvrent les deux)
-
-### 3. Fichier : `src/pages/VendorShop.tsx`
-
-- Ajouter un filtre par catégorie de goûts (actuellement pas de filtre catégorie)
-- Importer `TASTE_CATEGORIES` et le mapping
-- Ajouter un état `selectedTaste` et une barre de filtres horizontale
-- Filtrer `filteredProducts` par goût sélectionné
-
-### 4. Fichier : `src/components/OnboardingExperience.tsx`
-
-- Importer `TASTE_CATEGORIES` depuis le fichier partagé au lieu de les définir en dur (factorisation)
+### 4. `src/components/OnboardingExperience.tsx`
+- Importer `TASTE_CATEGORIES` depuis `@/data/taste-categories`
+- Supprimer la définition locale `GIFT_CATEGORIES` (lignes 32-41)
+- Adapter les références : `GIFT_CATEGORIES` → `TASTE_CATEGORIES`, `cat.id` reste identique
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/data/taste-categories.ts` | Nouveau : catégories partagées + mapping |
-| `src/pages/Shop.tsx` | Remplacer catégories par goûts, adapter filtre |
-| `src/pages/VendorShop.tsx` | Ajouter filtre par goûts |
-| `src/components/OnboardingExperience.tsx` | Importer depuis fichier partagé |
+| `src/data/taste-categories.ts` | Créer : catégories partagées + mapping |
+| `src/pages/Shop.tsx` | Modifier : remplacer catégories par goûts |
+| `src/pages/VendorShop.tsx` | Modifier : ajouter filtre par goûts |
+| `src/components/OnboardingExperience.tsx` | Modifier : importer depuis fichier partagé |
