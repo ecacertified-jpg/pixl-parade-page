@@ -26,6 +26,7 @@ interface OnboardingExperienceProps {
   onComplete: () => void;
   currentStep: number;
   onSetStep: (step: number) => void;
+  firstIncompleteStep?: number;
 }
 
 const GIFT_CATEGORIES = [
