@@ -40,7 +40,7 @@ import { useAcquisitionTracking } from '@/hooks/useAcquisitionTracking';
 import { AddressSelector, type AddressResult } from '@/components/AddressSelector';
 import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { format } from 'date-fns';
-import { processAdminAutoAssign } from '@/utils/adminAutoAssign';
+import WhatsAppFloatingButton from '@/components/WhatsAppFloatingButton';
 
 // Client Signup Progress Indicator
 const ClientSignupProgressIndicator = ({ 
