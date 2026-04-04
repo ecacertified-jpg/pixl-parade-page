@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Heart, Star, Store, Package, Sparkles, Play, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
