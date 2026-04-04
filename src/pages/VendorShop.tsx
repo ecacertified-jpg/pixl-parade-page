@@ -402,6 +402,24 @@ export default function VendorShop() {
           </TabsContent>
 
           <TabsContent value="experiences" className="mt-4">
+            {/* Taste filter bar */}
+            <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+              {[ALL_TASTE, ...TASTE_CATEGORIES].map((taste) => {
+                const Icon = taste.icon;
+                return (
+                  <Button 
+                    key={taste.id} 
+                    variant={selectedTaste === taste.id ? "default" : "outline"} 
+                    size="sm" 
+                    className="whitespace-nowrap flex items-center gap-1.5"
+                    onClick={() => setSelectedTaste(taste.id)}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {taste.label}
+                  </Button>
+                );
+              })}
+            </div>
             {experienceCount === 0 ? (
               <Card className="p-8 text-center">
                 <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
