@@ -245,7 +245,7 @@ const Auth = () => {
   const [pendingSignUpData, setPendingSignUpData] = useState<SignUpFormData | null>(null);
   
   // Auth method selector: phone or email
-  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email'>('phone');
+  const [authInputMethod, setAuthInputMethod] = useState<'phone' | 'email' | null>(null);
   
   // Password visibility toggles
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -1432,7 +1432,11 @@ const Auth = () => {
                         </Button>
                       </div>
 
-                      {authInputMethod === 'phone' ? (
+                      {authInputMethod === null ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          Choisissez votre méthode de connexion ci-dessus
+                        </p>
+                      ) : authInputMethod === 'phone' ? (
                         <form onSubmit={signInForm.handleSubmit(sendOtpSignIn)} className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="signin-phone">Téléphone <span className="text-destructive">*</span></Label>
@@ -1577,7 +1581,11 @@ const Auth = () => {
                         </Button>
                       </div>
 
-                      {authInputMethod === 'phone' ? (
+                      {authInputMethod === null ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">
+                          Choisissez votre méthode d'inscription ci-dessus
+                        </p>
+                      ) : authInputMethod === 'phone' ? (
                         <>
                         <PhoneSignupProgress form={signUpForm} />
                         <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="space-y-4" noValidate>
