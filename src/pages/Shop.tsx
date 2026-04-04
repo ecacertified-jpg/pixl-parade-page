@@ -32,6 +32,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { ShopBreadcrumb, CategoryBreadcrumb } from "@/components/breadcrumbs";
 import { getCategoryByName } from "@/data/product-categories";
+import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { AnimatedProductGrid } from "@/components/AnimatedProductGrid";
 import { AnimatedProductCard } from "@/components/AnimatedProductCard";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
