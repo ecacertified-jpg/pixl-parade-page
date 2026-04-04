@@ -1,32 +1,41 @@
 
-# Plan : Repositionner le bouton WhatsApp pour éviter le chevauchement avec le chat IA
+# Plan : Masquer le Chat IA sur la Landing et la page Auth
 
-## Probleme
+## Problème
 
-Le bouton WhatsApp flottant est positionne en `bottom-6 right-6`, exactement la ou se trouve le widget de chat IA Lovable. Il est donc masque.
+Le widget de chat IA (`AIChatWidget`) est affiché globalement sur toutes les pages, y compris la landing page et la page Auth où seul le bouton WhatsApp devrait être visible.
 
 ## Solution
 
-Deplacer le bouton WhatsApp en **bas a gauche** (`bottom-6 left-6`) et le transformer en widget plus elabore inspire de l'image de reference : un bouton rond qui, au clic, ouvre une mini-carte avec message de salutation et CTA "Discutons !".
+Ajouter une vérification de la route courante dans `AIChatWidget.tsx` avec `useLocation()`. Si la route est `/` ou `/auth`, le composant ne rend rien (`return null`).
 
-### Design (inspire de l'image)
+## Modification
 
-- Bouton rond en bas a gauche avec icone WhatsApp + gradient violet/rose
-- Au clic : popup carte avec :
-  - Salutation dynamique (Bonjour/Bon apres-midi/Bonsoir selon l'heure)
-  - Message "Besoin d'une idee cadeau ? 🎁"
-  - Bouton CTA "Discutons ! ✈️" qui ouvre le lien wa.me
-  - Bouton X pour fermer
-- Animation d'entree avec framer-motion
+### Fichier : `src/components/AIChatWidget.tsx`
 
-### Comportement
+- Importer `useLocation` depuis `react-router-dom`
+- Au début du composant, récupérer `pathname` via `useLocation()`
+- Si `pathname === '/' || pathname === '/auth'`, retourner `null` immédiatement (avant les hooks d'état, donc placer la logique après tous les hooks existants, juste avant le JSX)
 
-- Le popup s'ouvre automatiquement apres 5s (comme le hint actuel) puis se referme apres 8s
-- Clic sur le bouton rond : toggle le popup
-- Clic sur "Discutons !" : ouvre WhatsApp
+```typescript
+import { useLocation } from 'react-router-dom';
 
-## Fichier concerne
+export const AIChatWidget = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  // ... existing hooks ...
+
+  const hiddenRoutes = ['/', '/auth'];
+  if (hiddenRoutes.includes(location.pathname)) {
+    return null;
+  }
+
+  // ... rest of component
+};
+```
+
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/WhatsAppFloatingButton.tsx` | Refonte complete : position `bottom-6 left-6`, widget avec carte popup |
+| `src/components/AIChatWidget.tsx` | Masquer le widget sur `/` et `/auth` |
