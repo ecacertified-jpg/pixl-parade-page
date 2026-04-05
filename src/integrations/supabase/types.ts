@@ -7668,33 +7668,39 @@ export type Database = {
       }
       whatsapp_conversations: {
         Row: {
+          assigned_admin_id: string | null
           context: Json | null
           created_at: string
           display_name: string | null
           id: string
           last_message_at: string | null
+          mode: string
           phone_number: string
           status: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          assigned_admin_id?: string | null
           context?: Json | null
           created_at?: string
           display_name?: string | null
           id?: string
           last_message_at?: string | null
+          mode?: string
           phone_number: string
           status?: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          assigned_admin_id?: string | null
           context?: Json | null
           created_at?: string
           display_name?: string | null
           id?: string
           last_message_at?: string | null
+          mode?: string
           phone_number?: string
           status?: string
           updated_at?: string
