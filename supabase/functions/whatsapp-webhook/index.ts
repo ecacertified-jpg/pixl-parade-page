@@ -384,6 +384,17 @@ serve(async (req) => {
         { role: "user", content: `[USER_MESSAGE]${sanitizeMessage(messageText)}[/USER_MESSAGE]` }
       ];
 
+      // Check if conversation is in human mode — skip AI response
+      if (conversation.mode === 'human') {
+        console.log('👤 Conversation en mode humain, pas de réponse IA');
+        // Update last_message_at
+        await supabase
+          .from('whatsapp_conversations')
+          .update({ last_message_at: new Date().toISOString() })
+          .eq('id', conversation.id);
+        return new Response('OK', { status: 200, headers: corsHeaders });
+      }
+
       // Generate AI response
       const aiResponse = await generateAIResponse(aiMessages);
 

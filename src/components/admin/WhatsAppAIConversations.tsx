@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useWhatsAppConversations, WhatsAppConversation } from '@/hooks/useWhatsAppConversations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Bot, User, Search, ArrowLeft } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { MessageSquare, Bot, User, Search, ArrowLeft, UserCheck, Send, Loader2 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -22,9 +24,29 @@ export function WhatsAppAIConversations() {
     setStatusFilter,
     selectedConversationId,
     setSelectedConversationId,
+    toggleMode,
+    sendAdminReply,
   } = useWhatsAppConversations();
 
+  const [adminMessage, setAdminMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+
+  const handleSendReply = async () => {
+    if (!selectedConversationId || !adminMessage.trim() || sending) return;
+    setSending(true);
+    const success = await sendAdminReply(selectedConversationId, adminMessage.trim());
+    if (success) setAdminMessage('');
+    setSending(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendReply();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -122,6 +144,7 @@ export function WhatsAppAIConversations() {
           )}>
             {selectedConversation ? (
               <>
+                {/* Header with mode toggle */}
                 <div className="p-3 border-b flex items-center gap-3">
                   <Button
                     variant="ghost"
@@ -137,10 +160,27 @@ export function WhatsAppAIConversations() {
                     </p>
                     <p className="text-xs text-muted-foreground">{selectedConversation.phone_number}</p>
                   </div>
-                  <Badge variant={selectedConversation.status === 'active' ? 'default' : 'secondary'}>
-                    {selectedConversation.status}
+                  <Badge variant={selectedConversation.mode === 'human' ? 'destructive' : 'default'} className="text-xs">
+                    {selectedConversation.mode === 'human' ? '👤 Admin' : '🤖 IA'}
                   </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 gap-1.5"
+                    onClick={() => toggleMode(
+                      selectedConversation.id,
+                      selectedConversation.mode === 'ai' ? 'human' : 'ai'
+                    )}
+                  >
+                    {selectedConversation.mode === 'ai' ? (
+                      <><UserCheck className="h-3.5 w-3.5" /> Prendre le relais</>
+                    ) : (
+                      <><Bot className="h-3.5 w-3.5" /> Repasser en IA</>
+                    )}
+                  </Button>
                 </div>
+
+                {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
                   {loadingMessages ? (
                     <div className="text-center text-muted-foreground text-sm">Chargement...</div>
@@ -148,41 +188,75 @@ export function WhatsAppAIConversations() {
                     <div className="text-center text-muted-foreground text-sm">Aucun message</div>
                   ) : (
                     <div className="space-y-3">
-                      {messages.map(msg => (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "flex gap-2 max-w-[85%]",
-                            msg.direction === 'outbound' ? 'ml-auto flex-row-reverse' : ''
-                          )}
-                        >
-                          <div className={cn(
-                            "p-1.5 rounded-full h-7 w-7 flex items-center justify-center shrink-0",
-                            msg.direction === 'outbound' ? 'bg-primary/10' : 'bg-muted'
-                          )}>
-                            {msg.direction === 'outbound'
-                              ? <Bot className="h-3.5 w-3.5 text-primary" />
-                              : <User className="h-3.5 w-3.5 text-muted-foreground" />}
-                          </div>
-                          <div className={cn(
-                            "rounded-xl px-3 py-2 text-sm",
-                            msg.direction === 'outbound'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          )}>
-                            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                            <p className={cn(
-                              "text-[10px] mt-1",
-                              msg.direction === 'outbound' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                      {messages.map(msg => {
+                        const isAdmin = msg.metadata?.sender === 'admin';
+                        return (
+                          <div
+                            key={msg.id}
+                            className={cn(
+                              "flex gap-2 max-w-[85%]",
+                              msg.direction === 'outbound' ? 'ml-auto flex-row-reverse' : ''
+                            )}
+                          >
+                            <div className={cn(
+                              "p-1.5 rounded-full h-7 w-7 flex items-center justify-center shrink-0",
+                              msg.direction === 'outbound'
+                                ? isAdmin ? 'bg-destructive/10' : 'bg-primary/10'
+                                : 'bg-muted'
                             )}>
-                              {format(new Date(msg.created_at), 'HH:mm', { locale: fr })}
-                            </p>
+                              {msg.direction === 'outbound'
+                                ? isAdmin
+                                  ? <UserCheck className="h-3.5 w-3.5 text-destructive" />
+                                  : <Bot className="h-3.5 w-3.5 text-primary" />
+                                : <User className="h-3.5 w-3.5 text-muted-foreground" />}
+                            </div>
+                            <div className={cn(
+                              "rounded-xl px-3 py-2 text-sm",
+                              msg.direction === 'outbound'
+                                ? isAdmin
+                                  ? 'bg-destructive text-destructive-foreground'
+                                  : 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
+                            )}>
+                              {isAdmin && (
+                                <p className="text-[10px] font-medium mb-0.5 opacity-80">Admin</p>
+                              )}
+                              <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                              <p className={cn(
+                                "text-[10px] mt-1",
+                                msg.direction === 'outbound' ? 'opacity-70' : 'text-muted-foreground'
+                              )}>
+                                {format(new Date(msg.created_at), 'HH:mm', { locale: fr })}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </ScrollArea>
+
+                {/* Admin reply input — visible only in human mode */}
+                {selectedConversation.mode === 'human' && (
+                  <div className="p-3 border-t flex gap-2">
+                    <Textarea
+                      placeholder="Tapez votre réponse..."
+                      value={adminMessage}
+                      onChange={e => setAdminMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="min-h-[44px] max-h-[120px] resize-none"
+                      rows={1}
+                    />
+                    <Button
+                      size="icon"
+                      className="h-11 w-11 shrink-0"
+                      disabled={!adminMessage.trim() || sending}
+                      onClick={handleSendReply}
+                    >
+                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -226,9 +300,14 @@ function ConversationItem({
       </div>
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground truncate">{conversation.phone_number}</span>
-        <Badge variant={conversation.status === 'active' ? 'default' : 'outline'} className="text-[10px] h-5">
-          {conversation.status}
-        </Badge>
+        <div className="flex items-center gap-1 shrink-0">
+          {conversation.mode === 'human' && (
+            <Badge variant="destructive" className="text-[10px] h-5">👤</Badge>
+          )}
+          <Badge variant={conversation.status === 'active' ? 'default' : 'outline'} className="text-[10px] h-5">
+            {conversation.status}
+          </Badge>
+        </div>
       </div>
     </button>
   );

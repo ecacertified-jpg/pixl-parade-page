@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export interface WhatsAppConversation {
   id: string;
   phone_number: string;
   display_name: string | null;
   status: string;
+  mode: string;
+  assigned_admin_id: string | null;
   last_message_at: string;
   context: any;
   created_at: string;
@@ -87,6 +90,38 @@ export function useWhatsAppConversations() {
     },
   });
 
+  const toggleMode = useCallback(async (conversationId: string, newMode: 'ai' | 'human') => {
+    const { error } = await supabase
+      .from('whatsapp_conversations')
+      .update({ mode: newMode })
+      .eq('id', conversationId);
+
+    if (error) {
+      toast.error('Erreur lors du changement de mode');
+      console.error('Toggle mode error:', error);
+      return;
+    }
+
+    toast.success(newMode === 'human' ? 'Mode admin activé' : 'Mode IA activé');
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+  }, [queryClient]);
+
+  const sendAdminReply = useCallback(async (conversationId: string, message: string) => {
+    const { data, error } = await supabase.functions.invoke('whatsapp-admin-reply', {
+      body: { conversation_id: conversationId, message },
+    });
+
+    if (error) {
+      toast.error('Erreur lors de l\'envoi du message');
+      console.error('Send admin reply error:', error);
+      return false;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-messages', conversationId] });
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-conversations'] });
+    return true;
+  }, [queryClient]);
+
   // Realtime subscription for new messages
   useEffect(() => {
     const channel = supabase
@@ -116,5 +151,7 @@ export function useWhatsAppConversations() {
     setStatusFilter,
     selectedConversationId,
     setSelectedConversationId,
+    toggleMode,
+    sendAdminReply,
   };
 }
