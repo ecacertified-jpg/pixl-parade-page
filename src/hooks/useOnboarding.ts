@@ -16,10 +16,12 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   }
 
   // Check all steps in parallel
-  const [profileRes, favRes, friendRes] = await Promise.all([
+  const [profileRes, favRes, friendRes, bpRes, fundRes] = await Promise.all([
     supabase.from('profiles').select('birthday, selected_tastes').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
+    supabase.from('birthday_pages').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_active', true),
+    supabase.from('collective_funds').select('id', { count: 'exact', head: true }).eq('creator_id', userId).eq('occasion', 'birthday').eq('status', 'active'),
   ]);
 
   // Step 1: Birthday
@@ -40,6 +42,14 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   // Step 4: Amis (≥3 completed friend forms)
   if ((friendRes.count || 0) < 3) {
     return { shouldShow: true, firstIncompleteStep: 4 };
+  }
+
+  // Step 5: Birthday page + fund + shares
+  const hasPage = (bpRes.count || 0) >= 1;
+  const hasFund = (fundRes.count || 0) >= 1;
+  const shareCount = parseInt(localStorage.getItem(`onboarding_shares_${userId}`) || '0', 10);
+  if (!hasPage || !hasFund || shareCount < 3) {
+    return { shouldShow: true, firstIncompleteStep: 5 };
   }
 
   // All steps done

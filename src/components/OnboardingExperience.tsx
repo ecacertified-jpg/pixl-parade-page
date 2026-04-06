@@ -89,15 +89,18 @@ export const OnboardingExperience = ({
   // Birthday page step states
   const [hasBirthdayPage, setHasBirthdayPage] = useState(false);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
+  const [birthdayPageId, setBirthdayPageId] = useState<string | null>(null);
   const [creatingBirthdayPage, setCreatingBirthdayPage] = useState(false);
 
-  // Dynamic total steps
-  const shouldShowBirthdayPageStep = daysUntilBirthday !== null && daysUntilBirthday <= 45;
-  const DYNAMIC_TOTAL_STEPS = shouldShowBirthdayPageStep ? 6 : 5;
+  // Fund + sharing states for step 6
+  const [hasFund, setHasFund] = useState(false);
+  const [fundId, setFundId] = useState<string | null>(null);
+  const [creatingFund, setCreatingFund] = useState(false);
+  const [shareCount, setShareCount] = useState(0);
 
-  const stepLabels = shouldShowBirthdayPageStep
-    ? ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page']
-    : ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'];
+  // Always 6 steps
+  const DYNAMIC_TOTAL_STEPS = 6;
+  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'];
 
   // Load user data on mount
   useEffect(() => {
@@ -128,23 +131,40 @@ export const OnboardingExperience = ({
     setDaysUntilBirthday(Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   }, [birthday]);
 
-  // Check if birthday page exists for current year
+  // Check if birthday page and fund exist
   useEffect(() => {
     if (!user) return;
-    const checkBirthdayPage = async () => {
+    const checkBirthdayPageAndFund = async () => {
       const currentYear = new Date().getFullYear();
-      const { data } = await supabase
-        .from('birthday_pages')
-        .select('id, slug')
-        .eq('user_id', user.id)
-        .eq('celebration_year', currentYear)
-        .maybeSingle();
-      if (data) {
+      const [pageRes, fundRes] = await Promise.all([
+        supabase
+          .from('birthday_pages')
+          .select('id, slug')
+          .eq('user_id', user.id)
+          .eq('celebration_year', currentYear)
+          .maybeSingle(),
+        supabase
+          .from('collective_funds')
+          .select('id')
+          .eq('creator_id', user.id)
+          .eq('occasion', 'birthday')
+          .eq('status', 'active')
+          .maybeSingle(),
+      ]);
+      if (pageRes.data) {
         setHasBirthdayPage(true);
-        setBirthdayPageSlug(data.slug);
+        setBirthdayPageSlug(pageRes.data.slug);
+        setBirthdayPageId(pageRes.data.id);
       }
+      if (fundRes.data) {
+        setHasFund(true);
+        setFundId(fundRes.data.id);
+      }
+      // Load share count from localStorage
+      const stored = parseInt(localStorage.getItem(`onboarding_shares_${user.id}`) || '0', 10);
+      setShareCount(stored);
     };
-    checkBirthdayPage();
+    checkBirthdayPageAndFund();
   }, [user]);
 
   // Confetti on step 0 (only for new users)
@@ -180,36 +200,27 @@ export const OnboardingExperience = ({
     return () => clearInterval(interval);
   }, [currentStep, user]);
 
-  // Auto-redirect when 3 friends invited (step 4) — only if no birthday page step
+  // Auto-redirect when 3 friends invited (step 4) — always move to step 5
   useEffect(() => {
     if (invitationsSentCount >= 3 && currentStep === 4) {
-      if (shouldShowBirthdayPageStep) {
-        // Move to step 5 instead of completing
-        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-        const timer = setTimeout(() => {
-          onSetStep(5);
-        }, 1500);
-        return () => clearTimeout(timer);
-      } else {
-        confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-        const timer = setTimeout(() => {
-          onComplete();
-        }, 2500);
-        return () => clearTimeout(timer);
-      }
+      confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      const timer = setTimeout(() => {
+        onSetStep(5);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [invitationsSentCount, currentStep, onComplete, shouldShowBirthdayPageStep, onSetStep]);
+  }, [invitationsSentCount, currentStep, onSetStep]);
 
-  // Auto-redirect when birthday page created (step 5)
+  // Auto-redirect when step 5 is fully complete (page + fund + shares ≥ 3)
   useEffect(() => {
-    if (hasBirthdayPage && currentStep === 5 && shouldShowBirthdayPageStep) {
+    if (hasBirthdayPage && hasFund && shareCount >= 3 && currentStep === 5) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, currentStep, shouldShowBirthdayPageStep, onComplete]);
+  }, [hasBirthdayPage, hasFund, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
@@ -432,6 +443,7 @@ export const OnboardingExperience = ({
       }
 
       setBirthdayPageSlug(data.slug);
+      setBirthdayPageId(data.id);
       setHasBirthdayPage(true);
       confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
     } catch (err) {
@@ -442,6 +454,91 @@ export const OnboardingExperience = ({
     }
   };
 
+  // Create birthday fund
+  const handleCreateFund = async () => {
+    if (!user || creatingFund || !birthdayPageId) return;
+    setCreatingFund(true);
+    try {
+      const { data, error } = await supabase
+        .from('collective_funds')
+        .insert({
+          creator_id: user.id,
+          title: `Cagnotte d'anniversaire de ${firstName || 'mon ami(e)'}`,
+          occasion: 'birthday',
+          status: 'active',
+          currency: 'XOF',
+          current_amount: 0,
+          target_amount: 50000,
+          is_public: true,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating fund:', error);
+        toast.error("Erreur lors de la création de la cagnotte");
+        return;
+      }
+
+      // Link fund to birthday page
+      await supabase
+        .from('birthday_pages')
+        .update({ fund_id: data.id })
+        .eq('id', birthdayPageId);
+
+      setFundId(data.id);
+      setHasFund(true);
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
+      toast.success('Cagnotte créée ! 🎉');
+    } catch (err) {
+      console.error('Fund creation error:', err);
+      toast.error("Erreur inattendue");
+    } finally {
+      setCreatingFund(false);
+    }
+  };
+
+  // Track shares
+  const incrementShareCount = useCallback(() => {
+    if (!user) return;
+    const key = `onboarding_shares_${user.id}`;
+    const current = parseInt(localStorage.getItem(key) || '0', 10);
+    const next = current + 1;
+    localStorage.setItem(key, String(next));
+    setShareCount(next);
+    if (next >= 3) {
+      confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#22c55e'] });
+    }
+  }, [user]);
+
+  const handleSharePageWhatsApp = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const text = encodeURIComponent(
+      `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    incrementShareCount();
+    toast.success('Partagé sur WhatsApp ! 📱');
+  };
+
+  const handleSharePageSMS = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const text = encodeURIComponent(`🎂 Viens célébrer mon anniversaire : ${pageUrl}`);
+    window.open(`sms:?body=${text}`, '_blank');
+    incrementShareCount();
+  };
+
+  const handleCopyPageLink = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const fullText = `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`;
+    navigator.clipboard.writeText(fullText);
+    incrementShareCount();
+    toast.success('Lien copié ! 📋');
+  };
+
   const isStepCompleted = (step: number): boolean => {
     switch (step) {
       case 0: return true;
@@ -449,7 +546,7 @@ export const OnboardingExperience = ({
       case 2: return selectedCategories.length >= 1;
       case 3: return favoriteIds.length >= 3;
       case 4: return invitationsSentCount >= 3;
-      case 5: return hasBirthdayPage;
+      case 5: return hasBirthdayPage && hasFund && shareCount >= 3;
       default: return false;
     }
   };
@@ -459,7 +556,7 @@ export const OnboardingExperience = ({
       case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
       case 2: return "Choisis au moins une catégorie de cadeau 🎁";
       case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
-      case 5: return "Crée ta page d'anniversaire pour continuer 🎂";
+      case 5: return "Crée ta page, ta cagnotte et partage avec tes amis 🎂";
       default: return "Complète cette étape pour continuer";
     }
   };
@@ -909,7 +1006,7 @@ export const OnboardingExperience = ({
                     className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
                   >
                     <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    {shouldShowBirthdayPageStep ? "Passage à l'étape suivante..." : "Redirection vers ton tableau de bord..."}
+                    Passage à l'étape suivante...
                   </motion.div>
                 </motion.div>
               ) : (
@@ -1040,17 +1137,17 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Birthday Page (conditional) */}
-          {currentStep === 5 && shouldShowBirthdayPageStep && (
+          {/* Step 5: Birthday Page + Fund + Share */}
+          {currentStep === 5 && (
             <motion.div
-              key="birthday-page"
+              key="birthday-page-full"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
               className="text-center max-w-md mx-auto w-full"
             >
-              {hasBirthdayPage ? (
-                // Success state
+              {/* All 3 sub-steps complete → success */}
+              {hasBirthdayPage && hasFund && shareCount >= 3 ? (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -1061,21 +1158,16 @@ export const OnboardingExperience = ({
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.2, type: 'spring' }}
-                    className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center mb-6 shadow-lg"
+                    className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6 shadow-lg"
                   >
                     <PartyPopper className="h-12 w-12 text-white" />
                   </motion.div>
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-3">
-                    Ta page est prête ! 🎂
+                    Tout est prêt ! 🎉
                   </h2>
-                  <p className="text-lg text-muted-foreground font-nunito mb-2">
-                    Tes proches pourront t'envoyer des messages et des cadeaux !
+                  <p className="text-lg text-muted-foreground font-nunito mb-4">
+                    Ta page, ta cagnotte et tes partages sont en place !
                   </p>
-                  {birthdayPageSlug && (
-                    <p className="text-sm text-primary font-nunito mb-4">
-                      🔗 /anniversaire/{birthdayPageSlug}
-                    </p>
-                  )}
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1087,67 +1179,162 @@ export const OnboardingExperience = ({
                   </motion.div>
                 </motion.div>
               ) : (
-                // CTA state
                 <>
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring' }}
-                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center mb-5 shadow-lg"
+                    className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-5 shadow-lg"
                   >
                     <Cake className="h-10 w-10 text-white" />
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    Ton anniversaire approche ! 🎂
+                    Finalise ta page d'anniversaire 🎂
                   </h2>
-                  <p className="text-muted-foreground font-nunito mb-3 text-sm leading-relaxed">
-                    {daysUntilBirthday !== null && (
-                      <>Dans <span className="font-bold text-primary">J-{daysUntilBirthday}</span>, c'est ton jour ! </>
-                    )}
-                    Crée ta page d'anniversaire pour recevoir des cadeaux et des messages de tes proches. 🎁
+                  <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
+                    Crée ta page, lance ta cagnotte et partage avec tes proches !
                   </p>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 border border-pink-200 dark:border-pink-700"
-                  >
-                    <p className="text-sm text-foreground/80 font-nunito leading-relaxed">
-                      ✨ Tes amis pourront :<br />
-                      <span className="font-semibold">• T'écrire des messages</span><br />
-                      <span className="font-semibold">• Partager des photos souvenirs</span><br />
-                      <span className="font-semibold">• Contribuer à ta cagnotte cadeaux</span>
+                  {/* Sub-step checklist */}
+                  <div className="space-y-3 text-left mb-6">
+                    {/* Sub-step 1: Create page */}
+                    <div className={cn(
+                      "p-4 rounded-xl border transition-all",
+                      hasBirthdayPage
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+                        : "bg-card border-border"
+                    )}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                          hasBirthdayPage ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                        )}>
+                          {hasBirthdayPage ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">1</span>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma page</p>
+                          <p className="text-xs text-muted-foreground font-nunito">
+                            {hasBirthdayPage ? "✅ Page créée !" : "Ta page pour recevoir messages et cadeaux"}
+                          </p>
+                        </div>
+                        {!hasBirthdayPage && (
+                          <Button
+                            onClick={handleCreateBirthdayPage}
+                            disabled={creatingBirthdayPage}
+                            size="sm"
+                            className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                          >
+                            {creatingBirthdayPage ? '...' : 'Créer'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sub-step 2: Create fund */}
+                    <div className={cn(
+                      "p-4 rounded-xl border transition-all",
+                      hasFund
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+                        : !hasBirthdayPage
+                          ? "bg-muted/50 border-border opacity-60"
+                          : "bg-card border-border"
+                    )}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                          hasFund ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                        )}>
+                          {hasFund ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma cagnotte</p>
+                          <p className="text-xs text-muted-foreground font-nunito">
+                            {hasFund ? "✅ Cagnotte créée !" : "Pour recevoir des contributions de tes proches"}
+                          </p>
+                        </div>
+                        {!hasFund && hasBirthdayPage && (
+                          <Button
+                            onClick={handleCreateFund}
+                            disabled={creatingFund}
+                            size="sm"
+                            className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                          >
+                            {creatingFund ? '...' : 'Créer'}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sub-step 3: Share */}
+                    <div className={cn(
+                      "p-4 rounded-xl border transition-all",
+                      shareCount >= 3
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+                        : !hasFund
+                          ? "bg-muted/50 border-border opacity-60"
+                          : "bg-card border-border"
+                    )}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                          shareCount >= 3 ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+                        )}>
+                          {shareCount >= 3 ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">3</span>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-poppins font-semibold text-sm text-foreground">
+                            Partager avec tes amis ({shareCount}/3)
+                          </p>
+                          <p className="text-xs text-muted-foreground font-nunito">
+                            {shareCount >= 3 ? "✅ Partagé avec succès !" : "Partage ta page avec au moins 3 amis"}
+                          </p>
+                        </div>
+                      </div>
+                      {hasFund && shareCount < 3 && (
+                        <div className="flex gap-2 ml-11">
+                          <Button
+                            onClick={handleSharePageWhatsApp}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 text-xs"
+                          >
+                            <Share2 className="h-3 w-3" />
+                            WhatsApp
+                          </Button>
+                          <Button
+                            onClick={handleSharePageSMS}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 flex-1 text-xs"
+                          >
+                            SMS
+                          </Button>
+                          <Button
+                            onClick={handleCopyPageLink}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 flex-1 text-xs"
+                          >
+                            <Copy className="h-3 w-3" />
+                            Copier
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress indicator */}
+                  <div className="mb-4">
+                    <Progress
+                      value={((hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)) / 3 * 100}
+                      className="h-2"
+                      indicatorClassName="bg-gradient-to-r from-primary to-accent"
+                    />
+                    <p className="text-xs text-muted-foreground font-nunito mt-1">
+                      {(hasBirthdayPage ? 1 : 0) + (hasFund ? 1 : 0) + (shareCount >= 3 ? 1 : 0)}/3 étapes complétées
                     </p>
-                  </motion.div>
-
-                  <motion.div
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  >
-                    <Button
-                      onClick={handleCreateBirthdayPage}
-                      disabled={creatingBirthdayPage}
-                      className="gap-2 w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg shadow-pink-500/30"
-                      size="lg"
-                    >
-                      <Cake className="h-5 w-5" />
-                      {creatingBirthdayPage ? 'Création en cours...' : '🎂 Créer ma page d\'anniversaire'}
-                    </Button>
-                  </motion.div>
-
-                  <AnimatePresence>
-                    {!hasBirthdayPage && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
-                      >
-                        🎂 Crée ta page d'anniversaire pour que tes proches puissent te célébrer !
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  </div>
                 </>
               )}
             </motion.div>
