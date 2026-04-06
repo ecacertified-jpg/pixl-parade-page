@@ -556,7 +556,7 @@ export const OnboardingExperience = ({
       case 1: return "Sélectionne ta date d'anniversaire pour continuer 🎂";
       case 2: return "Choisis au moins une catégorie de cadeau 🎁";
       case 3: return "Ajoute au moins 3 articles à ta liste de souhaits ❤️";
-      case 5: return "Crée ta page d'anniversaire pour continuer 🎂";
+      case 5: return "Crée ta page, ta cagnotte et partage avec tes amis 🎂";
       default: return "Complète cette étape pour continuer";
     }
   };
