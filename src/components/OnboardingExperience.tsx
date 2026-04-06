@@ -443,6 +443,7 @@ export const OnboardingExperience = ({
       }
 
       setBirthdayPageSlug(data.slug);
+      setBirthdayPageId(data.id);
       setHasBirthdayPage(true);
       confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
     } catch (err) {
@@ -451,6 +452,90 @@ export const OnboardingExperience = ({
     } finally {
       setCreatingBirthdayPage(false);
     }
+  };
+
+  // Create birthday fund
+  const handleCreateFund = async () => {
+    if (!user || creatingFund || !birthdayPageId) return;
+    setCreatingFund(true);
+    try {
+      const { data, error } = await supabase
+        .from('collective_funds')
+        .insert({
+          creator_id: user.id,
+          title: `Cagnotte d'anniversaire de ${firstName || 'mon ami(e)'}`,
+          occasion: 'birthday',
+          status: 'active',
+          currency: 'XOF',
+          current_amount: 0,
+          is_public: true,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error creating fund:', error);
+        toast.error("Erreur lors de la création de la cagnotte");
+        return;
+      }
+
+      // Link fund to birthday page
+      await supabase
+        .from('birthday_pages')
+        .update({ fund_id: data.id })
+        .eq('id', birthdayPageId);
+
+      setFundId(data.id);
+      setHasFund(true);
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
+      toast.success('Cagnotte créée ! 🎉');
+    } catch (err) {
+      console.error('Fund creation error:', err);
+      toast.error("Erreur inattendue");
+    } finally {
+      setCreatingFund(false);
+    }
+  };
+
+  // Track shares
+  const incrementShareCount = useCallback(() => {
+    if (!user) return;
+    const key = `onboarding_shares_${user.id}`;
+    const current = parseInt(localStorage.getItem(key) || '0', 10);
+    const next = current + 1;
+    localStorage.setItem(key, String(next));
+    setShareCount(next);
+    if (next >= 3) {
+      confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#22c55e'] });
+    }
+  }, [user]);
+
+  const handleSharePageWhatsApp = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const text = encodeURIComponent(
+      `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    incrementShareCount();
+    toast.success('Partagé sur WhatsApp ! 📱');
+  };
+
+  const handleSharePageSMS = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const text = encodeURIComponent(`🎂 Viens célébrer mon anniversaire : ${pageUrl}`);
+    window.open(`sms:?body=${text}`, '_blank');
+    incrementShareCount();
+  };
+
+  const handleCopyPageLink = () => {
+    if (!birthdayPageSlug) return;
+    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const fullText = `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`;
+    navigator.clipboard.writeText(fullText);
+    incrementShareCount();
+    toast.success('Lien copié ! 📋');
   };
 
   const isStepCompleted = (step: number): boolean => {
