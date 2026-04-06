@@ -200,36 +200,27 @@ export const OnboardingExperience = ({
     return () => clearInterval(interval);
   }, [currentStep, user]);
 
-  // Auto-redirect when 3 friends invited (step 4) — only if no birthday page step
+  // Auto-redirect when 3 friends invited (step 4) — always move to step 5
   useEffect(() => {
     if (invitationsSentCount >= 3 && currentStep === 4) {
-      if (shouldShowBirthdayPageStep) {
-        // Move to step 5 instead of completing
-        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-        const timer = setTimeout(() => {
-          onSetStep(5);
-        }, 1500);
-        return () => clearTimeout(timer);
-      } else {
-        confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
-        const timer = setTimeout(() => {
-          onComplete();
-        }, 2500);
-        return () => clearTimeout(timer);
-      }
+      confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      const timer = setTimeout(() => {
+        onSetStep(5);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [invitationsSentCount, currentStep, onComplete, shouldShowBirthdayPageStep, onSetStep]);
+  }, [invitationsSentCount, currentStep, onSetStep]);
 
-  // Auto-redirect when birthday page created (step 5)
+  // Auto-redirect when step 5 is fully complete (page + fund + shares ≥ 3)
   useEffect(() => {
-    if (hasBirthdayPage && currentStep === 5 && shouldShowBirthdayPageStep) {
+    if (hasBirthdayPage && hasFund && shareCount >= 3 && currentStep === 5) {
       confetti({ particleCount: 100, spread: 120, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
       const timer = setTimeout(() => {
         onComplete();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayPage, currentStep, shouldShowBirthdayPageStep, onComplete]);
+  }, [hasBirthdayPage, hasFund, shareCount, currentStep, onComplete]);
 
   // Build category_name list from selected tastes
   const tasteCategoryNames = useMemo(() => {
