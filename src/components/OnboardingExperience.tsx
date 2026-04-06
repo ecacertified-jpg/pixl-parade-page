@@ -546,7 +546,7 @@ export const OnboardingExperience = ({
       case 2: return selectedCategories.length >= 1;
       case 3: return favoriteIds.length >= 3;
       case 4: return invitationsSentCount >= 3;
-      case 5: return hasBirthdayPage;
+      case 5: return hasBirthdayPage && hasFund && shareCount >= 3;
       default: return false;
     }
   };
