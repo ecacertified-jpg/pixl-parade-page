@@ -89,15 +89,18 @@ export const OnboardingExperience = ({
   // Birthday page step states
   const [hasBirthdayPage, setHasBirthdayPage] = useState(false);
   const [birthdayPageSlug, setBirthdayPageSlug] = useState<string | null>(null);
+  const [birthdayPageId, setBirthdayPageId] = useState<string | null>(null);
   const [creatingBirthdayPage, setCreatingBirthdayPage] = useState(false);
 
-  // Dynamic total steps
-  const shouldShowBirthdayPageStep = daysUntilBirthday !== null && daysUntilBirthday <= 45;
-  const DYNAMIC_TOTAL_STEPS = shouldShowBirthdayPageStep ? 6 : 5;
+  // Fund + sharing states for step 6
+  const [hasFund, setHasFund] = useState(false);
+  const [fundId, setFundId] = useState<string | null>(null);
+  const [creatingFund, setCreatingFund] = useState(false);
+  const [shareCount, setShareCount] = useState(0);
 
-  const stepLabels = shouldShowBirthdayPageStep
-    ? ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page']
-    : ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis'];
+  // Always 6 steps
+  const DYNAMIC_TOTAL_STEPS = 6;
+  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'];
 
   // Load user data on mount
   useEffect(() => {
