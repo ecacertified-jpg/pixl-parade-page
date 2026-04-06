@@ -1051,8 +1051,8 @@ export const OnboardingExperience = ({
             </motion.div>
           )}
 
-          {/* Step 5: Birthday Page (conditional) */}
-          {currentStep === 5 && shouldShowBirthdayPageStep && (
+          {/* Step 5: Birthday Page + Fund + Share */}
+          {currentStep === 5 && (
             <motion.div
               key="birthday-page"
               initial={{ opacity: 0, y: 30 }}
