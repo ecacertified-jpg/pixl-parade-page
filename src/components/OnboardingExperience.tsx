@@ -131,23 +131,40 @@ export const OnboardingExperience = ({
     setDaysUntilBirthday(Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
   }, [birthday]);
 
-  // Check if birthday page exists for current year
+  // Check if birthday page and fund exist
   useEffect(() => {
     if (!user) return;
-    const checkBirthdayPage = async () => {
+    const checkBirthdayPageAndFund = async () => {
       const currentYear = new Date().getFullYear();
-      const { data } = await supabase
-        .from('birthday_pages')
-        .select('id, slug')
-        .eq('user_id', user.id)
-        .eq('celebration_year', currentYear)
-        .maybeSingle();
-      if (data) {
+      const [pageRes, fundRes] = await Promise.all([
+        supabase
+          .from('birthday_pages')
+          .select('id, slug')
+          .eq('user_id', user.id)
+          .eq('celebration_year', currentYear)
+          .maybeSingle(),
+        supabase
+          .from('collective_funds')
+          .select('id')
+          .eq('creator_id', user.id)
+          .eq('occasion', 'birthday')
+          .eq('status', 'active')
+          .maybeSingle(),
+      ]);
+      if (pageRes.data) {
         setHasBirthdayPage(true);
-        setBirthdayPageSlug(data.slug);
+        setBirthdayPageSlug(pageRes.data.slug);
+        setBirthdayPageId(pageRes.data.id);
       }
+      if (fundRes.data) {
+        setHasFund(true);
+        setFundId(fundRes.data.id);
+      }
+      // Load share count from localStorage
+      const stored = parseInt(localStorage.getItem(`onboarding_shares_${user.id}`) || '0', 10);
+      setShareCount(stored);
     };
-    checkBirthdayPage();
+    checkBirthdayPageAndFund();
   }, [user]);
 
   // Confetti on step 0 (only for new users)
