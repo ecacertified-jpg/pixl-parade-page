@@ -468,6 +468,7 @@ export const OnboardingExperience = ({
           status: 'active',
           currency: 'XOF',
           current_amount: 0,
+          target_amount: 50000,
           is_public: true,
         })
         .select('id')
