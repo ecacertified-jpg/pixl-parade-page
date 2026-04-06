@@ -920,7 +920,7 @@ export const OnboardingExperience = ({
                     className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 font-nunito"
                   >
                     <span className="inline-block h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    {shouldShowBirthdayPageStep ? "Passage à l'étape suivante..." : "Redirection vers ton tableau de bord..."}
+                    Passage à l'étape suivante...
                   </motion.div>
                 </motion.div>
               ) : (
