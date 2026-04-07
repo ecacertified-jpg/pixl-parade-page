@@ -31,6 +31,7 @@ interface OnboardingExperienceProps {
 }
 
 import { TASTE_CATEGORIES } from "@/data/taste-categories";
+import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 
 // Floating particles component
 const FloatingParticles = () => (
