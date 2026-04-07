@@ -523,7 +523,7 @@ export const OnboardingExperience = ({
 
   const handleCopyPageLink = () => {
     if (!birthdayPageSlug) return;
-    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const fullText = `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`;
     navigator.clipboard.writeText(fullText);
     incrementShareCount();

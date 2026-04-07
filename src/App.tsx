@@ -220,6 +220,7 @@ const App = () => (
 
             <Route path="/gift-received/:orderId" element={<L><GiftReceived /></L>} />
             <Route path="/birthday/:slug" element={<L><BirthdayPage /></L>} />
+            <Route path="/anniversaire/:slug" element={<L><BirthdayPage /></L>} />
             <Route path="/join/:code" element={<L><JoinAdmin /></L>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<L><ResetPassword /></L>} />
