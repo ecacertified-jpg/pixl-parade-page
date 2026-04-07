@@ -1354,6 +1354,11 @@ export const OnboardingExperience = ({
           )}
         </div>
       </div>
+      <WishlistFundPickerModal
+        isOpen={showFundPickerModal}
+        onClose={handleFundPickerClose}
+        onFundCreated={handleFundPickerClose}
+      />
     </motion.div>
   );
 };
