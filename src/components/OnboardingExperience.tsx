@@ -1245,12 +1245,11 @@ export const OnboardingExperience = ({
                         </div>
                         {!hasFund && hasBirthdayPage && (
                           <Button
-                            onClick={handleCreateFund}
-                            disabled={creatingFund}
+                            onClick={() => setShowFundPickerModal(true)}
                             size="sm"
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                           >
-                            {creatingFund ? '...' : 'Créer'}
+                            Créer
                           </Button>
                         )}
                       </div>

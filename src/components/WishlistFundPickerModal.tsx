@@ -47,6 +47,7 @@ export function WishlistFundPickerModal({ isOpen, onClose, onFundCreated }: Wish
     });
 
     onClose();
+    onFundCreated?.();
     navigate('/cart');
   };
 
