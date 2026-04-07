@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { usePresenceTracker } from '@/hooks/usePresenceTracker';
@@ -12,6 +13,13 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Track user presence for admin realtime dashboard
   usePresenceTracker();
+
+  // Continuously save current route for session restoration
+  useEffect(() => {
+    if (user && location.pathname !== '/auth') {
+      localStorage.setItem('last_visited_route', location.pathname + location.search);
+    }
+  }, [user, location.pathname, location.search]);
 
   if (loading) {
     return null;

@@ -15,9 +15,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface WishlistFundPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onFundCreated?: () => void;
 }
 
-export function WishlistFundPickerModal({ isOpen, onClose }: WishlistFundPickerModalProps) {
+export function WishlistFundPickerModal({ isOpen, onClose, onFundCreated }: WishlistFundPickerModalProps) {
   const navigate = useNavigate();
   const { favorites, loading } = useFavorites();
   const { addItem } = useCart();
@@ -46,6 +47,7 @@ export function WishlistFundPickerModal({ isOpen, onClose }: WishlistFundPickerM
     });
 
     onClose();
+    onFundCreated?.();
     navigate('/cart');
   };
 

@@ -31,6 +31,7 @@ interface OnboardingExperienceProps {
 }
 
 import { TASTE_CATEGORIES } from "@/data/taste-categories";
+import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 
 // Floating particles component
 const FloatingParticles = () => (
@@ -97,6 +98,7 @@ export const OnboardingExperience = ({
   const [fundId, setFundId] = useState<string | null>(null);
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
+  const [showFundPickerModal, setShowFundPickerModal] = useState(false);
 
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
@@ -454,49 +456,38 @@ export const OnboardingExperience = ({
     }
   };
 
-  // Create birthday fund
-  const handleCreateFund = async () => {
-    if (!user || creatingFund || !birthdayPageId) return;
-    setCreatingFund(true);
-    try {
-      const { data, error } = await supabase
-        .from('collective_funds')
-        .insert({
-          creator_id: user.id,
-          title: `Cagnotte d'anniversaire de ${firstName || 'mon ami(e)'}`,
-          occasion: 'birthday',
-          status: 'active',
-          currency: 'XOF',
-          current_amount: 0,
-          target_amount: 50000,
-          is_public: true,
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Error creating fund:', error);
-        toast.error("Erreur lors de la création de la cagnotte");
-        return;
-      }
-
-      // Link fund to birthday page
-      await supabase
-        .from('birthday_pages')
-        .update({ fund_id: data.id })
-        .eq('id', birthdayPageId);
-
+  // Check if a real fund exists after modal closes
+  const checkFundExists = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('collective_funds')
+      .select('id')
+      .eq('creator_id', user.id)
+      .eq('occasion', 'birthday')
+      .eq('status', 'active')
+      .maybeSingle();
+    if (data) {
       setFundId(data.id);
       setHasFund(true);
       confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
       toast.success('Cagnotte créée ! 🎉');
-    } catch (err) {
-      console.error('Fund creation error:', err);
-      toast.error("Erreur inattendue");
-    } finally {
-      setCreatingFund(false);
+      return true;
     }
-  };
+    return false;
+  }, [user]);
+
+  // Handle fund picker modal close — start polling for real fund
+  const handleFundPickerClose = useCallback(() => {
+    setShowFundPickerModal(false);
+    if (hasFund) return;
+    // Poll every 5s for up to 60s
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      const found = await checkFundExists();
+      if (found || attempts >= 12) clearInterval(interval);
+    }, 5000);
+  }, [hasFund, checkFundExists]);
 
   // Track shares
   const incrementShareCount = useCallback(() => {
@@ -1255,12 +1246,11 @@ export const OnboardingExperience = ({
                         </div>
                         {!hasFund && hasBirthdayPage && (
                           <Button
-                            onClick={handleCreateFund}
-                            disabled={creatingFund}
+                            onClick={() => setShowFundPickerModal(true)}
                             size="sm"
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                           >
-                            {creatingFund ? '...' : 'Créer'}
+                            Créer
                           </Button>
                         )}
                       </div>
@@ -1364,6 +1354,11 @@ export const OnboardingExperience = ({
           )}
         </div>
       </div>
+      <WishlistFundPickerModal
+        isOpen={showFundPickerModal}
+        onClose={handleFundPickerClose}
+        onFundCreated={handleFundPickerClose}
+      />
     </motion.div>
   );
 };

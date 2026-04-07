@@ -317,7 +317,13 @@ const Auth = () => {
           navigate(redirectParam);
         }
       } else {
-        handleSmartRedirect(user, navigate);
+        const lastRoute = localStorage.getItem('last_visited_route');
+        if (lastRoute && lastRoute !== '/' && lastRoute !== '/auth') {
+          localStorage.removeItem('last_visited_route');
+          navigate(lastRoute);
+        } else {
+          handleSmartRedirect(user, navigate);
+        }
       }
     }
   }, [user, navigate, searchParams]);
