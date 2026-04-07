@@ -515,7 +515,7 @@ export const OnboardingExperience = ({
 
   const handleSharePageSMS = () => {
     if (!birthdayPageSlug) return;
-    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(`🎂 Viens célébrer mon anniversaire : ${pageUrl}`);
     window.open(`sms:?body=${text}`, '_blank');
     incrementShareCount();
