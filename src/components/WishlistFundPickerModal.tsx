@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface WishlistFundPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onFundCreated?: () => void;
 }
 
 export function WishlistFundPickerModal({ isOpen, onClose }: WishlistFundPickerModalProps) {
