@@ -504,7 +504,7 @@ export const OnboardingExperience = ({
 
   const handleSharePageWhatsApp = () => {
     if (!birthdayPageSlug) return;
-    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(
       `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`
     );
@@ -515,7 +515,7 @@ export const OnboardingExperience = ({
 
   const handleSharePageSMS = () => {
     if (!birthdayPageSlug) return;
-    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(`🎂 Viens célébrer mon anniversaire : ${pageUrl}`);
     window.open(`sms:?body=${text}`, '_blank');
     incrementShareCount();
@@ -523,7 +523,7 @@ export const OnboardingExperience = ({
 
   const handleCopyPageLink = () => {
     if (!birthdayPageSlug) return;
-    const pageUrl = `${getAppBaseUrl()}/anniversaire/${birthdayPageSlug}`;
+    const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const fullText = `🎂 C'est bientôt mon anniversaire ! Viens me souhaiter un joyeux anniversaire et contribuer à ma cagnotte ✨\n\n${pageUrl}`;
     navigator.clipboard.writeText(fullText);
     incrementShareCount();
