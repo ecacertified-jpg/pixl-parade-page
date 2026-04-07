@@ -97,6 +97,7 @@ export const OnboardingExperience = ({
   const [fundId, setFundId] = useState<string | null>(null);
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
+  const [showFundPickerModal, setShowFundPickerModal] = useState(false);
 
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
