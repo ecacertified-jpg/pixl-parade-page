@@ -18,7 +18,7 @@ interface WishlistFundPickerModalProps {
   onFundCreated?: () => void;
 }
 
-export function WishlistFundPickerModal({ isOpen, onClose }: WishlistFundPickerModalProps) {
+export function WishlistFundPickerModal({ isOpen, onClose, onFundCreated }: WishlistFundPickerModalProps) {
   const navigate = useNavigate();
   const { favorites, loading } = useFavorites();
   const { addItem } = useCart();
