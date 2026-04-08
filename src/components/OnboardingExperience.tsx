@@ -99,6 +99,7 @@ export const OnboardingExperience = ({
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
@@ -116,6 +117,8 @@ export const OnboardingExperience = ({
       if (data?.first_name) setFirstName(data.first_name);
       if (data?.birthday) {
         setBirthday(new Date(data.birthday));
+      } else if (user.user_metadata?.birthday) {
+        setBirthday(new Date(user.user_metadata.birthday));
       }
       if (data?.selected_tastes && (data.selected_tastes as string[]).length > 0) {
         setSelectedCategories(data.selected_tastes as string[]);
@@ -725,7 +728,7 @@ export const OnboardingExperience = ({
                 Pour que tes proches ne l'oublient jamais !
               </p>
 
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="lg" className="w-full max-w-xs mx-auto text-lg gap-2">
                     <CalendarDays className="h-5 w-5" />
@@ -736,7 +739,10 @@ export const OnboardingExperience = ({
                   <Calendar
                     mode="single"
                     selected={birthday}
-                    onSelect={setBirthday}
+                    onSelect={(date) => {
+                      setBirthday(date);
+                      if (date) setCalendarOpen(false);
+                    }}
                     disabled={(date) => date > new Date() || date < new Date('1920-01-01')}
                     captionLayout="dropdown-buttons"
                     fromYear={1920}
