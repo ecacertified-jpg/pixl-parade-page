@@ -16,13 +16,19 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   }
 
   // Check all steps in parallel
-  const [profileRes, favRes, friendRes, bpRes, fundRes] = await Promise.all([
-    supabase.from('profiles').select('birthday, selected_tastes').eq('user_id', userId).single(),
+  const [profileRes, favRes, friendRes, bpRes, fundRes, circlesRes] = await Promise.all([
+    supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
     supabase.from('birthday_pages').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_active', true),
     supabase.from('collective_funds').select('id', { count: 'exact', head: true }).eq('creator_id', userId).eq('occasion', 'birthday').eq('status', 'active'),
+    supabase.from('friend_circles').select('id').eq('user_id', userId),
   ]);
+
+  // If onboarding already marked complete in DB, skip entirely
+  if ((profileRes.data as any)?.onboarding_completed === true) {
+    return { shouldShow: false, firstIncompleteStep: 0 };
+  }
 
   // Step 1: Birthday
   if (!profileRes.data?.birthday) {
@@ -39,8 +45,18 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     return { shouldShow: true, firstIncompleteStep: 3 };
   }
 
-  // Step 4: Amis (≥3 completed friend forms)
-  if ((friendRes.count || 0) < 3) {
+  // Step 4: Amis — skip if ≥3 members in friend circles OR ≥3 completed friend forms
+  const friendFormCount = friendRes.count || 0;
+  let circleMemberCount = 0;
+  const circleIds = (circlesRes.data || []).map((c: any) => c.id);
+  if (circleIds.length > 0) {
+    const { count } = await supabase
+      .from('friend_circle_members')
+      .select('*', { count: 'exact', head: true })
+      .in('circle_id', circleIds);
+    circleMemberCount = count || 0;
+  }
+  if (friendFormCount < 3 && circleMemberCount < 3) {
     return { shouldShow: true, firstIncompleteStep: 4 };
   }
 
