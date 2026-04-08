@@ -1,33 +1,60 @@
 
 
-# Plan : Corriger la route `/anniversaire/:slug` → 404
+# Plan : Messages de partage incitatifs, skip étape Amis, et onboarding terminé persistant
 
-## Problème
+## 3 modifications
 
-Les liens partagés depuis l'onboarding utilisent `/anniversaire/{slug}` mais la route définie dans `App.tsx` est `/birthday/:slug`. Résultat : 404.
+### 1. Messages de partage plus incitatifs dans l'onboarding
 
-## Solution
+**Fichier : `src/components/OnboardingExperience.tsx`**
 
-Deux corrections complémentaires :
+Remplacer les messages dans les 3 fonctions de partage :
 
-### 1. `src/App.tsx` — Ajouter une route alias
+- `handleSharePageWhatsApp` (ligne 508-509) : remplacer par `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${pageUrl}`
+- `handleCopyPageLink` (ligne 527) : même message
+- `handleSharePageSMS` (ligne 519) : même message (version SMS)
 
-Ajouter une route `/anniversaire/:slug` qui redirige vers `/birthday/:slug`, ou mieux, qui rend directement le composant `BirthdayPage` :
+### 2. Sauter l'étape Amis si ≥3 amis dans le cercle d'amis
+
+**Fichier : `src/hooks/useOnboarding.ts`**
+
+À l'étape 4 (Amis), en plus de vérifier les `friend_form_tokens` complétés, vérifier aussi le nombre de membres dans `friend_circle_members` liés aux cercles de l'utilisateur. Ajouter aux requêtes parallèles :
 
 ```typescript
-<Route path="/anniversaire/:slug" element={<L><BirthdayPage /></L>} />
+supabase.from('friend_circles').select('id').eq('user_id', userId)
 ```
 
-Cela rend les deux URLs valides (`/birthday/` et `/anniversaire/`).
+Puis compter les `friend_circle_members` de ces cercles. Si ≥3 membres → considérer l'étape 4 comme complète (ne pas afficher l'onboarding à cette étape).
 
-### 2. `src/components/OnboardingExperience.tsx` — Harmoniser les URLs
+Alternative plus simple : compter directement les `friend_circle_members` via une jointure ou deux requêtes séquentielles (cercles puis membres).
 
-Remplacer les 3 occurrences de `/anniversaire/` par `/birthday/` dans les fonctions de partage (`handleSharePageWhatsApp`, `handleSharePageSMS`, `handleCopyPageLink`) pour que les futurs liens soient cohérents avec la route principale.
+### 3. Ne plus afficher l'onboarding si toutes les étapes sont achevées
+
+**Fichier : `src/hooks/useOnboarding.ts`**
+
+Dans `fetchOnboardingStatus`, ajouter une vérification **au début** (après le check URL) :
+
+```typescript
+// Check DB flag first
+const { data: profile } = await supabase
+  .from('profiles')
+  .select('onboarding_completed')
+  .eq('user_id', userId)
+  .single();
+
+if (profile?.onboarding_completed === true) {
+  return { shouldShow: false, firstIncompleteStep: 0 };
+}
+```
+
+Cela court-circuite toutes les vérifications si l'onboarding a déjà été marqué comme terminé en DB. Le flag `onboarding_completed` est déjà mis à `true` dans `completeOnboarding()` — il suffit de le lire au début.
+
+Optimisation : fusionner cette requête avec la requête `profiles` existante en ajoutant `onboarding_completed` au select (ligne 20).
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/App.tsx` | Ajouter route `/anniversaire/:slug` → `BirthdayPage` |
-| `src/components/OnboardingExperience.tsx` | Remplacer `/anniversaire/` par `/birthday/` (3 endroits) |
+| `src/components/OnboardingExperience.tsx` | Messages de partage incitatifs (3 fonctions) |
+| `src/hooks/useOnboarding.ts` | Check `onboarding_completed` + check cercle d'amis ≥3 |
 
