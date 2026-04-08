@@ -1,60 +1,43 @@
 
+# Plan : Pré-remplir la date d'anniversaire + fermer le calendrier au clic
 
-# Plan : Messages de partage incitatifs, skip étape Amis, et onboarding terminé persistant
+## Problème 1 — Date d'anniversaire non pré-remplie depuis l'inscription
 
-## 3 modifications
+La date saisie dans le formulaire d'inscription (Auth) est stockée dans `profiles.birthday`. L'onboarding charge déjà cette valeur (ligne 117-118 de `OnboardingExperience.tsx`). Cela fonctionne donc déjà si le profil a été correctement créé lors de l'inscription. Cependant, il peut y avoir un délai entre le `signUp` et la création du profil par le trigger `handle_new_user`. On va s'assurer que la date est aussi récupérée depuis `user.user_metadata.birthday` en fallback.
 
-### 1. Messages de partage plus incitatifs dans l'onboarding
+### Solution
 
 **Fichier : `src/components/OnboardingExperience.tsx`**
 
-Remplacer les messages dans les 3 fonctions de partage :
+Dans le `useEffect` qui charge le profil (lignes 110-125), ajouter un fallback : si `data?.birthday` est vide, vérifier `user.user_metadata?.birthday`. Si présent, l'utiliser pour initialiser `birthday`.
 
-- `handleSharePageWhatsApp` (ligne 508-509) : remplacer par `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${pageUrl}`
-- `handleCopyPageLink` (ligne 527) : même message
-- `handleSharePageSMS` (ligne 519) : même message (version SMS)
+## Problème 2 — Le calendrier reste ouvert après sélection d'un jour
 
-### 2. Sauter l'étape Amis si ≥3 amis dans le cercle d'amis
+Actuellement, `onSelect={setBirthday}` met à jour la date mais le `Popover` reste ouvert. L'utilisateur doit fermer manuellement pour voir le résultat et le bouton "Suivant".
 
-**Fichier : `src/hooks/useOnboarding.ts`**
+### Solution
 
-À l'étape 4 (Amis), en plus de vérifier les `friend_form_tokens` complétés, vérifier aussi le nombre de membres dans `friend_circle_members` liés aux cercles de l'utilisateur. Ajouter aux requêtes parallèles :
+**Fichier : `src/components/OnboardingExperience.tsx`**
 
-```typescript
-supabase.from('friend_circles').select('id').eq('user_id', userId)
-```
-
-Puis compter les `friend_circle_members` de ces cercles. Si ≥3 membres → considérer l'étape 4 comme complète (ne pas afficher l'onboarding à cette étape).
-
-Alternative plus simple : compter directement les `friend_circle_members` via une jointure ou deux requêtes séquentielles (cercles puis membres).
-
-### 3. Ne plus afficher l'onboarding si toutes les étapes sont achevées
-
-**Fichier : `src/hooks/useOnboarding.ts`**
-
-Dans `fetchOnboardingStatus`, ajouter une vérification **au début** (après le check URL) :
+Remplacer le `Popover` non contrôlé par un `Popover` contrôlé avec un état `calendarOpen`. Quand l'utilisateur sélectionne un jour (`onSelect`), mettre à jour `birthday` ET fermer le popover (`setCalendarOpen(false)`).
 
 ```typescript
-// Check DB flag first
-const { data: profile } = await supabase
-  .from('profiles')
-  .select('onboarding_completed')
-  .eq('user_id', userId)
-  .single();
+const [calendarOpen, setCalendarOpen] = useState(false);
 
-if (profile?.onboarding_completed === true) {
-  return { shouldShow: false, firstIncompleteStep: 0 };
-}
+<Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+  ...
+  <Calendar
+    onSelect={(date) => {
+      setBirthday(date);
+      if (date) setCalendarOpen(false);
+    }}
+    ...
+  />
+</Popover>
 ```
-
-Cela court-circuite toutes les vérifications si l'onboarding a déjà été marqué comme terminé en DB. Le flag `onboarding_completed` est déjà mis à `true` dans `completeOnboarding()` — il suffit de le lire au début.
-
-Optimisation : fusionner cette requête avec la requête `profiles` existante en ajoutant `onboarding_completed` au select (ligne 20).
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Messages de partage incitatifs (3 fonctions) |
-| `src/hooks/useOnboarding.ts` | Check `onboarding_completed` + check cercle d'amis ≥3 |
-
+| `src/components/OnboardingExperience.tsx` | Ajouter fallback `user_metadata.birthday`, contrôler le Popover du calendrier |
