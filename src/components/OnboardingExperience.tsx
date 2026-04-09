@@ -101,6 +101,17 @@ export const OnboardingExperience = ({
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  // Auto-save selected categories with debounce
+  useEffect(() => {
+    if (!user || selectedCategories.length === 0) return;
+    const timeout = setTimeout(() => {
+      supabase.from('profiles')
+        .update({ selected_tastes: selectedCategories })
+        .eq('user_id', user.id);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [selectedCategories, user]);
+
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
   const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'];
