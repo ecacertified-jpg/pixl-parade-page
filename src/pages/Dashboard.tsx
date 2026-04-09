@@ -696,9 +696,6 @@ export default function Dashboard() {
         {/* Cartes de badges */}
         <div className="grid grid-cols-1 gap-4 mb-4">
           <BirthdayStatsCard />
-          {reciprocityScore && (
-            <BadgeProgressCard currentScore={reciprocityScore.generosity_score} />
-          )}
         </div>
 
         {/* Section Aide rapide */}
