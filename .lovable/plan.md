@@ -1,43 +1,36 @@
 
-# Plan : Pré-remplir la date d'anniversaire + fermer le calendrier au clic
 
-## Problème 1 — Date d'anniversaire non pré-remplie depuis l'inscription
+# Plan : Sauvegarder automatiquement les catégories sélectionnées
 
-La date saisie dans le formulaire d'inscription (Auth) est stockée dans `profiles.birthday`. L'onboarding charge déjà cette valeur (ligne 117-118 de `OnboardingExperience.tsx`). Cela fonctionne donc déjà si le profil a été correctement créé lors de l'inscription. Cependant, il peut y avoir un délai entre le `signUp` et la création du profil par le trigger `handle_new_user`. On va s'assurer que la date est aussi récupérée depuis `user.user_metadata.birthday` en fallback.
+## Problème
 
-### Solution
+Les catégories (goûts) sélectionnées à l'étape 2 de l'onboarding ne sont sauvegardées en base de données que lorsque l'utilisateur clique sur "Suivant". Si l'utilisateur ferme l'application avant de cliquer "Suivant", ses sélections sont perdues.
 
-**Fichier : `src/components/OnboardingExperience.tsx`**
+## Solution
 
-Dans le `useEffect` qui charge le profil (lignes 110-125), ajouter un fallback : si `data?.birthday` est vide, vérifier `user.user_metadata?.birthday`. Si présent, l'utiliser pour initialiser `birthday`.
+Sauvegarder automatiquement les catégories dans `profiles.selected_tastes` à chaque changement de sélection, via un `useEffect` avec debounce.
 
-## Problème 2 — Le calendrier reste ouvert après sélection d'un jour
+### Modification dans `src/components/OnboardingExperience.tsx`
 
-Actuellement, `onSelect={setBirthday}` met à jour la date mais le `Popover` reste ouvert. L'utilisateur doit fermer manuellement pour voir le résultat et le bouton "Suivant".
-
-### Solution
-
-**Fichier : `src/components/OnboardingExperience.tsx`**
-
-Remplacer le `Popover` non contrôlé par un `Popover` contrôlé avec un état `calendarOpen`. Quand l'utilisateur sélectionne un jour (`onSelect`), mettre à jour `birthday` ET fermer le popover (`setCalendarOpen(false)`).
+1. Ajouter un `useEffect` qui surveille `selectedCategories` et sauvegarde automatiquement en DB dès que la sélection change (avec un délai de 500ms pour éviter trop d'appels) :
 
 ```typescript
-const [calendarOpen, setCalendarOpen] = useState(false);
-
-<Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-  ...
-  <Calendar
-    onSelect={(date) => {
-      setBirthday(date);
-      if (date) setCalendarOpen(false);
-    }}
-    ...
-  />
-</Popover>
+useEffect(() => {
+  if (!user || selectedCategories.length === 0) return;
+  const timeout = setTimeout(() => {
+    supabase.from('profiles')
+      .update({ selected_tastes: selectedCategories })
+      .eq('user_id', user.id);
+  }, 500);
+  return () => clearTimeout(timeout);
+}, [selectedCategories, user]);
 ```
 
-## Fichiers concernés
+2. La sauvegarde dans `handleNext` (ligne 566-568) reste en place comme filet de sécurité.
+
+## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Ajouter fallback `user_metadata.birthday`, contrôler le Popover du calendrier |
+| `src/components/OnboardingExperience.tsx` | Ajouter auto-save des catégories via `useEffect` debounce |
+
