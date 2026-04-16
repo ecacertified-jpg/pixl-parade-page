@@ -1,6 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { memo, useState, useEffect } from "react";
+import { memo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
@@ -11,7 +11,7 @@ import { PublicFundsCarousel } from "@/components/PublicFundsCarousel";
 import { FeaturedVideoProductsCarousel } from "@/components/FeaturedVideoProductsCarousel";
 import { FeaturedExperiencesCarousel } from "@/components/FeaturedExperiencesCarousel";
 import { NewsFeed } from "@/components/NewsFeed";
-import { TikTokFeed } from "@/components/TikTokFeed";
+
 import { UserSuggestionsSection } from "@/components/UserSuggestionsSection";
 import { BottomNavigation } from "@/components/RecentActivitySection";
 import { InstallBanner } from "@/components/InstallBanner";
@@ -20,7 +20,7 @@ import { useCart } from "@/hooks/useCart";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
-import { CountrySelector } from "@/components/CountrySelector";
+
 import { CountryBadgeHeader } from "@/components/CountryBadgeHeader";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { OrganizationSchema, WebSiteSchema } from "@/components/schema";
@@ -34,7 +34,6 @@ const Home = () => {
   const { isActiveBusinessAccount } = useBusinessAccount();
   const { itemCount } = useCart();
   const { celebrationBadge, isOpen: isCelebrationOpen, closeCelebration } = useFriendsCircleBadgeCelebration();
-  const [feedMode, setFeedMode] = useState<'feed' | 'tiktok'>('feed');
 
   // Prefetch dashboard data so it's instant when user navigates
   useEffect(() => {
@@ -44,40 +43,6 @@ const Home = () => {
       });
     }
   }, [user?.id, queryClient]);
-
-  // TikTok mode - full screen immersive
-  if (feedMode === 'tiktok') {
-    return (
-      <div className="h-[100dvh] w-full bg-black fixed inset-0 z-50 overflow-hidden">
-        {/* Minimal header for TikTok mode */}
-        <header className="absolute top-0 left-0 right-0 z-30 px-4 py-3 flex items-center justify-between">
-          <button 
-            onClick={() => setFeedMode('feed')}
-            className="text-white/80 hover:text-white text-sm font-medium"
-          >
-            ← Retour
-          </button>
-          <div className="flex items-center gap-2">
-            <CountrySelector variant="minimal" className="text-white" showWelcomeToast={false} />
-            <div className="relative cursor-pointer" onClick={() => navigate("/cart")}>
-              <ShoppingCart className="h-5 w-5 text-white/80 hover:text-white transition-colors" />
-              {itemCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-heart text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {itemCount}
-                </div>
-              )}
-            </div>
-            <NotificationPanel />
-          </div>
-        </header>
-        
-        <TikTokFeed />
-        
-        {/* Bottom Navigation */}
-        <BottomNavigation />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -132,7 +97,7 @@ const Home = () => {
         <FeaturedExperiencesCarousel />
 
         {/* Section 5: News Feed with mode toggle */}
-        <NewsFeed onModeChange={setFeedMode} currentMode={feedMode} />
+        <NewsFeed />
 
         {/* Bottom padding for navigation */}
         <div className="pb-20"></div>
