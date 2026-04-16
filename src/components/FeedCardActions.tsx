@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FeedPage } from "@/hooks/usePagesFeed";
+import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 
 interface FeedCardActionsProps {
   page: FeedPage;
@@ -32,6 +33,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
   const [memoryText, setMemoryText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [sendingMemory, setSendingMemory] = useState(false);
+  const [showGiftPromise, setShowGiftPromise] = useState(false);
 
   const requireAuth = () => {
     if (!user) {
@@ -145,13 +147,37 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
         else navigate(pageUrl);
         break;
       case "cadeau":
-        navigate(pageUrl);
+        if (!requireAuth()) setShowGiftPromise(true);
         break;
       case "voir":
         navigate(pageUrl);
         break;
     }
   };
+
+  const handleGiftPromiseConfirm = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("page_gift_promises" as any).insert({
+        user_id: user.id,
+        page_id: page.id,
+        page_type: page.type,
+        page_owner_id: page.creator.user_id,
+      });
+      if (error) throw error;
+      toast.success("Promesse de cadeau enregistrée ! 🎁");
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        toast.info("Vous avez déjà promis un cadeau pour cette page !");
+      } else {
+        console.error("Gift promise error:", err);
+        toast.error("Erreur lors de l'enregistrement de la promesse");
+      }
+    }
+  };
+
+  const creatorName = [page.creator.first_name, page.creator.last_name].filter(Boolean).join(" ") || "Utilisateur";
+  const occasion = page.type === "birthday" ? "anniversaire" : page.occasion || "événement";
 
   const visibleButtons = ACTION_BUTTONS.filter((b) => {
     if (b.key === "cagnotte" && !page.fund) return false;
@@ -234,6 +260,14 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
           if (f) handleUpload(f, "video");
           e.target.value = "";
         }}
+      />
+
+      <GiftPromiseModal
+        open={showGiftPromise}
+        onOpenChange={setShowGiftPromise}
+        onConfirm={handleGiftPromiseConfirm}
+        authorName={creatorName}
+        occasion={occasion}
       />
     </div>
   );
