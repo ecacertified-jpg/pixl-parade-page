@@ -1,53 +1,72 @@
 
 
-# Plan : Corriger la navigation Profil et Accueil dans la bottom bar
+# Plan : Améliorer les animations de transition de la bottom bar
 
-## Problème
+## Contexte
 
-1. **"Profil"** navigue vers `/dashboard` mais si l'utilisateur y est déjà, rien ne se passe
-2. **"Accueil"** navigue vers `/` (Landing publique) au lieu de `/index` (accueil authentifié)
-3. L'état actif d'Accueil vérifie `pathname === "/"` — ne détecte jamais `/index`
+Actuellement, les onglets ont des transitions CSS basiques (`transition-all duration-200`, `scale-110` sur l'icône active). Le composant `AnimatedPageTransition` existe mais n'est utilisé nulle part. Les routes utilisent `AnimatedRoutes` qui est un wrapper léger sans animation.
 
-## Changements — `src/components/RecentActivitySection.tsx`
+## Changements
 
-### 1. Corriger "Accueil" → `/index`
+### 1. Animer la bottom bar elle-même (`src/components/RecentActivitySection.tsx`)
 
-```typescript
-// Avant
-{ icon: Home, label: "Accueil", 
-  isActive: location.pathname === "/",
-  onClick: () => navigate("/") }
+- Ajouter un **indicateur actif animé** (dot ou barre sous l'onglet actif) avec une transition CSS smooth
+- Ajouter un effet **spring/bounce** sur l'icône au clic (tap feedback)
+- Ajouter une animation de **scale-down au press** (active:scale-90) puis retour
+- Améliorer la transition de couleur avec un fond léger animé sur l'onglet actif
 
-// Après
-{ icon: Home, label: "Accueil", 
-  isActive: location.pathname === "/" || location.pathname === "/index",
-  onClick: () => navigate("/index") }
-```
+### 2. Animer les transitions de page (`src/App.tsx`)
 
-### 2. Corriger "Profil" → forcer le scroll en haut si déjà sur /dashboard
+- Wrapper les routes dans `AnimatedPageTransition` avec le mode `fade` pour un fondu fluide entre les pages quand on navigue via la bottom bar
+
+### Détail technique — Bottom bar
 
 ```typescript
-// Avant
-{ icon: User, label: "Profil", 
-  isActive: location.pathname === "/dashboard",
-  onClick: () => navigate("/dashboard") }
-
-// Après
-{ icon: User, label: "Profil", 
-  isActive: location.pathname === "/dashboard",
-  onClick: () => {
-    if (location.pathname === "/dashboard") {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      navigate("/dashboard");
-    }
-  }
-}
+// Bouton nav avec animations améliorées
+<button
+  onClick={item.onClick}
+  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl 
+    transition-all duration-300 ease-out
+    active:scale-90
+    hover:bg-primary/5 relative ${
+    item.isActive ? "text-primary" : "text-muted-foreground"
+  }`}
+>
+  <div className="relative">
+    <item.icon className={`h-6 w-6 transition-all duration-300 ease-out ${
+      item.isActive ? "scale-110" : ""
+    }`} />
+    {/* Dot indicateur animé */}
+    {item.isActive && (
+      <motion.div 
+        layoutId="activeTab"
+        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      />
+    )}
+  </div>
+</button>
 ```
 
-## Fichier concerné
+### Détail technique — Page transitions
+
+Wrapper le contenu des routes dans `AnimatedPageTransition` au niveau de `App.tsx` :
+
+```tsx
+<AnimatedRoutes>
+  <Route path="/index" element={
+    <AnimatedPageTransition mode="fade" duration={0.2}>
+      <Index />
+    </AnimatedPageTransition>
+  } />
+  ...
+</AnimatedRoutes>
+```
+
+## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/RecentActivitySection.tsx` | Corriger navigation Accueil et Profil |
+| `src/components/RecentActivitySection.tsx` | Ajouter motion, indicateur actif animé, tap feedback |
+| `src/App.tsx` | Wrapper les routes principales dans `AnimatedPageTransition` |
 
