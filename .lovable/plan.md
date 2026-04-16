@@ -1,64 +1,89 @@
 
 
-# Plan : Remplacer le fil d'actualités par les albums souvenirs des pages créées
+# Plan : Fil d'actualités avec pages des proches et système d'abonnement
 
-## Objectif
+## Problème actuel
 
-Le fil d'actualités de la page d'accueil (`/home`) affichera uniquement les pages d'anniversaire et d'événement créées par les utilisateurs (avec leur album photo/vidéo et cagnotte), en remplacement des publications classiques (table `posts`).
+Le fil d'actualités (`usePagesFeed`) charge bien les `birthday_pages` et `event_pages` actives depuis Supabase. Les données existent (160 birthday pages actives) mais la plupart n'ont ni photos, ni couverture, ni cagnotte — ce qui rend les cartes vides visuellement. Le code fonctionne techniquement, mais ne filtre pas par relation sociale ni ne priorise le contenu enrichi.
 
-## Architecture des données
+## Objectifs
 
-Sources de données à combiner :
-- **`birthday_pages`** : `id, user_id, slug, title, cover_image_url, celebration_year, fund_id, is_active, created_at`
-- **`event_pages`** : `id, creator_id, slug, title, occasion, cover_image_url, fund_id, event_date, is_active, created_at`
-- **`birthday_page_photos`** : photos/vidéos/souvenirs liés aux pages anniversaire
-- **`event_page_photos`** : photos/vidéos/souvenirs liés aux pages événement
-- **`collective_funds`** : cagnotte liée (`target_amount, current_amount, status`)
-- **`profiles`** : infos du créateur
+1. **Corriger le fil** : prioriser les pages avec contenu (photos/cagnotte) et afficher aussi les pages sans contenu avec un visuel par défaut
+2. **Filtrer par réseau social** : montrer les pages des amis/proches (via `user_follows`) + toutes les pages publiques
+3. **Ajouter l'abonnement aux pages** : bouton "Suivre" sur chaque carte du fil
 
 ## Changements
 
-### 1. Créer un hook `usePagesFeed.ts`
+### 1. Migration — Table `page_follows`
 
-Nouveau hook qui récupère les pages actives (birthday + event) triées par date, avec :
-- Le profil du créateur
-- Le nombre de photos/vidéos dans l'album
-- Le nombre de vœux/messages
-- Les infos de la cagnotte liée (montant, progression)
-- Interface unifiée `FeedPage` avec un champ `type: 'birthday' | 'event'`
+Nouvelle table pour l'abonnement spécifique aux pages (birthday/event) :
 
-### 2. Créer un composant `PageFeedCard.tsx`
+```sql
+CREATE TABLE public.page_follows (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  page_type text NOT NULL CHECK (page_type IN ('birthday', 'event')),
+  page_id uuid NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, page_type, page_id)
+);
 
-Carte affichant une page dans le fil, avec :
-- Avatar et nom du créateur
-- Image de couverture de la page
-- Titre et occasion (🎂 Anniversaire, 💒 Mariage, etc.)
-- Miniatures de l'album (grille 2x2 des premières photos)
-- Barre de progression de la cagnotte (si liée)
-- Nombre de vœux et photos
-- Bouton "Voir la page" naviguant vers `/birthday/:slug` ou `/event/:slug`
-- Date de création
+ALTER TABLE public.page_follows ENABLE ROW LEVEL SECURITY;
 
-### 3. Modifier `NewsFeed.tsx`
+CREATE POLICY "Users can view their follows" ON public.page_follows
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can follow pages" ON public.page_follows
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can unfollow pages" ON public.page_follows
+  FOR DELETE USING (auth.uid() = user_id);
+-- Public count visibility
+CREATE POLICY "Anyone can count follows" ON public.page_follows
+  FOR SELECT USING (true);
+```
 
-- Remplacer `usePosts` par `usePagesFeed`
-- Remplacer `PostCard` par `PageFeedCard`
-- Supprimer les onglets "Tous" / "Abonnements" (les pages sont toujours publiques)
-- Conserver le header avec le titre "Fil d'actualités"
-- Supprimer le toggle TikTok (non pertinent pour les albums)
-- État vide adapté : "Aucun album souvenir pour le moment"
+### 2. `usePagesFeed.ts` — Ajout onglets et filtre social
 
-### 4. Adapter `Home.tsx`
+- Ajouter un paramètre `filter: 'all' | 'following'`
+- **Mode "Tous"** : toutes les pages actives, triées par date (comportement actuel)
+- **Mode "Abonnements"** : pages créées par les utilisateurs suivis (`user_follows.following_id`) + pages explicitement suivies (`page_follows`)
+- Ajouter un champ `is_following: boolean` à `FeedPage` pour afficher l'état du bouton
+- Charger les `page_follows` de l'utilisateur connecté en parallèle
+- Pour les pages sans photo ni couverture, générer un visuel par défaut (gradient + icône occasion)
 
-- Supprimer le `feedMode` state et le mode TikTok (plus de `TikTokFeed`)
-- Simplifier le `NewsFeed` sans les props `onModeChange`/`currentMode`
+### 3. `NewsFeed.tsx` — Onglets Tous / Abonnements
+
+- Ajouter deux onglets en haut : **Tous** et **Abonnements**
+- L'onglet actif filtre le flux via le paramètre du hook
+- Animation de transition entre les onglets (framer-motion fade)
+
+### 4. `PageFeedCard.tsx` — Bouton Suivre + visuels par défaut
+
+- Ajouter un bouton **Suivre / Suivi** à côté de l'icône occasion dans le header
+- Toggle optimiste : insert/delete dans `page_follows`
+- Pour les pages sans image : afficher un **placeholder visuel** avec un gradient coloré et l'icône de l'occasion (🎂, 💒, etc.) en grand format
+- Badge "Ami" si le créateur est dans `user_follows`
+
+### 5. `usePageFollow.ts` — Hook d'abonnement
+
+Nouveau hook gérant :
+- `isFollowing(pageType, pageId)` : état local
+- `toggleFollow(pageType, pageId)` : insert/delete optimiste
+- Chargement initial des follows de l'utilisateur
 
 ## Fichiers concernés
 
 | Fichier | Action |
 |---------|--------|
-| `src/hooks/usePagesFeed.ts` | **Créer** — hook pour récupérer birthday_pages + event_pages avec album et fund |
-| `src/components/PageFeedCard.tsx` | **Créer** — carte d'affichage d'un album souvenir dans le fil |
-| `src/components/NewsFeed.tsx` | **Modifier** — remplacer posts par pages feed |
-| `src/pages/Home.tsx` | **Modifier** — supprimer TikTok mode, simplifier props NewsFeed |
+| Migration SQL | **Créer** — table `page_follows` avec RLS |
+| `src/hooks/usePagesFeed.ts` | **Modifier** — filtre all/following, champ is_following, placeholder |
+| `src/hooks/usePageFollow.ts` | **Créer** — hook toggle follow/unfollow |
+| `src/components/NewsFeed.tsx` | **Modifier** — onglets Tous/Abonnements |
+| `src/components/PageFeedCard.tsx` | **Modifier** — bouton Suivre, placeholder visuel, badge ami |
+
+## Détails techniques
+
+- `user_follows` (existant) sert à déterminer si le créateur est un ami → badge "Ami" + filtre Abonnements
+- `page_follows` (nouveau) sert à l'abonnement spécifique à une page → notifications futures + filtre Abonnements
+- Les deux tables sont combinées dans le mode "Abonnements" : pages des amis OU pages suivies explicitement
+- Le toggle follow utilise une mise à jour optimiste (state local avant confirmation serveur)
 
