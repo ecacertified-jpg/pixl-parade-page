@@ -1,57 +1,39 @@
 
 
-# Plan : Badges compteurs, bouton Retour, et sections masquables
+# Plan : Reprendre l'onboarding à la dernière étape atteinte
 
-## 1. Badges compteurs sur les boutons de réaction
+## Problème
 
-### Problème
-Les boutons Photo, Vidéo, Souvenir, Cadeau n'affichent pas le nombre d'éléments existants.
+Chaque fois que l'utilisateur revient dans l'application, `fetchOnboardingStatus` recalcule la première étape incomplète depuis le début (anniversaire → goûts → souhaits → ...). Si une étape intermédiaire échoue à la vérification (ex: `selected_tastes` non persisté à cause du debounce auto-save qui ne complète pas), l'utilisateur est renvoyé en arrière au lieu de reprendre là où il s'était arrêté.
 
-### Solution
-- Dans `usePagesFeed.ts` : ajouter au type `FeedPage` les compteurs `photo_count`, `video_count`, `memory_count`, `gift_promise_count`
-- Compter à partir des données déjà chargées (`birthday_page_photos` / `event_page_photos`) en filtrant par `media_type` (image, video, text/memory)
-- Pour `gift_promise_count` : faire un fetch séparé groupé par page depuis `page_gift_promises`
-- Dans `FeedCardActions.tsx` : afficher un petit badge (cercle coloré) avec le compteur sur chaque bouton-icône quand > 0
+## Solution
 
-### Fichiers
+Persister l'étape la plus avancée atteinte par l'utilisateur et toujours reprendre à partir de cette étape, jamais en arrière.
+
+## Changements
+
+### 1. `src/hooks/useOnboarding.ts` — Mémoriser l'étape atteinte
+
+- Sauvegarder `furthestStep` dans `localStorage` (clé `onboarding_step_{userId}`) chaque fois que `setCurrentStep` est appelé avec une valeur supérieure.
+- Au calcul de `effectiveCurrentStep`, utiliser `Math.max(firstIncompleteStep, storedFurthestStep)` pour ne jamais reculer.
+
+### 2. `src/components/OnboardingExperience.tsx` — Fiabiliser la sauvegarde des goûts
+
+- Dans `handleNext` (step 2 → step 3), **attendre** le résultat du `.update()` de `selected_tastes` et vérifier qu'il n'y a pas d'erreur avant de passer à l'étape suivante.
+- Ajouter un `await` manquant et un toast d'erreur si la sauvegarde échoue.
+
+### 3. `src/components/OnboardingExperience.tsx` — Pré-remplir les états locaux
+
+- Les données chargées depuis la DB (birthday, selected_tastes, favorites) déterminent `isStepCompleted()`. S'assurer que le chargement est complet **avant** d'évaluer les boutons de navigation, en ajoutant un état `dataLoaded` pour éviter de bloquer la navigation sur des données pas encore chargées.
+
+## Fichiers concernés
+
 | Fichier | Changement |
 |---------|------------|
-| `src/hooks/usePagesFeed.ts` | Ajouter `photo_count`, `video_count`, `memory_count`, `gift_promise_count` au type + mapping. Fetch `media_type` dans les selects et compter par type. Fetch `page_gift_promises` groupé. |
-| `src/components/FeedCardActions.tsx` | Afficher badge compteur sur chaque bouton quand `page.photo_count > 0`, etc. |
+| `src/hooks/useOnboarding.ts` | Persister/lire `furthestStep` dans localStorage, utiliser `Math.max` |
+| `src/components/OnboardingExperience.tsx` | Await sauvegarde goûts dans handleNext, état `dataLoaded` pour navigation |
 
-## 2. Bouton Retour vers le fil après "Voir"
+## Résultat
 
-### Problème
-Cliquer sur "Voir" navigue vers `/birthday/:slug` ou `/event/:slug`, mais il n'y a pas de moyen explicite de revenir au fil.
-
-### Solution
-- Dans `FeedCardActions.tsx` : passer un `state` via `navigate()` quand on clique "Voir" : `navigate(pageUrl, { state: { fromFeed: true } })`
-- Dans les pages `BirthdayPage` et `EventPage` : détecter `location.state?.fromFeed` et afficher un bouton "← Retour au fil" en haut qui navigue vers `/home`
-
-### Fichiers
-| Fichier | Changement |
-|---------|------------|
-| `src/components/FeedCardActions.tsx` | Passer `{ state: { fromFeed: true } }` au navigate du bouton "Voir" |
-| `src/pages/BirthdayPage.tsx` | Détecter `fromFeed` dans le state, afficher bouton retour vers `/home` |
-| `src/pages/EventPage.tsx` | Idem |
-
-## 3. Sections masquables pour Produits en vedette et Expériences Premium
-
-### Problème
-Les sections "Produits en vedette" et "Expériences Premium" occupent de l'espace. L'utilisateur souhaite pouvoir les masquer/afficher avec des boutons incitatifs.
-
-### Solution
-- Dans `Home.tsx` : entourer chaque section d'un état `showProducts` / `showExperiences` (masqués par défaut)
-- Afficher un bouton texte incitatif quand masqué, ex : "🎬 Découvrir les produits vedettes →" et "✨ Explorer les expériences Premium →"
-- Cliquer démasque la section complète avec un bouton "Masquer" pour replier
-
-### Fichier
-| Fichier | Changement |
-|---------|------------|
-| `src/pages/Home.tsx` | Ajouter 2 states booléens + boutons toggle incitatifs autour des carousels |
-
-## Résultat attendu
-- Chaque bouton-icône affiche un badge numérique (photo, vidéo, souvenir, promesse)
-- Le bouton "Voir" navigue avec un state, et la page détaillée affiche un bouton "Retour au fil"
-- Les sections produits/expériences sont masquées par défaut avec des CTA attrayants pour les révéler
+L'utilisateur reprend toujours à l'étape la plus avancée qu'il a atteinte, sans jamais être renvoyé en arrière.
 
