@@ -100,6 +100,7 @@ export const OnboardingExperience = ({
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
 
   // Auto-save selected categories with debounce
   useEffect(() => {
@@ -128,8 +129,10 @@ export const OnboardingExperience = ({
       if (data?.first_name) setFirstName(data.first_name);
       if (data?.birthday) {
         setBirthday(new Date(data.birthday));
+        setBirthdayPreFilled(true);
       } else if (user.user_metadata?.birthday) {
         setBirthday(new Date(user.user_metadata.birthday));
+        setBirthdayPreFilled(true);
       }
       if (data?.selected_tastes && (data.selected_tastes as string[]).length > 0) {
         setSelectedCategories(data.selected_tastes as string[]);
@@ -733,10 +736,12 @@ export const OnboardingExperience = ({
               </motion.div>
 
               <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                Quand est ton anniversaire ? 🎂
+                {birthdayPreFilled && birthday ? "C'est bien ta date ? 🎂" : "Quand est ton anniversaire ? 🎂"}
               </h2>
               <p className="text-muted-foreground font-nunito mb-6">
-                Pour que tes proches ne l'oublient jamais !
+                {birthdayPreFilled && birthday
+                  ? "Tu peux la modifier si besoin."
+                  : "Pour que tes proches ne l'oublient jamais !"}
               </p>
 
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -772,6 +777,16 @@ export const OnboardingExperience = ({
                     className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm font-nunito"
                   >
                     📅 Sélectionne ta date d'anniversaire pour que tes proches puissent te célébrer !
+                  </motion.div>
+                )}
+                {birthday && birthdayPreFilled && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200 text-sm font-nunito"
+                  >
+                    ✅ Date trouvée depuis ton profil
                   </motion.div>
                 )}
               </AnimatePresence>
