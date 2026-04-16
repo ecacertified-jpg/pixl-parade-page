@@ -1,41 +1,49 @@
 
 
-# Plan : Adapter l'onboarding selon le choix "Mon anniversaire" vs "Anniversaire d'un proche"
+# Plan : Adapter l'onboarding pour le choix "Un autre événement"
 
 ## Constat
 
-Le quiz pré-inscription (`PreAuthDiscovery`) sauvegarde les réponses dans `localStorage('jdv_discovery_answers')` mais l'onboarding post-inscription (`OnboardingExperience`) ne les lit jamais. Le parcours est identique quel que soit le choix de l'utilisateur.
+Actuellement, quand l'utilisateur sélectionne "Un autre événement" dans le quiz pré-inscription, la valeur `other_event` est sauvegardée mais l'onboarding la traite comme `my_birthday` (le cas par défaut). L'étape 5 affiche toujours "Finalise ta page d'anniversaire" au lieu de proposer la création d'une page pour un mariage, baptême, etc.
 
 ## Ce qui va changer
 
-L'onboarding lira le `purpose` du quiz et adaptera l'étape 5 ("Ma Page") :
-
-- **`my_birthday`** (défaut) : parcours actuel inchangé — créer SA page d'anniversaire, SA cagnotte, partager avec ses proches
-- **`friend_birthday`** : l'étape 5 devient "Page pour ton proche" — l'utilisateur crée une page d'anniversaire pour son proche (surprise ou non), crée une cagnotte au nom du proche, et partage avec les autres amis du proche
-
-Les étapes 1-4 (Accueil, Anniversaire, Goûts, Souhaits, Amis) restent identiques car elles concernent le profil de l'utilisateur lui-même.
+1. **Ajout d'un 3e cas** : `isOtherEvent = discoveryPurpose === 'other_event'`
+2. **Étape 5 adaptée** pour `other_event` :
+   - Titre : "Crée une page pour ton événement 🎊"
+   - Description : "Mariage, baptême, fiançailles, diplôme... Célèbre chaque moment !"
+   - Sélecteur d'occasion (choix parmi : Mariage, Baptême, Fiançailles, Réussite académique, Promotion, Autre)
+   - Bouton page : "Créer la page de l'événement" → navigue vers le flow de création avec l'occasion sélectionnée
+   - Bouton cagnotte : "Lancer une cagnotte pour l'événement"
+3. **Label de l'étape 6** dans la barre de progression : "Événement" au lieu de "Ma page"
 
 ## Détails techniques
 
 ### Fichier : `src/components/OnboardingExperience.tsx`
 
-1. **Lire le purpose au montage** : dans le `useEffect` initial, parser `localStorage.getItem('jdv_discovery_answers')` et extraire `purpose`
-2. **Stocker dans un state** : `const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday')`
-3. **Adapter l'étape 5 (step 5)** selon `discoveryPurpose` :
-   - Si `friend_birthday` :
-     - Titre : "Crée une page pour ton proche 🎁"
-     - Description : "Organise une surprise pour l'anniversaire de ton proche"
-     - Bouton création page : "Créer la page de mon proche" → navigue vers `/birthday/create?for=friend` (ou ouvre le flow existant avec un flag)
-     - Bouton cagnotte : "Lancer une cagnotte pour mon proche"
-   - Si `my_birthday` ou absent : parcours actuel inchangé
+**1. Variables dérivées (ligne 119)** :
+```typescript
+const isFriendPurpose = discoveryPurpose === 'friend_birthday';
+const isOtherEvent = discoveryPurpose === 'other_event';
+```
 
-4. **Création de page pour un proche** : le bouton "Créer la page de mon proche" appellera `onComplete()` puis naviguera vers la page de création d'anniversaire avec un paramètre indiquant que c'est pour un contact (réutiliser le flow existant de création de birthday page)
+**2. Step labels (ligne 120)** :
+```typescript
+const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis',
+  isOtherEvent ? 'Événement' : isFriendPurpose ? 'Page proche' : 'Ma page'];
+```
 
-### Fichier : `src/components/PreAuthDiscovery.tsx`
+**3. État pour le type d'occasion** :
+```typescript
+const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
+```
 
-Aucun changement — les données sont déjà sauvegardées correctement.
+**4. UI de l'étape 5** — ajouter un 3e cas pour `isOtherEvent` :
+- Afficher un sélecteur de type d'événement (boutons-chips : Mariage 💍, Baptême 👶, Fiançailles 💑, Diplôme 🎓, Promotion 💼, Autre 🎊)
+- Adapter les textes des boutons "Créer page" et "Créer cagnotte" pour refléter l'occasion choisie
+- La navigation vers la création de page passera `?occasion=wedding` (ou l'occasion sélectionnée) en paramètre
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Lire `jdv_discovery_answers.purpose` + adapter le contenu de l'étape 5 |
+| `src/components/OnboardingExperience.tsx` | Ajouter `isOtherEvent` + sélecteur d'occasion + adapter textes étape 5 |
 
