@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { FeedPage } from "@/hooks/usePagesFeed";
+import { GiftPromiseModal } from "@/components/GiftPromiseModal";
 
 interface FeedCardActionsProps {
   page: FeedPage;
