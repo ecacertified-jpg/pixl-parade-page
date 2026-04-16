@@ -1240,13 +1240,42 @@ export const OnboardingExperience = ({
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    {isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
+                    {isOtherEvent ? 'Crée une page pour ton événement 🎊' : isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
                   </h2>
-                  <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
-                    {isFriendPurpose
-                      ? 'Organise une surprise pour l\'anniversaire de ton proche !'
-                      : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
+                  <p className="text-muted-foreground font-nunito mb-4 text-sm leading-relaxed">
+                    {isOtherEvent
+                      ? 'Mariage, baptême, fiançailles, diplôme... Célèbre chaque moment !'
+                      : isFriendPurpose
+                        ? 'Organise une surprise pour l\'anniversaire de ton proche !'
+                        : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
                   </p>
+
+                  {/* Occasion selector for other_event */}
+                  {isOtherEvent && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-5">
+                      {[
+                        { key: 'wedding', label: 'Mariage', emoji: '💍' },
+                        { key: 'baptism', label: 'Baptême', emoji: '👶' },
+                        { key: 'engagement', label: 'Fiançailles', emoji: '💑' },
+                        { key: 'graduation', label: 'Diplôme', emoji: '🎓' },
+                        { key: 'promotion', label: 'Promotion', emoji: '💼' },
+                        { key: 'other', label: 'Autre', emoji: '🎊' },
+                      ].map((occ) => (
+                        <button
+                          key={occ.key}
+                          onClick={() => setSelectedOccasion(occ.key)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-poppins font-semibold border transition-all",
+                            selectedOccasion === occ.key
+                              ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
+                              : "bg-card border-border text-foreground hover:border-primary/50"
+                          )}
+                        >
+                          {occ.emoji} {occ.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Sub-step checklist */}
                   <div className="space-y-3 text-left mb-6">
