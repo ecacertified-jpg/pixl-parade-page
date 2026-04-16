@@ -1,49 +1,33 @@
 
 
-# Plan : Améliorer les messages d'erreur du profil
+# Plan : Pré-remplir la date d'anniversaire dans l'étape 2 de l'onboarding
 
 ## Problème
 
-Quand la sauvegarde du profil échoue (ligne 80-86 de `CompleteProfileModal.tsx`), le toast affiche un message générique "Impossible de sauvegarder votre profil" sans préciser la cause (ex: champ manquant en base, contrainte RLS, doublon de téléphone, etc.). L'objet `error` de Supabase contient `message`, `code` et `details` mais ils ne sont pas exploités.
+L'étape "Anniversaire" (step 1) de l'onboarding demande la date d'anniversaire, mais celle-ci a déjà été renseignée dans le formulaire de complétion de profil (`CompleteProfileModal`). L'utilisateur doit re-saisir une info déjà fournie.
+
+## Constat
+
+Le code charge déjà la birthday depuis `profiles` (ligne 129), mais l'UX ne reflète pas que la date est déjà connue : le bouton affiche "Choisir ma date" comme si rien n'était renseigné. En réalité, si `data.birthday` existe, `setBirthday` est appelé et la date s'affiche. Le vrai problème est visuel : l'encouragement "Sélectionne ta date..." s'affiche même si la date est pré-remplie, et il n'y a pas de message confirmant que la date est déjà connue.
 
 ## Solution
 
-Mapper les codes d'erreur Supabase courants vers des messages utilisateur clairs en français, et afficher le message brut en fallback.
+Modifier l'étape 1 pour :
+1. **Afficher la date pré-remplie** avec un message de confirmation ("C'est bien ta date ?") si elle vient du profil
+2. **Garder le calendrier modifiable** pour corriger si besoin
+3. **Afficher un message différent** selon que la date est pré-remplie ou non :
+   - Pré-remplie : "📅 Date trouvée ! Tu peux la modifier si besoin."
+   - Non remplie : Le message actuel d'incitation
 
-## Détails techniques
+## Détail technique
 
-### Fichier : `src/components/CompleteProfileModal.tsx`
+### Fichier : `src/components/OnboardingExperience.tsx`
 
-Dans le bloc `if (error)` (ligne 80-87), remplacer le message générique par une logique de mapping :
-
-```typescript
-if (error) {
-  console.error('Error updating profile:', error);
-  
-  let errorMessage = 'Une erreur est survenue lors de la sauvegarde.';
-  
-  if (error.code === '23505') {
-    errorMessage = 'Ce numéro de téléphone est déjà utilisé par un autre compte.';
-  } else if (error.code === '42501') {
-    errorMessage = 'Vous n\'avez pas la permission de modifier ce profil. Reconnectez-vous.';
-  } else if (error.code === '23502') {
-    errorMessage = 'Un champ obligatoire est manquant. Vérifiez vos informations.';
-  } else if (error.message) {
-    errorMessage = `Erreur : ${error.message}`;
-  }
-  
-  toast({
-    title: 'Erreur',
-    description: errorMessage,
-    variant: 'destructive',
-  });
-  return;
-}
-```
-
-## Fichier concerné
+- Ajouter un state `birthdayPreFilled` (boolean) initialisé à `true` si `data.birthday` existe au chargement (lignes 129-133)
+- Modifier l'affichage de l'étape 1 (lignes 766-777) : si `birthday` est déjà défini ET `birthdayPreFilled`, afficher un badge vert "✅ Date trouvée depuis ton profil" au lieu du message d'incitation jaune
+- Le titre change en "C'est bien ta date ? 🎂" si pré-rempli, sinon reste "Quand est ton anniversaire ? 🎂"
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/CompleteProfileModal.tsx` | Mapper les erreurs Supabase vers des messages explicites |
+| `src/components/OnboardingExperience.tsx` | Ajouter `birthdayPreFilled` state + adapter l'UI step 1 |
 
