@@ -1,4 +1,5 @@
-import { Camera, Gift, Calendar, ArrowRight, UserCheck, UserPlus, Star } from "lucide-react";
+import { Calendar, UserCheck, UserPlus, Star } from "lucide-react";
+import { FeedCardActions } from "@/components/FeedCardActions";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

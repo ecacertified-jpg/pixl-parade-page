@@ -60,21 +60,27 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
 
-      const table = page.type === "birthday" ? "birthday_page_photos" : "event_page_photos";
-      const pageIdCol = page.type === "birthday" ? "birthday_page_id" : "event_page_id";
-
-      const insertData: Record<string, unknown> = {
-        [pageIdCol]: page.id,
-        image_url: mediaType === "photo" ? publicUrl : publicUrl,
-        uploader_id: user!.id,
-        media_type: mediaType === "video" ? "video" : "image",
-      };
-
-      if (mediaType === "video") {
-        insertData.video_url = publicUrl;
+      if (page.type === "birthday") {
+        const row: any = {
+          birthday_page_id: page.id,
+          image_url: publicUrl,
+          uploader_id: user!.id,
+          media_type: mediaType === "video" ? "video" : "image",
+          ...(mediaType === "video" ? { video_url: publicUrl } : {}),
+        };
+        const { error: insertError } = await supabase.from("birthday_page_photos").insert(row);
+        if (insertError) throw insertError;
+      } else {
+        const row: any = {
+          event_page_id: page.id,
+          image_url: publicUrl,
+          uploader_id: user!.id,
+          media_type: mediaType === "video" ? "video" : "image",
+          ...(mediaType === "video" ? { video_url: publicUrl } : {}),
+        };
+        const { error: insertError } = await supabase.from("event_page_photos").insert(row);
+        if (insertError) throw insertError;
       }
-
-      const { error: insertError } = await supabase.from(table).insert(insertData);
       if (insertError) throw insertError;
 
       toast.success(mediaType === "photo" ? "Photo ajoutée ! 📸" : "Vidéo ajoutée ! 🎥");
@@ -92,16 +98,25 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
     if (!memoryText.trim()) return;
     setSendingMemory(true);
     try {
-      const table = page.type === "birthday" ? "birthday_page_photos" : "event_page_photos";
-      const pageIdCol = page.type === "birthday" ? "birthday_page_id" : "event_page_id";
-
-      const { error } = await supabase.from(table).insert({
-        [pageIdCol]: page.id,
-        image_url: "",
-        uploader_id: user!.id,
-        media_type: "text",
-        memory_text: memoryText.trim(),
-      });
+      if (page.type === "birthday") {
+        const { error } = await supabase.from("birthday_page_photos").insert({
+          birthday_page_id: page.id,
+          image_url: "",
+          uploader_id: user!.id,
+          media_type: "text",
+          memory_text: memoryText.trim(),
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("event_page_photos").insert({
+          event_page_id: page.id,
+          image_url: "",
+          uploader_id: user!.id,
+          media_type: "text",
+          memory_text: memoryText.trim(),
+        });
+        if (error) throw error;
+      }
       if (error) throw error;
 
       toast.success("Souvenir partagé ! ✍️");
