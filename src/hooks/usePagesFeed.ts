@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -34,11 +34,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
   const [pages, setPages] = useState<FeedPage[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadFeed();
-  }, [filter, user?.id]);
-
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -55,13 +51,12 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         (pageFollowsRes.data || []).forEach(pf => pageFollowSet.add(`${pf.page_type}-${pf.page_id}`));
       }
 
-      // Fetch birthday pages and event pages in parallel
+      // Fetch pages WITHOUT embedded profile joins (which can fail)
       const [birthdayRes, eventRes] = await Promise.all([
         supabase
           .from('birthday_pages')
           .select(`
             id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id,
-            profiles!birthday_pages_user_id_fkey ( user_id, first_name, last_name, avatar_url ),
             birthday_page_photos ( id, image_url ),
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
@@ -72,7 +67,6 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .from('event_pages')
           .select(`
             id, slug, title, occasion, cover_image_url, event_date, fund_id, created_at, creator_id,
-            profiles!event_pages_creator_id_fkey ( user_id, first_name, last_name, avatar_url ),
             event_page_photos ( id, image_url ),
             collective_funds!event_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
@@ -81,14 +75,29 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           .limit(200),
       ]);
 
+      // Collect all creator IDs to fetch profiles separately
+      const creatorIds = new Set<string>();
+      (birthdayRes.data || []).forEach(bp => creatorIds.add(bp.user_id));
+      (eventRes.data || []).forEach(ep => creatorIds.add(ep.creator_id));
+
+      // Fetch profiles in a separate query (robust - won't break if RLS restricts some)
+      const profileMap = new Map<string, { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }>();
+      if (creatorIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, avatar_url')
+          .in('user_id', Array.from(creatorIds));
+        (profiles || []).forEach(p => profileMap.set(p.user_id, p));
+      }
+
       const feedPages: FeedPage[] = [];
 
       if (birthdayRes.data) {
         for (const bp of birthdayRes.data) {
-          const profile = bp.profiles as any;
+          const profile = profileMap.get(bp.user_id);
           const photos = (bp.birthday_page_photos as any[]) || [];
           const fund = bp.collective_funds as any;
-          const creatorId = profile?.user_id || bp.user_id;
+          const creatorId = bp.user_id;
           const isFriend = followingIds.includes(creatorId);
 
           if (filter === 'following' && !isFriend && !pageFollowSet.has(`birthday-${bp.id}`)) continue;
@@ -124,10 +133,10 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
 
       if (eventRes.data) {
         for (const ep of eventRes.data) {
-          const profile = ep.profiles as any;
+          const profile = profileMap.get(ep.creator_id);
           const photos = (ep.event_page_photos as any[]) || [];
           const fund = ep.collective_funds as any;
-          const creatorId = profile?.user_id || ep.creator_id;
+          const creatorId = ep.creator_id;
           const isFriend = followingIds.includes(creatorId);
 
           if (filter === 'following' && !isFriend && !pageFollowSet.has(`event-${ep.id}`)) continue;
@@ -179,7 +188,18 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, user?.id]);
+
+  useEffect(() => {
+    loadFeed();
+  }, [loadFeed]);
+
+  // Listen for feed refresh events (e.g. after onboarding page creation)
+  useEffect(() => {
+    const handler = () => loadFeed();
+    window.addEventListener('feed-refresh', handler);
+    return () => window.removeEventListener('feed-refresh', handler);
+  }, [loadFeed]);
 
   return { pages, loading, refreshFeed: loadFeed };
 }
