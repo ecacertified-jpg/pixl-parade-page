@@ -29,7 +29,7 @@ export const ALL_TASTE: TasteCategory = {
  * Mapping de chaque goût vers les noms de catégories produit en base de données.
  */
 export const TASTE_TO_PRODUCT_CATEGORIES: Record<string, string[]> = {
-  'tech': ['Tech & Électronique', 'Affaires & Bureau'],
+  'tech': ['Tech & Électronique'],
   'mode': ['Mode & Vêtements', 'Décoration & Maison'],
   'voyage': ['Séjours & Hébergement', 'Expériences VIP'],
   'musique': ['Loisirs & Divertissement', 'Culture & Loisirs'],
