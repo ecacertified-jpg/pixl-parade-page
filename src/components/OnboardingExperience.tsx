@@ -117,7 +117,9 @@ export const OnboardingExperience = ({
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
-  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isFriendPurpose ? 'Page proche' : 'Ma page'];
+  const isOtherEvent = discoveryPurpose === 'other_event';
+  const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
+  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isOtherEvent ? 'Événement' : isFriendPurpose ? 'Page proche' : 'Ma page'];
 
   // Read discovery answers from pre-auth quiz
   useEffect(() => {
