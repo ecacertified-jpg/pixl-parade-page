@@ -134,44 +134,61 @@ export function BottomNavigation() {
               if (item.customRender) {
                 return (
                   <CreateActionMenu key={index}>
-                    <button className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200 hover:bg-primary/5 relative">
+                    <motion.button 
+                      whileTap={{ scale: 0.85 }}
+                      className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-colors duration-200 hover:bg-primary/5 relative"
+                    >
                       <div className="relative bg-gradient-to-r from-primary to-secondary text-white rounded-full p-3 shadow-lg">
                         <item.icon className="h-5 w-5" />
                       </div>
-                    </button>
+                    </motion.button>
                   </CreateActionMenu>
                 );
               }
 
               // Default rendering for other buttons
               return (
-                <button
+                <motion.button
                   key={index}
                   onClick={item.onClick}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all duration-200 hover:bg-primary/5 relative ${
+                  whileTap={{ scale: 0.85 }}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-colors duration-200 hover:bg-primary/5 relative ${
                     item.isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   <div className="relative">
-                    <item.icon
-                      className={`h-6 w-6 transition-all duration-200 ${
-                        item.isActive ? "scale-110" : ""
-                      }`}
-                    />
+                    <motion.div
+                      animate={{ scale: item.isActive ? 1.15 : 1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    >
+                      <item.icon className="h-6 w-6" />
+                    </motion.div>
                     {item.badge && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+                      <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs font-bold text-white bg-destructive rounded-full animate-pulse">
                         {item.badge}
                       </span>
                     )}
+                    <AnimatePresence>
+                      {item.isActive && (
+                        <motion.div
+                          layoutId="activeTabIndicator"
+                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                      )}
+                    </AnimatePresence>
                   </div>
                   <span
-                    className={`text-xs font-medium transition-all duration-200 ${
+                    className={`text-xs font-medium transition-colors duration-200 ${
                       item.isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     {item.label}
                   </span>
-                </button>
+                </motion.button>
               );
             })}
           </nav>
