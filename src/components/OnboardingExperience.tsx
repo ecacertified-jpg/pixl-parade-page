@@ -1295,10 +1295,10 @@ export const OnboardingExperience = ({
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
+                            {isOtherEvent ? 'Créer la page de l\'événement' : isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasBirthdayPage ? "✅ Page créée !" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
+                            {hasBirthdayPage ? "✅ Page créée !" : isOtherEvent ? "Une page pour célébrer et partager l'événement" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
                           </p>
                         </div>
                         {!hasBirthdayPage && (
