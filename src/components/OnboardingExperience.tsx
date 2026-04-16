@@ -196,9 +196,12 @@ export const OnboardingExperience = ({
         setHasFund(true);
         setFundId(fundRes.data.id);
       }
-      // Load share count from localStorage
-      const stored = parseInt(localStorage.getItem(`onboarding_shares_${user.id}`) || '0', 10);
-      setShareCount(stored);
+      // Load share count from DB
+      const { count } = await supabase
+        .from('onboarding_shares')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      setShareCount(count || 0);
     };
     checkBirthdayPageAndFund();
   }, [user]);
@@ -526,18 +529,21 @@ export const OnboardingExperience = ({
     }, 5000);
   }, [hasFund, checkFundExists]);
 
-  // Track shares
-  const incrementShareCount = useCallback(() => {
+  // Track shares - persist in DB
+  const incrementShareCount = useCallback(async (method: string = 'unknown') => {
     if (!user) return;
-    const key = `onboarding_shares_${user.id}`;
-    const current = parseInt(localStorage.getItem(key) || '0', 10);
-    const next = current + 1;
-    localStorage.setItem(key, String(next));
+    const next = shareCount + 1;
     setShareCount(next);
+    // Insert into DB
+    await supabase.from('onboarding_shares').insert({
+      user_id: user.id,
+      share_method: method,
+      page_slug: birthdayPageSlug || null,
+    });
     if (next >= 3) {
       confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#22c55e'] });
     }
-  }, [user]);
+  }, [user, shareCount, birthdayPageSlug]);
 
   const getShareMessage = (pageUrl: string) =>
     `🎂 C'est bientôt mon anniversaire ! 🎉\n\nÉcris-moi un petit mot, ajoute une photo souvenir ou participe au cadeau collectif 🎁\n\nClique ici, ça prend 30 secondes ⬇️\n\n${pageUrl}`;
@@ -547,7 +553,7 @@ export const OnboardingExperience = ({
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(getShareMessage(pageUrl));
     window.open(`https://wa.me/?text=${text}`, '_blank');
-    incrementShareCount();
+    incrementShareCount('whatsapp');
     toast.success('Partagé sur WhatsApp ! 📱');
   };
 
@@ -556,14 +562,14 @@ export const OnboardingExperience = ({
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(getShareMessage(pageUrl));
     window.open(`sms:?body=${text}`, '_blank');
-    incrementShareCount();
+    incrementShareCount('sms');
   };
 
   const handleCopyPageLink = () => {
     if (!birthdayPageSlug) return;
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     navigator.clipboard.writeText(getShareMessage(pageUrl));
-    incrementShareCount();
+    incrementShareCount('copy');
     toast.success('Lien copié ! 📋');
   };
 

@@ -63,8 +63,11 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
   // Step 5: Birthday page + fund + shares
   const hasPage = (bpRes.count || 0) >= 1;
   const hasFund = (fundRes.count || 0) >= 1;
-  const shareCount = parseInt(localStorage.getItem(`onboarding_shares_${userId}`) || '0', 10);
-  if (!hasPage || !hasFund || shareCount < 3) {
+  const { count: shareCount } = await supabase
+    .from('onboarding_shares')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  if (!hasPage || !hasFund || (shareCount || 0) < 3) {
     return { shouldShow: true, firstIncompleteStep: 5 };
   }
 
