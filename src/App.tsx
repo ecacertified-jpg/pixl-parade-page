@@ -235,18 +235,18 @@ const App = () => (
             <Route path="/devenir-prestataire" element={<Navigate to="/business-auth" replace />} />
             <Route path="/admin-auth" element={<L><AdminAuth /></L>} />
             <Route path="/home" element={<ProtectedRoute><L><Home /></L></ProtectedRoute>} />
-            <Route path="/index" element={<ProtectedRoute><L><Index /></L></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><L><Dashboard /></L></ProtectedRoute>} />
+            <Route path="/index" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Index /></AnimatedPageTransition></L></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Dashboard /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/publications" element={<ProtectedRoute><L><Publications /></L></ProtectedRoute>} />
             <Route path="/business-account" element={<ProtectedRoute><L><BusinessAccount /></L></ProtectedRoute>} />
             <Route path="/business-dashboard" element={<ProtectedRoute><L><BusinessDashboard /></L></ProtectedRoute>} />
-            <Route path="/shop" element={<ProtectedRoute><L><Shop /></L></ProtectedRoute>} />
+            <Route path="/shop" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Shop /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/category/:slug" element={<ProtectedRoute><L><CategoryPage /></L></ProtectedRoute>} />
             <Route path="/explore-map" element={<ProtectedRoute><L><ExploreMap /></L></ProtectedRoute>} />
             <Route path="/boutique/:businessId" element={<ProtectedRoute><L><VendorShop /></L></ProtectedRoute>} />
             <Route path="/favorites" element={<ProtectedRoute><L><Favorites /></L></ProtectedRoute>} />
             <Route path="/followed-shops" element={<ProtectedRoute><L><FollowedShops /></L></ProtectedRoute>} />
-            <Route path="/gifts" element={<ProtectedRoute><L><Gifts /></L></ProtectedRoute>} />
+            <Route path="/gifts" element={<ProtectedRoute><L><AnimatedPageTransition mode="fade" duration={0.2}><Gifts /></AnimatedPageTransition></L></ProtectedRoute>} />
             <Route path="/cart" element={<ProtectedRoute><L><Cart /></L></ProtectedRoute>} />
             <Route path="/preferences" element={<ProtectedRoute><L><Preferences /></L></ProtectedRoute>} />
             <Route path="/checkout" element={<ProtectedRoute><L><Checkout /></L></ProtectedRoute>} />
