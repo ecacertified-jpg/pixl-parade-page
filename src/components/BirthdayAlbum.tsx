@@ -1,10 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,6 +11,7 @@ import {
   Sparkles, Send, Quote
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
 
 interface AlbumItem {
   id: string;
@@ -36,6 +36,11 @@ interface BirthdayAlbumProps {
 
 type TabType = "all" | "image" | "video" | "memory";
 
+// Reactions state: { [photoId]: { counts: {...}, userReactions: {...} } }
+interface ReactionsMap {
+  [photoId: string]: { counts: ReactionCounts; userReactions: UserReactions };
+}
+
 export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdded }: BirthdayAlbumProps) {
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +52,55 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<AlbumItem | null>(null);
+  const [reactions, setReactions] = useState<ReactionsMap>({});
+
+  // Fetch all reactions for this page's photos
+  const loadReactions = useCallback(async () => {
+    if (items.length === 0) return;
+    const photoIds = items.map((i) => i.id);
+
+    const { data } = await supabase
+      .from("album_photo_reactions")
+      .select("photo_id, user_id, reaction_type")
+      .in("photo_id", photoIds);
+
+    if (!data) return;
+
+    const map: ReactionsMap = {};
+    for (const row of data) {
+      if (!map[row.photo_id]) {
+        map[row.photo_id] = { counts: {}, userReactions: {} };
+      }
+      const entry = map[row.photo_id];
+      entry.counts[row.reaction_type] = (entry.counts[row.reaction_type] || 0) + 1;
+      if (user && row.user_id === user.id) {
+        entry.userReactions[row.reaction_type] = true;
+      }
+    }
+    setReactions(map);
+  }, [items, user]);
+
+  useEffect(() => {
+    loadReactions();
+  }, [loadReactions]);
+
+  const handleReactionToggle = (photoId: string, type: string, added: boolean) => {
+    setReactions((prev) => {
+      const entry = prev[photoId] || { counts: {}, userReactions: {} };
+      const newCounts = { ...entry.counts };
+      const newUserReactions = { ...entry.userReactions };
+
+      if (added) {
+        newCounts[type] = (newCounts[type] || 0) + 1;
+        newUserReactions[type] = true;
+      } else {
+        newCounts[type] = Math.max(0, (newCounts[type] || 0) - 1);
+        delete newUserReactions[type];
+      }
+
+      return { ...prev, [photoId]: { counts: newCounts, userReactions: newUserReactions } };
+    });
+  };
 
   const counts = {
     image: items.filter(i => i.media_type === "image").length,
@@ -208,6 +262,8 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
     { key: "memory", label: `Souvenirs (${counts.memory})`, icon: <BookOpen className="h-3.5 w-3.5" /> },
   ];
 
+  const getReactionsForItem = (id: string) => reactions[id] || { counts: {}, userReactions: {} };
+
   return (
     <Card className="p-5">
       <div className="flex items-center gap-2 mb-1">
@@ -320,57 +376,74 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
       {/* Grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {filtered.map((item) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-              onClick={() => setLightboxItem(item)}
-            >
-              {item.media_type === "image" && (
-                <img
-                  src={item.image_url}
-                  alt={item.caption || "Photo souvenir"}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                  loading="lazy"
-                />
-              )}
+          {filtered.map((item) => {
+            const r = getReactionsForItem(item.id);
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative rounded-lg overflow-hidden cursor-pointer group"
+                onClick={() => setLightboxItem(item)}
+              >
+                <div className="aspect-square">
+                  {item.media_type === "image" && (
+                    <img
+                      src={item.image_url}
+                      alt={item.caption || "Photo souvenir"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      loading="lazy"
+                    />
+                  )}
 
-              {item.media_type === "video" && (
-                <>
-                  <video
-                    src={item.video_url || item.image_url}
-                    className="w-full h-full object-cover"
-                    muted
-                    preload="metadata"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <div className="h-10 w-10 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="h-5 w-5 text-primary fill-primary ml-0.5" />
+                  {item.media_type === "video" && (
+                    <>
+                      <video
+                        src={item.video_url || item.image_url}
+                        className="w-full h-full object-cover"
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="h-10 w-10 rounded-full bg-white/90 flex items-center justify-center">
+                          <Play className="h-5 w-5 text-primary fill-primary ml-0.5" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {item.media_type === "memory" && (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/30 flex flex-col items-center justify-center p-3 text-center">
+                      <Quote className="h-5 w-5 text-primary/50 mb-1" />
+                      <p className="text-xs font-nunito text-foreground line-clamp-4 italic">
+                        "{item.memory_text}"
+                      </p>
                     </div>
-                  </div>
-                </>
-              )}
+                  )}
+                </div>
 
-              {item.media_type === "memory" && (
-                <div className="w-full h-full bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/30 flex flex-col items-center justify-center p-3 text-center">
-                  <Quote className="h-5 w-5 text-primary/50 mb-1" />
-                  <p className="text-xs font-nunito text-foreground line-clamp-4 italic">
-                    "{item.memory_text}"
+                {/* Reactions overlay */}
+                <div className="absolute bottom-6 left-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                  <AlbumItemReactions
+                    photoId={item.id}
+                    userId={user?.id || null}
+                    counts={r.counts}
+                    userReactions={r.userReactions}
+                    onToggle={handleReactionToggle}
+                    compact
+                  />
+                </div>
+
+                {/* Author badge */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                  <p className="text-[10px] text-white truncate">
+                    {item.media_type === "memory" ? "✨" : item.media_type === "video" ? "🎬" : "📸"}{" "}
+                    {item.uploader_name || "Un ami"}
                   </p>
                 </div>
-              )}
-
-              {/* Author badge */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                <p className="text-[10px] text-white truncate">
-                  {item.media_type === "memory" ? "✨" : item.media_type === "video" ? "🎬" : "📸"}{" "}
-                  {item.uploader_name || "Un ami"}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-8">
@@ -407,7 +480,7 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
                 <img
                   src={lightboxItem.image_url}
                   alt={lightboxItem.caption || "Photo"}
-                  className="w-full h-auto max-h-[75vh] object-contain rounded-lg"
+                  className="w-full h-auto max-h-[65vh] object-contain rounded-lg"
                 />
               )}
 
@@ -416,7 +489,7 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
                   src={lightboxItem.video_url || lightboxItem.image_url}
                   controls
                   autoPlay
-                  className="w-full max-h-[75vh] rounded-lg"
+                  className="w-full max-h-[65vh] rounded-lg"
                 />
               )}
 
@@ -438,6 +511,17 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
               <p className="text-white/60 text-xs text-center mt-1">
                 Par {lightboxItem.uploader_name || "Un ami"}
               </p>
+
+              {/* Lightbox reactions */}
+              <div className="flex justify-center mt-3">
+                <AlbumItemReactions
+                  photoId={lightboxItem.id}
+                  userId={user?.id || null}
+                  counts={getReactionsForItem(lightboxItem.id).counts}
+                  userReactions={getReactionsForItem(lightboxItem.id).userReactions}
+                  onToggle={handleReactionToggle}
+                />
+              </div>
             </div>
           </motion.div>
         )}
