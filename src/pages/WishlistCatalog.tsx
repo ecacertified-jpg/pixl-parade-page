@@ -8,9 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
-import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
+import { SEOHead } from "@/components/SEOHead";
 import { useCountry } from "@/contexts/CountryContext";
 import { CountrySelector } from "@/components/CountrySelector";
+import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 
 interface CatalogProduct {
   id: string;
@@ -19,30 +20,22 @@ interface CatalogProduct {
   currency: string;
   image_url: string | null;
   business_accounts?: { business_name: string } | null;
-  category_id: string | null;
-}
-
-interface Category {
-  id: string;
-  name_fr: string;
-  icon: string | null;
+  category_name: string | null;
 }
 
 export default function WishlistCatalog() {
   const { countryCode } = useCountry();
   const navigate = useNavigate();
   const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { isFavorite, addFavorite, removeFavorite, getFavoriteId, stats, loading: favLoading } = useFavorites();
+  const [selectedTaste, setSelectedTaste] = useState<string>("tous");
+  const { isFavorite, addFavorite, removeFavorite, getFavoriteId, stats } = useFavorites();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
 
-      // 1. Get business IDs for the current country
       const { data: businesses } = await supabase
         .from("business_accounts")
         .select("id")
@@ -51,25 +44,17 @@ export default function WishlistCatalog() {
 
       const businessIds = businesses?.map(b => b.id) ?? [];
 
-      // 2. Fetch products filtered by country businesses + categories
-      const [productsRes, categoriesRes] = await Promise.all([
-        businessIds.length > 0
-          ? supabase
-              .from("products")
-              .select("id, name, price, currency, image_url, category_id, business_accounts!products_business_id_fkey(business_name)")
-              .eq("is_active", true)
-              .in("business_id", businessIds)
-              .order("created_at", { ascending: false })
-              .limit(200)
-          : Promise.resolve({ data: [] as any[] }),
-        supabase
-          .from("categories")
-          .select("id, name_fr, icon")
-          .order("name_fr"),
-      ]);
+      const productsRes = businessIds.length > 0
+        ? await supabase
+            .from("products")
+            .select("id, name, price, currency, image_url, category_name, business_accounts!products_business_id_fkey(business_name)")
+            .eq("is_active", true)
+            .in("business_id", businessIds)
+            .order("created_at", { ascending: false })
+            .limit(200)
+        : { data: [] as any[] };
 
       if (productsRes.data) setProducts(productsRes.data as any);
-      if (categoriesRes.data) setCategories(categoriesRes.data);
       setLoading(false);
     };
 
@@ -77,8 +62,11 @@ export default function WishlistCatalog() {
   }, [countryCode]);
 
   const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = !query
+      || p.name.toLowerCase().includes(query)
+      || (p.category_name?.toLowerCase().includes(query) ?? false);
+    const matchesCategory = matchesTaste(p.category_name, selectedTaste);
     return matchesSearch && matchesCategory;
   });
 
@@ -91,6 +79,8 @@ export default function WishlistCatalog() {
       await addFavorite(productId);
     }
   };
+
+  const allTastes = [ALL_TASTE, ...TASTE_CATEGORIES];
 
   return (
     <>
@@ -130,7 +120,7 @@ export default function WishlistCatalog() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un article..."
+                placeholder="Rechercher un article (chemise, bijoux, sac...)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -138,26 +128,23 @@ export default function WishlistCatalog() {
             </div>
           </div>
 
-          {/* Category Filters */}
+          {/* Taste Category Filters */}
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-            <Badge
-              variant={selectedCategory === null ? "default" : "outline"}
-              className="cursor-pointer whitespace-nowrap flex-shrink-0"
-              onClick={() => setSelectedCategory(null)}
-            >
-              Tous
-            </Badge>
-            {categories.map((cat) => (
-              <Badge
-                key={cat.id}
-                variant={selectedCategory === cat.id ? "default" : "outline"}
-                className="cursor-pointer whitespace-nowrap flex-shrink-0"
-                onClick={() => setSelectedCategory(cat.id)}
-              >
-                {cat.icon && <span className="mr-1">{cat.icon}</span>}
-                {cat.name_fr}
-              </Badge>
-            ))}
+            {allTastes.map((taste) => {
+              const isSelected = selectedTaste === taste.id;
+              const Icon = taste.icon;
+              return (
+                <Badge
+                  key={taste.id}
+                  variant={isSelected ? "default" : "outline"}
+                  className={`cursor-pointer whitespace-nowrap flex-shrink-0 gap-1 ${isSelected ? '' : taste.color}`}
+                  onClick={() => setSelectedTaste(taste.id)}
+                >
+                  <Icon className="h-3 w-3" />
+                  {taste.label}
+                </Badge>
+              );
+            })}
           </div>
 
           {/* Products Grid */}
@@ -189,8 +176,11 @@ export default function WishlistCatalog() {
                     />
                   </div>
 
-                  {/* Image */}
-                  <div className="aspect-square bg-muted">
+                  {/* Clickable Image */}
+                  <div
+                    className="aspect-square bg-muted cursor-pointer relative group"
+                    onClick={(e) => handleToggleFavorite(e, product.id)}
+                  >
                     {product.image_url ? (
                       <img
                         src={product.image_url}
@@ -203,6 +193,10 @@ export default function WishlistCatalog() {
                         <Heart className="h-8 w-8 text-muted-foreground/30" />
                       </div>
                     )}
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                      <Heart className={`h-8 w-8 opacity-0 group-hover:opacity-70 transition-opacity ${isFavorite(product.id) ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
+                    </div>
                   </div>
 
                   {/* Info */}
