@@ -161,8 +161,12 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         }
       }
 
-      // Sort: prioritize pages with content, then by date
+      // Sort: own pages first, then pages with content, then by date
       feedPages.sort((a, b) => {
+        const aIsOwn = user?.id && a.creator.user_id === user.id ? 1 : 0;
+        const bIsOwn = user?.id && b.creator.user_id === user.id ? 1 : 0;
+        if (bIsOwn !== aIsOwn) return bIsOwn - aIsOwn;
+
         const aHasContent = (a.album_count > 0 || a.cover_image_url || a.fund) ? 1 : 0;
         const bHasContent = (b.album_count > 0 || b.cover_image_url || b.fund) ? 1 : 0;
         if (bHasContent !== aHasContent) return bHasContent - aHasContent;

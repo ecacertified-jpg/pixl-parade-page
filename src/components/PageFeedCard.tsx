@@ -1,4 +1,4 @@
-import { Camera, Gift, Calendar, ArrowRight, UserCheck, UserPlus } from "lucide-react";
+import { Camera, Gift, Calendar, ArrowRight, UserCheck, UserPlus, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { FeedPage } from "@/hooks/usePagesFeed";
+import { useAuth } from "@/contexts/AuthContext";
 
 const OCCASION_ICONS: Record<string, string> = {
   Anniversaire: '🎂',
@@ -46,6 +47,8 @@ interface PageFeedCardProps {
 
 export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOwnPage = user?.id === page.creator.user_id;
   const icon = OCCASION_ICONS[page.occasion] || OCCASION_ICONS['Événement'];
   const gradient = OCCASION_GRADIENTS[page.occasion] || OCCASION_GRADIENTS['Événement'];
   const creatorName = [page.creator.first_name, page.creator.last_name].filter(Boolean).join(' ') || 'Utilisateur';
@@ -78,7 +81,13 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="text-sm font-semibold truncate">{creatorName}</p>
-            {page.is_friend && (
+            {isOwnPage && (
+              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-primary/15 text-primary border-primary/30 gap-0.5">
+                <Star className="h-2.5 w-2.5 fill-primary" />
+                Ma page
+              </Badge>
+            )}
+            {!isOwnPage && page.is_friend && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                 Ami
               </Badge>
