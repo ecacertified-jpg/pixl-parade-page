@@ -1,38 +1,53 @@
 
 
-# Plan : Remplacer "Communauté" par "Profil" dans la bottom bar
+# Plan : Corriger la navigation Profil et Accueil dans la bottom bar
 
 ## Problème
 
-L'utilisateur veut supprimer l'onglet "Communauté" de la barre de navigation inférieure et le remplacer par un onglet "Profil" qui ouvre le menu profil (actuellement accessible uniquement via l'icône en haut à droite).
+1. **"Profil"** navigue vers `/dashboard` mais si l'utilisateur y est déjà, rien ne se passe
+2. **"Accueil"** navigue vers `/` (Landing publique) au lieu de `/index` (accueil authentifié)
+3. L'état actif d'Accueil vérifie `pathname === "/"` — ne détecte jamais `/index`
 
-## Changement — `src/components/RecentActivitySection.tsx`
+## Changements — `src/components/RecentActivitySection.tsx`
 
-Remplacer le dernier élément du tableau `navItems` (lignes 112-117) :
+### 1. Corriger "Accueil" → `/index`
 
 ```typescript
 // Avant
-{ 
-  icon: Users,
-  label: "Communauté", 
-  isActive: location.pathname === "/community",
-  onClick: () => navigate("/community")
-}
+{ icon: Home, label: "Accueil", 
+  isActive: location.pathname === "/",
+  onClick: () => navigate("/") }
 
 // Après
-{ 
-  icon: User,
-  label: "Profil", 
-  isActive: location.pathname === "/dashboard",
-  onClick: () => navigate("/dashboard")
-}
+{ icon: Home, label: "Accueil", 
+  isActive: location.pathname === "/" || location.pathname === "/index",
+  onClick: () => navigate("/index") }
 ```
 
-Ajouter `User` à l'import depuis `lucide-react` (ligne 1).
+### 2. Corriger "Profil" → forcer le scroll en haut si déjà sur /dashboard
+
+```typescript
+// Avant
+{ icon: User, label: "Profil", 
+  isActive: location.pathname === "/dashboard",
+  onClick: () => navigate("/dashboard") }
+
+// Après
+{ icon: User, label: "Profil", 
+  isActive: location.pathname === "/dashboard",
+  onClick: () => {
+    if (location.pathname === "/dashboard") {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate("/dashboard");
+    }
+  }
+}
+```
 
 ## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/RecentActivitySection.tsx` | Remplacer l'entrée Communauté par Profil, naviguer vers `/dashboard` |
+| `src/components/RecentActivitySection.tsx` | Corriger navigation Accueil et Profil |
 
