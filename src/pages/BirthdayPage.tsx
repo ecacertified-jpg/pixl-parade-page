@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAppBaseUrl } from "@/utils/appUrl";
@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   PartyPopper, Heart, Gift, Send, Share2, MessageCircle,
-  Sparkles, Loader2
+  Sparkles, Loader2, ArrowLeft
 } from "lucide-react";
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
@@ -64,6 +64,8 @@ const BirthdayPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromFeed = (location.state as any)?.fromFeed === true;
 
   const [page, setPage] = useState<BirthdayPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
@@ -303,6 +305,13 @@ const BirthdayPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/30 via-background to-background">
+      {fromFeed && (
+        <div className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 px-4 py-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="gap-1 text-sm font-medium">
+            <ArrowLeft className="h-4 w-4" /> Retour au fil
+          </Button>
+        </div>
+      )}
       {/* Header festif */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

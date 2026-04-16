@@ -19,6 +19,10 @@ export interface FeedPage {
   };
   album_preview: string[];
   album_count: number;
+  photo_count: number;
+  video_count: number;
+  memory_count: number;
+  gift_promise_count: number;
   fund: {
     id: string;
     target_amount: number;
@@ -91,6 +95,18 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         (profiles || []).forEach(p => profileMap.set(p.user_id, p));
       }
 
+      // Fetch gift promise counts grouped by page
+      const giftPromiseMap = new Map<string, number>();
+      const { data: giftPromises } = await supabase
+        .from('page_gift_promises' as any)
+        .select('page_id, page_type');
+      if (giftPromises) {
+        for (const gp of giftPromises as any[]) {
+          const key = `${gp.page_type}-${gp.page_id}`;
+          giftPromiseMap.set(key, (giftPromiseMap.get(key) || 0) + 1);
+        }
+      }
+
       const feedPages: FeedPage[] = [];
 
       if (birthdayRes.data) {
@@ -105,6 +121,10 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           const isFriend = followingIds.includes(creatorId);
 
           if (filter === 'following' && !isFriend && !pageFollowSet.has(`birthday-${bp.id}`)) continue;
+
+          const photoCount = photos.filter((p: any) => (p.media_type || 'image') === 'image' && p.image_url).length;
+          const videoCount = photos.filter((p: any) => p.media_type === 'video').length;
+          const memoryCount = photos.filter((p: any) => p.media_type === 'text').length;
 
           feedPages.push({
             id: bp.id,
@@ -123,6 +143,10 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             },
             album_preview: imageOnly.slice(0, 4),
             album_count: imageOnly.length,
+            photo_count: photoCount,
+            video_count: videoCount,
+            memory_count: memoryCount,
+            gift_promise_count: giftPromiseMap.get(`birthday-${bp.id}`) || 0,
             fund: fund ? {
               id: fund.id,
               target_amount: fund.target_amount,
@@ -149,6 +173,10 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
 
           if (filter === 'following' && !isFriend && !pageFollowSet.has(`event-${ep.id}`)) continue;
 
+          const photoCount = photos.filter((p: any) => (p.media_type || 'image') === 'image' && p.image_url).length;
+          const videoCount = photos.filter((p: any) => p.media_type === 'video').length;
+          const memoryCount = photos.filter((p: any) => p.media_type === 'text').length;
+
           feedPages.push({
             id: ep.id,
             type: 'event',
@@ -166,6 +194,10 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             },
             album_preview: imageOnly.slice(0, 4),
             album_count: imageOnly.length,
+            photo_count: photoCount,
+            video_count: videoCount,
+            memory_count: memoryCount,
+            gift_promise_count: giftPromiseMap.get(`event-${ep.id}`) || 0,
             fund: fund ? {
               id: fund.id,
               target_amount: fund.target_amount,

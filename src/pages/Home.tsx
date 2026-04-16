@@ -1,6 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
@@ -27,6 +27,30 @@ import { OrganizationSchema, WebSiteSchema } from "@/components/schema";
 import { organizationData, websiteData } from "@/data/brand-schema";
 import logoJV from "@/assets/logo-jv.svg";
 
+function ToggleRevealSection({ label, hideLabel, children }: { label: string; hideLabel: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+  if (!show) {
+    return (
+      <button
+        onClick={() => setShow(true)}
+        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 border border-primary/20 text-sm font-semibold text-primary hover:from-primary/15 hover:to-accent/10 transition-all text-center"
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {children}
+      <button
+        onClick={() => setShow(false)}
+        className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+      >
+        {hideLabel}
+      </button>
+    </div>
+  );
+}
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -90,13 +114,23 @@ const Home = () => {
         {/* Section 3: Public Funds Carousel */}
         <PublicFundsCarousel />
 
-        {/* Section 4: Featured Video Products */}
-        <FeaturedVideoProductsCarousel />
+        {/* Section 4: Featured Video Products - Hidden by default */}
+        <ToggleRevealSection
+          label="🎬 Découvrir les produits vedettes →"
+          hideLabel="Masquer les produits vedettes"
+        >
+          <FeaturedVideoProductsCarousel />
+        </ToggleRevealSection>
 
-        {/* Section 5: Featured Experiences Carousel */}
-        <FeaturedExperiencesCarousel />
+        {/* Section 5: Featured Experiences - Hidden by default */}
+        <ToggleRevealSection
+          label="✨ Explorer les expériences Premium →"
+          hideLabel="Masquer les expériences"
+        >
+          <FeaturedExperiencesCarousel />
+        </ToggleRevealSection>
 
-        {/* Section 5: News Feed with mode toggle */}
+        {/* Section 6: News Feed with mode toggle */}
         <NewsFeed />
 
         {/* Bottom padding for navigation */}
