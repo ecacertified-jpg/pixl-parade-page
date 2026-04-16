@@ -1307,6 +1307,9 @@ export const OnboardingExperience = ({
                               if (isOtherEvent) {
                                 onComplete();
                                 window.location.href = `/event/create?occasion=${selectedOccasion}`;
+                              } else if (isFriendPurpose) {
+                                onComplete();
+                                window.location.href = '/event/create?occasion=birthday';
                               } else {
                                 handleCreateBirthdayPage();
                               }
