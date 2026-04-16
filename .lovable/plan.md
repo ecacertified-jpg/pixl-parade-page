@@ -1,33 +1,37 @@
 
 
-# Plan : Pré-remplir la date d'anniversaire dans l'étape 2 de l'onboarding
+# Plan : Correction du filtrage des produits par catégorie + carte cliquable pour les favoris
 
-## Problème
+## Problème 1 : Produits affichés ne correspondent pas à la catégorie sélectionnée
 
-L'étape "Anniversaire" (step 1) de l'onboarding demande la date d'anniversaire, mais celle-ci a déjà été renseignée dans le formulaire de complétion de profil (`CompleteProfileModal`). L'utilisateur doit re-saisir une info déjà fournie.
+Dans l'étape 3 (Souhaits), le filtre `category_name` utilise `.in('category_name', tasteCategoryNames)`. Si aucun produit en base n'a exactement `category_name = 'Tech & Électronique'` ou `'Affaires & Bureau'`, la requête retourne 0 résultats... mais le code ne fait pas de fallback. Il est probable que les produits affichés proviennent d'un chargement précédent ou que le filtre n'est pas appliqué correctement.
 
-## Constat
+**Correction** : Ajouter un log de debug et un fallback explicite — si le filtre par catégorie retourne 0 produits, afficher un message "Aucun produit Tech disponible" plutôt que des produits d'autres catégories. Aussi ajouter `category_name` au SELECT pour vérifier la cohérence.
 
-Le code charge déjà la birthday depuis `profiles` (ligne 129), mais l'UX ne reflète pas que la date est déjà connue : le bouton affiche "Choisir ma date" comme si rien n'était renseigné. En réalité, si `data.birthday` existe, `setBirthday` est appelé et la date s'affiche. Le vrai problème est visuel : l'encouragement "Sélectionne ta date..." s'affiche même si la date est pré-remplie, et il n'y a pas de message confirmant que la date est déjà connue.
+## Problème 2 : Rendre toute la carte produit cliquable
 
-## Solution
+Actuellement seul le bouton cœur (AnimatedFavoriteButton) permet de toggler le favori. L'utilisateur s'attend à cliquer n'importe où sur la carte (image incluse) pour sélectionner/désélectionner.
 
-Modifier l'étape 1 pour :
-1. **Afficher la date pré-remplie** avec un message de confirmation ("C'est bien ta date ?") si elle vient du profil
-2. **Garder le calendrier modifiable** pour corriger si besoin
-3. **Afficher un message différent** selon que la date est pré-remplie ou non :
-   - Pré-remplie : "📅 Date trouvée ! Tu peux la modifier si besoin."
-   - Non remplie : Le message actuel d'incitation
+**Correction** : Ajouter un `onClick={() => toggleFavorite(product.id)}` sur le `motion.div` parent de chaque carte + un style visuel de sélection (bordure primary quand favori).
 
-## Détail technique
+## Détails techniques
 
 ### Fichier : `src/components/OnboardingExperience.tsx`
 
-- Ajouter un state `birthdayPreFilled` (boolean) initialisé à `true` si `data.birthday` existe au chargement (lignes 129-133)
-- Modifier l'affichage de l'étape 1 (lignes 766-777) : si `birthday` est déjà défini ET `birthdayPreFilled`, afficher un badge vert "✅ Date trouvée depuis ton profil" au lieu du message d'incitation jaune
-- Le titre change en "C'est bien ta date ? 🎂" si pré-rempli, sinon reste "Quand est ton anniversaire ? 🎂"
+**1. Requête produits (lignes 255-267)** :
+- Ajouter `category_name` au SELECT pour debug
+- Si `tasteCategoryNames.length > 0` et la requête retourne 0 résultats, ne PAS fallback sur tous les produits — garder le tableau vide et afficher un message adapté
+
+**2. Carte produit (lignes 942-971)** :
+- Ajouter `onClick={() => toggleFavorite(product.id)}` sur le `motion.div` conteneur
+- Ajouter `cursor-pointer` sur la carte
+- Ajouter une bordure visuelle quand le produit est favori : `border-2 border-primary` si sélectionné, `border border-border` sinon
+- Supprimer le `e.stopPropagation()` du AnimatedFavoriteButton puisque les deux clics font la même action
+
+**3. Message vide adapté (ligne 974-979)** :
+- Changer le message vide en : "Aucun produit disponible dans cette catégorie. Essaie une autre catégorie de goûts !"
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Ajouter `birthdayPreFilled` state + adapter l'UI step 1 |
+| `src/components/OnboardingExperience.tsx` | Corriger filtrage + rendre cartes cliquables avec feedback visuel |
 
