@@ -16,12 +16,12 @@ interface FeedCardActionsProps {
 }
 
 const ACTION_BUTTONS = [
-  { key: "photo", icon: Camera, label: "Photo" },
-  { key: "video", icon: Video, label: "Vidéo" },
-  { key: "souvenir", icon: PenLine, label: "Souvenir" },
-  { key: "cagnotte", icon: Wallet, label: "Cagnotte" },
-  { key: "cadeau", icon: Gift, label: "Cadeau" },
-  { key: "voir", icon: Eye, label: "Voir" },
+  { key: "photo", icon: Camera, label: "Photo", countKey: "photo_count" },
+  { key: "video", icon: Video, label: "Vidéo", countKey: "video_count" },
+  { key: "souvenir", icon: PenLine, label: "Souvenir", countKey: "memory_count" },
+  { key: "cagnotte", icon: Wallet, label: "Cagnotte", countKey: null },
+  { key: "cadeau", icon: Gift, label: "Cadeau", countKey: "gift_promise_count" },
+  { key: "voir", icon: Eye, label: "Voir", countKey: null },
 ] as const;
 
 export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps) {
@@ -150,7 +150,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
         if (!requireAuth()) setShowGiftPromise(true);
         break;
       case "voir":
-        navigate(pageUrl);
+        navigate(pageUrl, { state: { fromFeed: true } });
         break;
     }
   };
@@ -184,24 +184,37 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
     return true;
   });
 
+  const getCount = (countKey: string | null): number => {
+    if (!countKey) return 0;
+    return (page as any)[countKey] || 0;
+  };
+
   return (
     <div className="px-4 pb-4 space-y-2">
       <div className="flex items-center justify-around gap-1">
-        {visibleButtons.map((btn) => (
-          <motion.button
-            key={btn.key}
-            whileTap={{ scale: 0.85 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAction(btn.key);
-            }}
-            disabled={uploading}
-            className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-primary/10 transition-colors min-w-[48px] disabled:opacity-50"
-          >
-            <btn.icon className="h-4.5 w-4.5 text-foreground/70" />
-            <span className="text-[10px] text-muted-foreground font-medium">{btn.label}</span>
-          </motion.button>
-        ))}
+        {visibleButtons.map((btn) => {
+          const count = getCount(btn.countKey);
+          return (
+            <motion.button
+              key={btn.key}
+              whileTap={{ scale: 0.85 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAction(btn.key);
+              }}
+              disabled={uploading}
+              className="relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl bg-muted/60 hover:bg-primary/10 transition-colors min-w-[48px] disabled:opacity-50"
+            >
+              <btn.icon className="h-4.5 w-4.5 text-foreground/70" />
+              <span className="text-[10px] text-muted-foreground font-medium">{btn.label}</span>
+              {count > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+            </motion.button>
+          );
+        })}
       </div>
 
       {showMemory && (

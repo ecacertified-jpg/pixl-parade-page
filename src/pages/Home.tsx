@@ -1,6 +1,6 @@
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
@@ -90,13 +90,23 @@ const Home = () => {
         {/* Section 3: Public Funds Carousel */}
         <PublicFundsCarousel />
 
-        {/* Section 4: Featured Video Products */}
-        <FeaturedVideoProductsCarousel />
+        {/* Section 4: Featured Video Products - Hidden by default */}
+        <ToggleRevealSection
+          label="🎬 Découvrir les produits vedettes →"
+          hideLabel="Masquer les produits vedettes"
+        >
+          <FeaturedVideoProductsCarousel />
+        </ToggleRevealSection>
 
-        {/* Section 5: Featured Experiences Carousel */}
-        <FeaturedExperiencesCarousel />
+        {/* Section 5: Featured Experiences - Hidden by default */}
+        <ToggleRevealSection
+          label="✨ Explorer les expériences Premium →"
+          hideLabel="Masquer les expériences"
+        >
+          <FeaturedExperiencesCarousel />
+        </ToggleRevealSection>
 
-        {/* Section 5: News Feed with mode toggle */}
+        {/* Section 6: News Feed with mode toggle */}
         <NewsFeed />
 
         {/* Bottom padding for navigation */}

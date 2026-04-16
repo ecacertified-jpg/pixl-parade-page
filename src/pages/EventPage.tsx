@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAppBaseUrl } from "@/utils/appUrl";
@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Heart, Gift, Send, Share2, MessageCircle, Sparkles, Loader2 } from "lucide-react";
+import { Heart, Gift, Send, Share2, MessageCircle, Sparkles, Loader2, ArrowLeft } from "lucide-react";
 import { EventAlbum } from "@/components/EventAlbum";
 import { EventPageShareButton } from "@/components/EventPageShareButton";
 import { useEventPageSEO } from "@/hooks/useEventPageSEO";
@@ -39,6 +39,8 @@ const EventPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromFeed = (location.state as any)?.fromFeed === true;
 
   const [page, setPage] = useState<EventPageData | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
@@ -142,6 +144,13 @@ const EventPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/30 via-background to-background">
+      {fromFeed && (
+        <div className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/30 px-4 py-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/home')} className="gap-1 text-sm font-medium">
+            <ArrowLeft className="h-4 w-4" /> Retour au fil
+          </Button>
+        </div>
+      )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden">
         {page?.cover_image_url ? (
