@@ -31,11 +31,23 @@ Deno.serve(async (req) => {
     // 1. Fetch the business order
     const { data: order, error: orderErr } = await supabaseAdmin
       .from('business_orders')
-      .select('id, total_amount, business_account_id, order_summary, payment_method')
+      .select('id, total_amount, business_account_id, order_summary, payment_method, customer_id')
       .eq('id', business_order_id)
       .single()
 
     if (orderErr || !order) throw new Error('Order not found: ' + orderErr?.message)
+
+    // Verify ownership: user must be the customer or the business owner
+    const { data: businessAccount } = await supabaseAdmin
+      .from('business_accounts')
+      .select('user_id')
+      .eq('id', order.business_account_id)
+      .single()
+
+    if (order.customer_id !== user.id && businessAccount?.user_id !== user.id) {
+      throw new Error('Unauthorized: you do not own this order')
+    }
+
     if (order.payment_method !== 'wave') {
       return new Response(JSON.stringify({ skipped: true, reason: 'Not a Wave payment' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -215,7 +215,7 @@ serve(async (req) => {
         message: body.type === 'business' 
           ? 'Compte prestataire créé avec succès'
           : 'Compte client créé avec succès',
-        temp_password: tempPassword // In production, you might want to send this via SMS instead
+        // temp_password removed from response for security — should be sent via WhatsApp/SMS
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

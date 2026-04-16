@@ -8901,6 +8901,19 @@ export type Database = {
       }
       get_follower_count: { Args: { target_user_id: string }; Returns: number }
       get_following_count: { Args: { target_user_id: string }; Returns: number }
+      get_friend_form_token: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          prefilled_name: string
+          prefilled_relation: string
+          status: string
+          token: string
+          user_id: string
+        }[]
+      }
       get_friends_circle_reminder_candidates: {
         Args: { max_results?: number }
         Returns: {
