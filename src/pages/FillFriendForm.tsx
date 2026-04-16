@@ -39,11 +39,11 @@ export default function FillFriendForm() {
     supabase.functions.invoke("save-friend-form", { body: {} }).catch(() => {});
 
     const loadToken = async () => {
-      const { data, error: fetchError } = await supabase
-        .from("friend_form_tokens")
-        .select("*")
-        .eq("token", token)
-        .single();
+      // Use secure RPC to look up token without exposing the full table
+      const { data: rpcData, error: fetchError } = await supabase
+        .rpc("get_friend_form_token", { p_token: token });
+
+      const data = rpcData && rpcData.length > 0 ? rpcData[0] : null;
 
       if (fetchError || !data) {
         setError("Ce lien est invalide ou a expiré");

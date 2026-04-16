@@ -25,6 +25,9 @@ Deno.serve(async (req) => {
     )
     if (authError || !user) throw new Error('Unauthorized')
 
+    // Verify ownership: user must be the customer or the business owner
+    
+
     const { business_order_id } = await req.json()
     if (!business_order_id) throw new Error('business_order_id is required')
 

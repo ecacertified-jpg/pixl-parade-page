@@ -88,9 +88,12 @@ export function BusinessInitiatedFundsSection() {
         }
 
         // Get potential contributors (friends of beneficiary who haven't contributed)
-        const {
-          data: friendsData
-        } = await supabase.from('contact_relationships').select('user_a, user_b').or(`user_a.eq.${fund.beneficiary_user_id},user_b.eq.${fund.beneficiary_user_id}`).eq('can_see_funds', true);
+        // Use two separate queries instead of string interpolation in .or()
+        const [{ data: friendsA }, { data: friendsB }] = await Promise.all([
+          supabase.from('contact_relationships').select('user_a, user_b').eq('user_a', fund.beneficiary_user_id).eq('can_see_funds', true),
+          supabase.from('contact_relationships').select('user_a, user_b').eq('user_b', fund.beneficiary_user_id).eq('can_see_funds', true),
+        ]);
+        const friendsData = [...(friendsA || []), ...(friendsB || [])];
         const contributorIds = contributors.map(c => c.id);
         const nonContributors = [];
         if (friendsData) {
