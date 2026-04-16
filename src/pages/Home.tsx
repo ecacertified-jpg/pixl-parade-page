@@ -27,6 +27,30 @@ import { OrganizationSchema, WebSiteSchema } from "@/components/schema";
 import { organizationData, websiteData } from "@/data/brand-schema";
 import logoJV from "@/assets/logo-jv.svg";
 
+function ToggleRevealSection({ label, hideLabel, children }: { label: string; hideLabel: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+  if (!show) {
+    return (
+      <button
+        onClick={() => setShow(true)}
+        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 border border-primary/20 text-sm font-semibold text-primary hover:from-primary/15 hover:to-accent/10 transition-all text-center"
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {children}
+      <button
+        onClick={() => setShow(false)}
+        className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+      >
+        {hideLabel}
+      </button>
+    </div>
+  );
+}
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
