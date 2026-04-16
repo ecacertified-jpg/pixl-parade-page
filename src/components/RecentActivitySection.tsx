@@ -1,4 +1,4 @@
-import { Home, ShoppingBag, Plus, Gift as GiftIcon, Users } from "lucide-react";
+import { Home, ShoppingBag, Plus, Gift as GiftIcon, User } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -110,10 +110,10 @@ export function BottomNavigation() {
       badge: giftNotifications > 0 ? giftNotifications : null
     },
     { 
-      icon: Users,
-      label: "Communauté", 
-      isActive: location.pathname === "/community",
-      onClick: () => navigate("/community")
+      icon: User,
+      label: "Profil", 
+      isActive: location.pathname === "/dashboard",
+      onClick: () => navigate("/dashboard")
     }
   ];
 
