@@ -67,7 +67,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           `)
           .eq('is_active', true)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(200),
         supabase
           .from('event_pages')
           .select(`
@@ -78,7 +78,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
           `)
           .eq('is_active', true)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(200),
       ]);
 
       const feedPages: FeedPage[] = [];
