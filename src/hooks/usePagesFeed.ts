@@ -26,6 +26,7 @@ export interface FeedPage {
     currency: string;
     status: string;
   } | null;
+  fund_id: string | null;
   is_friend: boolean;
 }
 

@@ -153,45 +153,8 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
         )}
       </div>
 
-      {/* Stats row */}
-      <div className="px-4 pb-2 flex items-center gap-4 text-xs text-muted-foreground">
-        {page.album_count > 0 && (
-          <span className="flex items-center gap-1">
-            <Camera className="h-3.5 w-3.5" />
-            {page.album_count} souvenir{page.album_count > 1 ? 's' : ''}
-          </span>
-        )}
-        {page.fund && (
-          <span className="flex items-center gap-1">
-            <Gift className="h-3.5 w-3.5" />
-            Cagnotte
-          </span>
-        )}
-      </div>
-
-      {/* Fund progress */}
-      {page.fund && (
-        <div className="px-4 pb-3 space-y-1">
-          <Progress value={fundProgress} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{page.fund.current_amount.toLocaleString('fr-FR')} {page.fund.currency}</span>
-            <span>{fundProgress}% de {page.fund.target_amount.toLocaleString('fr-FR')} {page.fund.currency}</span>
-          </div>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div className="px-4 pb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full gap-2"
-          onClick={handleNavigate}
-        >
-          Voir la page
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Action buttons */}
+      <FeedCardActions page={page} />
     </Card>
   );
 }
