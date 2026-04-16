@@ -1,37 +1,37 @@
 
 
-# Plan : Correction du filtrage des produits par catégorie + carte cliquable pour les favoris
+# Plan : Corriger le filtrage Tech + ajouter texte "Continuer" au bouton clignotant
 
-## Problème 1 : Produits affichés ne correspondent pas à la catégorie sélectionnée
+## Problème 1 : Produits non-Tech affichés
 
-Dans l'étape 3 (Souhaits), le filtre `category_name` utilise `.in('category_name', tasteCategoryNames)`. Si aucun produit en base n'a exactement `category_name = 'Tech & Électronique'` ou `'Affaires & Bureau'`, la requête retourne 0 résultats... mais le code ne fait pas de fallback. Il est probable que les produits affichés proviennent d'un chargement précédent ou que le filtre n'est pas appliqué correctement.
+Le mapping `tech` dans `src/data/taste-categories.ts` inclut `'Affaires & Bureau'` en plus de `'Tech & Électronique'`. Or en base, la catégorie "Affaires & Bureau" contient des produits mal catégorisés (Détox, MEGA HAPPY, DJELI DJELI, MAHUDJLO — des produits pharmaceutiques/bien-être). Résultat : sélectionner "Tech" affiche ces produits non pertinents.
 
-**Correction** : Ajouter un log de debug et un fallback explicite — si le filtre par catégorie retourne 0 produits, afficher un message "Aucun produit Tech disponible" plutôt que des produits d'autres catégories. Aussi ajouter `category_name` au SELECT pour vérifier la cohérence.
+**Correction** : Retirer `'Affaires & Bureau'` du mapping `tech`. Ce n'est pas un problème de code de filtrage mais de mapping trop large.
 
-## Problème 2 : Rendre toute la carte produit cliquable
+## Problème 2 : Bouton clignotant sans texte
 
-Actuellement seul le bouton cœur (AnimatedFavoriteButton) permet de toggler le favori. L'utilisateur s'attend à cliquer n'importe où sur la carte (image incluse) pour sélectionner/désélectionner.
+Le bouton "suivant" (ligne 644-667 de `OnboardingExperience.tsx`) est un `<button>` rond rouge clignotant qui ne contient que l'icône `<ChevronRight>`. Il manque le texte "Continuer".
 
-**Correction** : Ajouter un `onClick={() => toggleFavorite(product.id)}` sur le `motion.div` parent de chaque carte + un style visuel de sélection (bordure primary quand favori).
+**Correction** : Transformer le bouton rond en bouton avec texte "Continuer" + icône, en gardant le style rouge clignotant.
 
 ## Détails techniques
 
-### Fichier : `src/components/OnboardingExperience.tsx`
+### Fichier 1 : `src/data/taste-categories.ts`
 
-**1. Requête produits (lignes 255-267)** :
-- Ajouter `category_name` au SELECT pour debug
-- Si `tasteCategoryNames.length > 0` et la requête retourne 0 résultats, ne PAS fallback sur tous les produits — garder le tableau vide et afficher un message adapté
+Ligne 29 — retirer `'Affaires & Bureau'` du mapping `tech` :
+```typescript
+'tech': ['Tech & Électronique'],
+```
 
-**2. Carte produit (lignes 942-971)** :
-- Ajouter `onClick={() => toggleFavorite(product.id)}` sur le `motion.div` conteneur
-- Ajouter `cursor-pointer` sur la carte
-- Ajouter une bordure visuelle quand le produit est favori : `border-2 border-primary` si sélectionné, `border border-border` sinon
-- Supprimer le `e.stopPropagation()` du AnimatedFavoriteButton puisque les deux clics font la même action
+### Fichier 2 : `src/components/OnboardingExperience.tsx`
 
-**3. Message vide adapté (ligne 974-979)** :
-- Changer le message vide en : "Aucun produit disponible dans cette catégorie. Essaie une autre catégorie de goûts !"
+Lignes 644-667 — transformer le bouton rond en bouton avec texte :
+- Remplacer le `<button>` rond par un bouton allongé avec `"Continuer"` + `<ChevronRight>`
+- Garder le style `animate-pulse bg-red-500` quand `canGoNext` est vrai
+- Adapter les classes : `rounded-full px-4 py-2 flex items-center gap-1 text-sm font-semibold`
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/OnboardingExperience.tsx` | Corriger filtrage + rendre cartes cliquables avec feedback visuel |
+| `src/data/taste-categories.ts` | Retirer 'Affaires & Bureau' du mapping tech |
+| `src/components/OnboardingExperience.tsx` | Ajouter texte "Continuer" au bouton clignotant |
 
