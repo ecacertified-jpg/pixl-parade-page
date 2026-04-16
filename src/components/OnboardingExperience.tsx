@@ -1303,7 +1303,14 @@ export const OnboardingExperience = ({
                         </div>
                         {!hasBirthdayPage && (
                           <Button
-                            onClick={handleCreateBirthdayPage}
+                            onClick={() => {
+                              if (isOtherEvent) {
+                                onComplete();
+                                window.location.href = `/event/create?occasion=${selectedOccasion}`;
+                              } else {
+                                handleCreateBirthdayPage();
+                              }
+                            }}
                             disabled={creatingBirthdayPage}
                             size="sm"
                             className="shrink-0 bg-gradient-to-r from-primary to-accent hover:opacity-90"

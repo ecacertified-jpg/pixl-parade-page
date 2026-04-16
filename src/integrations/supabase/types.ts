@@ -3123,6 +3123,116 @@ export type Database = {
         }
         Relationships: []
       }
+      event_page_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          event_page_id: string
+          id: string
+          image_url: string
+          media_type: string
+          memory_text: string | null
+          uploader_id: string
+          uploader_name: string | null
+          video_thumbnail_url: string | null
+          video_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          event_page_id: string
+          id?: string
+          image_url: string
+          media_type?: string
+          memory_text?: string | null
+          uploader_id: string
+          uploader_name?: string | null
+          video_thumbnail_url?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          event_page_id?: string
+          id?: string
+          image_url?: string
+          media_type?: string
+          memory_text?: string | null
+          uploader_id?: string
+          uploader_name?: string | null
+          video_thumbnail_url?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_page_photos_event_page_id_fkey"
+            columns: ["event_page_id"]
+            isOneToOne: false
+            referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_pages: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          creator_id: string
+          description: string | null
+          event_date: string | null
+          fund_id: string | null
+          id: string
+          is_active: boolean
+          occasion: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          event_date?: string | null
+          fund_id?: string | null
+          id?: string
+          is_active?: boolean
+          occasion?: string
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          event_date?: string | null
+          fund_id?: string | null
+          id?: string
+          is_active?: boolean
+          occasion?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_pages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_pages_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "collective_funds_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_popularity_reports: {
         Row: {
           avg_contributors: number | null
@@ -3164,6 +3274,41 @@ export type Database = {
           total_funds_created?: number | null
         }
         Relationships: []
+      }
+      event_wishes_messages: {
+        Row: {
+          created_at: string
+          event_page_id: string
+          id: string
+          message_text: string
+          sender_id: string | null
+          sender_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_page_id: string
+          id?: string
+          message_text: string
+          sender_id?: string | null
+          sender_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_page_id?: string
+          id?: string
+          message_text?: string
+          sender_id?: string | null
+          sender_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_wishes_messages_event_page_id_fkey"
+            columns: ["event_page_id"]
+            isOneToOne: false
+            referencedRelation: "event_pages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {
