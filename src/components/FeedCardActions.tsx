@@ -261,6 +261,14 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
           e.target.value = "";
         }}
       />
+
+      <GiftPromiseModal
+        open={showGiftPromise}
+        onOpenChange={setShowGiftPromise}
+        onConfirm={handleGiftPromiseConfirm}
+        authorName={creatorName}
+        occasion={occasion}
+      />
     </div>
   );
 }
