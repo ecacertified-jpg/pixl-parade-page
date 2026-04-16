@@ -1,37 +1,41 @@
 
 
-# Plan : Corriger le filtrage Tech + ajouter texte "Continuer" au bouton clignotant
+# Plan : Adapter l'onboarding selon le choix "Mon anniversaire" vs "Anniversaire d'un proche"
 
-## Problème 1 : Produits non-Tech affichés
+## Constat
 
-Le mapping `tech` dans `src/data/taste-categories.ts` inclut `'Affaires & Bureau'` en plus de `'Tech & Électronique'`. Or en base, la catégorie "Affaires & Bureau" contient des produits mal catégorisés (Détox, MEGA HAPPY, DJELI DJELI, MAHUDJLO — des produits pharmaceutiques/bien-être). Résultat : sélectionner "Tech" affiche ces produits non pertinents.
+Le quiz pré-inscription (`PreAuthDiscovery`) sauvegarde les réponses dans `localStorage('jdv_discovery_answers')` mais l'onboarding post-inscription (`OnboardingExperience`) ne les lit jamais. Le parcours est identique quel que soit le choix de l'utilisateur.
 
-**Correction** : Retirer `'Affaires & Bureau'` du mapping `tech`. Ce n'est pas un problème de code de filtrage mais de mapping trop large.
+## Ce qui va changer
 
-## Problème 2 : Bouton clignotant sans texte
+L'onboarding lira le `purpose` du quiz et adaptera l'étape 5 ("Ma Page") :
 
-Le bouton "suivant" (ligne 644-667 de `OnboardingExperience.tsx`) est un `<button>` rond rouge clignotant qui ne contient que l'icône `<ChevronRight>`. Il manque le texte "Continuer".
+- **`my_birthday`** (défaut) : parcours actuel inchangé — créer SA page d'anniversaire, SA cagnotte, partager avec ses proches
+- **`friend_birthday`** : l'étape 5 devient "Page pour ton proche" — l'utilisateur crée une page d'anniversaire pour son proche (surprise ou non), crée une cagnotte au nom du proche, et partage avec les autres amis du proche
 
-**Correction** : Transformer le bouton rond en bouton avec texte "Continuer" + icône, en gardant le style rouge clignotant.
+Les étapes 1-4 (Accueil, Anniversaire, Goûts, Souhaits, Amis) restent identiques car elles concernent le profil de l'utilisateur lui-même.
 
 ## Détails techniques
 
-### Fichier 1 : `src/data/taste-categories.ts`
+### Fichier : `src/components/OnboardingExperience.tsx`
 
-Ligne 29 — retirer `'Affaires & Bureau'` du mapping `tech` :
-```typescript
-'tech': ['Tech & Électronique'],
-```
+1. **Lire le purpose au montage** : dans le `useEffect` initial, parser `localStorage.getItem('jdv_discovery_answers')` et extraire `purpose`
+2. **Stocker dans un state** : `const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday')`
+3. **Adapter l'étape 5 (step 5)** selon `discoveryPurpose` :
+   - Si `friend_birthday` :
+     - Titre : "Crée une page pour ton proche 🎁"
+     - Description : "Organise une surprise pour l'anniversaire de ton proche"
+     - Bouton création page : "Créer la page de mon proche" → navigue vers `/birthday/create?for=friend` (ou ouvre le flow existant avec un flag)
+     - Bouton cagnotte : "Lancer une cagnotte pour mon proche"
+   - Si `my_birthday` ou absent : parcours actuel inchangé
 
-### Fichier 2 : `src/components/OnboardingExperience.tsx`
+4. **Création de page pour un proche** : le bouton "Créer la page de mon proche" appellera `onComplete()` puis naviguera vers la page de création d'anniversaire avec un paramètre indiquant que c'est pour un contact (réutiliser le flow existant de création de birthday page)
 
-Lignes 644-667 — transformer le bouton rond en bouton avec texte :
-- Remplacer le `<button>` rond par un bouton allongé avec `"Continuer"` + `<ChevronRight>`
-- Garder le style `animate-pulse bg-red-500` quand `canGoNext` est vrai
-- Adapter les classes : `rounded-full px-4 py-2 flex items-center gap-1 text-sm font-semibold`
+### Fichier : `src/components/PreAuthDiscovery.tsx`
+
+Aucun changement — les données sont déjà sauvegardées correctement.
 
 | Fichier | Action |
 |---------|--------|
-| `src/data/taste-categories.ts` | Retirer 'Affaires & Bureau' du mapping tech |
-| `src/components/OnboardingExperience.tsx` | Ajouter texte "Continuer" au bouton clignotant |
+| `src/components/OnboardingExperience.tsx` | Lire `jdv_discovery_answers.purpose` + adapter le contenu de l'étape 5 |
 
