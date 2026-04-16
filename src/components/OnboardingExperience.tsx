@@ -254,7 +254,7 @@ export const OnboardingExperience = ({
       setLoadingProducts(true);
       let query = supabase
         .from('products')
-        .select('id, name, price, currency, image_url, business_id')
+        .select('id, name, price, currency, image_url, business_id, category_name')
         .eq('is_active', true);
 
       if (tasteCategoryNames.length > 0) {
@@ -264,6 +264,7 @@ export const OnboardingExperience = ({
       query = query.limit(20);
 
       const { data } = await query;
+      console.log('[Onboarding] Products loaded for categories:', tasteCategoryNames, '→', data?.length, 'results');
       setWishlistProducts(data || []);
 
       // Load existing favorites
@@ -944,7 +945,12 @@ export const OnboardingExperience = ({
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="relative rounded-xl border border-border bg-card overflow-hidden shadow-sm"
+                      onClick={() => toggleFavorite(product.id)}
+                      className={`relative rounded-xl bg-card overflow-hidden shadow-sm cursor-pointer transition-all ${
+                        favoriteIds.includes(product.id)
+                          ? 'border-2 border-primary ring-2 ring-primary/20'
+                          : 'border border-border hover:border-primary/40'
+                      }`}
                     >
                       <div className="aspect-square bg-muted">
                         {product.image_url ? (
@@ -972,9 +978,12 @@ export const OnboardingExperience = ({
                   ))}
                 </div>
               ) : (
-                <div className="p-6 rounded-xl bg-muted/50 mb-4">
+                <div className="p-6 rounded-xl bg-muted/50 mb-4 text-center">
+                  <Gift className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
                   <p className="text-muted-foreground font-nunito text-sm">
-                    Aucun produit disponible pour le moment
+                    {tasteCategoryNames.length > 0
+                      ? "Aucun produit disponible dans cette catégorie. Essaie une autre catégorie de goûts ! 🔄"
+                      : "Aucun produit disponible pour le moment"}
                   </p>
                 </div>
               )}
