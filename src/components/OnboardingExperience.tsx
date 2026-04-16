@@ -1263,9 +1263,11 @@ export const OnboardingExperience = ({
                           {hasBirthdayPage ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">1</span>}
                         </div>
                         <div className="flex-1">
-                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma page</p>
+                          <p className="font-poppins font-semibold text-sm text-foreground">
+                            {isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
+                          </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasBirthdayPage ? "✅ Page créée !" : "Ta page pour recevoir messages et cadeaux"}
+                            {hasBirthdayPage ? "✅ Page créée !" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
                           </p>
                         </div>
                         {!hasBirthdayPage && (
