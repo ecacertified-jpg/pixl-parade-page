@@ -1,44 +1,30 @@
 
 
-# Plan : Remplacer les filtres occasions par des catégories produit + image cliquable
+# Plan : Corriger le filtre Tech — produits tronqués par la limite de 200
 
-## Problème actuel
+## Problème
 
-Les badges sous la barre de recherche affichent des **occasions** (Anniversaire, Mariage, Baby Shower...) depuis la table `categories`. L'utilisateur veut des **catégories produit** (Mode, Bijoux, Tech, Gastronomie...) et pouvoir cliquer sur l'image pour ajouter/retirer un favori.
+Le catalogue récupère les 200 produits les plus récents (`ORDER BY created_at DESC LIMIT 200`). Il y a 219 produits actifs en CI, donc les 19 plus anciens sont exclus. Les 6 produits tech sur 7 ont été créés en janvier (les plus anciens) et sont coupés par cette limite. Seul le Samsung S25 Ultra (février) apparaît.
 
-## Changements — `src/pages/WishlistCatalog.tsx`
+## Solution
 
-### 1. Remplacer les filtres par les catégories produit (taste-categories)
+Supprimer la limite de 200 ou l'augmenter significativement (ex: 1000). Avec 219 produits en CI, il n'y a aucun risque de performance à tout charger.
 
-Utiliser `TASTE_CATEGORIES` et `TASTE_TO_PRODUCT_CATEGORIES` de `src/data/taste-categories.ts` au lieu de la table `categories`. Les badges afficheront : Tous, Tech, Mode, Voyage, Musique, Gastronomie, Sport, Bijoux, Bien-être.
+## Changement — `src/pages/WishlistCatalog.tsx`
 
-Le filtre côté client utilisera `matchesTaste(product.category_name, selectedTaste)` au lieu de comparer `category_id`.
+Ligne 54 : remplacer `.limit(200)` par `.limit(1000)` pour s'assurer que tous les produits du pays sont récupérés, quel que soit leur date de création.
 
-### 2. Ajouter `category_name` à la requête produit
+```typescript
+// Avant
+.limit(200)
 
-Modifier le SELECT pour inclure `category_name` dans les colonnes récupérées, car le filtrage se fera sur ce champ au lieu de `category_id`.
-
-### 3. Recherche par nom d'article
-
-La recherche existe déjà (`searchQuery` filtre sur `p.name`). On va l'étendre pour chercher aussi dans `category_name`, permettant de trouver "chemise", "bijoux", "collier", "chaussures", "sac", etc. Le placeholder sera mis à jour : "Rechercher un article (chemise, bijoux, sac...)".
-
-### 4. Rendre l'image cliquable pour toggler le favori
-
-Ajouter un `onClick` sur le conteneur de l'image qui appelle `handleToggleFavorite`. L'image aura un `cursor-pointer` et un léger effet de feedback visuel (overlay au hover avec une icône cœur).
-
-## Résumé technique
-
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Badges filtres | `categories` table (occasions) | `TASTE_CATEGORIES` (types produit) |
-| Filtre logique | `category_id === selectedCategory` | `matchesTaste(category_name, tasteId)` |
-| Recherche | Nom seulement | Nom + `category_name` |
-| Image produit | Non cliquable | Cliquable → toggle favori |
-| Requête SQL | Sans `category_name` | Avec `category_name` |
+// Après
+.limit(1000)
+```
 
 ## Fichier concerné
 
 | Fichier | Action |
 |---------|--------|
-| `src/pages/WishlistCatalog.tsx` | Import taste-categories, modifier filtres, image cliquable, étendre recherche |
+| `src/pages/WishlistCatalog.tsx` | Augmenter la limite de 200 à 1000 |
 
