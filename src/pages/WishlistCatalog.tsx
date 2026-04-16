@@ -51,7 +51,7 @@ export default function WishlistCatalog() {
             .eq("is_active", true)
             .in("business_id", businessIds)
             .order("created_at", { ascending: false })
-            .limit(200)
+            .limit(1000)
         : { data: [] as any[] };
 
       if (productsRes.data) setProducts(productsRes.data as any);
