@@ -86,8 +86,8 @@ export function BottomNavigation() {
     { 
       icon: Home,
       label: "Accueil", 
-      isActive: location.pathname === "/",
-      onClick: () => navigate("/")
+      isActive: location.pathname === "/" || location.pathname === "/index",
+      onClick: () => navigate("/index")
     },
     { 
       icon: ShoppingBag,
@@ -113,7 +113,13 @@ export function BottomNavigation() {
       icon: User,
       label: "Profil", 
       isActive: location.pathname === "/dashboard",
-      onClick: () => navigate("/dashboard")
+      onClick: () => {
+        if (location.pathname === "/dashboard") {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          navigate("/dashboard");
+        }
+      }
     }
   ];
 
