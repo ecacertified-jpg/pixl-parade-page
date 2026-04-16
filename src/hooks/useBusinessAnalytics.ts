@@ -97,15 +97,12 @@ export const useBusinessAnalytics = (businessAccountId?: string) => {
 
       // Fetch commission rate from platform_settings
       const { data: settingsData } = await supabase
-        .from('platform_settings')
-        .select('setting_value')
-        .eq('setting_key', 'commission_rate')
-        .maybeSingle();
+        .rpc('get_public_platform_setting', { p_key: 'commission_rate' });
 
       // Extract value from JSONB object { value: 15, unit: "percent" }
       let commissionRate = 0.15; // Default value
-      if (settingsData?.setting_value) {
-        const settingValue = settingsData.setting_value;
+      if (settingsData) {
+        const settingValue = settingsData;
         if (typeof settingValue === 'object' && 'value' in settingValue) {
           commissionRate = parseFloat(String(settingValue.value)) / 100;
         } else if (typeof settingValue === 'number') {

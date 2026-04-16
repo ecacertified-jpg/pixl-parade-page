@@ -109,12 +109,9 @@ export function useVendorProducts(businessId: string | undefined) {
       // Charger le taux de majoration
       let markupRate = 0;
       const { data: markupSetting } = await supabase
-        .from('platform_settings')
-        .select('setting_value')
-        .eq('setting_key', 'price_markup_rate')
-        .single();
-      if (markupSetting?.setting_value && typeof markupSetting.setting_value === 'object' && 'value' in (markupSetting.setting_value as any)) {
-        markupRate = (markupSetting.setting_value as any).value || 0;
+        .rpc('get_public_platform_setting', { p_key: 'price_markup_rate' });
+      if (markupSetting && typeof markupSetting === 'object' && 'value' in (markupSetting as any)) {
+        markupRate = (markupSetting as any).value || 0;
       }
 
       // Charger les produits du prestataire
