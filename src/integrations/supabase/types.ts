@@ -5015,6 +5015,30 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          page_slug: string | null
+          share_method: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          page_slug?: string | null
+          share_method: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          page_slug?: string | null
+          share_method?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
