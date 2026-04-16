@@ -33,6 +33,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
   const [memoryText, setMemoryText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [sendingMemory, setSendingMemory] = useState(false);
+  const [showGiftPromise, setShowGiftPromise] = useState(false);
 
   const requireAuth = () => {
     if (!user) {
