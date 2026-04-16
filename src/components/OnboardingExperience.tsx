@@ -101,6 +101,7 @@ export const OnboardingExperience = ({
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
+  const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
   // Auto-save selected categories with debounce
   useEffect(() => {
@@ -115,7 +116,21 @@ export const OnboardingExperience = ({
 
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
-  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'];
+  const isFriendPurpose = discoveryPurpose === 'friend_birthday';
+  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isFriendPurpose ? 'Page proche' : 'Ma page'];
+
+  // Read discovery answers from pre-auth quiz
+  useEffect(() => {
+    try {
+      const savedAnswers = localStorage.getItem('jdv_discovery_answers');
+      if (savedAnswers) {
+        const parsed = JSON.parse(savedAnswers);
+        if (parsed?.purpose) {
+          setDiscoveryPurpose(parsed.purpose);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
 
   // Load user data on mount
   useEffect(() => {
@@ -1223,10 +1238,12 @@ export const OnboardingExperience = ({
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    Finalise ta page d'anniversaire 🎂
+                    {isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
                   </h2>
                   <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
-                    Crée ta page, lance ta cagnotte et partage avec tes proches !
+                    {isFriendPurpose
+                      ? 'Organise une surprise pour l\'anniversaire de ton proche !'
+                      : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
                   </p>
 
                   {/* Sub-step checklist */}
@@ -1246,9 +1263,11 @@ export const OnboardingExperience = ({
                           {hasBirthdayPage ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">1</span>}
                         </div>
                         <div className="flex-1">
-                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma page</p>
+                          <p className="font-poppins font-semibold text-sm text-foreground">
+                            {isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
+                          </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasBirthdayPage ? "✅ Page créée !" : "Ta page pour recevoir messages et cadeaux"}
+                            {hasBirthdayPage ? "✅ Page créée !" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
                           </p>
                         </div>
                         {!hasBirthdayPage && (
@@ -1281,9 +1300,11 @@ export const OnboardingExperience = ({
                           {hasFund ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
                         </div>
                         <div className="flex-1">
-                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma cagnotte</p>
+                          <p className="font-poppins font-semibold text-sm text-foreground">
+                            {isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                          </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : "Pour recevoir des contributions de tes proches"}
+                            {hasFund ? "✅ Cagnotte créée !" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
                           </p>
                         </div>
                         {!hasFund && hasBirthdayPage && (
