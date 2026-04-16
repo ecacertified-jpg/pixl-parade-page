@@ -133,9 +133,31 @@ async function sendWhatsAppMessage(to: string, code: string): Promise<SendResult
   }
 }
 
+// Simple in-memory IP rate limiter (resets on cold start, acceptable for edge functions)
+const ipRequestCounts = new Map<string, { count: number; resetAt: number }>();
+const IP_RATE_LIMIT = 5; // max 5 OTPs per 10 min per IP
+const IP_RATE_WINDOW = 10 * 60 * 1000; // 10 minutes
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // IP-based rate limiting
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const now = Date.now();
+  const ipEntry = ipRequestCounts.get(clientIp);
+  if (ipEntry && now < ipEntry.resetAt) {
+    if (ipEntry.count >= IP_RATE_LIMIT) {
+      const retryAfter = Math.ceil((ipEntry.resetAt - now) / 1000);
+      return new Response(
+        JSON.stringify({ error: 'ip_rate_limit', message: 'Trop de demandes. Réessayez plus tard.', retry_after: retryAfter }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    ipEntry.count++;
+  } else {
+    ipRequestCounts.set(clientIp, { count: 1, resetAt: now + IP_RATE_WINDOW });
   }
 
   try {
