@@ -96,6 +96,9 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         for (const bp of birthdayRes.data) {
           const profile = profileMap.get(bp.user_id);
           const photos = (bp.birthday_page_photos as any[]) || [];
+          const imageOnly = photos
+            .filter((p: any) => p.image_url && !p.image_url.match(/\.(mp4|webm|mov|avi)$/i))
+            .map((p: any) => p.image_url);
           const fund = bp.collective_funds as any;
           const creatorId = bp.user_id;
           const isFriend = followingIds.includes(creatorId);
@@ -117,8 +120,8 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
               last_name: profile?.last_name || null,
               avatar_url: profile?.avatar_url || null,
             },
-            album_preview: photos.slice(0, 4).map((p: any) => p.image_url),
-            album_count: photos.length,
+            album_preview: imageOnly.slice(0, 4),
+            album_count: imageOnly.length,
             fund: fund ? {
               id: fund.id,
               target_amount: fund.target_amount,
@@ -135,6 +138,9 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         for (const ep of eventRes.data) {
           const profile = profileMap.get(ep.creator_id);
           const photos = (ep.event_page_photos as any[]) || [];
+          const imageOnly = photos
+            .filter((p: any) => p.image_url && !p.image_url.match(/\.(mp4|webm|mov|avi)$/i))
+            .map((p: any) => p.image_url);
           const fund = ep.collective_funds as any;
           const creatorId = ep.creator_id;
           const isFriend = followingIds.includes(creatorId);
@@ -156,8 +162,8 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
               last_name: profile?.last_name || null,
               avatar_url: profile?.avatar_url || null,
             },
-            album_preview: photos.slice(0, 4).map((p: any) => p.image_url),
-            album_count: photos.length,
+            album_preview: imageOnly.slice(0, 4),
+            album_count: imageOnly.length,
             fund: fund ? {
               id: fund.id,
               target_amount: fund.target_amount,
