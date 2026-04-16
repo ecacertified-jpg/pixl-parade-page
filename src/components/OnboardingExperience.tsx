@@ -101,6 +101,7 @@ export const OnboardingExperience = ({
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
+  const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
   // Auto-save selected categories with debounce
   useEffect(() => {
