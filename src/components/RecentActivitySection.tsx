@@ -1,4 +1,5 @@
 import { Home, ShoppingBag, Plus, Gift as GiftIcon, User } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
