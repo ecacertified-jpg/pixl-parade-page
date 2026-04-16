@@ -20,7 +20,7 @@ import { useCart } from "@/hooks/useCart";
 import { FriendsCircleReminderCard } from "@/components/FriendsCircleReminderCard";
 import { FriendsCircleBadgeCelebration } from "@/components/FriendsCircleBadgeCelebration";
 import { useFriendsCircleBadgeCelebration } from "@/hooks/useFriendsCircleBadgeCelebration";
-import { CountrySelector } from "@/components/CountrySelector";
+
 import { CountryBadgeHeader } from "@/components/CountryBadgeHeader";
 import { SEOHead, SEO_CONFIGS } from "@/components/SEOHead";
 import { OrganizationSchema, WebSiteSchema } from "@/components/schema";
