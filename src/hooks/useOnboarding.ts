@@ -88,14 +88,27 @@ export const useOnboarding = () => {
   const shouldShow = status?.shouldShow ?? false;
   const firstIncompleteStep = status?.firstIncompleteStep ?? 0;
 
+  // Read the furthest step ever reached from localStorage
+  const storedFurthestStep = user?.id
+    ? parseInt(localStorage.getItem(`onboarding_step_${user.id}`) || '0', 10)
+    : 0;
+
   const [currentStep, setCurrentStepState] = useState<number | null>(null);
 
-  // Initialize currentStep from firstIncompleteStep once loaded
-  const effectiveCurrentStep = currentStep ?? firstIncompleteStep;
+  // Never go backwards: use the max of DB-computed step and stored furthest step
+  const effectiveCurrentStep = currentStep ?? Math.max(firstIncompleteStep, storedFurthestStep);
 
   const setCurrentStep = useCallback((step: number) => {
     setCurrentStepState(step);
-  }, []);
+    // Persist the furthest step reached
+    if (user?.id) {
+      const key = `onboarding_step_${user.id}`;
+      const prev = parseInt(localStorage.getItem(key) || '0', 10);
+      if (step > prev) {
+        localStorage.setItem(key, String(step));
+      }
+    }
+  }, [user?.id]);
 
   const completeOnboarding = useCallback(async () => {
     if (user) {
@@ -107,6 +120,7 @@ export const useOnboarding = () => {
           .update({ onboarding_completed: true })
           .eq('user_id', user.id);
         localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
+        localStorage.removeItem(`onboarding_step_${user.id}`);
       }
       queryClient.invalidateQueries({ queryKey: ['onboarding-status', user.id] });
     }
