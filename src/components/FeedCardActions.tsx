@@ -147,7 +147,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
         else navigate(pageUrl);
         break;
       case "cadeau":
-        navigate(pageUrl);
+        if (!requireAuth()) setShowGiftPromise(true);
         break;
       case "voir":
         navigate(pageUrl);
