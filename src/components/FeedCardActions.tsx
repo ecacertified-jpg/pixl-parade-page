@@ -155,6 +155,30 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
     }
   };
 
+  const handleGiftPromiseConfirm = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase.from("page_gift_promises" as any).insert({
+        user_id: user.id,
+        page_id: page.id,
+        page_type: page.type,
+        page_owner_id: page.creator.user_id,
+      });
+      if (error) throw error;
+      toast.success("Promesse de cadeau enregistrée ! 🎁");
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        toast.info("Vous avez déjà promis un cadeau pour cette page !");
+      } else {
+        console.error("Gift promise error:", err);
+        toast.error("Erreur lors de l'enregistrement de la promesse");
+      }
+    }
+  };
+
+  const creatorName = [page.creator.first_name, page.creator.last_name].filter(Boolean).join(" ") || "Utilisateur";
+  const occasion = page.type === "birthday" ? "anniversaire" : page.occasion || "événement";
+
   const visibleButtons = ACTION_BUTTONS.filter((b) => {
     if (b.key === "cagnotte" && !page.fund) return false;
     return true;
