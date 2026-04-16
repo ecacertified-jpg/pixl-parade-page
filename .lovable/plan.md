@@ -1,89 +1,36 @@
 
 
-# Plan : Fil d'actualités avec pages des proches et système d'abonnement
+# Plan : Corriger l'affichage des pages dans le fil d'actualités
 
-## Problème actuel
+## Problème identifié
 
-Le fil d'actualités (`usePagesFeed`) charge bien les `birthday_pages` et `event_pages` actives depuis Supabase. Les données existent (160 birthday pages actives) mais la plupart n'ont ni photos, ni couverture, ni cagnotte — ce qui rend les cartes vides visuellement. Le code fonctionne techniquement, mais ne filtre pas par relation sociale ni ne priorise le contenu enrichi.
+La page d'anniversaire d'Amtey (créée le 4 avril, avec 8 photos et une cagnotte 100/50000 XOF) n'apparaît pas dans le fil car :
+- Il y a **160 pages actives** mais la requête ne récupère que les **50 plus récentes** (`limit(50)`)
+- **102 pages** ont été créées après celle d'Amtey → elle est exclue du résultat
+- Seulement **5 pages sur 160** ont du contenu réel (photos, couverture ou cagnotte)
+- Le tri par contenu se fait côté client, **après** la limite SQL — trop tard
 
-## Objectifs
+## Solution
 
-1. **Corriger le fil** : prioriser les pages avec contenu (photos/cagnotte) et afficher aussi les pages sans contenu avec un visuel par défaut
-2. **Filtrer par réseau social** : montrer les pages des amis/proches (via `user_follows`) + toutes les pages publiques
-3. **Ajouter l'abonnement aux pages** : bouton "Suivre" sur chaque carte du fil
+Modifier `src/hooks/usePagesFeed.ts` pour prioriser les pages avec contenu **dans la requête**, pas après :
 
-## Changements
+1. **Deux requêtes séquentielles** au lieu d'une seule avec limit(50) :
+   - **Requête 1** : Pages avec contenu (fund_id NOT NULL ou photos existantes) — sans limite stricte, triées par date
+   - **Requête 2** : Pages récentes sans contenu — limit(20) pour remplir le fil
 
-### 1. Migration — Table `page_follows`
+   Alternativement (plus simple) : **Augmenter la limite à 200** pour couvrir toutes les pages actives, puisqu'il n'y en a que 160. Le tri côté client priorise déjà les pages avec contenu.
 
-Nouvelle table pour l'abonnement spécifique aux pages (birthday/event) :
+2. **Approche recommandée** (simple et efficace) : Changer `limit(50)` → `limit(200)` pour les deux requêtes (birthday + event). Avec 160 pages au total, cela garantit qu'aucune page avec contenu n'est exclue.
 
-```sql
-CREATE TABLE public.page_follows (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  page_type text NOT NULL CHECK (page_type IN ('birthday', 'event')),
-  page_id uuid NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE (user_id, page_type, page_id)
-);
+## Fichier concerné
 
-ALTER TABLE public.page_follows ENABLE ROW LEVEL SECURITY;
+| Fichier | Changement |
+|---------|------------|
+| `src/hooks/usePagesFeed.ts` | Augmenter les limites de requête de 50 à 200 |
 
-CREATE POLICY "Users can view their follows" ON public.page_follows
-  FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can follow pages" ON public.page_follows
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can unfollow pages" ON public.page_follows
-  FOR DELETE USING (auth.uid() = user_id);
--- Public count visibility
-CREATE POLICY "Anyone can count follows" ON public.page_follows
-  FOR SELECT USING (true);
-```
+## Impact
 
-### 2. `usePagesFeed.ts` — Ajout onglets et filtre social
-
-- Ajouter un paramètre `filter: 'all' | 'following'`
-- **Mode "Tous"** : toutes les pages actives, triées par date (comportement actuel)
-- **Mode "Abonnements"** : pages créées par les utilisateurs suivis (`user_follows.following_id`) + pages explicitement suivies (`page_follows`)
-- Ajouter un champ `is_following: boolean` à `FeedPage` pour afficher l'état du bouton
-- Charger les `page_follows` de l'utilisateur connecté en parallèle
-- Pour les pages sans photo ni couverture, générer un visuel par défaut (gradient + icône occasion)
-
-### 3. `NewsFeed.tsx` — Onglets Tous / Abonnements
-
-- Ajouter deux onglets en haut : **Tous** et **Abonnements**
-- L'onglet actif filtre le flux via le paramètre du hook
-- Animation de transition entre les onglets (framer-motion fade)
-
-### 4. `PageFeedCard.tsx` — Bouton Suivre + visuels par défaut
-
-- Ajouter un bouton **Suivre / Suivi** à côté de l'icône occasion dans le header
-- Toggle optimiste : insert/delete dans `page_follows`
-- Pour les pages sans image : afficher un **placeholder visuel** avec un gradient coloré et l'icône de l'occasion (🎂, 💒, etc.) en grand format
-- Badge "Ami" si le créateur est dans `user_follows`
-
-### 5. `usePageFollow.ts` — Hook d'abonnement
-
-Nouveau hook gérant :
-- `isFollowing(pageType, pageId)` : état local
-- `toggleFollow(pageType, pageId)` : insert/delete optimiste
-- Chargement initial des follows de l'utilisateur
-
-## Fichiers concernés
-
-| Fichier | Action |
-|---------|--------|
-| Migration SQL | **Créer** — table `page_follows` avec RLS |
-| `src/hooks/usePagesFeed.ts` | **Modifier** — filtre all/following, champ is_following, placeholder |
-| `src/hooks/usePageFollow.ts` | **Créer** — hook toggle follow/unfollow |
-| `src/components/NewsFeed.tsx` | **Modifier** — onglets Tous/Abonnements |
-| `src/components/PageFeedCard.tsx` | **Modifier** — bouton Suivre, placeholder visuel, badge ami |
-
-## Détails techniques
-
-- `user_follows` (existant) sert à déterminer si le créateur est un ami → badge "Ami" + filtre Abonnements
-- `page_follows` (nouveau) sert à l'abonnement spécifique à une page → notifications futures + filtre Abonnements
-- Les deux tables sont combinées dans le mode "Abonnements" : pages des amis OU pages suivies explicitement
-- Le toggle follow utilise une mise à jour optimiste (state local avant confirmation serveur)
+- Amtey et les 4 autres pages avec contenu apparaîtront en haut du fil (le tri existant les priorise déjà)
+- Les pages vides apparaîtront ensuite, triées par date
+- Léger surcoût réseau négligeable (160 rows vs 50)
 
