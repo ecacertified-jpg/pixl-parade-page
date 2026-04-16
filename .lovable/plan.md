@@ -1,36 +1,45 @@
 
 
-# Plan : Corriger l'affichage des pages dans le fil d'actualités
+# Plan : Afficher automatiquement la page créée dans le fil d'actualités
 
-## Problème identifié
+## Problème
 
-La page d'anniversaire d'Amtey (créée le 4 avril, avec 8 photos et une cagnotte 100/50000 XOF) n'apparaît pas dans le fil car :
-- Il y a **160 pages actives** mais la requête ne récupère que les **50 plus récentes** (`limit(50)`)
-- **102 pages** ont été créées après celle d'Amtey → elle est exclue du résultat
-- Seulement **5 pages sur 160** ont du contenu réel (photos, couverture ou cagnotte)
-- Le tri par contenu se fait côté client, **après** la limite SQL — trop tard
+Quand un utilisateur crée sa page d'anniversaire via l'onboarding ("Créer ma page"), elle n'apparaît pas visiblement dans le fil d'actualités car :
+- La page est créée sans photos ni cagnotte
+- Le tri actuel place les pages avec contenu en premier → la nouvelle page se retrouve noyée parmi 160+ autres pages vides
 
 ## Solution
 
-Modifier `src/hooks/usePagesFeed.ts` pour prioriser les pages avec contenu **dans la requête**, pas après :
+Deux changements :
 
-1. **Deux requêtes séquentielles** au lieu d'une seule avec limit(50) :
-   - **Requête 1** : Pages avec contenu (fund_id NOT NULL ou photos existantes) — sans limite stricte, triées par date
-   - **Requête 2** : Pages récentes sans contenu — limit(20) pour remplir le fil
+### 1. `usePagesFeed.ts` — Prioriser les pages de l'utilisateur connecté
 
-   Alternativement (plus simple) : **Augmenter la limite à 200** pour couvrir toutes les pages actives, puisqu'il n'y en a que 160. Le tri côté client priorise déjà les pages avec contenu.
+Ajouter un niveau de priorité dans le tri : les pages créées par l'utilisateur connecté apparaissent **toujours en premier**, quel que soit leur contenu.
 
-2. **Approche recommandée** (simple et efficace) : Changer `limit(50)` → `limit(200)` pour les deux requêtes (birthday + event). Avec 160 pages au total, cela garantit qu'aucune page avec contenu n'est exclue.
+```typescript
+feedPages.sort((a, b) => {
+  // User's own pages always first
+  const aIsOwn = user?.id && a.creator.user_id === user.id ? 1 : 0;
+  const bIsOwn = user?.id && b.creator.user_id === user.id ? 1 : 0;
+  if (bIsOwn !== aIsOwn) return bIsOwn - aIsOwn;
+  
+  // Then pages with content
+  const aHasContent = (a.album_count > 0 || a.cover_image_url || a.fund) ? 1 : 0;
+  const bHasContent = (b.album_count > 0 || b.cover_image_url || b.fund) ? 1 : 0;
+  if (bHasContent !== aHasContent) return bHasContent - aHasContent;
+  
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+});
+```
 
-## Fichier concerné
+### 2. `PageFeedCard.tsx` — Badge "Ma page" pour l'utilisateur
+
+Ajouter un badge visuel "Ma page" sur les cartes appartenant à l'utilisateur connecté, pour qu'il repère immédiatement sa page dans le fil.
+
+## Fichiers concernés
 
 | Fichier | Changement |
 |---------|------------|
-| `src/hooks/usePagesFeed.ts` | Augmenter les limites de requête de 50 à 200 |
-
-## Impact
-
-- Amtey et les 4 autres pages avec contenu apparaîtront en haut du fil (le tri existant les priorise déjà)
-- Les pages vides apparaîtront ensuite, triées par date
-- Léger surcoût réseau négligeable (160 rows vs 50)
+| `src/hooks/usePagesFeed.ts` | Priorité de tri pour les pages de l'utilisateur |
+| `src/components/PageFeedCard.tsx` | Badge "Ma page" si le créateur est l'utilisateur connecté |
 
