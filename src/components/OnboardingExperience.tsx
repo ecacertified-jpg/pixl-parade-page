@@ -118,6 +118,19 @@ export const OnboardingExperience = ({
   const DYNAMIC_TOTAL_STEPS = 6;
   const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', 'Ma page'];
 
+  // Read discovery answers from pre-auth quiz
+  useEffect(() => {
+    try {
+      const savedAnswers = localStorage.getItem('jdv_discovery_answers');
+      if (savedAnswers) {
+        const parsed = JSON.parse(savedAnswers);
+        if (parsed?.purpose) {
+          setDiscoveryPurpose(parsed.purpose);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
   // Load user data on mount
   useEffect(() => {
     if (!user) return;
