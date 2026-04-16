@@ -117,7 +117,9 @@ export const OnboardingExperience = ({
   // Always 6 steps
   const DYNAMIC_TOTAL_STEPS = 6;
   const isFriendPurpose = discoveryPurpose === 'friend_birthday';
-  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isFriendPurpose ? 'Page proche' : 'Ma page'];
+  const isOtherEvent = discoveryPurpose === 'other_event';
+  const [selectedOccasion, setSelectedOccasion] = useState<string>('wedding');
+  const stepLabels = ['Accueil', 'Anniversaire', 'Goûts', 'Souhaits', 'Amis', isOtherEvent ? 'Événement' : isFriendPurpose ? 'Page proche' : 'Ma page'];
 
   // Read discovery answers from pre-auth quiz
   useEffect(() => {
@@ -1238,13 +1240,42 @@ export const OnboardingExperience = ({
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    {isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
+                    {isOtherEvent ? 'Crée une page pour ton événement 🎊' : isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
                   </h2>
-                  <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
-                    {isFriendPurpose
-                      ? 'Organise une surprise pour l\'anniversaire de ton proche !'
-                      : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
+                  <p className="text-muted-foreground font-nunito mb-4 text-sm leading-relaxed">
+                    {isOtherEvent
+                      ? 'Mariage, baptême, fiançailles, diplôme... Célèbre chaque moment !'
+                      : isFriendPurpose
+                        ? 'Organise une surprise pour l\'anniversaire de ton proche !'
+                        : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
                   </p>
+
+                  {/* Occasion selector for other_event */}
+                  {isOtherEvent && (
+                    <div className="flex flex-wrap justify-center gap-2 mb-5">
+                      {[
+                        { key: 'wedding', label: 'Mariage', emoji: '💍' },
+                        { key: 'baptism', label: 'Baptême', emoji: '👶' },
+                        { key: 'engagement', label: 'Fiançailles', emoji: '💑' },
+                        { key: 'graduation', label: 'Diplôme', emoji: '🎓' },
+                        { key: 'promotion', label: 'Promotion', emoji: '💼' },
+                        { key: 'other', label: 'Autre', emoji: '🎊' },
+                      ].map((occ) => (
+                        <button
+                          key={occ.key}
+                          onClick={() => setSelectedOccasion(occ.key)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-poppins font-semibold border transition-all",
+                            selectedOccasion === occ.key
+                              ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
+                              : "bg-card border-border text-foreground hover:border-primary/50"
+                          )}
+                        >
+                          {occ.emoji} {occ.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Sub-step checklist */}
                   <div className="space-y-3 text-left mb-6">
@@ -1264,10 +1295,10 @@ export const OnboardingExperience = ({
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
+                            {isOtherEvent ? 'Créer la page de l\'événement' : isFriendPurpose ? 'Créer la page de mon proche' : 'Créer ma page'}
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasBirthdayPage ? "✅ Page créée !" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
+                            {hasBirthdayPage ? "✅ Page créée !" : isOtherEvent ? "Une page pour célébrer et partager l'événement" : isFriendPurpose ? "Une page pour recevoir messages et cadeaux pour ton proche" : "Ta page pour recevoir messages et cadeaux"}
                           </p>
                         </div>
                         {!hasBirthdayPage && (
@@ -1301,10 +1332,10 @@ export const OnboardingExperience = ({
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                            {isOtherEvent ? 'Lancer une cagnotte pour l\'événement' : isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
+                            {hasFund ? "✅ Cagnotte créée !" : isOtherEvent ? "Pour collecter des contributions pour l'événement" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
                           </p>
                         </div>
                         {!hasFund && hasBirthdayPage && (
