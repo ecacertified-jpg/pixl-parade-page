@@ -22,16 +22,15 @@ export function useVideoDurationLimits() {
   const { data: limits, isLoading } = useQuery({
     queryKey: ['video-duration-limits'],
     queryFn: async (): Promise<VideoDurationLimits> => {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('setting_value')
-        .eq('setting_key', 'video_duration_limits')
-        .single();
+      const { data: settingValue, error } = await supabase
+        .rpc('get_public_platform_setting', { p_key: 'video_duration_limits' });
 
-      if (error || !data) {
+      if (error || !settingValue) {
         console.warn('Video duration limits not found, using defaults');
         return DEFAULT_LIMITS;
       }
+
+      const data = { setting_value: settingValue };
 
       const value = data.setting_value as {
         default_seconds?: number;
