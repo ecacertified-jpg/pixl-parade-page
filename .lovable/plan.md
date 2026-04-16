@@ -1,39 +1,58 @@
 
 
-# Plan : Reprendre l'onboarding à la dernière étape atteinte
+# Plan : Persister les partages onboarding en base de données
 
-## Problème
+## Probleme
 
-Chaque fois que l'utilisateur revient dans l'application, `fetchOnboardingStatus` recalcule la première étape incomplète depuis le début (anniversaire → goûts → souhaits → ...). Si une étape intermédiaire échoue à la vérification (ex: `selected_tastes` non persisté à cause du debounce auto-save qui ne complète pas), l'utilisateur est renvoyé en arrière au lieu de reprendre là où il s'était arrêté.
+Les partages de l'etape 6 de l'onboarding sont stockes uniquement dans `localStorage`. Quand l'utilisateur ferme l'application ou change d'appareil, le compteur revient a 0/3 et il doit tout recommencer.
 
 ## Solution
 
-Persister l'étape la plus avancée atteinte par l'utilisateur et toujours reprendre à partir de cette étape, jamais en arrière.
+Creer une table `onboarding_shares` dans Supabase pour persister les partages, et modifier le code pour lire/ecrire depuis cette table au lieu de `localStorage`.
 
 ## Changements
 
-### 1. `src/hooks/useOnboarding.ts` — Mémoriser l'étape atteinte
+### 1. Migration SQL -- nouvelle table `onboarding_shares`
 
-- Sauvegarder `furthestStep` dans `localStorage` (clé `onboarding_step_{userId}`) chaque fois que `setCurrentStep` est appelé avec une valeur supérieure.
-- Au calcul de `effectiveCurrentStep`, utiliser `Math.max(firstIncompleteStep, storedFurthestStep)` pour ne jamais reculer.
+```sql
+CREATE TABLE public.onboarding_shares (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  share_method text NOT NULL, -- 'whatsapp', 'sms', 'copy'
+  page_slug text,
+  created_at timestamptz DEFAULT now()
+);
 
-### 2. `src/components/OnboardingExperience.tsx` — Fiabiliser la sauvegarde des goûts
+ALTER TABLE public.onboarding_shares ENABLE ROW LEVEL SECURITY;
 
-- Dans `handleNext` (step 2 → step 3), **attendre** le résultat du `.update()` de `selected_tastes` et vérifier qu'il n'y a pas d'erreur avant de passer à l'étape suivante.
-- Ajouter un `await` manquant et un toast d'erreur si la sauvegarde échoue.
+CREATE POLICY "Users can insert own shares"
+  ON public.onboarding_shares FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = user_id);
 
-### 3. `src/components/OnboardingExperience.tsx` — Pré-remplir les états locaux
+CREATE POLICY "Users can view own shares"
+  ON public.onboarding_shares FOR SELECT TO authenticated
+  USING (auth.uid() = user_id);
+```
 
-- Les données chargées depuis la DB (birthday, selected_tastes, favorites) déterminent `isStepCompleted()`. S'assurer que le chargement est complet **avant** d'évaluer les boutons de navigation, en ajoutant un état `dataLoaded` pour éviter de bloquer la navigation sur des données pas encore chargées.
+### 2. `src/hooks/useOnboarding.ts`
 
-## Fichiers concernés
+- Remplacer `localStorage.getItem('onboarding_shares_...')` par un `SELECT count(*)` depuis `onboarding_shares` dans `fetchOnboardingStatus`.
+
+### 3. `src/components/OnboardingExperience.tsx`
+
+- `incrementShareCount` : inserer une ligne dans `onboarding_shares` + mettre a jour le state local.
+- Chargement initial : fetch le count depuis la table au lieu de localStorage.
+- Garder localStorage en fallback pour le state local immediat.
+
+## Fichiers concernes
 
 | Fichier | Changement |
 |---------|------------|
-| `src/hooks/useOnboarding.ts` | Persister/lire `furthestStep` dans localStorage, utiliser `Math.max` |
-| `src/components/OnboardingExperience.tsx` | Await sauvegarde goûts dans handleNext, état `dataLoaded` pour navigation |
+| Migration SQL | Nouvelle table `onboarding_shares` avec RLS |
+| `src/hooks/useOnboarding.ts` | Lire le count depuis la DB au lieu de localStorage |
+| `src/components/OnboardingExperience.tsx` | Inserer en DB dans `incrementShareCount`, charger le count depuis la DB |
 
-## Résultat
+## Resultat
 
-L'utilisateur reprend toujours à l'étape la plus avancée qu'il a atteinte, sans jamais être renvoyé en arrière.
+Le compteur de partages (ex: 2/3) est preserve meme apres fermeture de l'application, changement d'appareil ou vidage du cache.
 
