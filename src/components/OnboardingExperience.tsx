@@ -1238,10 +1238,12 @@ export const OnboardingExperience = ({
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    Finalise ta page d'anniversaire 🎂
+                    {isFriendPurpose ? 'Crée une page pour ton proche 🎁' : 'Finalise ta page d\'anniversaire 🎂'}
                   </h2>
                   <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
-                    Crée ta page, lance ta cagnotte et partage avec tes proches !
+                    {isFriendPurpose
+                      ? 'Organise une surprise pour l\'anniversaire de ton proche !'
+                      : 'Crée ta page, lance ta cagnotte et partage avec tes proches !'}
                   </p>
 
                   {/* Sub-step checklist */}
