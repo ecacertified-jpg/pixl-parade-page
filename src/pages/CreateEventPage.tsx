@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 const occasions = [
+  { key: 'birthday', emoji: '🎂', label: "Anniversaire d'un proche" },
   { key: 'wedding', emoji: '💍', label: 'Mariage' },
   { key: 'baptism', emoji: '👶', label: 'Baptême' },
   { key: 'engagement', emoji: '💑', label: 'Fiançailles' },
