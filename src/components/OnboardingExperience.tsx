@@ -1300,9 +1300,11 @@ export const OnboardingExperience = ({
                           {hasFund ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">2</span>}
                         </div>
                         <div className="flex-1">
-                          <p className="font-poppins font-semibold text-sm text-foreground">Créer ma cagnotte</p>
+                          <p className="font-poppins font-semibold text-sm text-foreground">
+                            {isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                          </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : "Pour recevoir des contributions de tes proches"}
+                            {hasFund ? "✅ Cagnotte créée !" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
                           </p>
                         </div>
                         {!hasFund && hasBirthdayPage && (
