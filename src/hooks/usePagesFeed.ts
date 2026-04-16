@@ -130,6 +130,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
               currency: fund.currency,
               status: fund.status,
             } : null,
+            fund_id: bp.fund_id || null,
             is_friend: isFriend,
           });
         }
@@ -172,6 +173,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
               currency: fund.currency,
               status: fund.status,
             } : null,
+            fund_id: ep.fund_id || null,
             is_friend: isFriend,
           });
         }

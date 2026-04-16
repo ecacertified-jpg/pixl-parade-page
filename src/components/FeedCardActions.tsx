@@ -81,7 +81,6 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
         const { error: insertError } = await supabase.from("event_page_photos").insert(row);
         if (insertError) throw insertError;
       }
-      if (insertError) throw insertError;
 
       toast.success(mediaType === "photo" ? "Photo ajoutée ! 📸" : "Vidéo ajoutée ! 🎥");
       onMediaUploaded?.();
@@ -117,7 +116,6 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
         });
         if (error) throw error;
       }
-      if (error) throw error;
 
       toast.success("Souvenir partagé ! ✍️");
       setMemoryText("");
