@@ -5096,6 +5096,30 @@ export type Database = {
         }
         Relationships: []
       }
+      page_follows: {
+        Row: {
+          created_at: string | null
+          id: string
+          page_id: string
+          page_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          page_id: string
+          page_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          page_id?: string
+          page_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           code: string
