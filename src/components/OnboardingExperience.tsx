@@ -598,7 +598,12 @@ export const OnboardingExperience = ({
     }
     if (currentStep === 1 && birthday) await saveBirthday();
     if (currentStep === 2 && user) {
-      await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
+      const { error } = await supabase.from('profiles').update({ selected_tastes: selectedCategories }).eq('user_id', user.id);
+      if (error) {
+        console.error('Error saving tastes:', error);
+        toast.error('Erreur lors de la sauvegarde des goûts. Réessayez.');
+        return;
+      }
     }
     if (currentStep < DYNAMIC_TOTAL_STEPS - 1) {
       onSetStep(currentStep + 1);
