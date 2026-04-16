@@ -8947,6 +8947,7 @@ export type Database = {
         Returns: string
       }
       get_profile_privacy: { Args: { target_user_id: string }; Returns: string }
+      get_public_platform_setting: { Args: { p_key: string }; Returns: Json }
       get_public_profile_data: {
         Args: { target_user_id: string }
         Returns: {
