@@ -483,6 +483,8 @@ export const OnboardingExperience = ({
       setBirthdayPageId(data.id);
       setHasBirthdayPage(true);
       confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+      // Trigger feed refresh so the new page appears immediately
+      window.dispatchEvent(new Event('feed-refresh'));
     } catch (err) {
       console.error('Birthday page creation error:', err);
       toast.error("Erreur inattendue");
