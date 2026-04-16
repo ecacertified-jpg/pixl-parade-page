@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AnimatedRoutes } from "@/components/transitions";
+import { AnimatedPageTransition } from "@/components/transitions/AnimatedPageTransition";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SelectedBusinessProvider } from "@/contexts/SelectedBusinessContext";
