@@ -79,9 +79,22 @@ export function CompleteProfileModal({ open, onComplete, initialData }: Complete
 
       if (error) {
         console.error('Error updating profile:', error);
+        
+        let errorMessage = 'Une erreur est survenue lors de la sauvegarde.';
+        
+        if (error.code === '23505') {
+          errorMessage = 'Ce numéro de téléphone est déjà utilisé par un autre compte.';
+        } else if (error.code === '42501') {
+          errorMessage = 'Vous n\'avez pas la permission de modifier ce profil. Reconnectez-vous.';
+        } else if (error.code === '23502') {
+          errorMessage = 'Un champ obligatoire est manquant. Vérifiez vos informations.';
+        } else if (error.message) {
+          errorMessage = `Erreur : ${error.message}`;
+        }
+        
         toast({
           title: 'Erreur',
-          description: 'Impossible de sauvegarder votre profil',
+          description: errorMessage,
           variant: 'destructive',
         });
         return;
