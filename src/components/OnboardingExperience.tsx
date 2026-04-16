@@ -553,7 +553,7 @@ export const OnboardingExperience = ({
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(getShareMessage(pageUrl));
     window.open(`https://wa.me/?text=${text}`, '_blank');
-    incrementShareCount();
+    incrementShareCount('whatsapp');
     toast.success('Partagé sur WhatsApp ! 📱');
   };
 
@@ -562,14 +562,14 @@ export const OnboardingExperience = ({
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     const text = encodeURIComponent(getShareMessage(pageUrl));
     window.open(`sms:?body=${text}`, '_blank');
-    incrementShareCount();
+    incrementShareCount('sms');
   };
 
   const handleCopyPageLink = () => {
     if (!birthdayPageSlug) return;
     const pageUrl = `${getAppBaseUrl()}/birthday/${birthdayPageSlug}`;
     navigator.clipboard.writeText(getShareMessage(pageUrl));
-    incrementShareCount();
+    incrementShareCount('copy');
     toast.success('Lien copié ! 📋');
   };
 
