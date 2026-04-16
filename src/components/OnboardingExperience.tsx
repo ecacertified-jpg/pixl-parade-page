@@ -1332,10 +1332,10 @@ export const OnboardingExperience = ({
                         </div>
                         <div className="flex-1">
                           <p className="font-poppins font-semibold text-sm text-foreground">
-                            {isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
+                            {isOtherEvent ? 'Lancer une cagnotte pour l\'événement' : isFriendPurpose ? 'Lancer une cagnotte pour mon proche' : 'Créer ma cagnotte'}
                           </p>
                           <p className="text-xs text-muted-foreground font-nunito">
-                            {hasFund ? "✅ Cagnotte créée !" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
+                            {hasFund ? "✅ Cagnotte créée !" : isOtherEvent ? "Pour collecter des contributions pour l'événement" : isFriendPurpose ? "Pour collecter des contributions pour ton proche" : "Pour recevoir des contributions de tes proches"}
                           </p>
                         </div>
                         {!hasFund && hasBirthdayPage && (
