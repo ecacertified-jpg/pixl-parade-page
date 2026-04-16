@@ -87,8 +87,8 @@ export function BottomNavigation() {
     { 
       icon: Home,
       label: "Accueil", 
-      isActive: location.pathname === "/" || location.pathname === "/index",
-      onClick: () => navigate("/index")
+      isActive: location.pathname === "/" || location.pathname === "/home",
+      onClick: () => navigate("/home")
     },
     { 
       icon: ShoppingBag,
