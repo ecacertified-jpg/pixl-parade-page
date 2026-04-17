@@ -46,6 +46,25 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
 
   const pageUrl = page.type === "birthday" ? `/birthday/${page.slug}` : `/event/${page.slug}`;
 
+  const notifyPageActivity = async (
+    actionType: 'photo' | 'video' | 'memory' | 'gift_promise' | 'contribution',
+    extra?: { amount?: number; currency?: string }
+  ) => {
+    if (page.type !== 'birthday') return;
+    try {
+      await supabase.functions.invoke('notify-birthday-page-activity', {
+        body: {
+          birthdayPageId: page.id,
+          actorUserId: user!.id,
+          actionType,
+          ...(extra || {}),
+        },
+      });
+    } catch (err) {
+      console.warn('notify-birthday-page-activity failed:', err);
+    }
+  };
+
   const handleUpload = async (file: File, mediaType: "photo" | "video") => {
     if (requireAuth()) return;
     setUploading(true);
@@ -85,6 +104,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       }
 
       toast.success(mediaType === "photo" ? "Photo ajoutée ! 📸" : "Vidéo ajoutée ! 🎥");
+      void notifyPageActivity(mediaType === 'video' ? 'video' : 'photo');
       onMediaUploaded?.();
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -120,6 +140,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       }
 
       toast.success("Souvenir partagé ! ✍️");
+      void notifyPageActivity('memory');
       setMemoryText("");
       setShowMemory(false);
       onMediaUploaded?.();
@@ -166,6 +187,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       });
       if (error) throw error;
       toast.success("Promesse de cadeau enregistrée ! 🎁");
+      void notifyPageActivity('gift_promise');
     } catch (err: any) {
       if (err?.code === "23505") {
         toast.info("Vous avez déjà promis un cadeau pour cette page !");

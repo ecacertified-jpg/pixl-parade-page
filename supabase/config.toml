@@ -282,3 +282,6 @@ verify_jwt = false
 
 [functions.check-whatsapp-template-health]
 verify_jwt = false
+
+[functions.notify-birthday-page-activity]
+verify_jwt = true

@@ -422,6 +422,30 @@ export function ContributionModal({
 
         trackConversion('contribution', contributionAmount, currency);
         await trackContributionConversion(fundId, contributionAmount);
+
+        // Notify celebrant if this fund is linked to a birthday page
+        try {
+          const { data: bp } = await supabase
+            .from('birthday_pages')
+            .select('id')
+            .eq('fund_id', fundId)
+            .eq('is_active', true)
+            .limit(1)
+            .maybeSingle();
+          if (bp?.id) {
+            await supabase.functions.invoke('notify-birthday-page-activity', {
+              body: {
+                birthdayPageId: bp.id,
+                actorUserId: user.id,
+                actionType: 'contribution',
+                amount: contributionAmount,
+                currency,
+              },
+            });
+          }
+        } catch (notifyErr) {
+          console.warn('notify-birthday-page-activity (contribution) failed:', notifyErr);
+        }
       }
 
       triggerBadgeCheckAfterAction('contribution', user.id);
