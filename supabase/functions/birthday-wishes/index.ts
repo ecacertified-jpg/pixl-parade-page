@@ -376,6 +376,136 @@ serve(async (req) => {
     console.log(`[Countdown] Sent ${countdownSent} countdown notifications`);
 
     // ============================================================
+    // PART A2: Friend invites to celebrant's birthday page
+    // (J-45, 40, 35, 30, 25, 20, 15, 13, 11, 9, 7, 5, 4, 3, 2, 1)
+    // ============================================================
+    const FRIEND_INVITE_DAYS = [45, 40, 35, 30, 25, 20, 15, 13, 11, 9, 7, 5, 4, 3, 2, 1];
+    const pageInviteImageUrl = Deno.env.get('BIRTHDAY_PAGE_INVITE_IMAGE_URL') ||
+      `${supabaseUrl}/storage/v1/object/public/assets/birthday-page-invite.jpeg`;
+
+    let friendInvitesSent = 0;
+    let friendInvitesSkipped = 0;
+
+    for (const profile of allProfiles || []) {
+      if (!profile.birthday) continue;
+      const daysUntil = getDaysUntilBirthday(profile.birthday);
+      if (!FRIEND_INVITE_DAYS.includes(daysUntil)) continue;
+
+      const celebratedUserId = profile.user_id || profile.id;
+      const celebratedFirstName = profile.first_name || 'votre ami(e)';
+
+      // Find active birthday page for this user (current celebration year)
+      const { data: page } = await supabase
+        .from('birthday_pages')
+        .select('id, slug, celebration_year, is_active')
+        .eq('user_id', celebratedUserId)
+        .eq('is_active', true)
+        .order('celebration_year', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!page?.slug) {
+        friendInvitesSkipped++;
+        continue;
+      }
+
+      // Get registered friends via contact_relationships (bidirectional)
+      const [{ data: relA }, { data: relB }] = await Promise.all([
+        supabase.from('contact_relationships').select('user_b').eq('user_a', celebratedUserId),
+        supabase.from('contact_relationships').select('user_a').eq('user_b', celebratedUserId),
+      ]);
+      const friendUserIds = new Set<string>([
+        ...(relA || []).map((r: any) => r.user_b).filter(Boolean),
+        ...(relB || []).map((r: any) => r.user_a).filter(Boolean),
+      ]);
+
+      let registeredFriends: Array<{ user_id: string; first_name: string | null; phone: string | null }> = [];
+      if (friendUserIds.size > 0) {
+        const { data: fp } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, phone')
+          .in('user_id', Array.from(friendUserIds));
+        registeredFriends = fp || [];
+      }
+
+      // Get non-registered contacts of the celebrant
+      const { data: nonRegContacts } = await supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .eq('user_id', celebratedUserId)
+        .not('phone', 'is', null);
+
+      // Build unified recipient list
+      type Recipient = { phone: string; firstName: string; contactId?: string };
+      const recipients: Recipient[] = [];
+
+      for (const f of registeredFriends) {
+        if (f.phone) recipients.push({ phone: f.phone, firstName: f.first_name || 'Ami(e)' });
+      }
+      for (const c of nonRegContacts || []) {
+        if (c.phone) {
+          // Avoid duplicates by phone if a contact happens to be also a registered friend
+          const exists = recipients.some((r) => r.phone === c.phone);
+          if (!exists) {
+            const firstName = (c.name || 'Ami(e)').split(' ')[0];
+            recipients.push({ phone: c.phone, firstName, contactId: c.id });
+          }
+        }
+      }
+
+      for (const recipient of recipients) {
+        // Dedup
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        const { data: existing } = await supabase
+          .from('birthday_contact_alerts')
+          .select('id')
+          .eq('user_id', celebratedUserId)
+          .eq('alert_type', 'friend_page_invite')
+          .eq('days_before', daysUntil)
+          .eq('contact_phone', recipient.phone)
+          .gte('created_at', todayStart)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          friendInvitesSkipped++;
+          continue;
+        }
+
+        try {
+          const waResult = await sendWhatsAppTemplate(
+            recipient.phone,
+            'joiedevivre_birthday_page_invite',
+            'fr',
+            [recipient.firstName, celebratedFirstName, String(daysUntil), page.slug],
+            [page.slug],
+            pageInviteImageUrl,
+          );
+
+          if (waResult.success) {
+            friendInvitesSent++;
+            console.log(`[FriendInvite] ✅ Sent to ${recipient.firstName} for ${celebratedFirstName} (J-${daysUntil})`);
+          }
+        } catch (err) {
+          console.warn(`[FriendInvite] ❌ Failed for ${recipient.phone.substring(0, 6)}***:`, err);
+        }
+
+        // Record dedup
+        await supabase.from('birthday_contact_alerts').insert({
+          user_id: celebratedUserId,
+          contact_id: recipient.contactId || null,
+          alert_type: 'friend_page_invite',
+          days_before: daysUntil,
+          contact_phone: recipient.phone,
+          contact_name: recipient.firstName,
+          channel: 'whatsapp',
+          status: 'sent',
+        });
+      }
+    }
+
+    console.log(`[FriendInvite] Sent ${friendInvitesSent} invite(s), skipped ${friendInvitesSkipped}`);
+
+    // ============================================================
     // PART B: D-Day birthday wishes (existing logic)
     // ============================================================
 
