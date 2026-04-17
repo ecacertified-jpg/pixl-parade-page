@@ -940,6 +940,30 @@ export type Database = {
           },
         ]
       }
+      birthday_page_activity_notifs: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          birthday_page_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          birthday_page_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          birthday_page_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       birthday_page_photos: {
         Row: {
           birthday_page_id: string
