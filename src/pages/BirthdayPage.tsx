@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { BirthdayAlbum } from "@/components/BirthdayAlbum";
 import { BirthdayPageShareButton } from "@/components/BirthdayPageShareButton";
+import { WishlistFundPickerModal } from "@/components/WishlistFundPickerModal";
 import { useBirthdayPageSEO } from "@/hooks/useBirthdayPageSEO";
 import { useSchemaInjector } from "@/components/schema";
 
@@ -77,6 +78,7 @@ const BirthdayPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
 
   const confettiTriggered = useRef(false);
 
@@ -403,7 +405,7 @@ const BirthdayPage = () => {
                       navigate(`/auth?redirect=/birthday/${slug}&invited=true`);
                       return;
                     }
-                    navigate('/gifts');
+                    setShowWishlistPicker(true);
                   }}
                 >
                   <Gift className="h-4 w-4 mr-2" />
@@ -526,6 +528,16 @@ const BirthdayPage = () => {
         pageUrl={pageUrl}
         age={age}
       />
+
+      {page && (
+        <WishlistFundPickerModal
+          isOpen={showWishlistPicker}
+          onClose={() => setShowWishlistPicker(false)}
+          beneficiaryUserId={page.user_id}
+          beneficiaryFirstName={firstName}
+          beneficiaryAvatarUrl={birthdayPerson.avatar_url || undefined}
+        />
+      )}
     </div>
   );
 };
