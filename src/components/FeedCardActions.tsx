@@ -140,6 +140,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       }
 
       toast.success("Souvenir partagé ! ✍️");
+      void notifyPageActivity('memory');
       setMemoryText("");
       setShowMemory(false);
       onMediaUploaded?.();
