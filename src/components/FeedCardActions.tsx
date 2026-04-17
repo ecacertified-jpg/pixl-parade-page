@@ -187,6 +187,7 @@ export function FeedCardActions({ page, onMediaUploaded }: FeedCardActionsProps)
       });
       if (error) throw error;
       toast.success("Promesse de cadeau enregistrée ! 🎁");
+      void notifyPageActivity('gift_promise');
     } catch (err: any) {
       if (err?.code === "23505") {
         toast.info("Vous avez déjà promis un cadeau pour cette page !");
