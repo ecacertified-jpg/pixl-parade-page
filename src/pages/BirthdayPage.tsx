@@ -528,6 +528,16 @@ const BirthdayPage = () => {
         pageUrl={pageUrl}
         age={age}
       />
+
+      {page && (
+        <WishlistFundPickerModal
+          isOpen={showWishlistPicker}
+          onClose={() => setShowWishlistPicker(false)}
+          beneficiaryUserId={page.user_id}
+          beneficiaryFirstName={firstName}
+          beneficiaryAvatarUrl={birthdayPerson.avatar_url || undefined}
+        />
+      )}
     </div>
   );
 };
