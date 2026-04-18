@@ -283,6 +283,13 @@ export default function CollectiveCheckout() {
         console.warn('⚠️ Error invoking notify-reciprocity (non-blocking):', reciprocityError);
       }
 
+      // Notifier les admins (par pays) de la création de la cagnotte (fire-and-forget)
+      supabase.functions.invoke('notify-admins-fund-created', {
+        body: { fund_id: fundData.id }
+      }).catch((err) => {
+        console.warn('⚠️ notify-admins-fund-created failed (non-blocking):', err);
+      });
+
       // Notifier les amis du bénéficiaire via WhatsApp (cagnottes business uniquement)
       let notificationStats: { whatsappSent: number; inAppSent: number } | null = null;
       if (createdByBusinessId && fundData.id) {
