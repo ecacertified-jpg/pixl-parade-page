@@ -285,3 +285,6 @@ verify_jwt = false
 
 [functions.notify-birthday-page-activity]
 verify_jwt = true
+
+[functions.notify-admins-fund-created]
+verify_jwt = true
