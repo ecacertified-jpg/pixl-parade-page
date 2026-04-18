@@ -1,45 +1,46 @@
 
 
-## Problème détecté
+## Problème
 
-Les logs WhatsApp confirment que **template A échoue à 100%** avec l'erreur Meta `(#132000) Number of parameters does not match the expected number of params`. Les templates B et C n'ont jamais été déclenchés mais présentent des problèmes similaires détectables visuellement.
+L'onboarding utilise **localStorage** comme source unique de persistance pour l'étape atteinte. Cela cause 2 problèmes :
 
-## Diagnostic par template
+1. **Cross-device** : changer d'appareil/navigateur ou nettoyer le cache → tout est perdu
+2. **Race condition** : à l'ouverture, `user.id` n'est pas encore chargé quand `storedFurthestStep` est lu (vaut `0`), tandis que `firstIncompleteStep` retourne déjà `2` depuis le cache `useQuery`. Le `Math.max(2, 0) = 2` fige l'utilisateur sur l'étape Goûts même s'il avait déjà atteint Souhaits
 
-### Template A — `joiedevivre_birthday_page_invite` ❌
-**Capture Meta** : body contient 3 placeholders (`{{1}}` prénom destinataire, `{{2}}` prénom célébré, `{{3}}` jours).
-**Code actuel** : envoie **4 body params** `[firstName, celebrated, days, slug]`.
-**Correctif** : envoyer 3 params, garder le slug uniquement pour le bouton.
+De plus, l'**auto-save des catégories** (debounce 500ms ligne 107) peut échouer silencieusement si l'utilisateur clique « Continuer » trop vite → tastes pas en DB → `firstIncompleteStep=2` au prochain login.
 
-### Template B — `joiedevivre_birthday_page_activity` ⚠️
-**Capture Meta** : body avec 3 placeholders (Nacoulma, Salimata, action). Texte hardcodé : `"vient de {{3}} sur ta page d'anniversaire"`.
-**Code actuel** : envoie 3 params `[celebrated, actor, "ajouter une photo 📸"]` → résultat correct visible dans la capture ("vient de ajouter une photo").
-**Status** : ✅ OK structurellement, jamais testé en réel.
+## Solution
 
-### Template C — `joiedevivre_admin_fund_created` ⚠️
-**Capture Meta** : body montre `"Objectif : 50 000 XOF XOF"` — double "XOF". Le template Meta a déjà " XOF" en dur après `{{4}}`.
-**Code actuel** : envoie `formatAmount(target)` = `"50 000 XOF"` (avec XOF intégré via Intl).
-**Correctif** : envoyer juste `"50 000"` (sans XOF).
-**Bouton** : à vérifier que le template Meta a bien un bouton URL dynamique avec 1 paramètre.
+Ajouter une **persistance DB authoritative** via une nouvelle colonne `profiles.onboarding_furthest_step` (integer), couplée au localStorage existant comme cache local rapide.
 
-## Corrections à appliquer
+### Changements
 
-| Fichier | Changement |
+| Fichier | Action |
 |---|---|
-| `supabase/functions/birthday-wishes/index.ts` (ligne 479) | Retirer `page.slug` des body params : `[recipient.firstName, celebratedFirstName, String(daysUntil)]` |
-| `supabase/functions/notify-admins-fund-created/index.ts` | `formatAmount` : retourner uniquement le nombre formaté sans " XOF" (laisser le template Meta ajouter " XOF") |
+| Migration SQL | Ajouter colonne `onboarding_furthest_step integer DEFAULT 0` à `profiles` |
+| `src/hooks/useOnboarding.ts` | Lire `onboarding_furthest_step` dans `fetchOnboardingStatus`. Calculer `effectiveCurrentStep = max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)`. Dans `setCurrentStep`, écrire en DB **et** localStorage |
+| `src/components/OnboardingExperience.tsx` | Renforcer l'auto-save des catégories : sauver de façon synchrone à chaque toggle (sans debounce) OU bloquer le bouton « Continuer » tant que la save n'est pas confirmée. Afficher un toast en cas d'échec de l'auto-save |
+| `src/integrations/supabase/types.ts` | Régénéré automatiquement par la migration |
 
-## Plan de validation
+### Détails techniques
 
-1. Appliquer les 2 correctifs ci-dessus.
-2. Redéployer les Edge Functions `birthday-wishes` et `notify-admins-fund-created`.
-3. **Test Template A** : invoquer manuellement `birthday-wishes` (mode dry-run / forcé sur un profil test) et vérifier `whatsapp_template_logs` → status `sent`.
-4. **Test Template B** : depuis l'UI, ajouter une photo sur la page d'anniversaire d'un autre utilisateur (compte de test). Vérifier réception WhatsApp + log.
-5. **Test Template C** : créer une cagnotte de test depuis CollectiveCheckout. Vérifier que les admins (super_admin ou assignés CI) reçoivent le message + log.
-6. Si Template C échoue avec `(#132000)` ou erreur bouton, ajuster selon le nombre réel de params définis dans Meta Business Manager (capture utile).
+1. **Migration** :
+   ```sql
+   ALTER TABLE public.profiles 
+   ADD COLUMN IF NOT EXISTS onboarding_furthest_step integer NOT NULL DEFAULT 0;
+   ```
 
-## Résultat attendu
+2. **`fetchOnboardingStatus`** (useOnboarding.ts) : ajouter `onboarding_furthest_step` au SELECT, retourner `dbFurthestStep` dans le résultat.
 
-- 100% des envois Template A passent en `status='sent'`.
-- Templates B et C produisent des messages au format propre, sans doublon de devise ni paramètre manquant.
+3. **`effectiveCurrentStep`** : `Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)` — la DB devient la vérité ultime cross-device.
+
+4. **`setCurrentStep`** : faire un `update` non-bloquant sur `profiles.onboarding_furthest_step` quand le step augmente (fire-and-forget pour ne pas ralentir l'UI).
+
+5. **Auto-save catégories renforcé** : remplacer le debounce 500ms par une sauvegarde **immédiate** à chaque clic de catégorie + un état `savingCategories` qui désactive « Continuer » pendant l'écriture. Garantit qu'au moment du `Continuer`, les tastes sont en DB.
+
+6. **`completeOnboarding`** : reset également `onboarding_furthest_step = 0` quand l'onboarding est complété.
+
+## Résultat
+
+L'utilisateur reprend exactement à l'étape qu'il a atteint en dernier, **quel que soit l'appareil**, le navigateur ou l'état du cache, et la sélection de catégories est garantie d'être persistée avant tout passage à l'étape suivante.
 
