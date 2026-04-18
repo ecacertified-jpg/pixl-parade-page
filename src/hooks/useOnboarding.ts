@@ -6,18 +6,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 interface OnboardingStatus {
   shouldShow: boolean;
   firstIncompleteStep: number;
+  dbFurthestStep: number;
 }
 
 const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> => {
   // URL override
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('onboarding') === 'true') {
-    return { shouldShow: true, firstIncompleteStep: 0 };
+    return { shouldShow: true, firstIncompleteStep: 0, dbFurthestStep: 0 };
   }
 
   // Check all steps in parallel
   const [profileRes, favRes, friendRes, bpRes, fundRes, circlesRes] = await Promise.all([
-    supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed').eq('user_id', userId).single(),
+    supabase.from('profiles').select('birthday, selected_tastes, onboarding_completed, onboarding_furthest_step').eq('user_id', userId).single(),
     supabase.from('user_favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('friend_form_tokens').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'completed'),
     supabase.from('birthday_pages').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('is_active', true),
@@ -25,24 +26,26 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     supabase.from('friend_circles').select('id').eq('user_id', userId),
   ]);
 
+  const dbFurthestStep = (profileRes.data as any)?.onboarding_furthest_step ?? 0;
+
   // If onboarding already marked complete in DB, skip entirely
   if ((profileRes.data as any)?.onboarding_completed === true) {
-    return { shouldShow: false, firstIncompleteStep: 0 };
+    return { shouldShow: false, firstIncompleteStep: 0, dbFurthestStep };
   }
 
   // Step 1: Birthday
   if (!profileRes.data?.birthday) {
-    return { shouldShow: true, firstIncompleteStep: 1 };
+    return { shouldShow: true, firstIncompleteStep: 1, dbFurthestStep };
   }
 
   // Step 2: Goûts (≥1 taste selected)
   if (!(profileRes.data as any)?.selected_tastes?.length) {
-    return { shouldShow: true, firstIncompleteStep: 2 };
+    return { shouldShow: true, firstIncompleteStep: 2, dbFurthestStep };
   }
 
   // Step 3: Souhaits (≥3 favorites)
   if ((favRes.count || 0) < 3) {
-    return { shouldShow: true, firstIncompleteStep: 3 };
+    return { shouldShow: true, firstIncompleteStep: 3, dbFurthestStep };
   }
 
   // Step 4: Amis — skip if ≥3 members in friend circles OR ≥3 completed friend forms
@@ -57,7 +60,7 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     circleMemberCount = count || 0;
   }
   if (friendFormCount < 3 && circleMemberCount < 3) {
-    return { shouldShow: true, firstIncompleteStep: 4 };
+    return { shouldShow: true, firstIncompleteStep: 4, dbFurthestStep };
   }
 
   // Step 5: Birthday page + fund + shares
@@ -68,11 +71,11 @@ const fetchOnboardingStatus = async (userId: string): Promise<OnboardingStatus> 
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
   if (!hasPage || !hasFund || (shareCount || 0) < 3) {
-    return { shouldShow: true, firstIncompleteStep: 5 };
+    return { shouldShow: true, firstIncompleteStep: 5, dbFurthestStep };
   }
 
   // All steps done
-  return { shouldShow: false, firstIncompleteStep: 0 };
+  return { shouldShow: false, firstIncompleteStep: 0, dbFurthestStep };
 };
 
 export const useOnboarding = () => {
@@ -90,6 +93,7 @@ export const useOnboarding = () => {
 
   const shouldShow = status?.shouldShow ?? false;
   const firstIncompleteStep = status?.firstIncompleteStep ?? 0;
+  const dbFurthestStep = status?.dbFurthestStep ?? 0;
 
   // Read the furthest step ever reached from localStorage
   const storedFurthestStep = user?.id
@@ -98,20 +102,29 @@ export const useOnboarding = () => {
 
   const [currentStep, setCurrentStepState] = useState<number | null>(null);
 
-  // Never go backwards: use the max of DB-computed step and stored furthest step
-  const effectiveCurrentStep = currentStep ?? Math.max(firstIncompleteStep, storedFurthestStep);
+  // Never go backwards: use the max of DB-computed step, stored furthest step, and DB persisted furthest step
+  const effectiveCurrentStep = currentStep ?? Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep);
 
   const setCurrentStep = useCallback((step: number) => {
     setCurrentStepState(step);
-    // Persist the furthest step reached
     if (user?.id) {
       const key = `onboarding_step_${user.id}`;
       const prev = parseInt(localStorage.getItem(key) || '0', 10);
       if (step > prev) {
         localStorage.setItem(key, String(step));
       }
+      // Fire-and-forget DB persistence (cross-device)
+      if (step > dbFurthestStep) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_furthest_step: step } as any)
+          .eq('user_id', user.id)
+          .then(({ error }) => {
+            if (error) console.error('Failed to persist onboarding step to DB:', error);
+          });
+      }
     }
-  }, [user?.id]);
+  }, [user?.id, dbFurthestStep]);
 
   const completeOnboarding = useCallback(async () => {
     if (user) {
@@ -120,7 +133,7 @@ export const useOnboarding = () => {
       if (!fresh.shouldShow) {
         await supabase
           .from('profiles')
-          .update({ onboarding_completed: true })
+          .update({ onboarding_completed: true, onboarding_furthest_step: 0 } as any)
           .eq('user_id', user.id);
         localStorage.setItem(`onboarding_completed_${user.id}`, 'true');
         localStorage.removeItem(`onboarding_step_${user.id}`);

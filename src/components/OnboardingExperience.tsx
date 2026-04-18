@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getAppBaseUrl } from '@/utils/appUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -103,15 +103,31 @@ export const OnboardingExperience = ({
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
-  // Auto-save selected categories with debounce
+  // Immediate save of selected categories on every change (no debounce)
+  // Tracks in-flight saves to block "Continuer" until DB is up-to-date.
+  const [savingCategories, setSavingCategories] = useState(false);
+  const categoriesInitializedRef = useRef(false);
   useEffect(() => {
-    if (!user || selectedCategories.length === 0) return;
-    const timeout = setTimeout(() => {
-      supabase.from('profiles')
-        .update({ selected_tastes: selectedCategories })
-        .eq('user_id', user.id);
-    }, 500);
-    return () => clearTimeout(timeout);
+    if (!user) return;
+    // Skip the very first render after data load to avoid overwriting on mount
+    if (!categoriesInitializedRef.current) {
+      categoriesInitializedRef.current = true;
+      return;
+    }
+    let cancelled = false;
+    setSavingCategories(true);
+    supabase.from('profiles')
+      .update({ selected_tastes: selectedCategories })
+      .eq('user_id', user.id)
+      .then(({ error }) => {
+        if (cancelled) return;
+        setSavingCategories(false);
+        if (error) {
+          console.error('Auto-save tastes failed:', error);
+          toast.error('Sauvegarde des goûts échouée. Vérifiez votre connexion.');
+        }
+      });
+    return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
   // Always 6 steps
@@ -595,7 +611,7 @@ export const OnboardingExperience = ({
     }
   };
 
-  const canGoNext = isStepCompleted(currentStep);
+  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 2 && savingCategories);
 
   const handleNext = async () => {
     if (!isStepCompleted(currentStep)) {
@@ -677,9 +693,13 @@ export const OnboardingExperience = ({
                 toast.info(stepHintMessage(currentStep));
                 return;
               }
+              if (currentStep === 2 && savingCategories) {
+                toast.info('Sauvegarde en cours...');
+                return;
+              }
               if (currentStep < DYNAMIC_TOTAL_STEPS - 1) onSetStep(currentStep + 1);
             }}
-            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1}
+            disabled={currentStep >= DYNAMIC_TOTAL_STEPS - 1 || (currentStep === 2 && savingCategories)}
             aria-label="Étape suivante"
             className={cn(
               'rounded-full flex items-center gap-1 transition-all duration-200',
