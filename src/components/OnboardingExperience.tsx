@@ -103,15 +103,31 @@ export const OnboardingExperience = ({
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
-  // Auto-save selected categories with debounce
+  // Immediate save of selected categories on every change (no debounce)
+  // Tracks in-flight saves to block "Continuer" until DB is up-to-date.
+  const [savingCategories, setSavingCategories] = useState(false);
+  const categoriesInitializedRef = useRef(false);
   useEffect(() => {
-    if (!user || selectedCategories.length === 0) return;
-    const timeout = setTimeout(() => {
-      supabase.from('profiles')
-        .update({ selected_tastes: selectedCategories })
-        .eq('user_id', user.id);
-    }, 500);
-    return () => clearTimeout(timeout);
+    if (!user) return;
+    // Skip the very first render after data load to avoid overwriting on mount
+    if (!categoriesInitializedRef.current) {
+      categoriesInitializedRef.current = true;
+      return;
+    }
+    let cancelled = false;
+    setSavingCategories(true);
+    supabase.from('profiles')
+      .update({ selected_tastes: selectedCategories })
+      .eq('user_id', user.id)
+      .then(({ error }) => {
+        if (cancelled) return;
+        setSavingCategories(false);
+        if (error) {
+          console.error('Auto-save tastes failed:', error);
+          toast.error('Sauvegarde des goûts échouée. Vérifiez votre connexion.');
+        }
+      });
+    return () => { cancelled = true; };
   }, [selectedCategories, user]);
 
   // Always 6 steps
