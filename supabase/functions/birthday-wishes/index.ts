@@ -476,7 +476,7 @@ serve(async (req) => {
             recipient.phone,
             'joiedevivre_birthday_page_invite',
             'fr',
-            [recipient.firstName, celebratedFirstName, String(daysUntil), page.slug],
+            [recipient.firstName, celebratedFirstName, String(daysUntil)],
             [page.slug],
             pageInviteImageUrl,
           );
