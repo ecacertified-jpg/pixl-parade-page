@@ -6266,6 +6266,7 @@ export type Database = {
           longitude: number | null
           neighborhood: string | null
           onboarding_completed: boolean
+          onboarding_furthest_step: number
           phone: string | null
           preferences: Json | null
           primary_referral_code: string | null
@@ -6305,6 +6306,7 @@ export type Database = {
           longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean
+          onboarding_furthest_step?: number
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
@@ -6344,6 +6346,7 @@ export type Database = {
           longitude?: number | null
           neighborhood?: string | null
           onboarding_completed?: boolean
+          onboarding_furthest_step?: number
           phone?: string | null
           preferences?: Json | null
           primary_referral_code?: string | null
