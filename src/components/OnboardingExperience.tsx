@@ -611,7 +611,7 @@ export const OnboardingExperience = ({
     }
   };
 
-  const canGoNext = isStepCompleted(currentStep);
+  const canGoNext = isStepCompleted(currentStep) && !(currentStep === 2 && savingCategories);
 
   const handleNext = async () => {
     if (!isStepCompleted(currentStep)) {
