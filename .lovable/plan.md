@@ -1,115 +1,128 @@
 
 
-# Plan : 2 nouveaux templates WhatsApp pour engager les amis et notifier l'utilisateur
+## Partie 1 : Exemples d'URL pour Templates A et B
 
-## Objectifs
+Le slug d'une page d'anniversaire suit le format `{prenom}-{annee}` (avec suffixe random en cas de collision). Le bouton CTA des templates utilise un paramètre dynamique `{{1}}` injecté dans la base URL `https://joiedevivre-africa.com/birthday/{{1}}`.
 
-1. **Template A — `joiedevivre_birthday_page_invite`** : envoyé aux amis (inscrits + non-inscrits) du célébré à **17 jalons** (J-45, 40, 35, 30, 25, 20, 15, 13, 11, 9, 7, 5, 4, 3, 2, 1) pour les inciter à laisser un mot, photo, vidéo, ou contribution sur la page d'anniversaire.
-2. **Template B — `joiedevivre_birthday_page_activity`** : envoyé au célébré chaque fois qu'un ami ajoute une photo / vidéo / souvenir / promesse / contribution.
-
-## 1. Templates WhatsApp à créer dans Meta Business Manager
-
-### Template A — `joiedevivre_birthday_page_invite`
-- **Catégorie** : MARKETING — Langue : `fr`
-- **Header image** (statique, configurable via `BIRTHDAY_PAGE_INVITE_IMAGE_URL`)
-- **Body** (4 paramètres) :
-  > Salut {{1}} 👋
-  > L'anniversaire de **{{2}}** approche : plus que **{{3}} jour(s)** ! 🎂
-  > 
-  > Sa page-souvenir est ouverte. Tu peux y ajouter :
-  > 📸 une photo, 🎥 une vidéo, ✍️ un petit mot, ou 🎁 contribuer à sa cagnotte.
-  > 
+### Exemple Template A — `joiedevivre_birthday_page_invite`
+Aminata invite ses amis à la page d'anniversaire de Koffi (J-7) :
+- **Slug injecté** : `koffi-2026`
+- **URL générée** : `https://joiedevivre-africa.com/birthday/koffi-2026`
+- **Body envoyé à Aminata** :
+  > Salut **Aminata** 👋  
+  > L'anniversaire de **Koffi** approche : plus que **7 jour(s)** ! 🎂  
+  > Sa page-souvenir est ouverte. Tu peux y ajouter 📸 une photo, 🎥 une vidéo, ✍️ un petit mot, ou 🎁 contribuer à sa cagnotte.  
   > Fais-lui une belle surprise dès maintenant 💜
-- **Footer** : `JOIE DE VIVRE — Célébrons ensemble`
-- **Bouton CTA dynamique** (URL) : "Ouvrir la page" → `https://joiedevivre-africa.com/birthday/{{1}}` (paramètre = slug de la page)
-- Paramètres : `{{1}}` prénom destinataire, `{{2}}` prénom célébré, `{{3}}` nombre de jours, `{{4}}` slug page (bouton)
+- **Bouton** : "Ouvrir la page" → `https://joiedevivre-africa.com/birthday/koffi-2026`
 
-### Template B — `joiedevivre_birthday_page_activity`
-- **Catégorie** : UTILITY — Langue : `fr`
-- **Body** (3 paramètres) :
-  > 🎉 {{1}}, **{{2}}** vient de {{3}} sur ta page d'anniversaire !
-  > 
+### Exemple Template B — `joiedevivre_birthday_page_activity`
+Fatou vient de poster une vidéo sur la page de Nacoulma :
+- **Slug injecté** : `nacoulma-2026`
+- **URL générée** : `https://joiedevivre-africa.com/birthday/nacoulma-2026`
+- **Body envoyé à Nacoulma** :
+  > 🎉 **Nacoulma**, **Fatou** vient de **ajouter une vidéo 🎥** sur ta page d'anniversaire !  
   > Va voir sa belle attention et remercie-le/la 💜
-- **Footer** : `JOIE DE VIVRE`
-- **Bouton CTA dynamique** (URL) : "Voir la page" → `https://joiedevivre-africa.com/birthday/{{1}}` (slug)
-- Paramètres : `{{1}}` prénom célébré, `{{2}}` prénom de l'ami, `{{3}}` action ("ajouter une photo" / "ajouter une vidéo" / "écrire un souvenir" / "promettre un cadeau" / "contribuer 5 000 XOF")
+- **Bouton** : "Voir la page" → `https://joiedevivre-africa.com/birthday/nacoulma-2026`
 
-## 2. Changements code
+---
 
-### A. Étendre `birthday-wishes` (CRON quotidien existant)
+## Partie 2 : Nouveau Template C — Notification Admin à la création d'une cagnotte
 
-| Changement | Détail |
-|---|---|
-| **Constante COUNTDOWN_DAYS étendue** | `[45, 40, 35, 30, 25, 20, 15, 13, 11, 9, 7, 5, 4, 3, 2, 1]` (nouvelle constante `FRIEND_INVITE_DAYS`, distincte de l'actuelle `[7,5,3,1]` qui reste pour notifier le célébré lui-même) |
-| **Nouvelle phase "PART A2"** | Pour chaque profil avec birthday + page active, récupérer `birthday_pages.slug` (année courante) et la liste de ses amis via `contact_relationships` (join `profiles` côté ami pour prénom/téléphone) + ses `contacts` non-inscrits |
-| **Envoi template A** | `sendWhatsAppTemplate(friend.phone, 'joiedevivre_birthday_page_invite', 'fr', [friendFirstName, celebratedFirstName, daysUntil, pageSlug], [pageSlug], pageInviteImageUrl)` |
-| **Déduplication** | Réutiliser `birthday_contact_alerts` avec `alert_type='friend_page_invite'` + `days_before=N` + `contact_phone=friend.phone` (étendre le CHECK constraint) |
+### Objectif
+Dès qu'une cagnotte est créée, prévenir par WhatsApp **les admins assignés au pays du créateur** (ou tous les super_admins si pas de country_code) pour qu'ils puissent suivre la progression dans le dashboard.
 
-### B. Création automatique de la page à l'inscription (déjà OK)
+### Template Meta — `joiedevivre_admin_fund_created`
 
-`OnboardingExperience.handleCreateBirthdayPage` crée déjà la `birthday_page` avec slug. Aucun changement nécessaire — le CRON `birthday-wishes` détectera la page le lendemain.
+- **Catégorie** : UTILITY — Langue : `fr`
+- **Body** (6 paramètres) :
+  > 🚨 Nouvelle cagnotte créée — **{{1}}**
+  >
+  > 👤 Initiateur : **{{2}}**  
+  > 🎁 Bénéficiaire : **{{3}}**  
+  > 🎯 Objectif : **{{4}} XOF**  
+  > 📅 Occasion : **{{5}}**
+  >
+  > Suis sa progression depuis ton dashboard.
+- **Footer** : `JOIE DE VIVRE — Admin`
+- **Bouton CTA dynamique** (URL) : "Ouvrir le dashboard" → `https://joiedevivre-africa.com/admin/funds/{{1}}` (paramètre = `fund_id`)
+- **Paramètres** :
+  - `{{1}}` Pays (ex: "Côte d'Ivoire 🇨🇮")
+  - `{{2}}` Prénom + nom de l'initiateur
+  - `{{3}}` Prénom + nom du bénéficiaire (ou nom du contact non-inscrit)
+  - `{{4}}` Montant cible formaté (ex: "50 000")
+  - `{{5}}` Occasion (ex: "Anniversaire", "Mariage")
+  - Bouton : `fund_id` UUID
 
-### C. Nouvelle Edge Function `notify-birthday-page-activity`
+### Exemple concret
+Aminata (CI) crée une cagnotte de 50 000 XOF pour l'anniversaire de Koffi :
+- **Body** :
+  > 🚨 Nouvelle cagnotte créée — **Côte d'Ivoire 🇨🇮**  
+  > 👤 Initiateur : **Aminata Diallo**  
+  > 🎁 Bénéficiaire : **Koffi N'Guessan**  
+  > 🎯 Objectif : **50 000 XOF**  
+  > 📅 Occasion : **Anniversaire**  
+  > Suis sa progression depuis ton dashboard.
+- **Bouton** → `https://joiedevivre-africa.com/admin/funds/8f42b1c3-5d9e-4a7b-b2e1-9c3f4d5a6e7b`
 
-Déclenchée à chaque action sur la page de quelqu'un d'autre :
+### Implémentation code
 
-| Trigger côté UI | Action passée au template |
-|---|---|
-| `birthday_page_photos.insert` (image) | "ajouter une photo 📸" |
-| `birthday_page_photos.insert` (vidéo) | "ajouter une vidéo 🎥" |
-| `birthday_page_photos.insert` (memory_text) | "écrire un souvenir ✍️" |
-| `page_gift_promises.insert` | "promettre un cadeau 🎁" |
-| `fund_contributions.insert` (fund lié à birthday_page) | "contribuer {montant} XOF 💜" |
+**1. Nouvelle Edge Function `notify-admins-fund-created`**
+- Reçoit `{ fund_id }`
+- Charge la cagnotte (`collective_funds`) avec creator, beneficiary, target_amount, occasion
+- Récupère le `country_code` du créateur via `profiles`
+- Récupère les admins ciblés :
+  ```sql
+  SELECT au.user_id, p.first_name, p.phone, au.role, au.assigned_countries
+  FROM admin_users au
+  JOIN profiles p ON p.user_id = au.user_id
+  WHERE au.is_active = true
+    AND p.phone IS NOT NULL
+    AND (
+      au.role = 'super_admin'
+      OR au.assigned_countries IS NULL
+      OR au.assigned_countries = '{}'
+      OR :creator_country = ANY(au.assigned_countries)
+    )
+  ```
+- Pour chaque admin : `sendWhatsAppTemplate(admin.phone, 'joiedevivre_admin_fund_created', 'fr', [countryLabel, creatorName, beneficiaryName, formattedAmount, occasion], [fund_id])`
+- Insertion `scheduled_notifications` in-app pour chaque admin
+- Anti-spam : table `admin_fund_notif_log` (déduplication par `(fund_id, admin_user_id)`)
 
-**Fonction Edge** :
-- Reçoit `{ birthdayPageId, actorUserId, actionType, amount? }`
-- Charge le célébré (profile + phone), l'acteur (prénom), la page (slug)
-- Garde-fou : ignore si `actorUserId === celebratedUserId` (auto-action)
-- Anti-spam : table `birthday_page_activity_notifs` (déduplique par `(page_id, actor_id, action_type)` sur 1h pour éviter le bruit lors de batch d'uploads)
-- Envoi : `sendWhatsAppTemplate(celebrated.phone, 'joiedevivre_birthday_page_activity', 'fr', [celebratedFirstName, actorFirstName, actionLabel], [pageSlug])`
-- Notification in-app `scheduled_notifications` en parallèle
+**2. Trigger côté client**
+- Dans `src/pages/CollectiveCheckout.tsx`, après `collective_funds.insert` réussi, appeler :
+  ```ts
+  supabase.functions.invoke('notify-admins-fund-created', { body: { fund_id: fundData.id } });
+  ```
+- Fire-and-forget pour ne pas bloquer le flow utilisateur
 
-### D. Appels client → Edge Function
-
-Ajouter `supabase.functions.invoke('notify-birthday-page-activity', ...)` après chaque succès dans :
-- `src/components/FeedCardActions.tsx` → après `birthday_page_photos.insert` (3 cas : photo, vidéo, souvenir) et après `page_gift_promises.insert`
-- Composant de contribution à la cagnotte (rechercher `fund_contributions.insert` lié à birthday_page) → ajouter le hook
-
-## 3. Migration SQL
-
+**3. Migration SQL**
 ```sql
--- Étendre les types d'alerte
-ALTER TABLE birthday_contact_alerts DROP CONSTRAINT birthday_contact_alerts_alert_type_check;
-ALTER TABLE birthday_contact_alerts ADD CONSTRAINT birthday_contact_alerts_alert_type_check 
-  CHECK (alert_type = ANY (ARRAY['immediate','month','two_weeks','daily','contact_added',
-    'friends_circle_welcome','friends_circle_reminder','birthday_countdown','friend_page_invite']));
-
--- Table anti-spam pour notifs d'activité
-CREATE TABLE public.birthday_page_activity_notifs (
+CREATE TABLE public.admin_fund_notif_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  birthday_page_id uuid NOT NULL,
-  actor_user_id uuid NOT NULL,
-  action_type text NOT NULL,
-  created_at timestamptz DEFAULT now()
+  fund_id uuid NOT NULL,
+  admin_user_id uuid NOT NULL,
+  channel text NOT NULL DEFAULT 'whatsapp',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(fund_id, admin_user_id, channel)
 );
-CREATE INDEX idx_bpan_dedup ON birthday_page_activity_notifs(birthday_page_id, actor_user_id, action_type, created_at);
-ALTER TABLE birthday_page_activity_notifs ENABLE ROW LEVEL SECURITY;
--- Service-role only (pas de policy → bloqué pour clients)
+ALTER TABLE public.admin_fund_notif_log ENABLE ROW LEVEL SECURITY;
+-- Service-role only (aucune policy)
 ```
 
-## 4. Fichiers concernés
+**4. Configuration**
+- Déclarer `notify-admins-fund-created` dans `supabase/config.toml` avec `verify_jwt = true`
+- Helper interne `getCountryLabel(code)` mappant `CI → "Côte d'Ivoire 🇨🇮"`, `BJ → "Bénin 🇧🇯"`, `SN → "Sénégal 🇸🇳"`, etc.
+
+### Fichiers concernés
 
 | Fichier | Changement |
 |---|---|
-| Migration SQL | Étendre CHECK + créer `birthday_page_activity_notifs` |
-| `supabase/functions/birthday-wishes/index.ts` | Nouvelle phase A2 (17 jalons, amis du célébré, template A) |
-| `supabase/functions/notify-birthday-page-activity/index.ts` | **Nouveau** — envoie template B au célébré |
-| `supabase/config.toml` | Déclarer la nouvelle fonction `verify_jwt = true` |
-| `src/components/FeedCardActions.tsx` | Invoquer la fonction après photo/vidéo/souvenir/promesse |
-| Composant contribution cagnotte (à identifier) | Invoquer après contribution réussie |
-| `.lovable/memory/whatsapp-messaging-strategy.md` + memory `birthday-celebration-flow` | Documenter les 2 nouveaux templates |
+| Migration SQL | Créer `admin_fund_notif_log` |
+| `supabase/functions/notify-admins-fund-created/index.ts` | **Nouveau** — sélectionne admins par pays + envoie template C |
+| `supabase/config.toml` | Déclarer la nouvelle fonction |
+| `src/pages/CollectiveCheckout.tsx` | Invoquer après `collective_funds.insert` |
+| `.lovable/memory/whatsapp-messaging-strategy.md` | Documenter le template C |
 
-## 5. Action utilisateur requise
-
-Créer manuellement les **2 templates** dans **Meta Business Manager** avec exactement les paramètres ci-dessus avant que le code soit fonctionnel. Les templates seront en attente d'approbation Meta (24-48h).
+### Action utilisateur requise
+Créer le template **`joiedevivre_admin_fund_created`** dans **Meta Business Manager** avec exactement les 6 paramètres ci-dessus + bouton URL dynamique. Approbation Meta : 24-48h.
 
