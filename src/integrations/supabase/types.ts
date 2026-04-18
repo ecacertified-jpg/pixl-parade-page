@@ -130,6 +130,30 @@ export type Database = {
           },
         ]
       }
+      admin_fund_notif_log: {
+        Row: {
+          admin_user_id: string
+          channel: string
+          created_at: string
+          fund_id: string
+          id: string
+        }
+        Insert: {
+          admin_user_id: string
+          channel?: string
+          created_at?: string
+          fund_id: string
+          id?: string
+        }
+        Update: {
+          admin_user_id?: string
+          channel?: string
+          created_at?: string
+          fund_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       admin_growth_alerts: {
         Row: {
           alert_type: string
