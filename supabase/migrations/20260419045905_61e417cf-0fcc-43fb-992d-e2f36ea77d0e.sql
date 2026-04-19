@@ -1,0 +1,1 @@
+DELETE FROM admin_fund_notif_log WHERE fund_id = '97e0063a-1746-4299-9aee-9ca18eb21b3e';
