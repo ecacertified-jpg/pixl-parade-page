@@ -595,7 +595,7 @@ export const OnboardingExperience = ({
       case 1: return !!birthday;
       case 2: return selectedCategories.length >= 1;
       case 3: return favoriteIds.length >= 3;
-      case 4: return invitationsSentCount >= 3;
+      case 4: return true;
       case 5: return hasBirthdayPage && hasFund && shareCount >= 3;
       default: return false;
     }
@@ -1105,11 +1105,14 @@ export const OnboardingExperience = ({
                   </motion.div>
 
                   <h2 className="text-2xl font-poppins font-bold text-foreground mb-2">
-                    Ton cercle d'amis, ta force ! 💪
+                    Ton cercle d'amis, ta force 💪
                   </h2>
-                  <p className="text-muted-foreground font-nunito mb-5 text-sm leading-relaxed">
+                  <p className="text-muted-foreground font-nunito mb-3 text-sm leading-relaxed">
                     Ajoute au moins <span className="font-bold text-primary">3 proches</span> pour ne manquer aucun anniversaire.
                     Plus ton cercle est grand, plus tu recevras de surprises ! 🎁
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 font-nunito mb-5 italic">
+                    Tu peux continuer dès maintenant — on te notifiera quand tes proches rempliront le formulaire.
                   </p>
 
                   {/* Progress dots + bar */}
