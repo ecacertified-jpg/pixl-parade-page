@@ -2,45 +2,26 @@
 
 ## Problème
 
-L'onboarding utilise **localStorage** comme source unique de persistance pour l'étape atteinte. Cela cause 2 problèmes :
+Étape 5 (Amis) bloque l'utilisateur tant que les 3 amis invités n'ont pas eux-mêmes rempli le formulaire — ce qui peut prendre des heures/jours et casse le flux d'onboarding. De plus, le titre contient un point d'exclamation parasite avant l'emoji 💪.
 
-1. **Cross-device** : changer d'appareil/navigateur ou nettoyer le cache → tout est perdu
-2. **Race condition** : à l'ouverture, `user.id` n'est pas encore chargé quand `storedFurthestStep` est lu (vaut `0`), tandis que `firstIncompleteStep` retourne déjà `2` depuis le cache `useQuery`. Le `Math.max(2, 0) = 2` fige l'utilisateur sur l'étape Goûts même s'il avait déjà atteint Souhaits
+## Corrections
 
-De plus, l'**auto-save des catégories** (debounce 500ms ligne 107) peut échouer silencieusement si l'utilisateur clique « Continuer » trop vite → tastes pas en DB → `firstIncompleteStep=2` au prochain login.
+**Fichier** : `src/components/OnboardingExperience.tsx`
 
-## Solution
+### 1. Permettre de passer l'étape 5 (Amis) sans attendre
+- **Ligne 598** : remplacer `case 4: return invitationsSentCount >= 3;` par `case 4: return true;` → l'étape devient validable dès qu'on y arrive (l'utilisateur peut continuer même si 0 ami n'a encore rempli le formulaire).
+- **Ligne 260** : conserver l'auto-redirection festive quand 3 amis valident (confetti + passage auto), mais permettre aussi le passage manuel via le bouton "Suivant".
+- Ajouter un texte d'encouragement sous la barre de progression : « Tu peux continuer dès maintenant — on te notifiera quand tes proches rempliront le formulaire. »
 
-Ajouter une **persistance DB authoritative** via une nouvelle colonne `profiles.onboarding_furthest_step` (integer), couplée au localStorage existant comme cache local rapide.
+### 2. Corriger le titre (ligne 1108)
+- Avant : `Ton cercle d'amis, ta force ! 💪`
+- Après : `Ton cercle d'amis, ta force 💪`
 
-### Changements
+## Mémoire à mettre à jour
 
-| Fichier | Action |
-|---|---|
-| Migration SQL | Ajouter colonne `onboarding_furthest_step integer DEFAULT 0` à `profiles` |
-| `src/hooks/useOnboarding.ts` | Lire `onboarding_furthest_step` dans `fetchOnboardingStatus`. Calculer `effectiveCurrentStep = max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)`. Dans `setCurrentStep`, écrire en DB **et** localStorage |
-| `src/components/OnboardingExperience.tsx` | Renforcer l'auto-save des catégories : sauver de façon synchrone à chaque toggle (sans debounce) OU bloquer le bouton « Continuer » tant que la save n'est pas confirmée. Afficher un toast en cas d'échec de l'auto-save |
-| `src/integrations/supabase/types.ts` | Régénéré automatiquement par la migration |
-
-### Détails techniques
-
-1. **Migration** :
-   ```sql
-   ALTER TABLE public.profiles 
-   ADD COLUMN IF NOT EXISTS onboarding_furthest_step integer NOT NULL DEFAULT 0;
-   ```
-
-2. **`fetchOnboardingStatus`** (useOnboarding.ts) : ajouter `onboarding_furthest_step` au SELECT, retourner `dbFurthestStep` dans le résultat.
-
-3. **`effectiveCurrentStep`** : `Math.max(firstIncompleteStep, storedFurthestStep, dbFurthestStep)` — la DB devient la vérité ultime cross-device.
-
-4. **`setCurrentStep`** : faire un `update` non-bloquant sur `profiles.onboarding_furthest_step` quand le step augmente (fire-and-forget pour ne pas ralentir l'UI).
-
-5. **Auto-save catégories renforcé** : remplacer le debounce 500ms par une sauvegarde **immédiate** à chaque clic de catégorie + un état `savingCategories` qui désactive « Continuer » pendant l'écriture. Garantit qu'au moment du `Continuer`, les tastes sont en DB.
-
-6. **`completeOnboarding`** : reset également `onboarding_furthest_step = 0` quand l'onboarding est complété.
+`mem://auth/onboarding-experience-and-logic` : préciser que l'étape Amis n'est plus bloquante (passage libre), seul le compteur reste informatif et l'auto-redirection se déclenche si 3 amis valident pendant que l'utilisateur est encore sur la page.
 
 ## Résultat
 
-L'utilisateur reprend exactement à l'étape qu'il a atteint en dernier, **quel que soit l'appareil**, le navigateur ou l'état du cache, et la sélection de catégories est garantie d'être persistée avant tout passage à l'étape suivante.
+L'utilisateur peut progresser dans l'onboarding sans dépendre du remplissage différé de ses amis, tout en gardant la mécanique de récompense (confetti + auto-redirect) si les 3 formulaires arrivent à temps.
 
