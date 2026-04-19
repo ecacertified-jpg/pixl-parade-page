@@ -1,27 +1,34 @@
 
 
-## Problème
+## Diagnostic actuel — Template A
 
-Étape 5 (Amis) bloque l'utilisateur tant que les 3 amis invités n'ont pas eux-mêmes rempli le formulaire — ce qui peut prendre des heures/jours et casse le flux d'onboarding. De plus, le titre contient un point d'exclamation parasite avant l'emoji 💪.
+Les logs DB confirment que **le correctif appliqué hier fonctionne** :
 
-## Corrections
+| Date | Body params | Status |
+|---|---|---|
+| 2026-04-18 (avant fix) | `[Nowa, Esperando, 30, esperando-2026]` (4 params) | ❌ `failed` — `(#132000) Number of parameters does not match` |
+| 2026-04-19 (après fix) | `[Laeticia, Zossou, 3]` (3 params) | ✅ `sent` |
 
-**Fichier** : `src/components/OnboardingExperience.tsx`
+Le cron quotidien `birthday-wishes` qui tourne à 00:01 UTC a déjà envoyé 3 invitations Template A avec succès aujourd'hui pour la page `zossou-2026` (J-3 anniversaire).
 
-### 1. Permettre de passer l'étape 5 (Amis) sans attendre
-- **Ligne 598** : remplacer `case 4: return invitationsSentCount >= 3;` par `case 4: return true;` → l'étape devient validable dès qu'on y arrive (l'utilisateur peut continuer même si 0 ami n'a encore rempli le formulaire).
-- **Ligne 260** : conserver l'auto-redirection festive quand 3 amis valident (confetti + passage auto), mais permettre aussi le passage manuel via le bouton "Suivant".
-- Ajouter un texte d'encouragement sous la barre de progression : « Tu peux continuer dès maintenant — on te notifiera quand tes proches rempliront le formulaire. »
+## Test d'invocation live
 
-### 2. Corriger le titre (ligne 1108)
-- Avant : `Ton cercle d'amis, ta force ! 💪`
-- Après : `Ton cercle d'amis, ta force 💪`
+Pour valider de bout en bout je vais :
 
-## Mémoire à mettre à jour
+1. **Invoquer manuellement `birthday-wishes`** via `supabase--curl_edge_functions` (POST sans body, fonction publique).
+2. **Vérifier les logs Edge Function** : recherche des marqueurs `[FriendInvite] ✅ Sent to ...`.
+3. **Vérifier la DB** : nouveaux enregistrements dans `whatsapp_template_logs` pour `joiedevivre_birthday_page_invite` avec `status='sent'` et exactement 3 body params.
+4. **Confirmer le format du bouton** : `button_params=[<slug>]` → URL finale `https://joiedevivre-africa.com/birthday/<slug>`.
 
-`mem://auth/onboarding-experience-and-logic` : préciser que l'étape Amis n'est plus bloquante (passage libre), seul le compteur reste informatif et l'auto-redirection se déclenche si 3 amis valident pendant que l'utilisateur est encore sur la page.
+### Critères de succès
 
-## Résultat
+- ✅ Au moins 1 nouvelle ligne `status='sent'` créée pendant le test (ou aucune si dédup déjà déclenchée — ce qui est aussi un succès).
+- ✅ Aucune nouvelle erreur `(#132000)`.
+- ✅ Format body : `[recipientFirstName, celebratedFirstName, daysUntil]` (3 éléments).
+- ✅ Format bouton : `[slug]` (1 élément).
 
-L'utilisateur peut progresser dans l'onboarding sans dépendre du remplissage différé de ses amis, tout en gardant la mécanique de récompense (confetti + auto-redirect) si les 3 formulaires arrivent à temps.
+### Si problème détecté
+
+- Si `(#132000)` réapparaît → vérifier que le redéploiement de `birthday-wishes` a bien pris en compte la version corrigée du fichier.
+- Si erreur sur le bouton → vérifier dans Meta Business Manager que le template a bien 1 paramètre URL dynamique configuré.
 
