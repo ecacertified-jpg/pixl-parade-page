@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users,
   Download, UserCheck, AlertTriangle, UserX, TrendingUp, Trophy, Phone, MapPin,
-  Calendar, Image, FileText, GitMerge, Trash2
+  Calendar, Image, FileText, GitMerge, Trash2, ShieldCheck, X
 } from 'lucide-react';
 import {
   Table,
@@ -53,6 +53,8 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { AddClientModal } from '@/components/admin/AddClientModal';
 import { UnifyClientAccountsModal } from '@/components/admin/UnifyClientAccountsModal';
 import { DeleteClientModal } from '@/components/admin/DeleteClientModal';
+import { AssignUserToAdminModal } from '@/components/admin/AssignUserToAdminModal';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UserPlus, Users2 } from 'lucide-react';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { CountryBadge } from '@/components/CountryBadge';
