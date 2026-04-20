@@ -1,41 +1,76 @@
 
 
-## Diagnostic — Template `joiedevivre_admin_fund_created`
+## Objectif
 
-**Statut actuel** : aucun log dans `whatsapp_template_logs` → le template **n'a jamais été déclenché**. Il faut un test live.
+Permettre au Super Admin d'affecter un utilisateur (depuis la liste « Gestion des utilisateurs ») à un Admin (admin régional / modérateur), individuellement ou en lot.
 
-### Vérification structurelle (code vs Meta)
+## Backend — déjà disponible ✅
 
-| Élément | Meta (screenshots) | Code (`notify-admins-fund-created/index.ts:198-204`) | Match |
-|---|---|---|---|
-| Body | 5 variables `{{1}}` à `{{5}}` | `[countryLabel, creatorName, beneficiaryName, formattedAmount, occasionLabel]` (5) | ✅ |
-| Bouton URL dynamique | 1 param `{{1}}` (suffixe URL) | `[fund_id]` (1) | ✅ |
-| Devise | `Objectif : {{4}} XOF` (statique dans le texte) | `formattedAmount` = nombre seul (ex: `"50 000"`) | ✅ pas de double XOF |
+L'edge function `admin-manage-assignments` (POST `{ admin_id, user_ids }`) gère déjà :
+- Vérification que l'appelant est super_admin
+- Contrôle d'exclusivité (un user = un seul admin) avec rapport de conflits
+- Upsert dans `admin_user_assignments` avec `assigned_via='manual'`
+- Audit log
 
-Le `"50 000 XOF XOF"` visible sur le screenshot Meta est juste l'exemple saisi par toi dans le formulaire de test Meta, pas un défaut du code.
+Aucune migration nécessaire.
 
-### Cibles disponibles
+## Changements UI — `src/pages/Admin/UserManagement.tsx`
 
-10 admins actifs avec téléphones valides (super_admins CI/BJ + moderators CI/BJ). Le filtrage par pays fonctionne : super_admins reçoivent toujours, moderators uniquement si `creator_country` est dans leur `assigned_countries`.
+### 1. Action ligne par ligne (menu kebab `⋮`)
 
-## Plan de test
+Ajouter un nouvel item `DropdownMenuItem` (visible uniquement si `isSuperAdmin`), avant la section destructive :
 
-1. **Sélectionner une cagnotte récente** via `read_query` pour obtenir un `fund_id` réel (créateur en CI ou BJ pour cibler des admins existants).
-2. **Purger le log anti-doublon** pour ce fund_id afin de garantir l'envoi : `DELETE FROM admin_fund_notif_log WHERE fund_id = '<id>'` → nécessite migration (mode default).
-3. **Invoquer `notify-admins-fund-created`** via `curl_edge_functions` avec `{ "fund_id": "<id>" }`.
-4. **Vérifier les logs Edge Function** : recherche de `[admin-fund-created] sent=N failed=0`.
-5. **Vérifier `whatsapp_template_logs`** : nouvelles lignes avec `status='sent'`, `body_params` à 5 éléments, `button_params` à 1 élément.
+```text
+👤 Voir le profil
+💳 Historique des transactions
+─────────────
+🔀 Fusionner avec un autre compte         (super admin)
+🎯 Affecter à un admin                    ← NOUVEAU (super admin)
+─────────────
+🚫 Suspendre / Réactiver
+🗑 Supprimer le compte                    (super admin)
+```
 
-### Critères de succès
+L'item ouvre une nouvelle modale `AssignUserToAdminModal` pré-remplie avec **l'utilisateur cliqué**.
 
-- ✅ `sent ≥ 1`, `failed = 0`
-- ✅ Aucune erreur `(#132000)` (mismatch params)
-- ✅ Bouton URL final = `https://joiedevivre-africa.com/admin/funds/<fund_id>`
-- ✅ Notifications in-app créées dans `admin_notifications`
+### 2. Action en lot (sélection multiple)
 
-### Si échec
+- Ajouter une **checkbox** dans chaque ligne du tableau + une checkbox « tout sélectionner » dans l'en-tête (super admin only).
+- Quand `selectedUserIds.size > 0`, afficher une barre d'action sticky en haut du tableau :
+  - `N utilisateur(s) sélectionné(s)` + bouton **« Affecter à un admin »** + bouton **« Désélectionner »**.
+- Le bouton ouvre la même modale, en mode lot.
 
-- `(#132000)` body → recompter params dans Meta vs code
-- `(#132000)` bouton → vérifier que le template a bien 1 URL dynamique configurée
-- `failed=N, sent=0` mais pas de #132000 → vérifier `WHATSAPP_PERMANENT_TOKEN` et que les téléphones cibles sont opt-in WhatsApp
+### 3. Nouvelle modale — `src/components/admin/AssignUserToAdminModal.tsx`
+
+Props :
+```text
+open, onOpenChange, userIds: string[], userLabels: string[], onSuccess()
+```
+
+Contenu :
+- **Liste des admins éligibles** chargée via `admin-list-admins` (filtre `is_active=true`, exclut les super_admins puisqu'ils voient déjà tout).
+- Chaque ligne admin = avatar + nom + rôle (badge) + pays affectés + nombre actuel d'utilisateurs.
+- Sélection radio (un seul admin cible).
+- Bouton « Affecter » → POST `admin-manage-assignments` `{ admin_id, user_ids }`.
+- Affichage des conflits éventuels (`results.conflicts`) : « X utilisateur(s) déjà affecté(s) à un autre admin — réaffecter ? » avec confirmation qui supprime puis réinsère (2e appel DELETE + POST si confirmé).
+- Toast de succès : `N utilisateur(s) affecté(s) à <Nom Admin>`.
+- `onSuccess` rafraîchit la liste utilisateurs.
+
+### 4. Indicateur visuel d'affectation (optionnel mais utile)
+
+Charger en parallèle un map `userId → admin assigné` (via une requête légère sur `admin_user_assignments` joint à `admin_users`+`profiles`) et afficher un petit badge `Affecté à : Prénom N.` sous le nom de l'utilisateur. Permet de voir d'un coup d'œil qui gère qui.
+
+## Sécurité
+
+- Bouton/menu masqué pour non-super-admins (`isSuperAdmin` déjà disponible via `useAdmin()`).
+- Toute la validation reste côté serveur (déjà en place dans l'edge function).
+- Audit log automatique (déjà géré).
+
+## Mémoire à mettre à jour
+
+`mem://admin/gestion-regionale-et-affectations` : préciser qu'un Super Admin peut désormais affecter des utilisateurs **soit depuis la fiche admin** (modale existante côté `/admin/admins`), **soit directement depuis la liste des utilisateurs** (`/admin/users`) en ligne par ligne ou en lot.
+
+## Résultat
+
+Le Super Admin gagne un workflow inverse : au lieu de partir d'un admin pour lui ajouter des users, il part d'un user (ou d'une sélection) pour choisir l'admin référent — beaucoup plus naturel quand on traite les comptes au fil de l'eau.
 
