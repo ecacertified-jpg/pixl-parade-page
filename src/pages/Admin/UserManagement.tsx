@@ -781,6 +781,10 @@ export default function UserManagement() {
                                   <GitMerge className="mr-2 h-4 w-4" />
                                   Fusionner avec un autre compte
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openAssignAdminFor(user)}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" />
+                                  Affecter à un admin
+                                </DropdownMenuItem>
                               </>
                             )}
                             <DropdownMenuSeparator />
@@ -893,6 +897,10 @@ export default function UserManagement() {
                                     <DropdownMenuItem onClick={() => handleUserAction(user, 'merge')}>
                                       <GitMerge className="mr-2 h-4 w-4" />
                                       Fusionner avec un autre compte
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openAssignAdminFor(user)}>
+                                      <ShieldCheck className="mr-2 h-4 w-4" />
+                                      Affecter à un admin
                                     </DropdownMenuItem>
                                   </>
                                 )}
