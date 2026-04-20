@@ -745,6 +745,14 @@ export default function UserManagement() {
                     <Card key={user.user_id} className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
+                          {isSuperAdmin && (
+                            <Checkbox
+                              checked={selectedUserIds.has(user.user_id)}
+                              onCheckedChange={() => toggleSelectUser(user.user_id)}
+                              aria-label={`Sélectionner ${getUserDisplayName(user)}`}
+                              className="flex-shrink-0"
+                            />
+                          )}
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             {user.avatar_url && <AvatarImage src={user.avatar_url} />}
                             <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -759,6 +767,12 @@ export default function UserManagement() {
                             <p className="text-sm text-muted-foreground truncate">
                               {user.phone || 'Téléphone non renseigné'}
                             </p>
+                            {isSuperAdmin && userAdminMap[user.user_id] && (
+                              <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                                <ShieldCheck className="h-3 w-3" />
+                                Affecté à : {userAdminMap[user.user_id].name}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <DropdownMenu>
@@ -1024,6 +1038,19 @@ export default function UserManagement() {
             userId={selectedUserId}
             userName={selectedUserName}
             onDeleted={fetchUsers}
+          />
+        )}
+
+        {isSuperAdmin && (
+          <AssignUserToAdminModal
+            open={assignAdminModalOpen}
+            onOpenChange={setAssignAdminModalOpen}
+            userIds={assignTargetUserIds}
+            userLabels={assignTargetUserLabels}
+            onSuccess={() => {
+              setSelectedUserIds(new Set());
+              fetchUsers();
+            }}
           />
         )}
       </div>
