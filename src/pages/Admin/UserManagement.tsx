@@ -386,6 +386,43 @@ export default function UserManagement() {
     if (action === 'delete') setDeleteClientModalOpen(true);
   };
 
+  const openAssignAdminFor = (user: User) => {
+    setAssignTargetUserIds([user.user_id]);
+    setAssignTargetUserLabels([getUserDisplayName(user)]);
+    setAssignAdminModalOpen(true);
+  };
+
+  const openAssignAdminBulk = () => {
+    const ids = Array.from(selectedUserIds);
+    const labels = ids.map(id => {
+      const u = users.find(x => x.user_id === id);
+      return u ? getUserDisplayName(u) : 'Utilisateur';
+    });
+    setAssignTargetUserIds(ids);
+    setAssignTargetUserLabels(labels);
+    setAssignAdminModalOpen(true);
+  };
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = filteredUsers.map(u => u.user_id);
+    const allSelected = visibleIds.every(id => selectedUserIds.has(id));
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) visibleIds.forEach(id => next.delete(id));
+      else visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
   const handleExportIncomplete = () => {
     const incompleteUsers = usersWithCompletion.filter(u => u.completion.score < 100);
     
