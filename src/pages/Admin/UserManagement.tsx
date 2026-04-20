@@ -215,12 +215,59 @@ export default function UserManagement() {
   const [addClientModalOpen, setAddClientModalOpen] = useState(false);
   const [unifyClientModalOpen, setUnifyClientModalOpen] = useState(false);
   const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
+  const [assignAdminModalOpen, setAssignAdminModalOpen] = useState(false);
+  const [assignTargetUserIds, setAssignTargetUserIds] = useState<string[]>([]);
+  const [assignTargetUserLabels, setAssignTargetUserLabels] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [userAdminMap, setUserAdminMap] = useState<Record<string, { adminId: string; name: string }>>({});
 
   const activeCountry = selectedCountry || searchParams.get('country');
 
   useEffect(() => {
     fetchUsers();
   }, [selectedCountry]);
+
+  // Load mapping user_id -> assigned admin (super admin only)
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    (async () => {
+      try {
+        const { data: assignments } = await supabase
+          .from('admin_user_assignments')
+          .select('user_id, admin_user_id');
+        if (!assignments || assignments.length === 0) {
+          setUserAdminMap({});
+          return;
+        }
+        const adminIds = Array.from(new Set(assignments.map((a: any) => a.admin_user_id)));
+        const { data: adminsRows } = await supabase
+          .from('admin_users')
+          .select('id, user_id')
+          .in('id', adminIds);
+        const adminUserIds = (adminsRows || []).map((a: any) => a.user_id);
+        const { data: profilesRows } = adminUserIds.length > 0
+          ? await supabase
+              .from('profiles')
+              .select('user_id, first_name, last_name')
+              .in('user_id', adminUserIds)
+          : { data: [] as any[] };
+        const nameByAdminId: Record<string, string> = {};
+        for (const adm of adminsRows || []) {
+          const p = (profilesRows || []).find((pr: any) => pr.user_id === adm.user_id);
+          const fn = p?.first_name || '';
+          const ln = p?.last_name?.[0] ? `${p.last_name[0]}.` : '';
+          nameByAdminId[adm.id] = `${fn} ${ln}`.trim() || 'Admin';
+        }
+        const map: Record<string, { adminId: string; name: string }> = {};
+        for (const a of assignments) {
+          map[a.user_id] = { adminId: a.admin_user_id, name: nameByAdminId[a.admin_user_id] || 'Admin' };
+        }
+        setUserAdminMap(map);
+      } catch (err) {
+        console.error('Error loading user-admin map:', err);
+      }
+    })();
+  }, [isSuperAdmin, users.length]);
 
   const fetchUsers = async () => {
     try {
