@@ -843,6 +843,18 @@ export default function UserManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {isSuperAdmin && (
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={
+                                filteredUsers.length > 0 &&
+                                filteredUsers.every(u => selectedUserIds.has(u.user_id))
+                              }
+                              onCheckedChange={toggleSelectAllVisible}
+                              aria-label="Tout sélectionner"
+                            />
+                          </TableHead>
+                        )}
                         <TableHead>Utilisateur</TableHead>
                         <TableHead>Pays</TableHead>
                         <TableHead>Téléphone</TableHead>
@@ -855,6 +867,15 @@ export default function UserManagement() {
                     <TableBody>
                       {filteredUsers.map((user) => (
                         <TableRow key={user.user_id}>
+                          {isSuperAdmin && (
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedUserIds.has(user.user_id)}
+                                onCheckedChange={() => toggleSelectUser(user.user_id)}
+                                aria-label={`Sélectionner ${getUserDisplayName(user)}`}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
@@ -863,9 +884,17 @@ export default function UserManagement() {
                                   {getInitials(user.first_name, user.last_name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">
-                                {getUserDisplayName(user)}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {getUserDisplayName(user)}
+                                </span>
+                                {isSuperAdmin && userAdminMap[user.user_id] && (
+                                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Affecté à : {userAdminMap[user.user_id].name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
