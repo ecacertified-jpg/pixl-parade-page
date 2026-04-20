@@ -538,6 +538,26 @@ export default function UserManagement() {
           );
         })()}
 
+        {/* Sticky bulk action bar (super admin only) */}
+        {isSuperAdmin && selectedUserIds.size > 0 && (
+          <div className="sticky top-2 z-20 flex items-center justify-between gap-3 p-3 rounded-lg border bg-primary/5 border-primary/30 shadow-sm flex-wrap">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="default">{selectedUserIds.size}</Badge>
+              <span className="font-medium">utilisateur(s) sélectionné(s)</span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={openAssignAdminBulk}>
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Affecter à un admin
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedUserIds(new Set())}>
+                <X className="h-4 w-4 mr-1" />
+                Désélectionner
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Statistics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Card 
