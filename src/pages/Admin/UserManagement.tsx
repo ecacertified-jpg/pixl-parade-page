@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Search, MoreVertical, Ban, CheckCircle, XCircle, ArrowLeft, RefreshCw, Users,
   Download, UserCheck, AlertTriangle, UserX, TrendingUp, Trophy, Phone, MapPin,
-  Calendar, Image, FileText, GitMerge, Trash2
+  Calendar, Image, FileText, GitMerge, Trash2, ShieldCheck, X
 } from 'lucide-react';
 import {
   Table,
@@ -53,6 +53,8 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { AddClientModal } from '@/components/admin/AddClientModal';
 import { UnifyClientAccountsModal } from '@/components/admin/UnifyClientAccountsModal';
 import { DeleteClientModal } from '@/components/admin/DeleteClientModal';
+import { AssignUserToAdminModal } from '@/components/admin/AssignUserToAdminModal';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UserPlus, Users2 } from 'lucide-react';
 import { useAdminCountry } from '@/contexts/AdminCountryContext';
 import { CountryBadge } from '@/components/CountryBadge';
@@ -213,12 +215,59 @@ export default function UserManagement() {
   const [addClientModalOpen, setAddClientModalOpen] = useState(false);
   const [unifyClientModalOpen, setUnifyClientModalOpen] = useState(false);
   const [deleteClientModalOpen, setDeleteClientModalOpen] = useState(false);
+  const [assignAdminModalOpen, setAssignAdminModalOpen] = useState(false);
+  const [assignTargetUserIds, setAssignTargetUserIds] = useState<string[]>([]);
+  const [assignTargetUserLabels, setAssignTargetUserLabels] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [userAdminMap, setUserAdminMap] = useState<Record<string, { adminId: string; name: string }>>({});
 
   const activeCountry = selectedCountry || searchParams.get('country');
 
   useEffect(() => {
     fetchUsers();
   }, [selectedCountry]);
+
+  // Load mapping user_id -> assigned admin (super admin only)
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    (async () => {
+      try {
+        const { data: assignments } = await supabase
+          .from('admin_user_assignments')
+          .select('user_id, admin_user_id');
+        if (!assignments || assignments.length === 0) {
+          setUserAdminMap({});
+          return;
+        }
+        const adminIds = Array.from(new Set(assignments.map((a: any) => a.admin_user_id)));
+        const { data: adminsRows } = await supabase
+          .from('admin_users')
+          .select('id, user_id')
+          .in('id', adminIds);
+        const adminUserIds = (adminsRows || []).map((a: any) => a.user_id);
+        const { data: profilesRows } = adminUserIds.length > 0
+          ? await supabase
+              .from('profiles')
+              .select('user_id, first_name, last_name')
+              .in('user_id', adminUserIds)
+          : { data: [] as any[] };
+        const nameByAdminId: Record<string, string> = {};
+        for (const adm of adminsRows || []) {
+          const p = (profilesRows || []).find((pr: any) => pr.user_id === adm.user_id);
+          const fn = p?.first_name || '';
+          const ln = p?.last_name?.[0] ? `${p.last_name[0]}.` : '';
+          nameByAdminId[adm.id] = `${fn} ${ln}`.trim() || 'Admin';
+        }
+        const map: Record<string, { adminId: string; name: string }> = {};
+        for (const a of assignments) {
+          map[a.user_id] = { adminId: a.admin_user_id, name: nameByAdminId[a.admin_user_id] || 'Admin' };
+        }
+        setUserAdminMap(map);
+      } catch (err) {
+        console.error('Error loading user-admin map:', err);
+      }
+    })();
+  }, [isSuperAdmin, users.length]);
 
   const fetchUsers = async () => {
     try {
@@ -337,6 +386,43 @@ export default function UserManagement() {
     if (action === 'delete') setDeleteClientModalOpen(true);
   };
 
+  const openAssignAdminFor = (user: User) => {
+    setAssignTargetUserIds([user.user_id]);
+    setAssignTargetUserLabels([getUserDisplayName(user)]);
+    setAssignAdminModalOpen(true);
+  };
+
+  const openAssignAdminBulk = () => {
+    const ids = Array.from(selectedUserIds);
+    const labels = ids.map(id => {
+      const u = users.find(x => x.user_id === id);
+      return u ? getUserDisplayName(u) : 'Utilisateur';
+    });
+    setAssignTargetUserIds(ids);
+    setAssignTargetUserLabels(labels);
+    setAssignAdminModalOpen(true);
+  };
+
+  const toggleSelectUser = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = filteredUsers.map(u => u.user_id);
+    const allSelected = visibleIds.every(id => selectedUserIds.has(id));
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) visibleIds.forEach(id => next.delete(id));
+      else visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
   const handleExportIncomplete = () => {
     const incompleteUsers = usersWithCompletion.filter(u => u.completion.score < 100);
     
@@ -451,6 +537,26 @@ export default function UserManagement() {
             </div>
           );
         })()}
+
+        {/* Sticky bulk action bar (super admin only) */}
+        {isSuperAdmin && selectedUserIds.size > 0 && (
+          <div className="sticky top-2 z-20 flex items-center justify-between gap-3 p-3 rounded-lg border bg-primary/5 border-primary/30 shadow-sm flex-wrap">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="default">{selectedUserIds.size}</Badge>
+              <span className="font-medium">utilisateur(s) sélectionné(s)</span>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={openAssignAdminBulk}>
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Affecter à un admin
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedUserIds(new Set())}>
+                <X className="h-4 w-4 mr-1" />
+                Désélectionner
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Statistics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -639,6 +745,14 @@ export default function UserManagement() {
                     <Card key={user.user_id} className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
+                          {isSuperAdmin && (
+                            <Checkbox
+                              checked={selectedUserIds.has(user.user_id)}
+                              onCheckedChange={() => toggleSelectUser(user.user_id)}
+                              aria-label={`Sélectionner ${getUserDisplayName(user)}`}
+                              className="flex-shrink-0"
+                            />
+                          )}
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             {user.avatar_url && <AvatarImage src={user.avatar_url} />}
                             <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -653,6 +767,12 @@ export default function UserManagement() {
                             <p className="text-sm text-muted-foreground truncate">
                               {user.phone || 'Téléphone non renseigné'}
                             </p>
+                            {isSuperAdmin && userAdminMap[user.user_id] && (
+                              <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                                <ShieldCheck className="h-3 w-3" />
+                                Affecté à : {userAdminMap[user.user_id].name}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <DropdownMenu>
@@ -674,6 +794,10 @@ export default function UserManagement() {
                                 <DropdownMenuItem onClick={() => handleUserAction(user, 'merge')}>
                                   <GitMerge className="mr-2 h-4 w-4" />
                                   Fusionner avec un autre compte
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openAssignAdminFor(user)}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" />
+                                  Affecter à un admin
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -733,6 +857,18 @@ export default function UserManagement() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {isSuperAdmin && (
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={
+                                filteredUsers.length > 0 &&
+                                filteredUsers.every(u => selectedUserIds.has(u.user_id))
+                              }
+                              onCheckedChange={toggleSelectAllVisible}
+                              aria-label="Tout sélectionner"
+                            />
+                          </TableHead>
+                        )}
                         <TableHead>Utilisateur</TableHead>
                         <TableHead>Pays</TableHead>
                         <TableHead>Téléphone</TableHead>
@@ -745,6 +881,15 @@ export default function UserManagement() {
                     <TableBody>
                       {filteredUsers.map((user) => (
                         <TableRow key={user.user_id}>
+                          {isSuperAdmin && (
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedUserIds.has(user.user_id)}
+                                onCheckedChange={() => toggleSelectUser(user.user_id)}
+                                aria-label={`Sélectionner ${getUserDisplayName(user)}`}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
@@ -753,9 +898,17 @@ export default function UserManagement() {
                                   {getInitials(user.first_name, user.last_name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">
-                                {getUserDisplayName(user)}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {getUserDisplayName(user)}
+                                </span>
+                                {isSuperAdmin && userAdminMap[user.user_id] && (
+                                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Affecté à : {userAdminMap[user.user_id].name}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -787,6 +940,10 @@ export default function UserManagement() {
                                     <DropdownMenuItem onClick={() => handleUserAction(user, 'merge')}>
                                       <GitMerge className="mr-2 h-4 w-4" />
                                       Fusionner avec un autre compte
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openAssignAdminFor(user)}>
+                                      <ShieldCheck className="mr-2 h-4 w-4" />
+                                      Affecter à un admin
                                     </DropdownMenuItem>
                                   </>
                                 )}
@@ -881,6 +1038,19 @@ export default function UserManagement() {
             userId={selectedUserId}
             userName={selectedUserName}
             onDeleted={fetchUsers}
+          />
+        )}
+
+        {isSuperAdmin && (
+          <AssignUserToAdminModal
+            open={assignAdminModalOpen}
+            onOpenChange={setAssignAdminModalOpen}
+            userIds={assignTargetUserIds}
+            userLabels={assignTargetUserLabels}
+            onSuccess={() => {
+              setSelectedUserIds(new Set());
+              fetchUsers();
+            }}
           />
         )}
       </div>
