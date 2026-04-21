@@ -2,82 +2,85 @@
 
 ## Diagnostic
 
-### Question 2 (réponse directe) : ❌ NON
+### Problème 1 — Bouton "Ouvrir le dashboard" → 404
 
-La page d'anniversaire affichée dans le fil **n'affiche pas** la cagnotte créée par l'utilisateur, sauf cas exceptionnel.
+Le template WhatsApp `joiedevivre_admin_fund_created` envoie l'admin vers `/admin/funds/<fund_id>` (cf. `notify-admins-fund-created/index.ts:183`), mais **cette route n'existe pas** dans `App.tsx`. Les seules routes "funds" admin sont :
+- `/admin/countries/:code/funds` (liste par pays)
+- Aucune fiche cagnotte unitaire `/admin/funds/:id`
 
-**Preuve DB** : sur 20 pages d'anniversaire actives, **toutes ont `birthday_pages.fund_id = NULL`**, alors qu'une seule (Eca) a une cagnotte birthday active dans `collective_funds` côté créateur — et même elle n'est pas reliée. Le feed lit uniquement `birthday_pages.fund_id` via la jointure FK, donc la cagnotte créée à l'étape 2 de l'onboarding (`FundPickerModal`) **n'est jamais rattachée** à la page.
+D'où le 404 affiché dans WhatsApp après clic.
 
-**Cause** : aucun code (front ni edge function) ne fait `UPDATE birthday_pages SET fund_id = ?` après création de la cagnotte. Recherche `\.update\(\{[^}]*fund_id` → 0 match.
+### Problème 2 — Visibilité onboarding utilisateurs
 
-### Question 1 : pages affichées trop tôt
-
-Le feed (`usePagesFeed.ts` ligne 68) filtre uniquement `is_active = true`. Or `birthday_pages` est créée avec `is_active=true` à **trois endroits différents**, dont **deux automatiques avant validation onboarding** :
-
-| Source | Quand | `is_active` initial |
-|---|---|---|
-| `Dashboard.tsx:218-263` (auto-create silencieux) | Dès l'arrivée sur le Dashboard | ✅ true |
-| `birthday-wishes` edge function (cron) | J-3 anniversaire | ✅ true |
-| `OnboardingExperience.tsx:483` (étape 6 « Créer ma page ») | Action explicite utilisateur | ✅ true |
-
-Résultat : la page apparaît dans le fil **avant** que l'utilisateur ait validé l'étape 6 — exactement ce qu'on veut éviter.
+État actuel : la table `profiles` stocke `onboarding_completed` (bool) + `onboarding_furthest_step` (0–6), mais :
+- **38 utilisateurs sont bloqués** (DB) : 23 à l'étape 2 (Goûts), 13 à l'étape 1 (Anniv), 2 ailleurs.
+- Aucune page admin ne montre **où** chaque utilisateur s'est arrêté ni **quels champs** lui manquent.
+- `ProfileCompletionDashboard` existe mais n'analyse que la complétion du **profil** (avatar, bio, ville…), pas la **progression onboarding** (anniv → goûts → souhaits → amis → page → partages).
 
 ## Plan
 
-### Correctif 1 — Cacher la page du fil tant que « Créer ma page » n'est pas validée
+### Correctif 1 — Créer la fiche cagnotte admin `/admin/funds/:fundId`
 
-**Approche** : ajouter une colonne `published_at TIMESTAMPTZ` à `birthday_pages` (NULL = brouillon, non publié). Le fil filtre `published_at IS NOT NULL`.
+**Nouvelle route** dans `App.tsx` : `/admin/funds/:fundId` → nouveau composant `AdminFundDetail`.
 
-**Migration**
-```sql
-ALTER TABLE birthday_pages ADD COLUMN published_at timestamptz;
--- Backfill : pages déjà visibles dans le fil restent visibles
-UPDATE birthday_pages SET published_at = created_at 
-  WHERE is_active = true AND published_at IS NULL;
-CREATE INDEX idx_birthday_pages_published ON birthday_pages(published_at) 
-  WHERE published_at IS NOT NULL;
+**Nouvelle page** `src/pages/Admin/AdminFundDetail.tsx` :
+- Charge `collective_funds` + créateur (profil) + bénéficiaire (contact) + contributions (`fund_contributions` joint à profils contributeurs) + business associé si applicable.
+- Affiche : titre, occasion, montants (objectif / collecté / restant), barre de progression, deadline, statut, créateur (nom + pays + tel), bénéficiaire, message surprise, share_token, liste des contributeurs avec montants/dates/messages.
+- Actions admin (selon permissions) : voir page publique `/f/:share_token`, marquer note interne, contacter créateur (WhatsApp), historique notifications envoyées (`whatsapp_template_logs` filtré sur fund_id).
+- Filtrage régional : un regional_admin ne voit que les funds de ses pays affectés (réutilise `useAdmin().canAccessCountry`). Sinon redirect vers `/admin/countries`.
+
+**Aucune migration nécessaire** : tout existe déjà côté DB.
+
+**Bonus** : ajouter dans `CountryFundsPage` un lien `Voir la fiche` qui navigue vers `/admin/funds/:id` (cohérence UX).
+
+### Correctif 2 — Tableau de bord "Progression Onboarding" `/admin/onboarding`
+
+**Nouvelle entrée sidebar** (`AdminLayout.tsx`, juste sous "Complétion Profils") : `Onboarding` (icône `ListChecks`).
+
+**Nouvelle page** `src/pages/Admin/OnboardingProgressDashboard.tsx` :
+
+**KPIs en haut** (cartes) :
+- Total utilisateurs / Onboarding terminé / En cours / Abandonnés (>7j sans progression)
+- Taux de complétion global + par étape (entonnoir)
+
+**Entonnoir 6 étapes** (visualisation) :
+```text
+Étape 1 Anniv     ████████████████ 1042
+Étape 2 Goûts     ███████████████  1019
+Étape 3 Souhaits  ██████████████   980
+Étape 4 Amis      ████████████     850
+Étape 5 Page      ███████████      810
+Étape 6 Partages  ██████████       760  → terminés
 ```
+Chaque barre cliquable → filtre la liste sur les utilisateurs bloqués à cette étape.
 
-**Code**
-- `Dashboard.tsx:247-263` — INSERT sans `published_at` (reste brouillon, accessible via lien direct mais invisible dans le fil).
-- `birthday-wishes/index.ts:612` — INSERT cron : ne pas publier (l'utilisateur valide depuis l'onboarding).
-- `OnboardingExperience.tsx:483` (`handleCreateBirthdayPage`) — INSERT **avec** `published_at: new Date().toISOString()` car c'est l'action explicite « Créer ma page » à l'étape 6.
-- Si la page existe déjà (cas `existing`), faire un `UPDATE birthday_pages SET published_at = now() WHERE id = ? AND published_at IS NULL` pour la publier rétroactivement.
-- `usePagesFeed.ts:68` — ajouter `.not('published_at', 'is', null)` au filtre birthday.
+**Tableau utilisateurs** :
+- Colonnes : Nom complet, Téléphone, Email, Ville, Pays, Date inscription, **Étape atteinte** (badge), **Étape bloquante** (badge rouge), Dernière activité, Actions.
+- Calcul de l'étape réelle via la même logique que `useOnboarding.fetchOnboardingStatus` (côté hook React Query) ou via une nouvelle Edge function `admin-onboarding-progress` qui fait l'agrégation côté serveur (plus rapide pour 1000+ users).
+- Filtres : étape bloquante (1–6), pays, période d'inscription, recherche nom/tel/email.
+- Actions par ligne : 
+  - **Relancer** (envoie un WhatsApp template `joiedevivre_onboarding_reminder` — à créer côté Meta plus tard, en attendant utilise `joiedevivre_join_reminder`)
+  - **Voir profil** → `/admin/users` filtré
+  - **Affecter à un admin** (réutilise modal existant)
+- Export CSV pour relances marketing offline.
 
-### Correctif 2 — Rattacher la cagnotte à la page après création
+**Filtrage régional** : regional_admins voient uniquement leurs pays affectés (utilise `getAccessibleCountries`).
 
-**Code**
-- `OnboardingExperience.tsx` — dans `checkFundExists` (ligne 516) : quand un fund est détecté, faire :
-  ```ts
-  if (birthdayPageId && data.id) {
-    await supabase.from('birthday_pages')
-      .update({ fund_id: data.id })
-      .eq('id', birthdayPageId)
-      .is('fund_id', null);
-  }
-  ```
-- Idem dans le `useEffect` de chargement initial (ligne 187) : si `pageRes.data` ET `fundRes.data` existent ET que la page n'a pas de `fund_id`, faire le rattachement (réparation rétroactive).
-- Déclencher `window.dispatchEvent(new Event('feed-refresh'))` après le rattachement pour rafraîchir la carte avec la cagnotte visible.
+**Optimisation** : nouvelle Edge function `admin-onboarding-progress` (GET, JWT super_admin/regional) qui :
+1. Charge tous les profils (filtrés par pays si regional)
+2. Pour chaque user, calcule le statut onboarding en batch (1 requête par table : favorites, friend_circles, birthday_pages, funds, shares)
+3. Retourne `{ users: [...], stats: { byStep: {...}, total, completed } }`
+4. Cache 5 min côté React Query.
 
-**Backfill rétroactif** (migration)
-```sql
-UPDATE birthday_pages bp
-SET fund_id = cf.id
-FROM collective_funds cf
-WHERE bp.fund_id IS NULL
-  AND cf.creator_id = bp.user_id
-  AND cf.occasion = 'birthday'
-  AND cf.status = 'active'
-  AND cf.deadline_date >= now();
-```
+**Petit fix DB** (migration légère) : arrêter de réinitialiser `onboarding_furthest_step` à 0 quand `onboarding_completed=true`. Conserver la valeur `6` pour pouvoir faire des stats historiques. Backfill : `UPDATE profiles SET onboarding_furthest_step = 6 WHERE onboarding_completed = true AND onboarding_furthest_step = 0;`
 
-### Mémoire à mettre à jour
+### Mémoires à mettre à jour
 
-`mem://features/birthday-pages/lifecycle-and-visibility` : préciser le nouveau contrat — `is_active=true` rend la page accessible par lien direct, mais seul `published_at IS NOT NULL` la fait apparaître dans le fil. Publication uniquement via l'action explicite « Créer ma page » (onboarding étape 6 ou bouton équivalent). La cagnotte créée à l'étape 2 est automatiquement rattachée à la page via `birthday_pages.fund_id`.
+- `mem://auth/onboarding-experience-and-logic` : ajouter section "Visibilité admin" → page `/admin/onboarding` avec entonnoir + relances ciblées.
+- Nouvelle entrée `mem://admin/fund-detail-page` : décrire `/admin/funds/:fundId` comme cible de notification template + composant Edge fund detail.
 
-## Résultat
+## Résultat attendu
 
-1. ✅ La page de l'utilisateur n'apparaît dans le fil que lorsque l'étape 6 « Créer ma page » est validée.
-2. ✅ La cagnotte initiée par l'utilisateur s'affiche bien sur sa carte dans le fil dès la publication (et rétroactivement pour les pages déjà publiées).
+1. ✅ Le bouton WhatsApp "Ouvrir le dashboard" ouvre la fiche détaillée de la cagnotte concernée (plus de 404).
+2. ✅ Les admins disposent d'un tableau de bord clair montrant **où** chaque utilisateur est bloqué dans l'onboarding, avec actions ciblées (relance, affectation, contact direct) pour pousser à la finalisation.
 
