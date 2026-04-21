@@ -212,6 +212,15 @@ export const OnboardingExperience = ({
         setHasFund(true);
         setFundId(fundRes.data.id);
       }
+      // Retroactive linking: if both page + fund exist but page has no fund_id, link them
+      if (pageRes.data?.id && fundRes.data?.id) {
+        await supabase
+          .from('birthday_pages')
+          .update({ fund_id: fundRes.data.id })
+          .eq('id', pageRes.data.id)
+          .is('fund_id', null);
+        window.dispatchEvent(new Event('feed-refresh'));
+      }
       // Load share count from DB
       const { count } = await supabase
         .from('onboarding_shares')
@@ -544,12 +553,21 @@ export const OnboardingExperience = ({
     if (data) {
       setFundId(data.id);
       setHasFund(true);
+      // Link fund to birthday page if page exists
+      if (birthdayPageId) {
+        await supabase
+          .from('birthday_pages')
+          .update({ fund_id: data.id })
+          .eq('id', birthdayPageId)
+          .is('fund_id', null);
+        window.dispatchEvent(new Event('feed-refresh'));
+      }
       confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
       toast.success('Cagnotte créée ! 🎉');
       return true;
     }
     return false;
-  }, [user]);
+  }, [user, birthdayPageId]);
 
   // Handle fund picker modal close — start polling for real fund
   const handleFundPickerClose = useCallback(() => {
