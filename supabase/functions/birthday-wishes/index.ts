@@ -604,6 +604,7 @@ serve(async (req) => {
               celebration_year: currentYear,
               title: age ? `${age} ans de ${user.first_name || 'Ami(e)'}` : `Anniversaire de ${user.first_name || 'Ami(e)'}`,
               fund_id: activeFund?.id || null,
+              published_at: null,
             });
 
           if (pageError && pageError.code === '23505') {
@@ -615,6 +616,7 @@ serve(async (req) => {
               celebration_year: currentYear,
               title: age ? `${age} ans de ${user.first_name || 'Ami(e)'}` : `Anniversaire de ${user.first_name || 'Ami(e)'}`,
               fund_id: activeFund?.id || null,
+              published_at: null,
             });
           }
 

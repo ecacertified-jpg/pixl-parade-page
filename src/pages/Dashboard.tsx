@@ -246,7 +246,7 @@ export default function Dashboard() {
 
       const { data, error } = await supabase
         .from('birthday_pages')
-        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true })
+        .insert({ user_id: user.id, slug, title, celebration_year: currentYear, is_active: true, published_at: null })
         .select('slug')
         .single();
 
@@ -254,7 +254,7 @@ export default function Dashboard() {
         const fallbackSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
         const { data: d2 } = await supabase
           .from('birthday_pages')
-          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true })
+          .insert({ user_id: user.id, slug: fallbackSlug, title, celebration_year: currentYear, is_active: true, published_at: null })
           .select('slug')
           .single();
         if (d2) setBirthdayPageSlug(d2.slug);

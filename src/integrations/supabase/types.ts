@@ -1046,6 +1046,7 @@ export type Database = {
           fund_id: string | null
           id: string
           is_active: boolean
+          published_at: string | null
           slug: string
           title: string
           user_id: string
@@ -1057,6 +1058,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_active?: boolean
+          published_at?: string | null
           slug: string
           title: string
           user_id: string
@@ -1068,6 +1070,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_active?: boolean
+          published_at?: string | null
           slug?: string
           title?: string
           user_id?: string
