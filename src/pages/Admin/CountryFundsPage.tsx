@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, RefreshCw, Gift, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -328,6 +329,16 @@ export default function CountryFundsPage() {
                             <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground whitespace-nowrap">{formatDate(fund.created_at)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => navigate(`/admin/funds/${fund.id}`)}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Fiche
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       );
                     })

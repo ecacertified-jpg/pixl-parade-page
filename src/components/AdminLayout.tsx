@@ -31,7 +31,8 @@ import {
   Rocket,
   MessageSquare,
   Cake,
-  Bot
+  Bot,
+  ListChecks
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,6 +68,7 @@ const navItems: NavItem[] = [
   { title: 'Corbeille Clients', href: '/admin/deleted-clients', icon: UserMinus, requiresSuperAdmin: true },
   { title: 'Doublons', href: '/admin/duplicates', icon: Copy, requiresSuperAdmin: true },
   { title: 'Complétion Profils', href: '/admin/profile-completion', icon: UserCircle },
+  { title: 'Onboarding', href: '/admin/onboarding', icon: ListChecks },
   { title: 'Prestataires', href: '/admin/businesses', icon: Store },
   { title: 'Corbeille Business', href: '/admin/deleted-businesses', icon: Trash2, requiresSuperAdmin: true },
   { title: 'Stats Business', href: '/admin/business-analytics', icon: TrendingUp },
