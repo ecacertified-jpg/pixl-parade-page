@@ -66,6 +66,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
           .eq('is_active', true)
+          .not('published_at', 'is', null)
           .order('created_at', { ascending: false })
           .limit(200),
         supabase

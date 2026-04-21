@@ -477,6 +477,23 @@ export const OnboardingExperience = ({
       if (existing) {
         setHasBirthdayPage(true);
         setBirthdayPageSlug(existing.slug);
+        setBirthdayPageId(existing.id);
+        // Publish retroactively if it was a draft
+        await supabase
+          .from('birthday_pages')
+          .update({ published_at: new Date().toISOString() })
+          .eq('id', existing.id)
+          .is('published_at', null);
+        // Link fund if present and not yet linked
+        if (fundId) {
+          await supabase
+            .from('birthday_pages')
+            .update({ fund_id: fundId })
+            .eq('id', existing.id)
+            .is('fund_id', null);
+        }
+        confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 }, colors: ['#a855f7', '#ec4899', '#f97316', '#22c55e'] });
+        window.dispatchEvent(new Event('feed-refresh'));
         return;
       }
 
@@ -488,6 +505,8 @@ export const OnboardingExperience = ({
           title: `Anniversaire de ${firstName || 'mon ami(e)'}`,
           celebration_year: currentYear,
           is_active: true,
+          published_at: new Date().toISOString(),
+          fund_id: fundId || null,
         })
         .select('id, slug')
         .single();
