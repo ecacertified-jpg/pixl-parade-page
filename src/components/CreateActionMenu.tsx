@@ -69,6 +69,18 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
 
   const menuItems = [
     {
+      icon: Cake,
+      label: "Ma page d'anniversaire",
+      description: 'Crée et complète ta page en 6 étapes',
+      color: 'text-pink-500',
+      badge: bpStatus
+        ? bpStatus.completedCount === bpStatus.totalCount
+          ? '✅ Complète'
+          : `${bpStatus.completedCount} / ${bpStatus.totalCount}`
+        : 'Nouveau',
+      action: () => handleAction(() => setIsBirthdayBuilderOpen(true)),
+    },
+    {
       icon: FileText,
       label: 'Nouvelle publication',
       description: 'Partagez vos pensées',
