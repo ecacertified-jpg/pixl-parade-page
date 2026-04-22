@@ -32,6 +32,7 @@ export interface FeedPage {
   } | null;
   fund_id: string | null;
   is_friend: boolean;
+  published_via_onboarding?: boolean;
 }
 
 export function usePagesFeed(filter: 'all' | 'following' = 'all') {
@@ -61,7 +62,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
         supabase
           .from('birthday_pages')
           .select(`
-            id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id,
+            id, slug, title, cover_image_url, celebration_year, fund_id, created_at, user_id, published_via_onboarding,
             birthday_page_photos ( id, image_url ),
             collective_funds!birthday_pages_fund_id_fkey ( id, target_amount, current_amount, currency, status )
           `)
@@ -157,6 +158,7 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             } : null,
             fund_id: bp.fund_id || null,
             is_friend: isFriend,
+            published_via_onboarding: !!(bp as any).published_via_onboarding,
           });
         }
       }
@@ -208,15 +210,20 @@ export function usePagesFeed(filter: 'all' | 'following' = 'all') {
             } : null,
             fund_id: ep.fund_id || null,
             is_friend: isFriend,
+            published_via_onboarding: false,
           });
         }
       }
 
-      // Sort: own pages first, then pages with content, then by date
+      // Sort: own pages first, then onboarding-published, then with content, then by date
       feedPages.sort((a, b) => {
         const aIsOwn = user?.id && a.creator.user_id === user.id ? 1 : 0;
         const bIsOwn = user?.id && b.creator.user_id === user.id ? 1 : 0;
         if (bIsOwn !== aIsOwn) return bIsOwn - aIsOwn;
+
+        const aOnboard = (a as any).published_via_onboarding ? 1 : 0;
+        const bOnboard = (b as any).published_via_onboarding ? 1 : 0;
+        if (bOnboard !== aOnboard) return bOnboard - aOnboard;
 
         const aHasContent = (a.album_count > 0 || a.cover_image_url || a.fund) ? 1 : 0;
         const bHasContent = (b.album_count > 0 || b.cover_image_url || b.fund) ? 1 : 0;

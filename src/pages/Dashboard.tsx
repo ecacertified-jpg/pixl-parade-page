@@ -217,12 +217,14 @@ export default function Dashboard() {
     }
     const fetchOrCreateBirthdayPage = async () => {
       const currentYear = new Date().getFullYear();
+      // Look for ANY existing page (active or not) for this user/year to avoid duplicates
       const { data: existing } = await supabase
         .from('birthday_pages')
-        .select('slug')
+        .select('slug, is_active')
         .eq('user_id', user.id)
         .eq('celebration_year', currentYear)
-        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       if (existing?.slug) {
