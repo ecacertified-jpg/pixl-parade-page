@@ -1047,6 +1047,7 @@ export type Database = {
           id: string
           is_active: boolean
           published_at: string | null
+          published_via_onboarding: boolean
           slug: string
           title: string
           user_id: string
@@ -1059,6 +1060,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           published_at?: string | null
+          published_via_onboarding?: boolean
           slug: string
           title: string
           user_id: string
@@ -1071,6 +1073,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           published_at?: string | null
+          published_via_onboarding?: boolean
           slug?: string
           title?: string
           user_id?: string

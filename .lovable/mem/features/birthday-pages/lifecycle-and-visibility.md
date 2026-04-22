@@ -7,9 +7,13 @@ Une page `birthday_pages` peut exister sans être visible dans le fil d'actualit
 
 **Champ `is_active`** : la page est accessible via lien direct (`/birthday/:slug`) — auto-créée par `Dashboard.tsx`, le cron `birthday-wishes` (J-3) et l'onboarding étape 6.
 
-**Champ `published_at`** (NOUVEAU) : NULL = brouillon (invisible dans le fil), TIMESTAMPTZ = publiée (visible dans le fil). Le hook `usePagesFeed.ts` filtre `is_active=true AND published_at IS NOT NULL`.
+**Champ `published_at`** : NULL = brouillon (invisible dans le fil), TIMESTAMPTZ = publiée (visible dans le fil). Le hook `usePagesFeed.ts` filtre `is_active=true AND published_at IS NOT NULL`.
 
-**Publication** : uniquement via l'action explicite « Créer ma page » (étape 6 onboarding, `handleCreateBirthdayPage`). Si la page existe déjà en brouillon, elle est publiée rétroactivement (`UPDATE published_at = now() WHERE published_at IS NULL`).
+**Champ `published_via_onboarding`** (boolean, default false) : true uniquement quand la publication provient explicitement de l'action « Créer ma page » (étape 6). Utilisé par `usePagesFeed.ts` pour trier ces pages **prioritairement** dans le fil (juste après les pages de l'utilisateur connecté). Le backfill historique (`is_active AND no content`) a été nettoyé pour éviter les doublons fantômes.
+
+**Publication** : uniquement via l'action explicite « Créer ma page » (étape 6 onboarding, `handleCreateBirthdayPage`) qui pose simultanément `published_at = now()` et `published_via_onboarding = true`. Si la page existe déjà en brouillon, elle est publiée rétroactivement avec ces deux flags.
+
+**Anti-doublons** : index unique partiel `idx_birthday_pages_user_year_active ON birthday_pages (user_id, celebration_year) WHERE is_active = true`. `Dashboard.tsx` et `birthday-wishes` (cron J-3) recherchent désormais TOUTE page existante (active ou non, brouillon ou publiée) pour `user_id + celebration_year` avant tout INSERT, et la réutilisent.
 
 **Rattachement cagnotte → page** : la cagnotte créée à l'étape 2 (`FundPickerModal`) est automatiquement liée à la page via `birthday_pages.fund_id` :
 - À la création de la page (étape 6) : `fund_id` est inséré directement si déjà connu.

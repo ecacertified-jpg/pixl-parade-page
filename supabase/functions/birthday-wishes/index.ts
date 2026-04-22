@@ -577,12 +577,27 @@ serve(async (req) => {
         const firstName4Slug = (user.first_name || 'ami').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
         let pageSlug = `${firstName4Slug}-${currentYear}`;
         
-        // Check if slug exists
+        // Check if a page already exists for this user/year (avoid duplicates)
+        const { data: existingForUser } = await supabase
+          .from('birthday_pages')
+          .select('id, slug')
+          .eq('user_id', user.user_id)
+          .eq('celebration_year', currentYear)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingForUser?.slug) {
+          console.log(`🎂 Reusing existing birthday page: /birthday/${existingForUser.slug}`);
+          continue;
+        }
+
+        // Check if slug exists (different user)
         const { data: existingPage } = await supabase
           .from('birthday_pages')
           .select('id')
           .eq('slug', pageSlug)
-          .single();
+          .maybeSingle();
 
         if (!existingPage) {
           // Find active fund for this user

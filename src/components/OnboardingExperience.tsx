@@ -487,12 +487,14 @@ export const OnboardingExperience = ({
         setHasBirthdayPage(true);
         setBirthdayPageSlug(existing.slug);
         setBirthdayPageId(existing.id);
-        // Publish retroactively if it was a draft
+        // Publish retroactively if it was a draft + mark as onboarding-published
         await supabase
           .from('birthday_pages')
-          .update({ published_at: new Date().toISOString() })
-          .eq('id', existing.id)
-          .is('published_at', null);
+          .update({
+            published_at: new Date().toISOString(),
+            published_via_onboarding: true,
+          })
+          .eq('id', existing.id);
         // Link fund if present and not yet linked
         if (fundId) {
           await supabase
@@ -515,6 +517,7 @@ export const OnboardingExperience = ({
           celebration_year: currentYear,
           is_active: true,
           published_at: new Date().toISOString(),
+          published_via_onboarding: true,
           fund_id: fundId || null,
         })
         .select('id, slug')
