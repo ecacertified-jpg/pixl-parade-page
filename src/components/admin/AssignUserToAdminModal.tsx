@@ -7,9 +7,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, ShieldCheck, Globe, Users as UsersIcon, AlertTriangle } from 'lucide-react';
+import { Loader2, ShieldCheck, Globe, Users as UsersIcon, AlertTriangle, Search, ChevronDown } from 'lucide-react';
 
 interface AssignUserToAdminModalProps {
   open: boolean;
@@ -64,6 +65,7 @@ export function AssignUserToAdminModal({
   const [selectedAdminId, setSelectedAdminId] = useState<string>('');
   const [conflicts, setConflicts] = useState<Array<{ id: string; assigned_to: string }>>([]);
   const [pendingReassign, setPendingReassign] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -71,6 +73,7 @@ export function AssignUserToAdminModal({
       setSelectedAdminId('');
       setConflicts([]);
       setPendingReassign(false);
+      setSearch('');
     }
   }, [open]);
 
@@ -80,7 +83,9 @@ export function AssignUserToAdminModal({
       const { data, error } = await supabase.functions.invoke('admin-list-admins', { method: 'GET' });
       if (error) throw error;
       const list: AdminListItem[] = (data?.data || [])
-        .filter((a: AdminListItem) => a.is_active && a.role !== 'super_admin');
+        .filter((a: AdminListItem) => a.is_active && a.role !== 'super_admin')
+        // Sort by load: least-loaded first to balance assignments
+        .sort((a: AdminListItem, b: AdminListItem) => (a.stats?.users || 0) - (b.stats?.users || 0));
       setAdmins(list);
     } catch (err) {
       console.error('Error loading admins:', err);
