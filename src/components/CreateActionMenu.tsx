@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText, Gift, Camera, UserPlus, Calendar } from 'lucide-react';
+import { Plus, FileText, Gift, Camera, UserPlus, Calendar, Cake } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sheet,
@@ -14,10 +14,12 @@ import { InviteFriendsModal } from '@/components/InviteFriendsModal';
 import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
 import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { AddEventModal } from '@/components/AddEventModal';
+import { BirthdayPageBuilderModal } from '@/components/BirthdayPageBuilderModal';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
 import { useToast } from '@/hooks/use-toast';
 import { Event } from '@/components/AddEventModal';
+import { useBirthdayPageBuilderStatus } from '@/hooks/useBirthdayPageBuilderStatus';
 
 interface CreateActionMenuProps {
   children: React.ReactNode;
@@ -32,8 +34,10 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const [isShopModalOpen, setIsShopModalOpen] = useState(false);
   const [isSearchFundsModalOpen, setIsSearchFundsModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isBirthdayBuilderOpen, setIsBirthdayBuilderOpen] = useState(false);
   const { context } = useUserContext();
   const { toast } = useToast();
+  const { status: bpStatus } = useBirthdayPageBuilderStatus();
 
   const handleAction = (action: () => void) => {
     setIsOpen(false);
