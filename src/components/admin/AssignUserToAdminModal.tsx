@@ -171,6 +171,14 @@ export function AssignUserToAdminModal({
 
   const isBatch = userIds.length > 1;
 
+  const filteredAdmins = admins.filter(a => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const name = adminName(a).toLowerCase();
+    const countries = (a.assigned_countries || []).join(' ').toLowerCase();
+    return name.includes(q) || countries.includes(q) || a.profiles.email?.toLowerCase().includes(q);
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
@@ -207,9 +215,30 @@ export function AssignUserToAdminModal({
             Aucun admin éligible (régional ou modérateur) trouvé.
           </div>
         ) : (
-          <ScrollArea className="flex-1 max-h-[420px] -mx-2 px-2">
-            <RadioGroup value={selectedAdminId} onValueChange={setSelectedAdminId} className="space-y-2">
-              {admins.map((a) => (
+          <div className="flex flex-col gap-2 flex-1 min-h-0">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {filteredAdmins.length} / {admins.length} admin{admins.length > 1 ? 's' : ''} disponible{admins.length > 1 ? 's' : ''}
+              </span>
+              <span className="italic">Triés par charge croissante</span>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher par nom, email ou pays…"
+                className="pl-9"
+              />
+            </div>
+            <div className="relative flex-1 min-h-0">
+              <ScrollArea className="h-full max-h-[55vh] -mx-2 px-2">
+                <RadioGroup value={selectedAdminId} onValueChange={setSelectedAdminId} className="space-y-2 pb-6">
+                  {filteredAdmins.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      Aucun admin ne correspond à « {search} »
+                    </div>
+                  ) : filteredAdmins.map((a) => (
                 <Label
                   key={a.id}
                   htmlFor={`admin-${a.id}`}
@@ -244,9 +273,19 @@ export function AssignUserToAdminModal({
                     </div>
                   </div>
                 </Label>
-              ))}
-            </RadioGroup>
-          </ScrollArea>
+                  ))}
+                </RadioGroup>
+              </ScrollArea>
+              {filteredAdmins.length > 4 && (
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-background to-transparent flex items-end justify-center pb-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 bg-background/80 px-2 py-0.5 rounded-full">
+                    <ChevronDown className="h-3 w-3 animate-bounce" />
+                    Faites défiler pour voir tous les admins
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         <DialogFooter className="mt-4">
