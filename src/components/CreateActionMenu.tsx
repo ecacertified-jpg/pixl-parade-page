@@ -190,6 +190,10 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
         onClose={() => setIsEventModalOpen(false)}
         onAddEvent={handleAddEvent}
       />
+      <BirthdayPageBuilderModal
+        open={isBirthdayBuilderOpen}
+        onOpenChange={setIsBirthdayBuilderOpen}
+      />
     </>
   );
 }
