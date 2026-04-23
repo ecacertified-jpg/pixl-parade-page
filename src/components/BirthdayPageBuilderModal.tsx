@@ -200,7 +200,9 @@ export function BirthdayPageBuilderModal({
         .eq('celebration_year', currentYear)
         .maybeSingle();
 
+      let pageId: string | null = null;
       if (existing) {
+        pageId = existing.id;
         await supabase
           .from('birthday_pages')
           .update({
@@ -210,7 +212,7 @@ export function BirthdayPageBuilderModal({
           })
           .eq('id', existing.id);
       } else {
-        const { error } = await supabase.from('birthday_pages').insert({
+        const { data: inserted, error } = await supabase.from('birthday_pages').insert({
           user_id: user.id,
           slug,
           title: `Anniversaire de ${firstName}`,
@@ -219,11 +221,29 @@ export function BirthdayPageBuilderModal({
           published_at: new Date().toISOString(),
           published_via_onboarding: true,
           fund_id: status?.fundId || null,
-        });
+        }).select('id').single();
         if (error) {
           console.error('Publish page error:', error);
           toast.error('Erreur lors de la publication');
           return;
+        }
+        pageId = inserted?.id ?? null;
+      }
+
+      // Sync friends selected in localStorage to birthday_page_friends
+      if (pageId) {
+        const localFriends = getStoredFriendSelection(user.id);
+        if (localFriends.length > 0) {
+          await supabase
+            .from('birthday_page_friends')
+            .delete()
+            .eq('page_id', pageId);
+          const rows = localFriends.map((cid) => ({
+            page_id: pageId!,
+            contact_id: cid,
+            added_by: user.id,
+          }));
+          await supabase.from('birthday_page_friends').insert(rows);
         }
       }
 
