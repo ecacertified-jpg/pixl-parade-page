@@ -593,57 +593,55 @@ function StepCard({
   return (
     <Card
       className={cn(
-        'p-3 flex items-center gap-3 transition-all',
+        'p-3 transition-all',
         done
           ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40'
           : 'border-border/50',
       )}
     >
-      <div
-        className={cn(
-          'h-10 w-10 shrink-0 rounded-full flex items-center justify-center font-semibold text-sm',
-          done
-            ? 'bg-green-500 text-white'
-            : 'bg-muted text-muted-foreground',
-        )}
-      >
-        {done ? <Check className="h-5 w-5" /> : index}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Icon
-            className={cn(
-              'h-4 w-4 shrink-0',
-              done ? 'text-green-600' : 'text-primary',
-            )}
-          />
-          <span className="font-medium text-sm text-foreground truncate">
-            {title}
-          </span>
-          {done && (
-            <Badge
-              variant="secondary"
-              className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-            >
-              ✅ Fait
-            </Badge>
+      {/* Row 1: pastille + icon + title + status badge */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className={cn(
+            'h-8 w-8 shrink-0 rounded-full flex items-center justify-center font-semibold text-xs',
+            done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
           )}
-          {!done && progressLabel && (
-            <Badge variant="outline" className="text-[10px]">
-              {progressLabel}
-            </Badge>
-          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : index}
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-          {description}
-        </p>
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            done ? 'text-green-600' : 'text-primary',
+          )}
+        />
+        <span className="font-medium text-sm text-foreground flex-1 min-w-0 truncate">
+          {title}
+        </span>
+        {done ? (
+          <Badge
+            variant="secondary"
+            className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 shrink-0"
+          >
+            ✅ Fait
+          </Badge>
+        ) : progressLabel ? (
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            {progressLabel}
+          </Badge>
+        ) : null}
       </div>
 
+      {/* Row 2: description */}
+      <p className="text-xs text-muted-foreground mt-1.5 ml-[42px] line-clamp-2">
+        {description}
+      </p>
+
+      {/* Row 3: full-width CTA */}
       <Button
         size="sm"
         variant={done ? 'outline' : 'default'}
-        className="shrink-0"
+        className="w-full mt-2.5 h-9"
         onClick={onClick}
         disabled={disabled || loading}
       >
@@ -652,7 +650,7 @@ function StepCard({
         ) : (
           <>
             {cta}
-            <ChevronRight className="h-3 w-3 ml-1" />
+            <ChevronRight className="h-3.5 w-3.5 ml-1" />
           </>
         )}
       </Button>
