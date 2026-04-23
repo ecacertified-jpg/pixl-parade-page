@@ -80,11 +80,12 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold truncate">{creatorName}</p>
+          <p className="text-sm font-semibold truncate">{creatorName}</p>
+          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+            <p className="text-xs text-muted-foreground">{formatRelativeDate(page.created_at)}</p>
             {isOwnPage && (
-              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-primary/15 text-primary border-primary/30 gap-0.5">
-                <Star className="h-2.5 w-2.5 fill-primary" />
+              <Badge className="text-[10px] px-1.5 py-0 h-4 bg-primary text-primary-foreground border-transparent gap-0.5">
+                <Star className="h-2.5 w-2.5 fill-current" />
                 Ma page
               </Badge>
             )}
@@ -94,19 +95,20 @@ export function PageFeedCard({ page, isFollowing, onToggleFollow }: PageFeedCard
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{formatRelativeDate(page.created_at)}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{icon}</span>
-          <Button
-            variant={isFollowing ? "secondary" : "outline"}
-            size="sm"
-            className="h-7 text-xs gap-1 px-2"
-            onClick={(e) => { e.stopPropagation(); onToggleFollow(); }}
-          >
-            {isFollowing ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-            {isFollowing ? 'Suivi' : 'Suivre'}
-          </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-lg hidden sm:inline">{icon}</span>
+          {!isOwnPage && (
+            <Button
+              variant={isFollowing ? "secondary" : "outline"}
+              size="sm"
+              className="h-7 text-xs gap-1 px-2"
+              onClick={(e) => { e.stopPropagation(); onToggleFollow(); }}
+            >
+              {isFollowing ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+              <span className="hidden sm:inline">{isFollowing ? 'Suivi' : 'Suivre'}</span>
+            </Button>
+          )}
         </div>
       </div>
 
