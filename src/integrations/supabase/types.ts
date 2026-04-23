@@ -988,6 +988,55 @@ export type Database = {
         }
         Relationships: []
       }
+      birthday_page_friends: {
+        Row: {
+          added_by: string
+          contact_id: string | null
+          created_at: string
+          friend_user_id: string | null
+          id: string
+          page_id: string
+        }
+        Insert: {
+          added_by: string
+          contact_id?: string | null
+          created_at?: string
+          friend_user_id?: string | null
+          id?: string
+          page_id: string
+        }
+        Update: {
+          added_by?: string
+          contact_id?: string | null
+          created_at?: string
+          friend_user_id?: string | null
+          id?: string
+          page_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_page_friends_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_page_friends_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_limited"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_page_friends_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "birthday_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       birthday_page_photos: {
         Row: {
           birthday_page_id: string
