@@ -292,20 +292,6 @@ export function BirthdayPageBuilderModal({
         disabled: false,
       },
       {
-        key: 'friends',
-        icon: Users,
-        title: 'Compléter mon cercle d\'amis',
-        description: `Ajoute au moins ${s.friends.target} amis à ton cercle`,
-        progressLabel:
-          s.friends.value !== undefined
-            ? `${Math.min(s.friends.value, s.friends.target!)} / ${s.friends.target}`
-            : undefined,
-        done: s.friends.done,
-        cta: s.friends.done ? 'Modifier' : 'Compléter',
-        onClick: handleEditFriends,
-        disabled: false,
-      },
-      {
         key: 'type',
         icon: Tag,
         title: 'Choisir le type de page',
@@ -320,6 +306,22 @@ export function BirthdayPageBuilderModal({
         done: s.type.done,
         cta: s.type.done ? 'Changer' : 'Choisir',
         onClick: () => setShowTypePicker(true),
+        disabled: false,
+      },
+      {
+        key: 'friends',
+        icon: Users,
+        title: 'Associer mes amis à ma page',
+        description: s.friends.done
+          ? `${s.friends.value} ami${(s.friends.value || 0) > 1 ? 's' : ''} associé${(s.friends.value || 0) > 1 ? 's' : ''} — recevront des rappels WhatsApp`
+          : 'Sélectionne les amis qui recevront des rappels WhatsApp pour ton anniv',
+        progressLabel:
+          s.friends.value && s.friends.value > 0
+            ? `${s.friends.value} sélectionné${s.friends.value > 1 ? 's' : ''}`
+            : undefined,
+        done: s.friends.done,
+        cta: s.friends.done ? 'Modifier' : 'Sélectionner',
+        onClick: () => setShowFriendsPicker(true),
         disabled: false,
       },
       {
