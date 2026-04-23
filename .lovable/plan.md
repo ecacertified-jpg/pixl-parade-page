@@ -2,76 +2,140 @@
 
 ## Diagnostic
 
-Le bouton **+** (bottom bar) ouvre `CreateActionMenu.tsx`, un Sheet listant 5 actions. Aujourd'hui il propose "Créer une cagnotte" (qui ouvre `SearchExistingFundsModal`) mais **aucune entrée dédiée à la création/finalisation d'une page d'anniversaire** avec checklist visuelle.
+### Problème 1 — Modal "+" tronqué sur mobile
 
-Tous les éléments nécessaires existent déjà :
-- Pages : `/wishlist-catalog` (souhaits), `/dashboard` section "Mon cercle d'amis", `/event/create?occasion=...` (autre événement)
-- Modaux : `SearchExistingFundsModal` (cotiser pour autre), `WishlistFundPickerModal` (créer cagnotte depuis ses souhaits), `BirthdayPageShareButton` (partage)
-- Logique de création de page : `handleCreateBirthdayPage` dans `OnboardingExperience.tsx` (à factoriser)
-- Données de progression : table `birthday_pages` (existence, `published_at`, `published_via_onboarding`), `user_favorites` (souhaits), `friend_circle_members` (cercle), `collective_funds` (cagnotte birthday active), `onboarding_shares` (partages)
+Sur mobile (922×628 visible dans l'aperçu), le `BirthdayPageBuilderModal` utilise `h-[92vh]` mais :
+- `StepCard` utilise `flex items-center gap-3` avec un bouton CTA (`Modifier`, `Compléter`...) à droite **non `shrink`** → le label du bouton est coupé (visible sur la capture : "Modifie...", "Compléte...", "Choisi...", "Cré...").
+- L'icône thématique (Heart/Users/Tag/Gift) est sur la même ligne que le titre, ce qui pousse le titre et fait revenir à la ligne.
+- Pas assez de padding bas → la dernière carte (étape 6) est masquée par la barre système.
+
+### Problème 2 — Réorganisation des étapes + nouvelle étape "Associer mes amis"
+
+Ordre demandé :
+1. Modifier ma liste de souhaits
+2. Choisir le type de page
+3. **Associer mes amis à ma page** (nouvelle logique : sélection multiple depuis le cercle d'amis, avec note explicative "WhatsApp + rappels")
+4. Créer la cagnotte
+5. Publier la page (+ visible dans fil & profil)
+6. Partager ma page
+
+L'étape 3 actuelle ("Compléter mon cercle d'amis" basée sur `friend_circle_members ≥ 3`) est **remplacée** par une vraie association amis ↔ page. Aujourd'hui aucune table ne stocke ce lien.
+
+### Problème 3 — Visibilité de la page publiée
+
+La page publiée doit s'afficher :
+- ✅ Déjà dans le fil d'actualités (`usePagesFeed`).
+- ❌ **Pas encore** sur les avatars du profil (carte "Que voulez-vous célébrer aujourd'hui ?", carte d'anniversaire, etc.). À ajouter : un petit badge "Ma page" cliquable sur l'avatar du profil dans `WhatDoYouWantCard.tsx` et tout autre rendu d'avatar du profil utilisateur dans le dashboard.
+
+### Problème 4 — Badge "Ma page" sur la carte d'anniversaire (fil)
+
+Dans `PageFeedCard.tsx` (lignes 82-96), le badge "Ma page" est sur la même ligne que le nom du créateur, et la zone droite contient l'icône emoji + bouton "Suivre". Sur mobile étroit, le `flex` ne wrap pas correctement → le bouton "Suivre" est trop large par rapport à l'espace restant. Le badge "Ma page" peut chevaucher le bouton "Suivre" (visible sur la 2ᵉ capture : badge collé au bord, espace minimal avant "Suivre").
 
 ## Plan
 
-### 1) Nouvelle entrée dans `CreateActionMenu`
+### 1) Nouvelle table `birthday_page_friends` (migration)
 
-Ajouter en **première position** un item :
-- **Icône** : `Cake` (lucide), couleur `text-pink-500`
-- **Label** : "Ma page d'anniversaire"
-- **Description** : "Crée et complète ta page en 6 étapes"
-- **Badge** : `"Nouveau"` si l'utilisateur n'a pas encore de page publiée, sinon nombre d'étapes restantes (ex. `2 / 6`)
-- **Action** : ouvre la nouvelle modale `BirthdayPageBuilderModal`
+```sql
+CREATE TABLE public.birthday_page_friends (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  page_id uuid NOT NULL REFERENCES birthday_pages(id) ON DELETE CASCADE,
+  friend_user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  contact_id uuid REFERENCES contacts(id) ON DELETE CASCADE,
+  added_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT page_friend_unique UNIQUE (page_id, friend_user_id, contact_id),
+  CONSTRAINT friend_or_contact CHECK (friend_user_id IS NOT NULL OR contact_id IS NOT NULL)
+);
 
-### 2) Nouveau composant `BirthdayPageBuilderModal.tsx`
+ALTER TABLE public.birthday_page_friends ENABLE ROW LEVEL SECURITY;
 
-Modale plein écran (Sheet bottom sur mobile, Dialog sur desktop) avec :
+-- Owner only
+CREATE POLICY "Page owner can manage friends"
+ON birthday_page_friends FOR ALL
+USING (EXISTS (SELECT 1 FROM birthday_pages WHERE id = page_id AND user_id = auth.uid()))
+WITH CHECK (added_by = auth.uid());
 
-**Header** : titre "Ma page d'anniversaire", barre de progression Radix `Progress` (X/6), confettis quand 6/6.
+CREATE INDEX idx_bpf_page ON birthday_page_friends(page_id);
+```
 
-**Liste verticale de 6 cartes** (composant interne `StepCard`) — chacune avec :
-- Pastille gauche : `Check` vert sur fond `bg-green-500` si validé, sinon numéro sur fond muted
-- Titre + description courte
-- Bouton d'action (CTA) à droite ; désactivé si étape verrouillée par une dépendance (ex. partage avant publication)
-- État `done` : carte fond `bg-green-50 dark:bg-green-900/20 border-green-200`
-- Badge `✅ Fait` quand validé
+### 2) Refonte de `useBirthdayPageBuilderStatus`
 
-**Les 6 étapes** dans cet ordre :
+Remplacer l'étape `friends` (basée sur `friend_circle_members.count ≥ 3`) par :
+- **Validation** : `birthday_page_friends.count >= 1` pour la page de l'année courante.
+- Si pas encore de page créée (avant étape 5), valider sur `localStorage.bp_friends_${userId}` (tableau d'IDs sélectionnés) `length >= 1`.
+- À la création de la page (étape 5 publish), insérer en batch les amis stockés en localStorage dans `birthday_page_friends`.
 
-| # | Titre | Validation (signal DB) | Action CTA |
-|---|---|---|---|
-| 1 | **Modifier ma liste de souhaits** | `user_favorites.count >= 3` | Navigue vers `/wishlist-catalog` (ferme la modale) |
-| 2 | **Compléter mon cercle d'amis** | `friend_circle_members.count >= 3` (cercles du user) | Navigue vers `/dashboard#cercle` (scroll vers la section "Mon cercle d'amis") |
-| 3 | **Choisir le type de page** | `localStorage.bp_type` ∈ {`self`, `friend`, `other_event`} | Ouvre un sous-écran 3 boutons radio : Pour moi-même / Pour un proche / Autre événement |
-| 4 | **Créer ma cagnotte** | `collective_funds` actif `creator_id=user, occasion='birthday'` (type `self`) **ou** existence d'une cagnotte créée via flow correspondant | Selon choix étape 3 : `self` → `WishlistFundPickerModal` ; `friend`/`other_event` → `SearchExistingFundsModal` |
-| 5 | **Publier ma page** | `birthday_pages` row pour `(user_id, current_year)` avec `published_at IS NOT NULL` ET `published_via_onboarding=true` | Pour `self` : appelle la même logique que `handleCreateBirthdayPage` (UPSERT page + `published_at=now()` + `published_via_onboarding=true` + `fund_id` lié). Pour `friend`/`other_event` : redirect `/event/create?occasion=...` |
-| 6 | **Partager ma page** | `onboarding_shares.count >= 3` pour ce user | Ouvre `BirthdayPageShareButton` (Sheet existante) avec `pageUrl` calculée. Au close, on attend l'incrémentation des shares (déjà gérée ailleurs) |
+L'ordre des steps dans le hook devient :
+```
+{ wishlist, type, friends, fund, publish, share }
+```
 
-**Verrouillage progressif** : étape 5 nécessite étapes 3 ; étape 6 nécessite étape 5. Les autres restent toujours accessibles (l'utilisateur peut compléter dans n'importe quel ordre).
+### 3) Nouveau sous-composant `BirthdayPageFriendsPicker.tsx`
 
-### 3) Nouveau hook `useBirthdayPageBuilderStatus`
+Sub-Sheet dans `BirthdayPageBuilderModal` ouverte par l'étape 3 :
 
-Charge en parallèle (similaire à `useOnboarding`) :
-- `user_favorites` count
-- `friend_circles` du user → puis `friend_circle_members` count
-- `birthday_pages` (slug, published_at, published_via_onboarding) pour année courante
-- `collective_funds` active birthday du user
-- `onboarding_shares` count
+**Header** : "Associer mes amis à ma page"
 
-Renvoie `{ steps: { wishlist, friends, type, fund, publish, share }, isLoading, refetch }` chaque entrée typée `{ done: boolean, value?: number, target?: number }`. Type de page lu/écrit via `localStorage.bp_type_${userId}`.
+**Bandeau info** (Card jaune avec icône Info) :
+> "Les amis associés recevront automatiquement une notification WhatsApp pour ton anniversaire et des rappels J-7, J-3 et le jour J."
 
-Utilise `useQuery` (key `['bp-builder', userId]`, staleTime 30s) ; refetch automatique après chaque action via `queryClient.invalidateQueries` et listener `feed-refresh`.
+**Recherche** : input pour filtrer.
 
-### 4) Pas de migration DB
+**Liste** : tous les contacts du user (table `contacts`) + membres de son cercle d'amis. Chaque ligne avec checkbox, avatar, nom, badge si "WhatsApp activé". Sélection multiple → stockée en localStorage `bp_friends_${userId}` puis copiée dans `birthday_page_friends` à la publication.
 
-Toutes les colonnes requises existent (`published_via_onboarding`, `published_at`, `onboarding_shares`, etc.).
+**Footer** : bouton "Enregistrer (X sélectionnés)".
 
-### 5) Mémoires à mettre à jour
+### 4) Réorganiser & corriger l'affichage du modal sur mobile
 
-- `mem://auth/onboarding-experience-and-logic` : ajouter une note "Une entrée 'Ma page d'anniversaire' du Sheet `+` (CreateActionMenu) propose une checklist 6 étapes accessible à tout moment, complémentaire de l'onboarding bloquant."
+Dans `BirthdayPageBuilderModal.tsx` :
+- Réordonner `steps` : wishlist → type → friends → fund → publish → share.
+- Remplacer le `StepCard` horizontal par une **disposition à 2 lignes sur mobile** :
+  - **Ligne 1** : pastille (numéro/check) + icône + titre + badge d'état/progression
+  - **Ligne 2** : description (text-xs muted, line-clamp-2)
+  - **Ligne 3** : bouton CTA pleine largeur avec label complet (ex. "Compléter") au lieu d'un bouton tronqué à droite
+- Ajouter `pb-24` à la zone scroll pour libérer la dernière carte de la barre système.
+- Réduire `h-[92vh]` à `h-[90vh] max-h-[700px]` et ajouter `safe-area-inset-bottom`.
+
+### 5) Visibilité "Ma page" sur les avatars du profil utilisateur
+
+Dans `WhatDoYouWantCard.tsx` (autour de l'`Avatar` ligne 113) :
+- Si l'utilisateur a une page publiée (`birthdayPageSlug` via le hook `useBirthdayPageBuilderStatus`), wrapper l'avatar dans un bouton qui navigue vers `/birthday/${slug}` ET ajouter un mini-badge `Cake` rose en bas-droite (style `absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-pink-500 text-white`) avec un tooltip "Voir ma page".
+- Faire la même chose sur les autres avatars du profil utilisateur : `Dashboard.tsx` (avatar du header utilisateur), `BirthdayCard` si présent. Créer un petit hook utilitaire `useMyBirthdayPageSlug()` réutilisable pour ne pas dupliquer la requête.
+
+### 6) Fix badge "Ma page" sur `PageFeedCard.tsx` (fil)
+
+Refondre les lignes 82-110 :
+- Mettre les badges (`Ma page`, `Ami`) **sous** le nom du créateur dans une seconde ligne (au lieu d'à côté du nom) → libère de l'espace pour le bouton "Suivre".
+- Réduire le bouton "Suivre" à `h-6 px-1.5` sur mobile, icône seule + texte caché en `<sm`.
+- `flex-wrap gap-1.5` sur le conteneur des badges pour éviter tout chevauchement.
+- Couleur `Ma page` : changer en `bg-primary text-primary-foreground` (badge plein) avec icône `Star` plus visible.
+
+### 7) Mise à jour mémoires
+
+- `mem://features/birthday-pages/lifecycle-and-visibility` : ajouter mention de la table `birthday_page_friends` et du flow d'association lors de la publication.
+- `mem://auth/onboarding-experience-and-logic` : noter le nouvel ordre des 6 étapes du builder (wishlist → type → friends → fund → publish → share).
+
+## Détails techniques
+
+**Fichiers créés** :
+- `supabase/migrations/<timestamp>_birthday_page_friends.sql`
+- `src/components/BirthdayPageFriendsPicker.tsx`
+- `src/hooks/useMyBirthdayPageSlug.ts`
+
+**Fichiers modifiés** :
+- `src/hooks/useBirthdayPageBuilderStatus.ts` (nouvel ordre + step `friends` basé sur `birthday_page_friends`)
+- `src/components/BirthdayPageBuilderModal.tsx` (refonte mobile + ordre + sub-sheet friends + insertion batch à publish)
+- `src/components/WhatDoYouWantCard.tsx` (avatar cliquable + badge Cake)
+- `src/components/PageFeedCard.tsx` (refonte header carte, badge "Ma page" responsive)
+- `src/integrations/supabase/types.ts` (régénéré auto)
+
+**Pas de changement** sur l'API publish existante (juste ajout de l'insert batch des amis dans la même transaction logique).
 
 ## Résultat attendu
 
-1. Le bouton `+` propose en premier une entrée "Ma page d'anniversaire".
-2. Une modale affiche 6 étapes avec checkmark vert dès qu'une action est faite (souhaits ≥3, cercle ≥3 amis, type choisi, cagnotte créée, page publiée, partages ≥3).
-3. Chaque étape pointe vers la page/modale existante adaptée au type de page choisi.
-4. La progression est calculée en temps réel depuis Supabase, sans toucher à la DB.
+1. ✅ Le modal "+" affiche les 6 cartes en entier sur mobile, avec CTA pleine largeur lisibles.
+2. ✅ L'ordre des étapes est : Souhaits → Type → Amis → Cagnotte → Publier → Partager.
+3. ✅ L'étape "Amis" ouvre un sélecteur dédié avec note WhatsApp/rappels et stocke les choix dans `birthday_page_friends`.
+4. ✅ La page publiée reste visible dans le fil **et** un badge cliquable apparaît sur l'avatar du profil utilisateur (carte "Que voulez-vous célébrer ?" et autres) pour y accéder à tout moment.
+5. ✅ Le badge "Ma page" sur la carte du fil ne chevauche plus le bouton "Suivre" sur mobile.
 
