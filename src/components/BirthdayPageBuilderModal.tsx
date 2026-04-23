@@ -41,6 +41,8 @@ import {
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
+import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
+import { getStoredFriendSelection, setStoredFriendSelection } from '@/hooks/useBirthdayPageBuilderStatus';
 
 interface BirthdayPageBuilderModalProps {
   open: boolean;
@@ -86,6 +88,7 @@ export function BirthdayPageBuilderModal({
   const [showFundPicker, setShowFundPicker] = useState(false);
   const [showSearchFunds, setShowSearchFunds] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showFriendsPicker, setShowFriendsPicker] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [profile, setProfile] = useState<{
     first_name: string | null;
@@ -197,7 +200,9 @@ export function BirthdayPageBuilderModal({
         .eq('celebration_year', currentYear)
         .maybeSingle();
 
+      let pageId: string | null = null;
       if (existing) {
+        pageId = existing.id;
         await supabase
           .from('birthday_pages')
           .update({
@@ -207,7 +212,7 @@ export function BirthdayPageBuilderModal({
           })
           .eq('id', existing.id);
       } else {
-        const { error } = await supabase.from('birthday_pages').insert({
+        const { data: inserted, error } = await supabase.from('birthday_pages').insert({
           user_id: user.id,
           slug,
           title: `Anniversaire de ${firstName}`,
@@ -216,11 +221,29 @@ export function BirthdayPageBuilderModal({
           published_at: new Date().toISOString(),
           published_via_onboarding: true,
           fund_id: status?.fundId || null,
-        });
+        }).select('id').single();
         if (error) {
           console.error('Publish page error:', error);
           toast.error('Erreur lors de la publication');
           return;
+        }
+        pageId = inserted?.id ?? null;
+      }
+
+      // Sync friends selected in localStorage to birthday_page_friends
+      if (pageId) {
+        const localFriends = getStoredFriendSelection(user.id);
+        if (localFriends.length > 0) {
+          await supabase
+            .from('birthday_page_friends')
+            .delete()
+            .eq('page_id', pageId);
+          const rows = localFriends.map((cid) => ({
+            page_id: pageId!,
+            contact_id: cid,
+            added_by: user.id,
+          }));
+          await supabase.from('birthday_page_friends').insert(rows);
         }
       }
 
@@ -269,20 +292,6 @@ export function BirthdayPageBuilderModal({
         disabled: false,
       },
       {
-        key: 'friends',
-        icon: Users,
-        title: 'Compléter mon cercle d\'amis',
-        description: `Ajoute au moins ${s.friends.target} amis à ton cercle`,
-        progressLabel:
-          s.friends.value !== undefined
-            ? `${Math.min(s.friends.value, s.friends.target!)} / ${s.friends.target}`
-            : undefined,
-        done: s.friends.done,
-        cta: s.friends.done ? 'Modifier' : 'Compléter',
-        onClick: handleEditFriends,
-        disabled: false,
-      },
-      {
         key: 'type',
         icon: Tag,
         title: 'Choisir le type de page',
@@ -297,6 +306,22 @@ export function BirthdayPageBuilderModal({
         done: s.type.done,
         cta: s.type.done ? 'Changer' : 'Choisir',
         onClick: () => setShowTypePicker(true),
+        disabled: false,
+      },
+      {
+        key: 'friends',
+        icon: Users,
+        title: 'Associer mes amis à ma page',
+        description: s.friends.done
+          ? `${s.friends.value} ami${(s.friends.value || 0) > 1 ? 's' : ''} associé${(s.friends.value || 0) > 1 ? 's' : ''} — recevront des rappels WhatsApp`
+          : 'Sélectionne les amis qui recevront des rappels WhatsApp pour ton anniv',
+        progressLabel:
+          s.friends.value && s.friends.value > 0
+            ? `${s.friends.value} sélectionné${s.friends.value > 1 ? 's' : ''}`
+            : undefined,
+        done: s.friends.done,
+        cta: s.friends.done ? 'Modifier' : 'Sélectionner',
+        onClick: () => setShowFriendsPicker(true),
         disabled: false,
       },
       {
@@ -368,15 +393,15 @@ export function BirthdayPageBuilderModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="rounded-t-3xl p-0 h-[92vh] flex flex-col"
+          className="rounded-t-3xl p-0 h-[90vh] max-h-[760px] flex flex-col"
         >
-          <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/40">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/40">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-pink-500/10">
                 <Cake className="h-6 w-6 text-pink-500" />
               </div>
               <div className="flex-1 text-left">
-                <SheetTitle className="text-xl">Ma page d'anniversaire</SheetTitle>
+                <SheetTitle className="text-lg sm:text-xl">Ma page d'anniversaire</SheetTitle>
                 <SheetDescription className="text-xs">
                   {allDone
                     ? 'Bravo ! Toutes les étapes sont validées 🎉'
@@ -407,13 +432,13 @@ export function BirthdayPageBuilderModal({
             </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 px-4 py-4">
+          <ScrollArea className="flex-1 px-3 sm:px-4 py-3">
             {isLoading || !status ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-3 pb-6">
+              <div className="space-y-2.5 pb-24">
                 {steps.map((step, index) => (
                   <StepCard
                     key={step.key}
@@ -511,6 +536,14 @@ export function BirthdayPageBuilderModal({
         }}
       />
 
+      {/* Friends picker (sub-sheet) */}
+      <BirthdayPageFriendsPicker
+        open={showFriendsPicker}
+        onOpenChange={setShowFriendsPicker}
+        pageId={status?.birthdayPageId ?? null}
+        onSaved={() => invalidate()}
+      />
+
       {/* Share */}
       {status?.birthdayPageSlug && (
         <BirthdayPageShareButton
@@ -560,57 +593,55 @@ function StepCard({
   return (
     <Card
       className={cn(
-        'p-3 flex items-center gap-3 transition-all',
+        'p-3 transition-all',
         done
           ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40'
           : 'border-border/50',
       )}
     >
-      <div
-        className={cn(
-          'h-10 w-10 shrink-0 rounded-full flex items-center justify-center font-semibold text-sm',
-          done
-            ? 'bg-green-500 text-white'
-            : 'bg-muted text-muted-foreground',
-        )}
-      >
-        {done ? <Check className="h-5 w-5" /> : index}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Icon
-            className={cn(
-              'h-4 w-4 shrink-0',
-              done ? 'text-green-600' : 'text-primary',
-            )}
-          />
-          <span className="font-medium text-sm text-foreground truncate">
-            {title}
-          </span>
-          {done && (
-            <Badge
-              variant="secondary"
-              className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-            >
-              ✅ Fait
-            </Badge>
+      {/* Row 1: pastille + icon + title + status badge */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className={cn(
+            'h-8 w-8 shrink-0 rounded-full flex items-center justify-center font-semibold text-xs',
+            done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
           )}
-          {!done && progressLabel && (
-            <Badge variant="outline" className="text-[10px]">
-              {progressLabel}
-            </Badge>
-          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : index}
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-          {description}
-        </p>
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            done ? 'text-green-600' : 'text-primary',
+          )}
+        />
+        <span className="font-medium text-sm text-foreground flex-1 min-w-0 truncate">
+          {title}
+        </span>
+        {done ? (
+          <Badge
+            variant="secondary"
+            className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 shrink-0"
+          >
+            ✅ Fait
+          </Badge>
+        ) : progressLabel ? (
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            {progressLabel}
+          </Badge>
+        ) : null}
       </div>
 
+      {/* Row 2: description */}
+      <p className="text-xs text-muted-foreground mt-1.5 ml-[42px] line-clamp-2">
+        {description}
+      </p>
+
+      {/* Row 3: full-width CTA */}
       <Button
         size="sm"
         variant={done ? 'outline' : 'default'}
-        className="shrink-0"
+        className="w-full mt-2.5 h-9"
         onClick={onClick}
         disabled={disabled || loading}
       >
@@ -619,7 +650,7 @@ function StepCard({
         ) : (
           <>
             {cta}
-            <ChevronRight className="h-3 w-3 ml-1" />
+            <ChevronRight className="h-3.5 w-3.5 ml-1" />
           </>
         )}
       </Button>

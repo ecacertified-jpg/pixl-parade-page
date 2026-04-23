@@ -1,8 +1,9 @@
-import { Gift, PartyPopper, Sparkles } from "lucide-react";
+import { Gift, PartyPopper, Sparkles, Cake } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useRef } from "react";
@@ -12,6 +13,7 @@ import { CelebrateMenu } from "@/components/CelebrateMenu";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpcomingBirthdays } from "@/hooks/useUpcomingBirthdays";
 import { useCelebrationFeedback } from "@/hooks/useCelebrationFeedback";
+import { useMyBirthdayPageSlug } from "@/hooks/useMyBirthdayPageSlug";
 import confetti from "canvas-confetti";
 
 export function WhatDoYouWantCard() {
@@ -24,6 +26,7 @@ export function WhatDoYouWantCard() {
   const giftButtonRef = useRef<HTMLButtonElement>(null);
   const [hasTriggeredConfetti, setHasTriggeredConfetti] = useState(false);
   const { triggerFeedback } = useCelebrationFeedback();
+  const { slug: myPageSlug } = useMyBirthdayPageSlug();
 
   const hasUpcomingBirthdays = birthdays.length > 0;
   const closestBirthday = birthdays[0];
@@ -110,12 +113,38 @@ export function WhatDoYouWantCard() {
     <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-sky-50">
       {/* Header with profile and question */}
       <div className="flex items-center gap-3 mb-6">
-        <Avatar className="h-12 w-12">
-          <AvatarImage src={avatarUrl || undefined} alt="Profile" />
-          <AvatarFallback className="bg-primary/10 text-primary font-medium">
-            {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
-          </AvatarFallback>
-        </Avatar>
+        {myPageSlug ? (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/birthday/${myPageSlug}`)}
+                  className="relative shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
+                  aria-label="Voir ma page d'anniversaire"
+                >
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                      {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-pink-500 text-white flex items-center justify-center shadow-md ring-2 ring-white">
+                    <Cake className="h-3 w-3" />
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Voir ma page d'anniversaire</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+              {userName ? userName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        )}
         <h2 className="text-lg font-medium text-gray-500">
           Que voulez-vous célébrer aujourd'hui ?
         </h2>
