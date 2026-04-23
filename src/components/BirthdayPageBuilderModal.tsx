@@ -536,6 +536,14 @@ export function BirthdayPageBuilderModal({
         }}
       />
 
+      {/* Friends picker (sub-sheet) */}
+      <BirthdayPageFriendsPicker
+        open={showFriendsPicker}
+        onOpenChange={setShowFriendsPicker}
+        pageId={status?.birthdayPageId ?? null}
+        onSaved={() => invalidate()}
+      />
+
       {/* Share */}
       {status?.birthdayPageSlug && (
         <BirthdayPageShareButton
