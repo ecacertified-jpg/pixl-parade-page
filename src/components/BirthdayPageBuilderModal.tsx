@@ -393,15 +393,15 @@ export function BirthdayPageBuilderModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="rounded-t-3xl p-0 h-[92vh] flex flex-col"
+          className="rounded-t-3xl p-0 h-[90vh] max-h-[760px] flex flex-col"
         >
-          <SheetHeader className="px-6 pt-6 pb-4 border-b border-border/40">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/40">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-pink-500/10">
                 <Cake className="h-6 w-6 text-pink-500" />
               </div>
               <div className="flex-1 text-left">
-                <SheetTitle className="text-xl">Ma page d'anniversaire</SheetTitle>
+                <SheetTitle className="text-lg sm:text-xl">Ma page d'anniversaire</SheetTitle>
                 <SheetDescription className="text-xs">
                   {allDone
                     ? 'Bravo ! Toutes les étapes sont validées 🎉'
@@ -432,13 +432,13 @@ export function BirthdayPageBuilderModal({
             </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 px-4 py-4">
+          <ScrollArea className="flex-1 px-3 sm:px-4 py-3">
             {isLoading || !status ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="space-y-3 pb-6">
+              <div className="space-y-2.5 pb-24">
                 {steps.map((step, index) => (
                   <StepCard
                     key={step.key}
