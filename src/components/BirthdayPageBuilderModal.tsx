@@ -41,6 +41,8 @@ import {
 import { WishlistFundPickerModal } from '@/components/WishlistFundPickerModal';
 import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
 import { BirthdayPageShareButton } from '@/components/BirthdayPageShareButton';
+import { BirthdayPageFriendsPicker } from '@/components/BirthdayPageFriendsPicker';
+import { getStoredFriendSelection, setStoredFriendSelection } from '@/hooks/useBirthdayPageBuilderStatus';
 
 interface BirthdayPageBuilderModalProps {
   open: boolean;
@@ -86,6 +88,7 @@ export function BirthdayPageBuilderModal({
   const [showFundPicker, setShowFundPicker] = useState(false);
   const [showSearchFunds, setShowSearchFunds] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showFriendsPicker, setShowFriendsPicker] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [profile, setProfile] = useState<{
     first_name: string | null;
