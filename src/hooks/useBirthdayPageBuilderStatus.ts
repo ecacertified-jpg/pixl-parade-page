@@ -30,8 +30,27 @@ export interface BirthdayPageBuilderStatus {
 }
 
 const TARGET_WISHLIST = 3;
-const TARGET_FRIENDS = 3;
+const TARGET_FRIENDS = 1;
 const TARGET_SHARES = 3;
+
+const friendsLsKey = (userId: string) => `bp_friends_${userId}`;
+
+export const getStoredFriendSelection = (userId: string): string[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(friendsLsKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setStoredFriendSelection = (userId: string, ids: string[]) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(friendsLsKey(userId), JSON.stringify(ids));
+};
 
 const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> => {
   const currentYear = new Date().getFullYear();
@@ -44,12 +63,11 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
       ? storedType
       : null;
 
-  const [favRes, circlesRes, pageRes, fundRes, shareRes] = await Promise.all([
+  const [favRes, pageRes, fundRes, shareRes] = await Promise.all([
     supabase
       .from('user_favorites')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
-    supabase.from('friend_circles').select('id').eq('user_id', userId),
     supabase
       .from('birthday_pages')
       .select('id, slug, published_at, published_via_onboarding, fund_id')
@@ -70,20 +88,24 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
       .eq('user_id', userId),
   ]);
 
-  let circleMemberCount = 0;
-  const circleIds = (circlesRes.data || []).map((c: any) => c.id);
-  if (circleIds.length > 0) {
-    const { count } = await supabase
-      .from('friend_circle_members')
-      .select('*', { count: 'exact', head: true })
-      .in('circle_id', circleIds);
-    circleMemberCount = count || 0;
-  }
-
   const wishlistCount = favRes.count || 0;
   const shareCount = shareRes.count || 0;
   const page = pageRes.data;
   const fund = fundRes.data;
+
+  // Friend association: count actual associated friends if page exists,
+  // otherwise fall back to localStorage selection.
+  let associatedFriendsCount = 0;
+  if (page?.id) {
+    const { count } = await supabase
+      .from('birthday_page_friends')
+      .select('*', { count: 'exact', head: true })
+      .eq('page_id', page.id);
+    associatedFriendsCount = count || 0;
+  }
+  if (associatedFriendsCount === 0) {
+    associatedFriendsCount = getStoredFriendSelection(userId).length;
+  }
 
   const wishlist: StepStatus = {
     done: wishlistCount >= TARGET_WISHLIST,
@@ -91,8 +113,8 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     target: TARGET_WISHLIST,
   };
   const friends: StepStatus = {
-    done: circleMemberCount >= TARGET_FRIENDS,
-    value: circleMemberCount,
+    done: associatedFriendsCount >= TARGET_FRIENDS,
+    value: associatedFriendsCount,
     target: TARGET_FRIENDS,
   };
   const type: StepStatus = { done: pageType !== null };
@@ -107,7 +129,8 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     target: TARGET_SHARES,
   };
 
-  const steps = { wishlist, friends, type, fund: fundStep, publish, share };
+  // Order: wishlist → type → friends → fund → publish → share
+  const steps = { wishlist, type, friends, fund: fundStep, publish, share };
   const completedCount = Object.values(steps).filter((s) => s.done).length;
 
   return {
