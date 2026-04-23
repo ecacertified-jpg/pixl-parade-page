@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, FileText, Gift, Camera, UserPlus, Calendar, Cake } from 'lucide-react';
+import { UserPlus, Cake } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sheet,
@@ -9,16 +9,10 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CreatePostDrawer } from '@/components/CreatePostDrawer';
 import { InviteFriendsModal } from '@/components/InviteFriendsModal';
-import { ShopForCollectiveGiftModal } from '@/components/ShopForCollectiveGiftModal';
-import { SearchExistingFundsModal } from '@/components/SearchExistingFundsModal';
-import { AddEventModal } from '@/components/AddEventModal';
 import { BirthdayPageBuilderModal } from '@/components/BirthdayPageBuilderModal';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '@/hooks/useUserContext';
-import { useToast } from '@/hooks/use-toast';
-import { Event } from '@/components/AddEventModal';
 import { useBirthdayPageBuilderStatus } from '@/hooks/useBirthdayPageBuilderStatus';
 
 interface CreateActionMenuProps {
@@ -28,43 +22,14 @@ interface CreateActionMenuProps {
 export function CreateActionMenu({ children }: CreateActionMenuProps) {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [isPostDrawerOpen, setIsPostDrawerOpen] = useState(false);
-  const [postDrawerInitialMode, setPostDrawerInitialMode] = useState<'text' | 'media'>('text');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [isShopModalOpen, setIsShopModalOpen] = useState(false);
-  const [isSearchFundsModalOpen, setIsSearchFundsModalOpen] = useState(false);
-  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isBirthdayBuilderOpen, setIsBirthdayBuilderOpen] = useState(false);
   const { context } = useUserContext();
-  const { toast } = useToast();
   const { status: bpStatus } = useBirthdayPageBuilderStatus();
 
   const handleAction = (action: () => void) => {
     setIsOpen(false);
     action();
-  };
-
-  const handleAddEvent = (eventData: Omit<Event, 'id'>) => {
-    const newEvent = {
-      ...eventData,
-      id: Date.now().toString()
-    };
-    
-    // Charger les événements existants
-    const savedEvents = localStorage.getItem('events');
-    const events = savedEvents ? JSON.parse(savedEvents) : [];
-    
-    // Ajouter le nouvel événement
-    const updatedEvents = [...events, newEvent];
-    localStorage.setItem('events', JSON.stringify(updatedEvents));
-    
-    // Émettre un événement personnalisé pour notifier Dashboard
-    window.dispatchEvent(new CustomEvent('eventAdded', { detail: newEvent }));
-    
-    toast({
-      title: "Événement ajouté",
-      description: `${eventData.title} a été ajouté avec succès`,
-    });
   };
 
   const menuItems = [
@@ -81,48 +46,12 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
       action: () => handleAction(() => setIsBirthdayBuilderOpen(true)),
     },
     {
-      icon: FileText,
-      label: 'Nouvelle publication',
-      description: 'Partagez vos pensées',
-      color: 'text-primary',
-      badge: !context.hasPostedRecently ? 'Partagez !' : undefined,
-      action: () => handleAction(() => {
-        setPostDrawerInitialMode('text');
-        setIsPostDrawerOpen(true);
-      }),
-    },
-    {
-      icon: Gift,
-      label: 'Créer une cagnotte',
-      description: 'Organisez une collecte',
-      color: 'text-accent',
-      badge: !context.hasCreatedFund ? 'Essayez' : undefined,
-      action: () => handleAction(() => setIsSearchFundsModalOpen(true)),
-    },
-    {
-      icon: Camera,
-      label: 'Partager un moment',
-      description: 'Ajoutez une photo ou vidéo',
-      color: 'text-secondary',
-      action: () => handleAction(() => {
-        setPostDrawerInitialMode('media');
-        setIsPostDrawerOpen(true);
-      }),
-    },
-    {
       icon: UserPlus,
       label: 'Inviter des amis',
       description: 'Développez votre réseau',
       color: 'text-green-500',
       badge: context.contactsCount < 3 ? 'Recommandé' : undefined,
       action: () => handleAction(() => setIsInviteModalOpen(true)),
-    },
-    {
-      icon: Calendar,
-      label: 'Ajouter un événement',
-      description: 'Enregistrez une date importante',
-      color: 'text-orange-500',
-      action: () => handleAction(() => setIsEventModalOpen(true)),
     },
   ];
 
@@ -167,28 +96,9 @@ export function CreateActionMenu({ children }: CreateActionMenuProps) {
         </SheetContent>
       </Sheet>
 
-      <CreatePostDrawer 
-        open={isPostDrawerOpen} 
-        onOpenChange={setIsPostDrawerOpen}
-        initialMode={postDrawerInitialMode}
-      />
       <InviteFriendsModal 
         open={isInviteModalOpen}
         onOpenChange={setIsInviteModalOpen}
-      />
-      <SearchExistingFundsModal
-        isOpen={isSearchFundsModalOpen}
-        onClose={() => setIsSearchFundsModalOpen(false)}
-        onCreateNew={() => setIsShopModalOpen(true)}
-      />
-      <ShopForCollectiveGiftModal 
-        isOpen={isShopModalOpen}
-        onClose={() => setIsShopModalOpen(false)}
-      />
-      <AddEventModal 
-        isOpen={isEventModalOpen}
-        onClose={() => setIsEventModalOpen(false)}
-        onAddEvent={handleAddEvent}
       />
       <BirthdayPageBuilderModal
         open={isBirthdayBuilderOpen}
