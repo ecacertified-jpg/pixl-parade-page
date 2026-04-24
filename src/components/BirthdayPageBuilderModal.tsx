@@ -697,6 +697,91 @@ export function BirthdayPageBuilderModal({
           age={computeAge()}
         />
       )}
+
+      {/* Edit fund amount sub-sheet */}
+      <Sheet open={showEditFundAmount} onOpenChange={setShowEditFundAmount}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Modifier le montant</SheetTitle>
+            <SheetDescription>
+              Définis un nouvel objectif pour ta cagnotte (min. 1 000 XOF).
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 pb-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Montant cible (XOF)
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1000}
+                step={500}
+                value={fundAmountInput}
+                onChange={(e) => setFundAmountInput(e.target.value)}
+                placeholder="Ex: 25000"
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowEditFundAmount(false)}
+                disabled={savingFundAmount}
+              >
+                Annuler
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveFundAmount}
+                disabled={savingFundAmount}
+              >
+                {savingFundAmount ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Enregistrer'
+                )}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Cancel fund confirmation */}
+      <AlertDialog
+        open={showCancelFundConfirm}
+        onOpenChange={setShowCancelFundConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler la cagnotte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La cagnotte sera désactivée et
+              détachée de ta page d'anniversaire.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancellingFund}>
+              Retour
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancelFund();
+              }}
+              disabled={cancellingFund}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {cancellingFund ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Annuler la cagnotte'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
