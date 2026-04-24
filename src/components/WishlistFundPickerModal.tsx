@@ -94,6 +94,28 @@ export function WishlistFundPickerModal({
 
   const favorites = isExternalBeneficiary ? externalFavorites : ownFavorites;
   const loading = isExternalBeneficiary ? externalLoading : ownLoading;
+  const itemCount = favorites.filter((f) => f.product).length;
+
+  // Detect if scroll hint should appear (more than ~3 items visible)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      setShowScrollHint(false);
+      return;
+    }
+    const update = () => {
+      const hasOverflow = el.scrollHeight - el.clientHeight > 8;
+      const notAtBottom = el.scrollTop + el.clientHeight < el.scrollHeight - 8;
+      setShowScrollHint(hasOverflow && notAtBottom);
+    };
+    update();
+    el.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [favorites, loading, isOpen]);
 
   const beneficiaryDisplayName = (() => {
     const f = beneficiaryFirstName?.trim() || '';
@@ -147,9 +169,12 @@ export function WishlistFundPickerModal({
     ? `Liste de souhaits${beneficiaryFirstName ? ` de ${beneficiaryFirstName}` : ''}`
     : 'Ma liste de souhaits';
 
-  const subtitle = isExternalBeneficiary
+  const baseSubtitle = isExternalBeneficiary
     ? `Choisissez un article pour créer une cagnotte${beneficiaryFirstName ? ` pour ${beneficiaryFirstName}` : ''}`
     : 'Choisissez un article pour créer votre cagnotte';
+  const subtitle = itemCount > 0
+    ? `${itemCount} article${itemCount > 1 ? 's' : ''} — ${baseSubtitle}`
+    : baseSubtitle;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
