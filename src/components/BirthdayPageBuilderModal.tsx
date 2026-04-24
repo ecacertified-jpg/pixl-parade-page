@@ -879,3 +879,172 @@ function StepCard({
     </Card>
   );
 }
+
+// ---------- Fund step card (custom) ----------
+interface FundStepCardProps {
+  index: number;
+  icon: any;
+  title: string;
+  description: string;
+  done: boolean;
+  disabled?: boolean;
+  skipped: boolean;
+  contributionsCount: number;
+  onCreate: () => void;
+  onSkip: () => void;
+  onUnskip: () => void;
+  onView: () => void;
+  onEditAmount: () => void;
+  onCancel: () => void;
+}
+
+function FundStepCard({
+  index,
+  icon: Icon,
+  title,
+  description,
+  done,
+  disabled,
+  skipped,
+  contributionsCount,
+  onCreate,
+  onSkip,
+  onUnskip,
+  onView,
+  onEditAmount,
+  onCancel,
+}: FundStepCardProps) {
+  const locked = done && contributionsCount > 0;
+  return (
+    <Card
+      className={cn(
+        'p-3 transition-all',
+        done
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40'
+          : 'border-border/50',
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          className={cn(
+            'h-8 w-8 shrink-0 rounded-full flex items-center justify-center font-semibold text-xs',
+            done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : index}
+        </div>
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            done ? 'text-green-600' : 'text-primary',
+          )}
+        />
+        <span className="font-medium text-sm text-foreground flex-1 min-w-0 truncate">
+          {title}
+        </span>
+        {done ? (
+          <Badge
+            variant="secondary"
+            className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 shrink-0"
+          >
+            ✅ Fait
+          </Badge>
+        ) : skipped ? (
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            Passée
+          </Badge>
+        ) : null}
+      </div>
+
+      <p className="text-xs text-muted-foreground mt-1.5 ml-[42px] line-clamp-2">
+        {description}
+      </p>
+
+      {/* Actions row */}
+      {done ? (
+        locked ? (
+          <div className="mt-2.5 space-y-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-2.5 py-1.5">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {contributionsCount} contribution
+                {contributionsCount > 1 ? 's' : ''} reçue
+                {contributionsCount > 1 ? 's' : ''} — modification verrouillée
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-9"
+              onClick={onView}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1.5" />
+              Voir
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2"
+              onClick={onView}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Voir</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2"
+              onClick={onEditAmount}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Montant</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onCancel}
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Annuler</span>
+            </Button>
+          </div>
+        )
+      ) : skipped ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full mt-2.5 h-9"
+          onClick={onUnskip}
+          disabled={disabled}
+        >
+          Créer maintenant
+          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      ) : (
+        <div className="mt-2.5 flex gap-1.5">
+          <Button
+            size="sm"
+            className="flex-1 h-9"
+            onClick={onCreate}
+            disabled={disabled}
+          >
+            Créer
+            <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-9 px-3 text-xs text-muted-foreground"
+            onClick={onSkip}
+          >
+            Passer
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
