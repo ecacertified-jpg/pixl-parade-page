@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { Gift, Heart, Loader2, ShoppingBag, UserPlus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Gift, Heart, Loader2, ShoppingBag } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +56,8 @@ export function WishlistFundPickerModal({
 
   const [externalFavorites, setExternalFavorites] = useState<FavoriteItem[]>([]);
   const [externalLoading, setExternalLoading] = useState(false);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showScrollHint, setShowScrollHint] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !isExternalBeneficiary || !beneficiaryUserId) return;
@@ -64,7 +65,6 @@ export function WishlistFundPickerModal({
     let cancelled = false;
     const fetchBeneficiaryFavorites = async () => {
       setExternalLoading(true);
-      setAccessDenied(false);
       const { data, error } = await supabase
         .from('user_favorites')
         .select('id, product_id, products (id, name, description, price, currency, image_url)')
@@ -75,7 +75,6 @@ export function WishlistFundPickerModal({
 
       if (error) {
         console.error('Error loading beneficiary wishlist:', error);
-        setAccessDenied(true);
         setExternalFavorites([]);
       } else {
         const items: FavoriteItem[] = (data || []).map((it: any) => ({
