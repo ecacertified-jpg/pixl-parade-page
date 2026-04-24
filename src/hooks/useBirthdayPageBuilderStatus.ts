@@ -25,6 +25,8 @@ export interface BirthdayPageBuilderStatus {
   birthdayPageId: string | null;
   hasFund: boolean;
   fundId: string | null;
+  fundTargetAmount: number | null;
+  fundContributionsCount: number;
   completedCount: number;
   totalCount: number;
 }
