@@ -12,6 +12,17 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Check,
   Heart,
@@ -27,6 +38,10 @@ import {
   User as UserIcon,
   UserPlus,
   Calendar,
+  Pencil,
+  X,
+  Eye,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,10 +105,109 @@ export function BirthdayPageBuilderModal({
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showFriendsPicker, setShowFriendsPicker] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [skippedFund, setSkippedFund] = useState(false);
+  const [showEditFundAmount, setShowEditFundAmount] = useState(false);
+  const [showCancelFundConfirm, setShowCancelFundConfirm] = useState(false);
+  const [fundAmountInput, setFundAmountInput] = useState('');
+  const [savingFundAmount, setSavingFundAmount] = useState(false);
+  const [cancellingFund, setCancellingFund] = useState(false);
   const [profile, setProfile] = useState<{
     first_name: string | null;
     birthday: string | null;
   } | null>(null);
+
+  // Load skipped fund flag from localStorage
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const v = localStorage.getItem(`bp_fund_skipped_${user.id}`);
+      setSkippedFund(v === '1');
+    } catch {}
+  }, [user?.id]);
+
+  const handleSkipFund = () => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(`bp_fund_skipped_${user.id}`, '1');
+    } catch {}
+    setSkippedFund(true);
+    toast.message('Étape passée — tu pourras la créer plus tard');
+  };
+
+  const handleUnskipFund = () => {
+    if (!user?.id) return;
+    try {
+      localStorage.removeItem(`bp_fund_skipped_${user.id}`);
+    } catch {}
+    setSkippedFund(false);
+  };
+
+  const openEditFundAmount = () => {
+    setFundAmountInput(
+      status?.fundTargetAmount ? String(status.fundTargetAmount) : '',
+    );
+    setShowEditFundAmount(true);
+  };
+
+  const handleSaveFundAmount = async () => {
+    if (!status?.fundId) return;
+    const amount = Number(fundAmountInput);
+    if (!Number.isFinite(amount) || amount < 1000) {
+      toast.error('Montant minimum : 1 000 XOF');
+      return;
+    }
+    setSavingFundAmount(true);
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .update({ target_amount: amount })
+        .eq('id', status.fundId);
+      if (error) {
+        console.error(error);
+        toast.error('Erreur lors de la mise à jour');
+        return;
+      }
+      toast.success('Montant mis à jour ✨');
+      setShowEditFundAmount(false);
+      invalidate();
+    } finally {
+      setSavingFundAmount(false);
+    }
+  };
+
+  const handleCancelFund = async () => {
+    if (!status?.fundId) return;
+    setCancellingFund(true);
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .update({ status: 'cancelled' })
+        .eq('id', status.fundId);
+      if (error) {
+        console.error(error);
+        toast.error('Erreur lors de l\'annulation');
+        return;
+      }
+      // Detach from page
+      if (status.birthdayPageId) {
+        await supabase
+          .from('birthday_pages')
+          .update({ fund_id: null })
+          .eq('id', status.birthdayPageId);
+      }
+      toast.success('Cagnotte annulée');
+      setShowCancelFundConfirm(false);
+      invalidate();
+    } finally {
+      setCancellingFund(false);
+    }
+  };
+
+  const handleViewFund = () => {
+    if (!status?.fundId) return;
+    onOpenChange(false);
+    navigate(`/f/${status.fundId}`);
+  };
 
   // Load minimal profile info (for share + publish)
   useEffect(() => {
@@ -439,21 +553,44 @@ export function BirthdayPageBuilderModal({
               </div>
             ) : (
               <div className="space-y-2.5 pb-24">
-                {steps.map((step, index) => (
-                  <StepCard
-                    key={step.key}
-                    index={index + 1}
-                    icon={step.icon}
-                    title={step.title}
-                    description={step.description}
-                    done={step.done}
-                    cta={step.cta}
-                    onClick={step.onClick}
-                    disabled={step.disabled}
-                    loading={(step as any).loading}
-                    progressLabel={(step as any).progressLabel}
-                  />
-                ))}
+                {steps.map((step, index) => {
+                  if (step.key === 'fund') {
+                    return (
+                      <FundStepCard
+                        key={step.key}
+                        index={index + 1}
+                        icon={step.icon}
+                        title={step.title}
+                        description={step.description}
+                        done={step.done}
+                        disabled={step.disabled}
+                        skipped={skippedFund}
+                        contributionsCount={status.fundContributionsCount}
+                        onCreate={handleCreateFund}
+                        onSkip={handleSkipFund}
+                        onUnskip={handleUnskipFund}
+                        onView={handleViewFund}
+                        onEditAmount={openEditFundAmount}
+                        onCancel={() => setShowCancelFundConfirm(true)}
+                      />
+                    );
+                  }
+                  return (
+                    <StepCard
+                      key={step.key}
+                      index={index + 1}
+                      icon={step.icon}
+                      title={step.title}
+                      description={step.description}
+                      done={step.done}
+                      cta={step.cta}
+                      onClick={step.onClick}
+                      disabled={step.disabled}
+                      loading={(step as any).loading}
+                      progressLabel={(step as any).progressLabel}
+                    />
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
@@ -560,6 +697,91 @@ export function BirthdayPageBuilderModal({
           age={computeAge()}
         />
       )}
+
+      {/* Edit fund amount sub-sheet */}
+      <Sheet open={showEditFundAmount} onOpenChange={setShowEditFundAmount}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Modifier le montant</SheetTitle>
+            <SheetDescription>
+              Définis un nouvel objectif pour ta cagnotte (min. 1 000 XOF).
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 pb-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Montant cible (XOF)
+              </label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1000}
+                step={500}
+                value={fundAmountInput}
+                onChange={(e) => setFundAmountInput(e.target.value)}
+                placeholder="Ex: 25000"
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowEditFundAmount(false)}
+                disabled={savingFundAmount}
+              >
+                Annuler
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveFundAmount}
+                disabled={savingFundAmount}
+              >
+                {savingFundAmount ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Enregistrer'
+                )}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Cancel fund confirmation */}
+      <AlertDialog
+        open={showCancelFundConfirm}
+        onOpenChange={setShowCancelFundConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler la cagnotte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La cagnotte sera désactivée et
+              détachée de ta page d'anniversaire.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancellingFund}>
+              Retour
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancelFund();
+              }}
+              disabled={cancellingFund}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {cancellingFund ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Annuler la cagnotte'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -654,6 +876,175 @@ function StepCard({
           </>
         )}
       </Button>
+    </Card>
+  );
+}
+
+// ---------- Fund step card (custom) ----------
+interface FundStepCardProps {
+  index: number;
+  icon: any;
+  title: string;
+  description: string;
+  done: boolean;
+  disabled?: boolean;
+  skipped: boolean;
+  contributionsCount: number;
+  onCreate: () => void;
+  onSkip: () => void;
+  onUnskip: () => void;
+  onView: () => void;
+  onEditAmount: () => void;
+  onCancel: () => void;
+}
+
+function FundStepCard({
+  index,
+  icon: Icon,
+  title,
+  description,
+  done,
+  disabled,
+  skipped,
+  contributionsCount,
+  onCreate,
+  onSkip,
+  onUnskip,
+  onView,
+  onEditAmount,
+  onCancel,
+}: FundStepCardProps) {
+  const locked = done && contributionsCount > 0;
+  return (
+    <Card
+      className={cn(
+        'p-3 transition-all',
+        done
+          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40'
+          : 'border-border/50',
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <div
+          className={cn(
+            'h-8 w-8 shrink-0 rounded-full flex items-center justify-center font-semibold text-xs',
+            done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground',
+          )}
+        >
+          {done ? <Check className="h-4 w-4" /> : index}
+        </div>
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            done ? 'text-green-600' : 'text-primary',
+          )}
+        />
+        <span className="font-medium text-sm text-foreground flex-1 min-w-0 truncate">
+          {title}
+        </span>
+        {done ? (
+          <Badge
+            variant="secondary"
+            className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 shrink-0"
+          >
+            ✅ Fait
+          </Badge>
+        ) : skipped ? (
+          <Badge variant="outline" className="text-[10px] shrink-0">
+            Passée
+          </Badge>
+        ) : null}
+      </div>
+
+      <p className="text-xs text-muted-foreground mt-1.5 ml-[42px] line-clamp-2">
+        {description}
+      </p>
+
+      {/* Actions row */}
+      {done ? (
+        locked ? (
+          <div className="mt-2.5 space-y-2">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-2.5 py-1.5">
+              <Lock className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {contributionsCount} contribution
+                {contributionsCount > 1 ? 's' : ''} reçue
+                {contributionsCount > 1 ? 's' : ''} — modification verrouillée
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-9"
+              onClick={onView}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1.5" />
+              Voir
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2"
+              onClick={onView}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Voir</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2"
+              onClick={onEditAmount}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Montant</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onCancel}
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Annuler</span>
+            </Button>
+          </div>
+        )
+      ) : skipped ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full mt-2.5 h-9"
+          onClick={onUnskip}
+          disabled={disabled}
+        >
+          Créer maintenant
+          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      ) : (
+        <div className="mt-2.5 flex gap-1.5">
+          <Button
+            size="sm"
+            className="flex-1 h-9"
+            onClick={onCreate}
+            disabled={disabled}
+          >
+            Créer
+            <ChevronRight className="h-3.5 w-3.5 ml-1" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-9 px-3 text-xs text-muted-foreground"
+            onClick={onSkip}
+          >
+            Passer
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

@@ -25,6 +25,8 @@ export interface BirthdayPageBuilderStatus {
   birthdayPageId: string | null;
   hasFund: boolean;
   fundId: string | null;
+  fundTargetAmount: number | null;
+  fundContributionsCount: number;
   completedCount: number;
   totalCount: number;
 }
@@ -63,7 +65,7 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
       ? storedType
       : null;
 
-  const [favRes, pageRes, fundRes, shareRes] = await Promise.all([
+  const [favRes, pageRes, shareRes] = await Promise.all([
     supabase
       .from('user_favorites')
       .select('*', { count: 'exact', head: true })
@@ -76,13 +78,6 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
       .eq('is_active', true)
       .maybeSingle(),
     supabase
-      .from('collective_funds')
-      .select('id')
-      .eq('creator_id', userId)
-      .eq('occasion', 'birthday')
-      .eq('status', 'active')
-      .maybeSingle(),
-    supabase
       .from('onboarding_shares')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId),
@@ -91,7 +86,26 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
   const wishlistCount = favRes.count || 0;
   const shareCount = shareRes.count || 0;
   const page = pageRes.data;
-  const fund = fundRes.data;
+
+  // Strict fund detection: only the fund explicitly linked to this year's page
+  let fund: { id: string; target_amount: number | null } | null = null;
+  let fundContributionsCount = 0;
+  if (page?.fund_id) {
+    const { data: linkedFund } = await supabase
+      .from('collective_funds')
+      .select('id, target_amount, status')
+      .eq('id', page.fund_id)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (linkedFund) {
+      fund = { id: linkedFund.id, target_amount: linkedFund.target_amount };
+      const { count } = await supabase
+        .from('fund_contributions')
+        .select('*', { count: 'exact', head: true })
+        .eq('fund_id', linkedFund.id);
+      fundContributionsCount = count || 0;
+    }
+  }
 
   // Friend association: count actual associated friends if page exists,
   // otherwise fall back to localStorage selection.
@@ -140,6 +154,8 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     birthdayPageId: page?.id ?? null,
     hasFund: fundDone,
     fundId: fund?.id ?? null,
+    fundTargetAmount: fund?.target_amount ?? null,
+    fundContributionsCount,
     completedCount,
     totalCount: 6,
   };

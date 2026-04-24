@@ -22,3 +22,5 @@ Une page `birthday_pages` peut exister sans être visible dans le fil d'actualit
 - Backfill SQL exécuté pour relier toutes les cagnottes birthday actives existantes.
 
 Après tout rattachement, `window.dispatchEvent(new Event('feed-refresh'))` est déclenché pour rafraîchir la carte avec la cagnotte visible.
+
+**Étape "Créer ma cagnotte" du builder (BirthdayPageBuilderModal)** : facultative. Détection stricte — la step n'est marquée "Fait" que si `birthday_pages.fund_id` pointe vers une `collective_funds` `status='active'` de l'année courante (plus de match implicite par `creator_id + occasion`). L'utilisateur peut **passer** l'étape (flag `localStorage.bp_fund_skipped_${userId}`), ce qui n'empêche pas Publier/Partager. Quand la cagnotte est créée mais sans contribution (`fund_contributions.count = 0`), trois actions sont disponibles : **Voir / Modifier le montant / Annuler**. Dès qu'une contribution existe, l'édition est verrouillée et seul "Voir" reste accessible.
