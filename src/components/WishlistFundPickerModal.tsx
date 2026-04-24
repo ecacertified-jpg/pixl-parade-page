@@ -178,7 +178,7 @@ export function WishlistFundPickerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-md h-[85vh] min-h-[500px] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="text-xl font-poppins flex items-center gap-2">
             <Heart className="h-5 w-5 text-primary" />
@@ -189,7 +189,8 @@ export function WishlistFundPickerModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 min-h-[200px]">
+        <div className="relative flex-1 min-h-0">
+          <div ref={scrollRef} className="absolute inset-0 overflow-y-auto px-6">
           {loading && (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -199,17 +200,11 @@ export function WishlistFundPickerModal({
           {!loading && favorites.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <div className="p-4 rounded-full bg-primary/10 mb-4">
-                {isExternalBeneficiary ? (
-                  <UserPlus className="h-8 w-8 text-primary" />
-                ) : (
-                  <ShoppingBag className="h-8 w-8 text-primary" />
-                )}
+                <ShoppingBag className="h-8 w-8 text-primary" />
               </div>
               {isExternalBeneficiary ? (
                 <p className="text-sm text-muted-foreground mb-4">
-                  {accessDenied
-                    ? `Vous devez être ami avec ${beneficiaryFirstName || 'cette personne'} pour voir sa liste de souhaits.`
-                    : `${beneficiaryFirstName || 'Cette personne'} n'a pas encore d'articles dans sa liste de souhaits.`}
+                  Aucun article à afficher pour le moment.
                 </p>
               ) : (
                 <>
@@ -228,7 +223,7 @@ export function WishlistFundPickerModal({
           )}
 
           {!loading && favorites.length > 0 && (
-            <div className="space-y-3 pb-2">
+            <div className="space-y-2 py-2 pb-6">
               {favorites.map((fav) => {
                 const product = fav.product;
                 if (!product) return null;
@@ -236,7 +231,7 @@ export function WishlistFundPickerModal({
                 return (
                   <div
                     key={fav.id}
-                    className="border border-border/60 rounded-xl p-3 hover:border-primary/30 transition-colors"
+                    className="border border-border/60 rounded-xl p-2.5 hover:border-primary/30 transition-colors"
                   >
                     <div className="flex gap-3 items-center">
                       {product.image_url ? (
@@ -270,6 +265,18 @@ export function WishlistFundPickerModal({
                 );
               })}
             </div>
+          )}
+          </div>
+
+          {showScrollHint && (
+            <>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent" />
+              <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 animate-bounce">
+                <div className="rounded-full bg-primary/15 p-1">
+                  <ChevronDown className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </>
           )}
         </div>
 
