@@ -154,6 +154,8 @@ const fetchStatus = async (userId: string): Promise<BirthdayPageBuilderStatus> =
     birthdayPageId: page?.id ?? null,
     hasFund: fundDone,
     fundId: fund?.id ?? null,
+    fundTargetAmount: fund?.target_amount ?? null,
+    fundContributionsCount,
     completedCount,
     totalCount: 6,
   };
