@@ -553,21 +553,44 @@ export function BirthdayPageBuilderModal({
               </div>
             ) : (
               <div className="space-y-2.5 pb-24">
-                {steps.map((step, index) => (
-                  <StepCard
-                    key={step.key}
-                    index={index + 1}
-                    icon={step.icon}
-                    title={step.title}
-                    description={step.description}
-                    done={step.done}
-                    cta={step.cta}
-                    onClick={step.onClick}
-                    disabled={step.disabled}
-                    loading={(step as any).loading}
-                    progressLabel={(step as any).progressLabel}
-                  />
-                ))}
+                {steps.map((step, index) => {
+                  if (step.key === 'fund') {
+                    return (
+                      <FundStepCard
+                        key={step.key}
+                        index={index + 1}
+                        icon={step.icon}
+                        title={step.title}
+                        description={step.description}
+                        done={step.done}
+                        disabled={step.disabled}
+                        skipped={skippedFund}
+                        contributionsCount={status.fundContributionsCount}
+                        onCreate={handleCreateFund}
+                        onSkip={handleSkipFund}
+                        onUnskip={handleUnskipFund}
+                        onView={handleViewFund}
+                        onEditAmount={openEditFundAmount}
+                        onCancel={() => setShowCancelFundConfirm(true)}
+                      />
+                    );
+                  }
+                  return (
+                    <StepCard
+                      key={step.key}
+                      index={index + 1}
+                      icon={step.icon}
+                      title={step.title}
+                      description={step.description}
+                      done={step.done}
+                      cta={step.cta}
+                      onClick={step.onClick}
+                      disabled={step.disabled}
+                      loading={(step as any).loading}
+                      progressLabel={(step as any).progressLabel}
+                    />
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
