@@ -105,10 +105,109 @@ export function BirthdayPageBuilderModal({
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [showFriendsPicker, setShowFriendsPicker] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [skippedFund, setSkippedFund] = useState(false);
+  const [showEditFundAmount, setShowEditFundAmount] = useState(false);
+  const [showCancelFundConfirm, setShowCancelFundConfirm] = useState(false);
+  const [fundAmountInput, setFundAmountInput] = useState('');
+  const [savingFundAmount, setSavingFundAmount] = useState(false);
+  const [cancellingFund, setCancellingFund] = useState(false);
   const [profile, setProfile] = useState<{
     first_name: string | null;
     birthday: string | null;
   } | null>(null);
+
+  // Load skipped fund flag from localStorage
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const v = localStorage.getItem(`bp_fund_skipped_${user.id}`);
+      setSkippedFund(v === '1');
+    } catch {}
+  }, [user?.id]);
+
+  const handleSkipFund = () => {
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(`bp_fund_skipped_${user.id}`, '1');
+    } catch {}
+    setSkippedFund(true);
+    toast.message('Étape passée — tu pourras la créer plus tard');
+  };
+
+  const handleUnskipFund = () => {
+    if (!user?.id) return;
+    try {
+      localStorage.removeItem(`bp_fund_skipped_${user.id}`);
+    } catch {}
+    setSkippedFund(false);
+  };
+
+  const openEditFundAmount = () => {
+    setFundAmountInput(
+      status?.fundTargetAmount ? String(status.fundTargetAmount) : '',
+    );
+    setShowEditFundAmount(true);
+  };
+
+  const handleSaveFundAmount = async () => {
+    if (!status?.fundId) return;
+    const amount = Number(fundAmountInput);
+    if (!Number.isFinite(amount) || amount < 1000) {
+      toast.error('Montant minimum : 1 000 XOF');
+      return;
+    }
+    setSavingFundAmount(true);
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .update({ target_amount: amount })
+        .eq('id', status.fundId);
+      if (error) {
+        console.error(error);
+        toast.error('Erreur lors de la mise à jour');
+        return;
+      }
+      toast.success('Montant mis à jour ✨');
+      setShowEditFundAmount(false);
+      invalidate();
+    } finally {
+      setSavingFundAmount(false);
+    }
+  };
+
+  const handleCancelFund = async () => {
+    if (!status?.fundId) return;
+    setCancellingFund(true);
+    try {
+      const { error } = await supabase
+        .from('collective_funds')
+        .update({ status: 'cancelled' })
+        .eq('id', status.fundId);
+      if (error) {
+        console.error(error);
+        toast.error('Erreur lors de l\'annulation');
+        return;
+      }
+      // Detach from page
+      if (status.birthdayPageId) {
+        await supabase
+          .from('birthday_pages')
+          .update({ fund_id: null })
+          .eq('id', status.birthdayPageId);
+      }
+      toast.success('Cagnotte annulée');
+      setShowCancelFundConfirm(false);
+      invalidate();
+    } finally {
+      setCancellingFund(false);
+    }
+  };
+
+  const handleViewFund = () => {
+    if (!status?.fundId) return;
+    onOpenChange(false);
+    navigate(`/f/${status.fundId}`);
+  };
 
   // Load minimal profile info (for share + publish)
   useEffect(() => {
