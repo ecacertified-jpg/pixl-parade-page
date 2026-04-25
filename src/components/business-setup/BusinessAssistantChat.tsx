@@ -15,13 +15,80 @@ interface BusinessAssistantChatProps {
   className?: string;
 }
 
-const QUICK_SUGGESTIONS = [
-  '✍️ Rédige une description vendeuse pour ma boutique',
-  '🎁 Suggère 3 produits adaptés à ma boutique',
-  '💰 Conseille-moi un prix pour mon produit phare',
-  '🚚 Comment configurer mes zones de livraison ?',
-  '🔍 Vérifie mes infos et dis-moi ce qui manque',
-];
+// Suggestions par étape du wizard
+const STEP_SUGGESTIONS: Record<string, string[]> = {
+  welcome: [
+    '🚀 Par où commencer ?',
+    '⏱️ Combien de temps pour configurer ma boutique ?',
+    '🥉 C’est quoi le palier Bronze ?',
+  ],
+  profile: [
+    '✍️ Rédige une description vendeuse en 2 lignes',
+    '🎨 Quel logo choisir pour ma boutique ?',
+    '🏷️ Améliore mon nom de boutique',
+  ],
+  'first-product': [
+    '🎁 Suggère 3 produits adaptés à ma boutique',
+    '💰 Conseille-moi un prix réaliste en FCFA',
+    '📸 Comment réussir la photo d’un produit ?',
+    '✏️ Rédige une description de produit courte',
+  ],
+  delivery: [
+    '🚚 Propose une grille de zones de livraison',
+    '💸 Quel seuil de livraison gratuite ?',
+    '🏙️ Quels frais pour Abidjan / Cocody / Yopougon ?',
+  ],
+  payment: [
+    '📱 Mobile Money ou Wave : que choisir ?',
+    '🔒 Comment sécuriser mes paiements ?',
+    '🧾 Quelles infos demander à mon client ?',
+  ],
+  launch: [
+    '📣 Rédige un message WhatsApp pour partager ma boutique',
+    '🔔 Pourquoi activer les notifications ?',
+    '📈 Comment obtenir mes premières commandes ?',
+  ],
+};
+
+// Suggestions par palier (utilisées hors wizard ou en complément)
+const TIER_SUGGESTIONS: Record<string, string[]> = {
+  none: [
+    '🥉 Comment débloquer le palier Bronze ?',
+    '🔍 Vérifie mes infos et dis-moi ce qui manque',
+  ],
+  bronze: [
+    '🥈 Comment passer au palier Argent ?',
+    '🚚 Aide-moi à configurer la livraison',
+  ],
+  silver: [
+    '🥇 Combien de produits pour atteindre le palier Or ?',
+    '✨ Optimise ma boutique pour vendre plus',
+  ],
+  gold: [
+    '🌟 Comment garder mon palier Or actif ?',
+    '📈 Astuces pour vendre encore plus',
+  ],
+};
+
+function buildSuggestions(step?: string, tier?: string | null): string[] {
+  const fromStep = step && STEP_SUGGESTIONS[step] ? STEP_SUGGESTIONS[step] : [];
+  const fromTier = TIER_SUGGESTIONS[tier || 'none'] ?? [];
+  // Fusion : étape d'abord (3 max), palier ensuite (2 max), unique, total max 5
+  const merged: string[] = [];
+  for (const s of [...fromStep.slice(0, 3), ...fromTier.slice(0, 2)]) {
+    if (!merged.includes(s)) merged.push(s);
+    if (merged.length >= 5) break;
+  }
+  // Fallback si rien
+  if (merged.length === 0) {
+    return [
+      '✍️ Rédige une description vendeuse pour ma boutique',
+      '🎁 Suggère 3 produits adaptés à ma boutique',
+      '🔍 Vérifie mes infos et dis-moi ce qui manque',
+    ];
+  }
+  return merged;
+}
 
 export function BusinessAssistantChat({
   snapshot,
@@ -34,20 +101,37 @@ export function BusinessAssistantChat({
   const scrollRef = useRef<HTMLDivElement>(null);
   const greetedRef = useRef(false);
 
+  const suggestions = buildSuggestions(step, snapshot?.setup_tier);
+  const tierLabel = snapshot?.setup_tier
+    ? ({ bronze: '🥉 Bronze', silver: '🥈 Argent', gold: '🥇 Or' } as Record<string, string>)[snapshot.setup_tier]
+    : null;
+  const stepLabel = step
+    ? ({
+        welcome: 'Accueil',
+        profile: 'Profil boutique',
+        'first-product': 'Vos produits',
+        delivery: 'Livraison',
+        payment: 'Paiements',
+        launch: 'Lancement',
+      } as Record<string, string>)[step]
+    : null;
+
   // Welcome message on first open
   useEffect(() => {
     if (greetedRef.current || messages.length > 0) return;
     greetedRef.current = true;
     const name = snapshot?.business_name ? ` ${snapshot.business_name}` : '';
+    const stepIntro = stepLabel ? `\n\n📍 Étape en cours : **${stepLabel}**.` : '';
+    const tierIntro = tierLabel ? `\n🏅 Palier actuel : **${tierLabel}**.` : '';
     setMessages([
       {
         role: 'assistant',
-        content: `Bonjour 👋 je suis votre assistant **JOIE DE VIVRE**.\n\nJe peux vous aider à configurer **${name || 'votre boutique'}**, rédiger des descriptions, suggérer des prix et valider vos infos.\n\n${
+        content: `Bonjour 👋 je suis votre assistant **JOIE DE VIVRE**.\n\nJe peux vous aider à configurer **${name || 'votre boutique'}**, rédiger des descriptions, suggérer des prix et valider vos infos.${stepIntro}${tierIntro}\n\n${
           initialPrompt ? `_${initialPrompt}_\n\n` : ''
         }Choisissez une suggestion ci-dessous ou posez-moi votre question.`,
       },
     ]);
-  }, [snapshot?.business_name, initialPrompt, messages.length, setMessages]);
+  }, [snapshot?.business_name, initialPrompt, messages.length, setMessages, stepLabel, tierLabel]);
 
   // Auto-scroll
   useEffect(() => {
@@ -134,7 +218,7 @@ export function BusinessAssistantChat({
       {/* Quick suggestions (only when conversation is short) */}
       {messages.length <= 2 && !streaming && (
         <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-          {QUICK_SUGGESTIONS.map((q) => (
+          {suggestions.map((q) => (
             <button
               key={q}
               onClick={() => handleSend(q)}
