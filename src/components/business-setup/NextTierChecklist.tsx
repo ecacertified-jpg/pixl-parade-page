@@ -271,13 +271,6 @@ export function NextTierChecklist({
     [nextTier, snapshot],
   );
 
-  const [whyOpenId, setWhyOpenId] = useState<string | null>(null);
-  const whyReq = whyOpenId
-    ? requirements.find((r) => r.id === whyOpenId) ?? null
-    : null;
-  const whyDetails = whyOpenId ? REQUIREMENT_DETAILS[whyOpenId] : null;
-  const whyImprovement = whyOpenId ? improvementById.get(whyOpenId) : undefined;
-
   const completed = requirements.filter((r) => r.done).length;
   const total = requirements.length;
   const progress = total > 0 ? (completed / total) * 100 : 100;
@@ -288,6 +281,13 @@ export function NextTierChecklist({
     for (const imp of improvements) map.set(imp.id, imp);
     return map;
   }, [improvements]);
+
+  const [whyOpenId, setWhyOpenId] = useState<string | null>(null);
+  const whyReq = whyOpenId
+    ? requirements.find((r) => r.id === whyOpenId) ?? null
+    : null;
+  const whyDetails = whyOpenId ? REQUIREMENT_DETAILS[whyOpenId] : null;
+  const whyImprovement = whyOpenId ? improvementById.get(whyOpenId) : undefined;
 
   const currentInfo = TIER_DEFINITIONS[tier];
   const nextInfo = nextTier ? TIER_DEFINITIONS[nextTier] : null;
