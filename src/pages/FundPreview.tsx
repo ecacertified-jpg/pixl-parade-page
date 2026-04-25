@@ -154,11 +154,8 @@ export default function FundPreview() {
   const { user } = useAuth();
 
   const handleContribute = () => {
-    if (user) {
-      setShowContributionModal(true);
-    } else {
-      navigate(`/auth?redirect=${encodeURIComponent(`/f/${fundId}`)}`);
-    }
+    // Public funds allow guest contributions; the modal handles auth-vs-guest UX.
+    setShowContributionModal(true);
   };
 
   const refetchFund = useCallback(() => {
