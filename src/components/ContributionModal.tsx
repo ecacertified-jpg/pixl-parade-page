@@ -224,7 +224,7 @@ export function ContributionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user && !isGuestMode) return;
 
     const contributionAmount = parseFloat(amount);
     
