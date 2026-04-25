@@ -842,9 +842,21 @@ export function BirthdayAlbum({
               {lightboxItem.caption && lightboxItem.media_type !== "memory" && (
                 <p className="text-white text-sm text-center mt-3">{lightboxItem.caption}</p>
               )}
-              <p className="text-white/60 text-xs text-center mt-1">
-                Par {lightboxItem.uploader_name || "Un ami"}
-              </p>
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <span className="h-5 w-5 rounded-full bg-primary/30 text-white text-[10px] font-bold flex items-center justify-center">
+                  {(lightboxItem.uploader_name || "?").trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="text-white/80 text-xs">
+                  {!!user && lightboxItem.uploader_id === user.id
+                    ? "Ajouté par toi"
+                    : `Ajouté par ${lightboxItem.uploader_name || "un ami"}`}
+                </span>
+                {!!user && lightboxItem.uploader_id === user.id ? (
+                  <Pencil className="h-3 w-3 text-white/80" />
+                ) : (
+                  <Lock className="h-3 w-3 text-white/50" />
+                )}
+              </div>
 
               {/* Lightbox reactions */}
               <div className="flex justify-center mt-3">
