@@ -1,74 +1,65 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Heart, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Search, Heart, SlidersHorizontal, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AnimatedFavoriteButton } from "@/components/AnimatedFavoriteButton";
 import { SEOHead } from "@/components/SEOHead";
 import { useCountry } from "@/contexts/CountryContext";
 import { CountrySelector } from "@/components/CountrySelector";
 import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
-
-interface CatalogProduct {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  image_url: string | null;
-  business_accounts?: { business_name: string } | null;
-  category_name: string | null;
-}
+import {
+  CatalogProduct,
+  useCatalogProducts,
+  useCatalogSearch,
+  useDebouncedValue,
+} from "@/hooks/useWishlistCatalog";
 
 export default function WishlistCatalog() {
   const { countryCode } = useCountry();
   const navigate = useNavigate();
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [selectedTaste, setSelectedTaste] = useState<string>("tous");
   const { isFavorite, addFavorite, removeFavorite, getFavoriteId, stats } = useFavorites();
 
+  const isSearching = debouncedQuery.trim().length >= 2;
+
+  const catalog = useCatalogProducts(countryCode);
+  const search = useCatalogSearch(countryCode, debouncedQuery);
+
+  const products: CatalogProduct[] = useMemo(() => {
+    if (isSearching) return search.data ?? [];
+    return catalog.data?.pages.flat() ?? [];
+  }, [isSearching, search.data, catalog.data]);
+
+  const loading = isSearching ? search.isLoading : catalog.isLoading;
+
+  const filteredProducts = useMemo(
+    () => products.filter((p) => matchesTaste(p.category_name, selectedTaste)),
+    [products, selectedTaste],
+  );
+
+  // Infinite scroll sentinel (uniquement en mode catalogue)
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      const { data: businesses } = await supabase
-        .from("business_accounts")
-        .select("id")
-        .eq("country_code", countryCode)
-        .eq("is_active", true);
-
-      const businessIds = businesses?.map(b => b.id) ?? [];
-
-      const productsRes = businessIds.length > 0
-        ? await supabase
-            .from("products")
-            .select("id, name, price, currency, image_url, category_name, business_accounts!products_business_id_fkey(business_name)")
-            .eq("is_active", true)
-            .in("business_id", businessIds)
-            .order("created_at", { ascending: false })
-            .limit(1000)
-        : { data: [] as any[] };
-
-      if (productsRes.data) setProducts(productsRes.data as any);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, [countryCode]);
-
-  const filteredProducts = products.filter((p) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = !query
-      || p.name.toLowerCase().includes(query)
-      || (p.category_name?.toLowerCase().includes(query) ?? false);
-    const matchesCategory = matchesTaste(p.category_name, selectedTaste);
-    return matchesSearch && matchesCategory;
-  });
+    if (isSearching) return;
+    const node = sentinelRef.current;
+    if (!node || !catalog.hasNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !catalog.isFetchingNextPage) {
+          catalog.fetchNextPage();
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isSearching, catalog.hasNextPage, catalog.isFetchingNextPage, catalog.fetchNextPage]);
 
   const handleToggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
@@ -120,7 +111,7 @@ export default function WishlistCatalog() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un article (chemise, bijoux, sac...)"
+                placeholder="Rechercher par nom (lingettes, robe…) ou catégorie"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -158,11 +149,20 @@ export default function WishlistCatalog() {
             <div className="text-center py-12 text-muted-foreground">
               <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm">Aucun article trouvé</p>
-              <p className="text-xs mt-1">Essayez un autre filtre ou recherche</p>
+              <p className="text-xs mt-1">
+                {isSearching && selectedTaste !== "tous"
+                  ? `Aucun article pour « ${debouncedQuery} » dans cette catégorie — essayez « Tous »`
+                  : "Essayez un autre filtre ou recherche"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product) => {
+                const location =
+                  product.location_name?.trim() ||
+                  product.business_accounts?.address?.trim() ||
+                  null;
+                return (
                 <div
                   key={product.id}
                   className="relative rounded-xl border bg-card overflow-hidden shadow-sm"
@@ -187,6 +187,7 @@ export default function WishlistCatalog() {
                         alt={product.name}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -207,12 +208,36 @@ export default function WishlistCatalog() {
                         {(product.business_accounts as any).business_name}
                       </p>
                     )}
+                    {location && (
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{location}</span>
+                      </p>
+                    )}
                     <p className="text-sm font-bold text-primary mt-1">
                       {product.price.toLocaleString()} {product.currency}
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
+            </div>
+          )}
+
+          {/* Infinite scroll sentinel + indicateur de chargement */}
+          {!isSearching && !loading && filteredProducts.length > 0 && (
+            <div ref={sentinelRef} className="py-6 flex justify-center">
+              {catalog.isFetchingNextPage ? (
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-56 rounded-xl" />
+                  ))}
+                </div>
+              ) : catalog.hasNextPage ? (
+                <span className="text-xs text-muted-foreground">Chargement…</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Vous avez tout vu ✨</span>
+              )}
             </div>
           )}
         </div>
