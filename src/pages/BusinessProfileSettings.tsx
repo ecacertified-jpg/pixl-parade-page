@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -51,6 +52,8 @@ const BusinessProfileSettings = () => {
     website_url: "",
     latitude: null as number | null,
     longitude: null as number | null,
+    show_phone_publicly: false,
+    show_email_publicly: false,
   });
 
   useEffect(() => {
@@ -66,6 +69,8 @@ const BusinessProfileSettings = () => {
         website_url: businessAccount.website_url || "",
         latitude: (businessAccount as any).latitude ?? null,
         longitude: (businessAccount as any).longitude ?? null,
+        show_phone_publicly: businessAccount.show_phone_publicly ?? false,
+        show_email_publicly: businessAccount.show_email_publicly ?? false,
       });
     }
   }, [businessAccount]);
@@ -202,6 +207,8 @@ const BusinessProfileSettings = () => {
           website_url: business.website_url,
           latitude: business.latitude,
           longitude: business.longitude,
+          show_phone_publicly: business.show_phone_publicly && Boolean(business.phone?.trim()),
+          show_email_publicly: business.show_email_publicly && Boolean(business.email?.trim()),
         })
         .eq("id", businessAccount.id);
       
@@ -411,6 +418,26 @@ const BusinessProfileSettings = () => {
                       className="pl-10"
                     />
                   </div>
+                  <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show_email_publicly" className="text-sm">
+                        Afficher publiquement sur ma boutique
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {business.email?.trim()
+                          ? "Permet aux visiteurs de m'écrire directement. Sinon, le support JOIE DE VIVRE est affiché."
+                          : "Renseignez d'abord votre email."}
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_email_publicly"
+                      checked={business.show_email_publicly && Boolean(business.email?.trim())}
+                      disabled={!business.email?.trim()}
+                      onCheckedChange={(checked) =>
+                        setBusiness({ ...business, show_email_publicly: checked })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -423,6 +450,26 @@ const BusinessProfileSettings = () => {
                       onChange={(e) => setBusiness({ ...business, phone: e.target.value })}
                       placeholder="+225 XX XX XX XX"
                       className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show_phone_publicly" className="text-sm">
+                        Afficher publiquement sur ma boutique
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {business.phone?.trim()
+                          ? "Permet aux visiteurs de m'appeler directement. Sinon, le support JOIE DE VIVRE est affiché."
+                          : "Renseignez d'abord votre téléphone."}
+                      </p>
+                    </div>
+                    <Switch
+                      id="show_phone_publicly"
+                      checked={business.show_phone_publicly && Boolean(business.phone?.trim())}
+                      disabled={!business.phone?.trim()}
+                      onCheckedChange={(checked) =>
+                        setBusiness({ ...business, show_phone_publicly: checked })
+                      }
                     />
                   </div>
                 </div>

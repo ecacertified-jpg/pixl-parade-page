@@ -15,12 +15,14 @@ interface BusinessAccount {
   website_url?: string;
   latitude?: number | null;
   longitude?: number | null;
+  show_phone_publicly?: boolean;
+  show_email_publicly?: boolean;
 }
 
 const fetchBusinessAccount = async (userId: string): Promise<BusinessAccount | null> => {
   const { data, error } = await supabase
     .from('business_accounts')
-    .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url, latitude, longitude')
+    .select('id, business_name, business_type, is_active, description, logo_url, email, phone, address, website_url, latitude, longitude, show_phone_publicly, show_email_publicly')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
