@@ -218,7 +218,7 @@ export function BirthdayAlbum({
         .from("birthday_page_photos")
         .update(updates)
         .eq("id", editingItem.id)
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -333,7 +333,7 @@ export function BirthdayAlbum({
           image_url: urlData.publicUrl,
           media_type: "image",
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -438,7 +438,7 @@ export function BirthdayAlbum({
           media_type: "memory",
           memory_text: memoryText.trim(),
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
