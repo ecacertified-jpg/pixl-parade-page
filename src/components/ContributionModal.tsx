@@ -73,8 +73,13 @@ export function ContributionModal({
   const [beneficiaryId, setBeneficiaryId] = useState<string>("");
   const [existingContribution, setExistingContribution] = useState<ExistingContribution | null>(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
+  // Guest (non-authenticated) contributor fields
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
+  const isGuestMode = !user && isFromPublicFund;
   const { trackConversion } = useGoogleAnalytics();
   const { trackContributionConversion } = useShareConversionTracking();
 
