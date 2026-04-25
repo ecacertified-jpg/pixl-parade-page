@@ -407,6 +407,17 @@ export default function BusinessSetup() {
         }}
         businessId={selectedBusinessId || undefined}
       />
+
+      {/* AI Assistant — disponible à chaque étape du wizard */}
+      {selectedBusinessId && (
+        <BusinessAssistantFAB
+          businessId={selectedBusinessId}
+          step={currentDef.id}
+          onAction={(action) => {
+            if (action === 'open-add-product') setShowAddProduct(true);
+          }}
+        />
+      )}
     </div>
   );
 }
