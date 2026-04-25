@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUpcomingBirthdays } from "@/hooks/useUpcomingBirthdays";
 import { useCelebrationFeedback } from "@/hooks/useCelebrationFeedback";
 import { useMyBirthdayPageSlug } from "@/hooks/useMyBirthdayPageSlug";
+import { PublishMyBirthdayPageBanner } from "@/components/PublishMyBirthdayPageBanner";
 import confetti from "canvas-confetti";
 
 export function WhatDoYouWantCard() {
@@ -111,6 +112,9 @@ export function WhatDoYouWantCard() {
 
   return (
     <Card className="backdrop-blur-sm border border-border/50 shadow-card p-6 rounded-2xl bg-sky-50">
+      {/* Publish draft birthday page banner (visible if user has an unpublished draft) */}
+      <PublishMyBirthdayPageBanner />
+
       {/* Header with profile and question */}
       <div className="flex items-center gap-3 mb-6">
         {myPageSlug ? (
@@ -119,7 +123,7 @@ export function WhatDoYouWantCard() {
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => navigate(`/birthday/${myPageSlug}`)}
+                  onClick={() => navigate(`/birthday/${myPageSlug}`, { state: { fromFeed: true } })}
                   className="relative shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
                   aria-label="Voir ma page d'anniversaire"
                 >
