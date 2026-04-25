@@ -1,63 +1,46 @@
-## Objectif
+## Diagnostic
 
-Sur la page **Catalogue de souhaits** (`/wishlist-catalog`), n'afficher par défaut que les articles du **pays d'origine de l'utilisateur** (celui enregistré dans son profil). Les articles d'autres pays ne doivent apparaître que lorsque l'utilisateur change explicitement de pays via le sélecteur en haut de la page.
+Vous voyez des gâteaux de la boutique **« Aury mode »** située à **Cotonou (Bénin)** alors que vous êtes en **Côte d'Ivoire** (`profile.country_code = 'CI'`). L'investigation en base révèle la cause réelle :
 
-## Contexte actuel
+- La boutique **Aury mode** a `business_accounts.country_code = 'BJ'` (Bénin) ✅
+- Mais **274 de ses produits** ont `products.country_code = 'CI'` (Côte d'Ivoire) ❌
+- Le filtre du catalogue est correct (`products.country_code = 'CI'`), mais il retourne ces produits mal étiquetés.
 
-Aujourd'hui, le catalogue utilise `countryCode` issu de `CountryContext`. Or ce code provient :
-1. d'une éventuelle valeur stockée en `sessionStorage` (ancienne navigation),
-2. sinon d'une **auto-détection géographique** (IP/navigateur) déclenchée à chaque nouvelle session,
-3. à défaut, du `DEFAULT_COUNTRY_CODE` global.
+D'après `mem://features/product-country-synchronization`, un trigger SQL `trg_sync_product_country` est censé garantir que tout produit hérite du `country_code` de sa boutique parente. **Ce trigger n'existe pas en base** (vérifié via `information_schema.triggers`) — il a probablement été supprimé ou n'a jamais été créé. C'est ce qui a permis la dérive.
 
-Résultat : un utilisateur ivoirien voyageant ou avec une IP imprécise peut voir, sans l'avoir demandé, le catalogue d'un autre pays. Le `profileCountryCode` (pays d'origine enregistré sur le profil) est déjà chargé dans le contexte mais **n'est pas utilisé comme valeur par défaut**.
+## Correctif
 
-## Approche
+### 1. Migration SQL — corriger les données + recréer le trigger
 
-Faire en sorte que la page catalogue se base **prioritairement sur le pays du profil** quand l'utilisateur est connecté, tout en respectant un choix explicite fait via le `CountrySelector`.
+Une migration unique qui :
 
-### Règles de priorité du pays affiché
+1. **Resynchronise** les 274 produits incohérents : `UPDATE products SET country_code = b.country_code FROM business_accounts b WHERE products.business_id = b.id AND products.country_code IS DISTINCT FROM b.country_code`.
+2. **(Re)crée la fonction** `sync_product_country()` qui force `NEW.country_code` à celui de la boutique lors de tout `INSERT`/`UPDATE` sur `products`.
+3. **(Re)crée la fonction** `sync_business_country_to_products()` qui propage un changement de `business_accounts.country_code` à tous les produits de cette boutique.
+4. **Attache les triggers** correspondants sur `products` (BEFORE INSERT/UPDATE) et `business_accounts` (AFTER UPDATE OF country_code).
 
-1. **Choix explicite de l'utilisateur** dans cette session (sélection manuelle dans le `CountrySelector`) → toujours respecté.
-2. Sinon, **pays du profil** (`profileCountryCode`) → utilisé comme pays de référence pour le catalogue.
-3. Sinon (utilisateur non connecté ou profil sans pays), **pays détecté / par défaut** → comportement actuel inchangé.
+Conséquence immédiate : votre catalogue ne montrera plus les produits d'Aury mode quand vous êtes en CI, et toute future incohérence est mécaniquement empêchée.
 
-### Détection d'un choix explicite
+### 2. Stabiliser le `CountryContext` (en complément)
 
-Aujourd'hui, `setCountryCode` écrit la valeur en `sessionStorage` aussi bien lors de l'auto-détection que lors d'un clic utilisateur, donc il n'est pas possible de distinguer les deux. Il faut :
+Un second souci, déjà présent, est que l'effet d'auto-détection IP s'exécute en parallèle du chargement du profil et **peut écraser le pays du profil** au premier tour, sans respecter le flag « manual ». Ajustement :
 
-- Distinguer dans `CountryContext` les écritures « auto-détectées » des écritures « manuelles » (ex. nouveau flag `manuallySelected: boolean` stocké en `sessionStorage` sous une clé dédiée, par ex. `joiedevivre_nav_country_manual`).
-- Le flag passe à `true` uniquement quand `setCountryCode` est appelé sans le paramètre interne d'auto-détection (c'est-à-dire depuis `CountrySelector` ou `detectCurrentLocation`).
-- Lors du chargement du `profileCountryCode`, si **aucun choix manuel n'a été fait dans la session courante**, aligner automatiquement `countryCode` sur le pays du profil et nettoyer la valeur auto-détectée.
+- L'auto-détection (`useEffect` de `SESSION_DETECTED_KEY`) ne doit s'appliquer **que si aucun pays manuel n'a été choisi ET que le profil n'est pas connu** (utilisateur non connecté). Sinon, on attend le profil et le `loadProfileCountry` aligne tout seul.
+- Le `loadProfileCountry` doit également **effacer le flag `SESSION_DETECTED_KEY`** s'il prend le relais, pour éviter qu'une auto-détection ultérieure ne reparte sur de mauvaises bases.
 
-### Indication visuelle (légère)
+Cela renforce la garantie : un utilisateur ivoirien connecté reste sur **CI** par défaut, même si son IP est ailleurs.
 
-Quand l'utilisateur est en train de visiter un autre pays que le sien (`isVisiting === true`), afficher un petit bandeau discret au-dessus de la grille produits :
+## Fichiers / changements
 
-> « Vous explorez actuellement le catalogue {pays visité}. [Revenir à {pays d'origine}] »
-
-Le bouton « Revenir » réinitialise le pays courant sur le `profileCountryCode` et efface le flag manuel.
-
-## Changements techniques
-
-### `src/contexts/CountryContext.tsx`
-- Ajouter une clé `NAV_STORAGE_MANUAL_KEY = "joiedevivre_nav_country_manual"`.
-- `setCountryCode(code, updateProfile?)` marque désormais le flag manuel à `true` (les appels de l'auto-détection passent par un setter interne qui ne le touche pas).
-- Dans le `useEffect` de chargement du profil : si `profileCountryCode` est défini ET qu'aucun choix manuel n'existe dans la session courante, appeler le setter interne pour aligner `countryCode` sur `profileCountryCode`.
-- Exposer une nouvelle action `resetToHomeCountry()` qui repositionne sur le pays du profil et efface le flag manuel.
-
-### `src/pages/WishlistCatalog.tsx`
-- Ajouter un bandeau conditionnel (visible uniquement si `isVisiting` et `profileCountryCode` connu) avec le bouton « Revenir à {pays d'origine} » utilisant `resetToHomeCountry()`.
-- Aucune modification de la logique de requête : `useCatalogProducts(countryCode, sort)` continuera à fonctionner, le `countryCode` étant désormais celui du profil par défaut.
-
-### Hook (aucune modif requise)
-`useWishlistCatalog.ts` reste tel quel : la requête est déjà filtrée par `country_code`.
-
-## Fichiers modifiés
-
-- `src/contexts/CountryContext.tsx`
-- `src/pages/WishlistCatalog.tsx`
+- **Nouvelle migration SQL** (via l'outil de migration Supabase) :
+  - `UPDATE` ponctuel des 274 produits
+  - `CREATE OR REPLACE FUNCTION public.sync_product_country()`
+  - `CREATE OR REPLACE FUNCTION public.sync_business_country_to_products()`
+  - `CREATE TRIGGER trg_sync_product_country BEFORE INSERT OR UPDATE ON public.products`
+  - `CREATE TRIGGER trg_sync_business_country_to_products AFTER UPDATE OF country_code ON public.business_accounts`
+- **`src/contexts/CountryContext.tsx`** : ne pas auto-détecter quand un profil utilisateur est en cours de chargement / présent ; nettoyer la valeur auto-détectée si le profil prend le relais.
 
 ## Hors-scope
 
-- Pas de changement du comportement d'auto-détection pour les utilisateurs non connectés.
-- Pas de changement sur les autres pages utilisant `useCountry()` (Home, Shop, ExploreMap…) : seul le catalogue est ciblé par cette demande, mais l'amélioration du contexte (priorité au pays du profil) bénéficiera également à ces pages de manière cohérente. Si vous préférez restreindre cette logique uniquement à `WishlistCatalog`, nous pouvons gérer le calcul `effectiveCountry` localement dans la page plutôt que dans le contexte — dites-le-moi avant approbation.
+- Aucune modification de l'UI du catalogue (le filtre est déjà bon).
+- Aucune réorganisation des boutiques ni de leur adresse.
