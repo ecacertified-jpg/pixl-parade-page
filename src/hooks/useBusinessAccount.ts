@@ -15,6 +15,8 @@ interface BusinessAccount {
   website_url?: string;
   latitude?: number | null;
   longitude?: number | null;
+  show_phone_publicly?: boolean;
+  show_email_publicly?: boolean;
 }
 
 const fetchBusinessAccount = async (userId: string): Promise<BusinessAccount | null> => {
