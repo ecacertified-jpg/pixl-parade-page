@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import type { Business } from "@/types/business";
 import { ManageFundsBeforeDeleteModal, type AssociatedFund } from "./ManageFundsBeforeDeleteModal";
 import { CascadeDeleteBusinessModal } from "./CascadeDeleteBusinessModal";
+import { SetupTierBadge } from "@/components/business-setup/SetupTierBadge";
 interface BusinessCardProps {
   business: Business;
   onEdit: (business: Business) => void;
@@ -175,6 +176,9 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {business.setup_tier && business.setup_tier !== 'none' && (
+            <SetupTierBadge tier={business.setup_tier} size="sm" />
+          )}
           <Badge variant={business.is_active ? "default" : "secondary"}>
             {business.is_active ? "Actif" : "Inactif"}
           </Badge>
