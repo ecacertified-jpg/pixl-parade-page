@@ -886,24 +886,30 @@ const Auth = () => {
         
         // If new signup, add onboarding parameter
         if (isNewSignup || authMode === 'signup') {
-          const redirectPath = await (async () => {
-            try {
-              const { data: businessAccount } = await supabase
-                .from('business_accounts')
-                .select('id')
-                .eq('user_id', authData.user.id)
-                .eq('is_active', true)
-                .limit(1)
-                .maybeSingle();
-              
-              return businessAccount ? '/business-account' : '/dashboard';
-            } catch {
-              return '/dashboard';
-            }
-          })();
+          // Priorité au param ?redirect= (ex: invité venu d'un lien partagé /birthday/:slug)
+          const redirectParam = searchParams.get('redirect');
           processAdminAutoAssign(authData.user.id).catch(console.error);
           acceptInvitationIfNeeded().catch(console.error);
-          navigate(`${redirectPath}?onboarding=true`);
+          if (redirectParam) {
+            const sep = redirectParam.includes('?') ? '&' : '?';
+            navigate(`${redirectParam}${sep}onboarding=true`);
+          } else {
+            const redirectPath = await (async () => {
+              try {
+                const { data: businessAccount } = await supabase
+                  .from('business_accounts')
+                  .select('id')
+                  .eq('user_id', authData.user.id)
+                  .eq('is_active', true)
+                  .limit(1)
+                  .maybeSingle();
+                return businessAccount ? '/business-account' : '/dashboard';
+              } catch {
+                return '/dashboard';
+              }
+            })();
+            navigate(`${redirectPath}?onboarding=true`);
+          }
         } else {
           processAdminAutoAssign(authData.user.id).catch(console.error);
           // Let useEffect handle redirect via onAuthStateChange
