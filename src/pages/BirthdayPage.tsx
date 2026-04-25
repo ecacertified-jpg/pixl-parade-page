@@ -507,6 +507,11 @@ const BirthdayPage = () => {
             user={user}
             items={albumItems}
             onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
+            pageOwnerUserId={page!.user_id}
+            onItemRemoved={(id) => setAlbumItems(prev => prev.filter(i => i.id !== id))}
+            onItemUpdated={(updated) =>
+              setAlbumItems(prev => prev.map(i => (i.id === updated.id ? { ...i, ...updated } : i)))
+            }
           />
         </motion.div>
       </div>
