@@ -17,6 +17,7 @@ import { useBusinessOnboarding } from '@/hooks/useBusinessOnboarding';
 import { useBusinessSetupTier, TIER_DEFINITIONS } from '@/hooks/useBusinessSetupTier';
 import { SetupTierBadge, NextTierTeaser } from '@/components/business-setup/SetupTierBadge';
 import { SetupBenefitsBanner } from '@/components/business-setup/SetupBenefitsBanner';
+import { BusinessAssistantFAB } from '@/components/business-setup/BusinessAssistantFAB';
 import { AddProductModal } from '@/components/AddProductModal';
 import { BusinessPushNotificationPrompt } from '@/components/BusinessPushNotificationPrompt';
 import { BusinessSelector } from '@/components/BusinessSelector';
@@ -406,6 +407,17 @@ export default function BusinessSetup() {
         }}
         businessId={selectedBusinessId || undefined}
       />
+
+      {/* AI Assistant — disponible à chaque étape du wizard */}
+      {selectedBusinessId && (
+        <BusinessAssistantFAB
+          businessId={selectedBusinessId}
+          step={currentDef.id}
+          onAction={(action) => {
+            if (action === 'open-add-product') setShowAddProduct(true);
+          }}
+        />
+      )}
     </div>
   );
 }

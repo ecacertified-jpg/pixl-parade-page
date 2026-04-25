@@ -25,6 +25,7 @@ import { BusinessLocationAlert } from "@/components/BusinessLocationAlert";
 import { BusinessPushNotificationPrompt } from "@/components/BusinessPushNotificationPrompt";
 import { ProductImportModal } from "@/components/ProductImportModal";
 import { ProductExportButton } from "@/components/ProductExportButton";
+import { BusinessAssistantFAB } from "@/components/business-setup/BusinessAssistantFAB";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1517,5 +1518,15 @@ interface RecentOrderItem {
         }}
         onProductUpdated={loadProducts}
       />
+
+      {/* AI Assistant — disponible sur tout le tableau de bord business */}
+      {selectedBusinessId && (
+        <BusinessAssistantFAB
+          businessId={selectedBusinessId}
+          onAction={(action) => {
+            if (action === 'open-add-product') setIsAddProductModalOpen(true);
+          }}
+        />
+      )}
     </div>;
 }
