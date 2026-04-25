@@ -16,6 +16,7 @@ import {
 import { useFavorites } from "@/hooks/useFavorites";
 import { SEOHead } from "@/components/SEOHead";
 import { useCountry } from "@/contexts/CountryContext";
+import { getCountryConfig } from "@/config/countries";
 import { CountrySelector } from "@/components/CountrySelector";
 import { TASTE_CATEGORIES, ALL_TASTE, matchesTaste } from "@/data/taste-categories";
 import { WishlistProductCard } from "@/components/wishlist/WishlistProductCard";
@@ -31,7 +32,7 @@ import {
 const SEARCH_SUGGESTIONS = ["robe", "chemise", "parfum", "bijoux", "gâteau", "chaussures"];
 
 export default function WishlistCatalog() {
-  const { countryCode } = useCountry();
+  const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry } = useCountry();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
@@ -164,6 +165,25 @@ export default function WishlistCatalog() {
               />
             </div>
           </div>
+
+          {/* Bandeau "vous explorez un autre pays" */}
+          {isVisiting && profileCountryCode && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs">
+              <span className="text-foreground">
+                Vous explorez le catalogue {getCountryConfig(countryCode).flag}{" "}
+                {getCountryConfig(countryCode).name}.
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs shrink-0"
+                onClick={resetToHomeCountry}
+              >
+                Revenir à {getCountryConfig(profileCountryCode).flag}{" "}
+                {getCountryConfig(profileCountryCode).name}
+              </Button>
+            </div>
+          )}
 
           {/* Essayez plutôt — chips qui pré-remplissent la recherche */}
           <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 scrollbar-hide">
