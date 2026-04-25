@@ -13,8 +13,6 @@ import {
   Cake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
