@@ -17,10 +17,12 @@ interface BusinessAssistantFABProps {
   step?: string; // current wizard step (optional)
   onAction?: (action: string) => void; // e.g. 'open-add-product'
   defaultTab?: 'chat' | 'score';
+  /** Called whenever the assistant finishes a response or score recomputes — useful to refresh wizard checklist. */
+  onAssistantUpdate?: () => void;
 }
 
 export function BusinessAssistantFAB({
-  businessId, step, onAction, defaultTab = 'chat',
+  businessId, step, onAction, defaultTab = 'chat', onAssistantUpdate,
 }: BusinessAssistantFABProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -41,6 +43,11 @@ export function BusinessAssistantFAB({
   const handleAction = (action: string) => {
     onAction?.(action);
     if (action === 'open-add-product') setOpen(false);
+  };
+
+  const handleAssistantTurnEnd = async () => {
+    await refetch();
+    onAssistantUpdate?.();
   };
 
   const highCount = improvements.filter((i) => i.impact === 'high').length;
@@ -129,6 +136,7 @@ export function BusinessAssistantFAB({
                 step={step}
                 initialPrompt={seedPrompt}
                 key={seedPrompt || 'chat'}
+                onResponseComplete={handleAssistantTurnEnd}
               />
             </TabsContent>
 

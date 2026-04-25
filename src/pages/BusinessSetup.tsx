@@ -15,9 +15,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedBusiness } from '@/contexts/SelectedBusinessContext';
 import { useBusinessOnboarding } from '@/hooks/useBusinessOnboarding';
 import { useBusinessSetupTier, TIER_DEFINITIONS } from '@/hooks/useBusinessSetupTier';
+import { useBusinessQualityScore, type QualityImprovement } from '@/hooks/useBusinessQualityScore';
 import { SetupTierBadge, NextTierTeaser } from '@/components/business-setup/SetupTierBadge';
 import { SetupBenefitsBanner } from '@/components/business-setup/SetupBenefitsBanner';
 import { BusinessAssistantFAB } from '@/components/business-setup/BusinessAssistantFAB';
+import { NextTierChecklist } from '@/components/business-setup/NextTierChecklist';
 import { AddProductModal } from '@/components/AddProductModal';
 import { BusinessPushNotificationPrompt } from '@/components/BusinessPushNotificationPrompt';
 import { BusinessSelector } from '@/components/BusinessSelector';
@@ -102,11 +104,19 @@ export default function BusinessSetup() {
   const { tier, currentInfo, nextTier, nextInfo, refetch: refetchTier } =
     useBusinessSetupTier(selectedBusinessId);
 
+  const {
+    snapshot: qualitySnapshot,
+    improvements: qualityImprovements,
+    loading: qualityLoading,
+    refetch: refetchQuality,
+  } = useBusinessQualityScore(selectedBusinessId);
+
   const [stepIndex, setStepIndex] = useState(0);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [productCount, setProductCount] = useState<number>(0);
   const [previousTier, setPreviousTier] = useState<string>('none');
+  const [refreshingChecklist, setRefreshingChecklist] = useState(false);
 
   const currentDef = STEPS[stepIndex];
 
@@ -186,8 +196,33 @@ export default function BusinessSetup() {
   };
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([refreshState(), refetchTier(), loadProductCount()]);
-  }, [refreshState, refetchTier, loadProductCount]);
+    await Promise.all([
+      refreshState(),
+      refetchTier(),
+      refetchQuality(),
+      loadProductCount(),
+    ]);
+  }, [refreshState, refetchTier, refetchQuality, loadProductCount]);
+
+  // Triggered by the assistant FAB after each AI response.
+  const handleAssistantUpdate = useCallback(async () => {
+    setRefreshingChecklist(true);
+    try {
+      await refreshAll();
+    } finally {
+      setRefreshingChecklist(false);
+    }
+  }, [refreshAll]);
+
+  const handleChecklistAction = (imp: QualityImprovement) => {
+    if (imp.cta?.action === 'open-add-product') {
+      setShowAddProduct(true);
+      return;
+    }
+    if (imp.cta?.route) {
+      navigate(imp.cta.route);
+    }
+  };
 
   const handleShareShop = async () => {
     if (!selectedBusinessId) return;
@@ -248,8 +283,8 @@ export default function BusinessSetup() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 pb-24">
-        {/* Tier card */}
-        <Card className="p-4 mb-6 border-primary/20 bg-gradient-to-br from-background to-secondary/30">
+        {/* Tier card + checklist progression vers le prochain palier */}
+        <Card className="p-4 mb-3 border-primary/20 bg-gradient-to-br from-background to-secondary/30">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${currentInfo.gradientClass} flex items-center justify-center text-2xl shadow-md`}>
               {currentInfo.emoji}
@@ -265,6 +300,17 @@ export default function BusinessSetup() {
             </div>
           )}
         </Card>
+
+        <NextTierChecklist
+          tier={tier}
+          nextTier={nextTier}
+          snapshot={qualitySnapshot}
+          improvements={qualityImprovements}
+          loading={qualityLoading}
+          refreshing={refreshingChecklist}
+          onActionClick={handleChecklistAction}
+          className="mb-6"
+        />
 
         {/* Animated step content */}
         <AnimatePresence mode="wait">
@@ -416,6 +462,7 @@ export default function BusinessSetup() {
           onAction={(action) => {
             if (action === 'open-add-product') setShowAddProduct(true);
           }}
+          onAssistantUpdate={handleAssistantUpdate}
         />
       )}
     </div>
