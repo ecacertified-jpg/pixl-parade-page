@@ -43,7 +43,7 @@ interface WishMessage {
 
 interface AlbumItem {
   id: string;
-  uploader_id: string | null;
+  uploader_id?: string | null;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
