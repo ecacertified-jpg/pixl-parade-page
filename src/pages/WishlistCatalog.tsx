@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Heart, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, Search, Heart, SlidersHorizontal, X, AlertCircle, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ import {
 const SEARCH_SUGGESTIONS = ["robe", "chemise", "parfum", "bijoux", "gâteau", "chaussures"];
 
 export default function WishlistCatalog() {
-  const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry } = useCountry();
+  const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry, profileLoadError, isLoadingProfile, retryProfileLoad } = useCountry();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
@@ -165,6 +165,33 @@ export default function WishlistCatalog() {
               />
             </div>
           </div>
+
+          {/* Bandeau d'erreur de chargement du pays profil */}
+          {profileLoadError && (
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs"
+            >
+              <span className="flex items-center gap-1.5 text-destructive">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Impossible de charger votre pays d'origine.
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs shrink-0 text-destructive hover:text-destructive"
+                onClick={() => retryProfileLoad()}
+                disabled={isLoadingProfile}
+              >
+                {isLoadingProfile ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3.5 w-3.5" />
+                )}
+                Réessayer
+              </Button>
+            </div>
+          )}
 
           {/* Bandeau "vous explorez un autre pays" */}
           {isVisiting && profileCountryCode && (
