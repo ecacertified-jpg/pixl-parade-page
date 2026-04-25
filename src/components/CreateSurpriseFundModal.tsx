@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Sparkles, Music, RefreshCw, Package, Check } from "lucide-react";
+import { BirthdayPicker } from "@/components/ui/birthday-picker";
+import { Sparkles, Music, RefreshCw, Package, Check } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -373,27 +372,18 @@ export const CreateSurpriseFundModal = ({
             <div className="space-y-4 p-4 rounded-lg border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
               {/* Date de révélation */}
               <div className="space-y-2">
-                <Label>Date de révélation *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {revealDate ? format(revealDate, "PPP", { locale: fr }) : "Choisir une date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={revealDate}
-                      onSelect={setRevealDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <BirthdayPicker
+                  label="Date de révélation"
+                  required
+                  value={revealDate}
+                  onChange={setRevealDate}
+                  placeholder="jj/mm/aaaa"
+                  helperText="Choisis la date à laquelle la surprise sera révélée"
+                  disableFuture={false}
+                  disablePast={true}
+                  minYear={new Date().getFullYear()}
+                  maxYear={new Date().getFullYear() + 5}
+                />
               </div>
 
               {/* Message surprise */}
