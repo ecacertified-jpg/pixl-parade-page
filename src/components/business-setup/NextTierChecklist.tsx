@@ -244,43 +244,50 @@ export function NextTierChecklist({
               <li
                 key={req.id}
                 className={cn(
-                  'flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors',
+                  'rounded-lg px-2 py-1.5 transition-colors',
                   req.done ? 'opacity-70' : 'bg-muted/40 hover:bg-muted/60',
                 )}
               >
-                {req.done ? (
-                  <span className="w-5 h-5 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3" />
-                  </span>
-                ) : (
-                  <Circle
-                    className={cn(
-                      'w-5 h-5 flex-shrink-0',
-                      req.weight === 'high'
-                        ? 'text-destructive'
-                        : req.weight === 'medium'
-                        ? 'text-amber-500'
-                        : 'text-muted-foreground',
-                    )}
-                    strokeWidth={1.5}
-                  />
-                )}
-                <span
-                  className={cn(
-                    'text-xs flex-1 min-w-0 leading-snug',
-                    req.done ? 'line-through text-muted-foreground' : 'text-foreground',
+                <div className="flex items-center gap-2">
+                  {req.done ? (
+                    <span className="w-5 h-5 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0">
+                      <Check className="w-3 h-3" />
+                    </span>
+                  ) : (
+                    <Circle
+                      className={cn(
+                        'w-5 h-5 flex-shrink-0',
+                        req.weight === 'high'
+                          ? 'text-destructive'
+                          : req.weight === 'medium'
+                          ? 'text-amber-500'
+                          : 'text-muted-foreground',
+                      )}
+                      strokeWidth={1.5}
+                    />
                   )}
-                >
-                  {req.label}
-                </span>
-                {!req.done && imp && onActionClick && (
-                  <button
-                    onClick={() => onActionClick(imp)}
-                    className="text-[10px] font-medium text-primary hover:underline flex items-center gap-0.5 flex-shrink-0"
+                  <span
+                    className={cn(
+                      'text-xs flex-1 min-w-0 leading-snug font-medium',
+                      req.done ? 'line-through text-muted-foreground' : 'text-foreground',
+                    )}
                   >
-                    Faire
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                    {req.label}
+                  </span>
+                  {!req.done && imp && onActionClick && (
+                    <button
+                      onClick={() => onActionClick(imp)}
+                      className="text-[10px] font-medium text-primary hover:underline flex items-center gap-0.5 flex-shrink-0"
+                    >
+                      Faire
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                {!req.done && req.why && (
+                  <p className="text-[11px] text-muted-foreground leading-snug pl-7 mt-1">
+                    {req.why}
+                  </p>
                 )}
               </li>
             );
