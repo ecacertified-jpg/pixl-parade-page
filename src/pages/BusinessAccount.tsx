@@ -917,6 +917,7 @@ interface RecentOrderItem {
             completedCount={completedCount}
             totalSteps={totalSteps}
             onDismiss={dismissChecklist}
+            businessId={selectedBusinessId || undefined}
             onOpenProfileSettings={() => navigate('/business-profile-settings')}
             onOpenAddProduct={() => setIsAddProductModalOpen(true)}
             onOpenDeliverySettings={() => navigate('/business-profile-settings')}
