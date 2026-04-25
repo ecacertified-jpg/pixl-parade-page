@@ -105,7 +105,7 @@ export default function BusinessSetup() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [productCount, setProductCount] = useState<number>(0);
-  const [previousTier, setPreviousTier] = useState<typeof tier>('none');
+  const [previousTier, setPreviousTier] = useState<string>('none');
 
   const currentDef = STEPS[stepIndex];
 
@@ -145,23 +145,20 @@ export default function BusinessSetup() {
     }
   }, [stepIndex, isNewBusiness]);
 
-  // Celebrate when tier increases
+  // Celebrate when tier increases (skip the initial 'none' → 'none' baseline)
   useEffect(() => {
-    if (tier !== previousTier && tier !== 'none' && previousTier !== 'none' || (tier !== 'none' && previousTier === 'none' && !loadingSelector)) {
-      // skip the very first render where previousTier is 'none' and tier is 'none'
-      if (tier !== previousTier && tier !== 'none') {
-        const info = TIER_DEFINITIONS[tier];
-        confetti({
-          particleCount: 160,
-          spread: 100,
-          origin: { y: 0.5 },
-          colors: ['#F59E0B', '#FCD34D', '#7A5DC7', '#C084FC'],
-        });
-        toast.success(`${info.emoji} Palier ${info.label} débloqué !`, {
-          description: info.reward,
-          duration: 5000,
-        });
-      }
+    if (tier !== previousTier && tier !== 'none') {
+      const info = TIER_DEFINITIONS[tier];
+      confetti({
+        particleCount: 160,
+        spread: 100,
+        origin: { y: 0.5 },
+        colors: ['#F59E0B', '#FCD34D', '#7A5DC7', '#C084FC'],
+      });
+      toast.success(`${info.emoji} Palier ${info.label} débloqué !`, {
+        description: info.reward,
+        duration: 5000,
+      });
     }
     setPreviousTier(tier);
     // eslint-disable-next-line react-hooks/exhaustive-deps
