@@ -1,67 +1,69 @@
 ## Objectif
 
-1. **Performance** : les photos et vidéos uploadées sur la page d'anniversaire partagée s'affichent trop lentement (uploadées en pleine résolution, aucune compression, aucune miniature, vidéos chargées en entier dès l'affichage de la grille).
-2. **Clarté UX** : le nom de l'auteur (uploader) est déjà présent sur chaque carte mais en 10px blanc sur dégradé noir — illisible. Le rendre clairement visible avec un avatar/badge pour que les invités comprennent qui peut modifier/supprimer un élément.
+Sur la page boutique du prestataire (`/b/:businessId`), afficher le **vrai téléphone** et le **vrai email du prestataire** dans la carte "Support & Infos", au lieu du contact générique de JOIE DE VIVRE actuellement affiché. Ajouter aussi le **site web** du prestataire s'il en a un.
 
 ## Diagnostic
 
-Dans `src/components/BirthdayAlbum.tsx` :
-- `handlePhotoUpload` envoie le fichier brut directement vers le bucket `birthday-page-photos` (aucun appel à `compressImage`). Une photo iPhone de 4–8 Mo est servie telle quelle à tous les visiteurs.
-- `handleVideoUpload` accepte jusqu'à 50 Mo sans compression ni génération de miniature (`video_thumbnail_url` reste `null`).
-- Dans la grille, les vidéos sont rendues via `<video preload="metadata">` — le navigateur télécharge le header de chaque vidéo en parallèle (lent + coûteux mobile data).
-- Le badge auteur (lignes 597-602) est un texte 10px blanc sur dégradé sombre — peu lisible et ne ressemble pas à une attribution claire.
+Dans `src/pages/VendorShop.tsx` (lignes 286-297), la carte de contact reçoit :
+```ts
+phone={countryConfig.legalEntity.phone}   // numéro support JOIE DE VIVRE
+email={countryConfig.legalEntity.email}   // email support JOIE DE VIVRE
+```
+
+C'est un choix historique de confidentialité (commentaire « Support info (not vendor personal info) »). L'utilisateur souhaite désormais l'inverse : exposer les coordonnées réelles du prestataire pour faciliter le contact direct.
+
+Les données existent déjà dans l'objet `vendor` : `vendor.phone`, `vendor.email`, `vendor.websiteUrl` (déjà utilisées pour le SEO Schema.org lignes 182-188).
+
+Le composant `VendorContactCard` accepte déjà `phone`, `email`, `websiteUrl` — aucune modification de composant n'est requise.
 
 ## Plan d'implémentation
 
-### 1. Compression côté client à l'upload (`BirthdayAlbum.tsx`)
+### 1. `src/pages/VendorShop.tsx`
 
-**Photos** : avant upload, passer le fichier dans `compressImage` (déjà disponible dans `src/utils/compressImage.ts`) :
-- `maxWidth: 1600`, `maxHeight: 1600`, `quality: 0.82`, `format: 'jpeg'`.
-- Cible : ramener une photo 4–8 Mo à 200–500 Ko sans perte visible.
+Remplacer le bloc 286-297 par :
 
-**Vidéos** : 
-- Utiliser `compressVideo` (déjà disponible dans `src/utils/videoCompressor.ts`) avant upload pour cibler ~720p.
-- Générer une **miniature JPEG** via `videoThumbnails.ts` (déjà présent), l'uploader dans le même bucket et stocker l'URL dans `video_thumbnail_url`.
-- Garder la limite 50 Mo sur le fichier source mais viser ≤ 8 Mo après compression.
+```tsx
+<VendorContactCard
+  address={vendor.address}
+  phone={vendor.phone || undefined}
+  email={vendor.email || undefined}
+  websiteUrl={vendor.websiteUrl || undefined}
+  countryCode={vendor.countryCode}
+/>
+```
 
-### 2. Affichage rapide des vidéos dans la grille
+Si la boutique n'a renseigné aucun téléphone ni email, on affiche une **carte de repli** avec le contact de support JOIE DE VIVRE (`countryConfig.legalEntity.phone/email`) pour ne pas laisser l'utilisateur sans recours :
 
-Dans le rendu `media_type === "video"` :
-- Remplacer `<video preload="metadata">` par `<img src={item.video_thumbnail_url || fallback} loading="lazy" />` + bouton play overlay.
-- La balise `<video>` n'est instanciée que dans la lightbox (au clic).
-- Fallback : si `video_thumbnail_url` absent (anciens items), garder l'élément `<video>` actuel.
+```tsx
+const hasVendorContact = vendor.phone || vendor.email;
+const countryConfig = getCountryConfig(vendor.countryCode || 'CI');
 
-### 3. Lazy loading + dimensions
+<VendorContactCard
+  address={vendor.address}
+  phone={hasVendorContact ? vendor.phone || undefined : countryConfig.legalEntity.phone}
+  email={hasVendorContact ? vendor.email || undefined : countryConfig.legalEntity.email}
+  websiteUrl={vendor.websiteUrl || undefined}
+  countryCode={vendor.countryCode}
+/>
+```
 
-- Ajouter `loading="lazy"` + `decoding="async"` + `width`/`height` (ou `aspect-ratio` CSS déjà présent) sur toutes les `<img>` de la grille album pour éviter le reflow.
-- Ajouter `fetchPriority="low"` sur les images au-delà de la première ligne.
+### 2. `src/components/VendorContactCard.tsx`
 
-### 4. Affichage clair de l'auteur sur chaque carte
+Pour améliorer la lisibilité (problème visible sur la capture : `+225 0...` et `contact...` tronqués) :
+- Faire passer le téléphone et l'email **en pleine largeur** (`col-span-2`) au lieu de la grille 2 colonnes qui force la troncature sur mobile.
+- Conserver `truncate` comme garde-fou mais avec assez de place pour le contenu réel.
 
-Remplacer le bandeau actuel (lignes 596-602 de `BirthdayAlbum.tsx`) par :
-- Un **chip pastille blanc/translucide** en bas-gauche de chaque carte avec :
-  - petit avatar circulaire (initiale de `uploader_name` dans un cercle coloré, fond `primary/20`)
-  - nom de l'auteur en `text-xs font-medium`
-  - icône cadenas `Lock` (h-3) si l'utilisateur courant n'est PAS l'uploader (indique « tu ne peux pas modifier »)
-  - icône `Pencil` (h-3) si l'utilisateur courant EST l'uploader (indique « tu peux modifier »)
-- Style : `bg-white/85 backdrop-blur-sm rounded-full px-2 py-0.5 shadow-sm`, lisible sur photo/vidéo/souvenir.
-- Pour les souvenirs (qui n'ont pas de média), placer l'attribution en bas dans la carte avec un peu plus d'emphase.
+### 3. Mémoire
 
-Dans la **lightbox** : conserver "Par {uploader_name}" mais l'enrichir avec l'avatar + le même indicateur édition/cadenas.
-
-### 5. Documentation mémoire
-
-Mettre à jour `mem://features/birthday-pages/lifecycle-and-visibility` (section "Modération de l'album souvenir") pour documenter :
-- Compression systématique à l'upload (photos 1600px / 0.82, vidéos 720p, génération miniature).
-- Affichage de l'auteur via chip avatar + indicateur d'édition.
+- Supprimer / mettre à jour la règle `mem://features/vendor/support-contact-policy` (qui interdisait l'affichage des coordonnées personnelles) pour refléter la nouvelle décision : **les coordonnées du prestataire sont publiques sur sa boutique**, avec repli sur le support JOIE DE VIVRE si elles sont absentes.
 
 ## Fichiers modifiés
 
-- `src/components/BirthdayAlbum.tsx` (compression upload, miniature vidéo, lazy load, redesign du badge auteur dans la grille et la lightbox)
-- `.lovable/mem/features/birthday-pages/lifecycle-and-visibility.md` (notes media performance + auteur visible)
+- `src/pages/VendorShop.tsx` (passer les vraies coordonnées vendor au `VendorContactCard`)
+- `src/components/VendorContactCard.tsx` (téléphone/email en pleine largeur pour éviter la troncature)
+- `.lovable/mem/...` (mise à jour de la règle de visibilité des coordonnées prestataire)
 
 ## Hors-scope
 
-- Pas de migration SQL (la colonne `video_thumbnail_url` existe déjà).
-- Pas de signed URLs : le bucket est déjà public, les URLs publiques restent les plus rapides via CDN Supabase.
-- Pas de re-traitement des médias historiques déjà uploadés en grande taille (on les laisse tels quels, seule la lazy-load les améliorera).
+- Pas de migration SQL : `business_accounts.phone`, `email`, `website_url` existent déjà.
+- Pas de changement sur les autres pages (preview business, cards de listing) — uniquement la page boutique publique.

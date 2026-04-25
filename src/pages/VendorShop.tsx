@@ -283,14 +283,16 @@ export default function VendorShop() {
           onShare={() => setShareMenuOpen(true)}
         />
 
-        {/* Contact Card - Support info (not vendor personal info) */}
+        {/* Contact Card - Vendor's own contact info, with platform support fallback */}
         {(() => {
           const countryConfig = getCountryConfig(vendor.countryCode || 'CI');
+          const hasVendorContact = Boolean(vendor.phone || vendor.email);
           return (
             <VendorContactCard
               address={vendor.address}
-              phone={countryConfig.legalEntity.phone}
-              email={countryConfig.legalEntity.email}
+              phone={hasVendorContact ? vendor.phone || undefined : countryConfig.legalEntity.phone}
+              email={hasVendorContact ? vendor.email || undefined : countryConfig.legalEntity.email}
+              websiteUrl={vendor.websiteUrl || undefined}
               countryCode={vendor.countryCode}
             />
           );
