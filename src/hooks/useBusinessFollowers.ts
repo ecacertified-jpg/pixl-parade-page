@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { startOfDay, startOfWeek, subDays, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface FollowerStats {
   totalFollowers: number;
@@ -109,7 +110,7 @@ export function useBusinessFollowers(businessId: string | null | undefined): Use
         }).length;
 
         growthData.push({
-          date: format(day, 'EEE'),
+          date: format(day, 'EEE', { locale: fr }),
           count
         });
       }
