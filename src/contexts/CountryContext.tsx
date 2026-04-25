@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 const NAV_STORAGE_KEY = "joiedevivre_nav_country";
 const SESSION_DETECTED_KEY = "joiedevivre_session_detected";
+const NAV_STORAGE_MANUAL_KEY = "joiedevivre_nav_country_manual";
 
 interface CountryContextType {
   country: CountryConfig;
@@ -33,6 +34,7 @@ interface CountryContextType {
   // New: Manual detection trigger
   detectCurrentLocation: () => Promise<void>;
   setAsHomeCountry: () => Promise<void>;
+  resetToHomeCountry: () => void;
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -89,11 +91,21 @@ export function CountryProvider({ children }: CountryProviderProps) {
     if (isValidCountryCode(code)) {
       setCountryCodeState(code);
       sessionStorage.setItem(NAV_STORAGE_KEY, code);
+      // This call comes from a user-facing action (selector, etc.) — mark as manual
+      sessionStorage.setItem(NAV_STORAGE_MANUAL_KEY, "true");
       
       // Only sync to profile if explicitly requested
       if (updateProfile) {
         syncCountryToProfile(code);
       }
+    }
+  }, []);
+
+  // Internal setter used for non-user-driven updates (auto-detection, profile alignment)
+  const setCountryCodeInternal = useCallback((code: string) => {
+    if (isValidCountryCode(code)) {
+      setCountryCodeState(code);
+      sessionStorage.setItem(NAV_STORAGE_KEY, code);
     }
   }, []);
 
@@ -106,6 +118,8 @@ export function CountryProvider({ children }: CountryProviderProps) {
         const detectedCountry = getCountryConfig(detectedCode);
         setCountryCodeState(detectedCode);
         sessionStorage.setItem(NAV_STORAGE_KEY, detectedCode);
+        // User explicitly asked for detection — treat as a manual choice
+        sessionStorage.setItem(NAV_STORAGE_MANUAL_KEY, "true");
         toast.success(`Position détectée : ${detectedCountry.flag} ${detectedCountry.name}`);
       }
     } finally {
@@ -119,6 +133,15 @@ export function CountryProvider({ children }: CountryProviderProps) {
     const currentCountry = getCountryConfig(countryCode);
     toast.success(`${currentCountry.flag} ${currentCountry.name} défini comme pays d'origine`);
   }, [countryCode]);
+
+  // Reset to the user's profile country and clear manual override
+  const resetToHomeCountry = useCallback(() => {
+    if (profileCountryCode && isValidCountryCode(profileCountryCode)) {
+      setCountryCodeState(profileCountryCode);
+      sessionStorage.setItem(NAV_STORAGE_KEY, profileCountryCode);
+      sessionStorage.removeItem(NAV_STORAGE_MANUAL_KEY);
+    }
+  }, [profileCountryCode]);
 
   // Auto-detect country on each session (not just first visit)
   useEffect(() => {
@@ -168,6 +191,13 @@ export function CountryProvider({ children }: CountryProviderProps) {
           
           if (data?.country_code && isValidCountryCode(data.country_code)) {
             setProfileCountryCode(data.country_code);
+            // If the user has not explicitly picked a country during this
+            // session, align navigation country with their home country so
+            // they only see their country's catalog by default.
+            const manual = sessionStorage.getItem(NAV_STORAGE_MANUAL_KEY);
+            if (!manual && data.country_code !== countryCode) {
+              setCountryCodeInternal(data.country_code);
+            }
           }
         } else {
           setProfileCountryCode(null);
@@ -205,7 +235,8 @@ export function CountryProvider({ children }: CountryProviderProps) {
         profileCountryCode,
         isVisiting,
         detectCurrentLocation,
-        setAsHomeCountry
+        setAsHomeCountry,
+        resetToHomeCountry
       }}
     >
       {children}

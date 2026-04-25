@@ -1,55 +1,63 @@
-# Plan — Empty state intelligent du catalogue de souhaits
-
 ## Objectif
 
-Quand aucun article n'est trouvé sur `/wishlist-catalog`, aider l'utilisateur à rebondir au lieu d'afficher un simple message statique :
+Sur la page **Catalogue de souhaits** (`/wishlist-catalog`), n'afficher par défaut que les articles du **pays d'origine de l'utilisateur** (celui enregistré dans son profil). Les articles d'autres pays ne doivent apparaître que lorsque l'utilisateur change explicitement de pays via le sélecteur en haut de la page.
 
-1. **Réinitialiser automatiquement le filtre de goût** quand il est responsable du vide (résultats existants côté serveur mais filtrés à zéro côté client).
-2. **Proposer des suggestions de recherche concrètes** quand la recherche elle-même ne renvoie rien.
+## Contexte actuel
 
-## Comportement attendu
+Aujourd'hui, le catalogue utilise `countryCode` issu de `CountryContext`. Or ce code provient :
+1. d'une éventuelle valeur stockée en `sessionStorage` (ancienne navigation),
+2. sinon d'une **auto-détection géographique** (IP/navigateur) déclenchée à chaque nouvelle session,
+3. à défaut, du `DEFAULT_COUNTRY_CODE` global.
 
-Trois scénarios distincts :
+Résultat : un utilisateur ivoirien voyageant ou avec une IP imprécise peut voir, sans l'avoir demandé, le catalogue d'un autre pays. Le `profileCountryCode` (pays d'origine enregistré sur le profil) est déjà chargé dans le contexte mais **n'est pas utilisé comme valeur par défaut**.
 
-### A. Filtre de goût trop restrictif (auto-reset)
-- Condition : `products.length > 0` mais `filteredProducts.length === 0` ET `selectedTaste !== 'tous'`.
-- Action : afficher un bandeau discret « Aucun article dans **Mode** — affichage de tous les articles » + bouton « Annuler » et auto-bascule vers `tous` après ~1.5 s (ou immédiatement, voir détails techniques).
-- Justification : l'utilisateur cherche « robe » → trouve des résultats, mais son filtre « Tech » les masque tous. On déverrouille au lieu de montrer un cul-de-sac.
+## Approche
 
-### B. Recherche sans résultat (suggestions)
-- Condition : `isSearching === true` et `products.length === 0`.
-- Affichage :
-  - Icône + « Aucun article pour "robe" »
-  - Sous-titre : « Essayez une recherche plus courte ou l'une de ces idées »
-  - **Chips de suggestions cliquables** (4–6 termes populaires) : `robe`, `chemise`, `parfum`, `bijoux`, `gâteau`, `chaussures`. Au clic → remplit la barre de recherche.
-  - Bouton secondaire « Effacer la recherche » → reset `searchQuery`.
-  - Si un filtre de goût est actif : ligne supplémentaire « Filtre actif : **Mode** » + bouton « Retirer le filtre ».
+Faire en sorte que la page catalogue se base **prioritairement sur le pays du profil** quand l'utilisateur est connecté, tout en respectant un choix explicite fait via le `CountrySelector`.
 
-### C. Catalogue vide pour le pays (cas rare)
-- Condition : pas de recherche, pas de filtre, et `products.length === 0`.
-- Garder le message actuel mais avec invitation à changer de pays via le `CountrySelector` déjà présent en haut.
+### Règles de priorité du pays affiché
 
-## Détails techniques
+1. **Choix explicite de l'utilisateur** dans cette session (sélection manuelle dans le `CountrySelector`) → toujours respecté.
+2. Sinon, **pays du profil** (`profileCountryCode`) → utilisé comme pays de référence pour le catalogue.
+3. Sinon (utilisateur non connecté ou profil sans pays), **pays détecté / par défaut** → comportement actuel inchangé.
 
-**Fichier modifié** : `src/pages/WishlistCatalog.tsx` uniquement.
+### Détection d'un choix explicite
 
-1. **Auto-reset du filtre (scénario A)** via `useEffect` :
-   ```
-   useEffect(() => {
-     if (!loading && products.length > 0 && filteredProducts.length === 0 && selectedTaste !== 'tous') {
-       setSelectedTaste('tous');
-       toast.info(`Aucun article dans cette catégorie — affichage de tous les articles`);
-     }
-   }, [loading, products.length, filteredProducts.length, selectedTaste]);
-   ```
-   Toast via `sonner` (déjà utilisé dans le projet) pour signaler le changement sans bloquer le flux.
+Aujourd'hui, `setCountryCode` écrit la valeur en `sessionStorage` aussi bien lors de l'auto-détection que lors d'un clic utilisateur, donc il n'est pas possible de distinguer les deux. Il faut :
 
-2. **Suggestions de recherche** : constante locale `SEARCH_SUGGESTIONS = ['robe', 'chemise', 'parfum', 'bijoux', 'gâteau', 'chaussures']`. Rendues comme `Badge` cliquables qui appellent `setSearchQuery(suggestion)`.
+- Distinguer dans `CountryContext` les écritures « auto-détectées » des écritures « manuelles » (ex. nouveau flag `manuallySelected: boolean` stocké en `sessionStorage` sous une clé dédiée, par ex. `joiedevivre_nav_country_manual`).
+- Le flag passe à `true` uniquement quand `setCountryCode` est appelé sans le paramètre interne d'auto-détection (c'est-à-dire depuis `CountrySelector` ou `detectCurrentLocation`).
+- Lors du chargement du `profileCountryCode`, si **aucun choix manuel n'a été fait dans la session courante**, aligner automatiquement `countryCode` sur le pays du profil et nettoyer la valeur auto-détectée.
 
-3. **Empty state restructuré** : un seul bloc `else if (filteredProducts.length === 0)` qui branche sur les trois scénarios via des conditions claires sur `isSearching` et `selectedTaste`.
+### Indication visuelle (légère)
 
-4. **Pas de changement de hooks ni de DB**. Pas d'impact sur les performances (cartes mémoïsées déjà en place).
+Quand l'utilisateur est en train de visiter un autre pays que le sien (`isVisiting === true`), afficher un petit bandeau discret au-dessus de la grille produits :
 
-## Fichiers touchés
+> « Vous explorez actuellement le catalogue {pays visité}. [Revenir à {pays d'origine}] »
 
-- `src/pages/WishlistCatalog.tsx` (logique empty state + auto-reset + suggestions)
+Le bouton « Revenir » réinitialise le pays courant sur le `profileCountryCode` et efface le flag manuel.
+
+## Changements techniques
+
+### `src/contexts/CountryContext.tsx`
+- Ajouter une clé `NAV_STORAGE_MANUAL_KEY = "joiedevivre_nav_country_manual"`.
+- `setCountryCode(code, updateProfile?)` marque désormais le flag manuel à `true` (les appels de l'auto-détection passent par un setter interne qui ne le touche pas).
+- Dans le `useEffect` de chargement du profil : si `profileCountryCode` est défini ET qu'aucun choix manuel n'existe dans la session courante, appeler le setter interne pour aligner `countryCode` sur `profileCountryCode`.
+- Exposer une nouvelle action `resetToHomeCountry()` qui repositionne sur le pays du profil et efface le flag manuel.
+
+### `src/pages/WishlistCatalog.tsx`
+- Ajouter un bandeau conditionnel (visible uniquement si `isVisiting` et `profileCountryCode` connu) avec le bouton « Revenir à {pays d'origine} » utilisant `resetToHomeCountry()`.
+- Aucune modification de la logique de requête : `useCatalogProducts(countryCode, sort)` continuera à fonctionner, le `countryCode` étant désormais celui du profil par défaut.
+
+### Hook (aucune modif requise)
+`useWishlistCatalog.ts` reste tel quel : la requête est déjà filtrée par `country_code`.
+
+## Fichiers modifiés
+
+- `src/contexts/CountryContext.tsx`
+- `src/pages/WishlistCatalog.tsx`
+
+## Hors-scope
+
+- Pas de changement du comportement d'auto-détection pour les utilisateurs non connectés.
+- Pas de changement sur les autres pages utilisant `useCountry()` (Home, Shop, ExploreMap…) : seul le catalogue est ciblé par cette demande, mais l'amélioration du contexte (priorité au pays du profil) bénéficiera également à ces pages de manière cohérente. Si vous préférez restreindre cette logique uniquement à `WishlistCatalog`, nous pouvons gérer le calcul `effectiveCountry` localement dans la page plutôt que dans le contexte — dites-le-moi avant approbation.
