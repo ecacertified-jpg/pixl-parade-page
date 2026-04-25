@@ -109,7 +109,7 @@ export function useBusinessFollowers(businessId: string | null | undefined): Use
         }).length;
 
         growthData.push({
-          date: format(day, 'EEE'),
+          date: format(day, 'EEE', { locale: fr }),
           count
         });
       }

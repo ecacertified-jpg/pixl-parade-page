@@ -146,7 +146,7 @@ export function DuplicateGroupCard({ group, onMerge, onDismiss, onView }: Duplic
                         </span>
                       )}
                       <span>
-                        Créé le {format(new Date(account.created_at), 'dd/MM/yyyy')}
+                        Créé le {format(new Date(account.created_at), 'dd/MM/yyyy', { locale: fr })}
                       </span>
                     </div>
                   </div>

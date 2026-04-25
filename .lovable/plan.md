@@ -1,43 +1,57 @@
 ## Objectif
 
-Unifier le sélecteur de date dans toute l'application en utilisant le même modèle de calendrier que celui de l'étape 2 (date d'anniversaire) de l'onboarding — c'est-à-dire un calendrier avec menus déroulants Mois/Année, navigation rapide, et un champ de saisie clavier (jj/mm/aaaa).
+Harmoniser le formatage des dates dans toute l'application pour qu'elles soient affichées en français de manière cohérente, en ajoutant la locale `fr` (date-fns) là où elle manque encore.
 
-## État actuel
+## Constat de l'audit
 
-Le composant unifié **`BirthdayPicker`** (`src/components/ui/birthday-picker.tsx`) existe déjà et correspond exactement au modèle souhaité : champ texte + bouton calendrier + popover avec dropdowns Mois/Année (sur desktop) ou input date natif (sur mobile). Il est déjà utilisé dans : Auth, ProfileSettings, FillFriendForm, AddFriendModal, AddEventModal, CompleteProfileModal.
+J'ai parcouru toute la codebase à la recherche d'appels `format(...)`, `formatDistanceToNow(...)`, `formatRelative(...)` et `toLocaleDateString(...)` :
 
-Trois écrans utilisent encore l'ancien modèle (petite icône calendrier + popover Calendar brut, sans dropdowns Mois/Année cohérents) :
+- **Bonne nouvelle** : la grande majorité des appels passent déjà `{ locale: fr }` (date-fns) ou `'fr-FR'` (API native). Les composants `BirthdayPicker`, `Calendar`, panneau de notifications, commentaires, avis, alertes, etc. sont déjà corrects.
+- **Cas restants où la locale française manque** (formats lisibles avec lettres de mois/jour) :
+  1. `src/components/admin/DuplicateGroupCard.tsx` ligne 149 — `format(date, 'dd/MM/yyyy')` sans `{ locale: fr }` (l'import `fr` est pourtant déjà présent ligne 3).
+  2. `src/hooks/useBusinessFollowers.ts` ligne 112 — `format(day, 'EEE')` pour les libellés de l'axe X du graphique d'abonnés : actuellement en anglais (Mon, Tue…), devrait être Lun, Mar…
+  3. `src/components/ui/birthday-picker.tsx` lignes 63 et 203 — `format(date, "dd/MM/yyyy")` pour l'input texte. **À conserver tel quel** : c'est un format purement numérique sans nom de mois, donc ajouter `locale: fr` n'apporte aucun changement visible. À documenter pour éviter une « correction » inutile.
+  4. `src/components/ui/date-range-picker.tsx` lignes 115/126/197/202 — même cas que le birthday picker : format numérique `dd/MM/yyyy`, pas besoin de locale.
 
-1. **`OnboardingExperience.tsx`** (étape 2) — paradoxalement, l'étape référencée par l'utilisateur n'utilise PAS encore `BirthdayPicker` ; c'est le composant `Calendar` brut dans un Popover.
-2. **`CreateSurpriseFundModal.tsx`** — champ « Date de révélation » de la cagnotte surprise.
-3. **`admin/UnifyClientAccountsModal.tsx`** — champ « Date d'anniversaire » dans la recherche admin de doublons.
+## Modifications à appliquer
 
-## Changements
+### 1. `src/components/admin/DuplicateGroupCard.tsx`
+Ajouter la locale française à l'unique appel `format` :
+```ts
+format(new Date(account.created_at), 'dd/MM/yyyy', { locale: fr })
+```
+(L'import est déjà en place, aucun import à ajouter.)
 
-### 1. `src/components/OnboardingExperience.tsx` — étape 2 anniversaire
-Remplacer le bloc Popover + Button + Calendar (lignes 839–861) par `<BirthdayPicker>`. Conserver le titre, le sous-titre et les messages d'aide existants. Garder `disableFuture`, `minYear={1920}`, plage actuelle.
+### 2. `src/hooks/useBusinessFollowers.ts`
+- Ajouter l'import : `import { fr } from 'date-fns/locale';`
+- Modifier la ligne 112 :
+```ts
+date: format(day, 'EEE', { locale: fr }),
+```
+Résultat : l'axe X du graphique « 7 derniers jours » affichera `lun.`, `mar.`, `mer.`… au lieu de `Mon`, `Tue`, `Wed`.
 
-### 2. `src/components/CreateSurpriseFundModal.tsx` — date de révélation
-Remplacer le Popover/Calendar par `<BirthdayPicker>` configuré pour une date future :
-- `disableFuture={false}`, `disablePast={true}`
-- `minYear={new Date().getFullYear()}`, `maxYear={new Date().getFullYear() + 5}`
-- `label="Date de révélation"`, placeholder adapté.
+### 3. Convention partagée (mémoire)
+Créer une nouvelle entrée mémoire `mem://ui/french-date-formatting.md` qui consolide la règle :
 
-### 3. `src/components/admin/UnifyClientAccountsModal.tsx` — recherche admin
-Remplacer par `<BirthdayPicker>` standard (anniversaire : `disableFuture`, `minYear={1920}`).
-
-### 4. Vérifications hors périmètre
-- `date-range-picker.tsx`, `PeriodSelector.tsx` (admin) : sélecteurs de **plages de dates** (analytics, périodes) — pas concernés, ce ne sont pas des sélecteurs de date unique pour formulaires utilisateur.
-- Composants déjà sur `BirthdayPicker` : aucun changement.
+> Tout appel `format`, `formatDistanceToNow`, `formatRelative` de **date-fns** affichant un nom de mois (`MMM`, `MMMM`), un jour de la semaine (`EEE`, `EEEE`) ou un texte relatif **doit** passer `{ locale: fr }` (import `import { fr } from 'date-fns/locale'`).
+> Tout appel `toLocaleDateString` / `toLocaleString` / `toLocaleTimeString` sur une date doit passer `'fr-FR'` en premier argument.
+> **Exception** : les formats purement numériques (`dd/MM/yyyy`, `HH:mm`, `yyyy-MM-dd`) n'ont pas besoin de locale (le rendu est identique).
+> Référence : composant standard `BirthdayPicker` (`src/components/ui/birthday-picker.tsx`).
 
 ## Détails techniques
 
-- Aucune modification de la base de données ni des types.
-- Aucune migration, aucune dépendance ajoutée.
-- `BirthdayPicker` accepte déjà `disableFuture` / `disablePast` / `minYear` / `maxYear` / `label` / `placeholder` / `helperText`, ce qui couvre les trois cas.
-- Sur mobile, `BirthdayPicker` bascule automatiquement sur l'input `<input type="date">` natif, ce qui correspond aux bonnes pratiques mobile-first du projet.
-- Comportement homogène : validation en direct (jour/mois/année), messages d'erreur, état de succès vert.
+- Aucune migration SQL.
+- Aucune modification d'API ou de schéma.
+- Pas d'impact sur les performances (date-fns tree-shake la locale).
+- Pas de changement visible pour l'utilisateur sauf : (a) la date « Créé le » sur les cartes de doublons admin reste identique en surface mais devient cohérente avec le reste, (b) les libellés de jours sur le graphique des abonnés business deviennent français.
 
-## Mémoire
+## Fichiers modifiés (résumé)
 
-Ajouter une mémoire `mem://ui/unified-birthday-picker` documentant que `BirthdayPicker` est l'unique sélecteur de date à utiliser pour tout champ de date dans les formulaires (anniversaires, dates de révélation, etc.), et que les Popover+Calendar bruts sont réservés aux sélecteurs de plage / analytics.
+- `src/components/admin/DuplicateGroupCard.tsx` (1 ligne)
+- `src/hooks/useBusinessFollowers.ts` (1 import + 1 ligne)
+- `.lovable/mem/ui/french-date-formatting.md` (créé)
+
+## Vérification post-implémentation
+
+- Recherche finale `rg "format\([^)]*['\"][^'\"]*(MMMM|MMM|EEEE|EEE|do)[^'\"]*['\"]" src/` doit ne plus retourner de résultats sans `locale: fr`.
+- Vérification TypeScript clean.
