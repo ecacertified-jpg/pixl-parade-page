@@ -399,9 +399,15 @@ interface RecentOrderItem {
     setEditingBusiness(null);
   };
   // Recharger les données quand le business change
-  const handleBusinessChanged = () => {
+  const handleBusinessChanged = (newBusinessId?: string) => {
     loadBusinesses(); // Recharge Config (liste locale)
     refetch(); // ⚡ Recharge le Context global (met à jour le sélecteur automatiquement)
+    // Redirect to the immersive setup wizard for newly created businesses
+    if (newBusinessId) {
+      // Pre-select the freshly created business so the setup wizard finds it.
+      try { localStorage.setItem('joie_de_vivre_selected_business_id', newBusinessId); } catch {}
+      navigate('/business/setup?new=true');
+    }
   };
   const handleEditProduct = async (productId: string | number) => {
     // Fetch the full product data from database
