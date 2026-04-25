@@ -8,11 +8,13 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
-  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2,
+  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2, Lock,
   ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
+import { compressImage } from "@/utils/compressImage";
+import { extractSingleThumbnail } from "@/utils/videoThumbnails";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -216,7 +218,7 @@ export function BirthdayAlbum({
         .from("birthday_page_photos")
         .update(updates)
         .eq("id", editingItem.id)
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -293,12 +295,27 @@ export function BirthdayAlbum({
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      // Compress before upload to dramatically speed up loading for visitors
+      let toUpload: File = file;
+      try {
+        const compressed = await compressImage(file, {
+          quality: 0.82,
+          maxWidth: 1600,
+          maxHeight: 1600,
+          format: "jpeg",
+        });
+        toUpload = compressed.file;
+      } catch {
+        // If compression fails (e.g. HEIC), fall back to original
+        toUpload = file;
+      }
+
+      const ext = toUpload.name.includes(".") ? toUpload.name.split(".").pop() : "jpg";
       const path = `${pageId}/${user!.id}-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("birthday-page-photos")
-        .upload(path, file);
+        .upload(path, toUpload, { contentType: toUpload.type || "image/jpeg" });
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
@@ -316,7 +333,7 @@ export function BirthdayAlbum({
           image_url: urlData.publicUrl,
           media_type: "image",
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -354,6 +371,28 @@ export function BirthdayAlbum({
         .from("birthday-page-photos")
         .getPublicUrl(path);
 
+      // Generate a lightweight JPEG thumbnail so the grid can render an <img>
+      // (much faster + cheaper than streaming the full <video> for each tile).
+      let thumbnailUrl: string | null = null;
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        const dataUrl = await extractSingleThumbnail(objectUrl, 0.5, 480);
+        URL.revokeObjectURL(objectUrl);
+        const thumbBlob = await (await fetch(dataUrl)).blob();
+        const thumbPath = `${pageId}/vid-${user!.id}-${Date.now()}-thumb.jpg`;
+        const { error: thumbErr } = await supabase.storage
+          .from("birthday-page-photos")
+          .upload(thumbPath, thumbBlob, { contentType: "image/jpeg" });
+        if (!thumbErr) {
+          const { data: thumbData } = supabase.storage
+            .from("birthday-page-photos")
+            .getPublicUrl(thumbPath);
+          thumbnailUrl = thumbData.publicUrl;
+        }
+      } catch {
+        // Best-effort: if thumbnail extraction fails, fall back to <video> tile.
+      }
+
       const name = await getProfileName();
 
       const { data, error } = await supabase
@@ -364,9 +403,10 @@ export function BirthdayAlbum({
           uploader_name: name,
           image_url: urlData.publicUrl,
           video_url: urlData.publicUrl,
+          video_thumbnail_url: thumbnailUrl,
           media_type: "video",
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -398,7 +438,7 @@ export function BirthdayAlbum({
           media_type: "memory",
           memory_text: memoryText.trim(),
         })
-        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .select("id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
         .single();
 
       if (error) throw error;
@@ -537,6 +577,9 @@ export function BirthdayAlbum({
           {filtered.map((item, index) => {
             const r = getReactionsForItem(item.id);
             const showMenu = canManage(item);
+            const isMine = !!user && !!item.uploader_id && item.uploader_id === user.id;
+            const authorInitial = (item.uploader_name || "?").trim().charAt(0).toUpperCase();
+            const isAboveTheFold = index < 3;
             return (
               <motion.div
                 key={item.id}
@@ -551,18 +594,32 @@ export function BirthdayAlbum({
                       src={item.image_url}
                       alt={item.caption || "Photo souvenir"}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      loading="lazy"
+                      loading={isAboveTheFold ? "eager" : "lazy"}
+                      decoding="async"
+                      // @ts-expect-error fetchpriority is valid HTML
+                      fetchpriority={isAboveTheFold ? "high" : "low"}
                     />
                   )}
 
                   {item.media_type === "video" && (
                     <>
-                      <video
-                        src={item.video_url || item.image_url}
-                        className="w-full h-full object-cover"
-                        muted
-                        preload="metadata"
-                      />
+                      {item.video_thumbnail_url ? (
+                        <img
+                          src={item.video_thumbnail_url}
+                          alt="Aperçu vidéo"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading={isAboveTheFold ? "eager" : "lazy"}
+                          decoding="async"
+                        />
+                      ) : (
+                        <video
+                          src={item.video_url || item.image_url}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="none"
+                          poster={item.video_thumbnail_url || undefined}
+                        />
+                      )}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                         <div className="h-10 w-10 rounded-full bg-white/90 flex items-center justify-center">
                           <Play className="h-5 w-5 text-primary fill-primary ml-0.5" />
@@ -593,12 +650,26 @@ export function BirthdayAlbum({
                   />
                 </div>
 
-                {/* Author badge */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                  <p className="text-[10px] text-white truncate">
-                    {item.media_type === "memory" ? "✨" : item.media_type === "video" ? "🎬" : "📸"}{" "}
-                    {item.uploader_name || "Un ami"}
-                  </p>
+                {/* Author chip — clearly indicates who uploaded and who can edit */}
+                <div
+                  className="absolute bottom-1.5 left-1.5 right-1.5 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm rounded-full pl-0.5 pr-2 py-0.5 shadow-sm max-w-[calc(100%-0.75rem)]"
+                  title={
+                    isMine
+                      ? "Tu as ajouté ce contenu — tu peux le modifier"
+                      : `Ajouté par ${item.uploader_name || "un ami"}`
+                  }
+                >
+                  <span className="h-5 w-5 rounded-full bg-primary/20 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                    {authorInitial}
+                  </span>
+                  <span className="text-[11px] font-medium text-foreground truncate">
+                    {isMine ? "Toi" : (item.uploader_name || "Un ami")}
+                  </span>
+                  {isMine ? (
+                    <Pencil className="h-3 w-3 text-primary flex-shrink-0" />
+                  ) : (
+                    <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  )}
                 </div>
 
                 {/* Menu Modifier/Supprimer (uploader + propriétaire de la page) */}
@@ -771,9 +842,21 @@ export function BirthdayAlbum({
               {lightboxItem.caption && lightboxItem.media_type !== "memory" && (
                 <p className="text-white text-sm text-center mt-3">{lightboxItem.caption}</p>
               )}
-              <p className="text-white/60 text-xs text-center mt-1">
-                Par {lightboxItem.uploader_name || "Un ami"}
-              </p>
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <span className="h-5 w-5 rounded-full bg-primary/30 text-white text-[10px] font-bold flex items-center justify-center">
+                  {(lightboxItem.uploader_name || "?").trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="text-white/80 text-xs">
+                  {!!user && lightboxItem.uploader_id === user.id
+                    ? "Ajouté par toi"
+                    : `Ajouté par ${lightboxItem.uploader_name || "un ami"}`}
+                </span>
+                {!!user && lightboxItem.uploader_id === user.id ? (
+                  <Pencil className="h-3 w-3 text-white/80" />
+                ) : (
+                  <Lock className="h-3 w-3 text-white/50" />
+                )}
+              </div>
 
               {/* Lightbox reactions */}
               <div className="flex justify-center mt-3">
