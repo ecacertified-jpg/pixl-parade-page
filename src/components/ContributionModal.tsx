@@ -398,7 +398,7 @@ export function ContributionModal({
             is_anonymous: isAnonymous
           })
           .eq('id', existingContribution.id)
-          .eq('contributor_id', user.id);
+          .eq('contributor_id', user!.id);
 
         if (updateError) {
           console.error('ContributionModal - Erreur update:', updateError);
@@ -445,7 +445,7 @@ export function ContributionModal({
           .from('fund_contributions')
           .insert({
             fund_id: fundId,
-            contributor_id: user.id,
+            contributor_id: user!.id,
             amount: contributionAmount,
             currency: currency,
             message: message || null,
@@ -493,7 +493,7 @@ export function ContributionModal({
             await supabase.functions.invoke('notify-birthday-page-activity', {
               body: {
                 birthdayPageId: bp.id,
-                actorUserId: user.id,
+                actorUserId: user!.id,
                 actionType: 'contribution',
                 amount: contributionAmount,
                 currency,
@@ -505,7 +505,7 @@ export function ContributionModal({
         }
       }
 
-      triggerBadgeCheckAfterAction('contribution', user.id);
+      triggerBadgeCheckAfterAction('contribution', user!.id);
 
       // Réinitialiser le formulaire
       setAmount("");
