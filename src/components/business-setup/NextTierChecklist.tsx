@@ -426,9 +426,21 @@ export function NextTierChecklist({
                   )}
                 </div>
                 {!req.done && req.why && (
-                  <p className="text-[11px] text-muted-foreground leading-snug pl-7 mt-1">
-                    {req.why}
-                  </p>
+                  <div className="pl-7 mt-1">
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      {req.why}
+                    </p>
+                    {REQUIREMENT_DETAILS[req.id] && (
+                      <button
+                        type="button"
+                        onClick={() => setWhyOpenId(req.id)}
+                        className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                        Pourquoi&nbsp;?
+                      </button>
+                    )}
+                  </div>
                 )}
               </li>
             );
@@ -471,6 +483,88 @@ export function NextTierChecklist({
           </div>
         </div>
       )}
+
+      {/* "Pourquoi ?" modale */}
+      <Dialog
+        open={!!whyOpenId}
+        onOpenChange={(o) => !o && setWhyOpenId(null)}
+      >
+        <DialogContent className="max-w-md">
+          {whyReq && whyDetails && nextInfo && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-poppins text-base flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-primary" />
+                  {whyReq.label}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Impact sur le palier{' '}
+                  <span className="font-semibold text-foreground">
+                    {nextInfo.emoji} {nextInfo.label}
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Impact */}
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-primary uppercase tracking-wide mb-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Impact business
+                  </p>
+                  <p className="text-sm text-foreground leading-snug">
+                    {whyDetails.impact}
+                  </p>
+                </div>
+
+                {/* Tips */}
+                <div>
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-2">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    Conseils à appliquer
+                  </p>
+                  <ul className="space-y-1.5">
+                    {whyDetails.tips.map((tip, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-sm text-foreground/90 leading-snug"
+                      >
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <DialogFooter className="flex-row gap-2 sm:justify-between sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWhyOpenId(null)}
+                  className="flex-1 sm:flex-none"
+                >
+                  Compris
+                </Button>
+                {whyImprovement && onActionClick && (
+                  <Button
+                    size="sm"
+                    className="flex-1 sm:flex-none gap-1 bg-gradient-to-br from-primary to-accent"
+                    onClick={() => {
+                      const imp = whyImprovement;
+                      setWhyOpenId(null);
+                      onActionClick(imp);
+                    }}
+                  >
+                    {whyImprovement.cta?.label || 'Compléter maintenant'}
+                    <ChevronRight className="w-3 h-3" />
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
