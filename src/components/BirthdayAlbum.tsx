@@ -295,12 +295,27 @@ export function BirthdayAlbum({
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      // Compress before upload to dramatically speed up loading for visitors
+      let toUpload: File = file;
+      try {
+        const compressed = await compressImage(file, {
+          quality: 0.82,
+          maxWidth: 1600,
+          maxHeight: 1600,
+          format: "jpeg",
+        });
+        toUpload = compressed.file;
+      } catch {
+        // If compression fails (e.g. HEIC), fall back to original
+        toUpload = file;
+      }
+
+      const ext = toUpload.name.includes(".") ? toUpload.name.split(".").pop() : "jpg";
       const path = `${pageId}/${user!.id}-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("birthday-page-photos")
-        .upload(path, file);
+        .upload(path, toUpload, { contentType: toUpload.type || "image/jpeg" });
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
