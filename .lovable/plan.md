@@ -1,115 +1,100 @@
 ## Diagnostic
 
-### Problème 1 — Redirection après inscription perdue
-Dans `src/pages/Auth.tsx`, le `useEffect` lignes 293-329 gère bien le param `?redirect=/birthday/...` quand un utilisateur déjà connecté arrive. **Mais** pour un nouveau signup OTP (lignes 887-906), le code force `navigate('/dashboard?onboarding=true')` et **ignore** le `redirect` param. Résultat : l'invité qui clique sur le lien WhatsApp `joiedevivre-africa.com/birthday/samira-2026`, choisit "Créer un compte", complète l'OTP… puis est envoyé sur `/dashboard` au lieu de revenir sur la page de Samira.
+L'erreur "Accès refusé / Vous n'avez pas l'autorisation de contribuer" vient de la fonction SQL `can_contribute_to_fund(fund_uuid)` appelée par `ContributionModal.tsx` (ligne 309). Cette fonction renvoie `false` si l'utilisateur n'est PAS :
+- le créateur de la cagnotte, OU
+- ami du créateur (avec `can_see_funds = true`), OU
+- ami du bénéficiaire.
 
-Même problème à la ligne 1101 (autre branche signup). Il faut **prioriser** le `redirect` param avant le fallback `/dashboard`.
+Elle ignore complètement le drapeau `is_public = true` de la cagnotte, ainsi que le `share_token`. Conséquence : un utilisateur arrivant via un lien partagé sur les réseaux sociaux est bloqué dès qu'il n'est pas dans le cercle d'amis — exactement le cas du screenshot ("Sandales GUESS Logo pour Moi-même", `is_public=true`).
 
-### Problème 2 — Impossible de supprimer/modifier ses contributions
-Vérification SQL sur `birthday_page_photos` :
-```
-- "Anyone can view birthday page photos" (SELECT)
-- "Authenticated users can add photos" (INSERT)
-```
-**Aucune policy UPDATE ni DELETE.** Pareil pour le bucket Storage `birthday-page-photos` : que SELECT et INSERT.
+De plus, les **non-inscrits** sont totalement bloqués :
+- `ContributionModal.tsx` ligne 222 : `if (!user) return;`
+- `FundPreview.handleContribute` redirige vers `/auth` si pas connecté.
+- L'INSERT dans `fund_contributions` exige `auth.uid() = contributor_id` (RLS), donc impossible sans compte.
 
-Donc même si on ajoutait des boutons UI, les requêtes seraient bloquées par RLS. Il faut migrer.
+## Objectif
 
-### Problème 3 — Navigation entre éléments dans la lightbox
-La lightbox de `BirthdayAlbum.tsx` (lignes 460-528) affiche **un seul élément** sans flèches précédent/suivant ni swipe. Quand un visiteur clique sur la 1ʳᵉ photo, il doit fermer puis rouvrir manuellement chaque élément pour les parcourir — usage inconfortable surtout sur mobile.
+Quand un lien de cagnotte est partagé via les réseaux sociaux (cagnotte `is_public = true` OU accès via `share_token`) :
+1. Tout utilisateur **connecté** peut contribuer — sans avoir besoin d'être ami.
+2. Tout utilisateur **non inscrit** peut contribuer en tant que **donateur invité** (guest) sans créer de compte au préalable, en saisissant simplement nom + téléphone.
 
----
+## Plan d'implémentation
 
-## Plan d'action
+### 1) Migration SQL — Élargir l'accès des cagnottes publiques
 
-### 1. Migration SQL — RLS update/delete sur les contributions
-
-Nouvelle migration ajoutant aux tables/buckets la possibilité pour l'**uploader** de modifier/supprimer ses propres contributions :
+Mettre à jour la fonction `can_contribute_to_fund(fund_uuid)` pour autoriser **tout utilisateur authentifié** dès que la cagnotte est `is_public = true` (en plus des règles d'amitié existantes) :
 
 ```sql
--- birthday_page_photos
-CREATE POLICY "Uploaders can update their own contributions"
-  ON public.birthday_page_photos FOR UPDATE
-  USING (auth.uid() = uploader_id)
-  WITH CHECK (auth.uid() = uploader_id);
-
-CREATE POLICY "Uploaders can delete their own contributions"
-  ON public.birthday_page_photos FOR DELETE
-  USING (auth.uid() = uploader_id);
-
--- + policy pour le créateur de la page (modération)
-CREATE POLICY "Page owner can delete any contribution"
-  ON public.birthday_page_photos FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM birthday_pages bp
-      WHERE bp.id = birthday_page_id AND bp.user_id = auth.uid()
-    )
-  );
-
--- Storage bucket birthday-page-photos
-CREATE POLICY "Users can delete their own birthday page media"
-  ON storage.objects FOR DELETE
-  USING (
-    bucket_id = 'birthday-page-photos'
-    AND (storage.foldername(name))[2] LIKE auth.uid()::text || '-%'
-  );
+-- Après les vérifications existantes, ajouter :
+IF EXISTS (
+  SELECT 1 FROM public.collective_funds
+  WHERE id = fund_uuid AND is_public = true AND status = 'active'
+) THEN
+  RETURN true;
+END IF;
 ```
-*(Le path est `{pageId}/{userId}-{ts}.ext` ou `{pageId}/vid-{userId}-{ts}.ext` — la policy match l'uploader.)*
 
-### 2. Fix Auth — préserver le `redirect` après signup
+Les amis privés conservent leur accès aux cagnottes non publiques.
 
-Dans `src/pages/Auth.tsx` :
-- Lignes 887-910 (vérification OTP) : avant le fallback `/dashboard`, lire `searchParams.get('redirect')` et naviguer vers `${redirectParam}` (avec `?onboarding=true` en suffixe pour les nouveaux comptes).
-- Ligne 1101 (autre branche signup) : même correction.
-- Garder `processAdminAutoAssign` et `acceptInvitationIfNeeded` en arrière-plan.
+### 2) Migration SQL — Contributions invité (non inscrits)
 
-Résultat : l'invité de Samira arrive directement sur `/birthday/samira-2026` après inscription.
+Ajouter à la table `fund_contributions` les colonnes nécessaires pour identifier un donateur sans compte :
+- `guest_name text` (nullable)
+- `guest_phone text` (nullable)
+- `guest_email text` (nullable)
+- `is_guest boolean default false`
 
-### 3. Composant `BirthdayAlbum.tsx` — Modifier/Supprimer
+Contrainte : soit `contributor_id IS NOT NULL`, soit `is_guest = true AND guest_phone IS NOT NULL`.
 
-Ajouter dans le **rendu de chaque carte** (grille) :
-- Un menu `...` flottant (top-right, visible si `user?.id === item.uploader_id` OU `user?.id === pageOwnerUserId`).
-- Options : **Modifier** (légende pour photo/vidéo, texte pour souvenir) + **Supprimer**.
-- `handleDelete` : `supabase.storage.from('birthday-page-photos').remove([path])` + `supabase.from('birthday_page_photos').delete().eq('id', item.id)` + retirer du state local via un nouveau callback `onItemRemoved`.
-- `handleEdit` : ouvrir un mini-dialog avec `Textarea` selon le type (caption ou memory_text), `UPDATE` puis `onItemUpdated`.
+### 3) Edge Function `contribute-as-guest` (publique, sans auth)
 
-Props additionnelles : `pageOwnerUserId: string`, `onItemRemoved: (id) => void`, `onItemUpdated: (item) => void`. Câbler ces callbacks dans `BirthdayPage.tsx` pour mettre à jour `albumItems`.
+Nouvelle fonction Edge sans vérification JWT (`verify_jwt = false` dans `supabase/config.toml`), qui :
+- Accepte `{ fund_id, amount, message?, is_anonymous?, guest_name, guest_phone, guest_email? }`
+- Vérifie que la cagnotte est `is_public = true` et `status = 'active'`
+- Vérifie que `amount > 0` et que `current_amount + amount <= target_amount`
+- Insère via `service_role` dans `fund_contributions` avec `contributor_id = NULL, is_guest = true`
+- Met à jour `current_amount` de la cagnotte
+- Déclenche la notification au créateur (existante)
+- Rate-limit par IP (table `rate_limit_buckets`) pour éviter le spam
 
-### 4. Lightbox — navigation prev/next + swipe
+Cette fonction utilise la `service_role_key` côté serveur uniquement — jamais exposée au front.
 
-Refonte de la state lightbox dans `BirthdayAlbum.tsx` :
-- Remplacer `lightboxItem: AlbumItem | null` par `lightboxIndex: number | null` indexant `filtered`.
-- Ajouter deux boutons `ChevronLeft` / `ChevronRight` (gauche/droite, ratio circulaire blanc translucide), désactivés aux extrémités.
-- Support clavier : `ArrowLeft`/`ArrowRight`/`Escape` via `useEffect` sur `keydown`.
-- Support swipe mobile : utiliser le hook existant `useSwipeGesture` (déjà dans `src/hooks/`) ou `onTouchStart/onTouchEnd` simple.
-- Compteur "3 / 7" en haut.
-- Inclure les actions Modifier/Supprimer dans la lightbox aussi (si autorisé).
+### 4) Migration SQL — RLS pour SELECT public des contributions
 
-### 5. Mise à jour mémoire
+Conserver l'INSERT non-anonyme aux invités (via Edge Function uniquement). Côté SELECT : ne rien changer pour préserver la confidentialité (les détails restent visibles au créateur et aux contributeurs).
 
-Mettre à jour `mem://features/birthday-pages/lifecycle-and-visibility` :
-- Le `redirect` param `/auth?redirect=/birthday/{slug}&invited=true` est désormais **respecté à la fin du signup OTP**, garantissant que l'invité retombe sur la page d'origine.
-- Les contributeurs (uploader) **et** le propriétaire de la page peuvent supprimer/modifier les contributions album. Politiques RLS dédiées sur `birthday_page_photos` + bucket `birthday-page-photos`.
-- Lightbox album supporte navigation prev/next (clavier + swipe + boutons).
+### 5) Front — `ContributionModal.tsx`
 
----
+- Supprimer le pré-check `can_contribute_to_fund` quand `isFromPublicFund === true` (le check côté serveur reste via la RLS mise à jour).
+- Si `!user && isFromPublicFund` : afficher des champs additionnels obligatoires **Nom** et **Téléphone** (+ email optionnel), puis appeler la nouvelle Edge Function `contribute-as-guest` au lieu de l'INSERT direct.
+- Si `user && isFromPublicFund` : conserver le flux INSERT direct (la nouvelle politique l'autorise).
+- Conserver toute la logique Wave / Mobile Money en aval (le `WavePaymentRedirect` ne dépend pas du compte).
 
-## Fichiers modifiés / créés
+### 6) Front — `FundPreview.tsx` & `BirthdayPage.tsx`
 
-**Créés**
-- `supabase/migrations/<timestamp>_birthday_page_photos_owner_policies.sql` — policies UPDATE/DELETE.
+- `FundPreview.handleContribute` : ne plus rediriger vers `/auth` quand l'utilisateur n'est pas connecté ; ouvrir le modal directement (le modal gère le mode invité).
+- `BirthdayPage` : remplacer le bouton "Participer au cadeau" qui redirige vers `/auth?redirect=...` par une ouverture directe du `ContributionModal` en mode invité (avec `isFromPublicFund={true}`).
 
-**Modifiés**
-- `src/pages/Auth.tsx` — préserver `redirect` après OTP signup (2 endroits).
-- `src/components/BirthdayAlbum.tsx` — menu Modifier/Supprimer par carte, refonte lightbox avec prev/next + swipe + clavier.
-- `src/pages/BirthdayPage.tsx` — passer `pageOwnerUserId` + handlers `onItemRemoved` / `onItemUpdated` à `BirthdayAlbum`.
-- `.lovable/mem/features/birthday-pages/lifecycle-and-visibility.md` — documenter les nouveaux comportements.
+### 7) Mémoire & traçabilité
 
----
+Mettre à jour `mem://features/collective-funds/navigation-and-contribution-flow` pour documenter :
+- Cagnottes `is_public = true` → accessibles à tout authentifié et aux invités via Edge Function.
+- Champs `guest_name / guest_phone / is_guest` sur `fund_contributions`.
+- Edge Function publique `contribute-as-guest`.
+
+## Fichiers impactés
+
+- `supabase/migrations/<timestamp>_public_fund_contributions.sql` (nouveau)
+- `supabase/functions/contribute-as-guest/index.ts` (nouveau)
+- `supabase/config.toml` (ajouter `verify_jwt = false` pour la nouvelle fonction)
+- `src/components/ContributionModal.tsx`
+- `src/pages/FundPreview.tsx`
+- `src/pages/BirthdayPage.tsx`
+- `.lovable/mem/features/collective-funds/navigation-and-contribution-flow.md`
 
 ## Résultat attendu
 
-1. ✅ Un visiteur WhatsApp clique sur `/birthday/samira-2026`, crée son compte par OTP, et atterrit **directement** sur la page de Samira (plus de détour par `/dashboard`).
-2. ✅ Chaque contributeur peut **modifier la légende/texte** ou **supprimer** ses propres photos/vidéos/souvenirs ; le propriétaire de la page peut aussi modérer (supprimer) toute contribution.
-3. ✅ Dans la lightbox, navigation fluide entre éléments via flèches gauche/droite, swipe mobile et touches clavier — fini l'ouverture/fermeture répétée.
+1. ✅ Le partage du lien d'une cagnotte sur WhatsApp/Facebook/etc. permet à n'importe quel inscrit de contribuer sans demande d'amitié préalable.
+2. ✅ Un visiteur non inscrit qui clique sur le lien peut contribuer immédiatement en saisissant nom + téléphone (+ payer via Wave / Mobile Money).
+3. ✅ L'erreur "Vous n'avez pas l'autorisation de contribuer" disparaît pour les cagnottes publiques.
+4. ✅ Les cagnottes privées (`is_public = false`) restent protégées par les règles d'amitié existantes.
