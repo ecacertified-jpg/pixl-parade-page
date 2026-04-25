@@ -13,6 +13,7 @@ interface BusinessAssistantChatProps {
   step?: string;
   initialPrompt?: string;
   className?: string;
+  onResponseComplete?: () => void;
 }
 
 // Suggestions par étape du wizard
@@ -95,11 +96,24 @@ export function BusinessAssistantChat({
   step,
   initialPrompt,
   className,
+  onResponseComplete,
 }: BusinessAssistantChatProps) {
   const { messages, streaming, error, send, retry, stop, setMessages } = useBusinessAssistant();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const greetedRef = useRef(false);
+  const wasStreamingRef = useRef(false);
+
+  // Detect end of an assistant turn -> notify parent (refresh checklist/score)
+  useEffect(() => {
+    if (wasStreamingRef.current && !streaming) {
+      const last = messages[messages.length - 1];
+      if (last?.role === 'assistant' && last.content.length > 0 && !error) {
+        onResponseComplete?.();
+      }
+    }
+    wasStreamingRef.current = streaming;
+  }, [streaming, messages, error, onResponseComplete]);
 
   const suggestions = buildSuggestions(step, snapshot?.setup_tier);
   const tierLabel = snapshot?.setup_tier
