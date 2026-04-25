@@ -21,5 +21,5 @@ export interface Business {
   wave_merchant_phone?: string;
   mobile_money_merchant_phone?: string;
   wave_payment_link?: string;
-  setup_tier?: 'none' | 'bronze' | 'silver' | 'gold';
+  setup_tier?: string | null;
 }

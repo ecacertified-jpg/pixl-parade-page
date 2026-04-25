@@ -177,7 +177,7 @@ export function BusinessCard({ business, onEdit, onDeleted }: BusinessCardProps)
         </div>
         <div className="flex items-center gap-2">
           {business.setup_tier && business.setup_tier !== 'none' && (
-            <SetupTierBadge tier={business.setup_tier} size="sm" />
+            <SetupTierBadge tier={business.setup_tier as any} size="sm" />
           )}
           <Badge variant={business.is_active ? "default" : "secondary"}>
             {business.is_active ? "Actif" : "Inactif"}
