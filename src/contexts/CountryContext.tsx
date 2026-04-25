@@ -15,6 +15,10 @@ const NAV_STORAGE_KEY = "joiedevivre_nav_country";
 const SESSION_DETECTED_KEY = "joiedevivre_session_detected";
 const NAV_STORAGE_MANUAL_KEY = "joiedevivre_nav_country_manual";
 
+// Retry limits for profile country loading
+const MAX_PROFILE_LOAD_RETRIES = 3;
+const PROFILE_LOAD_COOLDOWN_MS = 30_000;
+
 interface CountryContextType {
   country: CountryConfig;
   countryCode: string;
@@ -38,6 +42,10 @@ interface CountryContextType {
   profileLoadError: string | null;
   isLoadingProfile: boolean;
   retryProfileLoad: () => Promise<void>;
+  retryAttempts: number;
+  maxRetries: number;
+  cooldownRemaining: number; // seconds, 0 when no cooldown
+  canRetry: boolean;
 }
 
 const CountryContext = createContext<CountryContextType | undefined>(undefined);
@@ -63,6 +71,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
   const [profileCountryCode, setProfileCountryCode] = useState<string | null>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const country = getCountryConfig(countryCode);
   const cities = getCitiesForCountry(countryCode);
@@ -194,8 +205,9 @@ export function CountryProvider({ children }: CountryProviderProps) {
     }
   }, []);
 
-  // Profile country loading (with error tracking + retry)
-  const loadProfileCountry = useCallback(async () => {
+  // Profile country loading (with error tracking + bounded retry)
+  // Performs the actual load. Returns true on success, false on failure.
+  const loadProfileCountry = useCallback(async (): Promise<boolean> => {
     setIsLoadingProfile(true);
     setProfileLoadError(null);
     try {
@@ -205,7 +217,10 @@ export function CountryProvider({ children }: CountryProviderProps) {
       const user = authData?.user;
       if (!user?.id) {
         setProfileCountryCode(null);
-        return;
+        // No user is not an error — reset retry state.
+        setRetryAttempts(0);
+        setCooldownUntil(null);
+        return true;
       }
 
       const { data, error } = await supabase
@@ -223,19 +238,53 @@ export function CountryProvider({ children }: CountryProviderProps) {
           setCountryCodeInternal(data.country_code);
         }
       }
+      // Successful load — clear any previous retry state.
+      setRetryAttempts(0);
+      setCooldownUntil(null);
+      return true;
     } catch (error: any) {
       console.error('Error loading profile country:', error);
       setProfileLoadError(
         error?.message ?? "Impossible de charger votre pays d'origine"
       );
+      return false;
     } finally {
       setIsLoadingProfile(false);
     }
   }, [setCountryCodeInternal]);
 
   const retryProfileLoad = useCallback(async () => {
-    await loadProfileCountry();
-    // If still no profile country after retry, fall back to IP detection.
+    // Block retries during cooldown.
+    if (cooldownUntil && Date.now() < cooldownUntil) {
+      return;
+    }
+    // Block when the retry budget is exhausted (defensive — UI should already disable).
+    if (retryAttempts >= MAX_PROFILE_LOAD_RETRIES) {
+      return;
+    }
+
+    const nextAttempt = retryAttempts + 1;
+    setRetryAttempts(nextAttempt);
+
+    const ok = await loadProfileCountry();
+    if (ok) {
+      // loadProfileCountry already cleared retry state on success.
+      return;
+    }
+
+    // Failure — if we just used the last attempt, start cooldown.
+    if (nextAttempt >= MAX_PROFILE_LOAD_RETRIES) {
+      setCooldownUntil(Date.now() + PROFILE_LOAD_COOLDOWN_MS);
+      toast.error(
+        `Échec après ${MAX_PROFILE_LOAD_RETRIES} tentatives — réessayez dans ${Math.round(
+          PROFILE_LOAD_COOLDOWN_MS / 1000,
+        )} s`,
+      );
+      return;
+    }
+
+    // Otherwise allow a fallback to IP detection on this attempt only if we still
+    // have no profile country (helps users who are not logged in).
     if (!profileCountryCode) {
       try {
         await detectCurrentLocation();
@@ -243,12 +292,44 @@ export function CountryProvider({ children }: CountryProviderProps) {
         // already handled
       }
     }
-  }, [loadProfileCountry, profileCountryCode, detectCurrentLocation]);
+  }, [
+    cooldownUntil,
+    retryAttempts,
+    loadProfileCountry,
+    profileCountryCode,
+    detectCurrentLocation,
+  ]);
+
+  // Tick down the cooldown so the UI can show a countdown and re-enable
+  // the retry button automatically when it expires.
+  useEffect(() => {
+    if (!cooldownUntil) {
+      if (cooldownRemaining !== 0) setCooldownRemaining(0);
+      return;
+    }
+    const tick = () => {
+      const remainingMs = cooldownUntil - Date.now();
+      if (remainingMs <= 0) {
+        setCooldownRemaining(0);
+        setCooldownUntil(null);
+        // Cooldown elapsed — reset attempt counter so the user gets a fresh budget.
+        setRetryAttempts(0);
+      } else {
+        setCooldownRemaining(Math.ceil(remainingMs / 1000));
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [cooldownUntil, cooldownRemaining]);
 
   useEffect(() => {
     loadProfileCountry();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Auth changed — give the new session a fresh retry budget.
+      setRetryAttempts(0);
+      setCooldownUntil(null);
       loadProfileCountry();
     });
 
@@ -279,6 +360,13 @@ export function CountryProvider({ children }: CountryProviderProps) {
         profileLoadError,
         isLoadingProfile,
         retryProfileLoad,
+        retryAttempts,
+        maxRetries: MAX_PROFILE_LOAD_RETRIES,
+        cooldownRemaining,
+        canRetry:
+          !isLoadingProfile &&
+          cooldownRemaining === 0 &&
+          retryAttempts < MAX_PROFILE_LOAD_RETRIES,
       }}
     >
       {children}

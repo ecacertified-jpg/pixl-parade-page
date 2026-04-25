@@ -32,7 +32,7 @@ import {
 const SEARCH_SUGGESTIONS = ["robe", "chemise", "parfum", "bijoux", "gâteau", "chaussures"];
 
 export default function WishlistCatalog() {
-  const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry, profileLoadError, isLoadingProfile, retryProfileLoad } = useCountry();
+  const { countryCode, profileCountryCode, isVisiting, resetToHomeCountry, profileLoadError, isLoadingProfile, retryProfileLoad, retryAttempts, maxRetries, cooldownRemaining, canRetry } = useCountry();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
@@ -172,23 +172,34 @@ export default function WishlistCatalog() {
               role="alert"
               className="flex items-center justify-between gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs"
             >
-              <span className="flex items-center gap-1.5 text-destructive">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Impossible de charger votre pays d'origine.
+              <span className="flex flex-col gap-0.5 text-destructive min-w-0">
+                <span className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  Impossible de charger votre pays d'origine.
+                </span>
+                {cooldownRemaining > 0 ? (
+                  <span className="text-[11px] text-destructive/80 pl-5">
+                    Trop de tentatives — réessayez dans {cooldownRemaining}s
+                  </span>
+                ) : retryAttempts > 0 ? (
+                  <span className="text-[11px] text-destructive/80 pl-5">
+                    Tentative {retryAttempts} / {maxRetries}
+                  </span>
+                ) : null}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 gap-1.5 text-xs shrink-0 text-destructive hover:text-destructive"
                 onClick={() => retryProfileLoad()}
-                disabled={isLoadingProfile}
+                disabled={!canRetry}
               >
                 {isLoadingProfile ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <RotateCcw className="h-3.5 w-3.5" />
                 )}
-                Réessayer
+                {cooldownRemaining > 0 ? `${cooldownRemaining}s` : "Réessayer"}
               </Button>
             </div>
           )}
