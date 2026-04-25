@@ -165,6 +165,26 @@ export default function WishlistCatalog() {
             </div>
           </div>
 
+          {/* Essayez plutôt — chips qui pré-remplissent la recherche */}
+          <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 scrollbar-hide">
+            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              Essayez plutôt
+            </span>
+            {SEARCH_SUGGESTIONS.map((s) => {
+              const isActive = debouncedQuery.trim().toLowerCase() === s.toLowerCase();
+              return (
+                <Badge
+                  key={s}
+                  variant={isActive ? "default" : "outline"}
+                  className="cursor-pointer whitespace-nowrap shrink-0 capitalize hover:bg-accent"
+                  onClick={() => setSearchQuery(s)}
+                >
+                  {s}
+                </Badge>
+              );
+            })}
+          </div>
+
           {/* Sort selector */}
           <div className="flex items-center justify-end gap-2">
             <span className="text-xs text-muted-foreground">Trier par</span>
