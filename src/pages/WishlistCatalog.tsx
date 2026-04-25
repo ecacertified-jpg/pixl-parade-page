@@ -209,14 +209,61 @@ export default function WishlistCatalog() {
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-10 px-4 text-muted-foreground">
               <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p className="text-sm">Aucun article trouvé</p>
-              <p className="text-xs mt-1">
-                {isSearching && selectedTaste !== "tous"
-                  ? `Aucun article pour « ${debouncedQuery} » dans cette catégorie — essayez « Tous »`
-                  : "Essayez un autre filtre ou recherche"}
-              </p>
+              {isSearching ? (
+                <>
+                  <p className="text-sm text-foreground">
+                    Aucun article pour «&nbsp;{debouncedQuery}&nbsp;»
+                  </p>
+                  <p className="text-xs mt-1">
+                    Essayez une recherche plus courte ou l'une de ces idées
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {SEARCH_SUGGESTIONS.map((s) => (
+                      <Badge
+                        key={s}
+                        variant="outline"
+                        className="cursor-pointer hover:bg-accent capitalize"
+                        onClick={() => setSearchQuery(s)}
+                      >
+                        {s}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Effacer la recherche
+                    </Button>
+                    {activeTasteLabel && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => setSelectedTaste("tous")}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Retirer le filtre «&nbsp;{activeTasteLabel}&nbsp;»
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-foreground">
+                    Aucun article disponible pour le moment
+                  </p>
+                  <p className="text-xs mt-1">
+                    Essayez de changer de pays ci-dessus pour découvrir d'autres boutiques
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
