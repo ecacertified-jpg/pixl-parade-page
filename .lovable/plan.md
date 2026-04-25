@@ -1,74 +1,87 @@
-
-
 ## Diagnostic
 
-### 1) Étape "Créer ma cagnotte" marquée "Fait" à tort
+### Problème 1 — Pages d'anniversaire absentes du fil
 
-Dans `useBirthdayPageBuilderStatus.ts` (lignes 78-84), la requête vérifie l'existence d'**une** cagnotte `collective_funds` du user avec `occasion='birthday'` et `status='active'`. C'est bien lié à une vraie cagnotte en DB → donc en théorie correct.
+**Vérification DB** (30 dernières pages) :
+- ✅ **Samira** (`samira-2026`) : `published_at = 2026-04-23 22:47`, `published_via_onboarding = true` → visible.
+- ❌ **Anne-Marie**, **Flore**, **Reine**, **Phanuel**, **Sangare**, **Daniel**, **Dieudonné**, etc. : `published_at = null`, `published_via_onboarding = false` → **invisibles** dans le fil (filtre `usePagesFeed` : `is_active = true AND published_at IS NOT NULL`).
 
-Mais l'utilisateur signale que la cagnotte est marquée "Fait" sans qu'il l'ait créée. Causes possibles :
-- Une cagnotte **existante précédemment** (créée via un autre flow : page d'anniversaire auto, lien partagé, etc.) est remontée comme "la cagnotte de cette page".
-- Le filtre actuel `creator_id = userId` + `occasion='birthday'` matche **n'importe quelle** cagnotte d'anniversaire créée par ce user à un moment de sa vie sur la plateforme — pas spécifiquement celle liée à sa page d'anniversaire de l'année en cours.
+**Cause** : ces pages ont été créées automatiquement par :
+- `Dashboard.tsx` (à la connexion, pour assurer une page par an)
+- Le cron `birthday-wishes` (J-3 avant l'anniversaire)
 
-→ Il faut **resserrer la condition** : ne marquer "fund done" que si la cagnotte est **explicitement liée** à la page d'anniversaire de l'année courante (via `birthday_pages.fund_id`) OU si elle a été créée après que le user a démarré le builder.
+Elles sont **brouillons** par design — la mémoire stipule que seul un appui explicite sur « Créer ma page » (étape 6) les publie. Anne-Marie, Flore, etc. ne sont pas allées jusqu'au bout du builder.
 
-### 2) Pas de possibilité de skip
+**Décision** : laisser le filtre brouillon/publié intact pour les pages existantes, mais **abaisser le seuil de friction** pour que ces utilisateurs publient. Deux actions complémentaires :
 
-Aujourd'hui le bouton CTA est "Créer", mais il n'y a aucun moyen de passer l'étape sans la valider. L'utilisateur reste bloqué psychologiquement.
+1. **Bandeau "Publier ma page" sur `WhatDoYouWantCard`** (visible uniquement si l'utilisateur a une page brouillon non publiée) : 1 clic = publication directe + confetti, sans rouvrir tout le builder.
+2. **Backfill ciblé** (optionnel) : pour les pages auto-créées récemment où l'utilisateur a explicitement interagi avec son builder (ex. `fund_id != null` ou album non vide), publier rétroactivement. Sans interaction, on ne publie pas — c'est une page fantôme.
 
-### 3) Modification/annulation de la cagnotte
+### Problème 2 — Bouton retour absent depuis l'avatar
 
-Aujourd'hui : quand `fund.done`, le bouton devient "Voir" et navigue vers la fiche cagnotte. Aucune option pour modifier le montant ou annuler la cagnotte tant que personne n'a contribué.
+Dans `BirthdayPage.tsx` (ligne 310), le bouton « Retour au fil » ne s'affiche que si `location.state?.fromFeed === true`. Or `WhatDoYouWantCard` (ligne 122) navigue avec `navigate(\`/birthday/${myPageSlug}\`)` **sans state**.
 
-Vérification DB nécessaire : `fund_contributions.count` pour le `fund_id` doit être 0 pour autoriser l'édition/annulation.
+**Fix** : passer un state explicite (`fromFeed: true` ou `from: 'home'`) lors du clic sur l'avatar, et garder l'affichage du bouton sous la même condition.
+
+### Problème 3 — Libellés et compteurs des actions de carte
+
+Dans `FeedCardActions.tsx` :
+- Ligne 23 : `label: "Cadeau"` → à renommer en **"Promesse"**.
+- Lignes 20-21 : Vidéo et Souvenir ont déjà un `countKey` (`video_count`, `memory_count`) câblé.
+
+**Vérification de la chaîne de données** dans `usePagesFeed.ts` :
+- Ligne 152 : `videoCount = photos.filter(p => p.media_type === 'video').length` ✅
+- Ligne 153 : `memoryCount = photos.filter(p => p.media_type === 'text').length` ✅
+- Ligne 161 : passés dans `feedPages.push({ ..., video_count, memory_count })` ✅
+
+Les compteurs sont déjà calculés et passés. **Le badge devrait déjà s'afficher** dès qu'une vidéo ou un souvenir existe (cf. `FeedCardActions.tsx` ligne 232 : `{count > 0 && ...}`). Si l'utilisateur ne les voit pas, c'est probablement parce qu'aucune vidéo / souvenir n'a encore été uploadée sur les pages affichées.
+
+**Action** : aucune modification nécessaire pour les compteurs eux-mêmes. Juste renommer "Cadeau" → "Promesse" et confirmer le comportement.
 
 ## Plan
 
-### Fix 1 — Détection stricte de la cagnotte de la page
+### Fix 1 — Faciliter la publication des pages brouillons
 
-Dans `src/hooks/useBirthdayPageBuilderStatus.ts` :
+**Nouveau composant** `src/components/PublishMyBirthdayPageBanner.tsx` :
+- Hook qui récupère la page brouillon de l'utilisateur connecté pour `celebration_year = currentYear` (`is_active = true AND published_at IS NULL`).
+- Si trouvée : afficher un bandeau compact (au-dessus ou sous l'avatar dans `WhatDoYouWantCard`) avec :
+  - Texte : « Ta page d'anniversaire est prête mais non publiée. **Publie-la** pour qu'elle apparaisse dans le fil. »
+  - Bouton CTA : **"Publier maintenant"** → `UPDATE birthday_pages SET published_at = now(), published_via_onboarding = true` + confetti + `dispatchEvent('feed-refresh')` + toast.
+- Disparaît dès que `published_at IS NOT NULL`.
 
-- Récupérer `birthday_pages.fund_id` (déjà fait via `pageRes.data.fund_id`).
-- Modifier la requête `fundRes` : si `page?.fund_id` existe, charger **cette** cagnotte précise (`.eq('id', page.fund_id).eq('status', 'active')`). Sinon, **ne pas marquer comme done** (laisser à l'utilisateur le soin de créer ou skipper).
-- Ajouter un champ `fundContributionsCount` au statut, calculé via `fund_contributions.count` quand un fund est lié → exposé pour la logique d'édition/annulation.
+Cela règle le problème pour Anne-Marie, Flore, Reine et tous les futurs utilisateurs qui ont une page brouillon.
 
-### Fix 2 — Possibilité de passer l'étape "Créer ma cagnotte"
+### Fix 2 — Bouton retour depuis l'avatar de `WhatDoYouWantCard`
 
-Dans `src/components/BirthdayPageBuilderModal.tsx` :
+`src/components/WhatDoYouWantCard.tsx` ligne 122 :
+```tsx
+onClick={() => navigate(`/birthday/${myPageSlug}`, { state: { fromFeed: true } })}
+```
 
-- Ajouter un état local `skippedFund` persisté dans `localStorage.bp_fund_skipped_${userId}` (boolean).
-- Dans le rendu de l'étape `fund` :
-  - Si `!s.fund.done && !skippedFund` : 2 boutons côte à côte : **"Créer"** (primary) + **"Passer"** (ghost/secondary, petit).
-  - Si `!s.fund.done && skippedFund` : afficher un mini-badge gris "Passée" et un lien "Créer maintenant" pour revenir en arrière.
-  - L'étape skippée **ne valide pas** le step (pas de ✅), mais **n'empêche pas** la progression vers Publier/Partager → la logique de `disabled` sur les étapes 5 & 6 ne dépend déjà pas du fund (uniquement de `pageType` et `publish.done`).
+Aucune modif côté `BirthdayPage.tsx` (la condition `fromFeed` existe déjà, ligne 310).
 
-### Fix 3 — Modifier / annuler la cagnotte si aucun contributeur
+### Fix 3 — Libellé "Cadeau" → "Promesse" + confirmation des compteurs
 
-Dans `BirthdayPageBuilderModal.tsx`, étape `fund` quand `s.fund.done === true` :
+`src/components/FeedCardActions.tsx` ligne 23 :
+```ts
+{ key: "cadeau", icon: Gift, label: "Promesse", countKey: "gift_promise_count" },
+```
 
-- Au lieu d'un seul bouton "Voir", afficher (si `fundContributionsCount === 0`) un menu contextuel ou 3 boutons :
-  - **Voir** (link vers `/f/:id`)
-  - **Modifier le montant** → ouvre un nouveau petit sub-Sheet `EditFundAmountSheet` avec un input numérique pré-rempli, validation `>= 1000 XOF`, update via `supabase.from('collective_funds').update({ target_amount }).eq('id', fundId)`.
-  - **Annuler la cagnotte** → AlertDialog de confirmation, puis `update({ status: 'cancelled' }).eq('id', fundId)`. Après annulation, recalculer le statut → l'étape redevient non-validée et le bouton "Créer" (+ Passer) réapparaît.
-- Si `fundContributionsCount > 0` : afficher un texte info `"X contribution(s) reçue(s) — modification verrouillée"` + uniquement bouton "Voir".
+Pour les compteurs **Vidéo** et **Souvenir** : aucun changement de code requis — la logique d'affichage (`count > 0`) et la chaîne de calcul depuis `usePagesFeed` sont déjà correctes. Le badge apparaîtra automatiquement dès qu'une vidéo ou un texte de souvenir sera uploadé sur la page.
 
 ### Fichiers modifiés / créés
 
-- `src/hooks/useBirthdayPageBuilderStatus.ts`
-  - Lier `fund` à la page (`page.fund_id` strict) + ajouter `fundContributionsCount`.
-- `src/components/BirthdayPageBuilderModal.tsx`
-  - Logique skip + double bouton "Créer / Passer".
-  - Étape `fund` validée : Voir / Modifier / Annuler selon `fundContributionsCount`.
-  - Nouveau sub-Sheet `EditFundAmountSheet` (inline ou composant séparé).
+- **créé** : `src/components/PublishMyBirthdayPageBanner.tsx` — bandeau de publication 1-clic.
+- **créé** : `src/hooks/useMyDraftBirthdayPage.ts` — hook qui détecte la page brouillon de l'année courante.
+- **édité** : `src/components/WhatDoYouWantCard.tsx` — intégrer le bandeau + ajouter `state: { fromFeed: true }` sur le clic avatar.
+- **édité** : `src/components/FeedCardActions.tsx` — renommer "Cadeau" → "Promesse".
 
-### Mémoires à mettre à jour
+### Mémoire à mettre à jour
 
-- `mem://features/birthday-pages/lifecycle-and-visibility` : ajouter "L'étape 'Créer ma cagnotte' du builder est facultative (skippable). La cagnotte ne peut être modifiée ou annulée que si aucune contribution n'a été reçue."
+`mem://features/birthday-pages/lifecycle-and-visibility` : ajouter « Un bandeau **PublishMyBirthdayPageBanner** sur la page d'accueil propose à l'utilisateur de publier en 1 clic sa page d'anniversaire si elle existe en brouillon (auto-créée par Dashboard ou cron). Cette action pose `published_at = now()` + `published_via_onboarding = true` au même titre que l'étape 6 de l'onboarding. »
 
 ## Résultat attendu
 
-1. ✅ L'étape "Créer ma cagnotte" n'est marquée "Fait" que si la page de l'année courante a un `fund_id` actif lié.
-2. ✅ Bouton "Passer" pour ignorer cette étape sans la valider — n'empêche pas Publier/Partager.
-3. ✅ Quand une cagnotte est créée et qu'aucun ami n'a encore contribué : boutons **Voir / Modifier le montant / Annuler**.
-4. ✅ Quand au moins 1 contribution existe : verrouillage + texte explicatif.
-
+1. ✅ Anne-Marie, Flore, Reine et autres voient un bandeau « Ta page est prête — Publier maintenant » sur l'accueil → 1 clic et leur page apparaît dans le fil.
+2. ✅ Le clic sur l'avatar de la `WhatDoYouWantCard` mène à la page perso avec un bouton **« ← Retour au fil »** visible en haut.
+3. ✅ Sur chaque carte du fil, l'icône cadeau s'intitule désormais **« Promesse »**. Les badges compteurs (Vidéo, Souvenir, Promesse, Photo) s'affichent automatiquement dès qu'au moins un élément du type est ajouté.
