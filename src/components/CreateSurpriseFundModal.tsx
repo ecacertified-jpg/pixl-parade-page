@@ -7,8 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { BirthdayPicker } from "@/components/ui/birthday-picker";
 import { Sparkles, Music, RefreshCw, Package, Check } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
