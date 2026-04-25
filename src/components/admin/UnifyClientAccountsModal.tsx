@@ -13,12 +13,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
-  Search, Phone, Mail, Calendar as CalendarIcon, MapPin, 
+  Search, Phone, Mail, MapPin, 
   Users, Loader2, CheckCircle, AlertTriangle, Star, GitMerge,
   FileText, Gift, MessageSquare, ShoppingBag
 } from 'lucide-react';
@@ -370,32 +369,15 @@ export function UnifyClientAccountsModal({
               </div>
 
               <div className="space-y-2">
-                <Label>Date d'anniversaire</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !birthday && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {birthday ? format(birthday, 'dd MMMM yyyy', { locale: fr }) : "Sélectionner une date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={birthday}
-                      onSelect={setBirthday}
-                      defaultMonth={birthday || new Date(2000, 0, 1)}
-                      captionLayout="dropdown-buttons"
-                      fromYear={1920}
-                      toYear={new Date().getFullYear()}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <BirthdayPicker
+                  label="Date d'anniversaire"
+                  value={birthday}
+                  onChange={setBirthday}
+                  placeholder="jj/mm/aaaa"
+                  minYear={1920}
+                  maxYear={new Date().getFullYear()}
+                  disableFuture
+                />
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4 text-sm">

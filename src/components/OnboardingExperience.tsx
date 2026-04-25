@@ -3,8 +3,7 @@ import { getAppBaseUrl } from '@/utils/appUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BirthdayPicker } from '@/components/ui/birthday-picker';
 import { Input } from '@/components/ui/input';
 import { AnimatedFavoriteButton } from '@/components/AnimatedFavoriteButton';
 import {
@@ -14,8 +13,6 @@ import {
   Cake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -99,7 +96,6 @@ export const OnboardingExperience = ({
   const [creatingFund, setCreatingFund] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [showFundPickerModal, setShowFundPickerModal] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
   const [birthdayPreFilled, setBirthdayPreFilled] = useState(false);
   const [discoveryPurpose, setDiscoveryPurpose] = useState<string>('my_birthday');
 
@@ -836,29 +832,17 @@ export const OnboardingExperience = ({
                   : "Pour que tes proches ne l'oublient jamais !"}
               </p>
 
-              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="lg" className="w-full max-w-xs mx-auto text-lg gap-2">
-                    <CalendarDays className="h-5 w-5" />
-                    {birthday ? format(birthday, 'dd MMMM yyyy', { locale: fr }) : 'Choisir ma date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="single"
-                    selected={birthday}
-                    onSelect={(date) => {
-                      setBirthday(date);
-                      if (date) setCalendarOpen(false);
-                    }}
-                    disabled={(date) => date > new Date() || date < new Date('1920-01-01')}
-                    captionLayout="dropdown-buttons"
-                    fromYear={1920}
-                    toYear={new Date().getFullYear()}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="w-full max-w-sm mx-auto text-left">
+                <BirthdayPicker
+                  value={birthday}
+                  onChange={setBirthday}
+                  placeholder="jj/mm/aaaa"
+                  helperText="Tape ta date ou utilise le calendrier"
+                  minYear={1920}
+                  maxYear={new Date().getFullYear()}
+                  disableFuture
+                />
+              </div>
 
               <AnimatePresence>
                 {!birthday && (
