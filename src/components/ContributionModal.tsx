@@ -256,7 +256,7 @@ export function ContributionModal({
 
     console.log('ContributionModal - Début contribution', {
       fundId,
-      userId: user.id,
+      userId: user?.id ?? 'guest',
       contributionAmount,
       currency,
       remainingAmount,
