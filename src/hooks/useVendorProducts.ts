@@ -81,7 +81,7 @@ export function useVendorProducts(businessId: string | undefined) {
       // Charger les infos du prestataire via la vue sécurisée (exclut phone, email, payment_info)
       const { data: businessData, error: businessError } = await supabase
         .from('business_public_info')
-        .select('id, business_name, description, logo_url, business_type, delivery_zones, opening_hours, country_code, latitude, longitude, website_url, address')
+        .select('id, business_name, description, logo_url, business_type, delivery_zones, opening_hours, country_code, latitude, longitude, website_url, address, phone, email')
         .eq('id', businessId)
         .single();
 
@@ -94,8 +94,10 @@ export function useVendorProducts(businessId: string | undefined) {
         businessName: businessData.business_name,
         description: businessData.description,
         logoUrl: businessData.logo_url,
-        email: null, // Removed from public view for security
-        phone: null, // Removed from public view for security
+        // Phone & email returned by the view only when the vendor opted in
+        // (CASE WHEN show_phone_publicly / show_email_publicly THEN ... ELSE NULL)
+        email: businessData.email ?? null,
+        phone: businessData.phone ?? null,
         address: businessData.address,
         businessType: businessData.business_type,
         deliveryZones: businessData.delivery_zones,
