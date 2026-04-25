@@ -1235,6 +1235,9 @@ export type Database = {
           rejection_date: string | null
           rejection_reason: string | null
           resubmission_count: number | null
+          setup_completed_at: string | null
+          setup_completed_steps: Json
+          setup_tier: string
           show_email_publicly: boolean
           show_phone_publicly: boolean
           status: string | null
@@ -1270,6 +1273,9 @@ export type Database = {
           rejection_date?: string | null
           rejection_reason?: string | null
           resubmission_count?: number | null
+          setup_completed_at?: string | null
+          setup_completed_steps?: Json
+          setup_tier?: string
           show_email_publicly?: boolean
           show_phone_publicly?: boolean
           status?: string | null
@@ -1305,6 +1311,9 @@ export type Database = {
           rejection_date?: string | null
           rejection_reason?: string | null
           resubmission_count?: number | null
+          setup_completed_at?: string | null
+          setup_completed_steps?: Json
+          setup_tier?: string
           show_email_publicly?: boolean
           show_phone_publicly?: boolean
           status?: string | null
@@ -8912,6 +8921,10 @@ export type Database = {
       cleanup_expired_og_cache: { Args: never; Returns: undefined }
       cleanup_expired_pending_registrations: { Args: never; Returns: number }
       cleanup_expired_whatsapp_otp: { Args: never; Returns: number }
+      compute_business_setup_tier: {
+        Args: { _business_id: string }
+        Returns: string
+      }
       create_birthday_celebration: {
         Args: {
           p_age_at_celebration?: number
