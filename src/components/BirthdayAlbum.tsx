@@ -8,11 +8,13 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
-  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2,
+  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2, Lock,
   ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
+import { compressImage } from "@/utils/compressImage";
+import { extractSingleThumbnail } from "@/utils/videoThumbnails";
 import {
   DropdownMenu,
   DropdownMenuContent,
