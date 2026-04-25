@@ -3756,32 +3756,44 @@ export type Database = {
       fund_contributions: {
         Row: {
           amount: number
-          contributor_id: string
+          contributor_id: string | null
           created_at: string
           currency: string | null
           fund_id: string
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           is_anonymous: boolean | null
+          is_guest: boolean
           message: string | null
         }
         Insert: {
           amount: number
-          contributor_id: string
+          contributor_id?: string | null
           created_at?: string
           currency?: string | null
           fund_id: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           is_anonymous?: boolean | null
+          is_guest?: boolean
           message?: string | null
         }
         Update: {
           amount?: number
-          contributor_id?: string
+          contributor_id?: string | null
           created_at?: string
           currency?: string | null
           fund_id?: string
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           is_anonymous?: boolean | null
+          is_guest?: boolean
           message?: string | null
         }
         Relationships: [
