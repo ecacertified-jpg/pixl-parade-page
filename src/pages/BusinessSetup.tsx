@@ -17,6 +17,7 @@ import { useBusinessOnboarding } from '@/hooks/useBusinessOnboarding';
 import { useBusinessSetupTier, TIER_DEFINITIONS } from '@/hooks/useBusinessSetupTier';
 import { SetupTierBadge, NextTierTeaser } from '@/components/business-setup/SetupTierBadge';
 import { SetupBenefitsBanner } from '@/components/business-setup/SetupBenefitsBanner';
+import { BusinessAssistantFAB } from '@/components/business-setup/BusinessAssistantFAB';
 import { AddProductModal } from '@/components/AddProductModal';
 import { BusinessPushNotificationPrompt } from '@/components/BusinessPushNotificationPrompt';
 import { BusinessSelector } from '@/components/BusinessSelector';
