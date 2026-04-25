@@ -20,7 +20,7 @@ const ACTION_BUTTONS = [
   { key: "video", icon: Video, label: "Vidéo", countKey: "video_count" },
   { key: "souvenir", icon: PenLine, label: "Souvenir", countKey: "memory_count" },
   { key: "cagnotte", icon: Wallet, label: "Cagnotte", countKey: null },
-  { key: "cadeau", icon: Gift, label: "Cadeau", countKey: "gift_promise_count" },
+  { key: "cadeau", icon: Gift, label: "Promesse", countKey: "gift_promise_count" },
   { key: "voir", icon: Eye, label: "Voir", countKey: null },
 ] as const;
 
