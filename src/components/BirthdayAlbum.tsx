@@ -39,6 +39,7 @@ import {
 
 interface AlbumItem {
   id: string;
+  uploader_id?: string | null;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
@@ -188,20 +189,14 @@ export function BirthdayAlbum({
     touchStartX.current = null;
   };
 
-  const canManage = (item: AlbumItem & { uploader_id?: string | null }) => {
+  const canManage = (item: AlbumItem) => {
     if (!user) return false;
-    // L'uploader peut toujours gérer ses propres items
-    if ((item as any).uploader_id && (item as any).uploader_id === user.id) return true;
-    // Le propriétaire de la page peut supprimer (modération)
+    if (item.uploader_id && item.uploader_id === user.id) return true;
     if (pageOwnerUserId && pageOwnerUserId === user.id) return true;
     return false;
   };
-
-  // Le composant ne reçoit pas uploader_id dans son interface AlbumItem actuelle.
-  // On considère que tout user connecté peut tenter — RLS bloquera si non autorisé.
-  // Mais pour l'UI on affiche le menu seulement si on est sûr que ce sera autorisé :
-  // soit on est le pageOwner, soit le nom uploader correspond à notre profil (heuristique faible).
-  // → Meilleure approche : récupérer uploader_id. On va l'ajouter dans le type local.
+  const canEdit = (item: AlbumItem) =>
+    !!user && !!item.uploader_id && item.uploader_id === user.id;
 
   const handleStartEdit = (item: AlbumItem) => {
     setEditingItem(item);
