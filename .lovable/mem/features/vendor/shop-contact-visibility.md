@@ -4,14 +4,19 @@ description: Les coordonnées du prestataire (téléphone, email, site web) sont
 type: feature
 ---
 
-Sur la page boutique publique (`/b/:businessId`, composant `VendorShop.tsx`), la carte « Support & Infos » (`VendorContactCard`) affiche désormais :
+Sur la page boutique publique (`/b/:businessId`, composant `VendorShop.tsx`), la carte « Support & Infos » (`VendorContactCard`) affiche le téléphone et l'email du prestataire **uniquement** si celui-ci a explicitement activé la visibilité dans ses paramètres (`/business-profile-settings`).
 
-- `vendor.phone` et `vendor.email` du prestataire en priorité (cliquables via `tel:` / `mailto:`).
-- `vendor.websiteUrl` si renseigné.
-- `vendor.address` avec bouton « Voir sur la carte ».
+**Toggles côté prestataire** (table `business_accounts`) :
+- `show_phone_publicly` (boolean, défaut `false`)
+- `show_email_publicly` (boolean, défaut `false`)
 
-**Règle de repli** : si le prestataire n'a renseigné NI téléphone NI email, on affiche les coordonnées de support JOIE DE VIVRE (`countryConfig.legalEntity.phone/email`) pour que le visiteur ait toujours un canal de contact.
+Ces toggles sont rendus en `Switch` shadcn sous chaque champ « Email professionnel » et « Téléphone » dans `BusinessProfileSettings.tsx`. Le switch est désactivé tant que le champ correspondant est vide. À l'enregistrement, on force `false` si la valeur est vide pour éviter un état incohérent.
+
+**Application de la règle** : portée par la vue publique `business_public_info` via
+`CASE WHEN show_phone_publicly THEN phone ELSE NULL END` (idem pour `email`). Cela garantit que les coordonnées masquées ne quittent jamais la BDD côté public, même si un attaquant manipule le client.
+
+**Repli côté UI** : si la vue retourne `phone`/`email` à `null`, `VendorShop.tsx` retombe sur les coordonnées de support JOIE DE VIVRE (`countryConfig.legalEntity.phone/email`) pour que le visiteur ait toujours un canal de contact.
+
+**Site web** : `website_url` n'a pas de toggle — il est public dès qu'il est renseigné (un site web est par nature publié).
 
 **Mise en page** : téléphone et email sont rendus en `col-span-2` (pleine largeur) dans la grille de la carte pour éviter la troncature des numéros internationaux et des adresses email longues sur mobile.
-
-Cette règle remplace l'ancienne politique qui masquait systématiquement les coordonnées personnelles du prestataire.
