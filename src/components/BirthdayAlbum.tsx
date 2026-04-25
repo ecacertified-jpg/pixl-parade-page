@@ -8,13 +8,38 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
-  Sparkles, Send, Quote
+  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AlbumItem {
   id: string;
+  uploader_id?: string | null;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
@@ -32,6 +57,9 @@ interface BirthdayAlbumProps {
   user: User | null;
   items: AlbumItem[];
   onItemAdded: (item: AlbumItem) => void;
+  pageOwnerUserId?: string | null;
+  onItemRemoved?: (id: string) => void;
+  onItemUpdated?: (item: AlbumItem) => void;
 }
 
 type TabType = "all" | "image" | "video" | "memory";
@@ -41,7 +69,17 @@ interface ReactionsMap {
   [photoId: string]: { counts: ReactionCounts; userReactions: UserReactions };
 }
 
-export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdded }: BirthdayAlbumProps) {
+export function BirthdayAlbum({
+  pageId,
+  slug,
+  firstName,
+  user,
+  items,
+  onItemAdded,
+  pageOwnerUserId = null,
+  onItemRemoved,
+  onItemUpdated,
+}: BirthdayAlbumProps) {
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -51,8 +89,18 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
   const [showMemoryForm, setShowMemoryForm] = useState(false);
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<AlbumItem | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [reactions, setReactions] = useState<ReactionsMap>({});
+
+  // Edit/Delete state
+  const [editingItem, setEditingItem] = useState<AlbumItem | null>(null);
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<AlbumItem | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+
+  // Touch tracking for swipe
+  const touchStartX = useRef<number | null>(null);
 
   // Fetch all reactions for this page's photos
   const loadReactions = useCallback(async () => {
@@ -109,6 +157,116 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
   };
 
   const filtered = activeTab === "all" ? items : items.filter(i => i.media_type === activeTab);
+  const lightboxItem = lightboxIndex !== null ? filtered[lightboxIndex] ?? null : null;
+
+  // Keyboard navigation in lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      else if (e.key === "ArrowLeft") setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+      else if (e.key === "ArrowRight")
+        setLightboxIndex((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i));
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxIndex, filtered.length]);
+
+  const goPrev = () => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+  const goNext = () =>
+    setLightboxIndex((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i));
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+    touchStartX.current = null;
+  };
+
+  const canManage = (item: AlbumItem) => {
+    if (!user) return false;
+    if (item.uploader_id && item.uploader_id === user.id) return true;
+    if (pageOwnerUserId && pageOwnerUserId === user.id) return true;
+    return false;
+  };
+  const canEdit = (item: AlbumItem) =>
+    !!user && !!item.uploader_id && item.uploader_id === user.id;
+
+  const handleStartEdit = (item: AlbumItem) => {
+    setEditingItem(item);
+    setEditText(item.media_type === "memory" ? (item.memory_text || "") : (item.caption || ""));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const updates =
+        editingItem.media_type === "memory"
+          ? { memory_text: editText.trim() }
+          : { caption: editText.trim() };
+
+      const { data, error } = await supabase
+        .from("birthday_page_photos")
+        .update(updates)
+        .eq("id", editingItem.id)
+        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .single();
+
+      if (error) throw error;
+      onItemUpdated?.(data as AlbumItem);
+      toast.success("Modifié ✨");
+      setEditingItem(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Modification refusée — tu n'es pas l'auteur de ce contenu");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+    setDeleteInProgress(true);
+    try {
+      // 1) Tenter de supprimer le fichier storage si présent
+      const url = deletingItem.video_url || deletingItem.image_url;
+      if (url && deletingItem.media_type !== "memory") {
+        // Extraire le path après /birthday-page-photos/
+        const marker = "/birthday-page-photos/";
+        const idx = url.indexOf(marker);
+        if (idx !== -1) {
+          const path = url.substring(idx + marker.length);
+          await supabase.storage.from("birthday-page-photos").remove([path]);
+          // ignore les erreurs storage : si RLS bloque, on continue quand même la suppression de la ligne
+        }
+      }
+      // 2) Supprimer la ligne DB
+      const { error } = await supabase
+        .from("birthday_page_photos")
+        .delete()
+        .eq("id", deletingItem.id);
+
+      if (error) throw error;
+
+      onItemRemoved?.(deletingItem.id);
+      // Si l'item supprimé est ouvert dans la lightbox, fermer ou décaler
+      if (lightboxItem?.id === deletingItem.id) setLightboxIndex(null);
+      toast.success("Supprimé");
+      setDeletingItem(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Suppression refusée");
+    } finally {
+      setDeleteInProgress(false);
+    }
+  };
 
   const requireAuth = () => {
     if (!user) {
@@ -376,15 +534,16 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
       {/* Grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {filtered.map((item) => {
+          {filtered.map((item, index) => {
             const r = getReactionsForItem(item.id);
+            const showMenu = canManage(item);
             return (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative rounded-lg overflow-hidden cursor-pointer group"
-                onClick={() => setLightboxItem(item)}
+                onClick={() => setLightboxIndex(index)}
               >
                 <div className="aspect-square">
                   {item.media_type === "image" && (
@@ -441,6 +600,39 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
                     {item.uploader_name || "Un ami"}
                   </p>
                 </div>
+
+                {/* Menu Modifier/Supprimer (uploader + propriétaire de la page) */}
+                {showMenu && (
+                  <div
+                    className="absolute top-1 right-1 z-20"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full bg-black/40 hover:bg-black/60 text-white"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        {canEdit(item) && (
+                          <DropdownMenuItem onClick={() => handleStartEdit(item)}>
+                            <Pencil className="h-4 w-4 mr-2" /> Modifier
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeletingItem(item)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </motion.div>
             );
           })}
@@ -464,18 +656,89 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setLightboxItem(null)}
+            onClick={() => setLightboxIndex(null)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
             <Button
               variant="ghost"
               size="icon"
               className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
-              onClick={() => setLightboxItem(null)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex(null);
+              }}
             >
               <X className="h-6 w-6" />
             </Button>
 
+            {/* Compteur */}
+            {filtered.length > 1 && lightboxIndex !== null && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/80 text-sm font-medium z-10 bg-black/40 px-3 py-1 rounded-full">
+                {lightboxIndex + 1} / {filtered.length}
+              </div>
+            )}
+
+            {/* Bouton Précédent */}
+            {lightboxIndex !== null && lightboxIndex > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10 h-12 w-12 rounded-full bg-black/30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
+              >
+                <ChevronLeft className="h-7 w-7" />
+              </Button>
+            )}
+
+            {/* Bouton Suivant */}
+            {lightboxIndex !== null && lightboxIndex < filtered.length - 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-10 h-12 w-12 rounded-full bg-black/30"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
+              >
+                <ChevronRight className="h-7 w-7" />
+              </Button>
+            )}
+
+            {/* Actions Modifier/Supprimer dans la lightbox */}
+            {lightboxItem && canManage(lightboxItem) && (
+              <div
+                className="absolute top-4 right-16 z-10 flex gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {canEdit(lightboxItem) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white hover:bg-white/20"
+                    onClick={() => handleStartEdit(lightboxItem)}
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:bg-destructive/20"
+                  onClick={() => setDeletingItem(lightboxItem)}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+
             <div className="max-w-3xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
+              {lightboxItem && (
+                <>
               {lightboxItem.media_type === "image" && (
                 <img
                   src={lightboxItem.image_url}
@@ -522,10 +785,66 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
                   onToggle={handleReactionToggle}
                 />
               </div>
+                </>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Dialog Modifier */}
+      <Dialog open={!!editingItem} onOpenChange={(o) => !o && setEditingItem(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingItem?.media_type === "memory" ? "Modifier le souvenir" : "Modifier la légende"}
+            </DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            placeholder={
+              editingItem?.media_type === "memory"
+                ? "Ton souvenir..."
+                : "Une petite légende (facultative)..."
+            }
+            className="min-h-[120px]"
+            maxLength={1000}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingItem(null)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Suppression */}
+      <AlertDialog open={!!deletingItem} onOpenChange={(o) => !o && setDeletingItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cet élément ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le contenu sera retiré de l'album.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteInProgress}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={deleteInProgress}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteInProgress && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

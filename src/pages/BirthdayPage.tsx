@@ -43,6 +43,7 @@ interface WishMessage {
 
 interface AlbumItem {
   id: string;
+  uploader_id?: string | null;
   uploader_name: string | null;
   image_url: string;
   caption: string | null;
@@ -197,7 +198,7 @@ const BirthdayPage = () => {
       // Load album items
       const { data: pics } = await supabase
         .from('birthday_page_photos')
-        .select('id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
+        .select('id, uploader_id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text')
         .eq('birthday_page_id', pageData.id)
         .order('created_at', { ascending: false });
 
@@ -506,6 +507,11 @@ const BirthdayPage = () => {
             user={user}
             items={albumItems}
             onItemAdded={(item) => setAlbumItems(prev => [item, ...prev])}
+            pageOwnerUserId={page!.user_id}
+            onItemRemoved={(id) => setAlbumItems(prev => prev.filter(i => i.id !== id))}
+            onItemUpdated={(updated) =>
+              setAlbumItems(prev => prev.map(i => (i.id === updated.id ? { ...i, ...updated } : i)))
+            }
           />
         </motion.div>
       </div>
