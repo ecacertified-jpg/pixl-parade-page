@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,34 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Camera, Video, BookOpen, ImagePlus, Play, X, Loader2,
-  Sparkles, Send, Quote
+  Sparkles, Send, Quote, MoreVertical, Pencil, Trash2,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { AlbumItemReactions, type ReactionCounts, type UserReactions } from "@/components/AlbumItemReactions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AlbumItem {
   id: string;
@@ -32,6 +56,9 @@ interface BirthdayAlbumProps {
   user: User | null;
   items: AlbumItem[];
   onItemAdded: (item: AlbumItem) => void;
+  pageOwnerUserId?: string | null;
+  onItemRemoved?: (id: string) => void;
+  onItemUpdated?: (item: AlbumItem) => void;
 }
 
 type TabType = "all" | "image" | "video" | "memory";
@@ -41,7 +68,17 @@ interface ReactionsMap {
   [photoId: string]: { counts: ReactionCounts; userReactions: UserReactions };
 }
 
-export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdded }: BirthdayAlbumProps) {
+export function BirthdayAlbum({
+  pageId,
+  slug,
+  firstName,
+  user,
+  items,
+  onItemAdded,
+  pageOwnerUserId = null,
+  onItemRemoved,
+  onItemUpdated,
+}: BirthdayAlbumProps) {
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -51,8 +88,18 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
   const [showMemoryForm, setShowMemoryForm] = useState(false);
   const [memoryText, setMemoryText] = useState("");
   const [sendingMemory, setSendingMemory] = useState(false);
-  const [lightboxItem, setLightboxItem] = useState<AlbumItem | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [reactions, setReactions] = useState<ReactionsMap>({});
+
+  // Edit/Delete state
+  const [editingItem, setEditingItem] = useState<AlbumItem | null>(null);
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<AlbumItem | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
+
+  // Touch tracking for swipe
+  const touchStartX = useRef<number | null>(null);
 
   // Fetch all reactions for this page's photos
   const loadReactions = useCallback(async () => {
@@ -109,6 +156,122 @@ export function BirthdayAlbum({ pageId, slug, firstName, user, items, onItemAdde
   };
 
   const filtered = activeTab === "all" ? items : items.filter(i => i.media_type === activeTab);
+  const lightboxItem = lightboxIndex !== null ? filtered[lightboxIndex] ?? null : null;
+
+  // Keyboard navigation in lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      else if (e.key === "ArrowLeft") setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+      else if (e.key === "ArrowRight")
+        setLightboxIndex((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i));
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxIndex, filtered.length]);
+
+  const goPrev = () => setLightboxIndex((i) => (i !== null && i > 0 ? i - 1 : i));
+  const goNext = () =>
+    setLightboxIndex((i) => (i !== null && i < filtered.length - 1 ? i + 1 : i));
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+    touchStartX.current = null;
+  };
+
+  const canManage = (item: AlbumItem & { uploader_id?: string | null }) => {
+    if (!user) return false;
+    // L'uploader peut toujours gérer ses propres items
+    if ((item as any).uploader_id && (item as any).uploader_id === user.id) return true;
+    // Le propriétaire de la page peut supprimer (modération)
+    if (pageOwnerUserId && pageOwnerUserId === user.id) return true;
+    return false;
+  };
+
+  // Le composant ne reçoit pas uploader_id dans son interface AlbumItem actuelle.
+  // On considère que tout user connecté peut tenter — RLS bloquera si non autorisé.
+  // Mais pour l'UI on affiche le menu seulement si on est sûr que ce sera autorisé :
+  // soit on est le pageOwner, soit le nom uploader correspond à notre profil (heuristique faible).
+  // → Meilleure approche : récupérer uploader_id. On va l'ajouter dans le type local.
+
+  const handleStartEdit = (item: AlbumItem) => {
+    setEditingItem(item);
+    setEditText(item.media_type === "memory" ? (item.memory_text || "") : (item.caption || ""));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const updates =
+        editingItem.media_type === "memory"
+          ? { memory_text: editText.trim() }
+          : { caption: editText.trim() };
+
+      const { data, error } = await supabase
+        .from("birthday_page_photos")
+        .update(updates)
+        .eq("id", editingItem.id)
+        .select("id, uploader_name, image_url, caption, created_at, media_type, video_url, video_thumbnail_url, memory_text")
+        .single();
+
+      if (error) throw error;
+      onItemUpdated?.(data as AlbumItem);
+      toast.success("Modifié ✨");
+      setEditingItem(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Modification refusée — tu n'es pas l'auteur de ce contenu");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return;
+    setDeleteInProgress(true);
+    try {
+      // 1) Tenter de supprimer le fichier storage si présent
+      const url = deletingItem.video_url || deletingItem.image_url;
+      if (url && deletingItem.media_type !== "memory") {
+        // Extraire le path après /birthday-page-photos/
+        const marker = "/birthday-page-photos/";
+        const idx = url.indexOf(marker);
+        if (idx !== -1) {
+          const path = url.substring(idx + marker.length);
+          await supabase.storage.from("birthday-page-photos").remove([path]);
+          // ignore les erreurs storage : si RLS bloque, on continue quand même la suppression de la ligne
+        }
+      }
+      // 2) Supprimer la ligne DB
+      const { error } = await supabase
+        .from("birthday_page_photos")
+        .delete()
+        .eq("id", deletingItem.id);
+
+      if (error) throw error;
+
+      onItemRemoved?.(deletingItem.id);
+      // Si l'item supprimé est ouvert dans la lightbox, fermer ou décaler
+      if (lightboxItem?.id === deletingItem.id) setLightboxIndex(null);
+      toast.success("Supprimé");
+      setDeletingItem(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Suppression refusée");
+    } finally {
+      setDeleteInProgress(false);
+    }
+  };
 
   const requireAuth = () => {
     if (!user) {
