@@ -25,6 +25,7 @@ import { BusinessLocationAlert } from "@/components/BusinessLocationAlert";
 import { BusinessPushNotificationPrompt } from "@/components/BusinessPushNotificationPrompt";
 import { ProductImportModal } from "@/components/ProductImportModal";
 import { ProductExportButton } from "@/components/ProductExportButton";
+import { BusinessAssistantFAB } from "@/components/business-setup/BusinessAssistantFAB";
 import { Business } from "@/types/business";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
