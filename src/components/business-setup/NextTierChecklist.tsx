@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
-import { Check, Circle, ChevronRight, Sparkles, Loader2, Trophy, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  Check, Circle, ChevronRight, Sparkles, Loader2, Trophy, RefreshCw,
+  HelpCircle, TrendingUp, Lightbulb,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
 import {
   TIER_DEFINITIONS,
   type SetupTier,
@@ -13,6 +19,115 @@ import type {
   QualityImprovement,
 } from '@/hooks/useBusinessQualityScore';
 import { cn } from '@/lib/utils';
+
+/**
+ * Détails enrichis par item (impact business + conseils concrets) pour la modale "Pourquoi ?".
+ * Clés alignées avec les `id` retournés par `buildRequirements`.
+ */
+const REQUIREMENT_DETAILS: Record<
+  string,
+  { impact: string; tips: string[] }
+> = {
+  logo: {
+    impact:
+      'Un logo professionnel multiplie par ~3,2 le nombre de clics sur votre boutique et débloque l’affichage public en ville.',
+    tips: [
+      'Privilégiez un logo carré, lisible même en petit (vignette mobile).',
+      'Restez cohérent avec votre activité : couleurs, style, typo.',
+      'Évitez les photos floues ou les captures d’écran : utilisez un format PNG/JPG net.',
+    ],
+  },
+  description: {
+    impact:
+      'Une description claire (40+ caractères) booste votre référencement local et rassure les clients hésitants.',
+    tips: [
+      'Commencez par CE QUE VOUS VENDEZ en 1 phrase courte.',
+      'Ajoutez un détail unique : artisanal, livré rapidement, sur commande, etc.',
+      'Terminez par votre zone d’intervention (ex. « Livraison à Cocody et Yopougon »).',
+    ],
+  },
+  phone: {
+    impact:
+      'Le numéro de contact est le premier réflexe du client : sans lui, il abandonne et passe à la boutique suivante.',
+    tips: [
+      'Utilisez un numéro WhatsApp actif que vous consultez plusieurs fois par jour.',
+      'Indiquez le format international (+225…) pour éviter les erreurs.',
+      'Activez les notifications WhatsApp Business pour répondre en moins de 30 min.',
+    ],
+  },
+  'first-product': {
+    impact:
+      'Sans produit, votre boutique est invisible dans la marketplace. Le 1er produit débloque le palier Bronze.',
+    tips: [
+      'Choisissez votre best-seller ou un produit emblématique.',
+      'Une bonne photo > 5 produits sans image.',
+      'Indiquez un prix clair en FCFA et la disponibilité.',
+    ],
+  },
+  delivery: {
+    impact:
+      'Configurer la livraison augmente de 70% les contacts entrants et est obligatoire pour passer Argent.',
+    tips: [
+      'Démarrez avec 2-3 zones précises (ex. Cocody, Plateau, Yopougon).',
+      'Fixez des frais réalistes : 1000-2000 FCFA pour une zone proche.',
+      'Proposez un seuil de livraison gratuite (ex. à partir de 15 000 FCFA) pour augmenter le panier moyen.',
+    ],
+  },
+  payment: {
+    impact:
+      'Sans paiement mobile, ~50% des acheteurs abandonnent. Wave/Mobile Money double votre taux de conversion.',
+    tips: [
+      'Configurez Wave en priorité : c’est le plus utilisé.',
+      'Ajoutez Mobile Money (Orange/MTN) en complément pour couvrir tous les profils.',
+      'Vérifiez que le numéro recevant les paiements est bien le vôtre.',
+    ],
+  },
+  'three-products': {
+    impact:
+      '3 produits offrent un vrai choix au client et multiplient par 5 vos chances de commande. Indispensable pour Argent.',
+    tips: [
+      'Variez les gammes de prix : un produit d’appel + un mid-range + un premium.',
+      'Ajoutez des variantes (tailles, couleurs) si pertinent.',
+      'Mettez à jour la disponibilité pour éviter les déceptions.',
+    ],
+  },
+  'five-products': {
+    impact:
+      '5 produits débloquent le palier Or et la mise en avant prioritaire dans le catalogue de votre ville.',
+    tips: [
+      'Diversifiez vos catégories pour attirer plus de profils différents.',
+      'Ajoutez vos nouveautés régulièrement pour rester visible dans le fil.',
+      'Réutilisez vos meilleures photos pour gagner du temps.',
+    ],
+  },
+  'product-images': {
+    impact:
+      'Une fiche sans photo est quasi ignorée. Tous les produits avec image = +visibilité sur la marketplace.',
+    tips: [
+      'Photographiez en lumière naturelle, sur fond neutre.',
+      'Format carré (1:1) — évite le recadrage automatique.',
+      'Une seule image par produit suffit, mais elle doit vendre au premier coup d’œil.',
+    ],
+  },
+  'product-descriptions': {
+    impact:
+      'Une description précise réduit les questions et les abandons : le client achète plus vite et plus souvent.',
+    tips: [
+      'Mentionnez les ingrédients / matériaux / options.',
+      'Précisez la taille, la quantité, ou la durée si pertinent.',
+      'Ajoutez un conseil d’utilisation ou de conservation.',
+    ],
+  },
+  address: {
+    impact:
+      'Une adresse visible améliore votre SEO local et permet le retrait sur place — un atout décisif pour les clients proches.',
+    tips: [
+      'Indiquez quartier + commune (ex. « Riviera 3, Cocody »).',
+      'Ajoutez un repère connu si possible (« en face de la pharmacie Saint-Michel »).',
+      'Mettez à jour si vous changez d’atelier ou de point de retrait.',
+    ],
+  },
+};
 
 interface NextTierChecklistProps {
   tier: SetupTier;
@@ -167,6 +282,13 @@ export function NextTierChecklist({
     return map;
   }, [improvements]);
 
+  const [whyOpenId, setWhyOpenId] = useState<string | null>(null);
+  const whyReq = whyOpenId
+    ? requirements.find((r) => r.id === whyOpenId) ?? null
+    : null;
+  const whyDetails = whyOpenId ? REQUIREMENT_DETAILS[whyOpenId] : null;
+  const whyImprovement = whyOpenId ? improvementById.get(whyOpenId) : undefined;
+
   const currentInfo = TIER_DEFINITIONS[tier];
   const nextInfo = nextTier ? TIER_DEFINITIONS[nextTier] : null;
 
@@ -304,9 +426,21 @@ export function NextTierChecklist({
                   )}
                 </div>
                 {!req.done && req.why && (
-                  <p className="text-[11px] text-muted-foreground leading-snug pl-7 mt-1">
-                    {req.why}
-                  </p>
+                  <div className="pl-7 mt-1">
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      {req.why}
+                    </p>
+                    {REQUIREMENT_DETAILS[req.id] && (
+                      <button
+                        type="button"
+                        onClick={() => setWhyOpenId(req.id)}
+                        className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                        Pourquoi&nbsp;?
+                      </button>
+                    )}
+                  </div>
                 )}
               </li>
             );
@@ -349,6 +483,88 @@ export function NextTierChecklist({
           </div>
         </div>
       )}
+
+      {/* "Pourquoi ?" modale */}
+      <Dialog
+        open={!!whyOpenId}
+        onOpenChange={(o) => !o && setWhyOpenId(null)}
+      >
+        <DialogContent className="max-w-md">
+          {whyReq && whyDetails && nextInfo && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-poppins text-base flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-primary" />
+                  {whyReq.label}
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Impact sur le palier{' '}
+                  <span className="font-semibold text-foreground">
+                    {nextInfo.emoji} {nextInfo.label}
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Impact */}
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-primary uppercase tracking-wide mb-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Impact business
+                  </p>
+                  <p className="text-sm text-foreground leading-snug">
+                    {whyDetails.impact}
+                  </p>
+                </div>
+
+                {/* Tips */}
+                <div>
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 uppercase tracking-wide mb-2">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    Conseils à appliquer
+                  </p>
+                  <ul className="space-y-1.5">
+                    {whyDetails.tips.map((tip, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-sm text-foreground/90 leading-snug"
+                      >
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <DialogFooter className="flex-row gap-2 sm:justify-between sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setWhyOpenId(null)}
+                  className="flex-1 sm:flex-none"
+                >
+                  Compris
+                </Button>
+                {whyImprovement && onActionClick && (
+                  <Button
+                    size="sm"
+                    className="flex-1 sm:flex-none gap-1 bg-gradient-to-br from-primary to-accent"
+                    onClick={() => {
+                      const imp = whyImprovement;
+                      setWhyOpenId(null);
+                      onActionClick(imp);
+                    }}
+                  >
+                    {whyImprovement.cta?.label || 'Compléter maintenant'}
+                    <ChevronRight className="w-3 h-3" />
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
