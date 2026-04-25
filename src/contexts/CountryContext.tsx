@@ -146,12 +146,47 @@ export function CountryProvider({ children }: CountryProviderProps) {
   // Auto-detect country on each session (not just first visit)
   useEffect(() => {
     const sessionDetected = sessionStorage.getItem(SESSION_DETECTED_KEY);
+    const manual = sessionStorage.getItem(NAV_STORAGE_MANUAL_KEY);
+
+    // Si l'utilisateur a déjà fait un choix explicite de pays dans cette session,
+    // ne jamais l'écraser par une auto-détection IP.
+    if (manual) {
+      sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
+      return;
+    }
 
     // Detect on each new session
     if (!sessionDetected) {
       setIsDetecting(true);
-      
-      detectUserCountry(false).then((detectedCode) => {
+
+      // On attend brièvement que le profil utilisateur soit chargé.
+      // Si un profil avec country_code est trouvé, l'effet `loadProfileCountry`
+      // s'en charge et l'auto-détection IP est annulée pour éviter d'écraser
+      // le pays d'origine de l'utilisateur connecté.
+      (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('country_code')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            if (data?.country_code && isValidCountryCode(data.country_code)) {
+              // Profil prioritaire — on aligne et on n'auto-détecte pas
+              setCountryCodeState(data.country_code);
+              sessionStorage.setItem(NAV_STORAGE_KEY, data.country_code);
+              sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
+              setProfileCountryCode(data.country_code);
+              setIsDetecting(false);
+              return;
+            }
+          }
+        } catch (e) {
+          // En cas d'erreur, on retombe sur l'auto-détection
+        }
+
+        const detectedCode = await detectUserCountry(false);
         if (isValidCountryCode(detectedCode)) {
           const previousCountry = sessionStorage.getItem(NAV_STORAGE_KEY);
           
@@ -169,11 +204,10 @@ export function CountryProvider({ children }: CountryProviderProps) {
             setWasAutoDetected(true);
           }
         }
-        
-        // Mark that we've detected for this session
+
         sessionStorage.setItem(SESSION_DETECTED_KEY, 'true');
         setIsDetecting(false);
-      });
+      })();
     }
   }, []);
 
