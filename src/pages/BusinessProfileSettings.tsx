@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -51,6 +52,8 @@ const BusinessProfileSettings = () => {
     website_url: "",
     latitude: null as number | null,
     longitude: null as number | null,
+    show_phone_publicly: false,
+    show_email_publicly: false,
   });
 
   useEffect(() => {
@@ -66,6 +69,8 @@ const BusinessProfileSettings = () => {
         website_url: businessAccount.website_url || "",
         latitude: (businessAccount as any).latitude ?? null,
         longitude: (businessAccount as any).longitude ?? null,
+        show_phone_publicly: businessAccount.show_phone_publicly ?? false,
+        show_email_publicly: businessAccount.show_email_publicly ?? false,
       });
     }
   }, [businessAccount]);
