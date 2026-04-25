@@ -1,87 +1,115 @@
 ## Diagnostic
 
-### Problème 1 — Pages d'anniversaire absentes du fil
+### Problème 1 — Redirection après inscription perdue
+Dans `src/pages/Auth.tsx`, le `useEffect` lignes 293-329 gère bien le param `?redirect=/birthday/...` quand un utilisateur déjà connecté arrive. **Mais** pour un nouveau signup OTP (lignes 887-906), le code force `navigate('/dashboard?onboarding=true')` et **ignore** le `redirect` param. Résultat : l'invité qui clique sur le lien WhatsApp `joiedevivre-africa.com/birthday/samira-2026`, choisit "Créer un compte", complète l'OTP… puis est envoyé sur `/dashboard` au lieu de revenir sur la page de Samira.
 
-**Vérification DB** (30 dernières pages) :
-- ✅ **Samira** (`samira-2026`) : `published_at = 2026-04-23 22:47`, `published_via_onboarding = true` → visible.
-- ❌ **Anne-Marie**, **Flore**, **Reine**, **Phanuel**, **Sangare**, **Daniel**, **Dieudonné**, etc. : `published_at = null`, `published_via_onboarding = false` → **invisibles** dans le fil (filtre `usePagesFeed` : `is_active = true AND published_at IS NOT NULL`).
+Même problème à la ligne 1101 (autre branche signup). Il faut **prioriser** le `redirect` param avant le fallback `/dashboard`.
 
-**Cause** : ces pages ont été créées automatiquement par :
-- `Dashboard.tsx` (à la connexion, pour assurer une page par an)
-- Le cron `birthday-wishes` (J-3 avant l'anniversaire)
-
-Elles sont **brouillons** par design — la mémoire stipule que seul un appui explicite sur « Créer ma page » (étape 6) les publie. Anne-Marie, Flore, etc. ne sont pas allées jusqu'au bout du builder.
-
-**Décision** : laisser le filtre brouillon/publié intact pour les pages existantes, mais **abaisser le seuil de friction** pour que ces utilisateurs publient. Deux actions complémentaires :
-
-1. **Bandeau "Publier ma page" sur `WhatDoYouWantCard`** (visible uniquement si l'utilisateur a une page brouillon non publiée) : 1 clic = publication directe + confetti, sans rouvrir tout le builder.
-2. **Backfill ciblé** (optionnel) : pour les pages auto-créées récemment où l'utilisateur a explicitement interagi avec son builder (ex. `fund_id != null` ou album non vide), publier rétroactivement. Sans interaction, on ne publie pas — c'est une page fantôme.
-
-### Problème 2 — Bouton retour absent depuis l'avatar
-
-Dans `BirthdayPage.tsx` (ligne 310), le bouton « Retour au fil » ne s'affiche que si `location.state?.fromFeed === true`. Or `WhatDoYouWantCard` (ligne 122) navigue avec `navigate(\`/birthday/${myPageSlug}\`)` **sans state**.
-
-**Fix** : passer un state explicite (`fromFeed: true` ou `from: 'home'`) lors du clic sur l'avatar, et garder l'affichage du bouton sous la même condition.
-
-### Problème 3 — Libellés et compteurs des actions de carte
-
-Dans `FeedCardActions.tsx` :
-- Ligne 23 : `label: "Cadeau"` → à renommer en **"Promesse"**.
-- Lignes 20-21 : Vidéo et Souvenir ont déjà un `countKey` (`video_count`, `memory_count`) câblé.
-
-**Vérification de la chaîne de données** dans `usePagesFeed.ts` :
-- Ligne 152 : `videoCount = photos.filter(p => p.media_type === 'video').length` ✅
-- Ligne 153 : `memoryCount = photos.filter(p => p.media_type === 'text').length` ✅
-- Ligne 161 : passés dans `feedPages.push({ ..., video_count, memory_count })` ✅
-
-Les compteurs sont déjà calculés et passés. **Le badge devrait déjà s'afficher** dès qu'une vidéo ou un souvenir existe (cf. `FeedCardActions.tsx` ligne 232 : `{count > 0 && ...}`). Si l'utilisateur ne les voit pas, c'est probablement parce qu'aucune vidéo / souvenir n'a encore été uploadée sur les pages affichées.
-
-**Action** : aucune modification nécessaire pour les compteurs eux-mêmes. Juste renommer "Cadeau" → "Promesse" et confirmer le comportement.
-
-## Plan
-
-### Fix 1 — Faciliter la publication des pages brouillons
-
-**Nouveau composant** `src/components/PublishMyBirthdayPageBanner.tsx` :
-- Hook qui récupère la page brouillon de l'utilisateur connecté pour `celebration_year = currentYear` (`is_active = true AND published_at IS NULL`).
-- Si trouvée : afficher un bandeau compact (au-dessus ou sous l'avatar dans `WhatDoYouWantCard`) avec :
-  - Texte : « Ta page d'anniversaire est prête mais non publiée. **Publie-la** pour qu'elle apparaisse dans le fil. »
-  - Bouton CTA : **"Publier maintenant"** → `UPDATE birthday_pages SET published_at = now(), published_via_onboarding = true` + confetti + `dispatchEvent('feed-refresh')` + toast.
-- Disparaît dès que `published_at IS NOT NULL`.
-
-Cela règle le problème pour Anne-Marie, Flore, Reine et tous les futurs utilisateurs qui ont une page brouillon.
-
-### Fix 2 — Bouton retour depuis l'avatar de `WhatDoYouWantCard`
-
-`src/components/WhatDoYouWantCard.tsx` ligne 122 :
-```tsx
-onClick={() => navigate(`/birthday/${myPageSlug}`, { state: { fromFeed: true } })}
+### Problème 2 — Impossible de supprimer/modifier ses contributions
+Vérification SQL sur `birthday_page_photos` :
 ```
-
-Aucune modif côté `BirthdayPage.tsx` (la condition `fromFeed` existe déjà, ligne 310).
-
-### Fix 3 — Libellé "Cadeau" → "Promesse" + confirmation des compteurs
-
-`src/components/FeedCardActions.tsx` ligne 23 :
-```ts
-{ key: "cadeau", icon: Gift, label: "Promesse", countKey: "gift_promise_count" },
+- "Anyone can view birthday page photos" (SELECT)
+- "Authenticated users can add photos" (INSERT)
 ```
+**Aucune policy UPDATE ni DELETE.** Pareil pour le bucket Storage `birthday-page-photos` : que SELECT et INSERT.
 
-Pour les compteurs **Vidéo** et **Souvenir** : aucun changement de code requis — la logique d'affichage (`count > 0`) et la chaîne de calcul depuis `usePagesFeed` sont déjà correctes. Le badge apparaîtra automatiquement dès qu'une vidéo ou un texte de souvenir sera uploadé sur la page.
+Donc même si on ajoutait des boutons UI, les requêtes seraient bloquées par RLS. Il faut migrer.
 
-### Fichiers modifiés / créés
+### Problème 3 — Navigation entre éléments dans la lightbox
+La lightbox de `BirthdayAlbum.tsx` (lignes 460-528) affiche **un seul élément** sans flèches précédent/suivant ni swipe. Quand un visiteur clique sur la 1ʳᵉ photo, il doit fermer puis rouvrir manuellement chaque élément pour les parcourir — usage inconfortable surtout sur mobile.
 
-- **créé** : `src/components/PublishMyBirthdayPageBanner.tsx` — bandeau de publication 1-clic.
-- **créé** : `src/hooks/useMyDraftBirthdayPage.ts` — hook qui détecte la page brouillon de l'année courante.
-- **édité** : `src/components/WhatDoYouWantCard.tsx` — intégrer le bandeau + ajouter `state: { fromFeed: true }` sur le clic avatar.
-- **édité** : `src/components/FeedCardActions.tsx` — renommer "Cadeau" → "Promesse".
+---
 
-### Mémoire à mettre à jour
+## Plan d'action
 
-`mem://features/birthday-pages/lifecycle-and-visibility` : ajouter « Un bandeau **PublishMyBirthdayPageBanner** sur la page d'accueil propose à l'utilisateur de publier en 1 clic sa page d'anniversaire si elle existe en brouillon (auto-créée par Dashboard ou cron). Cette action pose `published_at = now()` + `published_via_onboarding = true` au même titre que l'étape 6 de l'onboarding. »
+### 1. Migration SQL — RLS update/delete sur les contributions
+
+Nouvelle migration ajoutant aux tables/buckets la possibilité pour l'**uploader** de modifier/supprimer ses propres contributions :
+
+```sql
+-- birthday_page_photos
+CREATE POLICY "Uploaders can update their own contributions"
+  ON public.birthday_page_photos FOR UPDATE
+  USING (auth.uid() = uploader_id)
+  WITH CHECK (auth.uid() = uploader_id);
+
+CREATE POLICY "Uploaders can delete their own contributions"
+  ON public.birthday_page_photos FOR DELETE
+  USING (auth.uid() = uploader_id);
+
+-- + policy pour le créateur de la page (modération)
+CREATE POLICY "Page owner can delete any contribution"
+  ON public.birthday_page_photos FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM birthday_pages bp
+      WHERE bp.id = birthday_page_id AND bp.user_id = auth.uid()
+    )
+  );
+
+-- Storage bucket birthday-page-photos
+CREATE POLICY "Users can delete their own birthday page media"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'birthday-page-photos'
+    AND (storage.foldername(name))[2] LIKE auth.uid()::text || '-%'
+  );
+```
+*(Le path est `{pageId}/{userId}-{ts}.ext` ou `{pageId}/vid-{userId}-{ts}.ext` — la policy match l'uploader.)*
+
+### 2. Fix Auth — préserver le `redirect` après signup
+
+Dans `src/pages/Auth.tsx` :
+- Lignes 887-910 (vérification OTP) : avant le fallback `/dashboard`, lire `searchParams.get('redirect')` et naviguer vers `${redirectParam}` (avec `?onboarding=true` en suffixe pour les nouveaux comptes).
+- Ligne 1101 (autre branche signup) : même correction.
+- Garder `processAdminAutoAssign` et `acceptInvitationIfNeeded` en arrière-plan.
+
+Résultat : l'invité de Samira arrive directement sur `/birthday/samira-2026` après inscription.
+
+### 3. Composant `BirthdayAlbum.tsx` — Modifier/Supprimer
+
+Ajouter dans le **rendu de chaque carte** (grille) :
+- Un menu `...` flottant (top-right, visible si `user?.id === item.uploader_id` OU `user?.id === pageOwnerUserId`).
+- Options : **Modifier** (légende pour photo/vidéo, texte pour souvenir) + **Supprimer**.
+- `handleDelete` : `supabase.storage.from('birthday-page-photos').remove([path])` + `supabase.from('birthday_page_photos').delete().eq('id', item.id)` + retirer du state local via un nouveau callback `onItemRemoved`.
+- `handleEdit` : ouvrir un mini-dialog avec `Textarea` selon le type (caption ou memory_text), `UPDATE` puis `onItemUpdated`.
+
+Props additionnelles : `pageOwnerUserId: string`, `onItemRemoved: (id) => void`, `onItemUpdated: (item) => void`. Câbler ces callbacks dans `BirthdayPage.tsx` pour mettre à jour `albumItems`.
+
+### 4. Lightbox — navigation prev/next + swipe
+
+Refonte de la state lightbox dans `BirthdayAlbum.tsx` :
+- Remplacer `lightboxItem: AlbumItem | null` par `lightboxIndex: number | null` indexant `filtered`.
+- Ajouter deux boutons `ChevronLeft` / `ChevronRight` (gauche/droite, ratio circulaire blanc translucide), désactivés aux extrémités.
+- Support clavier : `ArrowLeft`/`ArrowRight`/`Escape` via `useEffect` sur `keydown`.
+- Support swipe mobile : utiliser le hook existant `useSwipeGesture` (déjà dans `src/hooks/`) ou `onTouchStart/onTouchEnd` simple.
+- Compteur "3 / 7" en haut.
+- Inclure les actions Modifier/Supprimer dans la lightbox aussi (si autorisé).
+
+### 5. Mise à jour mémoire
+
+Mettre à jour `mem://features/birthday-pages/lifecycle-and-visibility` :
+- Le `redirect` param `/auth?redirect=/birthday/{slug}&invited=true` est désormais **respecté à la fin du signup OTP**, garantissant que l'invité retombe sur la page d'origine.
+- Les contributeurs (uploader) **et** le propriétaire de la page peuvent supprimer/modifier les contributions album. Politiques RLS dédiées sur `birthday_page_photos` + bucket `birthday-page-photos`.
+- Lightbox album supporte navigation prev/next (clavier + swipe + boutons).
+
+---
+
+## Fichiers modifiés / créés
+
+**Créés**
+- `supabase/migrations/<timestamp>_birthday_page_photos_owner_policies.sql` — policies UPDATE/DELETE.
+
+**Modifiés**
+- `src/pages/Auth.tsx` — préserver `redirect` après OTP signup (2 endroits).
+- `src/components/BirthdayAlbum.tsx` — menu Modifier/Supprimer par carte, refonte lightbox avec prev/next + swipe + clavier.
+- `src/pages/BirthdayPage.tsx` — passer `pageOwnerUserId` + handlers `onItemRemoved` / `onItemUpdated` à `BirthdayAlbum`.
+- `.lovable/mem/features/birthday-pages/lifecycle-and-visibility.md` — documenter les nouveaux comportements.
+
+---
 
 ## Résultat attendu
 
-1. ✅ Anne-Marie, Flore, Reine et autres voient un bandeau « Ta page est prête — Publier maintenant » sur l'accueil → 1 clic et leur page apparaît dans le fil.
-2. ✅ Le clic sur l'avatar de la `WhatDoYouWantCard` mène à la page perso avec un bouton **« ← Retour au fil »** visible en haut.
-3. ✅ Sur chaque carte du fil, l'icône cadeau s'intitule désormais **« Promesse »**. Les badges compteurs (Vidéo, Souvenir, Promesse, Photo) s'affichent automatiquement dès qu'au moins un élément du type est ajouté.
+1. ✅ Un visiteur WhatsApp clique sur `/birthday/samira-2026`, crée son compte par OTP, et atterrit **directement** sur la page de Samira (plus de détour par `/dashboard`).
+2. ✅ Chaque contributeur peut **modifier la légende/texte** ou **supprimer** ses propres photos/vidéos/souvenirs ; le propriétaire de la page peut aussi modérer (supprimer) toute contribution.
+3. ✅ Dans la lightbox, navigation fluide entre éléments via flèches gauche/droite, swipe mobile et touches clavier — fini l'ouverture/fermeture répétée.
