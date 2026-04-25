@@ -806,7 +806,18 @@ const Auth = () => {
         // Auto-assign to admin if admin_ref present
         if (result.user_id) processAdminAutoAssign(result.user_id).catch(console.error);
         if (result.is_new_user) acceptInvitationIfNeeded().catch(console.error);
-        navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
+        // Priorité au param ?redirect= (invité venant d'un lien partagé)
+        const redirectParam = searchParams.get('redirect');
+        if (redirectParam) {
+          if (result.is_new_user) {
+            const sep = redirectParam.includes('?') ? '&' : '?';
+            navigate(`${redirectParam}${sep}onboarding=true`);
+          } else {
+            navigate(redirectParam);
+          }
+        } else {
+          navigate(result.is_new_user ? '/dashboard?onboarding=true' : '/dashboard');
+        }
         return;
       }
       
