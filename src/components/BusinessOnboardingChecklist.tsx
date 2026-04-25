@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Rocket, CheckCircle, Circle, ChevronDown, ChevronUp, X,
+  Rocket, CheckCircle, Circle, ChevronDown, ChevronUp, X, Sparkles,
   Store, Package, Truck, Wallet, Bell
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { OnboardingStep } from '@/hooks/useBusinessOnboarding';
+import { useBusinessSetupTier } from '@/hooks/useBusinessSetupTier';
+import { SetupTierBadge, NextTierTeaser } from '@/components/business-setup/SetupTierBadge';
 
 interface BusinessOnboardingChecklistProps {
   steps: OnboardingStep[];
@@ -15,6 +18,7 @@ interface BusinessOnboardingChecklistProps {
   completedCount: number;
   totalSteps: number;
   onDismiss: () => void;
+  businessId?: string;
   onOpenProfileSettings: () => void;
   onOpenAddProduct: () => void;
   onOpenDeliverySettings: () => void;
@@ -30,12 +34,30 @@ const stepIcons: Record<string, React.ReactNode> = {
   notifications: <Bell className="w-4 h-4" />,
 };
 
+// Short, incentive-driven benefit per step
+const stepBenefits: Record<string, string> = {
+  profile: '+3,2× de clics avec un logo + une description',
+  'first-product': '×5 chances de vente dès 3 produits en ligne',
+  delivery: '+70% de contacts si la livraison est claire',
+  payment: '×2 conversion avec un moyen de paiement local',
+  notifications: 'Ne ratez plus aucune commande',
+};
+
+const stepDuration: Record<string, string> = {
+  profile: '~1 min',
+  'first-product': '~2 min',
+  delivery: '~1 min',
+  payment: '~30 s',
+  notifications: '~30 s',
+};
+
 export const BusinessOnboardingChecklist = ({
   steps,
   progress,
   completedCount,
   totalSteps,
   onDismiss,
+  businessId,
   onOpenProfileSettings,
   onOpenAddProduct,
   onOpenDeliverySettings,
@@ -44,6 +66,8 @@ export const BusinessOnboardingChecklist = ({
 }: BusinessOnboardingChecklistProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
+  const navigate = useNavigate();
+  const { tier, nextTier } = useBusinessSetupTier(businessId);
 
   // Filter out welcome and complete steps
   const checklistSteps = steps.filter(s => s.id !== 'welcome' && s.id !== 'complete');
@@ -70,7 +94,7 @@ export const BusinessOnboardingChecklist = ({
     }
   };
 
-  if (isDismissed || progress === 100) return null;
+  if (isDismissed || tier === 'gold') return null;
 
   return (
     <motion.div
@@ -89,9 +113,12 @@ export const BusinessOnboardingChecklist = ({
                 <CardTitle className="text-base font-poppins">
                   Configurez votre boutique
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {completedCount}/{totalSteps} étapes complétées
-                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <span className="text-xs text-muted-foreground">
+                    {completedCount}/{totalSteps} actions
+                  </span>
+                  <SetupTierBadge tier={tier} size="sm" />
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -118,6 +145,9 @@ export const BusinessOnboardingChecklist = ({
             </div>
           </div>
           <Progress value={progress} className="h-2 mt-3" />
+          <div className="mt-2">
+            <NextTierTeaser nextTier={nextTier} />
+          </div>
         </CardHeader>
 
         <AnimatePresence>
@@ -129,6 +159,14 @@ export const BusinessOnboardingChecklist = ({
               transition={{ duration: 0.2 }}
             >
               <CardContent className="pt-2 pb-4">
+                <Button
+                  onClick={() => navigate('/business/setup')}
+                  className="w-full mb-3 gap-2 bg-gradient-to-r from-primary to-accent"
+                  size="sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Mode immersif guidé
+                </Button>
                 <ul className="space-y-2">
                   {checklistSteps.map((step) => (
                     <li key={step.id}>
@@ -151,9 +189,14 @@ export const BusinessOnboardingChecklist = ({
                             {step.title}
                           </p>
                           {!step.isCompleted && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {step.description}
-                            </p>
+                            <>
+                              <p className="text-xs text-primary font-medium truncate">
+                                {stepBenefits[step.id] ?? step.description}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {stepDuration[step.id] ?? ''}
+                              </p>
+                            </>
                           )}
                         </div>
                         {!step.isCompleted && (
