@@ -214,6 +214,19 @@ export default function BusinessSetup() {
     }
   }, [refreshAll]);
 
+  // Manual refresh — triggered by "Rouvrir la checklist" button.
+  const handleManualRefresh = useCallback(async () => {
+    setRefreshingChecklist(true);
+    try {
+      await refreshAll();
+      toast.success('Checklist actualisée ✨');
+    } catch {
+      toast.error('Impossible d’actualiser la checklist. Réessayez.');
+    } finally {
+      setRefreshingChecklist(false);
+    }
+  }, [refreshAll]);
+
   const handleChecklistAction = (imp: QualityImprovement) => {
     if (imp.cta?.action === 'open-add-product') {
       setShowAddProduct(true);
@@ -309,6 +322,7 @@ export default function BusinessSetup() {
           loading={qualityLoading}
           refreshing={refreshingChecklist}
           onActionClick={handleChecklistAction}
+          onRefresh={handleManualRefresh}
           className="mb-6"
         />
 

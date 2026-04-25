@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Check, Circle, ChevronRight, Sparkles, Loader2, Trophy } from 'lucide-react';
+import { Check, Circle, ChevronRight, Sparkles, Loader2, Trophy, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ interface NextTierChecklistProps {
   refreshing?: boolean;
   onActionClick?: (improvement: QualityImprovement) => void;
   onAskAssistant?: () => void;
+  onRefresh?: () => void;
   className?: string;
 }
 
@@ -147,6 +148,7 @@ export function NextTierChecklist({
   refreshing,
   onActionClick,
   onAskAssistant,
+  onRefresh,
   className,
 }: NextTierChecklistProps) {
   const requirements = useMemo(
@@ -223,9 +225,26 @@ export function NextTierChecklist({
           </div>
           <p className="text-xs text-muted-foreground">{nextInfo.reward}</p>
         </div>
-        <Badge variant="outline" className="text-[10px] flex-shrink-0">
-          {completed}/{total}
-        </Badge>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Badge variant="outline" className="text-[10px]">
+            {completed}/{total}
+          </Badge>
+          {onRefresh && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={onRefresh}
+              disabled={refreshing}
+              aria-label="Rouvrir la checklist"
+              title="Rouvrir la checklist"
+            >
+              <RefreshCw
+                className={cn('w-3.5 h-3.5', refreshing && 'animate-spin')}
+              />
+            </Button>
+          )}
+        </div>
       </div>
 
       <Progress value={progress} className="h-1.5 mb-3" />
@@ -297,21 +316,37 @@ export function NextTierChecklist({
 
       {/* Footer CTA */}
       {completed < total && (
-        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+        <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between gap-2 flex-wrap">
           <p className="text-[11px] text-muted-foreground">
             Plus que {total - completed} étape{total - completed > 1 ? 's' : ''} ✨
           </p>
-          {onAskAssistant && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 text-xs gap-1 text-primary hover:text-primary"
-              onClick={onAskAssistant}
-            >
-              <Sparkles className="w-3 h-3" />
-              Demander à l'assistant
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {onRefresh && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1"
+                onClick={onRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw
+                  className={cn('w-3 h-3', refreshing && 'animate-spin')}
+                />
+                Rouvrir la checklist
+              </Button>
+            )}
+            {onAskAssistant && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1 text-primary hover:text-primary"
+                onClick={onAskAssistant}
+              >
+                <Sparkles className="w-3 h-3" />
+                Demander à l'assistant
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </Card>
