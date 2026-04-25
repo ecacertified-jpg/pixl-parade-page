@@ -307,8 +307,60 @@ export function ContributionModal({
     setLoading(true);
 
     try {
+      // ===== GUEST MODE (non-authenticated visitor on a public fund) =====
+      if (isGuestMode) {
+        if (!guestName.trim() || guestName.trim().length < 2) {
+          toast({ title: "Nom requis", description: "Indique ton prénom pour continuer.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        if (!guestPhone.trim() || guestPhone.trim().length < 6) {
+          toast({ title: "Téléphone requis", description: "Indique un numéro pour la confirmation du don.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+
+        const { data: guestRes, error: guestErr } = await supabase.functions.invoke('contribute-as-guest', {
+          body: {
+            fund_id: fundId,
+            amount: contributionAmount,
+            message: message || undefined,
+            is_anonymous: !!isAnonymous,
+            guest_name: guestName.trim(),
+            guest_phone: guestPhone.trim(),
+            guest_email: guestEmail.trim() || undefined,
+          },
+        });
+
+        if (guestErr || (guestRes && (guestRes as any).error)) {
+          const msg = (guestRes as any)?.error || guestErr?.message || "Impossible d'enregistrer la contribution";
+          toast({ title: "Erreur de contribution", description: msg, variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Merci pour ton don ! 🎉",
+          description: `Tu as contribué ${contributionAmount.toLocaleString()} ${currency} à "${fundTitle}".`,
+        });
+
+        setAmount("");
+        setMessage("");
+        setGuestName("");
+        setGuestPhone("");
+        setGuestEmail("");
+        setIsAnonymous(false);
+
+        if (onContributionSuccess) onContributionSuccess();
+        onClose();
+        setLoading(false);
+        return;
+      }
+
+      // ===== AUTHENTICATED FLOW =====
       // Vérifier les permissions avant la contribution (seulement pour nouvelle contribution)
-      if (!isEditMode) {
+      // On saute ce check pour les cagnottes publiques (RLS l'autorise déjà côté serveur).
+      if (!isEditMode && !isFromPublicFund) {
         console.log('ContributionModal - Vérification des permissions...');
         const { data: canContribute, error: permissionError } = await supabase
           .rpc('can_contribute_to_fund', { fund_uuid: fundId });
