@@ -556,6 +556,15 @@ export function ContributionModal({
 
         {/* Contenu scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-4 py-2">
+          {isGuestMode && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                Tu peux contribuer sans créer de compte. Indique simplement ton prénom et ton numéro pour que le créateur puisse te remercier.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Info sur la cagnotte */}
           <div className="bg-muted/30 p-3 rounded-lg">
             <div className="font-medium text-sm">{fundTitle}</div>
@@ -628,6 +637,46 @@ export function ContributionModal({
               rows={3}
             />
           </div>
+
+          {isGuestMode && (
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="guest-name">Ton prénom *</Label>
+                <Input
+                  id="guest-name"
+                  type="text"
+                  placeholder="Ex: Aminata"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  maxLength={100}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="guest-phone">Ton téléphone *</Label>
+                <Input
+                  id="guest-phone"
+                  type="tel"
+                  placeholder="Ex: +225 07 00 00 00 00"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  maxLength={30}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="guest-email">Email (optionnel)</Label>
+                <Input
+                  id="guest-email"
+                  type="email"
+                  placeholder="prenom@exemple.com"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  maxLength={255}
+                />
+              </div>
+            </div>
+          )}
 
           {!isFromPublicFund && (
             <div className="flex items-center space-x-2">
